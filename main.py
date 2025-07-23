@@ -221,7 +221,9 @@ def flatten_contest_feature_column(df, column='CONTEST_FEATURE', prefix="CONTEST
     json_objs = []
     for idx, val in enumerate(df[column]):
         try:
-            obj = json.loads(val)
+            # Нормализация кавычек:
+            norm_val = val.replace('"""', '"')
+            obj = json.loads(norm_val)
         except Exception as ex:
             logging.debug(LOG_MESSAGES["json_flatten_error"].format(row=idx, error=ex))
             obj = {}
@@ -248,6 +250,56 @@ def flatten_contest_feature_column(df, column='CONTEST_FEATURE', prefix="CONTEST
     logging.info(LOG_MESSAGES["func_end"].format(func="flatten_contest_feature_column", params=params, time=func_time))
     return df
 
+def flatten_json_column(df, column, prefix, sheet=None, sep="; "):
+    from time import time
+    func_start = time()
+    params = f"(колонка: {column}, префикс: {prefix})"
+    n_rows = len(df)
+    n_errors = 0
+
+    logging.info(LOG_MESSAGES["func_start"].format(func="flatten_json_column", params=params))
+    logging.info(LOG_MESSAGES["json_flatten_start"].format(column=column, rows=n_rows))
+
+    all_keys = set()
+    json_objs = []
+    for idx, val in enumerate(df[column]):
+        try:
+            # Нормализация кавычек: """ -> "
+            norm_val = val.replace('"""', '"')
+            obj = json.loads(norm_val)
+        except Exception as ex:
+            logging.debug(LOG_MESSAGES["json_flatten_error"].format(row=idx, error=ex))
+            obj = {}
+            n_errors += 1
+        json_objs.append(obj)
+        all_keys.update(obj.keys())
+
+    for key in all_keys:
+        colname = f"{prefix}{key}"
+        new_col = []
+        for obj in json_objs:
+            val = obj.get(key, "")
+            if isinstance(val, list):
+                val = sep.join([str(x) for x in val])
+            elif isinstance(val, dict):
+                # Словарь сериализуем одной строкой
+                val = json.dumps(val, ensure_ascii=False)
+            new_col.append(val)
+        df[colname] = new_col
+
+    n_cols = len([c for c in df.columns if c.startswith(prefix)])
+    func_time = time() - func_start
+
+    logging.info(LOG_MESSAGES["json_flatten_end"].format(
+        n_cols=n_cols, n_keys=len(all_keys), n_errors=n_errors, rows=n_rows, time=func_time
+    ))
+    logging.info(LOG_MESSAGES["func_end"].format(func="flatten_json_column", params=params, time=func_time))
+    if LOG_LEVEL == "DEBUG":
+        if sheet:
+            logging.debug(LOG_MESSAGES["debug_columns"].format(sheet=sheet, columns=', '.join(df.columns.tolist())))
+            logging.debug(LOG_MESSAGES["debug_head"].format(sheet=sheet, head=df.head(3).to_string()))
+    return df
+
 
 # === Основная логика ===
 def main():
@@ -267,15 +319,16 @@ def main():
         logging.info(LOG_MESSAGES["reading_file"].format(file_path=file_path))
         df = read_csv_file(file_path)
         if df is not None:
-            # Разворачиваем JSON-колонку только для нужного листа
+            # CONTEST_FEATURE на CONTEST-DATA
             if sheet_name == "CONTEST-DATA" and "CONTEST_FEATURE" in df.columns:
-                logging.info(LOG_MESSAGES["func_start"].format(func="flatten_contest_feature_column", params=f"(лист: {sheet_name})"))
-                df = flatten_contest_feature_column(df, column='CONTEST_FEATURE', prefix="CONTEST_FEATURE => ")
-                logging.info(LOG_MESSAGES["func_end"].format(func="flatten_contest_feature_column", params=f"(лист: {sheet_name})", time=0))
-                # DEBUG: список колонок после разворота
-                logging.debug(LOG_MESSAGES["debug_columns"].format(sheet=sheet_name, columns=', '.join(df.columns.tolist())))
-                # DEBUG: первые строки DataFrame
-                logging.debug(LOG_MESSAGES["debug_head"].format(sheet=sheet_name, head=df.head(3).to_string()))
+                logging.info(LOG_MESSAGES["func_start"].format(func="flatten_json_column", params=f"(лист: {sheet_name})"))
+                df = flatten_json_column(df, column='CONTEST_FEATURE', prefix="CONTEST_FEATURE => ", sheet=sheet_name)
+                logging.info(LOG_MESSAGES["func_end"].format(func="flatten_json_column", params=f"(лист: {sheet_name})", time=0))
+            # REWARD_ADD_DATA на REWARD
+            if sheet_name == "REWARD" and "REWARD_ADD_DATA" in df.columns:
+                logging.info(LOG_MESSAGES["func_start"].format(func="flatten_json_column", params=f"(лист: {sheet_name})"))
+                df = flatten_json_column(df, column='REWARD_ADD_DATA', prefix="ADD_DATA => ", sheet=sheet_name)
+                logging.info(LOG_MESSAGES["func_end"].format(func="flatten_json_column", params=f"(лист: {sheet_name})", time=0))
             sheets_data[sheet_name] = (df, file_conf)
             files_processed += 1
             rows_total += len(df)
