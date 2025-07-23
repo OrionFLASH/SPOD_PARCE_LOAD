@@ -8,6 +8,7 @@ from openpyxl.utils import get_column_letter
 from openpyxl.styles import Alignment, Font
 from openpyxl.worksheet.dimensions import ColumnDimension, DimensionHolder
 from openpyxl.worksheet.table import Table, TableStyleInfo
+import json
 
 # === Глобальные константы и переменные ===
 
@@ -164,6 +165,30 @@ def _format_sheet(ws, df, params):
     ws.freeze_panes = params.get("freeze", "A2")
     ws.auto_filter.ref = ws.dimensions
 
+def flatten_contest_feature_column(df, column='CONTEST_FEATURE', prefix="CONTEST_FEATURE => "):
+    # Сбор всех ключей по всем строкам
+    all_keys = set()
+    json_objs = []
+    for val in df[column]:
+        try:
+            obj = json.loads(val)
+        except Exception:
+            obj = {}
+        json_objs.append(obj)
+        all_keys.update(obj.keys())
+
+    # Создаём новые колонки, заполняем
+    for key in all_keys:
+        colname = f"{prefix}{key}"
+        new_col = []
+        for obj in json_objs:
+            val = obj.get(key, "")
+            # Если массив — объединяем через ;
+            if isinstance(val, list):
+                val = ";".join([str(x) for x in val])
+            new_col.append(val)
+        df[colname] = new_col
+    return df
 
 # === Основная логика ===
 def main():
@@ -182,7 +207,11 @@ def main():
         logging.info(LOG_MESSAGES["reading_file"].format(file_path=file_path))
         df = read_csv_file(file_path)
         if df is not None:
-            # Сохраняем сразу все параметры для дальнейшего форматирования
+            # Разворачиваем JSON-колонку для нужного файла
+            if sheet_name == "CONTEST-DATA (PROM) 2025-07-14 v0" and "CONTEST_FEATURE" in df.columns:
+                logging.info("Разворачивание колонки CONTEST_FEATURE в файле %s", file_path)
+                df = flatten_contest_feature_column(df, column='CONTEST_FEATURE', prefix="CONTEST_FEATURE => ")
+                logging.info("Разворачивание завершено: добавлено %d колонок", len([c for c in df.columns if c.startswith("CONTEST_FEATURE => ")]))
             sheets_data[sheet_name] = (df, file_conf)
             files_processed += 1
             rows_total += len(df)
@@ -202,6 +231,7 @@ def main():
     logging.info(LOG_MESSAGES["summary"].format(summary="; ".join(summary)))
     logging.info(f"Excel file: {output_excel}")
     logging.info(f"Log file: {log_file}")
+
 
 
 if __name__ == "__main__":
