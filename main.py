@@ -3,12 +3,10 @@ import sys
 import pandas as pd
 import logging
 from datetime import datetime
-from pandas import ExcelWriter
 from openpyxl.utils import get_column_letter
 from openpyxl.styles import Alignment, Font
-from openpyxl.worksheet.dimensions import ColumnDimension, DimensionHolder
-from openpyxl.worksheet.table import Table, TableStyleInfo
 import json
+from time import time
 
 # === Глобальные константы и переменные ===
 # Каталоги
@@ -253,7 +251,6 @@ def setup_logger():
 
 # === Чтение CSV ===
 def read_csv_file(file_path):
-    from time import time
     func_start = time()
     params = f"({file_path})"
     logging.info(LOG_MESSAGES["func_start"].format(func="read_csv_file", params=params))
@@ -273,7 +270,6 @@ def read_csv_file(file_path):
 
 # === Запись в Excel с форматированием ===
 def write_to_excel(sheets_data, output_path):
-    from time import time
     func_start = time()
     params = f"({output_path})"
     logging.info(LOG_MESSAGES["func_start"].format(func="write_to_excel", params=params))
@@ -299,7 +295,6 @@ def write_to_excel(sheets_data, output_path):
 
 # === Форматирование листа ===
 def _format_sheet(ws, df, params):
-    from time import time
     func_start = time()
     params_str = f"({ws.title})"
     logging.debug(LOG_MESSAGES["func_start"].format(func="_format_sheet", params=params_str))
@@ -322,6 +317,7 @@ def _format_sheet(ws, df, params):
         for cell in row:
             cell.alignment = align_data
 
+    # Закрепление строк и столбцов
     ws.freeze_panes = params.get("freeze", "A2")
     ws.auto_filter.ref = ws.dimensions
 
@@ -334,12 +330,68 @@ def _format_sheet(ws, df, params):
         for cell in row:
             cell.alignment = align_data
 
-    # Закрепление строк и столбцов
-    ws.freeze_panes = params.get("freeze", "A2")
-    ws.auto_filter.ref = ws.dimensions
+def flatten_nested_json_column(df, source_col, prefix, subfield, sheet=None, sep="; "):
+    """
+    Разворачивает под-поле subfield внутри JSON-строк в колонке source_col.
+    subfield — имя ключа внутри JSON (например, 'nonRewards')
+    prefix — что добавить к колонкам (например, "ADD_DATA => getCondition => nonRewards => ")
+    """
+    func_start = time()
+    params = f"(колонка: {source_col}, поле: {subfield}, префикс: {prefix})"
+    n_rows = len(df)
+    n_errors = 0
+    logging.info(LOG_MESSAGES["func_start"].format(func="flatten_nested_json_column", params=params))
+
+    all_keys = set()
+    json_objs = []
+    # 1. Получаем содержимое subfield для каждой строки (если возможно)
+    for idx, val in enumerate(df[source_col]):
+        try:
+            # Если нет данных — пусто
+            if not val or str(val).strip() in {"-", ""}:
+                obj = {}
+            else:
+                # Преобразуем строку в JSON
+                main_obj = json.loads(val) if isinstance(val, str) else val
+                sub_obj = main_obj.get(subfield, {})
+                # если строка — тоже json
+                if isinstance(sub_obj, str):
+                    sub_obj = json.loads(sub_obj)
+                obj = sub_obj if isinstance(sub_obj, dict) else {}
+        except Exception as ex:
+            logging.debug(LOG_MESSAGES["json_flatten_error"].format(row=idx, error=ex))
+            obj = {}
+            n_errors += 1
+        json_objs.append(obj)
+        all_keys.update(obj.keys())
+
+    # 2. Формируем новые колонки
+    for key in all_keys:
+        colname = f"{prefix}{key}"
+        new_col = []
+        for obj in json_objs:
+            val = obj.get(key, "")
+            if isinstance(val, list):
+                val = sep.join([str(x) for x in val])
+            elif isinstance(val, dict):
+                val = json.dumps(val, ensure_ascii=False)
+            new_col.append(val)
+        df[colname] = new_col
+
+    n_cols = len([c for c in df.columns if c.startswith(prefix)])
+    func_time = time() - func_start
+
+    logging.info(LOG_MESSAGES["json_flatten_end"].format(
+        n_cols=n_cols, n_keys=len(all_keys), n_errors=n_errors, rows=n_rows, time=func_time
+    ))
+    logging.info(LOG_MESSAGES["func_end"].format(func="flatten_nested_json_column", params=params, time=func_time))
+    if LOG_LEVEL == "DEBUG":
+        if sheet:
+            logging.debug(LOG_MESSAGES["debug_columns"].format(sheet=sheet, columns=', '.join(df.columns.tolist())))
+            logging.debug(LOG_MESSAGES["debug_head"].format(sheet=sheet, head=df.head(3).to_string()))
+    return df
 
 def flatten_contest_feature_column(df, column='CONTEST_FEATURE', prefix="CONTEST_FEATURE => "):
-    from time import time
     func_start = time()
     params = f"(колонка: {column})"
     n_rows = len(df)
@@ -382,7 +434,6 @@ def flatten_contest_feature_column(df, column='CONTEST_FEATURE', prefix="CONTEST
     return df
 
 def flatten_json_column(df, column, prefix, sheet=None, sep="; "):
-    from time import time
     func_start = time()
     params = f"(колонка: {column}, префикс: {prefix})"
     n_rows = len(df)
@@ -534,7 +585,6 @@ def collect_summary_keys(dfs):
 
 
 def build_summary_sheet(dfs, params_summary, merge_fields):
-    from time import time
     func_start = time()
     params_log = f"(лист: {params_summary['sheet']})"
     logging.info(LOG_MESSAGES["func_start"].format(func="build_summary_sheet", params=params_log))
@@ -579,7 +629,6 @@ def build_summary_sheet(dfs, params_summary, merge_fields):
 
 
 def enrich_reward_with_contest_code(df_reward, df_link):
-    from time import time
     func_start = time()
     logging.info(LOG_MESSAGES["func_start"].format(func="enrich_reward_with_contest_code", params="(REWARD)"))
     # строим map по REWARD_CODE -> CONTEST_CODE
@@ -591,7 +640,6 @@ def enrich_reward_with_contest_code(df_reward, df_link):
     return df_reward
 
 def add_fields_to_sheet(df_base, df_ref, src_keys, dst_keys, columns, sheet_name, ref_sheet_name):
-    from time import time
     func_start = time()
     logging.info(LOG_MESSAGES["func_start"].format(
         func="add_fields_to_sheet",
@@ -627,6 +675,7 @@ def add_fields_to_sheet(df_base, df_ref, src_keys, dst_keys, columns, sheet_name
     ))
     return df_base
 
+
 def main():
     start_time = datetime.now()
     log_file = setup_logger()
@@ -647,25 +696,29 @@ def main():
         if df is not None:
             # CONTEST_FEATURE на CONTEST-DATA
             if sheet_name == "CONTEST-DATA" and "CONTEST_FEATURE" in df.columns:
-                logging.info(LOG_MESSAGES["func_start"].format(func="flatten_json_column", params=f"(лист: {sheet_name})"))
+                logging.info(
+                    LOG_MESSAGES["func_start"].format(func="flatten_json_column", params=f"(лист: {sheet_name})"))
                 df = flatten_json_column(df, column='CONTEST_FEATURE', prefix="CONTEST_FEATURE => ", sheet=sheet_name)
-                logging.info(LOG_MESSAGES["func_end"].format(func="flatten_json_column", params=f"(лист: {sheet_name})", time=0))
-            # REWARD_ADD_DATA на REWARD с вложенным getCondition
+                logging.info(
+                    LOG_MESSAGES["func_end"].format(func="flatten_json_column", params=f"(лист: {sheet_name})", time=0))
+            # REWARD_ADD_DATA на REWARD с вложенным getCondition + вложенные nonRewards, employeeRating
             if sheet_name == "REWARD" and "REWARD_ADD_DATA" in df.columns:
-                logging.info(LOG_MESSAGES["func_start"].format(func="flatten_json_column", params=f"(лист: {sheet_name})"))
+                logging.info(
+                    LOG_MESSAGES["func_start"].format(func="flatten_json_column", params=f"(лист: {sheet_name})"))
                 df = flatten_json_column(df, column='REWARD_ADD_DATA', prefix="ADD_DATA => ", sheet=sheet_name)
-                logging.info(LOG_MESSAGES["func_end"].format(func="flatten_json_column", params=f"(лист: {sheet_name})", time=0))
+                logging.info(
+                    LOG_MESSAGES["func_end"].format(func="flatten_json_column", params=f"(лист: {sheet_name})", time=0))
 
                 # --- Дополнительно разворачиваем ADD_DATA => getCondition ---
                 getcond_col = "ADD_DATA => getCondition"
                 if getcond_col in df.columns:
                     idx = df.columns.get_loc(getcond_col)
-                    # Соберём список всех ключей во вложенных JSON
+                    # Соберём список всех ключей во вложенных JSON getCondition
                     all_keys = set()
                     json_objs = []
                     for i, val in enumerate(df[getcond_col]):
                         try:
-                            if pd.isnull(val) or val == "":
+                            if pd.isnull(val) or val == "" or val == "-":
                                 obj = {}
                             else:
                                 obj = json.loads(val)
@@ -674,7 +727,7 @@ def main():
                             obj = {}
                         json_objs.append(obj)
                         all_keys.update(obj.keys())
-                    # Создаём новые столбцы
+                    # Создаём новые столбцы по getCondition
                     for key in all_keys:
                         new_col = []
                         for obj in json_objs:
@@ -689,11 +742,46 @@ def main():
                     # Переставим новые колонки сразу после getCondition
                     cols = df.columns.tolist()
                     insert_at = cols.index(getcond_col) + 1
-                    new_cols = [f"ADD_DATA => getCondition => {k}" for k in all_keys if f"ADD_DATA => getCondition => {k}" in cols]
+                    new_cols = [f"ADD_DATA => getCondition => {k}" for k in all_keys if
+                                f"ADD_DATA => getCondition => {k}" in cols]
                     for col in reversed(new_cols):
                         cols.remove(col)
                         cols.insert(insert_at, col)
                     df = df[cols]
+
+                    # --- Теперь развернём вложенные поля nonRewards и employeeRating ---
+                    for subfield, subprefix in [("nonRewards", "ADD_DATA => getCondition => nonRewards => "),
+                                                ("employeeRating", "ADD_DATA => getCondition => employeeRating => ")]:
+                        # Разворачиваем только если хотя бы одно значение не пустое и похоже на JSON
+                        nested_json_objs = []
+                        all_nested_keys = set()
+                        for val in df[getcond_col]:
+                            try:
+                                if pd.isnull(val) or val == "" or val == "-":
+                                    obj = {}
+                                else:
+                                    parent = json.loads(val)
+                                    sub = parent.get(subfield, {})
+                                    if isinstance(sub, str):
+                                        sub = json.loads(sub)
+                                    obj = sub if isinstance(sub, dict) else {}
+                            except Exception:
+                                obj = {}
+                            nested_json_objs.append(obj)
+                            all_nested_keys.update(obj.keys())
+                        # Добавляем столбцы для всех ключей
+                        for key in all_nested_keys:
+                            new_col = []
+                            for obj in nested_json_objs:
+                                v = obj.get(key, "")
+                                if isinstance(v, list):
+                                    v = ";".join(map(str, v))
+                                elif isinstance(v, dict):
+                                    v = json.dumps(v, ensure_ascii=False)
+                                new_col.append(v)
+                            colname = f"{subprefix}{key}"
+                            df[colname] = new_col
+                        # Эти новые колонки просто в конец (по вашему последнему указанию)
 
             sheets_data[sheet_name] = (df, file_conf)
             files_processed += 1
@@ -734,6 +822,7 @@ def main():
     logging.info(LOG_MESSAGES["summary"].format(summary="; ".join(summary)))
     logging.info(f"Excel file: {output_excel}")
     logging.info(f"Log file: {log_file}")
+
 
 if __name__ == "__main__":
     main()
