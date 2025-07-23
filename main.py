@@ -17,35 +17,73 @@ DIR_OUTPUT = '/Users/orionflash/Desktop/MyProject/SPOD_PROM/OUT/'
 DIR_LOGS = '/Users/orionflash/Desktop/MyProject/SPOD_PROM/LOGS/'
 
 # Входные файлы (имя без расширения)
+# Соответствие: Имя листа, максимальная ширина колонки, закрепление
 INPUT_FILES = [
-    "CONTEST-DATA (PROM) 2025-07-14 v0",
-    "GROUP (PROM) 2025-06-17 v1",
-    "INDICATOR (PROM) 2025-06-17 v1",
-    "REPORT (PROM-KMKKSB) 2025-06-17 v1",
-    "REWARD (PROM) 2025-07-21 v0",
-    "REWARD-LINK (PROM) 2025-07-14 v0",
-    "SVD_KB_DM_GAMIFICATION_ORG_UNIT_V20 2025_07_11 v1",
-    "TOURNAMENT-SCHEDULE (PROM) 2025-07-21 v0",
-    "PROM_USER_ROLE 2025-05-30 v0",
-    "PROM_USER_ROLE SB 2025-05-30 v1"
+    {
+        "file": "CONTEST-DATA (PROM) 2025-07-14 v0",
+        "sheet": "CONTEST-DATA",
+        "max_col_width": 120,
+        "freeze": "C2"
+    },
+    {
+        "file": "GROUP (PROM) 2025-06-17 v1",
+        "sheet": "GROUP",
+        "max_col_width": 20,
+        "freeze": "C2"
+    },
+    {
+        "file": "INDICATOR (PROM) 2025-06-17 v1",
+        "sheet": "INDICATOR",
+        "max_col_width": 20,
+        "freeze": "B2"
+    },
+    {
+        "file": "REPORT (PROM-KMKKSB) 2025-06-17 v1",
+        "sheet": "REPORT",
+        "max_col_width": 25,
+        "freeze": "D2"
+    },
+    {
+        "file": "REWARD (PROM) 2025-07-21 v0",
+        "sheet": "REWARD",
+        "max_col_width": 140,
+        "freeze": "B2"
+    },
+    {
+        "file": "REWARD-LINK (PROM) 2025-07-14 v0",
+        "sheet": "REWARD-LINK",
+        "max_col_width": 30,
+        "freeze": "A2"
+    },
+    {
+        "file": "SVD_KB_DM_GAMIFICATION_ORG_UNIT_V20 2025_07_11 v1",
+        "sheet": "ORG_UNIT_V20",
+        "max_col_width": 60,
+        "freeze": "A2"
+    },
+    {
+        "file": "TOURNAMENT-SCHEDULE (PROM) 2025-07-21 v0",
+        "sheet": "TOURNAMENT-SCHEDULE",
+        "max_col_width": 120,
+        "freeze": "B2"
+    },
+    {
+        "file": "PROM_USER_ROLE 2025-05-30 v0",
+        "sheet": "USER_ROLE",
+        "max_col_width": 60,
+        "freeze": "D2"
+    },
+    {
+        "file": "PROM_USER_ROLE SB 2025-05-30 v1",
+        "sheet": "USER_ROLE SB",
+        "max_col_width": 60,
+        "freeze": "D2"
+    }
 ]
 
-# Соответствие: Имя листа, максимальная ширина колонки, закрепление
-SHEET_PARAMS = {
-    "CONTEST-DATA (PROM) 2025-07-14 v0":         {"max_col_width": 40, "freeze": "A2"},
-    "GROUP (PROM) 2025-06-17 v1":                {"max_col_width": 30, "freeze": "A2"},
-    "INDICATOR (PROM) 2025-06-17 v1":            {"max_col_width": 25, "freeze": "A2"},
-    "REPORT (PROM-KMKKSB) 2025-06-17 v1":        {"max_col_width": 40, "freeze": "A2"},
-    "REWARD (PROM) 2025-07-21 v0":               {"max_col_width": 25, "freeze": "A2"},
-    "REWARD-LINK (PROM) 2025-07-14 v0":          {"max_col_width": 30, "freeze": "A2"},
-    "SVD_KB_DM_GAMIFICATION_ORG_UNIT_V20 2025_07_11 v1": {"max_col_width": 40, "freeze": "A2"},
-    "TOURNAMENT-SCHEDULE (PROM) 2025-07-21 v0":  {"max_col_width": 25, "freeze": "A2"},
-    "PROM_USER_ROLE 2025-05-30 v0":              {"max_col_width": 25, "freeze": "A2"},
-    "PROM_USER_ROLE SB 2025-05-30 v1":           {"max_col_width": 25, "freeze": "A2"},
-}
 
 # Логирование: уровень, шаблоны, имена
-LOG_LEVEL = "INFO"  # или "DEBUG"
+LOG_LEVEL = "DEBUG"  # или "DEBUG"
 LOG_BASE_NAME = "LOGS"
 LOG_MESSAGES = {
     "start":            "=== Старт работы программы: {time} ===",
@@ -92,17 +130,14 @@ def read_csv_file(file_path):
 # === Запись в Excel с форматированием ===
 def write_to_excel(sheets_data, output_path):
     with pd.ExcelWriter(output_path, engine="openpyxl") as writer:
-        for sheet_name, df in sheets_data.items():
+        for sheet_name, (df, params) in sheets_data.items():
             df.to_excel(writer, index=False, sheet_name=sheet_name)
             ws = writer.sheets[sheet_name]
-            params = SHEET_PARAMS.get(sheet_name, {"max_col_width": 30, "freeze": "A2"})
-            # Форматирование: ширина, автофильтр, закрепление
             _format_sheet(ws, df, params)
             logging.info(LOG_MESSAGES["sheet_written"].format(sheet=sheet_name, rows=len(df), cols=len(df.columns)))
 
 # === Форматирование листа ===
 def _format_sheet(ws, df, params):
-    # Заголовок жирный, перенос строк, центр по горизонтали и вертикали
     header_font = Font(bold=True)
     align_center = Alignment(horizontal="center", vertical="center", wrap_text=True)
     align_data = Alignment(horizontal="left", vertical="center", wrap_text=True)
@@ -113,18 +148,22 @@ def _format_sheet(ws, df, params):
         cell.font = header_font
         cell.alignment = align_center
         col_letter = get_column_letter(col_num)
-        max_width = min(max([len(str(cell.value)) for cell in ws[get_column_letter(col_num)] if cell.value] + [8]), max_col_width)
+        # Ширина — под контент, но не больше max_col_width
+        max_width = min(
+            max([len(str(cell.value)) for cell in ws[get_column_letter(col_num)] if cell.value] + [8]),
+            max_col_width
+        )
         ws.column_dimensions[col_letter].width = max_width
 
-    # Форматирование данных (перенос, выравнивание по левому краю, по вертикали по центру)
+    # Данные: перенос строк, выравнивание по левому краю, по вертикали по центру
     for row in ws.iter_rows(min_row=2, max_row=ws.max_row, max_col=ws.max_column):
         for cell in row:
             cell.alignment = align_data
 
     # Закрепление строк и столбцов
     ws.freeze_panes = params.get("freeze", "A2")
-    # Автофильтр
     ws.auto_filter.ref = ws.dimensions
+
 
 # === Основная логика ===
 def main():
@@ -137,19 +176,20 @@ def main():
     rows_total = 0
     summary = []
 
-    for file_name in INPUT_FILES:
-        file_path = os.path.join(DIR_INPUT, file_name + ".CSV")
+    for file_conf in INPUT_FILES:
+        file_path = os.path.join(DIR_INPUT, file_conf["file"] + ".CSV")
+        sheet_name = file_conf["sheet"]
         logging.info(LOG_MESSAGES["reading_file"].format(file_path=file_path))
         df = read_csv_file(file_path)
         if df is not None:
-            sheets_data[file_name] = df
+            # Сохраняем сразу все параметры для дальнейшего форматирования
+            sheets_data[sheet_name] = (df, file_conf)
             files_processed += 1
             rows_total += len(df)
-            summary.append(f"{file_name}: {len(df)} строк")
+            summary.append(f"{sheet_name}: {len(df)} строк")
         else:
-            summary.append(f"{file_name}: ошибка")
+            summary.append(f"{sheet_name}: ошибка")
 
-    # Выходной Excel
     output_excel = os.path.join(DIR_OUTPUT, get_output_filename())
     write_to_excel(sheets_data, output_excel)
 
@@ -162,6 +202,7 @@ def main():
     logging.info(LOG_MESSAGES["summary"].format(summary="; ".join(summary)))
     logging.info(f"Excel file: {output_excel}")
     logging.info(f"Log file: {log_file}")
+
 
 if __name__ == "__main__":
     main()
