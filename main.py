@@ -11,7 +11,6 @@ from openpyxl.worksheet.table import Table, TableStyleInfo
 import json
 
 # === Глобальные константы и переменные ===
-
 # Каталоги
 DIR_INPUT = '/Users/orionflash/Desktop/MyProject/SPOD_PROM/SPOD/'
 DIR_OUTPUT = '/Users/orionflash/Desktop/MyProject/SPOD_PROM/OUT/'
