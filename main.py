@@ -238,6 +238,31 @@ SUMMARY_MERGE_FIELDS = [
     },
  ]
 
+CHECK_DUPLICATES = [
+    {"sheet": "CONTEST-DATA", "key": ["CONTEST_CODE"]},
+    {"sheet": "GROUP",        "key": ["CONTEST_CODE", "GROUP_CODE"]},
+    {"sheet": "INDICATOR",    "key": ["CONTEST_CODE"]},
+    {"sheet": "REPORT",       "key": ["MANAGER_PERSON_NUMBER", "TOURNAMENT_CODE"]},
+    {"sheet": "REWARD",       "key": ["REWARD_CODE"]},
+    # ... добавьте нужные листы и ключи
+]
+
+CHECK_DUPLICATES = [
+    {
+        "sheet": "CONTEST-DATA",
+        "key": ["CONTEST_CODE"]
+    },
+    {
+        "sheet": "GROUP",
+        "key": ["CONTEST_CODE", "GROUP_CODE"]
+    },
+    {
+        "sheet": "REPORT",
+        "key": ["MANAGER_PERSON_NUMBER", "TOURNAMENT_CODE"]
+    },
+]
+
+
 # Логирование: уровень, шаблоны, имена
 LOG_LEVEL = "DEBUG"  # или "DEBUG"
 LOG_BASE_NAME = "LOGS"
@@ -259,7 +284,11 @@ LOG_MESSAGES = {
     "debug_head":           "[DEBUG] {sheet}: первые строки после разворачивания:\n{head}",
     "field_joined":         "Колонка {column} присоединена из {src_sheet} по ключу {dst_key} -> {src_key}",
     "field_missing":        "Колонка {column} не добавлена: нет листа {src_sheet} или ключей {src_key}",
-    "fields_summary":       "Итоговая структура: {rows} строк, {cols} колонок"
+    "fields_summary":       "Итоговая структура: {rows} строк, {cols} колонок",
+    "duplicates_start":     "[START] Проверка дублей: {sheet}, ключ: {keys}",
+    "duplicates_found":     "[INFO] Дублей найдено: {count} на листе {sheet} по ключу {keys}",
+    "duplicates_error":     "[ERROR] Ошибка при поиске дублей: {sheet}, ключ: {keys}: {error}",
+    "duplicates_end":       "[END] Проверка дублей: {sheet}, время: {time:.3f}s"
 }
 
 # Выходной файл Excel
@@ -624,6 +653,30 @@ def collect_summary_keys(dfs):
     summary_keys = pd.DataFrame(all_rows, columns=key_cols).drop_duplicates().reset_index(drop=True)
     return summary_keys
 
+def mark_duplicates(df, key_cols, sheet_name=None):
+    """
+    Добавляет колонку с пометкой о дублях по key_cols.
+    Если строк по ключу больше одной — пишем xN, иначе пусто.
+    """
+    import time as tmod
+    func_start = tmod.time()
+    key_str = "_".join(key_cols)
+    col_name = f"ДУБЛЬ: {key_str}"
+    params = {"sheet": sheet_name, "keys": key_cols}
+
+    logging.info(LOG_MESSAGES["duplicates_start"].format(sheet=sheet_name, keys=key_cols))
+    try:
+        dup_counts = df.groupby(key_cols)[key_cols[0]].transform('count')
+        df[col_name] = dup_counts.apply(lambda x: f"x{x}" if x > 1 else "")
+        n_duplicates = (df[col_name] != "").sum()
+        func_time = tmod.time() - func_start
+        logging.info(LOG_MESSAGES["duplicates_found"].format(count=n_duplicates, sheet=sheet_name, keys=key_cols))
+        logging.info(LOG_MESSAGES["duplicates_end"].format(sheet=sheet_name, time=func_time))
+    except Exception as ex:
+        func_time = tmod.time() - func_start
+        logging.error(LOG_MESSAGES["duplicates_error"].format(sheet=sheet_name, keys=key_cols, error=ex))
+        logging.info(LOG_MESSAGES["duplicates_end"].format(sheet=sheet_name, time=func_time))
+    return df
 
 def build_summary_sheet(dfs, params_summary, merge_fields):
     func_start = time()
@@ -737,24 +790,19 @@ def main():
         if df is not None:
             # CONTEST_FEATURE на CONTEST-DATA
             if sheet_name == "CONTEST-DATA" and "CONTEST_FEATURE" in df.columns:
-                logging.info(
-                    LOG_MESSAGES["func_start"].format(func="flatten_json_column", params=f"(лист: {sheet_name})"))
+                logging.info(LOG_MESSAGES["func_start"].format(func="flatten_json_column", params=f"(лист: {sheet_name})"))
                 df = flatten_json_column(df, column='CONTEST_FEATURE', prefix="CONTEST_FEATURE => ", sheet=sheet_name)
-                logging.info(
-                    LOG_MESSAGES["func_end"].format(func="flatten_json_column", params=f"(лист: {sheet_name})", time=0))
+                logging.info(LOG_MESSAGES["func_end"].format(func="flatten_json_column", params=f"(лист: {sheet_name})", time=0))
             # REWARD_ADD_DATA на REWARD с вложенным getCondition + вложенные nonRewards, employeeRating
             if sheet_name == "REWARD" and "REWARD_ADD_DATA" in df.columns:
-                logging.info(
-                    LOG_MESSAGES["func_start"].format(func="flatten_json_column", params=f"(лист: {sheet_name})"))
+                logging.info(LOG_MESSAGES["func_start"].format(func="flatten_json_column", params=f"(лист: {sheet_name})"))
                 df = flatten_json_column(df, column='REWARD_ADD_DATA', prefix="ADD_DATA => ", sheet=sheet_name)
-                logging.info(
-                    LOG_MESSAGES["func_end"].format(func="flatten_json_column", params=f"(лист: {sheet_name})", time=0))
+                logging.info(LOG_MESSAGES["func_end"].format(func="flatten_json_column", params=f"(лист: {sheet_name})", time=0))
 
                 # --- Дополнительно разворачиваем ADD_DATA => getCondition ---
                 getcond_col = "ADD_DATA => getCondition"
                 if getcond_col in df.columns:
                     idx = df.columns.get_loc(getcond_col)
-                    # Соберём список всех ключей во вложенных JSON getCondition
                     all_keys = set()
                     json_objs = []
                     for i, val in enumerate(df[getcond_col]):
@@ -768,7 +816,6 @@ def main():
                             obj = {}
                         json_objs.append(obj)
                         all_keys.update(obj.keys())
-                    # Создаём новые столбцы по getCondition
                     for key in all_keys:
                         new_col = []
                         for obj in json_objs:
@@ -780,20 +827,14 @@ def main():
                             new_col.append(v)
                         colname = f"ADD_DATA => getCondition => {key}"
                         df[colname] = new_col
-                    # Переставим новые колонки сразу после getCondition
                     cols = df.columns.tolist()
                     insert_at = cols.index(getcond_col) + 1
-                    new_cols = [f"ADD_DATA => getCondition => {k}" for k in all_keys if
-                                f"ADD_DATA => getCondition => {k}" in cols]
+                    new_cols = [f"ADD_DATA => getCondition => {k}" for k in all_keys if f"ADD_DATA => getCondition => {k}" in cols]
                     for col in reversed(new_cols):
                         cols.remove(col)
                         cols.insert(insert_at, col)
                     df = df[cols]
-
-                    # --- Теперь развернём вложенные поля nonRewards и employeeRating ---
-                    for subfield, subprefix in [("nonRewards", "ADD_DATA => getCondition => nonRewards => "),
-                                                ("employeeRating", "ADD_DATA => getCondition => employeeRating => ")]:
-                        # Разворачиваем только если хотя бы одно значение не пустое и похоже на JSON
+                    for subfield, subprefix in [("nonRewards", "ADD_DATA => getCondition => nonRewards => "), ("employeeRating", "ADD_DATA => getCondition => employeeRating => ")]:
                         nested_json_objs = []
                         all_nested_keys = set()
                         for val in df[getcond_col]:
@@ -810,7 +851,6 @@ def main():
                                 obj = {}
                             nested_json_objs.append(obj)
                             all_nested_keys.update(obj.keys())
-                        # Добавляем столбцы для всех ключей
                         for key in all_nested_keys:
                             new_col = []
                             for obj in nested_json_objs:
@@ -822,8 +862,11 @@ def main():
                                 new_col.append(v)
                             colname = f"{subprefix}{key}"
                             df[colname] = new_col
-                        # Эти новые колонки просто в конец (по вашему последнему указанию)
 
+            # === Проверка на дубли ===
+            check_cfg = next((x for x in CHECK_DUPLICATES if x["sheet"] == sheet_name), None)
+            if check_cfg:
+                df = mark_duplicates(df, check_cfg["key"], sheet_name=sheet_name)
             sheets_data[sheet_name] = (df, file_conf)
             files_processed += 1
             rows_total += len(df)
@@ -863,7 +906,6 @@ def main():
     logging.info(LOG_MESSAGES["summary"].format(summary="; ".join(summary)))
     logging.info(f"Excel file: {output_excel}")
     logging.info(f"Log file: {log_file}")
-
 
 if __name__ == "__main__":
     main()
