@@ -99,6 +99,7 @@ SUMMARY_MERGE_FIELDS = [
         "column": [
             "FULL_NAME",
             "CONTEST_FEATURE => momentRewarding",
+            "FACTOR_MATCH"
             "PLAN_MOD_VALUE",
             "BUSINESS_BLOCK",
             "CONTEST_FEATURE => tournamentStartMailing",
@@ -139,6 +140,7 @@ SUMMARY_MERGE_FIELDS = [
             "END_DT",
             "RESULT_DT",
             "TOURNAMENT_STATUS"
+            "TARGET_TYPE"
         ],
         "mode": "value",
     },
@@ -325,7 +327,7 @@ COLOR_SCHEME = [
         "column_fg": None,
         "style_scope": "header",
         "sheets": ["SUMMARY"],
-        "columns": ["REPORT=>CONTEST_DATE"],
+        "columns": ["REPORT=>CONTEST_DATE", "REPORT=>COUNT"],
         # #D9F2E6 — светло-зелёный (header)
     },
     {
@@ -365,7 +367,7 @@ CHECK_DUPLICATES = [
     {"sheet": "CONTEST-DATA", "key": ["CONTEST_CODE"]},
     {"sheet": "GROUP",        "key": ["CONTEST_CODE", "GROUP_CODE", "GROUP_VALUE"]},
     {"sheet": "INDICATOR",    "key": ["CONTEST_CODE", "INDICATOR_ADD_CALC_TYPE"]},
-    {"sheet": "REPORT",       "key": ["MANAGER_PERSON_NUMBER", "TOURNAMENT_CODE"]},
+    {"sheet": "REPORT",       "key": ["MANAGER_PERSON_NUMBER", "TOURNAMENT_CODE", "CONTEST_CODE"]},
     {"sheet": "REWARD",       "key": ["REWARD_CODE"]},
     {"sheet": "REWARD-LINK",  "key": ["CONTEST_CODE", "REWARD_CODE"]},
     {"sheet": "TOURNAMENT-SCHEDULE", "key": ["TOURNAMENT_CODE", "CONTEST_CODE"]},
