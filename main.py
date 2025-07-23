@@ -78,6 +78,12 @@ INPUT_FILES = [
         "sheet": "USER_ROLE SB",
         "max_col_width": 60,
         "freeze": "D2"
+    },
+    {
+        "file": "employee_PROM_final_5000",
+        "sheet": "EMPLOYEE",
+        "max_col_width": 70,
+        "freeze": "F2"
     }
 ]
 
