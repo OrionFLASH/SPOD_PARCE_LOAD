@@ -4,7 +4,7 @@ import pandas as pd
 import logging
 from datetime import datetime
 from openpyxl.utils import get_column_letter
-from openpyxl.styles import Alignment, Font
+from openpyxl.styles import Alignment, Font, PatternFill
 import json
 from time import time
 
@@ -238,33 +238,204 @@ SUMMARY_MERGE_FIELDS = [
     },
  ]
 
+COLOR_SCHEME = [
+    # --- ИСХОДНЫЕ ДАННЫЕ (загружаются из CSV) — светло-синий ---
+    {
+        "group": "Исходные данные",
+        "header_bg": "CCE5FF",  # светло-синий
+        "header_fg": "000000",  # чёрный
+        "column_bg": None,      # пока не используем, можно добавить позже
+        "column_fg": None,
+        "style_scope": "header",  # красим только заголовок
+        "sheets": ["CONTEST-DATA", "GROUP", "INDICATOR", "REPORT", "REWARD", "REWARD-LINK", "TOURNAMENT-SCHEDULE", "ORG_UNIT_V20", "USER_ROLE", "USER_ROLE SB", "EMPLOYEE"],
+        "columns": [],  # все колонки (если не указано — все)
+        # #CCE5FF — светло-синий (header)
+    },
+
+    # --- ДАННЫЕ, развёрнутые из JSON — сама колонка (несильно светлый зелёный), развёрнутые — светло-зелёный ---
+    {
+        "group": "JSON source columns",
+        "header_bg": "85E085",  # средний зелёный (оригинал JSON)
+        "header_fg": "000000",
+        "column_bg": None,  # #D8FCD8 — светло-зелёный, если потребуется
+        "column_fg": None,
+        "style_scope": "header",
+        "sheets": ["CONTEST-DATA", "REWARD"],
+        "columns": ["CONTEST_FEATURE", "REWARD_ADD_DATA", "ADD_DATA => getCondition", "ADD_DATA => getCondition => employeeRating"],
+        # #85E085 — зелёный (header)
+    },
+    {
+        "group": "JSON expanded",
+        "header_bg": "D8FCD8",  # светло-зелёный (развёрнутые)
+        "header_fg": "000000",
+        "column_bg": None,
+        "column_fg": None,
+        "style_scope": "header",
+        "sheets": ["CONTEST-DATA", "REWARD"],
+        "columns": [
+            "CONTEST_FEATURE => momentRewarding", "CONTEST_FEATURE => tournamentStartMailing", "CONTEST_FEATURE => tournamentEndMailing",
+            "CONTEST_FEATURE => tournamentRewardingMailing", "CONTEST_FEATURE => tournamentLikeMailing",
+            "ADD_DATA => getCondition => nonRewards",
+            "ADD_DATA => outstanding", "ADD_DATA => teamNews", "ADD_DATA => singleNews",
+            "ADD_DATA => rewardAgainGlobal", "ADD_DATA => rewardAgainTournament"
+        ],
+        # #D8FCD8 — светло-зелёный (header)
+    },
+
+    # --- Дополнительные, добавляемые при обработке — светло-розовый ---
+    {
+        "group": "Process added fields",
+        "header_bg": "FFD9E6",  # светло-розовый
+        "header_fg": "000000",
+        "column_bg": None,
+        "column_fg": None,
+        "style_scope": "header",
+        "sheets": ["REWARD"],  # например, поле "REWARD_LINK =>CONTEST_CODE"
+        "columns": ["REWARD_LINK =>CONTEST_CODE"],
+        # #FFD9E6 — светло-розовый (header)
+    },
+
+    # --- SUMMARY (ключевые поля) — светло-синий ---
+    {
+        "group": "SUMMARY KEYS",
+        "header_bg": "CCE5FF",  # светло-синий
+        "header_fg": "000000",
+        "column_bg": None,
+        "column_fg": None,
+        "style_scope": "header",
+        "sheets": ["SUMMARY"],
+        "columns": ["CONTEST_CODE", "TOURNAMENT_CODE", "REWARD_CODE", "GROUP_CODE"],
+        # #CCE5FF — светло-синий (header)
+    },
+
+    # --- SUMMARY: добавляемые поля с каждого листа (оттенки для каждого листа) ---
+    {
+        "group": "SUMMARY FIELDS: CONTEST-DATA",
+        "header_bg": "B6E0FE",  # голубой (отдельно от исходного)
+        "header_fg": "000000",
+        "column_bg": None,
+        "column_fg": None,
+        "style_scope": "header",
+        "sheets": ["SUMMARY"],
+        "columns": [
+            "CONTEST-DATA=>FULL_NAME",
+            "CONTEST-DATA=>CONTEST_FEATURE => momentRewarding",
+            "CONTEST-DATA=>PLAN_MOD_VALUE",
+            "CONTEST-DATA=>BUSINESS_BLOCK",
+            "CONTEST-DATA=>CONTEST_FEATURE => tournamentStartMailing",
+            "CONTEST-DATA=>CONTEST_FEATURE => tournamentEndMailing",
+            "CONTEST-DATA=>CONTEST_FEATURE => tournamentRewardingMailing",
+            "CONTEST-DATA=>CONTEST_FEATURE => tournamentLikeMailing",
+        ],
+        # #B6E0FE — голубой (header)
+    },
+    {
+        "group": "SUMMARY FIELDS: GROUP",
+        "header_bg": "DAF7A6",  # светло-зеленоватый
+        "header_fg": "000000",
+        "column_bg": None,
+        "column_fg": None,
+        "style_scope": "header",
+        "sheets": ["SUMMARY"],
+        "columns": ["GROUP=>GET_CALC_CRITERION", "GROUP=>ADD_CALC_CRITERION", "GROUP=>ADD_CALC_CRITERION_2"],
+        # #DAF7A6 — светло-зеленый (header)
+    },
+    {
+        "group": "SUMMARY FIELDS: INDICATOR",
+        "header_bg": "FBE7B0",  # светло-жёлтый
+        "header_fg": "000000",
+        "column_bg": None,
+        "column_fg": None,
+        "style_scope": "header",
+        "sheets": ["SUMMARY"],
+        "columns": ["INDICATOR=>INDICATOR_MARK_TYPE", "INDICATOR=>INDICATOR_MATCH", "INDICATOR=>INDICATOR_VALUE"],
+        # #FBE7B0 — светло-жёлтый (header)
+    },
+    {
+        "group": "SUMMARY FIELDS: TOURNAMENT-SCHEDULE",
+        "header_bg": "C2F0FC",  # голубой
+        "header_fg": "000000",
+        "column_bg": None,
+        "column_fg": None,
+        "style_scope": "header",
+        "sheets": ["SUMMARY"],
+        "columns": ["TOURNAMENT-SCHEDULE=>START_DT", "TOURNAMENT-SCHEDULE=>END_DT", "TOURNAMENT-SCHEDULE=>RESULT_DT", "TOURNAMENT-SCHEDULE=>TOURNAMENT_STATUS"],
+        # #C2F0FC — голубой (header)
+    },
+    {
+        "group": "SUMMARY FIELDS: REPORT",
+        "header_bg": "D9F2E6",  # светло-зелёный
+        "header_fg": "000000",
+        "column_bg": None,
+        "column_fg": None,
+        "style_scope": "header",
+        "sheets": ["SUMMARY"],
+        "columns": ["REPORT=>CONTEST_DATE"],
+        # #D9F2E6 — светло-зелёный (header)
+    },
+    {
+        "group": "SUMMARY FIELDS: REWARD",
+        "header_bg": "FFF2CC",  # светло-оранжевый
+        "header_fg": "000000",
+        "column_bg": None,
+        "column_fg": None,
+        "style_scope": "header",
+        "sheets": ["SUMMARY"],
+        "columns": [
+            "REWARD=>ADD_DATA => rewardAgainGlobal",
+            "REWARD=>ADD_DATA => rewardAgainTournament",
+            "REWARD=>ADD_DATA => outstanding",
+            "REWARD=>ADD_DATA => teamNews",
+            "REWARD=>ADD_DATA => singleNews",
+        ],
+        # #FFF2CC — светло-оранжевый (header)
+    },
+
+    # --- Дубли в SUMMARY (если появятся) — светло-розовый ---
+    {
+        "group": "SUMMARY DUPLICATES",
+        "header_bg": "FFD9E6",  # светло-розовый
+        "header_fg": "000000",
+        "column_bg": None,
+        "column_fg": None,
+        "style_scope": "header",
+        "sheets": ["SUMMARY"],
+        "columns": ["ДУБЛЬ: CONTEST_CODE_TOURNAMENT_CODE_REWARD_CODE_GROUP_CODE"],
+        # #FFD9E6 — светло-розовый (header)
+    },
+]
+
+# Добавление секции для дублей по CHECK_DUPLICATES
 CHECK_DUPLICATES = [
     {"sheet": "CONTEST-DATA", "key": ["CONTEST_CODE"]},
-    {"sheet": "GROUP",        "key": ["CONTEST_CODE", "GROUP_CODE"]},
-    {"sheet": "INDICATOR",    "key": ["CONTEST_CODE"]},
+    {"sheet": "GROUP",        "key": ["CONTEST_CODE", "GROUP_CODE", "GROUP_VALUE"]},
+    {"sheet": "INDICATOR",    "key": ["CONTEST_CODE", "INDICATOR_ADD_CALC_TYPE"]},
     {"sheet": "REPORT",       "key": ["MANAGER_PERSON_NUMBER", "TOURNAMENT_CODE"]},
     {"sheet": "REWARD",       "key": ["REWARD_CODE"]},
+    {"sheet": "REWARD-LINK",  "key": ["CONTEST_CODE", "REWARD_CODE"]},
+    {"sheet": "TOURNAMENT-SCHEDULE", "key": ["TOURNAMENT_CODE", "CONTEST_CODE"]},
+    {"sheet": "ORG_UNIT_V20", "key": ["ORG_UNIT_CODE"]},
     # ... добавьте нужные листы и ключи
 ]
 
-CHECK_DUPLICATES = [
-    {
-        "sheet": "CONTEST-DATA",
-        "key": ["CONTEST_CODE"]
-    },
-    {
-        "sheet": "GROUP",
-        "key": ["CONTEST_CODE", "GROUP_CODE"]
-    },
-    {
-        "sheet": "REPORT",
-        "key": ["MANAGER_PERSON_NUMBER", "TOURNAMENT_CODE"]
-    },
-]
-
+for check in CHECK_DUPLICATES:
+    sheet = check["sheet"]
+    keys = check["key"]
+    col_name = "ДУБЛЬ: " + "_".join(keys)
+    COLOR_SCHEME.append({
+        "group": "DUPLICATES",
+        "header_bg": "FFD9E6",  # светло-розовый (header)
+        "header_fg": "000000",
+        "column_bg": None,
+        "column_fg": None,
+        "style_scope": "header",
+        "sheets": [sheet],
+        "columns": [col_name],
+        # #FFD9E6 — светло-розовый (header)
+    })
 
 # Логирование: уровень, шаблоны, имена
-LOG_LEVEL = "DEBUG"  # или "DEBUG"
+LOG_LEVEL = "DEBUG"  # "INFO" или "DEBUG"
 LOG_BASE_NAME = "LOGS"
 LOG_MESSAGES = {
     "start":                "=== Старт работы программы: {time} ===",
@@ -288,7 +459,8 @@ LOG_MESSAGES = {
     "duplicates_start":     "[START] Проверка дублей: {sheet}, ключ: {keys}",
     "duplicates_found":     "[INFO] Дублей найдено: {count} на листе {sheet} по ключу {keys}",
     "duplicates_error":     "[ERROR] Ошибка при поиске дублей: {sheet}, ключ: {keys}: {error}",
-    "duplicates_end":       "[END] Проверка дублей: {sheet}, время: {time:.3f}s"
+    "duplicates_end":       "[END] Проверка дублей: {sheet}, время: {time:.3f}s",
+    "color_scheme_applied": "[INFO] Цветовая схема применена: лист {sheet}, колонка {col}, стиль {scope}, цвет {color}"
 }
 
 # Выходной файл Excel
@@ -382,6 +554,7 @@ def _format_sheet(ws, df, params):
             max_col_width
         )
         ws.column_dimensions[col_letter].width = max_width
+        apply_color_scheme(ws, ws.title)
 
     for row in ws.iter_rows(min_row=2, max_row=ws.max_row, max_col=ws.max_column):
         for cell in row:
@@ -502,6 +675,61 @@ def flatten_contest_feature_column(df, column='CONTEST_FEATURE', prefix="CONTEST
     ))
     logging.info(LOG_MESSAGES["func_end"].format(func="flatten_contest_feature_column", params=params, time=func_time))
     return df
+
+def apply_color_scheme(ws, sheet_name):
+    """
+    Окрашивает заголовки и/или всю колонку на листе Excel по схеме COLOR_SCHEME.
+    Все действия логируются через LOG_MESSAGES.
+    """
+    for color_conf in COLOR_SCHEME:
+        if sheet_name not in color_conf["sheets"]:
+            continue
+
+        # Список колонок: если пуст — значит все
+        header_cells = list(ws[1])
+        colnames = color_conf["columns"] if color_conf["columns"] else [cell.value for cell in header_cells]
+        style_scope = color_conf.get("style_scope", "header")
+
+        for colname in colnames:
+            try:
+                # Номер колонки по имени
+                col_idx = [cell.value for cell in header_cells].index(colname) + 1
+            except ValueError:
+                continue  # нет такой колонки на этом листе
+
+            # Окраска только заголовка
+            if style_scope == "header":
+                cell = ws.cell(row=1, column=col_idx)
+                if color_conf.get("header_bg"):
+                    cell.fill = PatternFill(start_color=color_conf["header_bg"], end_color=color_conf["header_bg"], fill_type="solid")
+                if color_conf.get("header_fg"):
+                    cell.font = Font(color=color_conf["header_fg"])
+                # Логирование
+                logging.info(LOG_MESSAGES["color_scheme_applied"].format(
+                    sheet=sheet_name,
+                    col=colname,
+                    scope="header",
+                    color=color_conf.get("header_bg", "default")
+                ))
+            # Окраска всей колонки (если понадобится в будущем)
+            elif style_scope == "all":
+                for row in ws.iter_rows(min_row=1, max_row=ws.max_row, min_col=col_idx, max_col=col_idx):
+                    for cell in row:
+                        if cell.row == 1 and color_conf.get("header_bg"):
+                            cell.fill = PatternFill(start_color=color_conf["header_bg"], end_color=color_conf["header_bg"], fill_type="solid")
+                            if color_conf.get("header_fg"):
+                                cell.font = Font(color=color_conf["header_fg"])
+                        elif color_conf.get("column_bg"):
+                            cell.fill = PatternFill(start_color=color_conf["column_bg"], end_color=color_conf["column_bg"], fill_type="solid")
+                            if color_conf.get("column_fg"):
+                                cell.font = Font(color=color_conf["column_fg"])
+                logging.debug(LOG_MESSAGES["color_scheme_applied"].format(
+                    sheet=sheet_name,
+                    col=colname,
+                    scope="all",
+                    color=color_conf.get("column_bg", "default")
+                ))
+
 
 def flatten_json_column(df, column, prefix, sheet=None, sep="; "):
     func_start = time()
