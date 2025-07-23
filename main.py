@@ -93,150 +93,105 @@ SUMMARY_SHEET = {
 
 SUMMARY_MERGE_FIELDS = [
     {
-        "sheet": "CONTEST-DATA",       # имя листа-источника
-        "src_key": ["CONTEST_CODE"],   # ключ в источнике (может быть список)
-        "dst_key": ["CONTEST_CODE"],   # ключ в summary (может быть список)
-        "column": "FULL_NAME",         # какое поле подгружаем
-    },
-    {
-        "sheet": "CONTEST-DATA",       # имя листа-источника
-        "src_key": ["CONTEST_CODE"],   # ключ в источнике (может быть список)
-        "dst_key": ["CONTEST_CODE"],   # ключ в summary (может быть список)
-        "column": "CONTEST_FEATURE => momentRewarding",         # какое поле подгружаем
-    },
-    {
-        "sheet": "CONTEST-DATA",       # имя листа-источника
-        "src_key": ["CONTEST_CODE"],   # ключ в источнике (может быть список)
-        "dst_key": ["CONTEST_CODE"],   # ключ в summary (может быть список)
-        "column": "PLAN_MOD_VALUE",         # какое поле подгружаем
-    },
-    {
-        "sheet": "CONTEST-DATA",       # имя листа-источника
-        "src_key": ["CONTEST_CODE"],   # ключ в источнике (может быть список)
-        "dst_key": ["CONTEST_CODE"],   # ключ в summary (может быть список)
-        "column": "BUSINESS_BLOCK",         # какое поле подгружаем
-    },
-    {
-        "sheet": "CONTEST-DATA",       # имя листа-источника
-        "src_key": ["CONTEST_CODE"],   # ключ в источнике (может быть список)
-        "dst_key": ["CONTEST_CODE"],   # ключ в summary (может быть список)
-        "column": "CONTEST_FEATURE => tournamentStartMailing",         # какое поле подгружаем
-    },
-    {
-        "sheet": "CONTEST-DATA",       # имя листа-источника
-        "src_key": ["CONTEST_CODE"],   # ключ в источнике (может быть список)
-        "dst_key": ["CONTEST_CODE"],   # ключ в summary (может быть список)
-        "column": "CONTEST_FEATURE => tournamentEndMailing",         # какое поле подгружаем
-    },
-    {
-        "sheet": "CONTEST-DATA",       # имя листа-источника
-        "src_key": ["CONTEST_CODE"],   # ключ в источнике (может быть список)
-        "dst_key": ["CONTEST_CODE"],   # ключ в summary (может быть список)
-        "column": "CONTEST_FEATURE => tournamentRewardingMailing",         # какое поле подгружаем
-    },
-    {
-        "sheet": "CONTEST-DATA",       # имя листа-источника
-        "src_key": ["CONTEST_CODE"],   # ключ в источнике (может быть список)
-        "dst_key": ["CONTEST_CODE"],   # ключ в summary (может быть список)
-        "column": "CONTEST_FEATURE => tournamentLikeMailing",         # какое поле подгружаем
+        "sheet": "CONTEST-DATA",
+        "src_key": ["CONTEST_CODE"],
+        "dst_key": ["CONTEST_CODE"],
+        "column": [
+            "FULL_NAME",
+            "CONTEST_FEATURE => momentRewarding",
+            "PLAN_MOD_VALUE",
+            "BUSINESS_BLOCK",
+            "CONTEST_FEATURE => tournamentStartMailing",
+            "CONTEST_FEATURE => tournamentEndMailing",
+            "CONTEST_FEATURE => tournamentRewardingMailing",
+            "CONTEST_FEATURE => tournamentLikeMailing",
+        ],
+        "mode": "value",  # Можно не указывать — это поведение по умолчанию
     },
     {
         "sheet": "GROUP",
-        "src_key": ["CONTEST_CODE", "GROUP_CODE"],   # пример составного ключа
-        "dst_key": ["CONTEST_CODE", "GROUP_CODE"],
-        "column": "GET_CALC_CRITERION"
-    },
-    {
-        "sheet": "GROUP",
-        "src_key": ["CONTEST_CODE", "GROUP_CODE"],   # пример составного ключа
-        "dst_key": ["CONTEST_CODE", "GROUP_CODE"],
-        "column": "ADD_CALC_CRITERION"
-    },
-    {
-        "sheet": "GROUP",
-        "src_key": ["CONTEST_CODE", "GROUP_CODE"],   # пример составного ключа
-        "dst_key": ["CONTEST_CODE", "GROUP_CODE"],
-        "column": "ADD_CALC_CRITERION_2"
+        "src_key": ["CONTEST_CODE", "GROUP_CODE", "GROUP_VALUE"],
+        "dst_key": ["CONTEST_CODE", "GROUP_CODE", "GROUP_VALUE"],
+        "column": [
+            "GET_CALC_CRITERION",
+            "ADD_CALC_CRITERION",
+            "ADD_CALC_CRITERION_2"
+        ],
+        "mode": "value",  # По умолчанию
     },
     {
         "sheet": "INDICATOR",
-        "src_key": ["CONTEST_CODE"],   # пример составного ключа
+        "src_key": ["CONTEST_CODE"],
         "dst_key": ["CONTEST_CODE"],
-        "column": "INDICATOR_MARK_TYPE"
-    },
-    {
-        "sheet": "INDICATOR",
-        "src_key": ["CONTEST_CODE"],   # пример составного ключа
-        "dst_key": ["CONTEST_CODE"],
-        "column": "INDICATOR_MATCH"
-    },
-    {
-        "sheet": "INDICATOR",
-        "src_key": ["CONTEST_CODE"],   # пример составного ключа
-        "dst_key": ["CONTEST_CODE"],
-        "column": "INDICATOR_VALUE"
+        "column": [
+            "INDICATOR_MARK_TYPE",
+            "INDICATOR_MATCH",
+            "INDICATOR_VALUE"
+        ],
+        "mode": "value",
     },
     {
         "sheet": "TOURNAMENT-SCHEDULE",
         "src_key": ["TOURNAMENT_CODE"],
         "dst_key": ["TOURNAMENT_CODE"],
-        "column": "START_DT"
-    },
-    {
-        "sheet": "TOURNAMENT-SCHEDULE",
-        "src_key": ["TOURNAMENT_CODE"],
-        "dst_key": ["TOURNAMENT_CODE"],
-        "column": "END_DT"
-    },
-    {
-        "sheet": "TOURNAMENT-SCHEDULE",
-        "src_key": ["TOURNAMENT_CODE"],
-        "dst_key": ["TOURNAMENT_CODE"],
-        "column": "RESULT_DT"
-    },
-    {
-        "sheet": "TOURNAMENT-SCHEDULE",
-        "src_key": ["TOURNAMENT_CODE"],
-        "dst_key": ["TOURNAMENT_CODE"],
-        "column": "TOURNAMENT_STATUS"
+        "column": [
+            "START_DT",
+            "END_DT",
+            "RESULT_DT",
+            "TOURNAMENT_STATUS"
+        ],
+        "mode": "value",
     },
     {
         "sheet": "REPORT",
         "src_key": ["TOURNAMENT_CODE"],
         "dst_key": ["TOURNAMENT_CODE"],
-        "column": "CONTEST_DATE"
+        "column": [
+            "CONTEST_DATE"
+        ],
+        "mode": "value",
+    },
+    {
+        "sheet": "REPORT",
+        "src_key": ["TOURNAMENT_CODE", "CONTEST_CODE"],
+        "dst_key": ["TOURNAMENT_CODE", "CONTEST_CODE"],
+        "column": [
+            "CONTEST_DATE"
+        ],
+        "mode": "count",
     },
     {
         "sheet": "REWARD",
-        "src_key": ["REWARD_LINK =>CONTEST_CODE", "REWARD_CODE"], # пример составного ключа
+        "src_key": ["REWARD_LINK =>CONTEST_CODE", "REWARD_CODE"],
         "dst_key": ["CONTEST_CODE", "REWARD_CODE"],
-        "column": "ADD_DATA => rewardAgainGlobal"
+        "column": [
+            "ADD_DATA => rewardAgainGlobal",
+            "ADD_DATA => rewardAgainTournament",
+            "ADD_DATA => outstanding",
+            "ADD_DATA => teamNews",
+            "ADD_DATA => singleNews"
+        ],
+        "mode": "value",
     },
-    {
-        "sheet": "REWARD",
-        "src_key": ["REWARD_LINK =>CONTEST_CODE", "REWARD_CODE"], # пример составного ключа
-        "dst_key": ["CONTEST_CODE", "REWARD_CODE"],
-        "column": "ADD_DATA => rewardAgainTournament"
-    },
-    {
-        "sheet": "REWARD",
-        "src_key": ["REWARD_LINK =>CONTEST_CODE", "REWARD_CODE"], # пример составного ключа
-        "dst_key": ["CONTEST_CODE", "REWARD_CODE"],
-        "column": "ADD_DATA => outstanding"
-    },
-    {
-        "sheet": "REWARD",
-        "src_key": ["REWARD_LINK =>CONTEST_CODE", "REWARD_CODE"], # пример составного ключа
-        "dst_key": ["CONTEST_CODE", "REWARD_CODE"],
-        "column": "ADD_DATA => teamNews"
-    },
-    {
-        "sheet": "REWARD",
-        "src_key": ["REWARD_LINK =>CONTEST_CODE", "REWARD_CODE"], # пример составного ключа
-        "dst_key": ["CONTEST_CODE", "REWARD_CODE"],
-        "column": "ADD_DATA => singleNews"
-    },
- ]
+]
+
+
+
+SUMMARY_KEY_DEFS = [
+    {"sheet": "CONTEST-DATA",    "cols": ["CONTEST_CODE"]},
+    {"sheet": "TOURNAMENT-SCHEDULE", "cols": ["TOURNAMENT_CODE", "CONTEST_CODE"]},
+    {"sheet": "REWARD-LINK",     "cols": ["REWARD_CODE", "CONTEST_CODE"]},
+    {"sheet": "GROUP",           "cols": ["GROUP_CODE", "CONTEST_CODE", "GROUP_VALUE"]},
+    {"sheet": "REWARD",          "cols": ["REWARD_CODE"]},
+]
+
+# Построить упорядоченный список всех уникальных ключей
+SUMMARY_KEY_COLUMNS = []
+for entry in SUMMARY_KEY_DEFS:
+    for col in entry["cols"]:
+        if col not in SUMMARY_KEY_COLUMNS:
+            SUMMARY_KEY_COLUMNS.append(col)
+
 
 COLOR_SCHEME = [
     # --- ИСХОДНЫЕ ДАННЫЕ (загружаются из CSV) — светло-синий ---
@@ -304,7 +259,7 @@ COLOR_SCHEME = [
         "column_fg": None,
         "style_scope": "header",
         "sheets": ["SUMMARY"],
-        "columns": ["CONTEST_CODE", "TOURNAMENT_CODE", "REWARD_CODE", "GROUP_CODE"],
+        "columns": SUMMARY_KEY_COLUMNS,
         # #CCE5FF — светло-синий (header)
     },
 
@@ -415,8 +370,8 @@ CHECK_DUPLICATES = [
     {"sheet": "REWARD-LINK",  "key": ["CONTEST_CODE", "REWARD_CODE"]},
     {"sheet": "TOURNAMENT-SCHEDULE", "key": ["TOURNAMENT_CODE", "CONTEST_CODE"]},
     {"sheet": "ORG_UNIT_V20", "key": ["ORG_UNIT_CODE"]},
-    {"sheet": "USER_ROLE", "key": ["ROLE_NUM"]},
-    {"sheet": "USER_ROLE SB", "key": ["ROLE_NUM"]},
+    {"sheet": "USER_ROLE", "key": ["RULE_NUM"]},
+    {"sheet": "USER_ROLE SB", "key": ["RULE_NUM"]},
     {"sheet": "EMPLOYEE", "key": ["PERSON_NUMBER"]}
 ]
 
@@ -798,22 +753,20 @@ def _merge_field(summary, ref_df, dst_keys, src_keys, col_name, sheet_src):
 
 def collect_summary_keys(dfs):
     """
-    Собирает все реально существующие сочетания ключей CONTEST_CODE, TOURNAMENT_CODE, REWARD_CODE, GROUP_CODE,
-    включая осиротевшие коды (например, TOURNAMENT_CODE без CONTEST_CODE).
+    Собирает все реально существующие сочетания ключей,
+    включая осиротевшие коды и сочетания с GROUP_VALUE.
     """
-    key_cols = ["CONTEST_CODE", "TOURNAMENT_CODE", "REWARD_CODE", "GROUP_CODE"]
     all_rows = []
 
-    # Получаем коды из всех файлов
     rewards = dfs.get("REWARD-LINK", pd.DataFrame())
     tournaments = dfs.get("TOURNAMENT-SCHEDULE", pd.DataFrame())
     groups = dfs.get("GROUP", pd.DataFrame())
 
-    # Все уникальные коды
     all_contest_codes = set()
     all_tournament_codes = set()
     all_reward_codes = set()
     all_group_codes = set()
+    all_group_values = set()
 
     if not rewards.empty:
         all_contest_codes.update(rewards["CONTEST_CODE"].dropna())
@@ -824,63 +777,79 @@ def collect_summary_keys(dfs):
     if not groups.empty:
         all_contest_codes.update(groups["CONTEST_CODE"].dropna())
         all_group_codes.update(groups["GROUP_CODE"].dropna())
+        all_group_values.update(groups["GROUP_VALUE"].dropna())
 
-    # --- 1. Для каждого CONTEST_CODE — все комбинации с его TOURNAMENT_CODE, REWARD_CODE, GROUP_CODE
+    # 1. Для каждого CONTEST_CODE
     for code in all_contest_codes:
         tourns = tournaments[tournaments["CONTEST_CODE"] == code]["TOURNAMENT_CODE"].dropna().unique() if not tournaments.empty else []
         rewards_ = rewards[rewards["CONTEST_CODE"] == code]["REWARD_CODE"].dropna().unique() if not rewards.empty else []
-        groups_ = groups[groups["CONTEST_CODE"] == code]["GROUP_CODE"].dropna().unique() if not groups.empty else []
+        groups_df = groups[groups["CONTEST_CODE"] == code] if not groups.empty else pd.DataFrame()
+        groups_ = groups_df["GROUP_CODE"].dropna().unique() if not groups_df.empty else []
+        group_values_ = groups_df["GROUP_VALUE"].dropna().unique() if not groups_df.empty else []
 
         tourns = tourns if len(tourns) else ["-"]
         rewards_ = rewards_ if len(rewards_) else ["-"]
         groups_ = groups_ if len(groups_) else ["-"]
+        group_values_ = group_values_ if len(group_values_) else ["-"]
 
         for t in tourns:
             for r in rewards_:
                 for g in groups_:
-                    all_rows.append((str(code), str(t), str(r), str(g)))
+                    for gv in group_values_:
+                        all_rows.append((str(code), str(t), str(r), str(g), str(gv)))
 
-    # --- 2. Для каждого TOURNAMENT_CODE (даже если нет CONTEST_CODE)
+    # 2. Для каждого TOURNAMENT_CODE (даже если нет CONTEST_CODE)
     if not tournaments.empty:
         for t_code in tournaments["TOURNAMENT_CODE"].dropna().unique():
             code = tournaments[tournaments["TOURNAMENT_CODE"] == t_code]["CONTEST_CODE"].dropna().unique()
             code = code[0] if len(code) else "-"
             rewards_ = rewards[rewards["CONTEST_CODE"] == code]["REWARD_CODE"].dropna().unique() if not rewards.empty else ["-"]
-            groups_ = groups[groups["CONTEST_CODE"] == code]["GROUP_CODE"].dropna().unique() if not groups.empty else ["-"]
+            groups_df = groups[groups["CONTEST_CODE"] == code] if not groups.empty else pd.DataFrame()
+            groups_ = groups_df["GROUP_CODE"].dropna().unique() if not groups_df.empty else ["-"]
+            group_values_ = groups_df["GROUP_VALUE"].dropna().unique() if not groups_df.empty else ["-"]
             rewards_ = rewards_ if len(rewards_) else ["-"]
             groups_ = groups_ if len(groups_) else ["-"]
+            group_values_ = group_values_ if len(group_values_) else ["-"]
             for r in rewards_:
                 for g in groups_:
-                    all_rows.append((str(code), str(t_code), str(r), str(g)))
+                    for gv in group_values_:
+                        all_rows.append((str(code), str(t_code), str(r), str(g), str(gv)))
 
-    # --- 3. Для каждого REWARD_CODE (даже если нет CONTEST_CODE)
+    # 3. Для каждого REWARD_CODE (даже если нет CONTEST_CODE)
     if not rewards.empty:
         for r_code in rewards["REWARD_CODE"].dropna().unique():
             code = rewards[rewards["REWARD_CODE"] == r_code]["CONTEST_CODE"].dropna().unique()
             code = code[0] if len(code) else "-"
             tourns = tournaments[tournaments["CONTEST_CODE"] == code]["TOURNAMENT_CODE"].dropna().unique() if not tournaments.empty else ["-"]
-            groups_ = groups[groups["CONTEST_CODE"] == code]["GROUP_CODE"].dropna().unique() if not groups.empty else ["-"]
+            groups_df = groups[groups["CONTEST_CODE"] == code] if not groups.empty else pd.DataFrame()
+            groups_ = groups_df["GROUP_CODE"].dropna().unique() if not groups_df.empty else ["-"]
+            group_values_ = groups_df["GROUP_VALUE"].dropna().unique() if not groups_df.empty else ["-"]
             tourns = tourns if len(tourns) else ["-"]
             groups_ = groups_ if len(groups_) else ["-"]
+            group_values_ = group_values_ if len(group_values_) else ["-"]
             for t in tourns:
                 for g in groups_:
-                    all_rows.append((str(code), str(t), str(r_code), str(g)))
+                    for gv in group_values_:
+                        all_rows.append((str(code), str(t), str(r_code), str(g), str(gv)))
 
-    # --- 4. Для каждого GROUP_CODE (даже если нет CONTEST_CODE)
+    # 4. Для каждого GROUP_CODE (даже если нет CONTEST_CODE)
     if not groups.empty:
         for g_code in groups["GROUP_CODE"].dropna().unique():
             code = groups[groups["GROUP_CODE"] == g_code]["CONTEST_CODE"].dropna().unique()
             code = code[0] if len(code) else "-"
             tourns = tournaments[tournaments["CONTEST_CODE"] == code]["TOURNAMENT_CODE"].dropna().unique() if not tournaments.empty else ["-"]
             rewards_ = rewards[rewards["CONTEST_CODE"] == code]["REWARD_CODE"].dropna().unique() if not rewards.empty else ["-"]
+            group_values_ = groups[groups["GROUP_CODE"] == g_code]["GROUP_VALUE"].dropna().unique() if not groups.empty else ["-"]
             tourns = tourns if len(tourns) else ["-"]
             rewards_ = rewards_ if len(rewards_) else ["-"]
+            group_values_ = group_values_ if len(group_values_) else ["-"]
             for t in tourns:
                 for r in rewards_:
-                    all_rows.append((str(code), str(t), str(r), str(g_code)))
+                    for gv in group_values_:
+                        all_rows.append((str(code), str(t), str(r), str(g_code), str(gv)))
 
-    # --- Удалить дубли
-    summary_keys = pd.DataFrame(all_rows, columns=key_cols).drop_duplicates().reset_index(drop=True)
+    # Удалить дубли
+    summary_keys = pd.DataFrame(all_rows, columns=SUMMARY_KEY_COLUMNS).drop_duplicates().reset_index(drop=True)
     return summary_keys
 
 def mark_duplicates(df, key_cols, sheet_name=None):
@@ -908,6 +877,58 @@ def mark_duplicates(df, key_cols, sheet_name=None):
         logging.info(LOG_MESSAGES["duplicates_end"].format(sheet=sheet_name, time=func_time))
     return df
 
+def add_fields_to_sheet(df_base, df_ref, src_keys, dst_keys, columns, sheet_name, ref_sheet_name, mode="value"):
+    """
+    Добавляет к df_base поля из df_ref по ключам.
+    Если mode == "value": подтягивает значения первого найденного (основной режим).
+    Если mode == "count": добавляет количество строк в df_ref по каждому ключу.
+    """
+    func_start = time()
+    logging.info(LOG_MESSAGES["func_start"].format(
+        func="add_fields_to_sheet",
+        params=f"(лист: {sheet_name}, поля: {columns}, ключ: {dst_keys}->{src_keys}, mode: {mode})"
+    ))
+    if isinstance(columns, str):
+        columns = [columns]
+
+    # Подготовим функцию для ключа
+    def tuple_key(row, keys):
+        if isinstance(keys, (list, tuple)):
+            return tuple(row[k] for k in keys)
+        return row[keys]
+
+    # Список новых ключей на summary
+    new_keys = df_base.apply(lambda row: tuple_key(row, dst_keys), axis=1)
+
+    if mode == "count":
+        # Подсчитываем количество строк по каждому ключу
+        group_counts = df_ref.groupby(src_keys).size().to_dict()
+        count_col_name = f"{ref_sheet_name}=>COUNT"
+        df_base[count_col_name] = new_keys.map(group_counts).fillna(0).astype(int)
+        logging.info(LOG_MESSAGES["func_end"].format(
+            func="add_fields_to_sheet",
+            params=f"(лист: {sheet_name}, mode: count, ключ: {dst_keys}->{src_keys})",
+            time=time() - func_start
+        ))
+        return df_base
+
+    # mode == "value" (или не указан)
+    # Строим map по каждому столбцу отдельно
+    for col in columns:
+        ref_map = dict(zip(
+            df_ref.apply(lambda row: tuple_key(row, src_keys), axis=1),
+            df_ref[col]
+        ))
+        new_col_name = f"{ref_sheet_name}=>{col}"
+        df_base[new_col_name] = new_keys.map(ref_map).fillna("-")
+    logging.info(LOG_MESSAGES["func_end"].format(
+        func="add_fields_to_sheet",
+        params=f"(лист: {sheet_name}, поля: {columns}, ключ: {dst_keys}->{src_keys}, mode: {mode})",
+        time=time() - func_start
+    ))
+    return df_base
+
+
 def build_summary_sheet(dfs, params_summary, merge_fields):
     func_start = time()
     params_log = f"(лист: {params_summary['sheet']})"
@@ -919,27 +940,26 @@ def build_summary_sheet(dfs, params_summary, merge_fields):
     logging.info(LOG_MESSAGES["summary"].format(summary=f"Каркас: {len(summary)} строк (реальные комбинации ключей)"))
     logging.debug(LOG_MESSAGES["debug_head"].format(sheet=params_summary["sheet"], head=summary.head(5).to_string()))
 
-    # Универсально добавляем все поля по merge_fields — берем первое найденное
+    # Универсально добавляем все поля по merge_fields — берем все поля блока разом, поддержка mode
     for field in merge_fields:
-        col_name = field["column"]
+        col_names = field["column"]
+        if isinstance(col_names, str):
+            col_names = [col_names]
         sheet_src = field["sheet"]
         src_keys = field["src_key"] if isinstance(field["src_key"], list) else [field["src_key"]]
         dst_keys = field["dst_key"] if isinstance(field["dst_key"], list) else [field["dst_key"]]
-        params_str = f"(лист-источник: {sheet_src}, поле: {col_name}, ключ: {dst_keys}->{src_keys})"
+        mode = field.get("mode", "value")
+        params_str = f"(лист-источник: {sheet_src}, поля: {col_names}, ключ: {dst_keys}->{src_keys}, mode: {mode})"
         logging.info(LOG_MESSAGES["func_start"].format(func="add_fields_to_sheet", params=params_str))
         ref_df = dfs.get(sheet_src)
         if ref_df is None:
             logging.warning(LOG_MESSAGES.get("field_missing", LOG_MESSAGES["func_error"]).format(
-                column=col_name, src_sheet=sheet_src, src_key=src_keys
+                column=col_names, src_sheet=sheet_src, src_key=src_keys
             ))
             continue
 
-        # Вытаскиваем поле (или список)
-        if isinstance(col_name, list):
-            for single_col in col_name:
-                summary = _merge_field(summary, ref_df, dst_keys, src_keys, single_col, sheet_src)
-        else:
-            summary = _merge_field(summary, ref_df, dst_keys, src_keys, col_name, sheet_src)
+        # Добавляем все поля разом, либо считаем количество строк по ключу (mode == "count")
+        summary = add_fields_to_sheet(summary, ref_df, src_keys, dst_keys, col_names, params_summary["sheet"], sheet_src, mode=mode)
         logging.info(LOG_MESSAGES["func_end"].format(func="add_fields_to_sheet", params=params_str, time=0))
 
     n_rows, n_cols = summary.shape
@@ -962,42 +982,6 @@ def enrich_reward_with_contest_code(df_reward, df_link):
     func_time = time() - func_start
     logging.info(LOG_MESSAGES["func_end"].format(func="enrich_reward_with_contest_code", params="(REWARD)", time=func_time))
     return df_reward
-
-def add_fields_to_sheet(df_base, df_ref, src_keys, dst_keys, columns, sheet_name, ref_sheet_name):
-    func_start = time()
-    logging.info(LOG_MESSAGES["func_start"].format(
-        func="add_fields_to_sheet",
-        params=f"(лист: {sheet_name}, поле: {columns}, ключ: {dst_keys}->{src_keys})"
-    ))
-    if isinstance(columns, str):
-        columns = [columns]
-
-    # Подготовим ключи (tuple если список, иначе str)
-    def tuple_key(row, keys):
-        if isinstance(keys, (list, tuple)):
-            return tuple(row[k] for k in keys)
-        return row[keys]
-
-    # Строим справочник по ключу из df_ref
-    key_col = (
-        df_ref.apply(lambda row: tuple_key(row, src_keys), axis=1)
-    )
-    ref_map = {}
-    for col in columns:
-        ref_map[col] = dict(zip(key_col, df_ref[col]))
-
-    # Подгружаем новые поля
-    new_keys = df_base.apply(lambda row: tuple_key(row, dst_keys), axis=1)
-    for col in columns:
-        new_col_name = f"{ref_sheet_name}=>{col}"
-        df_base[new_col_name] = new_keys.map(ref_map[col]).fillna("-")
-    func_time = time() - func_start
-    logging.info(LOG_MESSAGES["func_end"].format(
-        func="add_fields_to_sheet",
-        params=f"(лист: {sheet_name}, поле: {columns}, ключ: {dst_keys}->{src_keys})",
-        time=func_time
-    ))
-    return df_base
 
 
 def main():
