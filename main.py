@@ -81,6 +81,12 @@ INPUT_FILES = [
     }
 ]
 
+SUMMARY_SHEET = {
+    "sheet": "SUMMARY",
+    "max_col_width": 25,
+    "freeze": "D2"
+}
+
 
 # Логирование: уровень, шаблоны, имена
 LOG_LEVEL = "DEBUG"  # или "DEBUG"
@@ -300,8 +306,41 @@ def flatten_json_column(df, column, prefix, sheet=None, sep="; "):
             logging.debug(LOG_MESSAGES["debug_head"].format(sheet=sheet, head=df.head(3).to_string()))
     return df
 
+def build_summary_sheet(dfs, params_summary):
+    from time import time
+    func_start = time()
+    params_log = f"(лист: {params_summary['sheet']})"
+    logging.info(LOG_MESSAGES["func_start"].format(func="build_summary_sheet", params=params_log))
 
-# === Основная логика ===
+    # Загружаем необходимые DataFrame
+    df_contest = dfs.get("CONTEST-DATA")
+    df_tourn   = dfs.get("TOURNAMENT-SCHEDULE")
+    df_reward  = dfs.get("REWARD")
+    df_link    = dfs.get("REWARD-LINK")
+    df_group   = dfs.get("GROUP")
+
+    # Собираем соответствия
+    result = pd.DataFrame()
+    result["CONTEST_CODE"] = df_contest["CONTEST_CODE"]
+
+    # TOURNAMENT_CODE
+    tourn_map = dict(zip(df_tourn["CONTEST_CODE"], df_tourn["TOURNAMENT_CODE"]))
+    result["TOURNAMENT_CODE"] = result["CONTEST_CODE"].map(tourn_map).fillna("-")
+
+    # REWARD_CODE
+    reward_map = dict(zip(df_link["CONTEST_CODE"], df_link["REWARD_CODE"]))
+    result["REWARD_CODE"] = result["CONTEST_CODE"].map(reward_map).fillna("-")
+
+    # GROUP_CODE
+    group_map = dict(zip(df_group["CONTEST_CODE"], df_group["GROUP_CODE"]))
+    result["GROUP_CODE"] = result["CONTEST_CODE"].map(group_map).fillna("-")
+
+    n_rows, n_cols = result.shape
+    func_time = time() - func_start
+    logging.info(LOG_MESSAGES["sheet_written"].format(sheet=params_summary['sheet'], rows=n_rows, cols=n_cols))
+    logging.info(LOG_MESSAGES["func_end"].format(func="build_summary_sheet", params=params_log, time=func_time))
+    return result
+
 def main():
     start_time = datetime.now()
     log_file = setup_logger()
@@ -312,6 +351,7 @@ def main():
     rows_total = 0
     summary = []
 
+    # 1. Чтение и обработка всех файлов
     for file_conf in INPUT_FILES:
         file_path = os.path.join(DIR_INPUT, file_conf["file"] + ".CSV")
         sheet_name = file_conf["sheet"]
@@ -336,11 +376,20 @@ def main():
         else:
             summary.append(f"{sheet_name}: ошибка")
 
+    # 2. Подготовка итогового (summary) листа
+    # -- Словарь только из датафреймов для быстрого доступа
+    dfs = {k: v[0] for k, v in sheets_data.items()}
+    # -- Построение итоговой таблицы
+    df_summary = build_summary_sheet(dfs, SUMMARY_SHEET)
+    sheets_data[SUMMARY_SHEET["sheet"]] = (df_summary, SUMMARY_SHEET)
+
+    # 3. Запись всего в Excel
     output_excel = os.path.join(DIR_OUTPUT, get_output_filename())
     logging.info(LOG_MESSAGES["func_start"].format(func="write_to_excel", params=f"({output_excel})"))
     write_to_excel(sheets_data, output_excel)
     logging.info(LOG_MESSAGES["func_end"].format(func="write_to_excel", params=f"({output_excel})", time=0))
 
+    # 4. Финальный лог
     time_elapsed = datetime.now() - start_time
     logging.info(LOG_MESSAGES["finish"].format(
         files=files_processed,
@@ -350,6 +399,7 @@ def main():
     logging.info(LOG_MESSAGES["summary"].format(summary="; ".join(summary)))
     logging.info(f"Excel file: {output_excel}")
     logging.info(f"Log file: {log_file}")
+
 
 if __name__ == "__main__":
     main()
