@@ -91,15 +91,27 @@ SUMMARY_SHEET = {
     "freeze": "F2"
 }
 
-SUMMARY_MERGE_FIELDS = [
+MERGE_FIELDS = [
+    # --- 1. REWARD: добавляем CONTEST_CODE по REWARD_CODE (аналог enrich_reward_with_contest_code) ---
     {
-        "sheet": "CONTEST-DATA",
+        "sheet_src": "REWARD-LINK",
+        "sheet_dst": "REWARD",
+        "src_key": ["REWARD_CODE"],
+        "dst_key": ["REWARD_CODE"],
+        "column": ["CONTEST_CODE"],
+        "mode": "value"  # Добавить как новое поле "REWARD-LINK=>CONTEST_CODE"
+    },
+
+    # --- 2. SUMMARY: все основные поля с листа CONTEST-DATA по CONTEST_CODE ---
+    {
+        "sheet_src": "CONTEST-DATA",
+        "sheet_dst": "SUMMARY",
         "src_key": ["CONTEST_CODE"],
         "dst_key": ["CONTEST_CODE"],
         "column": [
             "FULL_NAME",
             "CONTEST_FEATURE => momentRewarding",
-            "FACTOR_MATCH"
+            "FACTOR_MATCH",
             "PLAN_MOD_VALUE",
             "BUSINESS_BLOCK",
             "CONTEST_FEATURE => tournamentStartMailing",
@@ -107,10 +119,13 @@ SUMMARY_MERGE_FIELDS = [
             "CONTEST_FEATURE => tournamentRewardingMailing",
             "CONTEST_FEATURE => tournamentLikeMailing",
         ],
-        "mode": "value",  # Можно не указывать — это поведение по умолчанию
+        "mode": "value"
     },
+
+    # --- 3. SUMMARY: все поля из GROUP по составному ключу ---
     {
-        "sheet": "GROUP",
+        "sheet_src": "GROUP",
+        "sheet_dst": "SUMMARY",
         "src_key": ["CONTEST_CODE", "GROUP_CODE", "GROUP_VALUE"],
         "dst_key": ["CONTEST_CODE", "GROUP_CODE", "GROUP_VALUE"],
         "column": [
@@ -118,10 +133,13 @@ SUMMARY_MERGE_FIELDS = [
             "ADD_CALC_CRITERION",
             "ADD_CALC_CRITERION_2"
         ],
-        "mode": "value",  # По умолчанию
+        "mode": "value"
     },
+
+    # --- 4. SUMMARY: все поля из INDICATOR по CONTEST_CODE ---
     {
-        "sheet": "INDICATOR",
+        "sheet_src": "INDICATOR",
+        "sheet_dst": "SUMMARY",
         "src_key": ["CONTEST_CODE"],
         "dst_key": ["CONTEST_CODE"],
         "column": [
@@ -129,41 +147,53 @@ SUMMARY_MERGE_FIELDS = [
             "INDICATOR_MATCH",
             "INDICATOR_VALUE"
         ],
-        "mode": "value",
+        "mode": "value"
     },
+
+    # --- 5. SUMMARY: поля из TOURNAMENT-SCHEDULE по TOURNAMENT_CODE ---
     {
-        "sheet": "TOURNAMENT-SCHEDULE",
+        "sheet_src": "TOURNAMENT-SCHEDULE",
+        "sheet_dst": "SUMMARY",
         "src_key": ["TOURNAMENT_CODE"],
         "dst_key": ["TOURNAMENT_CODE"],
         "column": [
             "START_DT",
             "END_DT",
             "RESULT_DT",
-            "TOURNAMENT_STATUS"
+            "TOURNAMENT_STATUS",
             "TARGET_TYPE"
         ],
-        "mode": "value",
+        "mode": "value"
     },
+
+    # --- 6. SUMMARY: поле CONTEST_DATE из REPORT по TOURNAMENT_CODE ---
     {
-        "sheet": "REPORT",
+        "sheet_src": "REPORT",
+        "sheet_dst": "SUMMARY",
         "src_key": ["TOURNAMENT_CODE"],
         "dst_key": ["TOURNAMENT_CODE"],
         "column": [
             "CONTEST_DATE"
         ],
-        "mode": "value",
+        "mode": "value"
     },
+
+    # --- 7. SUMMARY: сколько в REPORT строк по паре TOURNAMENT_CODE + CONTEST_CODE ---
     {
-        "sheet": "REPORT",
+        "sheet_src": "REPORT",
+        "sheet_dst": "SUMMARY",
         "src_key": ["TOURNAMENT_CODE", "CONTEST_CODE"],
         "dst_key": ["TOURNAMENT_CODE", "CONTEST_CODE"],
         "column": [
             "CONTEST_DATE"
         ],
-        "mode": "count",
+        "mode": "count"  # Для каждой строки summary с этой парой ключей будет число записей на REPORT
     },
+
+    # --- 8. SUMMARY: все нужные поля из REWARD по составному ключу ---
     {
-        "sheet": "REWARD",
+        "sheet_src": "REWARD",
+        "sheet_dst": "SUMMARY",
         "src_key": ["REWARD_LINK =>CONTEST_CODE", "REWARD_CODE"],
         "dst_key": ["CONTEST_CODE", "REWARD_CODE"],
         "column": [
@@ -173,10 +203,19 @@ SUMMARY_MERGE_FIELDS = [
             "ADD_DATA => teamNews",
             "ADD_DATA => singleNews"
         ],
-        "mode": "value",
+        "mode": "value"
     },
-]
 
+    # --- Пример для любых других листов и других режимов ---
+    # {
+    #     "sheet_src": "ЛИСТ_ИСТОЧНИК",
+    #     "sheet_dst": "ЛИСТ_ПРИЁМНИК",
+    #     "src_key": ["КЛЮЧ1", "КЛЮЧ2"],
+    #     "dst_key": ["КЛЮЧ1", "КЛЮЧ2"],
+    #     "column": ["FIELD1", "FIELD2"],
+    #     "mode": "value"  # или "count"
+    # }
+]
 
 
 SUMMARY_KEY_DEFS = [
@@ -884,6 +923,7 @@ def add_fields_to_sheet(df_base, df_ref, src_keys, dst_keys, columns, sheet_name
     Добавляет к df_base поля из df_ref по ключам.
     Если mode == "value": подтягивает значения первого найденного (основной режим).
     Если mode == "count": добавляет количество строк в df_ref по каждому ключу.
+    После объединения — для критичных ключей делает auto-rename в стандартное имя, если найден альтернативный вариант.
     """
     func_start = time()
     logging.info(LOG_MESSAGES["func_start"].format(
@@ -893,20 +933,20 @@ def add_fields_to_sheet(df_base, df_ref, src_keys, dst_keys, columns, sheet_name
     if isinstance(columns, str):
         columns = [columns]
 
-    # Подготовим функцию для ключа
     def tuple_key(row, keys):
         if isinstance(keys, (list, tuple)):
             return tuple(row[k] for k in keys)
         return row[keys]
 
-    # Список новых ключей на summary
+    # Список новых ключей на summary/target
     new_keys = df_base.apply(lambda row: tuple_key(row, dst_keys), axis=1)
 
     if mode == "count":
         # Подсчитываем количество строк по каждому ключу
         group_counts = df_ref.groupby(src_keys).size().to_dict()
-        count_col_name = f"{ref_sheet_name}=>COUNT"
-        df_base[count_col_name] = new_keys.map(group_counts).fillna(0).astype(int)
+        for col in columns:
+            count_col_name = f"{ref_sheet_name}=>COUNT_{col}"
+            df_base[count_col_name] = new_keys.map(group_counts).fillna(0).astype(int)
         logging.info(LOG_MESSAGES["func_end"].format(
             func="add_fields_to_sheet",
             params=f"(лист: {sheet_name}, mode: count, ключ: {dst_keys}->{src_keys})",
@@ -923,6 +963,15 @@ def add_fields_to_sheet(df_base, df_ref, src_keys, dst_keys, columns, sheet_name
         ))
         new_col_name = f"{ref_sheet_name}=>{col}"
         df_base[new_col_name] = new_keys.map(ref_map).fillna("-")
+
+        # === Специально для REWARD_LINK =>CONTEST_CODE: auto-rename, если создали с дефисом ===
+        if new_col_name.replace("-", "_").replace(" ", "") == "REWARD_LINK=>CONTEST_CODE".replace("-", "_").replace(" ", ""):
+            # Найти альтернативные варианты — с дефисами, слитно, без пробелов
+            candidates = [c for c in df_base.columns if c.replace("-", "_").replace(" ", "") == "REWARD_LINK=>CONTEST_CODE".replace("-", "_").replace(" ", "")]
+            for cand in candidates:
+                if cand != "REWARD_LINK =>CONTEST_CODE":
+                    df_base = df_base.rename(columns={cand: "REWARD_LINK =>CONTEST_CODE"})
+
     logging.info(LOG_MESSAGES["func_end"].format(
         func="add_fields_to_sheet",
         params=f"(лист: {sheet_name}, поля: {columns}, ключ: {dst_keys}->{src_keys}, mode: {mode})",
@@ -930,24 +979,53 @@ def add_fields_to_sheet(df_base, df_ref, src_keys, dst_keys, columns, sheet_name
     ))
     return df_base
 
+def merge_fields_across_sheets(sheets_data, merge_fields):
+    """
+    Универсально добавляет поля по правилам из merge_fields
+    (source_df -> target_df), поддержка mode value / count.
+    sheets_data: dict {sheet_name: (df, params)}
+    merge_fields: список блоков с параметрами (см. выше)
+    """
+    for rule in merge_fields:
+        sheet_src = rule["sheet_src"]
+        sheet_dst = rule["sheet_dst"]
+        src_keys = rule["src_key"] if isinstance(rule["src_key"], list) else [rule["src_key"]]
+        dst_keys = rule["dst_key"] if isinstance(rule["dst_key"], list) else [rule["dst_key"]]
+        col_names = rule["column"]
+        mode = rule.get("mode", "value")
+        params_str = f"(src: {sheet_src} -> dst: {sheet_dst}, поля: {col_names}, ключ: {dst_keys}<-{src_keys}, mode: {mode})"
+
+        if sheet_src not in sheets_data or sheet_dst not in sheets_data:
+            logging.warning(LOG_MESSAGES.get("field_missing", LOG_MESSAGES["func_error"]).format(
+                column=col_names, src_sheet=sheet_src, src_key=src_keys
+            ))
+            continue
+
+        df_src = sheets_data[sheet_src][0]
+        df_dst, params_dst = sheets_data[sheet_dst]
+
+        logging.info(LOG_MESSAGES["func_start"].format(func="merge_fields_across_sheets", params=params_str))
+        df_dst = add_fields_to_sheet(df_dst, df_src, src_keys, dst_keys, col_names, sheet_dst, sheet_src, mode=mode)
+        sheets_data[sheet_dst] = (df_dst, params_dst)
+        logging.info(LOG_MESSAGES["func_end"].format(func="merge_fields_across_sheets", params=params_str, time=0))
+    return sheets_data
 
 def build_summary_sheet(dfs, params_summary, merge_fields):
     func_start = time()
     params_log = f"(лист: {params_summary['sheet']})"
     logging.info(LOG_MESSAGES["func_start"].format(func="build_summary_sheet", params=params_log))
 
-    # Используем только реальные сочетания!
     summary = collect_summary_keys(dfs)
 
     logging.info(LOG_MESSAGES["summary"].format(summary=f"Каркас: {len(summary)} строк (реальные комбинации ключей)"))
     logging.debug(LOG_MESSAGES["debug_head"].format(sheet=params_summary["sheet"], head=summary.head(5).to_string()))
 
-    # Универсально добавляем все поля по merge_fields — берем все поля блока разом, поддержка mode
+    # Универсально добавляем все поля по merge_fields
     for field in merge_fields:
         col_names = field["column"]
         if isinstance(col_names, str):
             col_names = [col_names]
-        sheet_src = field["sheet"]
+        sheet_src = field["sheet_src"]
         src_keys = field["src_key"] if isinstance(field["src_key"], list) else [field["src_key"]]
         dst_keys = field["dst_key"] if isinstance(field["dst_key"], list) else [field["dst_key"]]
         mode = field.get("mode", "value")
@@ -960,7 +1038,6 @@ def build_summary_sheet(dfs, params_summary, merge_fields):
             ))
             continue
 
-        # Добавляем все поля разом, либо считаем количество строк по ключу (mode == "count")
         summary = add_fields_to_sheet(summary, ref_df, src_keys, dst_keys, col_names, params_summary["sheet"], sheet_src, mode=mode)
         logging.info(LOG_MESSAGES["func_end"].format(func="add_fields_to_sheet", params=params_str, time=0))
 
@@ -973,7 +1050,6 @@ def build_summary_sheet(dfs, params_summary, merge_fields):
     logging.debug(LOG_MESSAGES["debug_head"].format(sheet=params_summary["sheet"], head=summary.head(5).to_string()))
     return summary
 
-
 def enrich_reward_with_contest_code(df_reward, df_link):
     func_start = time()
     logging.info(LOG_MESSAGES["func_start"].format(func="enrich_reward_with_contest_code", params="(REWARD)"))
@@ -984,7 +1060,6 @@ def enrich_reward_with_contest_code(df_reward, df_link):
     func_time = time() - func_start
     logging.info(LOG_MESSAGES["func_end"].format(func="enrich_reward_with_contest_code", params="(REWARD)", time=func_time))
     return df_reward
-
 
 def main():
     start_time = datetime.now()
@@ -1090,19 +1165,30 @@ def main():
         else:
             summary.append(f"{sheet_name}: ошибка")
 
-    # 2. Добавляем REWARD_LINK =>CONTEST_CODE на REWARD
-    dfs = {k: v[0] for k, v in sheets_data.items()}
-    if "REWARD" in dfs and "REWARD-LINK" in dfs:
-        df_reward = dfs["REWARD"]
-        df_link = dfs["REWARD-LINK"]
-        df_reward = enrich_reward_with_contest_code(df_reward, df_link)
-        sheets_data["REWARD"] = (df_reward, sheets_data["REWARD"][1])
+    # 2. Универсальное объединение/добавление данных на все листы, кроме SUMMARY
+    merge_fields_across_sheets(
+        sheets_data,
+        [f for f in MERGE_FIELDS if f.get("sheet_dst") != "SUMMARY"]
+    )
 
-    # 4. Построение итоговой таблицы
+    # === ГАРАНТИЯ: колонка есть с нужным именем! ===
+    # Исправим возможное несоответствие: если pandas создал "REWARD-LINK=>CONTEST_CODE", переименуем в "REWARD_LINK =>CONTEST_CODE"
+    df_reward = sheets_data["REWARD"][0]
+    alt_names = [c for c in df_reward.columns if c.replace("-", "_").replace(" ", "") == "REWARD_LINK=>CONTEST_CODE".replace("-", "_").replace(" ", "")]
+    for alt in alt_names:
+        if alt != "REWARD_LINK =>CONTEST_CODE":
+            df_reward = df_reward.rename(columns={alt: "REWARD_LINK =>CONTEST_CODE"})
+            break
+    sheets_data["REWARD"] = (df_reward, sheets_data["REWARD"][1])
+
+    # 3. Формируем dict dfs для build_summary_sheet (только DataFrame!)
+    dfs = {k: v[0] for k, v in sheets_data.items()}
+
+    # 4. Построение итоговой таблицы (SUMMARY)
     df_summary = build_summary_sheet(
         dfs,
         params_summary=SUMMARY_SHEET,
-        merge_fields=SUMMARY_MERGE_FIELDS
+        merge_fields=[f for f in MERGE_FIELDS if f.get("sheet_dst") == "SUMMARY"]
     )
     sheets_data[SUMMARY_SHEET["sheet"]] = (df_summary, SUMMARY_SHEET)
 
