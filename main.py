@@ -26,25 +26,25 @@ INPUT_FILES = [
         "freeze": "C2"
     },
     {
-        "file": "GROUP (PROM) 2025-06-17 v1",
+        "file": "GROUP (PROM) 2025-07-14 v0",
         "sheet": "GROUP",
         "max_col_width": 20,
         "freeze": "C2"
     },
     {
-        "file": "INDICATOR (PROM) 2025-06-17 v1",
+        "file": "INDICATOR (PROM) 2025-07-14 v0",
         "sheet": "INDICATOR",
         "max_col_width": 20,
         "freeze": "B2"
     },
     {
-        "file": "REPORT (PROM-KMKKSB) 2025-06-17 v1",
+        "file": "REPORT (PROM-KMKKSB) 2025-07-23 v1",
         "sheet": "REPORT",
         "max_col_width": 25,
         "freeze": "D2"
     },
     {
-        "file": "REWARD (PROM) 2025-07-21 v0",
+        "file": "REWARD (PROM) 2025-07-23 v0",
         "sheet": "REWARD",
         "max_col_width": 140,
         "freeze": "B2"
@@ -62,19 +62,19 @@ INPUT_FILES = [
         "freeze": "A2"
     },
     {
-        "file": "TOURNAMENT-SCHEDULE (PROM) 2025-07-21 v0",
+        "file": "TOURNAMENT-SCHEDULE (PROM) 2025-07-23 v1",
         "sheet": "TOURNAMENT-SCHEDULE",
         "max_col_width": 120,
         "freeze": "B2"
     },
     {
-        "file": "PROM_USER_ROLE 2025-05-30 v0",
+        "file": "PROM_USER_ROLE 2025-07-21 v0",
         "sheet": "USER_ROLE",
         "max_col_width": 60,
         "freeze": "D2"
     },
     {
-        "file": "PROM_USER_ROLE SB 2025-05-30 v1",
+        "file": "PROM_USER_ROLE SB 2025-07-21 v0",
         "sheet": "USER_ROLE SB",
         "max_col_width": 60,
         "freeze": "D2"
@@ -229,21 +229,27 @@ def get_output_filename():
 
 # Лог-файл с учетом уровня
 def get_log_filename():
-    suffix = f"_{LOG_LEVEL.upper()}_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.log"
+    # Имя лог-файла по дате, например: LOGS_2025-07-23.log
+    suffix = f"_{datetime.now().strftime('%Y-%m-%d')}.log"
     return os.path.join(DIR_LOGS, LOG_BASE_NAME + suffix)
+
 
 # === Логирование ===
 def setup_logger():
     log_file = get_log_filename()
+    # Если логгер уже инициализирован, не добавляем обработчики ещё раз
+    if logging.getLogger().hasHandlers():
+        return log_file
     logging.basicConfig(
         level=logging.DEBUG if LOG_LEVEL == "DEBUG" else logging.INFO,
         format="%(asctime)s | %(levelname)s | %(message)s",
         handlers=[
-            logging.FileHandler(log_file, encoding="utf-8"),
+            logging.FileHandler(log_file, encoding="utf-8", mode="a"),  # append mode
             logging.StreamHandler(sys.stdout)
         ]
     )
     return log_file
+
 
 # === Чтение CSV ===
 def read_csv_file(file_path):
@@ -441,45 +447,89 @@ def _merge_field(summary, ref_df, dst_keys, src_keys, col_name, sheet_src):
 
 def collect_summary_keys(dfs):
     """
-    Собирает только значащие (существующие) комбинации ключей CONTEST_CODE, TOURNAMENT_CODE, REWARD_CODE, GROUP_CODE.
-    Только реальные сочетания для одной CONTEST_CODE.
+    Собирает все реально существующие сочетания ключей CONTEST_CODE, TOURNAMENT_CODE, REWARD_CODE, GROUP_CODE,
+    включая осиротевшие коды (например, TOURNAMENT_CODE без CONTEST_CODE).
     """
     key_cols = ["CONTEST_CODE", "TOURNAMENT_CODE", "REWARD_CODE", "GROUP_CODE"]
+    all_rows = []
 
-    # Берём коды из каждого файла по их логике
+    # Получаем коды из всех файлов
     rewards = dfs.get("REWARD-LINK", pd.DataFrame())
-    reward_keys = rewards[["CONTEST_CODE", "REWARD_CODE"]].drop_duplicates() if not rewards.empty else pd.DataFrame(columns=["CONTEST_CODE", "REWARD_CODE"])
-
     tournaments = dfs.get("TOURNAMENT-SCHEDULE", pd.DataFrame())
-    tourn_keys = tournaments[["CONTEST_CODE", "TOURNAMENT_CODE"]].drop_duplicates() if not tournaments.empty else pd.DataFrame(columns=["CONTEST_CODE", "TOURNAMENT_CODE"])
-
     groups = dfs.get("GROUP", pd.DataFrame())
-    group_keys = groups[["CONTEST_CODE", "GROUP_CODE"]].drop_duplicates() if not groups.empty else pd.DataFrame(columns=["CONTEST_CODE", "GROUP_CODE"])
 
-    # Делаем "декартово" только внутри одной CONTEST_CODE (все combinations на этот код)
-    # Это не просто join — а декартово только внутри группы
-    all_keys = []
-    all_contest_codes = set(tourn_keys["CONTEST_CODE"]) | set(reward_keys["CONTEST_CODE"]) | set(group_keys["CONTEST_CODE"])
+    # Все уникальные коды
+    all_contest_codes = set()
+    all_tournament_codes = set()
+    all_reward_codes = set()
+    all_group_codes = set()
+
+    if not rewards.empty:
+        all_contest_codes.update(rewards["CONTEST_CODE"].dropna())
+        all_reward_codes.update(rewards["REWARD_CODE"].dropna())
+    if not tournaments.empty:
+        all_contest_codes.update(tournaments["CONTEST_CODE"].dropna())
+        all_tournament_codes.update(tournaments["TOURNAMENT_CODE"].dropna())
+    if not groups.empty:
+        all_contest_codes.update(groups["CONTEST_CODE"].dropna())
+        all_group_codes.update(groups["GROUP_CODE"].dropna())
+
+    # --- 1. Для каждого CONTEST_CODE — все комбинации с его TOURNAMENT_CODE, REWARD_CODE, GROUP_CODE
     for code in all_contest_codes:
-        tourns = tourn_keys[tourn_keys["CONTEST_CODE"] == code]["TOURNAMENT_CODE"].dropna().unique()
-        rewards_ = reward_keys[reward_keys["CONTEST_CODE"] == code]["REWARD_CODE"].dropna().unique()
-        groups_ = group_keys[group_keys["CONTEST_CODE"] == code]["GROUP_CODE"].dropna().unique()
+        tourns = tournaments[tournaments["CONTEST_CODE"] == code]["TOURNAMENT_CODE"].dropna().unique() if not tournaments.empty else []
+        rewards_ = rewards[rewards["CONTEST_CODE"] == code]["REWARD_CODE"].dropna().unique() if not rewards.empty else []
+        groups_ = groups[groups["CONTEST_CODE"] == code]["GROUP_CODE"].dropna().unique() if not groups.empty else []
 
-        # Если хотя бы одно из измерений отсутствует — пропускаем (иначе не будет полного набора)
-        if len(tourns) and len(rewards_) and len(groups_):
+        tourns = tourns if len(tourns) else ["-"]
+        rewards_ = rewards_ if len(rewards_) else ["-"]
+        groups_ = groups_ if len(groups_) else ["-"]
+
+        for t in tourns:
+            for r in rewards_:
+                for g in groups_:
+                    all_rows.append((str(code), str(t), str(r), str(g)))
+
+    # --- 2. Для каждого TOURNAMENT_CODE (даже если нет CONTEST_CODE)
+    if not tournaments.empty:
+        for t_code in tournaments["TOURNAMENT_CODE"].dropna().unique():
+            code = tournaments[tournaments["TOURNAMENT_CODE"] == t_code]["CONTEST_CODE"].dropna().unique()
+            code = code[0] if len(code) else "-"
+            rewards_ = rewards[rewards["CONTEST_CODE"] == code]["REWARD_CODE"].dropna().unique() if not rewards.empty else ["-"]
+            groups_ = groups[groups["CONTEST_CODE"] == code]["GROUP_CODE"].dropna().unique() if not groups.empty else ["-"]
+            rewards_ = rewards_ if len(rewards_) else ["-"]
+            groups_ = groups_ if len(groups_) else ["-"]
+            for r in rewards_:
+                for g in groups_:
+                    all_rows.append((str(code), str(t_code), str(r), str(g)))
+
+    # --- 3. Для каждого REWARD_CODE (даже если нет CONTEST_CODE)
+    if not rewards.empty:
+        for r_code in rewards["REWARD_CODE"].dropna().unique():
+            code = rewards[rewards["REWARD_CODE"] == r_code]["CONTEST_CODE"].dropna().unique()
+            code = code[0] if len(code) else "-"
+            tourns = tournaments[tournaments["CONTEST_CODE"] == code]["TOURNAMENT_CODE"].dropna().unique() if not tournaments.empty else ["-"]
+            groups_ = groups[groups["CONTEST_CODE"] == code]["GROUP_CODE"].dropna().unique() if not groups.empty else ["-"]
+            tourns = tourns if len(tourns) else ["-"]
+            groups_ = groups_ if len(groups_) else ["-"]
+            for t in tourns:
+                for g in groups_:
+                    all_rows.append((str(code), str(t), str(r_code), str(g)))
+
+    # --- 4. Для каждого GROUP_CODE (даже если нет CONTEST_CODE)
+    if not groups.empty:
+        for g_code in groups["GROUP_CODE"].dropna().unique():
+            code = groups[groups["GROUP_CODE"] == g_code]["CONTEST_CODE"].dropna().unique()
+            code = code[0] if len(code) else "-"
+            tourns = tournaments[tournaments["CONTEST_CODE"] == code]["TOURNAMENT_CODE"].dropna().unique() if not tournaments.empty else ["-"]
+            rewards_ = rewards[rewards["CONTEST_CODE"] == code]["REWARD_CODE"].dropna().unique() if not rewards.empty else ["-"]
+            tourns = tourns if len(tourns) else ["-"]
+            rewards_ = rewards_ if len(rewards_) else ["-"]
             for t in tourns:
                 for r in rewards_:
-                    for g in groups_:
-                        all_keys.append((code, t, r, g))
-    # Составляем DataFrame
-    summary_keys = pd.DataFrame(all_keys, columns=key_cols)
-    # Если какой-то столбец отсутствует — добавляем прочерки (но это маловероятно)
-    for col in key_cols:
-        if col not in summary_keys.columns:
-            summary_keys[col] = "-"
-        else:
-            summary_keys[col] = summary_keys[col].astype(str).replace("nan", "-")
-    summary_keys = summary_keys[key_cols].drop_duplicates().reset_index(drop=True)
+                    all_rows.append((str(code), str(t), str(r), str(g_code)))
+
+    # --- Удалить дубли
+    summary_keys = pd.DataFrame(all_rows, columns=key_cols).drop_duplicates().reset_index(drop=True)
     return summary_keys
 
 
@@ -577,7 +627,6 @@ def add_fields_to_sheet(df_base, df_ref, src_keys, dst_keys, columns, sheet_name
     ))
     return df_base
 
-
 def main():
     start_time = datetime.now()
     log_file = setup_logger()
@@ -601,11 +650,51 @@ def main():
                 logging.info(LOG_MESSAGES["func_start"].format(func="flatten_json_column", params=f"(лист: {sheet_name})"))
                 df = flatten_json_column(df, column='CONTEST_FEATURE', prefix="CONTEST_FEATURE => ", sheet=sheet_name)
                 logging.info(LOG_MESSAGES["func_end"].format(func="flatten_json_column", params=f"(лист: {sheet_name})", time=0))
-            # REWARD_ADD_DATA на REWARD
+            # REWARD_ADD_DATA на REWARD с вложенным getCondition
             if sheet_name == "REWARD" and "REWARD_ADD_DATA" in df.columns:
                 logging.info(LOG_MESSAGES["func_start"].format(func="flatten_json_column", params=f"(лист: {sheet_name})"))
                 df = flatten_json_column(df, column='REWARD_ADD_DATA', prefix="ADD_DATA => ", sheet=sheet_name)
                 logging.info(LOG_MESSAGES["func_end"].format(func="flatten_json_column", params=f"(лист: {sheet_name})", time=0))
+
+                # --- Дополнительно разворачиваем ADD_DATA => getCondition ---
+                getcond_col = "ADD_DATA => getCondition"
+                if getcond_col in df.columns:
+                    idx = df.columns.get_loc(getcond_col)
+                    # Соберём список всех ключей во вложенных JSON
+                    all_keys = set()
+                    json_objs = []
+                    for i, val in enumerate(df[getcond_col]):
+                        try:
+                            if pd.isnull(val) or val == "":
+                                obj = {}
+                            else:
+                                obj = json.loads(val)
+                        except Exception as ex:
+                            logging.debug(f"Ошибка разбора JSON в getCondition (строка {i}): {ex}")
+                            obj = {}
+                        json_objs.append(obj)
+                        all_keys.update(obj.keys())
+                    # Создаём новые столбцы
+                    for key in all_keys:
+                        new_col = []
+                        for obj in json_objs:
+                            v = obj.get(key, "")
+                            if isinstance(v, list):
+                                v = ";".join(map(str, v))
+                            elif isinstance(v, dict):
+                                v = json.dumps(v, ensure_ascii=False)
+                            new_col.append(v)
+                        colname = f"ADD_DATA => getCondition => {key}"
+                        df[colname] = new_col
+                    # Переставим новые колонки сразу после getCondition
+                    cols = df.columns.tolist()
+                    insert_at = cols.index(getcond_col) + 1
+                    new_cols = [f"ADD_DATA => getCondition => {k}" for k in all_keys if f"ADD_DATA => getCondition => {k}" in cols]
+                    for col in reversed(new_cols):
+                        cols.remove(col)
+                        cols.insert(insert_at, col)
+                    df = df[cols]
+
             sheets_data[sheet_name] = (df, file_conf)
             files_processed += 1
             rows_total += len(df)
