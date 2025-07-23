@@ -90,7 +90,7 @@ INPUT_FILES = [
 SUMMARY_SHEET = {
     "sheet": "SUMMARY",
     "max_col_width": 70,
-    "freeze": "D2"
+    "freeze": "F2"
 }
 
 SUMMARY_MERGE_FIELDS = [
@@ -99,6 +99,18 @@ SUMMARY_MERGE_FIELDS = [
         "src_key": ["CONTEST_CODE"],   # ключ в источнике (может быть список)
         "dst_key": ["CONTEST_CODE"],   # ключ в summary (может быть список)
         "column": "FULL_NAME",         # какое поле подгружаем
+    },
+    {
+        "sheet": "CONTEST-DATA",       # имя листа-источника
+        "src_key": ["CONTEST_CODE"],   # ключ в источнике (может быть список)
+        "dst_key": ["CONTEST_CODE"],   # ключ в summary (может быть список)
+        "column": "CONTEST_FEATURE => momentRewarding",         # какое поле подгружаем
+    },
+    {
+        "sheet": "CONTEST-DATA",       # имя листа-источника
+        "src_key": ["CONTEST_CODE"],   # ключ в источнике (может быть список)
+        "dst_key": ["CONTEST_CODE"],   # ключ в summary (может быть список)
+        "column": "PLAN_MOD_VALUE",         # какое поле подгружаем
     },
     {
         "sheet": "GROUP",
@@ -117,6 +129,24 @@ SUMMARY_MERGE_FIELDS = [
         "src_key": ["CONTEST_CODE", "GROUP_CODE"],   # пример составного ключа
         "dst_key": ["CONTEST_CODE", "GROUP_CODE"],
         "column": "ADD_CALC_CRITERION_2"
+    },
+    {
+        "sheet": "INDICATOR",
+        "src_key": ["CONTEST_CODE"],   # пример составного ключа
+        "dst_key": ["CONTEST_CODE"],
+        "column": "INDICATOR_MARK_TYPE"
+    },
+    {
+        "sheet": "INDICATOR",
+        "src_key": ["CONTEST_CODE"],   # пример составного ключа
+        "dst_key": ["CONTEST_CODE"],
+        "column": "INDICATOR_MATCH"
+    },
+    {
+        "sheet": "INDICATOR",
+        "src_key": ["CONTEST_CODE"],   # пример составного ключа
+        "dst_key": ["CONTEST_CODE"],
+        "column": "INDICATOR_VALUE"
     },
     {
         "sheet": "TOURNAMENT-SCHEDULE",
@@ -141,6 +171,30 @@ SUMMARY_MERGE_FIELDS = [
         "src_key": ["TOURNAMENT_CODE"],
         "dst_key": ["TOURNAMENT_CODE"],
         "column": "TOURNAMENT_STATUS"
+    },
+    {
+        "sheet": "REPORT",
+        "src_key": ["TOURNAMENT_CODE"],
+        "dst_key": ["TOURNAMENT_CODE"],
+        "column": "CONTEST_DATE"
+    },
+    {
+        "sheet": "REWARD",
+        "src_key": ["REWARD_LINK =>CONTEST_CODE", "REWARD_CODE"],   # пример составного ключа
+        "dst_key": ["CONTEST_CODE", "REWARD_CODE"],
+        "column": "ADD_DATA => outstanding"
+    },
+    {
+        "sheet": "REWARD",
+        "src_key": ["REWARD_LINK =>CONTEST_CODE", "REWARD_CODE"],   # пример составного ключа
+        "dst_key": ["CONTEST_CODE", "REWARD_CODE"],
+        "column": "ADD_DATA => teamNews"
+    },
+    {
+        "sheet": "REWARD",
+        "src_key": ["REWARD_LINK =>CONTEST_CODE", "REWARD_CODE"],   # пример составного ключа
+        "dst_key": ["CONTEST_CODE", "REWARD_CODE"],
+        "column": "ADD_DATA => singleNews"
     },
     # ...
 ]
@@ -218,19 +272,24 @@ def write_to_excel(sheets_data, output_path):
     params = f"({output_path})"
     logging.info(LOG_MESSAGES["func_start"].format(func="write_to_excel", params=params))
     try:
+        # SUMMARY первый, остальные — по алфавиту
+        ordered_sheets = ["SUMMARY"] + [s for s in sheets_data if s != "SUMMARY"]
         with pd.ExcelWriter(output_path, engine="openpyxl") as writer:
-            for sheet_name, (df, params_sheet) in sheets_data.items():
+            for sheet_name in ordered_sheets:
+                df, params_sheet = sheets_data[sheet_name]
                 df.to_excel(writer, index=False, sheet_name=sheet_name)
                 ws = writer.sheets[sheet_name]
                 _format_sheet(ws, df, params_sheet)
                 logging.info(LOG_MESSAGES["sheet_written"].format(sheet=sheet_name, rows=len(df), cols=len(df.columns)))
+            # Делать SUMMARY активным
+            writer.book.active = writer.book.sheetnames.index("SUMMARY")
+            writer.book.save(output_path)
         func_time = time() - func_start
         logging.info(LOG_MESSAGES["func_end"].format(func="write_to_excel", params=params, time=func_time))
     except Exception as ex:
         func_time = time() - func_start
         logging.error(LOG_MESSAGES["func_error"].format(func="write_to_excel", params=params, error=ex))
         logging.info(LOG_MESSAGES["func_end"].format(func="write_to_excel", params=params, time=func_time))
-
 
 # === Форматирование листа ===
 def _format_sheet(ws, df, params):
@@ -366,53 +425,77 @@ def flatten_json_column(df, column, prefix, sheet=None, sep="; "):
             logging.debug(LOG_MESSAGES["debug_head"].format(sheet=sheet, head=df.head(3).to_string()))
     return df
 
+def _merge_field(summary, ref_df, dst_keys, src_keys, col_name, sheet_src):
+    """
+    Присоединяет к summary новое поле по ключам (берет только первое совпадение).
+    """
+    def make_key(row, keys):
+        return tuple(row[k] for k in keys)
+    ref_map = dict(zip(
+        ref_df.apply(lambda r: make_key(r, src_keys), axis=1),
+        ref_df[col_name]
+    ))
+    summary_col_name = f"{sheet_src}=>{col_name}"
+    summary[summary_col_name] = summary.apply(lambda r: ref_map.get(make_key(r, dst_keys), "-"), axis=1)
+    return summary
+
+def collect_summary_keys(dfs):
+    """
+    Собирает только значащие (существующие) комбинации ключей CONTEST_CODE, TOURNAMENT_CODE, REWARD_CODE, GROUP_CODE.
+    Только реальные сочетания для одной CONTEST_CODE.
+    """
+    key_cols = ["CONTEST_CODE", "TOURNAMENT_CODE", "REWARD_CODE", "GROUP_CODE"]
+
+    # Берём коды из каждого файла по их логике
+    rewards = dfs.get("REWARD-LINK", pd.DataFrame())
+    reward_keys = rewards[["CONTEST_CODE", "REWARD_CODE"]].drop_duplicates() if not rewards.empty else pd.DataFrame(columns=["CONTEST_CODE", "REWARD_CODE"])
+
+    tournaments = dfs.get("TOURNAMENT-SCHEDULE", pd.DataFrame())
+    tourn_keys = tournaments[["CONTEST_CODE", "TOURNAMENT_CODE"]].drop_duplicates() if not tournaments.empty else pd.DataFrame(columns=["CONTEST_CODE", "TOURNAMENT_CODE"])
+
+    groups = dfs.get("GROUP", pd.DataFrame())
+    group_keys = groups[["CONTEST_CODE", "GROUP_CODE"]].drop_duplicates() if not groups.empty else pd.DataFrame(columns=["CONTEST_CODE", "GROUP_CODE"])
+
+    # Делаем "декартово" только внутри одной CONTEST_CODE (все combinations на этот код)
+    # Это не просто join — а декартово только внутри группы
+    all_keys = []
+    all_contest_codes = set(tourn_keys["CONTEST_CODE"]) | set(reward_keys["CONTEST_CODE"]) | set(group_keys["CONTEST_CODE"])
+    for code in all_contest_codes:
+        tourns = tourn_keys[tourn_keys["CONTEST_CODE"] == code]["TOURNAMENT_CODE"].dropna().unique()
+        rewards_ = reward_keys[reward_keys["CONTEST_CODE"] == code]["REWARD_CODE"].dropna().unique()
+        groups_ = group_keys[group_keys["CONTEST_CODE"] == code]["GROUP_CODE"].dropna().unique()
+
+        # Если хотя бы одно из измерений отсутствует — пропускаем (иначе не будет полного набора)
+        if len(tourns) and len(rewards_) and len(groups_):
+            for t in tourns:
+                for r in rewards_:
+                    for g in groups_:
+                        all_keys.append((code, t, r, g))
+    # Составляем DataFrame
+    summary_keys = pd.DataFrame(all_keys, columns=key_cols)
+    # Если какой-то столбец отсутствует — добавляем прочерки (но это маловероятно)
+    for col in key_cols:
+        if col not in summary_keys.columns:
+            summary_keys[col] = "-"
+        else:
+            summary_keys[col] = summary_keys[col].astype(str).replace("nan", "-")
+    summary_keys = summary_keys[key_cols].drop_duplicates().reset_index(drop=True)
+    return summary_keys
+
+
 def build_summary_sheet(dfs, params_summary, merge_fields):
     from time import time
     func_start = time()
     params_log = f"(лист: {params_summary['sheet']})"
     logging.info(LOG_MESSAGES["func_start"].format(func="build_summary_sheet", params=params_log))
 
-    # 1. Базовый каркас по CONTEST_CODE (или самому длинному ключу из merge_fields)
-    # Для безопасности: если нет CONTEST_CODE, берем первый лист, где он есть
-    base_sheet = None
-    for sheet in ["CONTEST-DATA", "REWARD-LINK", "TOURNAMENT-SCHEDULE", "GROUP"]:
-        if sheet in dfs and "CONTEST_CODE" in dfs[sheet].columns:
-            base_sheet = sheet
-            break
-    if not base_sheet:
-        base_sheet = list(dfs.keys())[0]
-    summary = dfs[base_sheet][["CONTEST_CODE"]].drop_duplicates().copy()
-    logging.info(LOG_MESSAGES["summary"].format(summary=f"Каркас: {len(summary)} строк (уникальные CONTEST_CODE)"))
+    # Используем только реальные сочетания!
+    summary = collect_summary_keys(dfs)
+
+    logging.info(LOG_MESSAGES["summary"].format(summary=f"Каркас: {len(summary)} строк (реальные комбинации ключей)"))
     logging.debug(LOG_MESSAGES["debug_head"].format(sheet=params_summary["sheet"], head=summary.head(5).to_string()))
 
-    # 2. Явно добавляем все ключевые коды (TOURNAMENT_CODE, REWARD_CODE, GROUP_CODE), если их нет
-    # TOURNAMENT_CODE
-    if "TOURNAMENT-SCHEDULE" in dfs and "TOURNAMENT_CODE" not in summary.columns:
-        tourn_map = dict(zip(dfs["TOURNAMENT-SCHEDULE"]["CONTEST_CODE"], dfs["TOURNAMENT-SCHEDULE"]["TOURNAMENT_CODE"]))
-        summary["TOURNAMENT_CODE"] = summary["CONTEST_CODE"].map(tourn_map).fillna("-")
-        logging.info(LOG_MESSAGES["field_joined"].format(
-            column="TOURNAMENT_CODE", src_sheet="TOURNAMENT-SCHEDULE", dst_key="CONTEST_CODE", src_key="CONTEST_CODE"
-        ))
-
-    # REWARD_CODE
-    if "REWARD-LINK" in dfs and "REWARD_CODE" not in summary.columns:
-        reward_map = dict(zip(dfs["REWARD-LINK"]["CONTEST_CODE"], dfs["REWARD-LINK"]["REWARD_CODE"]))
-        summary["REWARD_CODE"] = summary["CONTEST_CODE"].map(reward_map).fillna("-")
-        logging.info(LOG_MESSAGES["field_joined"].format(
-            column="REWARD_CODE", src_sheet="REWARD-LINK", dst_key="CONTEST_CODE", src_key="CONTEST_CODE"
-        ))
-
-    # GROUP_CODE
-    if "GROUP" in dfs and "GROUP_CODE" not in summary.columns:
-        group_map = dict(zip(dfs["GROUP"]["CONTEST_CODE"], dfs["GROUP"]["GROUP_CODE"]))
-        summary["GROUP_CODE"] = summary["CONTEST_CODE"].map(group_map).fillna("-")
-        logging.info(LOG_MESSAGES["field_joined"].format(
-            column="GROUP_CODE", src_sheet="GROUP", dst_key="CONTEST_CODE", src_key="CONTEST_CODE"
-        ))
-
-    # 3. Если в merge_fields встречаются другие коды (например, EMPLOYEE_ID) — можно добавить такой же map здесь
-
-    # 4. Универсально добавляем все поля по merge_fields
+    # Универсально добавляем все поля по merge_fields — берем первое найденное
     for field in merge_fields:
         col_name = field["column"]
         sheet_src = field["sheet"]
@@ -426,26 +509,13 @@ def build_summary_sheet(dfs, params_summary, merge_fields):
                 column=col_name, src_sheet=sheet_src, src_key=src_keys
             ))
             continue
-        # Строим справочник по src_key (всегда tuple!)
-        def make_key(row, keys):
-            return tuple(row[k] for k in keys)
-        ref_map = dict(zip(
-            ref_df.apply(lambda r: make_key(r, src_keys), axis=1),
-            ref_df[col_name]
-        ))
-        # Добавляем поле по dst_key
-        summary_col_name = f"{sheet_src}=>{col_name}"
-        try:
-            summary[summary_col_name] = summary.apply(lambda r: ref_map.get(make_key(r, dst_keys), "-"), axis=1)
-            logging.info(LOG_MESSAGES.get("field_joined", LOG_MESSAGES["summary"]).format(
-                column=summary_col_name, src_sheet=sheet_src, dst_key=dst_keys, src_key=src_keys
-            ))
-        except Exception as ex:
-            logging.error(LOG_MESSAGES["func_error"].format(
-                func="add_fields_to_sheet", params=params_str, error=ex
-            ))
-        logging.debug(LOG_MESSAGES["debug_columns"].format(sheet=params_summary["sheet"], columns=', '.join(summary.columns.tolist())))
-        logging.debug(LOG_MESSAGES["debug_head"].format(sheet=params_summary["sheet"], head=summary.head(3).to_string()))
+
+        # Вытаскиваем поле (или список)
+        if isinstance(col_name, list):
+            for single_col in col_name:
+                summary = _merge_field(summary, ref_df, dst_keys, src_keys, single_col, sheet_src)
+        else:
+            summary = _merge_field(summary, ref_df, dst_keys, src_keys, col_name, sheet_src)
         logging.info(LOG_MESSAGES["func_end"].format(func="add_fields_to_sheet", params=params_str, time=0))
 
     n_rows, n_cols = summary.shape
@@ -456,6 +526,7 @@ def build_summary_sheet(dfs, params_summary, merge_fields):
     logging.debug(LOG_MESSAGES["debug_columns"].format(sheet=params_summary["sheet"], columns=', '.join(summary.columns.tolist())))
     logging.debug(LOG_MESSAGES["debug_head"].format(sheet=params_summary["sheet"], head=summary.head(5).to_string()))
     return summary
+
 
 def enrich_reward_with_contest_code(df_reward, df_link):
     from time import time
