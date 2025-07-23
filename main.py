@@ -12,9 +12,9 @@ import json
 
 # === Глобальные константы и переменные ===
 # Каталоги
-DIR_INPUT = '/Users/orionflash/Desktop/MyProject/SPOD_PROM/SPOD/'
-DIR_OUTPUT = '/Users/orionflash/Desktop/MyProject/SPOD_PROM/OUT/'
-DIR_LOGS = '/Users/orionflash/Desktop/MyProject/SPOD_PROM/LOGS/'
+DIR_INPUT = r'/Users/orionflash/Desktop/MyProject/SPOD_PROM/SPOD'
+DIR_OUTPUT = r'/Users/orionflash/Desktop/MyProject/SPOD_PROM/OUT'
+DIR_LOGS = r'/Users/orionflash/Desktop/MyProject/SPOD_PROM/LOGS'
 
 # Входные файлы (имя без расширения)
 # Соответствие: Имя листа, максимальная ширина колонки, закрепление
@@ -117,6 +117,30 @@ SUMMARY_MERGE_FIELDS = [
         "src_key": ["CONTEST_CODE", "GROUP_CODE"],   # пример составного ключа
         "dst_key": ["CONTEST_CODE", "GROUP_CODE"],
         "column": "ADD_CALC_CRITERION_2"
+    },
+    {
+        "sheet": "TOURNAMENT-SCHEDULE",
+        "src_key": ["TOURNAMENT_CODE"],
+        "dst_key": ["TOURNAMENT_CODE"],
+        "column": "START_DT"
+    },
+    {
+        "sheet": "TOURNAMENT-SCHEDULE",
+        "src_key": ["TOURNAMENT_CODE"],
+        "dst_key": ["TOURNAMENT_CODE"],
+        "column": "END_DT"
+    },
+    {
+        "sheet": "TOURNAMENT-SCHEDULE",
+        "src_key": ["TOURNAMENT_CODE"],
+        "dst_key": ["TOURNAMENT_CODE"],
+        "column": "RESULT_DT"
+    },
+    {
+        "sheet": "TOURNAMENT-SCHEDULE",
+        "src_key": ["TOURNAMENT_CODE"],
+        "dst_key": ["TOURNAMENT_CODE"],
+        "column": "TOURNAMENT_STATUS"
     },
     # ...
 ]
@@ -348,36 +372,47 @@ def build_summary_sheet(dfs, params_summary, merge_fields):
     params_log = f"(лист: {params_summary['sheet']})"
     logging.info(LOG_MESSAGES["func_start"].format(func="build_summary_sheet", params=params_log))
 
-    # 1. Автоматически определяем все dst_key-комбинации, которые нужны для summary
-    all_dst_keys = []
-    for field in merge_fields:
-        keys = field["dst_key"] if isinstance(field["dst_key"], list) else [field["dst_key"]]
-        all_dst_keys.append(tuple(keys))
-    # Берём самую длинную комбинацию dst_key как "базовую структуру"
-    main_keys = max(all_dst_keys, key=len)
-    main_keys = list(main_keys)
-
-    # Определяем, с какого листа брать базу — находим первый merge_field с этими dst_key
+    # 1. Базовый каркас по CONTEST_CODE (или самому длинному ключу из merge_fields)
+    # Для безопасности: если нет CONTEST_CODE, берем первый лист, где он есть
     base_sheet = None
-    for field in merge_fields:
-        dst_keys = field["dst_key"] if isinstance(field["dst_key"], list) else [field["dst_key"]]
-        if set(dst_keys) == set(main_keys):
-            base_sheet = field["sheet"]
+    for sheet in ["CONTEST-DATA", "REWARD-LINK", "TOURNAMENT-SCHEDULE", "GROUP"]:
+        if sheet in dfs and "CONTEST_CODE" in dfs[sheet].columns:
+            base_sheet = sheet
             break
     if not base_sheet:
-        # Если нет — используем первый лист из merge_fields
-        base_sheet = merge_fields[0]["sheet"]
-    if base_sheet not in dfs:
-        logging.error(LOG_MESSAGES["func_error"].format(func="build_summary_sheet", params=params_log, error=f"Нет листа {base_sheet}"))
-        raise ValueError(f"Нет листа {base_sheet} для формирования структуры.")
-    base_df = dfs[base_sheet]
-    # Получаем уникальные комбинации по main_keys
-    summary = base_df[main_keys].drop_duplicates().copy()
-    n_init = len(summary)
-    logging.info(LOG_MESSAGES["summary"].format(summary=f"Каркас: {n_init} строк (уникальные по {main_keys})"))
+        base_sheet = list(dfs.keys())[0]
+    summary = dfs[base_sheet][["CONTEST_CODE"]].drop_duplicates().copy()
+    logging.info(LOG_MESSAGES["summary"].format(summary=f"Каркас: {len(summary)} строк (уникальные CONTEST_CODE)"))
     logging.debug(LOG_MESSAGES["debug_head"].format(sheet=params_summary["sheet"], head=summary.head(5).to_string()))
 
-    # 2. Универсально добавляем все поля по merge_fields
+    # 2. Явно добавляем все ключевые коды (TOURNAMENT_CODE, REWARD_CODE, GROUP_CODE), если их нет
+    # TOURNAMENT_CODE
+    if "TOURNAMENT-SCHEDULE" in dfs and "TOURNAMENT_CODE" not in summary.columns:
+        tourn_map = dict(zip(dfs["TOURNAMENT-SCHEDULE"]["CONTEST_CODE"], dfs["TOURNAMENT-SCHEDULE"]["TOURNAMENT_CODE"]))
+        summary["TOURNAMENT_CODE"] = summary["CONTEST_CODE"].map(tourn_map).fillna("-")
+        logging.info(LOG_MESSAGES["field_joined"].format(
+            column="TOURNAMENT_CODE", src_sheet="TOURNAMENT-SCHEDULE", dst_key="CONTEST_CODE", src_key="CONTEST_CODE"
+        ))
+
+    # REWARD_CODE
+    if "REWARD-LINK" in dfs and "REWARD_CODE" not in summary.columns:
+        reward_map = dict(zip(dfs["REWARD-LINK"]["CONTEST_CODE"], dfs["REWARD-LINK"]["REWARD_CODE"]))
+        summary["REWARD_CODE"] = summary["CONTEST_CODE"].map(reward_map).fillna("-")
+        logging.info(LOG_MESSAGES["field_joined"].format(
+            column="REWARD_CODE", src_sheet="REWARD-LINK", dst_key="CONTEST_CODE", src_key="CONTEST_CODE"
+        ))
+
+    # GROUP_CODE
+    if "GROUP" in dfs and "GROUP_CODE" not in summary.columns:
+        group_map = dict(zip(dfs["GROUP"]["CONTEST_CODE"], dfs["GROUP"]["GROUP_CODE"]))
+        summary["GROUP_CODE"] = summary["CONTEST_CODE"].map(group_map).fillna("-")
+        logging.info(LOG_MESSAGES["field_joined"].format(
+            column="GROUP_CODE", src_sheet="GROUP", dst_key="CONTEST_CODE", src_key="CONTEST_CODE"
+        ))
+
+    # 3. Если в merge_fields встречаются другие коды (например, EMPLOYEE_ID) — можно добавить такой же map здесь
+
+    # 4. Универсально добавляем все поля по merge_fields
     for field in merge_fields:
         col_name = field["column"]
         sheet_src = field["sheet"]
@@ -391,7 +426,7 @@ def build_summary_sheet(dfs, params_summary, merge_fields):
                 column=col_name, src_sheet=sheet_src, src_key=src_keys
             ))
             continue
-        # Строим справочник по src_key
+        # Строим справочник по src_key (всегда tuple!)
         def make_key(row, keys):
             return tuple(row[k] for k in keys)
         ref_map = dict(zip(
@@ -400,10 +435,15 @@ def build_summary_sheet(dfs, params_summary, merge_fields):
         ))
         # Добавляем поле по dst_key
         summary_col_name = f"{sheet_src}=>{col_name}"
-        summary[summary_col_name] = summary.apply(lambda r: ref_map.get(make_key(r, dst_keys), "-"), axis=1)
-        logging.info(LOG_MESSAGES.get("field_joined", LOG_MESSAGES["summary"]).format(
-            column=summary_col_name, src_sheet=sheet_src, dst_key=dst_keys, src_key=src_keys
-        ))
+        try:
+            summary[summary_col_name] = summary.apply(lambda r: ref_map.get(make_key(r, dst_keys), "-"), axis=1)
+            logging.info(LOG_MESSAGES.get("field_joined", LOG_MESSAGES["summary"]).format(
+                column=summary_col_name, src_sheet=sheet_src, dst_key=dst_keys, src_key=src_keys
+            ))
+        except Exception as ex:
+            logging.error(LOG_MESSAGES["func_error"].format(
+                func="add_fields_to_sheet", params=params_str, error=ex
+            ))
         logging.debug(LOG_MESSAGES["debug_columns"].format(sheet=params_summary["sheet"], columns=', '.join(summary.columns.tolist())))
         logging.debug(LOG_MESSAGES["debug_head"].format(sheet=params_summary["sheet"], head=summary.head(3).to_string()))
         logging.info(LOG_MESSAGES["func_end"].format(func="add_fields_to_sheet", params=params_str, time=0))
