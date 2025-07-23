@@ -111,6 +111,36 @@ SUMMARY_MERGE_FIELDS = [
         "column": "PLAN_MOD_VALUE",         # какое поле подгружаем
     },
     {
+        "sheet": "CONTEST-DATA",       # имя листа-источника
+        "src_key": ["CONTEST_CODE"],   # ключ в источнике (может быть список)
+        "dst_key": ["CONTEST_CODE"],   # ключ в summary (может быть список)
+        "column": "BUSINESS_BLOCK",         # какое поле подгружаем
+    },
+    {
+        "sheet": "CONTEST-DATA",       # имя листа-источника
+        "src_key": ["CONTEST_CODE"],   # ключ в источнике (может быть список)
+        "dst_key": ["CONTEST_CODE"],   # ключ в summary (может быть список)
+        "column": "CONTEST_FEATURE => tournamentStartMailing",         # какое поле подгружаем
+    },
+    {
+        "sheet": "CONTEST-DATA",       # имя листа-источника
+        "src_key": ["CONTEST_CODE"],   # ключ в источнике (может быть список)
+        "dst_key": ["CONTEST_CODE"],   # ключ в summary (может быть список)
+        "column": "CONTEST_FEATURE => tournamentEndMailing",         # какое поле подгружаем
+    },
+    {
+        "sheet": "CONTEST-DATA",       # имя листа-источника
+        "src_key": ["CONTEST_CODE"],   # ключ в источнике (может быть список)
+        "dst_key": ["CONTEST_CODE"],   # ключ в summary (может быть список)
+        "column": "CONTEST_FEATURE => tournamentRewardingMailing",         # какое поле подгружаем
+    },
+    {
+        "sheet": "CONTEST-DATA",       # имя листа-источника
+        "src_key": ["CONTEST_CODE"],   # ключ в источнике (может быть список)
+        "dst_key": ["CONTEST_CODE"],   # ключ в summary (может быть список)
+        "column": "CONTEST_FEATURE => tournamentLikeMailing",         # какое поле подгружаем
+    },
+    {
         "sheet": "GROUP",
         "src_key": ["CONTEST_CODE", "GROUP_CODE"],   # пример составного ключа
         "dst_key": ["CONTEST_CODE", "GROUP_CODE"],
@@ -178,24 +208,35 @@ SUMMARY_MERGE_FIELDS = [
     },
     {
         "sheet": "REWARD",
-        "src_key": ["REWARD_LINK =>CONTEST_CODE", "REWARD_CODE"],   # пример составного ключа
+        "src_key": ["REWARD_LINK =>CONTEST_CODE", "REWARD_CODE"], # пример составного ключа
+        "dst_key": ["CONTEST_CODE", "REWARD_CODE"],
+        "column": "ADD_DATA => rewardAgainGlobal"
+    },
+    {
+        "sheet": "REWARD",
+        "src_key": ["REWARD_LINK =>CONTEST_CODE", "REWARD_CODE"], # пример составного ключа
+        "dst_key": ["CONTEST_CODE", "REWARD_CODE"],
+        "column": "ADD_DATA => rewardAgainTournament"
+    },
+    {
+        "sheet": "REWARD",
+        "src_key": ["REWARD_LINK =>CONTEST_CODE", "REWARD_CODE"], # пример составного ключа
         "dst_key": ["CONTEST_CODE", "REWARD_CODE"],
         "column": "ADD_DATA => outstanding"
     },
     {
         "sheet": "REWARD",
-        "src_key": ["REWARD_LINK =>CONTEST_CODE", "REWARD_CODE"],   # пример составного ключа
+        "src_key": ["REWARD_LINK =>CONTEST_CODE", "REWARD_CODE"], # пример составного ключа
         "dst_key": ["CONTEST_CODE", "REWARD_CODE"],
         "column": "ADD_DATA => teamNews"
     },
     {
         "sheet": "REWARD",
-        "src_key": ["REWARD_LINK =>CONTEST_CODE", "REWARD_CODE"],   # пример составного ключа
+        "src_key": ["REWARD_LINK =>CONTEST_CODE", "REWARD_CODE"], # пример составного ключа
         "dst_key": ["CONTEST_CODE", "REWARD_CODE"],
         "column": "ADD_DATA => singleNews"
     },
-    # ...
-]
+ ]
 
 # Логирование: уровень, шаблоны, имена
 LOG_LEVEL = "DEBUG"  # или "DEBUG"
