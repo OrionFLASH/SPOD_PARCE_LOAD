@@ -415,7 +415,9 @@ CHECK_DUPLICATES = [
     {"sheet": "REWARD-LINK",  "key": ["CONTEST_CODE", "REWARD_CODE"]},
     {"sheet": "TOURNAMENT-SCHEDULE", "key": ["TOURNAMENT_CODE", "CONTEST_CODE"]},
     {"sheet": "ORG_UNIT_V20", "key": ["ORG_UNIT_CODE"]},
-    # ... добавьте нужные листы и ключи
+    {"sheet": "USER_ROLE", "key": ["ROLE_NUM"]},
+    {"sheet": "USER_ROLE SB", "key": ["ROLE_NUM"]},
+    {"sheet": "EMPLOYEE", "key": ["PERSON_NUMBER"]}
 ]
 
 for check in CHECK_DUPLICATES:
