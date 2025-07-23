@@ -91,7 +91,53 @@ SUMMARY_SHEET = {
     "freeze": "F2"
 }
 
+# Логирование: уровень, шаблоны, имена
+LOG_LEVEL = "DEBUG"  # "INFO" или "DEBUG"
+LOG_BASE_NAME = "LOGS"
+LOG_MESSAGES = {
+    "start":                "=== Старт работы программы: {time} ===",
+    "reading_file":         "Загрузка файла: {file_path}",
+    "read_ok":              "Файл успешно загружен: {file_path}, строк: {rows}, колонок: {cols}",
+    "read_fail":            "Ошибка загрузки файла: {file_path}. {error}",
+    "sheet_written":        "Лист Excel сформирован: {sheet} (строк: {rows}, колонок: {cols})",
+    "finish":               "=== Завершение работы. Обработано файлов: {files}, строк всего: {rows_total}. Время выполнения: {time_elapsed} ===",
+    "summary":              "Summary: {summary}",
+    "func_start":           "[START] {func} {params}",
+    "func_end":             "[END] {func} {params} (время: {time:.3f}s)",
+    "func_error":           "[ERROR] {func} {params} — {error}",
+    "json_flatten_start":   "Разворачивание колонки {column} (строк: {rows})",
+    "json_flatten_end":     "Развёрнуто {n_cols} колонок из {n_keys} ключей, ошибок JSON: {n_errors}, строк: {rows}, время: {time:.3f}s",
+    "json_flatten_error":   "Ошибка разбора JSON (строка {row}): {error}",
+    "debug_columns":        "[DEBUG] {sheet}: колонки после разворачивания: {columns}",
+    "debug_head":           "[DEBUG] {sheet}: первые строки после разворачивания:\n{head}",
+    "field_joined":         "Колонка {column} присоединена из {src_sheet} по ключу {dst_key} -> {src_key}",
+    "field_missing":        "Колонка {column} не добавлена: нет листа {src_sheet} или ключей {src_key}",
+    "fields_summary":       "Итоговая структура: {rows} строк, {cols} колонок",
+    "duplicates_start":     "[START] Проверка дублей: {sheet}, ключ: {keys}",
+    "duplicates_found":     "[INFO] Дублей найдено: {count} на листе {sheet} по ключу {keys}",
+    "duplicates_error":     "[ERROR] Ошибка при поиске дублей: {sheet}, ключ: {keys}: {error}",
+    "duplicates_end":       "[END] Проверка дублей: {sheet}, время: {time:.3f}s",
+    "color_scheme_applied": "[INFO] Цветовая схема применена: лист {sheet}, колонка {col}, стиль {scope}, цвет {color}"
+}
+
 MERGE_FIELDS = [
+    {
+        "sheet_src": "CONTEST-DATA",
+        "sheet_dst": "REPORT",
+        "src_key": ["CONTEST_CODE"],
+        "dst_key": ["CONTEST_CODE"],
+        "column": ["CONTEST_TYPE"],
+        "mode": "value"
+    },
+    {
+        "sheet_src": "TOURNAMENT-SCHEDULE",
+        "sheet_dst": "REPORT",
+        "src_key": ["TOURNAMENT_CODE"],
+        "dst_key": ["TOURNAMENT_CODE"],
+        "column": ["END_DT", "RESULT_DT"],
+        "mode": "value"
+    },
+
     # --- 1. REWARD: добавляем CONTEST_CODE по REWARD_CODE (аналог enrich_reward_with_contest_code) ---
     {
         "sheet_src": "REWARD-LINK",
@@ -238,7 +284,7 @@ COLOR_SCHEME = [
     # --- ИСХОДНЫЕ ДАННЫЕ (загружаются из CSV) — светло-синий ---
     {
         "group": "Исходные данные",
-        "header_bg": "CCE5FF",  # светло-синий
+        "header_bg": "D4FB79",  # светло-синий
         "header_fg": "000000",  # чёрный
         "column_bg": None,      # пока не используем, можно добавить позже
         "column_fg": None,
@@ -251,7 +297,7 @@ COLOR_SCHEME = [
     # --- ДАННЫЕ, развёрнутые из JSON — сама колонка (несильно светлый зелёный), развёрнутые — светло-зелёный ---
     {
         "group": "JSON source columns",
-        "header_bg": "85E085",  # средний зелёный (оригинал JSON)
+        "header_bg": "FFD479",  # средний зелёный (оригинал JSON)
         "header_fg": "000000",
         "column_bg": None,  # #D8FCD8 — светло-зелёный, если потребуется
         "column_fg": None,
@@ -270,10 +316,23 @@ COLOR_SCHEME = [
         "sheets": ["CONTEST-DATA", "REWARD"],
         "columns": [
             "CONTEST_FEATURE => momentRewarding", "CONTEST_FEATURE => tournamentStartMailing", "CONTEST_FEATURE => tournamentEndMailing",
-            "CONTEST_FEATURE => tournamentRewardingMailing", "CONTEST_FEATURE => tournamentLikeMailing",
-            "ADD_DATA => getCondition => nonRewards",
-            "ADD_DATA => outstanding", "ADD_DATA => teamNews", "ADD_DATA => singleNews",
-            "ADD_DATA => rewardAgainGlobal", "ADD_DATA => rewardAgainTournament"
+            "CONTEST_FEATURE => tournamentRewardingMailing", "CONTEST_FEATURE => tournamentLikeMailing", "CONTEST_FEATURE => capacity",
+            "CONTEST_FEATURE => tournamentListMailing", "CONTEST_FEATURE => vid", "CONTEST_FEATURE => tbVisible", "CONTEST_FEATURE => tbHidden",
+            "CONTEST_FEATURE => persomanNumberVisible",	"CONTEST_FEATURE => typeRewarding",	"CONTEST_FEATURE => masking",
+            "CONTEST_FEATURE => minNumber",	"CONTEST_FEATURE => businessBlock",	"CONTEST_FEATURE => accuracy", "CONTEST_FEATURE => gosbHidden",
+            "CONTEST_FEATURE => preferences", "CONTEST_FEATURE => persomanNumberHidden",	"CONTEST_FEATURE => gosbVisible",	"CONTEST_FEATURE => feature",
+            "ADD_DATA => getCondition => nonRewards", "ADD_DATA => refreshOldNews", "ADD_DATA => getCondition => rewards",
+            "ADD_DATA => fileName",	"ADD_DATA => rewardRule",	"ADD_DATA => bookingRequired", "ADD_DATA => outstanding",
+            "ADD_DATA => teamNews", "ADD_DATA => singleNews", "ADD_DATA => rewardAgainGlobal", "ADD_DATA => rewardAgainTournament",
+            "ADD_DATA => isGrouping", "ADD_DATA => tagEndDT",	"ADD_DATA => itemAmount",	"ADD_DATA => isGroupingTitle",
+            "ADD_DATA => itemLimitCount",	"ADD_DATA => recommendationLevel",	"ADD_DATA => isGroupingName",	"ADD_DATA => ignoreConditions",
+            "ADD_DATA => masterBadge",	"ADD_DATA => priority",	"ADD_DATA => nftFlg",	"ADD_DATA => itemMinShow",	"ADD_DATA => itemFeature",
+            "ADD_DATA => itemLimitPeriod",	"ADD_DATA => businessBlock",	"ADD_DATA => parentRewardCode",	"ADD_DATA => deliveryRequired",
+            "ADD_DATA => feature", "ADD_DATA => itemGroupAmount", "ADD_DATA => seasonItem", "ADD_DATA => isGroupingTultip", "ADD_DATA => tagColor",
+            "ADD_DATA => commingSoon", "ADD_DATA => tournamentTeam",	"ADD_DATA => hidden",
+            "ADD_DATA => getCondition => employeeRating => minRatingTB",	"ADD_DATA => getCondition => employeeRating => minRatingGOSB",
+            "ADD_DATA => getCondition => employeeRating => minRatingBANK",	"ADD_DATA => getCondition => employeeRating => seasonCode",
+            "ADD_DATA => getCondition => employeeRating => minCrystalEarnedTotal"
         ],
         # #D8FCD8 — светло-зелёный (header)
     },
@@ -286,8 +345,8 @@ COLOR_SCHEME = [
         "column_bg": None,
         "column_fg": None,
         "style_scope": "header",
-        "sheets": ["REWARD"],  # например, поле "REWARD_LINK =>CONTEST_CODE"
-        "columns": ["REWARD_LINK =>CONTEST_CODE"],
+        "sheets": ["REWARD", "REPORT"],  # например, поле "REWARD_LINK =>CONTEST_CODE"
+        "columns": ["REWARD_LINK =>CONTEST_CODE", "CONTEST-DATA=>CONTEST_TYPE", "TOURNAMENT-SCHEDULE=>END_DT", "TOURNAMENT-SCHEDULE=>RESULT_DT"],
         # #FFD9E6 — светло-розовый (header)
     },
 
@@ -316,6 +375,7 @@ COLOR_SCHEME = [
         "columns": [
             "CONTEST-DATA=>FULL_NAME",
             "CONTEST-DATA=>CONTEST_FEATURE => momentRewarding",
+            "CONTEST-DATA=>FACTOR_MATCH",
             "CONTEST-DATA=>PLAN_MOD_VALUE",
             "CONTEST-DATA=>BUSINESS_BLOCK",
             "CONTEST-DATA=>CONTEST_FEATURE => tournamentStartMailing",
@@ -432,34 +492,7 @@ for check in CHECK_DUPLICATES:
         # #FFD9E6 — светло-розовый (header)
     })
 
-# Логирование: уровень, шаблоны, имена
-LOG_LEVEL = "DEBUG"  # "INFO" или "DEBUG"
-LOG_BASE_NAME = "LOGS"
-LOG_MESSAGES = {
-    "start":                "=== Старт работы программы: {time} ===",
-    "reading_file":         "Загрузка файла: {file_path}",
-    "read_ok":              "Файл успешно загружен: {file_path}, строк: {rows}, колонок: {cols}",
-    "read_fail":            "Ошибка загрузки файла: {file_path}. {error}",
-    "sheet_written":        "Лист Excel сформирован: {sheet} (строк: {rows}, колонок: {cols})",
-    "finish":               "=== Завершение работы. Обработано файлов: {files}, строк всего: {rows_total}. Время выполнения: {time_elapsed} ===",
-    "summary":              "Summary: {summary}",
-    "func_start":           "[START] {func} {params}",
-    "func_end":             "[END] {func} {params} (время: {time:.3f}s)",
-    "func_error":           "[ERROR] {func} {params} — {error}",
-    "json_flatten_start":   "Разворачивание колонки {column} (строк: {rows})",
-    "json_flatten_end":     "Развёрнуто {n_cols} колонок из {n_keys} ключей, ошибок JSON: {n_errors}, строк: {rows}, время: {time:.3f}s",
-    "json_flatten_error":   "Ошибка разбора JSON (строка {row}): {error}",
-    "debug_columns":        "[DEBUG] {sheet}: колонки после разворачивания: {columns}",
-    "debug_head":           "[DEBUG] {sheet}: первые строки после разворачивания:\n{head}",
-    "field_joined":         "Колонка {column} присоединена из {src_sheet} по ключу {dst_key} -> {src_key}",
-    "field_missing":        "Колонка {column} не добавлена: нет листа {src_sheet} или ключей {src_key}",
-    "fields_summary":       "Итоговая структура: {rows} строк, {cols} колонок",
-    "duplicates_start":     "[START] Проверка дублей: {sheet}, ключ: {keys}",
-    "duplicates_found":     "[INFO] Дублей найдено: {count} на листе {sheet} по ключу {keys}",
-    "duplicates_error":     "[ERROR] Ошибка при поиске дублей: {sheet}, ключ: {keys}: {error}",
-    "duplicates_end":       "[END] Проверка дублей: {sheet}, время: {time:.3f}s",
-    "color_scheme_applied": "[INFO] Цветовая схема применена: лист {sheet}, колонка {col}, стиль {scope}, цвет {color}"
-}
+
 
 # Выходной файл Excel
 def get_output_filename():
