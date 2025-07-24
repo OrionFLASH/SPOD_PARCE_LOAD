@@ -1056,11 +1056,20 @@ def add_fields_to_sheet(df_base, df_ref, src_keys, dst_keys, columns, sheet_name
 
     new_keys = df_base.apply(lambda row: tuple_key(row, dst_keys), axis=1)
 
-    # --- Добавлено: авто-дополнение отсутствующих колонок ---
-    missing = [col for col in columns if col not in df_ref.columns]
-    for col in missing:
-        logging.warning(f"[add_fields_to_sheet] Колонка {col} не найдена в {ref_sheet_name}, создаём пустую.")
+    # --- Добавлено: авто-дополнение отсутствующих колонок и ключей ---
+    missing_cols = [col for col in columns if col not in df_ref.columns]
+    for col in missing_cols:
+        logging.warning(
+            f"[add_fields_to_sheet] Колонка {col} не найдена в {ref_sheet_name}, создаём пустую."
+        )
         df_ref[col] = "-"
+
+    missing_keys = [k for k in src_keys if k not in df_ref.columns]
+    for k in missing_keys:
+        logging.warning(
+            f"[add_fields_to_sheet] Ключевая колонка {k} не найдена в {ref_sheet_name}, создаём пустую."
+        )
+        df_ref[k] = "-"
 
     if mode == "count":
         group_counts = df_ref.groupby(src_keys).size().to_dict()
