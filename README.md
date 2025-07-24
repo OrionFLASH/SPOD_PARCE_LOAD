@@ -91,6 +91,19 @@ MERGE_FIELDS = [
 ]
 ```
 
+### PREFIX_* константы
+
+Основные префиксы, используемые при разворачивании JSON и формировании колонок:
+
+```python
+PREFIX_CONTEST_FEATURE = "CONTEST_FEATURE"
+PREFIX_ADD_DATA = "ADD_DATA"
+PREFIX_REWARD_LINK = "REWARD_LINK => "
+COL_REWARD_LINK_CONTEST_CODE = f"{PREFIX_REWARD_LINK}CONTEST_CODE"
+```
+
+Используйте их для единообразия имен полей и настройки MERGE_FIELDS.
+
 ---
 
 ### Логирование
@@ -98,6 +111,15 @@ MERGE_FIELDS = [
 * **LOG\_LEVEL** — уровень (`"DEBUG"` или `"INFO"`).
 * **LOG\_MESSAGES** — словарь шаблонов для унификации логов.
 * Каждый запуск пишет лог в файл по дате (`LOGS_YYYY-MM-DD.log`).
+
+Примеры шаблонов:
+
+```python
+LOG_MESSAGES["func_start"] = "[START] {func} {params}"
+LOG_MESSAGES["excel_path"] = "Excel file: {path}"
+```
+
+Все логи строятся только через эти шаблоны.
 
 ---
 
@@ -135,34 +157,23 @@ obj = safe_json_loads(val)
 
 ### auto\_flatten\_all\_json\_columns(df, sheet)
 
-**Главная функция авторазворота:**
 
-* Определяет все потенциальные JSON-колонки (по признаку структуры).
-* Автоматически разворачивает все найденные колонки, включая вложенные объекты, списки и даже вложенные словари.
-* Все новые поля получают префиксы вида `"ADD_DATA => ..."`, `"CONTEST_FEATURE => ..."`, и т.д.
-* Исключает дубли и циклы.
-* Полностью поддерживает произвольную вложенность без ограничений.
+**Разворачивание JSON**
 
-**Вызов:**
-
-```python
-df = auto_flatten_all_json_columns(df, sheet_name)
-```
+Алгоритм автоматически применяет `flatten_json_column_recursive` ко всем колонкам,
+указанным в `JSON_COLUMNS`. Он поддерживает вложенные объекты любой глубины и
+корректно формирует префиксы вида `"ADD_DATA => ..."` или `"CONTEST_FEATURE => ..."`.
+Функция берёт на себя исправление невалидных строк и исключение дублей.
 
 ---
 
 ### flatten\_json\_column\_recursive(df, column, prefix=None, ...)
 
 Рекурсивно разворачивает JSON-строку в колонке, поддерживает вложенные словари, списки, массивы объектов.
-Рекомендуется к вызову только из auto\_flatten\_all\_json\_columns для полной автоматизации.
+Используется автоматически для всех колонок из `JSON_COLUMNS`.
 
 ---
 
-### flatten\_nested\_json\_column(df, source\_col, prefix, subfield, ...)
-
-Разворачивает конкретное подполе внутри JSON-объекта (например, `getCondition` в `ADD_DATA`), используется для тонкой настройки, если auto\_flatten\_all\_json\_columns не нужен.
-
----
 
 ### add\_fields\_to\_sheet(df\_base, df\_ref, src\_keys, dst\_keys, columns, ...)
 
