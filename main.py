@@ -283,93 +283,113 @@ for entry in SUMMARY_KEY_DEFS:
 
 
 COLOR_SCHEME = [
-    # --- ИСХОДНЫЕ ДАННЫЕ (загружаются из CSV) — светло-синий ---
+    # --- ИСХОДНЫЕ ДАННЫЕ (загружаются из CSV) — пастельный голубой ---
     {
         "group": "Исходные данные",
-        "header_bg": "D4FB79",  # светло-синий
-        "header_fg": "000000",  # чёрный
-        "column_bg": None,      # пока не используем, можно добавить позже
+        "header_bg": "E6F3FF",  # пастельный голубой - приятный для глаз
+        "header_fg": "2C3E50",  # тёмно-серый для лучшей читаемости
+        "column_bg": None,
         "column_fg": None,
-        "style_scope": "header",  # красим только заголовок
+        "style_scope": "header",
         "sheets": ["CONTEST-DATA", "GROUP", "INDICATOR", "REPORT", "REWARD", "REWARD-LINK", "TOURNAMENT-SCHEDULE", "ORG_UNIT_V20", "USER_ROLE", "USER_ROLE SB", "EMPLOYEE"],
         "columns": [],  # все колонки (если не указано — все)
-        # #CCE5FF — светло-синий (header)
+        # Назначение: базовые поля из CSV файлов
     },
 
-    # --- ДАННЫЕ, развёрнутые из JSON — сама колонка (несильно светлый зелёный), развёрнутые — светло-зелёный ---
+    # --- ИСХОДНЫЕ JSON ПОЛЯ (CONTEST_FEATURE, REWARD_ADD_DATA) — тёмно-оранжевый со светлыми буквами ---
     {
         "group": "JSON source columns",
-        "header_bg": "FFD479",  # средний зелёный (оригинал JSON)
-        "header_fg": "000000",
-        "column_bg": None,  # #D8FCD8 — светло-зелёный, если потребуется
+        "header_bg": "FF8C42",  # тёмно-оранжевый - самый верхний уровень JSON полей
+        "header_fg": "FFFFFF",  # белый текст для контраста
+        "column_bg": None,
         "column_fg": None,
         "style_scope": "header",
         "sheets": ["CONTEST-DATA", "REWARD"],
-        "columns": ["CONTEST_FEATURE", "REWARD_ADD_DATA", "ADD_DATA => getCondition", "ADD_DATA => getCondition => employeeRating"],
-        # #85E085 — зелёный (header)
+        "columns": ["CONTEST_FEATURE", "REWARD_ADD_DATA"],
+        # Назначение: исходные поля с JSON, которые разворачиваются
     },
+
+    # --- РАЗВОРАЧИВАЕМЫЕ JSON ПОЛЯ ПЕРВОГО УРОВНЯ — светлее исходных ---
     {
-        "group": "JSON expanded",
-        "header_bg": "D8FCD8",  # светло-зелёный (развёрнутые)
-        "header_fg": "000000",
+        "group": "JSON expanded level 1",
+        "header_bg": "FFB366",  # светло-оранжевый - светлее исходных JSON полей
+        "header_fg": "2C3E50",  # тёмно-серый для читаемости
         "column_bg": None,
         "column_fg": None,
         "style_scope": "header",
         "sheets": ["CONTEST-DATA", "REWARD"],
         "columns": [
+            # CONTEST_FEATURE развёрнутые поля
             "CONTEST_FEATURE => momentRewarding", "CONTEST_FEATURE => tournamentStartMailing", "CONTEST_FEATURE => tournamentEndMailing",
             "CONTEST_FEATURE => tournamentRewardingMailing", "CONTEST_FEATURE => tournamentLikeMailing", "CONTEST_FEATURE => capacity",
             "CONTEST_FEATURE => tournamentListMailing", "CONTEST_FEATURE => vid", "CONTEST_FEATURE => tbVisible", "CONTEST_FEATURE => tbHidden",
-            "CONTEST_FEATURE => persomanNumberVisible",	"CONTEST_FEATURE => typeRewarding",	"CONTEST_FEATURE => masking",
-            "CONTEST_FEATURE => minNumber",	"CONTEST_FEATURE => businessBlock",	"CONTEST_FEATURE => accuracy", "CONTEST_FEATURE => gosbHidden",
-            "CONTEST_FEATURE => preferences", "CONTEST_FEATURE => persomanNumberHidden",	"CONTEST_FEATURE => gosbVisible",	"CONTEST_FEATURE => feature",
-            "ADD_DATA => getCondition => nonRewards", "ADD_DATA => refreshOldNews", "ADD_DATA => getCondition => rewards",
-            "ADD_DATA => fileName",	"ADD_DATA => rewardRule",	"ADD_DATA => bookingRequired", "ADD_DATA => outstanding",
+            "CONTEST_FEATURE => persomanNumberVisible", "CONTEST_FEATURE => typeRewarding", "CONTEST_FEATURE => masking",
+            "CONTEST_FEATURE => minNumber", "CONTEST_FEATURE => businessBlock", "CONTEST_FEATURE => accuracy", "CONTEST_FEATURE => gosbHidden",
+            "CONTEST_FEATURE => preferences", "CONTEST_FEATURE => persomanNumberHidden", "CONTEST_FEATURE => gosbVisible", "CONTEST_FEATURE => feature",
+            # ADD_DATA развёрнутые поля первого уровня
+            "ADD_DATA => refreshOldNews", "ADD_DATA => fileName", "ADD_DATA => rewardRule", "ADD_DATA => bookingRequired", "ADD_DATA => outstanding",
             "ADD_DATA => teamNews", "ADD_DATA => singleNews", "ADD_DATA => rewardAgainGlobal", "ADD_DATA => rewardAgainTournament",
-            "ADD_DATA => isGrouping", "ADD_DATA => tagEndDT",	"ADD_DATA => itemAmount",	"ADD_DATA => isGroupingTitle",
-            "ADD_DATA => itemLimitCount",	"ADD_DATA => recommendationLevel",	"ADD_DATA => isGroupingName",	"ADD_DATA => ignoreConditions",
-            "ADD_DATA => masterBadge",	"ADD_DATA => priority",	"ADD_DATA => nftFlg",	"ADD_DATA => itemMinShow",	"ADD_DATA => itemFeature",
-            "ADD_DATA => itemLimitPeriod",	"ADD_DATA => businessBlock",	"ADD_DATA => parentRewardCode",	"ADD_DATA => deliveryRequired",
+            "ADD_DATA => isGrouping", "ADD_DATA => tagEndDT", "ADD_DATA => itemAmount", "ADD_DATA => isGroupingTitle",
+            "ADD_DATA => itemLimitCount", "ADD_DATA => recommendationLevel", "ADD_DATA => isGroupingName", "ADD_DATA => ignoreConditions",
+            "ADD_DATA => masterBadge", "ADD_DATA => priority", "ADD_DATA => nftFlg", "ADD_DATA => itemMinShow", "ADD_DATA => itemFeature",
+            "ADD_DATA => itemLimitPeriod", "ADD_DATA => businessBlock", "ADD_DATA => parentRewardCode", "ADD_DATA => deliveryRequired",
             "ADD_DATA => feature", "ADD_DATA => itemGroupAmount", "ADD_DATA => seasonItem", "ADD_DATA => isGroupingTultip", "ADD_DATA => tagColor",
-            "ADD_DATA => commingSoon", "ADD_DATA => tournamentTeam",	"ADD_DATA => hidden",
-            "ADD_DATA => getCondition => employeeRating => minRatingTB",	"ADD_DATA => getCondition => employeeRating => minRatingGOSB",
-            "ADD_DATA => getCondition => employeeRating => minRatingBANK",	"ADD_DATA => getCondition => employeeRating => seasonCode",
-            "ADD_DATA => getCondition => employeeRating => minCrystalEarnedTotal"
+            "ADD_DATA => commingSoon", "ADD_DATA => tournamentTeam", "ADD_DATA => hidden"
         ],
-        # #D8FCD8 — светло-зелёный (header)
+        # Назначение: поля первого уровня развёртывания JSON (светлее исходных)
     },
 
-    # --- Дополнительные, добавляемые при обработке — светло-розовый ---
+    # --- РАЗВОРАЧИВАЕМЫЕ JSON ПОЛЯ ВТОРОГО УРОВНЯ — темнее исходных, но светлее других ---
     {
-        "group": "Process added fields",
-        "header_bg": "FFD9E6",  # светло-розовый
-        "header_fg": "000000",
+        "group": "JSON expanded level 2",
+        "header_bg": "E67E22",  # оранжевый - темнее исходных JSON, но светлее других развёрнутых
+        "header_fg": "FFFFFF",  # белый текст для контраста
         "column_bg": None,
         "column_fg": None,
         "style_scope": "header",
-        "sheets": ["REWARD", "REPORT"],  # например, поле "REWARD_LINK =>CONTEST_CODE"
-        "columns": [COL_REWARD_LINK_CONTEST_CODE, "CONTEST-DATA=>CONTEST_TYPE", "TOURNAMENT-SCHEDULE=>END_DT", "TOURNAMENT-SCHEDULE=>RESULT_DT"],
-        # #FFD9E6 — светло-розовый (header)
+        "sheets": ["CONTEST-DATA", "REWARD"],
+        "columns": [
+            # ADD_DATA => getCondition развёрнутые поля
+            "ADD_DATA => getCondition => nonRewards", "ADD_DATA => getCondition => rewards",
+            # ADD_DATA => getCondition => employeeRating развёрнутые поля
+            "ADD_DATA => getCondition => employeeRating => minRatingTB", "ADD_DATA => getCondition => employeeRating => minRatingGOSB",
+            "ADD_DATA => getCondition => employeeRating => minRatingBANK", "ADD_DATA => getCondition => employeeRating => seasonCode",
+            "ADD_DATA => getCondition => employeeRating => minCrystalEarnedTotal"
+        ],
+        # Назначение: поля второго уровня развёртывания JSON (вложенные объекты)
     },
 
-    # --- SUMMARY (ключевые поля) — светло-синий ---
+    # --- ПОЛЯ ДОБАВЛЯЕМЫЕ ЧЕРЕЗ MERGE (кроме SUMMARY) — пастельный розовый ---
+    {
+        "group": "Process added fields",
+        "header_bg": "FFE6F2",  # пастельный розовый - приятный для глаз
+        "header_fg": "2C3E50",  # тёмно-серый для читаемости
+        "column_bg": None,
+        "column_fg": None,
+        "style_scope": "header",
+        "sheets": ["REWARD", "REPORT"],  # поля добавляемые через merge_fields
+        "columns": [COL_REWARD_LINK_CONTEST_CODE, "CONTEST-DATA=>CONTEST_TYPE", "TOURNAMENT-SCHEDULE=>END_DT", "TOURNAMENT-SCHEDULE=>RESULT_DT"],
+        # Назначение: поля добавляемые через merge_fields_across_sheets
+    },
+
+    # --- SUMMARY КЛЮЧЕВЫЕ ПОЛЯ — как исходные данные ---
     {
         "group": "SUMMARY KEYS",
-        "header_bg": "CCE5FF",  # светло-синий
-        "header_fg": "000000",
+        "header_bg": "E6F3FF",  # пастельный голубой - как исходные данные
+        "header_fg": "2C3E50",  # тёмно-серый для читаемости
         "column_bg": None,
         "column_fg": None,
         "style_scope": "header",
         "sheets": ["SUMMARY"],
         "columns": SUMMARY_KEY_COLUMNS,
-        # #CCE5FF — светло-синий (header)
+        # Назначение: ключевые поля в SUMMARY (как исходные данные)
     },
 
-    # --- SUMMARY: добавляемые поля с каждого листа (оттенки для каждого листа) ---
+    # --- SUMMARY ПОЛЯ: CONTEST-DATA — пастельный голубой ---
     {
         "group": "SUMMARY FIELDS: CONTEST-DATA",
-        "header_bg": "B6E0FE",  # голубой (отдельно от исходного)
-        "header_fg": "000000",
+        "header_bg": "CCE5FF",  # пастельный голубой - оттенок для CONTEST-DATA
+        "header_fg": "2C3E50",  # тёмно-серый для читаемости
         "column_bg": None,
         "column_fg": None,
         "style_scope": "header",
@@ -385,56 +405,66 @@ COLOR_SCHEME = [
             "CONTEST-DATA=>CONTEST_FEATURE => tournamentRewardingMailing",
             "CONTEST-DATA=>CONTEST_FEATURE => tournamentLikeMailing",
         ],
-        # #B6E0FE — голубой (header)
+        # Назначение: поля из CONTEST-DATA в SUMMARY
     },
+
+    # --- SUMMARY ПОЛЯ: GROUP — пастельный зелёный ---
     {
         "group": "SUMMARY FIELDS: GROUP",
-        "header_bg": "DAF7A6",  # светло-зеленоватый
-        "header_fg": "000000",
+        "header_bg": "E8F5E8",  # пастельный зелёный - оттенок для GROUP
+        "header_fg": "2C3E50",  # тёмно-серый для читаемости
         "column_bg": None,
         "column_fg": None,
         "style_scope": "header",
         "sheets": ["SUMMARY"],
         "columns": ["GROUP=>GET_CALC_CRITERION", "GROUP=>ADD_CALC_CRITERION", "GROUP=>ADD_CALC_CRITERION_2"],
-        # #DAF7A6 — светло-зеленый (header)
+        # Назначение: поля из GROUP в SUMMARY
     },
+
+    # --- SUMMARY ПОЛЯ: INDICATOR — пастельный жёлтый ---
     {
         "group": "SUMMARY FIELDS: INDICATOR",
-        "header_bg": "FBE7B0",  # светло-жёлтый
-        "header_fg": "000000",
+        "header_bg": "FFF8E1",  # пастельный жёлтый - оттенок для INDICATOR
+        "header_fg": "2C3E50",  # тёмно-серый для читаемости
         "column_bg": None,
         "column_fg": None,
         "style_scope": "header",
         "sheets": ["SUMMARY"],
         "columns": ["INDICATOR=>INDICATOR_MARK_TYPE", "INDICATOR=>INDICATOR_MATCH", "INDICATOR=>INDICATOR_VALUE"],
-        # #FBE7B0 — светло-жёлтый (header)
+        # Назначение: поля из INDICATOR в SUMMARY
     },
+
+    # --- SUMMARY ПОЛЯ: TOURNAMENT-SCHEDULE — пастельный голубой ---
     {
         "group": "SUMMARY FIELDS: TOURNAMENT-SCHEDULE",
-        "header_bg": "C2F0FC",  # голубой
-        "header_fg": "000000",
+        "header_bg": "E1F5FE",  # пастельный голубой - оттенок для TOURNAMENT-SCHEDULE
+        "header_fg": "2C3E50",  # тёмно-серый для читаемости
         "column_bg": None,
         "column_fg": None,
         "style_scope": "header",
         "sheets": ["SUMMARY"],
         "columns": ["TOURNAMENT-SCHEDULE=>START_DT", "TOURNAMENT-SCHEDULE=>END_DT", "TOURNAMENT-SCHEDULE=>RESULT_DT", "TOURNAMENT-SCHEDULE=>TOURNAMENT_STATUS", "TOURNAMENT-SCHEDULE=>TARGET_TYPE"],
-        # #C2F0FC — голубой (header)
+        # Назначение: поля из TOURNAMENT-SCHEDULE в SUMMARY
     },
+
+    # --- SUMMARY ПОЛЯ: REPORT — пастельный зелёный ---
     {
         "group": "SUMMARY FIELDS: REPORT",
-        "header_bg": "D9F2E6",  # светло-зелёный
-        "header_fg": "000000",
+        "header_bg": "E8F5E8",  # пастельный зелёный - оттенок для REPORT
+        "header_fg": "2C3E50",  # тёмно-серый для читаемости
         "column_bg": None,
         "column_fg": None,
         "style_scope": "header",
         "sheets": ["SUMMARY"],
         "columns": ["REPORT=>CONTEST_DATE", "REPORT=>COUNT_CONTEST_DATE"],
-        # #D9F2E6 — светло-зелёный (header)
+        # Назначение: поля из REPORT в SUMMARY
     },
+
+    # --- SUMMARY ПОЛЯ: REWARD — пастельный оранжевый ---
     {
         "group": "SUMMARY FIELDS: REWARD",
-        "header_bg": "FFF2CC",  # светло-оранжевый
-        "header_fg": "000000",
+        "header_bg": "FFE8CC",  # пастельный оранжевый - оттенок для REWARD
+        "header_fg": "2C3E50",  # тёмно-серый для читаемости
         "column_bg": None,
         "column_fg": None,
         "style_scope": "header",
@@ -446,21 +476,21 @@ COLOR_SCHEME = [
             "REWARD=>ADD_DATA => teamNews",
             "REWARD=>ADD_DATA => singleNews",
         ],
-        # #FFF2CC — светло-оранжевый (header)
+        # Назначение: поля из REWARD в SUMMARY
     },
 
-    # --- Дубли в SUMMARY (если появятся) — светло-розовый ---
+    # --- ДУБЛИ В SUMMARY — пастельный розовый ---
     {
         "group": "SUMMARY DUPLICATES",
-        "header_bg": "FFD9E6",  # светло-розовый
-        "header_fg": "000000",
+        "header_bg": "FFE6F2",  # пастельный розовый - для дублей
+        "header_fg": "2C3E50",  # тёмно-серый для читаемости
         "column_bg": None,
         "column_fg": None,
         "style_scope": "header",
         "sheets": ["SUMMARY"],
         "columns": ["ДУБЛЬ: CONTEST_CODE_TOURNAMENT_CODE_REWARD_CODE_GROUP_CODE"],
-        # #FFD9E6 — светло-розовый (header)
-    },
+        # Назначение: поля дублей в SUMMARY
+    }
 ]
 
 # Добавление секции для дублей по CHECK_DUPLICATES
@@ -484,14 +514,14 @@ for check in CHECK_DUPLICATES:
     col_name = "ДУБЛЬ: " + "_".join(keys)
     COLOR_SCHEME.append({
         "group": "DUPLICATES",
-        "header_bg": "FFD9E6",  # светло-розовый (header)
-        "header_fg": "000000",
+        "header_bg": "FFE6F2",  # пастельный розовый - для дублей
+        "header_fg": "2C3E50",  # тёмно-серый для читаемости
         "column_bg": None,
         "column_fg": None,
         "style_scope": "header",
         "sheets": [sheet],
         "columns": [col_name],
-        # #FFD9E6 — светло-розовый (header)
+        # Назначение: поля дублей на всех листах
     })
 
 # Какие поля разворачивать, в каком листе, с каким префиксом (строго регламентировано)
@@ -627,6 +657,7 @@ def safe_json_loads(s: str):
     """
     Преобразует строку в объект JSON. Возвращает dict/list или None, если не удается разобрать.
     Более толерантен к разным типам кавычек и пустым строкам.
+    Дополнительно исправляет тройные кавычки, отсутствие двоеточий, лишние запятые и пробует "починить" кривой JSON.
     """
     if not isinstance(s, str):
         return s
@@ -638,21 +669,35 @@ def safe_json_loads(s: str):
     except Exception as ex:
         try:
             fixed = s
-            # Убираем серии двойных кавычек
-            fixed = re.sub(r'"{2,}', '"', fixed)
-            # Заменяем одиночные и фигурные кавычки на стандартные двойные
+            # 1. Заменяем тройные кавычки на обычные двойные
+            fixed = fixed.replace('"""', '"')
+            # 2. Заменяем одиночные и фигурные кавычки на стандартные двойные
             fixed = fixed.replace("'", '"')
             fixed = fixed.replace('“', '"').replace('”', '"')
             fixed = fixed.replace('‘', '"').replace('’', '"')
-            # Убираем завершающие запятые
+            # 3. Исправляем ключи вида ""key"" на "key"
+            import re
+            fixed = re.sub(r'"{2,}([^"\s]+)"{2,}', r'"\1"', fixed)
+            # 4. Исправляем конструкции типа "key""": на "key":
+            fixed = re.sub(r'"{2,}([^"\s]+)"{2,}\s*:', r'"\1":', fixed)
+            # 5. Исправляем конструкции типа :"""value""" на :"value"
+            fixed = re.sub(r':\s*"{2,}([^"\s]+)"{2,}', r':"\1"', fixed)
+            # 6. Убираем завершающие запятые перед закрывающей скобкой
             fixed = re.sub(r',\s*([}\]])', r'\1', fixed)
+            # 7. Исправляем отсутствие двоеточий между ключом и значением ("key" "value" -> "key":"value")
+            fixed = re.sub(r'(\"[^"]+\")\s+(\")', r'\1: \2', fixed)
+            # 8. Удаляем лишние пробелы между ключом и двоеточием
+            fixed = re.sub(r'(\"[^"]+\")\s*:\s*', r'\1:', fixed)
+            # 9. Попытка повторного парсинга
             return json.loads(fixed)
         except Exception:
             try:
                 import ast
                 return ast.literal_eval(fixed)
             except Exception:
-                logging.debug(LOG_MESSAGES["safe_json_error"].format(error=ex, line=repr(s)))
+                logging.debug(
+                    f"[safe_json_loads] Ошибка: {ex} | Исходная строка: {repr(s)}"
+                )
                 return None
 
 def flatten_json_column_recursive(df, column, prefix=None, sheet=None, sep="; "):
@@ -934,18 +979,21 @@ def add_fields_to_sheet(df_base, df_ref, src_keys, dst_keys, columns, sheet_name
         columns = [columns]
 
     def tuple_key(row, keys):
-        """Return a hashable tuple key for the given row and key spec."""
-        # keys may accidentally come as pandas Index or Series which are not
-        # recognised as list/tuple in isinstance check. In such case we treat
-        # them as list of column names.
-        if not isinstance(keys, (list, tuple)):
-            if isinstance(keys, (pd.Index, pd.Series)) or (
-                hasattr(keys, "__iter__") and not isinstance(keys, str)
-            ):
-                keys = list(keys)
-            else:
-                return row[keys]
-        return tuple(row[k] for k in keys)
+        # Гарантируем, что всегда возвращается кортеж скаляров, даже если ключ один
+        if isinstance(keys, (list, tuple)):
+            result = []
+            for k in keys:
+                v = row[k]
+                # Если v — Series (например, из-за дублирующихся колонок), берём только первый элемент
+                if isinstance(v, pd.Series):
+                    v = v.iloc[0]
+                result.append(v)
+            return tuple(result)
+        else:
+            v = row[keys]
+            if isinstance(v, pd.Series):
+                v = v.iloc[0]
+            return (v,)
 
     new_keys = df_base.apply(lambda row: tuple_key(row, dst_keys), axis=1)
 
@@ -1065,21 +1113,7 @@ def build_summary_sheet(dfs, params_summary, merge_fields):
     logging.debug(LOG_MESSAGES["debug_head"].format(sheet=params_summary["sheet"], head=summary.head(5).to_string()))
     return summary
 
-def enrich_reward_with_contest_code(df_reward, df_link):
-    """
-    Добавляет или перезаписывает колонку COL_REWARD_LINK_CONTEST_CODE в df_reward
-    по соответствию REWARD_CODE -> CONTEST_CODE из df_link.
-    Старые или битые варианты колонки удаляются!
-    """
-    # Удаляем все возможные ошибочные варианты названия колонки
-    for col in list(df_reward.columns):
-        norm = col.replace(" ", "").replace("-", "_").upper()
-        if norm == COL_REWARD_LINK_CONTEST_CODE.replace(" ", "").replace("-", "_").upper():
-            df_reward = df_reward.drop(columns=[col])
-    # Создаём колонку по мапу
-    reward2contest = dict(zip(df_link["REWARD_CODE"], df_link["CONTEST_CODE"]))
-    df_reward[COL_REWARD_LINK_CONTEST_CODE] = df_reward["REWARD_CODE"].map(reward2contest).fillna("-")
-    return df_reward
+# Функция enrich_reward_with_contest_code удалена - CONTEST_CODE теперь добавляется через merge_fields_across_sheets
 
 def main():
     start_time = datetime.now()
@@ -1117,12 +1151,13 @@ def main():
             summary.append(f"{sheet_name}: {len(df)} строк")
         else:
             summary.append(f"{sheet_name}: ошибка")
-    if "REWARD" in sheets_data and "REWARD-LINK" in sheets_data:
-        df_reward, conf_reward = sheets_data["REWARD"]
-        df_link, conf_link = sheets_data["REWARD-LINK"]
-        # Всегда пересоздаём колонку с нужным именем (автоочистка битых вариантов)
-        df_reward = enrich_reward_with_contest_code(df_reward, df_link)
-        sheets_data["REWARD"] = (df_reward, conf_reward)
+    # CONTEST_CODE добавляется через merge_fields_across_sheets, поэтому enrich_reward_with_contest_code больше не нужен
+    # if "REWARD" in sheets_data and "REWARD-LINK" in sheets_data:
+    #     df_reward, conf_reward = sheets_data["REWARD"]
+    #     df_link, conf_link = sheets_data["REWARD-LINK"]
+    #     # Всегда пересоздаём колонку с нужным именем (автоочистка битых вариантов)
+    #     df_reward = enrich_reward_with_contest_code(df_reward, df_link)
+    #     sheets_data["REWARD"] = (df_reward, conf_reward)
 
     # 3. Merge fields (только после полного разворота JSON)
     merge_fields_across_sheets(
