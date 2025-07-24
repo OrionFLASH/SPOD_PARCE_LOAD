@@ -617,13 +617,25 @@ def safe_json_loads(s: str):
         return json.loads(s)
     except Exception as ex:
         try:
-            # Убираем последовательности тройных кавычек и одинарные кавычки
-            fixed = re.sub(r'"{2,}', '"', s)
+            fixed = s
+            # Убираем серии двойных кавычек
+            fixed = re.sub(r'"{2,}', '"', fixed)
+            # Заменяем одиночные и фигурные кавычки на стандартные двойные
             fixed = fixed.replace("'", '"')
+            fixed = fixed.replace('“', '"').replace('”', '"')
+            fixed = fixed.replace('‘', '"').replace('’', '"')
+            # Убираем завершающие запятые
+            fixed = re.sub(r',\s*([}\]])', r'\1', fixed)
             return json.loads(fixed)
         except Exception:
-            logging.debug(f"[safe_json_loads] Ошибка: {ex} | Исходная строка: {repr(s)}")
-            return None
+            try:
+                import ast
+                return ast.literal_eval(fixed)
+            except Exception:
+                logging.debug(
+                    f"[safe_json_loads] Ошибка: {ex} | Исходная строка: {repr(s)}"
+                )
+                return None
 
 def flatten_json_column_recursive(df, column, prefix=None, sheet=None, sep="; "):
     import time as tmod
