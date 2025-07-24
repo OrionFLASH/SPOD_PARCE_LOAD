@@ -647,8 +647,11 @@ def flatten_json_column_recursive(df, column, prefix=None, sheet=None, sep="; ")
                     item_prefix = f"{current_prefix} => [{idx}]"
                     fields.update(extract(x, item_prefix))
         else:
-            # Сюда могут попасть nan, пустые строки, и т.п.
-            if obj not in (None, "", float('nan')):
+            # Даже если значение пустое или None, колонка должна
+            # присутствовать для всех возможных ключей
+            if isinstance(obj, float) and pd.isna(obj):
+                fields[current_prefix] = None
+            else:
                 fields[current_prefix] = obj
         return fields
 
