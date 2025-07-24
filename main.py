@@ -401,7 +401,7 @@ COLOR_SCHEME = [
         "column_fg": None,
         "style_scope": "header",
         "sheets": ["SUMMARY"],
-        "columns": ["TOURNAMENT-SCHEDULE=>START_DT", "TOURNAMENT-SCHEDULE=>END_DT", "TOURNAMENT-SCHEDULE=>RESULT_DT", "TOURNAMENT-SCHEDULE=>TOURNAMENT_STATUS"],
+        "columns": ["TOURNAMENT-SCHEDULE=>START_DT", "TOURNAMENT-SCHEDULE=>END_DT", "TOURNAMENT-SCHEDULE=>RESULT_DT", "TOURNAMENT-SCHEDULE=>TOURNAMENT_STATUS", "TOURNAMENT-SCHEDULE=>TARGET_TYPE"],
         # #C2F0FC — голубой (header)
     },
     {
@@ -412,7 +412,7 @@ COLOR_SCHEME = [
         "column_fg": None,
         "style_scope": "header",
         "sheets": ["SUMMARY"],
-        "columns": ["REPORT=>CONTEST_DATE", "REPORT=>COUNT"],
+        "columns": ["REPORT=>CONTEST_DATE", "REPORT=>COUNT_CONTEST_DATE"],
         # #D9F2E6 — светло-зелёный (header)
     },
     {
