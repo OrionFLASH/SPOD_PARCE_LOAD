@@ -5,8 +5,9 @@ import logging
 from datetime import datetime
 from openpyxl.utils import get_column_letter
 from openpyxl.styles import Alignment, Font, PatternFill
-import json
 from time import time
+import json
+import re
 
 # === Глобальные константы и переменные ===
 # Каталоги
@@ -93,7 +94,7 @@ SUMMARY_SHEET = {
 
 # Логирование: уровень, шаблоны, имена
 LOG_LEVEL = "DEBUG"  # "INFO" или "DEBUG"
-LOG_BASE_NAME = "LOGS"
+LOG_BASE_NAME = "LOGS2"
 LOG_MESSAGES = {
     "start":                "=== Старт работы программы: {time} ===",
     "reading_file":         "Загрузка файла: {file_path}",
@@ -604,6 +605,77 @@ def _format_sheet(ws, df, params):
         for cell in row:
             cell.alignment = align_data
 
+
+def safe_json_loads(s: str):
+    """
+    Исправляет неправильные кавычки и парсит строку как JSON.
+    Возвращает dict/list или None, если не удается разобрать.
+    """
+    if not isinstance(s, str):
+        return s
+    s = s.strip()
+    if not s or s == '-':
+        return None
+    # Исправляем тройные кавычки на стандартные
+    fixed = re.sub(r'""+"', '"', s)
+    try:
+        return json.loads(fixed)
+    except Exception as ex:
+        # Лог или print — можно оставить для диагностики:
+        print(f"[safe_json_loads] Ошибка: {ex} | Исходная строка: {repr(s)} | Исправлено: {repr(fixed)}")
+        return None
+
+
+def flatten_json_column_recursive(df, column, prefix=None, sheet=None, sep="; "):
+    import time as tmod
+    func_start = tmod.time()
+    n_rows = len(df)
+    n_errors = 0
+    prefix = prefix if prefix is not None else column
+    logging.info(LOG_MESSAGES["func_start"].format(func="flatten_json_column_recursive", params=f"(лист: {sheet}, колонка: {column})"))
+
+    def extract(obj, current_prefix):
+        fields = {}
+        if isinstance(obj, dict):
+            for k, v in obj.items():
+                new_prefix = f"{current_prefix} => {k}"
+                fields.update(extract(v, new_prefix))
+        elif isinstance(obj, list):
+            if all(isinstance(x, (str, int, float, bool, type(None))) for x in obj):
+                fields[current_prefix] = sep.join(str(x) for x in obj)
+            else:
+                for idx, x in enumerate(obj):
+                    item_prefix = f"{current_prefix} => [{idx}]"
+                    fields.update(extract(x, item_prefix))
+        else:
+            fields[current_prefix] = obj
+        return fields
+
+    new_cols = {}
+    for idx, val in enumerate(df[column]):
+        try:
+            if not val or str(val).strip() in {"-", ""}:
+                parsed = {}
+            else:
+                parsed = safe_json_loads(val) if isinstance(val, str) else val
+            flat = extract(parsed, prefix)
+        except Exception as ex:
+            logging.debug(LOG_MESSAGES["json_flatten_error"].format(row=idx, error=ex))
+            n_errors += 1
+            flat = {}
+        for k, v in flat.items():
+            if k not in new_cols:
+                new_cols[k] = [None] * n_rows
+            new_cols[k][idx] = v
+
+    for col_name, values in new_cols.items():
+        df[col_name] = values
+
+    # Лог — проверь сколько реально колонок создано
+    logging.info(f"[JSON_FLATTEN] {column} → новых колонок: {len(new_cols)}")
+    logging.info(f"Все новые колонки: {list(new_cols.keys())}")
+    return df
+
 def flatten_nested_json_column(df, source_col, prefix, subfield, sheet=None, sep="; "):
     """
     Разворачивает под-поле subfield внутри JSON-строк в колонке source_col.
@@ -626,11 +698,11 @@ def flatten_nested_json_column(df, source_col, prefix, subfield, sheet=None, sep
                 obj = {}
             else:
                 # Преобразуем строку в JSON
-                main_obj = json.loads(val) if isinstance(val, str) else val
+                main_obj = safe_json_loads(val) if isinstance(val, str) else val
                 sub_obj = main_obj.get(subfield, {})
                 # если строка — тоже json
                 if isinstance(sub_obj, str):
-                    sub_obj = json.loads(sub_obj)
+                    sub_obj = safe_json_loads(sub_obj)
                 obj = sub_obj if isinstance(sub_obj, dict) else {}
         except Exception as ex:
             logging.debug(LOG_MESSAGES["json_flatten_error"].format(row=idx, error=ex))
@@ -680,7 +752,7 @@ def flatten_contest_feature_column(df, column='CONTEST_FEATURE', prefix="CONTEST
         try:
             # Нормализация кавычек:
             norm_val = val.replace('"""', '"')
-            obj = json.loads(norm_val)
+            obj = safe_json_loads(norm_val)
         except Exception as ex:
             logging.debug(LOG_MESSAGES["json_flatten_error"].format(row=idx, error=ex))
             obj = {}
@@ -777,7 +849,7 @@ def flatten_json_column(df, column, prefix, sheet=None, sep="; "):
         try:
             # Нормализация кавычек: """ -> "
             norm_val = val.replace('"""', '"')
-            obj = json.loads(norm_val)
+            obj = safe_json_loads(norm_val)
         except Exception as ex:
             logging.debug(LOG_MESSAGES["json_flatten_error"].format(row=idx, error=ex))
             obj = {}
@@ -956,7 +1028,7 @@ def add_fields_to_sheet(df_base, df_ref, src_keys, dst_keys, columns, sheet_name
     Добавляет к df_base поля из df_ref по ключам.
     Если mode == "value": подтягивает значения первого найденного (основной режим).
     Если mode == "count": добавляет количество строк в df_ref по каждому ключу.
-    После объединения — для критичных ключей делает auto-rename в стандартное имя, если найден альтернативный вариант.
+    Если нужной колонки нет — создаёт её с дефолтными значениями "-".
     """
     func_start = time()
     logging.info(LOG_MESSAGES["func_start"].format(
@@ -971,11 +1043,15 @@ def add_fields_to_sheet(df_base, df_ref, src_keys, dst_keys, columns, sheet_name
             return tuple(row[k] for k in keys)
         return row[keys]
 
-    # Список новых ключей на summary/target
     new_keys = df_base.apply(lambda row: tuple_key(row, dst_keys), axis=1)
 
+    # --- Добавлено: авто-дополнение отсутствующих колонок ---
+    missing = [col for col in columns if col not in df_ref.columns]
+    for col in missing:
+        logging.warning(f"[add_fields_to_sheet] Колонка {col} не найдена в {ref_sheet_name}, создаём пустую.")
+        df_ref[col] = "-"
+
     if mode == "count":
-        # Подсчитываем количество строк по каждому ключу
         group_counts = df_ref.groupby(src_keys).size().to_dict()
         for col in columns:
             count_col_name = f"{ref_sheet_name}=>COUNT_{col}"
@@ -987,8 +1063,6 @@ def add_fields_to_sheet(df_base, df_ref, src_keys, dst_keys, columns, sheet_name
         ))
         return df_base
 
-    # mode == "value" (или не указан)
-    # Строим map по каждому столбцу отдельно
     for col in columns:
         ref_map = dict(zip(
             df_ref.apply(lambda row: tuple_key(row, src_keys), axis=1),
@@ -996,10 +1070,8 @@ def add_fields_to_sheet(df_base, df_ref, src_keys, dst_keys, columns, sheet_name
         ))
         new_col_name = f"{ref_sheet_name}=>{col}"
         df_base[new_col_name] = new_keys.map(ref_map).fillna("-")
-
-        # === Специально для REWARD_LINK =>CONTEST_CODE: auto-rename, если создали с дефисом ===
+        # Специально для REWARD_LINK =>CONTEST_CODE: auto-rename, если создали с дефисом
         if new_col_name.replace("-", "_").replace(" ", "") == "REWARD_LINK=>CONTEST_CODE".replace("-", "_").replace(" ", ""):
-            # Найти альтернативные варианты — с дефисами, слитно, без пробелов
             candidates = [c for c in df_base.columns if c.replace("-", "_").replace(" ", "") == "REWARD_LINK=>CONTEST_CODE".replace("-", "_").replace(" ", "")]
             for cand in candidates:
                 if cand != "REWARD_LINK =>CONTEST_CODE":
@@ -1011,6 +1083,7 @@ def add_fields_to_sheet(df_base, df_ref, src_keys, dst_keys, columns, sheet_name
         time=time() - func_start
     ))
     return df_base
+
 
 def merge_fields_across_sheets(sheets_data, merge_fields):
     """
@@ -1094,6 +1167,41 @@ def enrich_reward_with_contest_code(df_reward, df_link):
     logging.info(LOG_MESSAGES["func_end"].format(func="enrich_reward_with_contest_code", params="(REWARD)", time=func_time))
     return df_reward
 
+def auto_flatten_all_json_columns(df, sheet=None, n_preview=5):
+    import json
+    def is_json_field(series):
+        for val in series.dropna().head(20):
+            try:
+                if not val or str(val).strip() in {"", "-", "None", "null"}:
+                    continue
+                obj = safe_json_loads(val)
+                if isinstance(obj, (dict, list)):
+                    return True
+            except Exception:
+                continue
+        return False
+
+    # Найдём все возможные json-поля
+    candidates = [col for col in df.columns if is_json_field(df[col])]
+    logging.info(f"[AUTO FLATTEN] Лист '{sheet}': найдено {len(candidates)} JSON-полей: {candidates}")
+
+    # Для каждого — развернуть и залогировать
+    for col in candidates:
+        before_cols = set(df.columns)
+        df = flatten_json_column_recursive(df, col, sheet=sheet)
+        added_cols = [c for c in df.columns if c not in before_cols]
+        logging.info(f"[AUTO FLATTEN] {sheet}: поле '{col}' развернуто, добавлено колонок: {len(added_cols)} ({added_cols})")
+        # Покажем несколько строк по новым колонкам
+        if added_cols:
+            preview = df[added_cols].head(n_preview)
+            logging.info(f"[AUTO FLATTEN][PREVIEW] {sheet}, поле '{col}':\n{preview.to_string()}")
+
+    # Итоговая структура листа после всех разворотов
+    logging.info(f"[AUTO FLATTEN][ALL COLS] {sheet}: {len(df.columns)} колонок, список:\n{list(df.columns)}")
+    logging.info(f"[AUTO FLATTEN][HEAD] {sheet}:\n{df.head(n_preview).to_string()}")
+
+    return df
+
 def main():
     start_time = datetime.now()
     log_file = setup_logger()
@@ -1104,93 +1212,17 @@ def main():
     rows_total = 0
     summary = []
 
-    # 1. Чтение и обработка всех файлов
+    # 1. Чтение всех CSV и разворот ВСЕХ JSON‑полей на каждом листе
     for file_conf in INPUT_FILES:
         file_path = os.path.join(DIR_INPUT, file_conf["file"] + ".CSV")
         sheet_name = file_conf["sheet"]
-        params = f"(файл: {file_path}, лист: {sheet_name})"
         logging.info(LOG_MESSAGES["reading_file"].format(file_path=file_path))
         df = read_csv_file(file_path)
+
         if df is not None:
-            # CONTEST_FEATURE на CONTEST-DATA
-            if sheet_name == "CONTEST-DATA" and "CONTEST_FEATURE" in df.columns:
-                logging.info(LOG_MESSAGES["func_start"].format(func="flatten_json_column", params=f"(лист: {sheet_name})"))
-                df = flatten_json_column(df, column='CONTEST_FEATURE', prefix="CONTEST_FEATURE => ", sheet=sheet_name)
-                logging.info(LOG_MESSAGES["func_end"].format(func="flatten_json_column", params=f"(лист: {sheet_name})", time=0))
-            # REWARD_ADD_DATA на REWARD с вложенным getCondition + вложенные nonRewards, employeeRating
-            if sheet_name == "REWARD" and "REWARD_ADD_DATA" in df.columns:
-                logging.info(LOG_MESSAGES["func_start"].format(func="flatten_json_column", params=f"(лист: {sheet_name})"))
-                df = flatten_json_column(df, column='REWARD_ADD_DATA', prefix="ADD_DATA => ", sheet=sheet_name)
-                logging.info(LOG_MESSAGES["func_end"].format(func="flatten_json_column", params=f"(лист: {sheet_name})", time=0))
+            # --- Разворачиваем автоматически все найденные JSON-поля ---
+            df = auto_flatten_all_json_columns(df, sheet=sheet_name)
 
-                # --- Дополнительно разворачиваем ADD_DATA => getCondition ---
-                getcond_col = "ADD_DATA => getCondition"
-                if getcond_col in df.columns:
-                    idx = df.columns.get_loc(getcond_col)
-                    all_keys = set()
-                    json_objs = []
-                    for i, val in enumerate(df[getcond_col]):
-                        try:
-                            if pd.isnull(val) or val == "" or val == "-":
-                                obj = {}
-                            else:
-                                obj = json.loads(val)
-                        except Exception as ex:
-                            logging.debug(f"Ошибка разбора JSON в getCondition (строка {i}): {ex}")
-                            obj = {}
-                        json_objs.append(obj)
-                        all_keys.update(obj.keys())
-                    for key in all_keys:
-                        new_col = []
-                        for obj in json_objs:
-                            v = obj.get(key, "")
-                            if isinstance(v, list):
-                                v = ";".join(map(str, v))
-                            elif isinstance(v, dict):
-                                v = json.dumps(v, ensure_ascii=False)
-                            new_col.append(v)
-                        colname = f"ADD_DATA => getCondition => {key}"
-                        df[colname] = new_col
-                    cols = df.columns.tolist()
-                    insert_at = cols.index(getcond_col) + 1
-                    new_cols = [f"ADD_DATA => getCondition => {k}" for k in all_keys if f"ADD_DATA => getCondition => {k}" in cols]
-                    for col in reversed(new_cols):
-                        cols.remove(col)
-                        cols.insert(insert_at, col)
-                    df = df[cols]
-                    for subfield, subprefix in [("nonRewards", "ADD_DATA => getCondition => nonRewards => "), ("employeeRating", "ADD_DATA => getCondition => employeeRating => ")]:
-                        nested_json_objs = []
-                        all_nested_keys = set()
-                        for val in df[getcond_col]:
-                            try:
-                                if pd.isnull(val) or val == "" or val == "-":
-                                    obj = {}
-                                else:
-                                    parent = json.loads(val)
-                                    sub = parent.get(subfield, {})
-                                    if isinstance(sub, str):
-                                        sub = json.loads(sub)
-                                    obj = sub if isinstance(sub, dict) else {}
-                            except Exception:
-                                obj = {}
-                            nested_json_objs.append(obj)
-                            all_nested_keys.update(obj.keys())
-                        for key in all_nested_keys:
-                            new_col = []
-                            for obj in nested_json_objs:
-                                v = obj.get(key, "")
-                                if isinstance(v, list):
-                                    v = ";".join(map(str, v))
-                                elif isinstance(v, dict):
-                                    v = json.dumps(v, ensure_ascii=False)
-                                new_col.append(v)
-                            colname = f"{subprefix}{key}"
-                            df[colname] = new_col
-
-            # === Проверка на дубли ===
-            check_cfg = next((x for x in CHECK_DUPLICATES if x["sheet"] == sheet_name), None)
-            if check_cfg:
-                df = mark_duplicates(df, check_cfg["key"], sheet_name=sheet_name)
             sheets_data[sheet_name] = (df, file_conf)
             files_processed += 1
             rows_total += len(df)
@@ -1198,26 +1230,21 @@ def main():
         else:
             summary.append(f"{sheet_name}: ошибка")
 
-    # 2. Универсальное объединение/добавление данных на все листы, кроме SUMMARY
+    # 3. Merge fields (только после полного разворота JSON)
     merge_fields_across_sheets(
         sheets_data,
         [f for f in MERGE_FIELDS if f.get("sheet_dst") != "SUMMARY"]
     )
 
-    # === ГАРАНТИЯ: колонка есть с нужным именем! ===
-    # Исправим возможное несоответствие: если pandas создал "REWARD-LINK=>CONTEST_CODE", переименуем в "REWARD_LINK =>CONTEST_CODE"
-    df_reward = sheets_data["REWARD"][0]
-    alt_names = [c for c in df_reward.columns if c.replace("-", "_").replace(" ", "") == "REWARD_LINK=>CONTEST_CODE".replace("-", "_").replace(" ", "")]
-    for alt in alt_names:
-        if alt != "REWARD_LINK =>CONTEST_CODE":
-            df_reward = df_reward.rename(columns={alt: "REWARD_LINK =>CONTEST_CODE"})
-            break
-    sheets_data["REWARD"] = (df_reward, sheets_data["REWARD"][1])
+    # 4. Проверка на дубли
+    for sheet_name, (df, conf) in sheets_data.items():
+        check_cfg = next((x for x in CHECK_DUPLICATES if x["sheet"] == sheet_name), None)
+        if check_cfg:
+            df = mark_duplicates(df, check_cfg["key"], sheet_name=sheet_name)
+            sheets_data[sheet_name] = (df, conf)
 
-    # 3. Формируем dict dfs для build_summary_sheet (только DataFrame!)
+    # 5. Формирование итогового Summary (build_summary_sheet)
     dfs = {k: v[0] for k, v in sheets_data.items()}
-
-    # 4. Построение итоговой таблицы (SUMMARY)
     df_summary = build_summary_sheet(
         dfs,
         params_summary=SUMMARY_SHEET,
@@ -1225,13 +1252,12 @@ def main():
     )
     sheets_data[SUMMARY_SHEET["sheet"]] = (df_summary, SUMMARY_SHEET)
 
-    # 5. Запись всего в Excel
+    # 6. Запись в Excel
     output_excel = os.path.join(DIR_OUTPUT, get_output_filename())
     logging.info(LOG_MESSAGES["func_start"].format(func="write_to_excel", params=f"({output_excel})"))
     write_to_excel(sheets_data, output_excel)
     logging.info(LOG_MESSAGES["func_end"].format(func="write_to_excel", params=f"({output_excel})", time=0))
 
-    # 6. Финальный лог (точное время до миллисекунд)
     time_elapsed = datetime.now() - start_time
     logging.info(LOG_MESSAGES["finish"].format(
         files=files_processed,
@@ -1241,6 +1267,7 @@ def main():
     logging.info(LOG_MESSAGES["summary"].format(summary="; ".join(summary)))
     logging.info(f"Excel file: {output_excel}")
     logging.info(f"Log file: {log_file}")
+
 
 if __name__ == "__main__":
     main()
