@@ -634,8 +634,23 @@ def flatten_json_column_recursive(df, column, prefix=None, sheet=None, sep="; ")
     logging.info(LOG_MESSAGES["func_start"].format(func="flatten_json_column_recursive", params=f"(лист: {sheet}, колонка: {column})"))
 
     def extract(obj, current_prefix):
+        """Recursively flattens obj. Keeps the field itself and expands nested JSON
+        if the value looks like a JSON string."""
         fields = {}
+        if isinstance(obj, str):
+            # try to parse nested json inside string
+            nested = safe_json_loads(obj)
+            if isinstance(nested, (dict, list)):
+                # keep original string
+                fields[current_prefix] = obj
+                fields.update(extract(nested, current_prefix))
+                return fields
+            else:
+                fields[current_prefix] = obj
+                return fields
+
         if isinstance(obj, dict):
+            fields[current_prefix] = json.dumps(obj, ensure_ascii=False)
             for k, v in obj.items():
                 new_prefix = f"{current_prefix} => {k}"
                 fields.update(extract(v, new_prefix))
@@ -643,12 +658,11 @@ def flatten_json_column_recursive(df, column, prefix=None, sheet=None, sep="; ")
             if all(isinstance(x, (str, int, float, bool, type(None))) for x in obj):
                 fields[current_prefix] = sep.join(str(x) for x in obj)
             else:
+                fields[current_prefix] = json.dumps(obj, ensure_ascii=False)
                 for idx, x in enumerate(obj):
                     item_prefix = f"{current_prefix} => [{idx}]"
                     fields.update(extract(x, item_prefix))
         else:
-            # Даже если значение пустое или None, колонка должна
-            # присутствовать для всех возможных ключей
             if isinstance(obj, float) and pd.isna(obj):
                 fields[current_prefix] = None
             else:
