@@ -19,7 +19,7 @@ DIR_LOGS = r'/Users/orionflash/Desktop/MyProject/SPOD_PROM/LOGS'
 # Соответствие: Имя листа, максимальная ширина колонки, закрепление
 INPUT_FILES = [
     {
-        "file": "CONTEST-DATA (PROM) 2025-07-14 v0",
+        "file": "CONTEST-DATA (PROM) 2025-07-24 v4",
         "sheet": "CONTEST-DATA",
         "max_col_width": 120,
         "freeze": "C2"
@@ -37,13 +37,13 @@ INPUT_FILES = [
         "freeze": "B2"
     },
     {
-        "file": "REPORT (PROM-KMKKSB) 2025-07-23 v1",
+        "file": "REPORT (PROM-KMKKSB) 2025-07-24 v4",
         "sheet": "REPORT",
         "max_col_width": 25,
         "freeze": "D2"
     },
     {
-        "file": "REWARD (PROM) 2025-07-23 v0",
+        "file": "REWARD (PROM) 2025-07-24 v1",
         "sheet": "REWARD",
         "max_col_width": 140,
         "freeze": "B2"
@@ -61,7 +61,7 @@ INPUT_FILES = [
         "freeze": "A2"
     },
     {
-        "file": "TOURNAMENT-SCHEDULE (PROM) 2025-07-23 v1",
+        "file": "TOURNAMENT-SCHEDULE (PROM) 2025-07-24 v3",
         "sheet": "TOURNAMENT-SCHEDULE",
         "max_col_width": 120,
         "freeze": "B2"
