@@ -122,6 +122,7 @@ LOG_MESSAGES = {
 }
 
 MERGE_FIELDS = [
+    # REPORT: добавляем CONTEST_TYPE из CONTEST-DATA
     {
         "sheet_src": "CONTEST-DATA",
         "sheet_dst": "REPORT",
@@ -130,6 +131,7 @@ MERGE_FIELDS = [
         "column": ["CONTEST_TYPE"],
         "mode": "value"
     },
+    # REPORT: добавляем даты из TOURNAMENT-SCHEDULE
     {
         "sheet_src": "TOURNAMENT-SCHEDULE",
         "sheet_dst": "REPORT",
@@ -138,18 +140,16 @@ MERGE_FIELDS = [
         "column": ["END_DT", "RESULT_DT"],
         "mode": "value"
     },
-
-    # --- 1. REWARD: добавляем CONTEST_CODE по REWARD_CODE (аналог enrich_reward_with_contest_code) ---
+    # REWARD: добавляем CONTEST_CODE из REWARD-LINK по REWARD_CODE
     {
         "sheet_src": "REWARD-LINK",
         "sheet_dst": "REWARD",
         "src_key": ["REWARD_CODE"],
         "dst_key": ["REWARD_CODE"],
         "column": ["CONTEST_CODE"],
-        "mode": "value"  # Добавить как новое поле "REWARD-LINK=>CONTEST_CODE"
+        "mode": "value"
     },
-
-    # --- 2. SUMMARY: все основные поля с листа CONTEST-DATA по CONTEST_CODE ---
+    # SUMMARY: из CONTEST-DATA по CONTEST_CODE — основные поля
     {
         "sheet_src": "CONTEST-DATA",
         "sheet_dst": "SUMMARY",
@@ -164,12 +164,11 @@ MERGE_FIELDS = [
             "CONTEST_FEATURE => tournamentStartMailing",
             "CONTEST_FEATURE => tournamentEndMailing",
             "CONTEST_FEATURE => tournamentRewardingMailing",
-            "CONTEST_FEATURE => tournamentLikeMailing",
+            "CONTEST_FEATURE => tournamentLikeMailing"
         ],
         "mode": "value"
     },
-
-    # --- 3. SUMMARY: все поля из GROUP по составному ключу ---
+    # SUMMARY: из GROUP по составному ключу
     {
         "sheet_src": "GROUP",
         "sheet_dst": "SUMMARY",
@@ -182,8 +181,7 @@ MERGE_FIELDS = [
         ],
         "mode": "value"
     },
-
-    # --- 4. SUMMARY: все поля из INDICATOR по CONTEST_CODE ---
+    # SUMMARY: из INDICATOR по CONTEST_CODE
     {
         "sheet_src": "INDICATOR",
         "sheet_dst": "SUMMARY",
@@ -196,8 +194,7 @@ MERGE_FIELDS = [
         ],
         "mode": "value"
     },
-
-    # --- 5. SUMMARY: поля из TOURNAMENT-SCHEDULE по TOURNAMENT_CODE ---
+    # SUMMARY: из TOURNAMENT-SCHEDULE по TOURNAMENT_CODE
     {
         "sheet_src": "TOURNAMENT-SCHEDULE",
         "sheet_dst": "SUMMARY",
@@ -212,8 +209,7 @@ MERGE_FIELDS = [
         ],
         "mode": "value"
     },
-
-    # --- 6. SUMMARY: поле CONTEST_DATE из REPORT по TOURNAMENT_CODE ---
+    # SUMMARY: CONTEST_DATE из REPORT по TOURNAMENT_CODE
     {
         "sheet_src": "REPORT",
         "sheet_dst": "SUMMARY",
@@ -224,8 +220,7 @@ MERGE_FIELDS = [
         ],
         "mode": "value"
     },
-
-    # --- 7. SUMMARY: сколько в REPORT строк по паре TOURNAMENT_CODE + CONTEST_CODE ---
+    # SUMMARY: сколько в REPORT строк по паре TOURNAMENT_CODE + CONTEST_CODE
     {
         "sheet_src": "REPORT",
         "sheet_dst": "SUMMARY",
@@ -234,14 +229,13 @@ MERGE_FIELDS = [
         "column": [
             "CONTEST_DATE"
         ],
-        "mode": "count"  # Для каждой строки summary с этой парой ключей будет число записей на REPORT
+        "mode": "count"
     },
-
-    # --- 8. SUMMARY: все нужные поля из REWARD по составному ключу ---
+    # SUMMARY: все нужные поля из REWARD по составному ключу
     {
         "sheet_src": "REWARD",
         "sheet_dst": "SUMMARY",
-        "src_key": ["REWARD_LINK =>CONTEST_CODE", "REWARD_CODE"],
+        "src_key": ["REWARD_LINK => CONTEST_CODE", "REWARD_CODE"],  # ПРОБЕЛ после =>
         "dst_key": ["CONTEST_CODE", "REWARD_CODE"],
         "column": [
             "ADD_DATA => rewardAgainGlobal",
@@ -251,18 +245,9 @@ MERGE_FIELDS = [
             "ADD_DATA => singleNews"
         ],
         "mode": "value"
-    },
-
-    # --- Пример для любых других листов и других режимов ---
-    # {
-    #     "sheet_src": "ЛИСТ_ИСТОЧНИК",
-    #     "sheet_dst": "ЛИСТ_ПРИЁМНИК",
-    #     "src_key": ["КЛЮЧ1", "КЛЮЧ2"],
-    #     "dst_key": ["КЛЮЧ1", "КЛЮЧ2"],
-    #     "column": ["FIELD1", "FIELD2"],
-    #     "mode": "value"  # или "count"
-    # }
+    }
 ]
+
 
 
 SUMMARY_KEY_DEFS = [
@@ -493,6 +478,16 @@ for check in CHECK_DUPLICATES:
         # #FFD9E6 — светло-розовый (header)
     })
 
+# Какие поля разворачивать, в каком листе, с каким префиксом (строго регламентировано)
+JSON_COLUMNS = {
+    "CONTEST-DATA": [
+        {"column": "CONTEST_FEATURE", "prefix": "CONTEST_FEATURE"},
+    ],
+    "REWARD": [
+        {"column": "REWARD_ADD_DATA", "prefix": "REWARD_ADD_DATA"},
+    ],
+    # Если появятся другие листы — добавить по аналогии
+}
 
 
 # Выходной файл Excel
@@ -502,7 +497,7 @@ def get_output_filename():
 # Лог-файл с учетом уровня
 def get_log_filename():
     # Имя лог-файла по дате, например: LOGS_2025-07-23.log
-    suffix = f"_{datetime.now().strftime('%Y-%m-%d')}.log"
+    suffix = f"_{datetime.now().strftime('%Y-%m-%d_%H-%M')}.log"
     return os.path.join(DIR_LOGS, LOG_BASE_NAME + suffix)
 
 
@@ -530,6 +525,10 @@ def read_csv_file(file_path):
     logging.info(LOG_MESSAGES["func_start"].format(func="read_csv_file", params=params))
     try:
         df = pd.read_csv(file_path, sep=";", header=0, dtype=str, quoting=3, encoding="utf-8", keep_default_na=False)
+        # Добавь лог первых строк для всех JSON-полей
+        for col in df.columns:
+            if "FEATURE" in col or "ADD_DATA" in col:
+                logging.debug(f"[CSV][{file_path}] Пример значений {col}: {df[col].dropna().head(2).to_list()}")
         logging.info(LOG_MESSAGES["read_ok"].format(file_path=file_path, rows=len(df), cols=len(df.columns)))
         func_time = time() - func_start
         logging.info(LOG_MESSAGES["func_end"].format(func="read_csv_file", params=params, time=func_time))
@@ -540,7 +539,6 @@ def read_csv_file(file_path):
         logging.error(LOG_MESSAGES["func_error"].format(func="read_csv_file", params=params, error=e))
         logging.info(LOG_MESSAGES["func_end"].format(func="read_csv_file", params=params, time=func_time))
         return None
-
 
 # === Запись в Excel с форматированием ===
 def write_to_excel(sheets_data, output_path):
@@ -605,26 +603,26 @@ def _format_sheet(ws, df, params):
         for cell in row:
             cell.alignment = align_data
 
-
 def safe_json_loads(s: str):
     """
-    Исправляет неправильные кавычки и парсит строку как JSON.
-    Возвращает dict/list или None, если не удается разобрать.
+    Преобразует строку в объект JSON. Возвращает dict/list или None, если не удается разобрать.
+    Более толерантен к разным типам кавычек и пустым строкам.
     """
     if not isinstance(s, str):
         return s
     s = s.strip()
-    if not s or s == '-':
+    if not s or s in {'-', 'None', 'null'}:
         return None
-    # Исправляем тройные кавычки на стандартные
-    fixed = re.sub(r'""+"', '"', s)
     try:
-        return json.loads(fixed)
+        return json.loads(s)
     except Exception as ex:
-        # Лог или print — можно оставить для диагностики:
-        print(f"[safe_json_loads] Ошибка: {ex} | Исходная строка: {repr(s)} | Исправлено: {repr(fixed)}")
-        return None
-
+        # Пробуем заменить одинарные кавычки на двойные
+        try:
+            fixed = s.replace("'", '"')
+            return json.loads(fixed)
+        except Exception:
+            logging.debug(f"[safe_json_loads] Ошибка: {ex} | Исходная строка: {repr(s)}")
+            return None
 
 def flatten_json_column_recursive(df, column, prefix=None, sheet=None, sep="; "):
     import time as tmod
@@ -648,16 +646,27 @@ def flatten_json_column_recursive(df, column, prefix=None, sheet=None, sep="; ")
                     item_prefix = f"{current_prefix} => [{idx}]"
                     fields.update(extract(x, item_prefix))
         else:
-            fields[current_prefix] = obj
+            # Сюда могут попасть nan, пустые строки, и т.п.
+            if obj not in (None, "", float('nan')):
+                fields[current_prefix] = obj
         return fields
 
     new_cols = {}
     for idx, val in enumerate(df[column]):
         try:
-            if not val or str(val).strip() in {"-", ""}:
-                parsed = {}
+            parsed = None
+            # Строка — парсим JSON; dict/list — оставляем; иначе пропускаем
+            if isinstance(val, str):
+                val = val.strip()
+                if val in {"", "-", "None", "null"}:
+                    parsed = {}
+                else:
+                    parsed = safe_json_loads(val)
+            elif isinstance(val, (dict, list)):
+                parsed = val
             else:
-                parsed = safe_json_loads(val) if isinstance(val, str) else val
+                # Необрабатываемые типы (например float('nan'))
+                parsed = {}
             flat = extract(parsed, prefix)
         except Exception as ex:
             logging.debug(LOG_MESSAGES["json_flatten_error"].format(row=idx, error=ex))
@@ -668,13 +677,15 @@ def flatten_json_column_recursive(df, column, prefix=None, sheet=None, sep="; ")
                 new_cols[k] = [None] * n_rows
             new_cols[k][idx] = v
 
+    # Оставлять только реально созданные колонки (не пустые)
     for col_name, values in new_cols.items():
-        df[col_name] = values
+        if any(x is not None for x in values):
+            df[col_name] = values
 
-    # Лог — проверь сколько реально колонок создано
     logging.info(f"[JSON_FLATTEN] {column} → новых колонок: {len(new_cols)}")
     logging.info(f"Все новые колонки: {list(new_cols.keys())}")
     return df
+
 
 def flatten_nested_json_column(df, source_col, prefix, subfield, sheet=None, sep="; "):
     """
@@ -1157,50 +1168,20 @@ def build_summary_sheet(dfs, params_summary, merge_fields):
     return summary
 
 def enrich_reward_with_contest_code(df_reward, df_link):
-    func_start = time()
-    logging.info(LOG_MESSAGES["func_start"].format(func="enrich_reward_with_contest_code", params="(REWARD)"))
-    # строим map по REWARD_CODE -> CONTEST_CODE
+    """
+    Добавляет или перезаписывает колонку 'REWARD_LINK => CONTEST_CODE' в df_reward
+    по соответствию REWARD_CODE -> CONTEST_CODE из df_link.
+    Старые или битые варианты колонки удаляются!
+    """
+    # Удаляем все возможные ошибочные варианты названия колонки
+    for col in list(df_reward.columns):
+        norm = col.replace(" ", "").replace("-", "_").upper()
+        if norm == "REWARD_LINK=>CONTEST_CODE".replace(" ", "").replace("-", "_").upper():
+            df_reward = df_reward.drop(columns=[col])
+    # Создаём колонку по мапу
     reward2contest = dict(zip(df_link["REWARD_CODE"], df_link["CONTEST_CODE"]))
-    new_col = df_reward["REWARD_CODE"].map(reward2contest).fillna("-")
-    df_reward["REWARD_LINK =>CONTEST_CODE"] = new_col
-    func_time = time() - func_start
-    logging.info(LOG_MESSAGES["func_end"].format(func="enrich_reward_with_contest_code", params="(REWARD)", time=func_time))
+    df_reward["REWARD_LINK => CONTEST_CODE"] = df_reward["REWARD_CODE"].map(reward2contest).fillna("-")
     return df_reward
-
-def auto_flatten_all_json_columns(df, sheet=None, n_preview=5):
-    import json
-    def is_json_field(series):
-        for val in series.dropna().head(20):
-            try:
-                if not val or str(val).strip() in {"", "-", "None", "null"}:
-                    continue
-                obj = safe_json_loads(val)
-                if isinstance(obj, (dict, list)):
-                    return True
-            except Exception:
-                continue
-        return False
-
-    # Найдём все возможные json-поля
-    candidates = [col for col in df.columns if is_json_field(df[col])]
-    logging.info(f"[AUTO FLATTEN] Лист '{sheet}': найдено {len(candidates)} JSON-полей: {candidates}")
-
-    # Для каждого — развернуть и залогировать
-    for col in candidates:
-        before_cols = set(df.columns)
-        df = flatten_json_column_recursive(df, col, sheet=sheet)
-        added_cols = [c for c in df.columns if c not in before_cols]
-        logging.info(f"[AUTO FLATTEN] {sheet}: поле '{col}' развернуто, добавлено колонок: {len(added_cols)} ({added_cols})")
-        # Покажем несколько строк по новым колонкам
-        if added_cols:
-            preview = df[added_cols].head(n_preview)
-            logging.info(f"[AUTO FLATTEN][PREVIEW] {sheet}, поле '{col}':\n{preview.to_string()}")
-
-    # Итоговая структура листа после всех разворотов
-    logging.info(f"[AUTO FLATTEN][ALL COLS] {sheet}: {len(df.columns)} колонок, список:\n{list(df.columns)}")
-    logging.info(f"[AUTO FLATTEN][HEAD] {sheet}:\n{df.head(n_preview).to_string()}")
-
-    return df
 
 def main():
     start_time = datetime.now()
@@ -1218,17 +1199,32 @@ def main():
         sheet_name = file_conf["sheet"]
         logging.info(LOG_MESSAGES["reading_file"].format(file_path=file_path))
         df = read_csv_file(file_path)
-
         if df is not None:
-            # --- Разворачиваем автоматически все найденные JSON-поля ---
-            df = auto_flatten_all_json_columns(df, sheet=sheet_name)
+            # --- Разворачиваем только нужные JSON-поля по строгому списку ---
+            json_columns = JSON_COLUMNS.get(sheet_name, [])
+            for json_conf in json_columns:
+                col = json_conf["column"]
+                prefix = json_conf.get("prefix", col)
+                if col in df.columns:
+                    df = flatten_json_column_recursive(df, col, prefix=prefix, sheet=sheet_name)
+                    logging.info(f"[JSON FLATTEN] {sheet_name}: поле '{col}' развернуто с префиксом '{prefix}'")
+                else:
+                    logging.warning(f"[JSON FLATTEN] {sheet_name}: поле '{col}' не найдено в колонках!")
 
+            # Для дебага: логируем итоговый список колонок после всех разворотов
+            logging.debug(f"[COLUMNS][{sheet_name}] Итоговые колонки: {df.columns.tolist()}")
             sheets_data[sheet_name] = (df, file_conf)
             files_processed += 1
             rows_total += len(df)
             summary.append(f"{sheet_name}: {len(df)} строк")
         else:
             summary.append(f"{sheet_name}: ошибка")
+    if "REWARD" in sheets_data and "REWARD-LINK" in sheets_data:
+        df_reward, conf_reward = sheets_data["REWARD"]
+        df_link, conf_link = sheets_data["REWARD-LINK"]
+        # Всегда пересоздаём колонку с нужным именем (автоочистка битых вариантов)
+        df_reward = enrich_reward_with_contest_code(df_reward, df_link)
+        sheets_data["REWARD"] = (df_reward, conf_reward)
 
     # 3. Merge fields (только после полного разворота JSON)
     merge_fields_across_sheets(
