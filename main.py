@@ -934,9 +934,18 @@ def add_fields_to_sheet(df_base, df_ref, src_keys, dst_keys, columns, sheet_name
         columns = [columns]
 
     def tuple_key(row, keys):
-        if isinstance(keys, (list, tuple)):
-            return tuple(row[k] for k in keys)
-        return row[keys]
+        """Return a hashable tuple key for the given row and key spec."""
+        # keys may accidentally come as pandas Index or Series which are not
+        # recognised as list/tuple in isinstance check. In such case we treat
+        # them as list of column names.
+        if not isinstance(keys, (list, tuple)):
+            if isinstance(keys, (pd.Index, pd.Series)) or (
+                hasattr(keys, "__iter__") and not isinstance(keys, str)
+            ):
+                keys = list(keys)
+            else:
+                return row[keys]
+        return tuple(row[k] for k in keys)
 
     new_keys = df_base.apply(lambda row: tuple_key(row, dst_keys), axis=1)
 
