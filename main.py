@@ -635,6 +635,16 @@ def flatten_json_column_recursive(df, column, prefix=None, sheet=None, sep="; ")
 
     def extract(obj, current_prefix):
         fields = {}
+        if isinstance(obj, str):
+            parsed_inner = safe_json_loads(obj)
+            if isinstance(parsed_inner, (dict, list)):
+                fields.update(extract(parsed_inner, current_prefix))
+                return fields
+            obj = parsed_inner if parsed_inner is not None else obj
+            if obj not in (None, "", float("nan")):
+                fields[current_prefix] = obj
+            return fields
+
         if isinstance(obj, dict):
             for k, v in obj.items():
                 new_prefix = f"{current_prefix} => {k}"
@@ -647,8 +657,7 @@ def flatten_json_column_recursive(df, column, prefix=None, sheet=None, sep="; ")
                     item_prefix = f"{current_prefix} => [{idx}]"
                     fields.update(extract(x, item_prefix))
         else:
-            # Сюда могут попасть nan, пустые строки, и т.п.
-            if obj not in (None, "", float('nan')):
+            if obj not in (None, "", float("nan")):
                 fields[current_prefix] = obj
         return fields
 
@@ -658,7 +667,8 @@ def flatten_json_column_recursive(df, column, prefix=None, sheet=None, sep="; ")
             parsed = None
             # Строка — парсим JSON; dict/list — оставляем; иначе пропускаем
             if isinstance(val, str):
-                val = val.strip()
+                clean_val = re.sub(r'"{2,}', '"', val).replace("'", '"').strip()
+                val = clean_val
                 if val in {"", "-", "None", "null"}:
                     parsed = {}
                 else:
@@ -669,6 +679,10 @@ def flatten_json_column_recursive(df, column, prefix=None, sheet=None, sep="; ")
                 # Необрабатываемые типы (например float('nan'))
                 parsed = {}
             flat = extract(parsed, prefix)
+            if isinstance(parsed, (dict, list)):
+                df.at[idx, column] = json.dumps(parsed, ensure_ascii=False)
+            elif isinstance(val, str):
+                df.at[idx, column] = val
         except Exception as ex:
             logging.debug(LOG_MESSAGES["json_flatten_error"].format(row=idx, error=ex))
             n_errors += 1
