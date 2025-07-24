@@ -616,9 +616,10 @@ def safe_json_loads(s: str):
     try:
         return json.loads(s)
     except Exception as ex:
-        # Пробуем заменить одинарные кавычки на двойные
         try:
-            fixed = s.replace("'", '"')
+            # Убираем последовательности тройных кавычек и одинарные кавычки
+            fixed = re.sub(r'"{2,}', '"', s)
+            fixed = fixed.replace("'", '"')
             return json.loads(fixed)
         except Exception:
             logging.debug(f"[safe_json_loads] Ошибка: {ex} | Исходная строка: {repr(s)}")
