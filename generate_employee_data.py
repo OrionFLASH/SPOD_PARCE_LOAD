@@ -223,7 +223,7 @@ FALLBACK_ROLE_CODES = ["MANAGER", "SPECIALIST", "CONSULTANT", "DIRECTOR"]
 # === НАСТРОЙКА ЛОГИРОВАНИЯ ===
 def setup_logging() -> str:
     """Настройка системы логирования с разделением на INFO и DEBUG"""
-    log_filename = f'generate_employee_{datetime.now().strftime("%Y%m%d_%H%M")}.log'
+    log_filename = f'generate_employee_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.log'
     log_path = os.path.join(DIR_LOGS, log_filename)
     
     # Создаем директорию если не существует
