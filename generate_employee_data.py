@@ -621,7 +621,9 @@ class EmployeeGenerator:
         """Реализация сохранения записей в CSV файл"""
         logging.info(LOG_MESSAGES['save_start'])
         
-        output_path = os.path.join(DIR_OUTPUT, OUTPUT_FILENAME + OUTPUT_EXTENSION)
+        timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        output_filename_with_timestamp = f"{OUTPUT_FILENAME}_{timestamp}{OUTPUT_EXTENSION}"
+        output_path = os.path.join(DIR_OUTPUT, output_filename_with_timestamp)
         
         try:
             os.makedirs(DIR_OUTPUT, exist_ok=True)
