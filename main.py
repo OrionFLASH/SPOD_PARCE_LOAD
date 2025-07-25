@@ -166,26 +166,26 @@ PREFIX_REWARD_LINK = "REWARD_LINK => "
 COL_REWARD_LINK_CONTEST_CODE = f"{PREFIX_REWARD_LINK}CONTEST_CODE"
 
 MERGE_FIELDS = [
-    # REPORT: добавляем CONTEST_TYPE из CONTEST-DATA
+    # REPORT: добавляем CONTEST_TYPE, FULL_NAME, BUSINESS_STATUS, BUSINESS_BLOCK из CONTEST-DATA
     {
         "sheet_src": "CONTEST-DATA",
         "sheet_dst": "REPORT",
         "src_key": ["CONTEST_CODE"],
         "dst_key": ["CONTEST_CODE"],
-        "column": ["CONTEST_TYPE"],
+        "column": ["CONTEST_TYPE", "FULL_NAME", "BUSINESS_STATUS", "BUSINESS_BLOCK"],
         "mode": "value",
         "multiply_rows": False,           # Новый параметр: размножать ли строки при множественных совпадениях
-        "col_max_width": None,           # Максимальная ширина добавляемых колонок (None = из листа)
+        "col_max_width": 80,             # Максимальная ширина добавляемых колонок
         "col_width_mode": "AUTO",        # Режим растягивания для добавляемых колонок
         "col_min_width": 8               # Минимальная ширина для добавляемых колонок
     },
-    # REPORT: добавляем даты из TOURNAMENT-SCHEDULE
+    # REPORT: добавляем даты и статус из TOURNAMENT-SCHEDULE
     {
         "sheet_src": "TOURNAMENT-SCHEDULE",
         "sheet_dst": "REPORT",
         "src_key": ["TOURNAMENT_CODE"],
         "dst_key": ["TOURNAMENT_CODE"],
-        "column": ["END_DT", "RESULT_DT"],
+        "column": ["END_DT", "RESULT_DT", "TOURNAMENT_STATUS"],
         "mode": "value",
         "multiply_rows": False,
         "col_max_width": 25,
@@ -203,6 +203,45 @@ MERGE_FIELDS = [
         "multiply_rows": False,
         "col_max_width": 30,
         "col_width_mode": "AUTO",
+        "col_min_width": 8
+    },
+    # TOURNAMENT-SCHEDULE: добавляем поля из CONTEST-DATA
+    {
+        "sheet_src": "CONTEST-DATA",
+        "sheet_dst": "TOURNAMENT-SCHEDULE",
+        "src_key": ["CONTEST_CODE"],
+        "dst_key": ["CONTEST_CODE"],
+        "column": ["FULL_NAME", "BUSINESS_BLOCK", "CONTEST_TYPE", "BUSINESS_STATUS"],
+        "mode": "value",
+        "multiply_rows": False,
+        "col_max_width": 70,
+        "col_width_mode": "AUTO",
+        "col_min_width": 8
+    },
+    # TOURNAMENT-SCHEDULE: добавляем CONTEST_DATE из REPORT (значение)
+    {
+        "sheet_src": "REPORT",
+        "sheet_dst": "TOURNAMENT-SCHEDULE",
+        "src_key": ["CONTEST_CODE", "TOURNAMENT_CODE"],
+        "dst_key": ["CONTEST_CODE", "TOURNAMENT_CODE"],
+        "column": ["CONTEST_DATE"],
+        "mode": "value",
+        "multiply_rows": False,
+        "col_max_width": 25,
+        "col_width_mode": "AUTO",
+        "col_min_width": 8
+    },
+    # TOURNAMENT-SCHEDULE: добавляем количество записей из REPORT (подсчёт)
+    {
+        "sheet_src": "REPORT",
+        "sheet_dst": "TOURNAMENT-SCHEDULE",
+        "src_key": ["CONTEST_CODE", "TOURNAMENT_CODE"],
+        "dst_key": ["CONTEST_CODE", "TOURNAMENT_CODE"],
+        "column": ["CONTEST_DATE"],
+        "mode": "count",
+        "multiply_rows": False,
+        "col_max_width": 20,
+        "col_width_mode": 15,
         "col_min_width": 8
     },
     # SUMMARY: из CONTEST-DATA по CONTEST_CODE — основные поля
@@ -447,8 +486,13 @@ COLOR_SCHEME = [
         "column_bg": None,
         "column_fg": None,
         "style_scope": "header",
-        "sheets": ["REWARD", "REPORT"],  # поля добавляемые через merge_fields
-        "columns": [COL_REWARD_LINK_CONTEST_CODE, "CONTEST-DATA=>CONTEST_TYPE", "TOURNAMENT-SCHEDULE=>END_DT", "TOURNAMENT-SCHEDULE=>RESULT_DT"],
+        "sheets": ["REWARD", "REPORT", "TOURNAMENT-SCHEDULE"],  # поля добавляемые через merge_fields
+        "columns": [
+            COL_REWARD_LINK_CONTEST_CODE,
+            "CONTEST-DATA=>CONTEST_TYPE", "CONTEST-DATA=>FULL_NAME", "CONTEST-DATA=>BUSINESS_BLOCK", "CONTEST-DATA=>BUSINESS_STATUS",
+            "TOURNAMENT-SCHEDULE=>END_DT", "TOURNAMENT-SCHEDULE=>RESULT_DT", "TOURNAMENT-SCHEDULE=>TOURNAMENT_STATUS",
+            "REPORT=>CONTEST_DATE", "REPORT=>COUNT_CONTEST_DATE"
+        ],
         # Назначение: поля добавляемые через merge_fields_across_sheets
     },
 
