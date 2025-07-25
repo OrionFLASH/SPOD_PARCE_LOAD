@@ -54,7 +54,7 @@ INPUT_FILES = [
         "file": "REWARD (PROM) 2025-07-24 v1",
         "sheet": "REWARD",
         "max_col_width": 140,
-        "freeze": "B2",
+        "freeze": "D2",
         "col_width_mode": "AUTO",
         "min_col_width": 8
     },
@@ -165,13 +165,18 @@ LOG_MESSAGES = {
     ,"gender_by_name": "[DEBUG] Строка {row}: пол по имени '{name}' -> {gender}"
     ,"gender_by_surname": "[DEBUG] Строка {row}: пол по фамилии '{surname}' -> {gender}"
     ,"gender_unknown": "[DEBUG] Строка {row}: пол не определен (отч:'{patronymic}', имя:'{name}', фам:'{surname}')"
+    ,"field_length_start": "[FIELD LENGTH] Проверка длины полей для листа {sheet}, строк: {rows}"
+    ,"field_length_progress": "[FIELD LENGTH] Обработано {processed} из {total} строк ({percent:.1f}%)"
+    ,"field_length_stats": "[FIELD LENGTH] Статистика: корректных={correct}, с ошибками={errors} (всего: {total})"
+    ,"field_length_end": "[FIELD LENGTH] Завершено за {time:.3f}s для листа {sheet}"
+    ,"field_length_violation": "[DEBUG] Строка {row}: поле '{field}' = {length} {operator} {limit} (нарушение)"
 }
 
 # === Константы для определения пола ===
 GENDER_PATTERNS = {
     # Отчества - мужские окончания
     'patronymic_male': [
-        'ович', 'евич', 'ич', 'ыч', 'кызы', 'оглы', 'улы', 'уулу', 'заде'
+        'ович', 'евич', 'ич', 'ыч', 'оглы', 'улы', 'уулу', 'заде'
     ],
     # Отчества - женские окончания  
     'patronymic_female': [
@@ -196,6 +201,31 @@ GENDER_PATTERNS = {
 }
 
 GENDER_PROGRESS_STEP = 500  # Шаг для отображения прогресса
+
+# === Константы для проверки длины полей ===
+FIELD_LENGTH_VALIDATIONS = {
+    "ORG_UNIT_V20": {
+        "result_column": "FIELD_LENGTH_CHECK",
+        "fields": {
+            "TB_FULL_NAME": {"limit": 100, "operator": "<="},
+            "GOSB_NAME": {"limit": 100, "operator": "<="},
+            "GOSB_SHORT_NAME": {"limit": 20, "operator": "<="}
+        }
+    },
+    "EMPLOYEE": {
+        "result_column": "FIELD_LENGTH_CHECK", 
+        "fields": {
+            "PERSON_NUMBER": {"limit": 20, "operator": "="},
+            "PERSON_NUMBER_ADD": {"limit": 20, "operator": "="}
+        }
+    },
+    "REPORT": {
+        "result_column": "FIELD_LENGTH_CHECK",
+        "fields": {
+            "MANAGER_PERSON_NUMBER": {"limit": 20, "operator": "="}
+        }
+    }
+}
 
 # --- Общие префиксы для колонок JSON ---
 PREFIX_CONTEST_FEATURE = "CONTEST_FEATURE"
@@ -244,11 +274,23 @@ MERGE_FIELDS = [
         "col_min_width": 8
     },
     {
+        "sheet_src": "TOURNAMENT-SCHEDULE",
+        "sheet_dst": "REWARD",
+        "src_key": ["CONTEST_CODE"],
+        "dst_key": ["REWARD_LINK => CONTEST_CODE"],
+        "column": ["TOURNAMENT_CODE"],
+        "mode": "count",
+        "multiply_rows": False,
+        "col_max_width": 11,
+        "col_width_mode": "AUTO",
+        "col_min_width": 8
+    },
+    {
         "sheet_src": "ORG_UNIT_V20",
         "sheet_dst": "EMPLOYEE",
         "src_key": ["TB_CODE", "GOSB_CODE"],
         "dst_key": ["TB_CODE", "GOSB_CODE"],
-        "column": ["TORG_UNIT_CODE"],
+        "column": ["ORG_UNIT_CODE"],
         "mode": "value",
         "multiply_rows": False,
         "col_max_width": 15,
@@ -338,6 +380,18 @@ MERGE_FIELDS = [
         "mode": "value",
         "multiply_rows": False,
         "col_max_width": 25,
+        "col_width_mode": "AUTO",
+        "col_min_width": 8
+    },
+    {
+        "sheet_src": "TOURNAMENT-SCHEDULE",
+        "sheet_dst": "CONTEST-DATA",
+        "src_key": ["CONTEST_CODE"],
+        "dst_key": ["CONTEST_CODE"],
+        "column": ["TOURNAMENT_CODE"],
+        "mode": "count",
+        "multiply_rows": False,
+        "col_max_width": 11,
         "col_width_mode": "AUTO",
         "col_min_width": 8
     },
@@ -596,12 +650,12 @@ COLOR_SCHEME = [
         "column_bg": None,
         "column_fg": None,
         "style_scope": "header",
-        "sheets": ["REWARD", "REPORT", "TOURNAMENT-SCHEDULE"],  # поля добавляемые через merge_fields
+        "sheets": ["REWARD", "REPORT", "TOURNAMENT-SCHEDULE", "EMPLOYEE", "CONTEST-DATA", "GROUP", "INDICATOR", "REWARD-LINK"],  # поля добавляемые через merge_fields
         "columns": [
             COL_REWARD_LINK_CONTEST_CODE,
             "CONTEST-DATA=>CONTEST_TYPE", "CONTEST-DATA=>FULL_NAME", "CONTEST-DATA=>BUSINESS_BLOCK", "CONTEST-DATA=>BUSINESS_STATUS",
             "TOURNAMENT-SCHEDULE=>END_DT", "TOURNAMENT-SCHEDULE=>RESULT_DT", "TOURNAMENT-SCHEDULE=>TOURNAMENT_STATUS",
-            "REPORT=>CONTEST_DATE", "REPORT=>COUNT_CONTEST_DATE"
+            "REPORT=>CONTEST_DATE", "REPORT=>COUNT_CONTEST_DATE", "AUTO_GENDER", "CALC_TOURNAMENT_STATUS", "FIELD_LENGTH_CHECK"
         ],
         # Назначение: поля добавляемые через merge_fields_across_sheets
     },
@@ -797,6 +851,209 @@ def setup_logger():
         ]
     )
     return log_file
+
+
+def calculate_tournament_status(df_tournament, df_report=None):
+    """
+    Вычисляет статус турнира на основе текущей даты и дат турнира.
+    
+    Логика:
+    - Если сегодня между START_DT и END_DT включительно → "АКТИВНЫЙ"
+    - Если сегодня < START_DT → "ЗАПЛАНИРОВАН"  
+    - Если сегодня > END_DT но < RESULT_DT → "ПОДВЕДЕНИЕ ИТОГОВ"
+    - Если сегодня >= RESULT_DT:
+        - Если макс CONTEST_DATE < RESULT_DT → "ПОДВЕДЕНИЕ ИТОГОВ"
+        - Если макс CONTEST_DATE >= RESULT_DT → "ЗАВЕРШЕН"
+    """
+    func_start = time()
+    params = "(TOURNAMENT-SCHEDULE status calculation)"
+    logging.info(LOG_MESSAGES["func_start"].format(func="calculate_tournament_status", params=params))
+    
+    today = pd.Timestamp.now().date()
+    df = df_tournament.copy()
+    
+    # Преобразуем даты в pandas datetime, обрабатываем ошибки
+    def safe_to_date(date_str):
+        try:
+            if pd.isna(date_str) or date_str in ['', '-', 'None', 'null']:
+                return None
+            return pd.to_datetime(date_str).date()
+        except:
+            return None
+    
+    df['START_DT_parsed'] = df['START_DT'].apply(safe_to_date)
+    df['END_DT_parsed'] = df['END_DT'].apply(safe_to_date)  
+    df['RESULT_DT_parsed'] = df['RESULT_DT'].apply(safe_to_date)
+    
+    # Получаем максимальные CONTEST_DATE для каждого TOURNAMENT_CODE из REPORT
+    max_contest_dates = {}
+    if df_report is not None and 'CONTEST_DATE' in df_report.columns and 'TOURNAMENT_CODE' in df_report.columns:
+        df_report_dates = df_report.copy()
+        df_report_dates['CONTEST_DATE_parsed'] = df_report_dates['CONTEST_DATE'].apply(safe_to_date)
+        df_report_dates = df_report_dates.dropna(subset=['CONTEST_DATE_parsed', 'TOURNAMENT_CODE'])
+        
+        if not df_report_dates.empty:
+            max_contest_dates = df_report_dates.groupby('TOURNAMENT_CODE')['CONTEST_DATE_parsed'].max().to_dict()
+    
+    def get_status(row):
+        start_dt = row['START_DT_parsed']
+        end_dt = row['END_DT_parsed']
+        result_dt = row['RESULT_DT_parsed']
+        tournament_code = row['TOURNAMENT_CODE']
+        
+        # Если нет ключевых дат - возвращаем неопределенный статус
+        if not start_dt or not end_dt:
+            return "НЕОПРЕДЕЛЕН"
+        
+        # 1. Если сегодня между START_DT и END_DT включительно
+        if start_dt <= today <= end_dt:
+            return "АКТИВНЫЙ"
+        
+        # 2. Если сегодня < START_DT
+        if today < start_dt:
+            return "ЗАПЛАНИРОВАН"
+        
+        # 3. Если сегодня > END_DT
+        if today > end_dt:
+            # Если нет RESULT_DT или сегодня < RESULT_DT
+            if not result_dt or today < result_dt:
+                return "ПОДВЕДЕНИЕ ИТОГОВ"
+            
+            # 4. Если сегодня >= RESULT_DT
+            if today >= result_dt:
+                max_contest_date = max_contest_dates.get(tournament_code)
+                
+                # Если нет данных в REPORT для этого турнира
+                if not max_contest_date:
+                    return "ПОДВЕДЕНИЕ ИТОГОВ"
+                
+                # Сравниваем максимальную CONTEST_DATE с RESULT_DT
+                if max_contest_date < result_dt:
+                    return "ПОДВЕДЕНИЕ ИТОГОВ"
+                else:
+                    return "ЗАВЕРШЕН"
+        
+        return "НЕОПРЕДЕЛЕН"
+    
+    # Применяем функцию для каждой строки
+    df['CALC_TOURNAMENT_STATUS'] = df.apply(get_status, axis=1)
+    
+    # Удаляем временные колонки
+    df = df.drop(columns=['START_DT_parsed', 'END_DT_parsed', 'RESULT_DT_parsed'])
+    
+    # Статистика по статусам
+    status_counts = df['CALC_TOURNAMENT_STATUS'].value_counts()
+    logging.info(f"[TOURNAMENT STATUS] Статистика: {status_counts.to_dict()}")
+    
+    func_time = time() - func_start
+    logging.info(LOG_MESSAGES["func_end"].format(func="calculate_tournament_status", params=params, time=func_time))
+    
+    return df
+
+
+def validate_field_lengths(df, sheet_name):
+    """
+    Проверяет длину полей согласно конфигурации FIELD_LENGTH_VALIDATIONS.
+    Добавляет колонку с результатом проверки.
+    
+    Формат результата:
+    - "-" если все поля соответствуют ограничениям
+    - "поле1 = длина > ограничение; поле2 = длина > ограничение" если есть нарушения
+    """
+    func_start = time()
+    
+    # Проверяем есть ли конфигурация для этого листа
+    if sheet_name not in FIELD_LENGTH_VALIDATIONS:
+        return df
+    
+    config = FIELD_LENGTH_VALIDATIONS[sheet_name]
+    result_column = config["result_column"]
+    fields_config = config["fields"]
+    
+    # Проверяем наличие полей в DataFrame
+    missing_fields = [field for field in fields_config.keys() if field not in df.columns]
+    if missing_fields:
+        logging.warning(f"[FIELD LENGTH] Пропущены поля {missing_fields} в листе {sheet_name}")
+        # Создаем пустую колонку если нет полей для проверки
+        df[result_column] = '-'
+        return df
+    
+    total_rows = len(df)
+    logging.info(LOG_MESSAGES["field_length_start"].format(sheet=sheet_name, rows=total_rows))
+    
+    # Счетчики для статистики
+    correct_count = 0
+    error_count = 0
+    
+    def check_field_length(value, limit, operator):
+        """Проверяет соответствие длины поля ограничению"""
+        if pd.isna(value) or value in ['', '-', 'None', 'null']:
+            return True  # Пустые значения считаем корректными
+        
+        length = len(str(value))
+        
+        if operator == "<=":
+            return length <= limit
+        elif operator == "=":
+            return length == limit
+        elif operator == ">=":
+            return length >= limit
+        elif operator == "<":
+            return length < limit
+        elif operator == ">":
+            return length > limit
+        else:
+            return True  # Неизвестный оператор - считаем корректным
+    
+    def check_row(row, row_idx):
+        """Проверяет одну строку и возвращает результат проверки"""
+        violations = []
+        
+        for field_name, field_config in fields_config.items():
+            limit = field_config["limit"]
+            operator = field_config["operator"]
+            value = row.get(field_name, '')
+            
+            if not check_field_length(value, limit, operator):
+                length = len(str(value)) if not pd.isna(value) else 0
+                violations.append(f"{field_name} = {length} {operator} {limit}")
+                
+                logging.debug(LOG_MESSAGES["field_length_violation"].format(
+                    row=row_idx, field=field_name, length=length, operator=operator, limit=limit
+                ))
+        
+        return "; ".join(violations) if violations else "-"
+    
+    # Обрабатываем каждую строку
+    results = []
+    for idx, row in df.iterrows():
+        result = check_row(row, idx)
+        results.append(result)
+        
+        # Обновляем статистику
+        if result == "-":
+            correct_count += 1
+        else:
+            error_count += 1
+        
+        # Прогресс каждые GENDER_PROGRESS_STEP строк
+        if (idx + 1) % GENDER_PROGRESS_STEP == 0:
+            percent = ((idx + 1) / total_rows) * 100
+            logging.info(LOG_MESSAGES["field_length_progress"].format(
+                processed=idx + 1, total=total_rows, percent=percent
+            ))
+    
+    # Добавляем колонку к DataFrame
+    df[result_column] = results
+    
+    # Логируем финальную статистику
+    func_time = time() - func_start
+    logging.info(LOG_MESSAGES["field_length_stats"].format(
+        correct=correct_count, errors=error_count, total=total_rows
+    ))
+    logging.info(LOG_MESSAGES["field_length_end"].format(time=func_time, sheet=sheet_name))
+    
+    return df
 
 
 # === Чтение CSV ===
@@ -1713,20 +1970,34 @@ def main():
         df_employee = add_auto_gender_column(df_employee, "EMPLOYEE")
         sheets_data["EMPLOYEE"] = (df_employee, conf_employee)
 
-    # 3. Merge fields (только после полного разворота JSON)
+    # 3. Проверка длины полей для всех листов согласно FIELD_LENGTH_VALIDATIONS
+    for sheet_name in FIELD_LENGTH_VALIDATIONS.keys():
+        if sheet_name in sheets_data:
+            df, conf = sheets_data[sheet_name]
+            df = validate_field_lengths(df, sheet_name)
+            sheets_data[sheet_name] = (df, conf)
+
+    # 4. Добавление расчетного статуса турнира для TOURNAMENT-SCHEDULE
+    if "TOURNAMENT-SCHEDULE" in sheets_data:
+        df_tournament, conf_tournament = sheets_data["TOURNAMENT-SCHEDULE"]
+        df_report = sheets_data.get("REPORT", (None, None))[0]
+        df_tournament = calculate_tournament_status(df_tournament, df_report)
+        sheets_data["TOURNAMENT-SCHEDULE"] = (df_tournament, conf_tournament)
+
+    # 5. Merge fields (только после полного разворота JSON)
     merge_fields_across_sheets(
         sheets_data,
         [f for f in MERGE_FIELDS if f.get("sheet_dst") != "SUMMARY"]
     )
 
-    # 4. Проверка на дубли
+    # 6. Проверка на дубли
     for sheet_name, (df, conf) in sheets_data.items():
         check_cfg = next((x for x in CHECK_DUPLICATES if x["sheet"] == sheet_name), None)
         if check_cfg:
             df = mark_duplicates(df, check_cfg["key"], sheet_name=sheet_name)
             sheets_data[sheet_name] = (df, conf)
 
-    # 5. Формирование итогового Summary (build_summary_sheet)
+    # 7. Формирование итогового Summary (build_summary_sheet)
     dfs = {k: v[0] for k, v in sheets_data.items()}
     df_summary = build_summary_sheet(
         dfs,
@@ -1735,7 +2006,7 @@ def main():
     )
     sheets_data[SUMMARY_SHEET["sheet"]] = (df_summary, SUMMARY_SHEET)
 
-    # 6. Запись в Excel
+    # 8. Запись в Excel
     output_excel = os.path.join(DIR_OUTPUT, get_output_filename())
     logging.info(LOG_MESSAGES["func_start"].format(func="write_to_excel", params=f"({output_excel})"))
     write_to_excel(sheets_data, output_excel)
