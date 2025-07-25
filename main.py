@@ -16,80 +16,104 @@ DIR_OUTPUT = r'/Users/orionflash/Desktop/MyProject/SPOD_PROM/OUT'
 DIR_LOGS = r'/Users/orionflash/Desktop/MyProject/SPOD_PROM/LOGS'
 
 # Входные файлы (имя без расширения)
-# Соответствие: Имя листа, максимальная ширина колонки, закрепление
+# Соответствие: Имя листа, максимальная ширина колонки, закрепление, режим растягивания колонок
 INPUT_FILES = [
     {
         "file": "CONTEST-DATA (PROM) 2025-07-24 v4",
         "sheet": "CONTEST-DATA",
         "max_col_width": 120,
-        "freeze": "C2"
+        "freeze": "C2",
+        "col_width_mode": "AUTO",  # "AUTO", число, None - режим растягивания колонок
+        "min_col_width": 8         # минимальная ширина колонки
     },
     {
         "file": "GROUP (PROM) 2025-07-14 v0",
         "sheet": "GROUP",
         "max_col_width": 20,
-        "freeze": "C2"
+        "freeze": "C2",
+        "col_width_mode": "AUTO",
+        "min_col_width": 8
     },
     {
         "file": "INDICATOR (PROM) 2025-07-14 v0",
         "sheet": "INDICATOR",
         "max_col_width": 20,
-        "freeze": "B2"
+        "freeze": "B2",
+        "col_width_mode": "AUTO",
+        "min_col_width": 8
     },
     {
         "file": "REPORT (PROM-KMKKSB) 2025-07-24 v4",
         "sheet": "REPORT",
         "max_col_width": 25,
-        "freeze": "D2"
+        "freeze": "D2",
+        "col_width_mode": "AUTO",
+        "min_col_width": 8
     },
     {
         "file": "REWARD (PROM) 2025-07-24 v1",
         "sheet": "REWARD",
         "max_col_width": 140,
-        "freeze": "B2"
+        "freeze": "B2",
+        "col_width_mode": "AUTO",
+        "min_col_width": 8
     },
     {
         "file": "REWARD-LINK (PROM) 2025-07-14 v0",
         "sheet": "REWARD-LINK",
         "max_col_width": 30,
-        "freeze": "A2"
+        "freeze": "A2",
+        "col_width_mode": "AUTO",
+        "min_col_width": 8
     },
     {
         "file": "SVD_KB_DM_GAMIFICATION_ORG_UNIT_V20 2025_07_11 v1",
         "sheet": "ORG_UNIT_V20",
         "max_col_width": 60,
-        "freeze": "A2"
+        "freeze": "A2",
+        "col_width_mode": "AUTO",
+        "min_col_width": 8
     },
     {
         "file": "TOURNAMENT-SCHEDULE (PROM) 2025-07-24 v3",
         "sheet": "TOURNAMENT-SCHEDULE",
         "max_col_width": 120,
-        "freeze": "B2"
+        "freeze": "B2",
+        "col_width_mode": "AUTO",
+        "min_col_width": 8
     },
     {
         "file": "PROM_USER_ROLE 2025-07-21 v0",
         "sheet": "USER_ROLE",
         "max_col_width": 60,
-        "freeze": "D2"
+        "freeze": "D2",
+        "col_width_mode": "AUTO",
+        "min_col_width": 8
     },
     {
         "file": "PROM_USER_ROLE SB 2025-07-21 v0",
         "sheet": "USER_ROLE SB",
         "max_col_width": 60,
-        "freeze": "D2"
+        "freeze": "D2",
+        "col_width_mode": "AUTO",
+        "min_col_width": 8
     },
     {
         "file": "employee_PROM_final_5000",
         "sheet": "EMPLOYEE",
         "max_col_width": 70,
-        "freeze": "F2"
+        "freeze": "F2",
+        "col_width_mode": "AUTO",
+        "min_col_width": 8
     }
 ]
 
 SUMMARY_SHEET = {
     "sheet": "SUMMARY",
     "max_col_width": 70,
-    "freeze": "F2"
+    "freeze": "F2",
+    "col_width_mode": "AUTO",
+    "min_col_width": 8
 }
 
 # Логирование: уровень, шаблоны, имена
@@ -129,6 +153,10 @@ LOG_MESSAGES = {
     ,"missing_column":       "[add_fields_to_sheet] Колонка {column} не найдена в {sheet}, создаём пустую."
     ,"missing_key":          "[add_fields_to_sheet] Ключевая колонка {key} не найдена в {sheet}, создаём пустую."
     ,"safe_json_error":      "[safe_json_loads] Ошибка: {error} | Исходная строка: {line}"
+    ,"multiply_rows_start":  "[MULTIPLY ROWS] {sheet}: начинаем размножение строк для поля {column}"
+    ,"multiply_rows_result": "[MULTIPLY ROWS] {sheet}: {old_rows} строк -> {new_rows} строк (размножение: {multiply_factor}x)"
+    ,"column_width_set":     "[COLUMN WIDTH] {sheet}: колонка '{column}' -> ширина {width} (режим: {mode})"
+    ,"dynamic_color_scheme": "[DYNAMIC COLOR] Сгенерирована схема для {sheet}: {columns}"
 }
 
 # --- Общие префиксы для колонок JSON ---
@@ -145,7 +173,11 @@ MERGE_FIELDS = [
         "src_key": ["CONTEST_CODE"],
         "dst_key": ["CONTEST_CODE"],
         "column": ["CONTEST_TYPE"],
-        "mode": "value"
+        "mode": "value",
+        "multiply_rows": False,           # Новый параметр: размножать ли строки при множественных совпадениях
+        "col_max_width": None,           # Максимальная ширина добавляемых колонок (None = из листа)
+        "col_width_mode": "AUTO",        # Режим растягивания для добавляемых колонок
+        "col_min_width": 8               # Минимальная ширина для добавляемых колонок
     },
     # REPORT: добавляем даты из TOURNAMENT-SCHEDULE
     {
@@ -154,7 +186,11 @@ MERGE_FIELDS = [
         "src_key": ["TOURNAMENT_CODE"],
         "dst_key": ["TOURNAMENT_CODE"],
         "column": ["END_DT", "RESULT_DT"],
-        "mode": "value"
+        "mode": "value",
+        "multiply_rows": False,
+        "col_max_width": 25,
+        "col_width_mode": "AUTO",
+        "col_min_width": 8
     },
     # REWARD: добавляем CONTEST_CODE из REWARD-LINK по REWARD_CODE
     {
@@ -163,7 +199,11 @@ MERGE_FIELDS = [
         "src_key": ["REWARD_CODE"],
         "dst_key": ["REWARD_CODE"],
         "column": ["CONTEST_CODE"],
-        "mode": "value"
+        "mode": "value",
+        "multiply_rows": False,
+        "col_max_width": 30,
+        "col_width_mode": "AUTO",
+        "col_min_width": 8
     },
     # SUMMARY: из CONTEST-DATA по CONTEST_CODE — основные поля
     {
@@ -182,7 +222,11 @@ MERGE_FIELDS = [
             f"{PREFIX_CONTEST_FEATURE} => tournamentRewardingMailing",
             f"{PREFIX_CONTEST_FEATURE} => tournamentLikeMailing"
         ],
-        "mode": "value"
+        "mode": "value",
+        "multiply_rows": False,
+        "col_max_width": 60,
+        "col_width_mode": "AUTO",
+        "col_min_width": 8
     },
     # SUMMARY: из GROUP по составному ключу
     {
@@ -195,7 +239,11 @@ MERGE_FIELDS = [
             "ADD_CALC_CRITERION",
             "ADD_CALC_CRITERION_2"
         ],
-        "mode": "value"
+        "mode": "value",
+        "multiply_rows": False,
+        "col_max_width": 40,
+        "col_width_mode": "AUTO",
+        "col_min_width": 8
     },
     # SUMMARY: из INDICATOR по CONTEST_CODE
     {
@@ -208,7 +256,11 @@ MERGE_FIELDS = [
             "INDICATOR_MATCH",
             "INDICATOR_VALUE"
         ],
-        "mode": "value"
+        "mode": "value",
+        "multiply_rows": False,
+        "col_max_width": 35,
+        "col_width_mode": "AUTO",
+        "col_min_width": 8
     },
     # SUMMARY: из TOURNAMENT-SCHEDULE по TOURNAMENT_CODE
     {
@@ -223,7 +275,11 @@ MERGE_FIELDS = [
             "TOURNAMENT_STATUS",
             "TARGET_TYPE"
         ],
-        "mode": "value"
+        "mode": "value",
+        "multiply_rows": False,
+        "col_max_width": 30,
+        "col_width_mode": "AUTO",
+        "col_min_width": 8
     },
     # SUMMARY: CONTEST_DATE из REPORT по TOURNAMENT_CODE
     {
@@ -234,7 +290,11 @@ MERGE_FIELDS = [
         "column": [
             "CONTEST_DATE"
         ],
-        "mode": "value"
+        "mode": "value",
+        "multiply_rows": False,
+        "col_max_width": 25,
+        "col_width_mode": "AUTO",
+        "col_min_width": 8
     },
     # SUMMARY: сколько в REPORT строк по паре TOURNAMENT_CODE + CONTEST_CODE
     {
@@ -245,7 +305,11 @@ MERGE_FIELDS = [
         "column": [
             "CONTEST_DATE"
         ],
-        "mode": "count"
+        "mode": "count",
+        "multiply_rows": False,
+        "col_max_width": 20,
+        "col_width_mode": 15,
+        "col_min_width": 8
     },
     # SUMMARY: все нужные поля из REWARD по составному ключу
     {
@@ -260,11 +324,27 @@ MERGE_FIELDS = [
             f"{PREFIX_ADD_DATA} => teamNews",
             f"{PREFIX_ADD_DATA} => singleNews"
         ],
-        "mode": "value"
+        "mode": "value",
+        "multiply_rows": False,
+        "col_max_width": 50,
+        "col_width_mode": "AUTO",
+        "col_min_width": 8
     }
 ]
 
-
+# Пример правила с размножением строк (закомментировано для демонстрации):
+# {
+#     "sheet_src": "REWARD-LINK",
+#     "sheet_dst": "SUMMARY", 
+#     "src_key": ["CONTEST_CODE"],
+#     "dst_key": ["CONTEST_CODE"],
+#     "column": ["REWARD_CODE"],
+#     "mode": "value",
+#     "multiply_rows": True,           # ВКЛЮЧЕНО: размножать строки при множественных наградах
+#     "col_max_width": 40,            # Максимальная ширина для новой колонки
+#     "col_width_mode": "AUTO",       # Автоподбор ширины
+#     "col_min_width": 12             # Минимальная ширина
+# },
 
 SUMMARY_KEY_DEFS = [
     {"sheet": "CONTEST-DATA",    "cols": ["CONTEST_CODE"]},
@@ -616,6 +696,41 @@ def write_to_excel(sheets_data, output_path):
         logging.info(LOG_MESSAGES["func_end"].format(func="write_to_excel", params=params, time=func_time))
 
 # === Форматирование листа ===
+def calculate_column_width(col_name, ws, params, col_num):
+    """
+    Вычисляет ширину колонки на основе параметров и содержимого.
+    """
+    # Получаем параметры для конкретной колонки (если добавлена через MERGE_FIELDS)
+    added_cols_width = params.get("added_columns_width", {})
+    if col_name in added_cols_width:
+        col_params = added_cols_width[col_name]
+        max_width = col_params.get("max_width") or params.get("max_col_width", 30)
+        width_mode = col_params.get("width_mode", "AUTO")
+        min_width = col_params.get("min_width", 8)
+    else:
+        # Общие параметры для листа
+        max_width = params.get("max_col_width", 30)
+        width_mode = params.get("col_width_mode", "AUTO")
+        min_width = params.get("min_col_width", 8)
+    
+    # Вычисляем ширину на основе содержимого
+    col_letter = get_column_letter(col_num)
+    content_width = max([len(str(cell.value)) for cell in ws[col_letter] if cell.value] + [min_width])
+    
+    if width_mode == "AUTO":
+        # Автоматическое растягивание по содержимому, но не более максимальной ширины
+        final_width = min(content_width, max_width)
+        final_width = max(final_width, min_width)
+    elif isinstance(width_mode, (int, float)):
+        # Фиксированная ширина
+        final_width = width_mode
+    else:
+        # Без растягивания - просто не более максимальной
+        final_width = min(content_width, max_width)
+        final_width = max(final_width, min_width)
+    
+    return final_width
+
 def _format_sheet(ws, df, params):
     func_start = time()
     params_str = f"({ws.title})"
@@ -623,19 +738,31 @@ def _format_sheet(ws, df, params):
     header_font = Font(bold=True)
     align_center = Alignment(horizontal="center", vertical="center", wrap_text=True)
     align_data = Alignment(horizontal="left", vertical="center", wrap_text=True)
-    max_col_width = params.get("max_col_width", 30)
 
     for col_num, cell in enumerate(ws[1], 1):
         cell.font = header_font
         cell.alignment = align_center
         col_letter = get_column_letter(col_num)
-        max_width = min(
-            max([len(str(cell.value)) for cell in ws[get_column_letter(col_num)] if cell.value] + [8]),
-            max_col_width
-        )
-        ws.column_dimensions[col_letter].width = max_width
-        apply_color_scheme(ws, ws.title)
+        col_name = cell.value
+        
+        # Вычисляем ширину колонки с учетом новых параметров
+        width = calculate_column_width(col_name, ws, params, col_num)
+        ws.column_dimensions[col_letter].width = width
+        
+        # Определяем режим для логирования
+        width_mode_info = params.get("col_width_mode", "AUTO")
+        added_cols_width = params.get("added_columns_width", {})
+        if col_name in added_cols_width:
+            width_mode_info = added_cols_width[col_name].get("width_mode", "AUTO")
+        
+        logging.debug(LOG_MESSAGES["column_width_set"].format(
+            sheet=ws.title, column=col_name, width=width, mode=width_mode_info
+        ))
+    
+    # Применяем цветовую схему
+    apply_color_scheme(ws, ws.title)
 
+    # Данные: перенос строк, выравнивание по левому краю, по вертикали по центру
     for row in ws.iter_rows(min_row=2, max_row=ws.max_row, max_col=ws.max_column):
         for cell in row:
             cell.alignment = align_data
@@ -673,8 +800,8 @@ def safe_json_loads(s: str):
             fixed = fixed.replace('"""', '"')
             # 2. Заменяем одиночные и фигурные кавычки на стандартные двойные
             fixed = fixed.replace("'", '"')
-            fixed = fixed.replace('“', '"').replace('”', '"')
-            fixed = fixed.replace('‘', '"').replace('’', '"')
+            fixed = fixed.replace('"', '"').replace('"', '"')
+            fixed = fixed.replace(''', '"').replace(''', '"')
             # 3. Исправляем ключи вида ""key"" на "key"
             import re
             fixed = re.sub(r'"{2,}([^"\s]+)"{2,}', r'"\1"', fixed)
@@ -781,12 +908,82 @@ def flatten_json_column_recursive(df, column, prefix=None, sheet=None, sep="; ")
 
 
 
+def generate_dynamic_color_scheme_from_merge_fields():
+    """
+    Автоматически генерирует элементы цветовой схемы на основе MERGE_FIELDS.
+    Добавляет правила для колонок, которые создаются через merge операции.
+    """
+    dynamic_scheme = []
+    
+    # Группируем по целевым листам
+    sheets_targets = {}
+    for rule in MERGE_FIELDS:
+        sheet_dst = rule["sheet_dst"]
+        sheet_src = rule["sheet_src"]
+        columns = rule["column"]
+        mode = rule.get("mode", "value")
+        
+        if sheet_dst not in sheets_targets:
+            sheets_targets[sheet_dst] = {}
+        
+        if sheet_src not in sheets_targets[sheet_dst]:
+            sheets_targets[sheet_dst][sheet_src] = []
+        
+        # Формируем имена колонок, которые будут созданы
+        for col in columns:
+            if mode == "count":
+                new_col_name = f"{sheet_src}=>COUNT_{col}"
+            else:
+                new_col_name = f"{sheet_src}=>{col}"
+            sheets_targets[sheet_dst][sheet_src].append(new_col_name)
+    
+    # Создаем цветовые схемы для каждой комбинации лист-источник
+    color_palette = [
+        ("FF9999", "2C3E50"),  # Светло-красный
+        ("99FF99", "2C3E50"),  # Светло-зеленый  
+        ("9999FF", "FFFFFF"),  # Светло-синий
+        ("FFFF99", "2C3E50"),  # Светло-желтый
+        ("FF99FF", "2C3E50"),  # Светло-розовый
+        ("99FFFF", "2C3E50"),  # Светло-голубой
+        ("FFB366", "2C3E50"),  # Светло-оранжевый
+        ("D8BFD8", "2C3E50"),  # Светло-фиолетовый
+    ]
+    
+    color_idx = 0
+    for sheet_dst, sources in sheets_targets.items():
+        for sheet_src, columns in sources.items():
+            if columns:  # Если есть колонки для этого источника
+                bg_color, fg_color = color_palette[color_idx % len(color_palette)]
+                
+                dynamic_scheme.append({
+                    "group": f"MERGE: {sheet_src} -> {sheet_dst}",
+                    "header_bg": bg_color,
+                    "header_fg": fg_color,
+                    "column_bg": None,
+                    "column_fg": None,
+                    "style_scope": "header",
+                    "sheets": [sheet_dst],
+                    "columns": columns,
+                    "auto_generated": True  # Маркер автогенерации
+                })
+                
+                logging.debug(LOG_MESSAGES["dynamic_color_scheme"].format(
+                    sheet=f"{sheet_src} -> {sheet_dst}", columns=columns
+                ))
+                color_idx += 1
+    
+    return dynamic_scheme
+
 def apply_color_scheme(ws, sheet_name):
     """
     Окрашивает заголовки и/или всю колонку на листе Excel по схеме COLOR_SCHEME.
+    Также применяет динамически сгенерированную схему из MERGE_FIELDS.
     Все действия логируются через LOG_MESSAGES.
     """
-    for color_conf in COLOR_SCHEME:
+    # Объединяем статическую и динамическую цветовые схемы
+    all_color_schemes = COLOR_SCHEME + generate_dynamic_color_scheme_from_merge_fields()
+    
+    for color_conf in all_color_schemes:
         if sheet_name not in color_conf["sheets"]:
             continue
 
@@ -963,17 +1160,19 @@ def mark_duplicates(df, key_cols, sheet_name=None):
         logging.info(LOG_MESSAGES["duplicates_end"].format(sheet=sheet_name, time=func_time))
     return df
 
-def add_fields_to_sheet(df_base, df_ref, src_keys, dst_keys, columns, sheet_name, ref_sheet_name, mode="value"):
+def add_fields_to_sheet(df_base, df_ref, src_keys, dst_keys, columns, sheet_name, ref_sheet_name, mode="value", multiply_rows=False):
     """
     Добавляет к df_base поля из df_ref по ключам.
-    Если mode == "value": подтягивает значения первого найденного (основной режим).
+    Если mode == "value": подтягивает значения (первого найденного или всех при multiply_rows=True).
     Если mode == "count": добавляет количество строк в df_ref по каждому ключу.
+    Если multiply_rows == True: при множественных совпадениях размножает строки в df_base.
+    Если multiply_rows == False: берет первое найденное значение (по умолчанию).
     Если нужной колонки нет — создаёт её с дефолтными значениями "-".
     """
     func_start = time()
     logging.info(LOG_MESSAGES["func_start"].format(
         func="add_fields_to_sheet",
-        params=f"(лист: {sheet_name}, поля: {columns}, ключ: {dst_keys}->{src_keys}, mode: {mode})"
+        params=f"(лист: {sheet_name}, поля: {columns}, ключ: {dst_keys}->{src_keys}, mode: {mode}, multiply: {multiply_rows})"
     ))
     if isinstance(columns, str):
         columns = [columns]
@@ -995,8 +1194,6 @@ def add_fields_to_sheet(df_base, df_ref, src_keys, dst_keys, columns, sheet_name
                 v = v.iloc[0]
             return (v,)
 
-    new_keys = df_base.apply(lambda row: tuple_key(row, dst_keys), axis=1)
-
     # --- Добавлено: авто-дополнение отсутствующих колонок и ключей ---
     missing_cols = [col for col in columns if col not in df_ref.columns]
     for col in missing_cols:
@@ -1009,6 +1206,7 @@ def add_fields_to_sheet(df_base, df_ref, src_keys, dst_keys, columns, sheet_name
         df_ref[k] = "-"
 
     if mode == "count":
+        new_keys = df_base.apply(lambda row: tuple_key(row, dst_keys), axis=1)
         group_counts = df_ref.groupby(src_keys).size().to_dict()
         for col in columns:
             count_col_name = f"{ref_sheet_name}=>COUNT_{col}"
@@ -1020,23 +1218,69 @@ def add_fields_to_sheet(df_base, df_ref, src_keys, dst_keys, columns, sheet_name
         ))
         return df_base
 
-    for col in columns:
-        ref_map = dict(zip(
-            df_ref.apply(lambda row: tuple_key(row, src_keys), axis=1),
-            df_ref[col]
+    # Создаем ключи для df_ref
+    df_ref_keys = df_ref.apply(lambda row: tuple_key(row, src_keys), axis=1)
+    
+    if not multiply_rows:
+        # Старая логика: первое найденное значение
+        new_keys = df_base.apply(lambda row: tuple_key(row, dst_keys), axis=1)
+        for col in columns:
+            ref_map = dict(zip(df_ref_keys, df_ref[col]))
+            new_col_name = f"{ref_sheet_name}=>{col}"
+            df_base[new_col_name] = new_keys.map(ref_map).fillna("-")
+            # Специально для REWARD_LINK =>CONTEST_CODE: auto-rename, если создали с дефисом
+            if new_col_name.replace("-", "_").replace(" ", "") == COL_REWARD_LINK_CONTEST_CODE.replace("-", "_").replace(" ", ""):
+                candidates = [c for c in df_base.columns if c.replace("-", "_").replace(" ", "") == COL_REWARD_LINK_CONTEST_CODE.replace("-", "_").replace(" ", "")]
+                for cand in candidates:
+                    if cand != COL_REWARD_LINK_CONTEST_CODE:
+                        df_base = df_base.rename(columns={cand: COL_REWARD_LINK_CONTEST_CODE})
+    else:
+        # Новая логика: размножение строк при множественных совпадениях
+        logging.info(LOG_MESSAGES["multiply_rows_start"].format(sheet=sheet_name, column=columns))
+        result_rows = []
+        old_rows_count = len(df_base)
+        
+        for base_idx, base_row in df_base.iterrows():
+            base_key = tuple_key(base_row, dst_keys)
+            # Находим все строки в df_ref с таким ключом
+            matching_ref_rows = df_ref[df_ref_keys == base_key]
+            
+            if matching_ref_rows.empty:
+                # Нет совпадений - добавляем строку с пустыми значениями
+                new_row = base_row.copy()
+                for col in columns:
+                    new_col_name = f"{ref_sheet_name}=>{col}"
+                    new_row[new_col_name] = "-"
+                result_rows.append(new_row)
+            else:
+                # Есть совпадения - создаем строку для каждого совпадения
+                for ref_idx, ref_row in matching_ref_rows.iterrows():
+                    new_row = base_row.copy()
+                    for col in columns:
+                        new_col_name = f"{ref_sheet_name}=>{col}"
+                        new_row[new_col_name] = ref_row[col]
+                    result_rows.append(new_row)
+        
+        # Создаем новый DataFrame из размноженных строк
+        df_base = pd.DataFrame(result_rows).reset_index(drop=True)
+        new_rows_count = len(df_base)
+        multiply_factor = round(new_rows_count / old_rows_count, 2) if old_rows_count > 0 else 0
+        logging.info(LOG_MESSAGES["multiply_rows_result"].format(
+            sheet=sheet_name, old_rows=old_rows_count, new_rows=new_rows_count, multiply_factor=multiply_factor
         ))
-        new_col_name = f"{ref_sheet_name}=>{col}"
-        df_base[new_col_name] = new_keys.map(ref_map).fillna("-")
-        # Специально для REWARD_LINK =>CONTEST_CODE: auto-rename, если создали с дефисом
-        if new_col_name.replace("-", "_").replace(" ", "") == COL_REWARD_LINK_CONTEST_CODE.replace("-", "_").replace(" ", ""):
-            candidates = [c for c in df_base.columns if c.replace("-", "_").replace(" ", "") == COL_REWARD_LINK_CONTEST_CODE.replace("-", "_").replace(" ", "")]
-            for cand in candidates:
-                if cand != COL_REWARD_LINK_CONTEST_CODE:
-                    df_base = df_base.rename(columns={cand: COL_REWARD_LINK_CONTEST_CODE})
+        
+        # Обработка специального случая для REWARD_LINK
+        for col in columns:
+            new_col_name = f"{ref_sheet_name}=>{col}"
+            if new_col_name.replace("-", "_").replace(" ", "") == COL_REWARD_LINK_CONTEST_CODE.replace("-", "_").replace(" ", ""):
+                candidates = [c for c in df_base.columns if c.replace("-", "_").replace(" ", "") == COL_REWARD_LINK_CONTEST_CODE.replace("-", "_").replace(" ", "")]
+                for cand in candidates:
+                    if cand != COL_REWARD_LINK_CONTEST_CODE:
+                        df_base = df_base.rename(columns={cand: COL_REWARD_LINK_CONTEST_CODE})
 
     logging.info(LOG_MESSAGES["func_end"].format(
         func="add_fields_to_sheet",
-        params=f"(лист: {sheet_name}, поля: {columns}, ключ: {dst_keys}->{src_keys}, mode: {mode})",
+        params=f"(лист: {sheet_name}, поля: {columns}, ключ: {dst_keys}->{src_keys}, mode: {mode}, multiply: {multiply_rows})",
         time=time() - func_start
     ))
     return df_base
@@ -1045,7 +1289,7 @@ def add_fields_to_sheet(df_base, df_ref, src_keys, dst_keys, columns, sheet_name
 def merge_fields_across_sheets(sheets_data, merge_fields):
     """
     Универсально добавляет поля по правилам из merge_fields
-    (source_df -> target_df), поддержка mode value / count.
+    (source_df -> target_df), поддержка mode value / count, multiply_rows.
     sheets_data: dict {sheet_name: (df, params)}
     merge_fields: список блоков с параметрами (см. выше)
     """
@@ -1056,7 +1300,8 @@ def merge_fields_across_sheets(sheets_data, merge_fields):
         dst_keys = rule["dst_key"] if isinstance(rule["dst_key"], list) else [rule["dst_key"]]
         col_names = rule["column"]
         mode = rule.get("mode", "value")
-        params_str = f"(src: {sheet_src} -> dst: {sheet_dst}, поля: {col_names}, ключ: {dst_keys}<-{src_keys}, mode: {mode})"
+        multiply_rows = rule.get("multiply_rows", False)
+        params_str = f"(src: {sheet_src} -> dst: {sheet_dst}, поля: {col_names}, ключ: {dst_keys}<-{src_keys}, mode: {mode}, multiply: {multiply_rows})"
 
         if sheet_src not in sheets_data or sheet_dst not in sheets_data:
             logging.warning(LOG_MESSAGES.get("field_missing", LOG_MESSAGES["func_error"]).format(
@@ -1068,7 +1313,23 @@ def merge_fields_across_sheets(sheets_data, merge_fields):
         df_dst, params_dst = sheets_data[sheet_dst]
 
         logging.info(LOG_MESSAGES["func_start"].format(func="merge_fields_across_sheets", params=params_str))
-        df_dst = add_fields_to_sheet(df_dst, df_src, src_keys, dst_keys, col_names, sheet_dst, sheet_src, mode=mode)
+        df_dst = add_fields_to_sheet(df_dst, df_src, src_keys, dst_keys, col_names, sheet_dst, sheet_src, mode=mode, multiply_rows=multiply_rows)
+        
+        # Сохраняем информацию о ширине колонок для добавленных полей
+        if "added_columns_width" not in params_dst:
+            params_dst["added_columns_width"] = {}
+        
+        for col in col_names:
+            new_col_name = f"{sheet_src}=>{col}"
+            if mode == "count":
+                new_col_name = f"{sheet_src}=>COUNT_{col}"
+            
+            params_dst["added_columns_width"][new_col_name] = {
+                "max_width": rule.get("col_max_width"),
+                "width_mode": rule.get("col_width_mode", "AUTO"),
+                "min_width": rule.get("col_min_width", 8)
+            }
+        
         sheets_data[sheet_dst] = (df_dst, params_dst)
         logging.info(LOG_MESSAGES["func_end"].format(func="merge_fields_across_sheets", params=params_str, time=0))
     return sheets_data
@@ -1101,7 +1362,8 @@ def build_summary_sheet(dfs, params_summary, merge_fields):
             ))
             continue
 
-        summary = add_fields_to_sheet(summary, ref_df, src_keys, dst_keys, col_names, params_summary["sheet"], sheet_src, mode=mode)
+        multiply_rows = field.get("multiply_rows", False)
+        summary = add_fields_to_sheet(summary, ref_df, src_keys, dst_keys, col_names, params_summary["sheet"], sheet_src, mode=mode, multiply_rows=multiply_rows)
         logging.info(LOG_MESSAGES["func_end"].format(func="add_fields_to_sheet", params=params_str, time=0))
 
     n_rows, n_cols = summary.shape
