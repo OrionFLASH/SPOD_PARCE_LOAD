@@ -43,7 +43,7 @@ INPUT_FILES = [
         "min_col_width": 8
     },
     {
-        "file": "REPORT (PROM-KMKKSB) 2025-07-24 v4",
+        "file": "REPORT (PROM-KMKKSB) 2025-07-25 v6",
         "sheet": "REPORT",
         "max_col_width": 25,
         "freeze": "D2",
@@ -75,7 +75,7 @@ INPUT_FILES = [
         "min_col_width": 8
     },
     {
-        "file": "TOURNAMENT-SCHEDULE (PROM) 2025-07-24 v3",
+        "file": "TOURNAMENT-SCHEDULE (PROM) 2025-07-25 v6",
         "sheet": "TOURNAMENT-SCHEDULE",
         "max_col_width": 120,
         "freeze": "B2",
@@ -99,7 +99,7 @@ INPUT_FILES = [
         "min_col_width": 8
     },
     {
-        "file": "employee_PROM_final_5000",
+        "file": "employee_PROM_final_5000_2025-07-26_00-09-03",
         "sheet": "EMPLOYEE",
         "max_col_width": 70,
         "freeze": "F2",
@@ -117,8 +117,8 @@ SUMMARY_SHEET = {
 }
 
 # Логирование: уровень, шаблоны, имена
-LOG_LEVEL = "DEBUG"  # "INFO" или "DEBUG"
-LOG_BASE_NAME = "LOGS2"
+LOG_LEVEL = "INFO"  # "INFO" или "DEBUG"
+LOG_BASE_NAME = "LOGS"
 LOG_MESSAGES = {
     "start":                "=== Старт работы программы: {time} ===",
     "reading_file":         "Загрузка файла: {file_path}",
@@ -157,7 +157,45 @@ LOG_MESSAGES = {
     ,"multiply_rows_result": "[MULTIPLY ROWS] {sheet}: {old_rows} строк -> {new_rows} строк (размножение: {multiply_factor}x)"
     ,"column_width_set":     "[COLUMN WIDTH] {sheet}: колонка '{column}' -> ширина {width} (режим: {mode})"
     ,"dynamic_color_scheme": "[DYNAMIC COLOR] Сгенерирована схема для {sheet}: {columns}"
+    ,"gender_detection_start": "[GENDER DETECTION] Начинаем определение пола для листа {sheet}, строк: {rows}"
+    ,"gender_detection_progress": "[GENDER DETECTION] Обработано {processed} из {total} строк ({percent:.1f}%)"
+    ,"gender_detection_stats": "[GENDER DETECTION] Статистика: М={male}, Ж={female}, неопределено={unknown} (всего: {total})"
+    ,"gender_detection_end": "[GENDER DETECTION] Завершено за {time:.3f}s для листа {sheet}"
+    ,"gender_by_patronymic": "[DEBUG] Строка {row}: пол по отчеству '{patronymic}' -> {gender}"
+    ,"gender_by_name": "[DEBUG] Строка {row}: пол по имени '{name}' -> {gender}"
+    ,"gender_by_surname": "[DEBUG] Строка {row}: пол по фамилии '{surname}' -> {gender}"
+    ,"gender_unknown": "[DEBUG] Строка {row}: пол не определен (отч:'{patronymic}', имя:'{name}', фам:'{surname}')"
 }
+
+# === Константы для определения пола ===
+GENDER_PATTERNS = {
+    # Отчества - мужские окончания
+    'patronymic_male': [
+        'ович', 'евич', 'ич', 'ыч', 'кызы', 'оглы', 'улы', 'уулу', 'заде'
+    ],
+    # Отчества - женские окончания  
+    'patronymic_female': [
+        'овна', 'евна', 'инична', 'ична', 'на', 'кызы'
+    ],
+    # Имена - мужские окончания
+    'name_male': [
+        'ий', 'ей', 'ай', 'ой', 'ый', 'ев', 'ов', 'ин', 'ан', 'он', 'ен', 'ур', 'ич', 'ыч'
+    ],
+    # Имена - женские окончания
+    'name_female': [
+        'а', 'я', 'ина', 'ана', 'ена', 'ия', 'ья', 'на', 'ла', 'ра', 'са', 'та', 'да', 'ка', 'га'
+    ],
+    # Фамилии - мужские окончания
+    'surname_male': [
+        'ов', 'ев', 'ин', 'ын', 'ский', 'цкий', 'ич', 'енко', 'ко', 'як', 'ук', 'юк', 'ич', 'ыч'
+    ],
+    # Фамилии - женские окончания
+    'surname_female': [
+        'ова', 'ева', 'ина', 'ына', 'ская', 'цкая', 'енко', 'ко'
+    ]
+}
+
+GENDER_PROGRESS_STEP = 500  # Шаг для отображения прогресса
 
 # --- Общие префиксы для колонок JSON ---
 PREFIX_CONTEST_FEATURE = "CONTEST_FEATURE"
@@ -205,6 +243,30 @@ MERGE_FIELDS = [
         "col_width_mode": "AUTO",
         "col_min_width": 8
     },
+    {
+        "sheet_src": "ORG_UNIT_V20",
+        "sheet_dst": "EMPLOYEE",
+        "src_key": ["TB_CODE", "GOSB_CODE"],
+        "dst_key": ["TB_CODE", "GOSB_CODE"],
+        "column": ["TORG_UNIT_CODE"],
+        "mode": "value",
+        "multiply_rows": False,
+        "col_max_width": 15,
+        "col_width_mode": "AUTO",
+        "col_min_width": 11
+    },
+    {
+        "sheet_src": "ORG_UNIT_V20",
+        "sheet_dst": "EMPLOYEE",
+        "src_key": ["ORG_UNIT_CODE"],
+        "dst_key": ["ORG_UNIT_CODE"],
+        "column": ["GOSB_SHORT_NAME"],
+        "mode": "value",
+        "multiply_rows": False,
+        "col_max_width": 25,
+        "col_width_mode": "AUTO",
+        "col_min_width": 11
+    },
     # TOURNAMENT-SCHEDULE: добавляем поля из CONTEST-DATA
     {
         "sheet_src": "CONTEST-DATA",
@@ -216,7 +278,55 @@ MERGE_FIELDS = [
         "multiply_rows": False,
         "col_max_width": 70,
         "col_width_mode": "AUTO",
-        "col_min_width": 8
+        "col_min_width": 35
+    },
+    {
+        "sheet_src": "CONTEST-DATA",
+        "sheet_dst": "GROUP",
+        "src_key": ["CONTEST_CODE"],
+        "dst_key": ["CONTEST_CODE"],
+        "column": ["FULL_NAME"],
+        "mode": "value",
+        "multiply_rows": False,
+        "col_max_width": 70,
+        "col_width_mode": "AUTO",
+        "col_min_width": 35
+    },
+    {
+        "sheet_src": "CONTEST-DATA",
+        "sheet_dst": "INDICATOR",
+        "src_key": ["CONTEST_CODE"],
+        "dst_key": ["CONTEST_CODE"],
+        "column": ["FULL_NAME"],
+        "mode": "value",
+        "multiply_rows": False,
+        "col_max_width": 70,
+        "col_width_mode": "AUTO",
+        "col_min_width": 35
+    },
+    {
+        "sheet_src": "CONTEST-DATA",
+        "sheet_dst": "REWARD-LINK",
+        "src_key": ["CONTEST_CODE"],
+        "dst_key": ["CONTEST_CODE"],
+        "column": ["FULL_NAME"],
+        "mode": "value",
+        "multiply_rows": False,
+        "col_max_width": 70,
+        "col_width_mode": "AUTO",
+        "col_min_width": 35
+    },
+    {
+        "sheet_src": "CONTEST-DATA",
+        "sheet_dst": "REWARD",
+        "src_key": ["CONTEST_CODE"],
+        "dst_key": ["REWARD_LINK => CONTEST_CODE"],
+        "column": ["FULL_NAME"],
+        "mode": "value",
+        "multiply_rows": False,
+        "col_max_width": 70,
+        "col_width_mode": "AUTO",
+        "col_min_width": 35
     },
     # TOURNAMENT-SCHEDULE: добавляем CONTEST_DATE из REPORT (значение)
     {
@@ -666,9 +776,10 @@ def get_output_filename():
 
 # Лог-файл с учетом уровня
 def get_log_filename():
-    # Имя лог-файла по дате, например: LOGS_2025-07-23.log
-    suffix = f"_{datetime.now().strftime('%Y-%m-%d_%H-%M')}.log"
-    return os.path.join(DIR_LOGS, LOG_BASE_NAME + suffix)
+    # Имя лог-файла по дате с уровнем логирования, например: LOGS_INFO_2025-07-25.log
+    level_suffix = f"_{LOG_LEVEL}" if LOG_LEVEL else ""
+    date_suffix = f"_{datetime.now().strftime('%Y-%m-%d')}.log"
+    return os.path.join(DIR_LOGS, LOG_BASE_NAME + level_suffix + date_suffix)
 
 
 # === Логирование ===
@@ -1051,7 +1162,7 @@ def apply_color_scheme(ws, sheet_name):
                 if color_conf.get("header_fg"):
                     cell.font = Font(color=color_conf["header_fg"])
                 # Логирование
-                logging.info(LOG_MESSAGES["color_scheme_applied"].format(
+                logging.debug(LOG_MESSAGES["color_scheme_applied"].format(
                     sheet=sheet_name,
                     col=colname,
                     scope="header",
@@ -1378,6 +1489,137 @@ def merge_fields_across_sheets(sheets_data, merge_fields):
         logging.info(LOG_MESSAGES["func_end"].format(func="merge_fields_across_sheets", params=params_str, time=0))
     return sheets_data
 
+
+def detect_gender_by_patterns(value, patterns_male, patterns_female):
+    """Определение пола по окончаниям в тексте"""
+    if pd.isna(value) or not isinstance(value, str):
+        return None
+    
+    value_lower = value.lower().strip()
+    if not value_lower:
+        return None
+    
+    # Проверяем мужские окончания
+    for pattern in patterns_male:
+        if value_lower.endswith(pattern.lower()):
+            return 'М'
+    
+    # Проверяем женские окончания
+    for pattern in patterns_female:
+        if value_lower.endswith(pattern.lower()):
+            return 'Ж'
+    
+    return None
+
+
+def detect_gender_for_person(patronymic, first_name, surname, row_idx):
+    """Определение пола для одного человека по приоритету: отчество -> имя -> фамилия"""
+    
+    # 1. Попытка определить по отчеству
+    gender = detect_gender_by_patterns(
+        patronymic, 
+        GENDER_PATTERNS['patronymic_male'], 
+        GENDER_PATTERNS['patronymic_female']
+    )
+    if gender:
+        logging.debug(LOG_MESSAGES["gender_by_patronymic"].format(
+            row=row_idx, patronymic=patronymic, gender=gender
+        ))
+        return gender
+    
+    # 2. Попытка определить по имени
+    gender = detect_gender_by_patterns(
+        first_name,
+        GENDER_PATTERNS['name_male'],
+        GENDER_PATTERNS['name_female']
+    )
+    if gender:
+        logging.debug(LOG_MESSAGES["gender_by_name"].format(
+            row=row_idx, name=first_name, gender=gender
+        ))
+        return gender
+    
+    # 3. Попытка определить по фамилии
+    gender = detect_gender_by_patterns(
+        surname,
+        GENDER_PATTERNS['surname_male'],
+        GENDER_PATTERNS['surname_female']
+    )
+    if gender:
+        logging.debug(LOG_MESSAGES["gender_by_surname"].format(
+            row=row_idx, surname=surname, gender=gender
+        ))
+        return gender
+    
+    # Не удалось определить
+    logging.debug(LOG_MESSAGES["gender_unknown"].format(
+        row=row_idx, patronymic=patronymic, name=first_name, surname=surname
+    ))
+    return '-'
+
+
+def add_auto_gender_column(df, sheet_name):
+    """Добавление колонки AUTO_GENDER к DataFrame с автоматическим определением пола"""
+    func_start = time()
+    
+    # Проверяем наличие необходимых колонок
+    required_columns = ['MIDDLE_NAME', 'FIRST_NAME', 'SURNAME']
+    missing_columns = [col for col in required_columns if col not in df.columns]
+    
+    if missing_columns:
+        logging.warning(f"[GENDER DETECTION] Пропущены колонки {missing_columns} в листе {sheet_name}")
+        df['AUTO_GENDER'] = '-'
+        return df
+    
+    total_rows = len(df)
+    logging.info(LOG_MESSAGES["gender_detection_start"].format(sheet=sheet_name, rows=total_rows))
+    
+    # Счетчики для статистики
+    male_count = 0
+    female_count = 0
+    unknown_count = 0
+    
+    # Создаем новую колонку
+    auto_gender = []
+    
+    for idx, row in df.iterrows():
+        # Получаем значения полей
+        patronymic = row.get('MIDDLE_NAME', '')
+        first_name = row.get('FIRST_NAME', '')
+        surname = row.get('SURNAME', '')
+        
+        # Определяем пол
+        gender = detect_gender_for_person(patronymic, first_name, surname, idx)
+        auto_gender.append(gender)
+        
+        # Обновляем статистику
+        if gender == 'М':
+            male_count += 1
+        elif gender == 'Ж':
+            female_count += 1
+        else:
+            unknown_count += 1
+        
+        # Прогресс каждые GENDER_PROGRESS_STEP строк
+        if (idx + 1) % GENDER_PROGRESS_STEP == 0:
+            percent = ((idx + 1) / total_rows) * 100
+            logging.info(LOG_MESSAGES["gender_detection_progress"].format(
+                processed=idx + 1, total=total_rows, percent=percent
+            ))
+    
+    # Добавляем колонку к DataFrame
+    df['AUTO_GENDER'] = auto_gender
+    
+    # Логируем финальную статистику
+    func_time = time() - func_start
+    logging.info(LOG_MESSAGES["gender_detection_stats"].format(
+        male=male_count, female=female_count, unknown=unknown_count, total=total_rows
+    ))
+    logging.info(LOG_MESSAGES["gender_detection_end"].format(time=func_time, sheet=sheet_name))
+    
+    return df
+
+
 def build_summary_sheet(dfs, params_summary, merge_fields):
     func_start = time()
     params_log = f"(лист: {params_summary['sheet']})"
@@ -1464,6 +1706,12 @@ def main():
     #     # Всегда пересоздаём колонку с нужным именем (автоочистка битых вариантов)
     #     df_reward = enrich_reward_with_contest_code(df_reward, df_link)
     #     sheets_data["REWARD"] = (df_reward, conf_reward)
+
+    # 2. Добавление колонки AUTO_GENDER для листа EMPLOYEE
+    if "EMPLOYEE" in sheets_data:
+        df_employee, conf_employee = sheets_data["EMPLOYEE"]
+        df_employee = add_auto_gender_column(df_employee, "EMPLOYEE")
+        sheets_data["EMPLOYEE"] = (df_employee, conf_employee)
 
     # 3. Merge fields (только после полного разворота JSON)
     merge_fields_across_sheets(
