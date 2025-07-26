@@ -209,13 +209,13 @@ FIELD_LENGTH_VALIDATIONS = {
         "fields": {
             "TB_FULL_NAME": {"limit": 100, "operator": "<="},
             "GOSB_NAME": {"limit": 100, "operator": "<="},
-            "GOSB_SHORT_NAME": {"limit": 20, "operator": "<="}
+            "GOSB_SHORT_NAME": {"limit": 13, "operator": "<="}
         }
     },
     "EMPLOYEE": {
         "result_column": "FIELD_LENGTH_CHECK", 
         "fields": {
-            "PERSON_NUMBER": {"limit": 20, "operator": "="},
+            "PERSON_NUMBER": {"limit": 19, "operator": "="},
             "PERSON_NUMBER_ADD": {"limit": 20, "operator": "="}
         }
     },
