@@ -209,13 +209,13 @@ FIELD_LENGTH_VALIDATIONS = {
         "fields": {
             "TB_FULL_NAME": {"limit": 100, "operator": "<="},
             "GOSB_NAME": {"limit": 100, "operator": "<="},
-            "GOSB_SHORT_NAME": {"limit": 13, "operator": "<="}
+            "GOSB_SHORT_NAME": {"limit": 20, "operator": "<="}
         }
     },
     "EMPLOYEE": {
         "result_column": "FIELD_LENGTH_CHECK", 
         "fields": {
-            "PERSON_NUMBER": {"limit": 19, "operator": "="},
+            "PERSON_NUMBER": {"limit": 20, "operator": "="},
             "PERSON_NUMBER_ADD": {"limit": 20, "operator": "="}
         }
     },
@@ -431,7 +431,7 @@ MERGE_FIELDS = [
         "col_width_mode": "AUTO",
         "col_min_width": 8
     },
-    # SUMMARY: из GROUP по составному ключу
+    # SUMMARY: из GROUP по составному ключу (для полностью связанных записей)
     {
         "sheet_src": "GROUP",
         "sheet_dst": "SUMMARY",
@@ -445,6 +445,49 @@ MERGE_FIELDS = [
         "mode": "value",
         "multiply_rows": False,
         "col_max_width": 40,
+        "col_width_mode": "AUTO",
+        "col_min_width": 8
+    },
+    # SUMMARY: из GROUP по составному ключу
+    {
+        "sheet_src": "GROUP",
+        "sheet_dst": "SUMMARY",
+        "src_key": ["GROUP_CODE"],  # ИСПРАВЛЕНИЕ: используем только GROUP_CODE как ключ
+        "dst_key": ["GROUP_CODE"],  # ИСПРАВЛЕНИЕ: используем только GROUP_CODE как ключ
+        "column": [
+            "GET_CALC_CRITERION",
+            "ADD_CALC_CRITERION",
+            "ADD_CALC_CRITERION_2"
+        ],
+        "mode": "value",
+        "multiply_rows": False,
+        "col_max_width": 40,
+        "col_width_mode": "AUTO",
+        "col_min_width": 8
+    },
+    # SUMMARY: CONTEST_CODE из GROUP по GROUP_CODE (для частично связанных групп)
+    {
+        "sheet_src": "GROUP",
+        "sheet_dst": "SUMMARY",
+        "src_key": ["GROUP_CODE"],
+        "dst_key": ["GROUP_CODE"],
+        "column": ["CONTEST_CODE"],
+        "mode": "value",
+        "multiply_rows": False,
+        "col_max_width": 30,
+        "col_width_mode": "AUTO",
+        "col_min_width": 8
+    },
+    # SUMMARY: GROUP_VALUE из GROUP по GROUP_CODE (для частично связанных групп)
+    {
+        "sheet_src": "GROUP",
+        "sheet_dst": "SUMMARY",
+        "src_key": ["GROUP_CODE"],
+        "dst_key": ["GROUP_CODE"],
+        "column": ["GROUP_VALUE"],
+        "mode": "value",
+        "multiply_rows": False,
+        "col_max_width": 20,
         "col_width_mode": "AUTO",
         "col_min_width": 8
     },
@@ -499,7 +542,7 @@ MERGE_FIELDS = [
         "col_width_mode": "AUTO",
         "col_min_width": 8
     },
-    # SUMMARY: сколько в REPORT строк по паре TOURNAMENT_CODE + CONTEST_CODE
+    # SUMMARY: сколько в REPORT строк по паре TOURNAMENT_CODE + CONTEST_CODE (для полностью связанных записей)
     {
         "sheet_src": "REPORT",
         "sheet_dst": "SUMMARY",
@@ -514,11 +557,11 @@ MERGE_FIELDS = [
         "col_width_mode": 15,
         "col_min_width": 8
     },
-    # SUMMARY: все нужные поля из REWARD по составному ключу
+    # SUMMARY: все нужные поля из REWARD по составному ключу (для полностью связанных записей)
     {
         "sheet_src": "REWARD",
         "sheet_dst": "SUMMARY",
-        "src_key": [COL_REWARD_LINK_CONTEST_CODE, "REWARD_CODE"],  # ПРОБЕЛ после =>
+        "src_key": [COL_REWARD_LINK_CONTEST_CODE, "REWARD_CODE"],
         "dst_key": ["CONTEST_CODE", "REWARD_CODE"],
         "column": [
             f"{PREFIX_ADD_DATA} => rewardAgainGlobal",
@@ -532,7 +575,73 @@ MERGE_FIELDS = [
         "col_max_width": 50,
         "col_width_mode": "AUTO",
         "col_min_width": 8
-    }
+    },
+    # SUMMARY: поля из REWARD по REWARD_CODE (для частично связанных и не связанных наград)
+    {
+        "sheet_src": "REWARD",
+        "sheet_dst": "SUMMARY",
+        "src_key": ["REWARD_CODE"],
+        "dst_key": ["REWARD_CODE"],
+        "column": [
+            f"{PREFIX_ADD_DATA} => rewardAgainGlobal",
+            f"{PREFIX_ADD_DATA} => rewardAgainTournament",
+            f"{PREFIX_ADD_DATA} => outstanding",
+            f"{PREFIX_ADD_DATA} => teamNews",
+            f"{PREFIX_ADD_DATA} => singleNews"
+        ],
+        "mode": "value",
+        "multiply_rows": False,
+        "col_max_width": 50,
+        "col_width_mode": "AUTO",
+        "col_min_width": 8
+    },
+    # SUMMARY: CONTEST_CODE из REWARD-LINK по REWARD_CODE (для связи наград с конкурсами)
+    {
+        "sheet_src": "REWARD-LINK",
+        "sheet_dst": "SUMMARY",
+        "src_key": ["REWARD_CODE"],
+        "dst_key": ["REWARD_CODE"],
+        "column": ["CONTEST_CODE"],
+        "mode": "value",
+        "multiply_rows": False,
+        "col_max_width": 30,
+        "col_width_mode": "AUTO",
+        "col_min_width": 8
+    },
+    # SUMMARY: CONTEST_DATE из REPORT по CONTEST_CODE (для частично связанных записей)
+    {
+        "sheet_src": "REPORT",
+        "sheet_dst": "SUMMARY",
+        "src_key": ["CONTEST_CODE"],
+        "dst_key": ["CONTEST_CODE"],
+        "column": [
+            "CONTEST_DATE"
+        ],
+        "mode": "value",
+        "multiply_rows": False,
+        "col_max_width": 25,
+        "col_width_mode": "AUTO",
+        "col_min_width": 8
+    },
+    # SUMMARY: поля из TOURNAMENT-SCHEDULE по CONTEST_CODE (для частично связанных записей)
+    {
+        "sheet_src": "TOURNAMENT-SCHEDULE",
+        "sheet_dst": "SUMMARY",
+        "src_key": ["CONTEST_CODE"],
+        "dst_key": ["CONTEST_CODE"],
+        "column": [
+            "START_DT",
+            "END_DT",
+            "RESULT_DT",
+            "TOURNAMENT_STATUS",
+            "TARGET_TYPE"
+        ],
+        "mode": "value",
+        "multiply_rows": False,
+        "col_max_width": 30,
+        "col_width_mode": "AUTO",
+        "col_min_width": 8
+    },
 ]
 
 # Пример правила с размножением строк (закомментировано для демонстрации):
@@ -1450,12 +1559,14 @@ def collect_summary_keys(dfs):
     """
     Собирает все реально существующие сочетания ключей,
     включая осиротевшие коды и сочетания с GROUP_VALUE.
+    Теперь учитывает ВСЕ коды из всех таблиц, даже если связи нет.
     """
     all_rows = []
 
     rewards = dfs.get("REWARD-LINK", pd.DataFrame())
     tournaments = dfs.get("TOURNAMENT-SCHEDULE", pd.DataFrame())
     groups = dfs.get("GROUP", pd.DataFrame())
+    reward_data = dfs.get("REWARD", pd.DataFrame())  # Добавляем доступ к таблице REWARD
 
     all_contest_codes = set()
     all_tournament_codes = set()
@@ -1463,6 +1574,7 @@ def collect_summary_keys(dfs):
     all_group_codes = set()
     all_group_values = set()
 
+    # Собираем ВСЕ коды из всех таблиц
     if not rewards.empty:
         all_contest_codes.update(rewards["CONTEST_CODE"].dropna())
         all_reward_codes.update(rewards["REWARD_CODE"].dropna())
@@ -1473,6 +1585,10 @@ def collect_summary_keys(dfs):
         all_contest_codes.update(groups["CONTEST_CODE"].dropna())
         all_group_codes.update(groups["GROUP_CODE"].dropna())
         all_group_values.update(groups["GROUP_VALUE"].dropna())
+    
+    # КРИТИЧНО: Добавляем ВСЕ REWARD_CODE из таблицы REWARD, даже если их нет в REWARD-LINK
+    if not reward_data.empty:
+        all_reward_codes.update(reward_data["REWARD_CODE"].dropna())
 
     # 1. Для каждого CONTEST_CODE
     for code in all_contest_codes:
@@ -1500,8 +1616,8 @@ def collect_summary_keys(dfs):
             code = code[0] if len(code) else "-"
             rewards_ = rewards[rewards["CONTEST_CODE"] == code]["REWARD_CODE"].dropna().unique() if not rewards.empty else ["-"]
             groups_df = groups[groups["CONTEST_CODE"] == code] if not groups.empty else pd.DataFrame()
-            groups_ = groups_df["GROUP_CODE"].dropna().unique() if not groups_df.empty else ["-"]
-            group_values_ = groups_df["GROUP_VALUE"].dropna().unique() if not groups_df.empty else ["-"]
+            groups_ = groups_df["GROUP_CODE"].dropna().unique() if not groups_df.empty else []
+            group_values_ = groups_df["GROUP_VALUE"].dropna().unique() if not groups_df.empty else []
             rewards_ = rewards_ if len(rewards_) else ["-"]
             groups_ = groups_ if len(groups_) else ["-"]
             group_values_ = group_values_ if len(group_values_) else ["-"]
@@ -1511,30 +1627,48 @@ def collect_summary_keys(dfs):
                         all_rows.append((str(code), str(t_code), str(r), str(g), str(gv)))
 
     # 3. Для каждого REWARD_CODE (даже если нет CONTEST_CODE)
-    if not rewards.empty:
-        for r_code in rewards["REWARD_CODE"].dropna().unique():
+    # ИСПРАВЛЕНИЕ: Теперь обрабатываем ВСЕ REWARD_CODE, включая осиротевшие
+    for r_code in all_reward_codes:
+        # Ищем CONTEST_CODE для этого REWARD_CODE
+        if not rewards.empty:
             code = rewards[rewards["REWARD_CODE"] == r_code]["CONTEST_CODE"].dropna().unique()
             code = code[0] if len(code) else "-"
-            tourns = tournaments[tournaments["CONTEST_CODE"] == code]["TOURNAMENT_CODE"].dropna().unique() if not tournaments.empty else ["-"]
-            groups_df = groups[groups["CONTEST_CODE"] == code] if not groups.empty else pd.DataFrame()
-            groups_ = groups_df["GROUP_CODE"].dropna().unique() if not groups_df.empty else ["-"]
-            group_values_ = groups_df["GROUP_VALUE"].dropna().unique() if not groups_df.empty else ["-"]
-            tourns = tourns if len(tourns) else ["-"]
-            groups_ = groups_ if len(groups_) else ["-"]
-            group_values_ = group_values_ if len(group_values_) else ["-"]
-            for t in tourns:
-                for g in groups_:
-                    for gv in group_values_:
-                        all_rows.append((str(code), str(t), str(r_code), str(g), str(gv)))
+        else:
+            code = "-"
+        
+        # Ищем связанные TOURNAMENT_CODE
+        if code != "-" and not tournaments.empty:
+            tourns = tournaments[tournaments["CONTEST_CODE"] == code]["TOURNAMENT_CODE"].dropna().unique()
+        else:
+            tourns = []
+        
+        # Ищем связанные GROUP_CODE и GROUP_VALUE
+        if code != "-" and not groups.empty:
+            groups_df = groups[groups["CONTEST_CODE"] == code]
+            groups_ = groups_df["GROUP_CODE"].dropna().unique() if not groups_df.empty else []
+            group_values_ = groups_df["GROUP_VALUE"].dropna().unique() if not groups_df.empty else []
+        else:
+            groups_ = []
+            group_values_ = []
+        
+        # Если нет связей, создаем строки с "-" для остальных полей
+        tourns = tourns if len(tourns) else ["-"]
+        groups_ = groups_ if len(groups_) else ["-"]
+        group_values_ = group_values_ if len(group_values_) else ["-"]
+        
+        for t in tourns:
+            for g in groups_:
+                for gv in group_values_:
+                    all_rows.append((str(code), str(t), str(r_code), str(g), str(gv)))
 
     # 4. Для каждого GROUP_CODE (даже если нет CONTEST_CODE)
     if not groups.empty:
         for g_code in groups["GROUP_CODE"].dropna().unique():
             code = groups[groups["GROUP_CODE"] == g_code]["CONTEST_CODE"].dropna().unique()
             code = code[0] if len(code) else "-"
-            tourns = tournaments[tournaments["CONTEST_CODE"] == code]["TOURNAMENT_CODE"].dropna().unique() if not tournaments.empty else ["-"]
-            rewards_ = rewards[rewards["CONTEST_CODE"] == code]["REWARD_CODE"].dropna().unique() if not rewards.empty else ["-"]
-            group_values_ = groups[groups["GROUP_CODE"] == g_code]["GROUP_VALUE"].dropna().unique() if not groups.empty else ["-"]
+            tourns = tournaments[tournaments["CONTEST_CODE"] == code]["TOURNAMENT_CODE"].dropna().unique() if not tournaments.empty else []
+            rewards_ = rewards[rewards["CONTEST_CODE"] == code]["REWARD_CODE"].dropna().unique() if not rewards.empty else []
+            group_values_ = groups[groups["GROUP_CODE"] == g_code]["GROUP_VALUE"].dropna().unique() if not groups.empty else []
             tourns = tourns if len(tourns) else ["-"]
             rewards_ = rewards_ if len(rewards_) else ["-"]
             group_values_ = group_values_ if len(group_values_) else ["-"]
