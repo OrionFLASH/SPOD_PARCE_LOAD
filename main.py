@@ -19,15 +19,15 @@ DIR_LOGS = r'/Users/orionflash/Desktop/MyProject/SPOD_PROM/LOGS'
 # Соответствие: Имя листа, максимальная ширина колонки, закрепление, режим растягивания колонок
 INPUT_FILES = [
     {
-        "file": "CONTEST-DATA (PROM) 2025-07-24 v4",
+        "file": "CONTEST-DATA (PROM) 2025-08-12 v1",
         "sheet": "CONTEST-DATA",
         "max_col_width": 120,
         "freeze": "C2",
         "col_width_mode": "AUTO",  # "AUTO", число, None - режим растягивания колонок
-        "min_col_width": 8         # минимальная ширина колонки
+        "min_col_width": 8  # минимальная ширина колонки
     },
     {
-        "file": "GROUP (PROM) 2025-07-14 v0",
+        "file": "GROUP (PROM) 2025-08-04",
         "sheet": "GROUP",
         "max_col_width": 20,
         "freeze": "C2",
@@ -35,7 +35,7 @@ INPUT_FILES = [
         "min_col_width": 8
     },
     {
-        "file": "INDICATOR (PROM) 2025-07-14 v0",
+        "file": "INDICATOR (PROM) 2025-08-04",
         "sheet": "INDICATOR",
         "max_col_width": 20,
         "freeze": "B2",
@@ -43,7 +43,7 @@ INPUT_FILES = [
         "min_col_width": 8
     },
     {
-        "file": "REPORT (PROM-KMKKSB) 2025-07-25 v6",
+        "file": "REPORT (PROM-KMKKSB) 2025-08-12 v0",
         "sheet": "REPORT",
         "max_col_width": 25,
         "freeze": "D2",
@@ -51,15 +51,15 @@ INPUT_FILES = [
         "min_col_width": 8
     },
     {
-        "file": "REWARD (PROM) 2025-07-24 v1",
+        "file": "REWARD (PROM) 2025-08-14 v0",
         "sheet": "REWARD",
-        "max_col_width": 140,
+        "max_col_width": 250,
         "freeze": "D2",
         "col_width_mode": "AUTO",
         "min_col_width": 8
     },
     {
-        "file": "REWARD-LINK (PROM) 2025-07-14 v0",
+        "file": "REWARD-LINK (PROM) 2025-08-07",
         "sheet": "REWARD-LINK",
         "max_col_width": 30,
         "freeze": "A2",
@@ -75,7 +75,7 @@ INPUT_FILES = [
         "min_col_width": 8
     },
     {
-        "file": "TOURNAMENT-SCHEDULE (PROM) 2025-07-25 v6",
+        "file": "TOURNAMENT-SCHEDULE (PROM) 2025-08-12 v0",
         "sheet": "TOURNAMENT-SCHEDULE",
         "max_col_width": 120,
         "freeze": "B2",
@@ -120,56 +120,58 @@ SUMMARY_SHEET = {
 LOG_LEVEL = "INFO"  # "INFO" или "DEBUG"
 LOG_BASE_NAME = "LOGS"
 LOG_MESSAGES = {
-    "start":                "=== Старт работы программы: {time} ===",
-    "reading_file":         "Загрузка файла: {file_path}",
-    "read_ok":              "Файл успешно загружен: {file_path}, строк: {rows}, колонок: {cols}",
-    "read_fail":            "Ошибка загрузки файла: {file_path}. {error}",
-    "sheet_written":        "Лист Excel сформирован: {sheet} (строк: {rows}, колонок: {cols})",
-    "finish":               "=== Завершение работы. Обработано файлов: {files}, строк всего: {rows_total}. Время выполнения: {time_elapsed} ===",
-    "summary":              "Summary: {summary}",
-    "func_start":           "[START] {func} {params}",
-    "func_end":             "[END] {func} {params} (время: {time:.3f}s)",
-    "func_error":           "[ERROR] {func} {params} — {error}",
-    "json_flatten_start":   "Разворачивание колонки {column} (строк: {rows})",
-    "json_flatten_end":     "Развёрнуто {n_cols} колонок из {n_keys} ключей, ошибок JSON: {n_errors}, строк: {rows}, время: {time:.3f}s",
-    "json_flatten_error":   "Ошибка разбора JSON (строка {row}): {error}",
-    "debug_columns":        "[DEBUG] {sheet}: колонки после разворачивания: {columns}",
-    "debug_head":           "[DEBUG] {sheet}: первые строки после разворачивания:\n{head}",
-    "field_joined":         "Колонка {column} присоединена из {src_sheet} по ключу {dst_key} -> {src_key}",
-    "field_missing":        "Колонка {column} не добавлена: нет листа {src_sheet} или ключей {src_key}",
-    "fields_summary":       "Итоговая структура: {rows} строк, {cols} колонок",
-    "duplicates_start":     "[START] Проверка дублей: {sheet}, ключ: {keys}",
-    "duplicates_found":     "[INFO] Дублей найдено: {count} на листе {sheet} по ключу {keys}",
-    "duplicates_error":     "[ERROR] Ошибка при поиске дублей: {sheet}, ключ: {keys}: {error}",
-    "duplicates_end":       "[END] Проверка дублей: {sheet}, время: {time:.3f}s",
+    "start": "=== Старт работы программы: {time} ===",
+    "reading_file": "Загрузка файла: {file_path}",
+    "read_ok": "Файл успешно загружен: {file_path}, строк: {rows}, колонок: {cols}",
+    "read_fail": "Ошибка загрузки файла: {file_path}. {error}",
+    "sheet_written": "Лист Excel сформирован: {sheet} (строк: {rows}, колонок: {cols})",
+    "finish": "=== Завершение работы. Обработано файлов: {files}, строк всего: {rows_total}. Время выполнения: {time_elapsed} ===",
+    "summary": "Summary: {summary}",
+    "func_start": "[START] {func} {params}",
+    "func_end": "[END] {func} {params} (время: {time:.3f}s)",
+    "func_error": "[ERROR] {func} {params} — {error}",
+    "json_flatten_start": "Разворачивание колонки {column} (строк: {rows})",
+    "json_flatten_end": "Развёрнуто {n_cols} колонок из {n_keys} ключей, ошибок JSON: {n_errors}, строк: {rows}, время: {time:.3f}s",
+    "json_flatten_error": "Ошибка разбора JSON (строка {row}): {error}",
+    "debug_columns": "[DEBUG] {sheet}: колонки после разворачивания: {columns}",
+    "debug_head": "[DEBUG] {sheet}: первые строки после разворачивания:\n{head}",
+    "field_joined": "Колонка {column} присоединена из {src_sheet} по ключу {dst_key} -> {src_key}",
+    "field_missing": "Колонка {column} не добавлена: нет листа {src_sheet} или ключей {src_key}",
+    "fields_summary": "Итоговая структура: {rows} строк, {cols} колонок",
+    "duplicates_start": "[START] Проверка дублей: {sheet}, ключ: {keys}",
+    "duplicates_found": "[INFO] Дублей найдено: {count} на листе {sheet} по ключу {keys}",
+    "duplicates_error": "[ERROR] Ошибка при поиске дублей: {sheet}, ключ: {keys}: {error}",
+    "duplicates_end": "[END] Проверка дублей: {sheet}, время: {time:.3f}s",
     "color_scheme_applied": "[INFO] Цветовая схема применена: лист {sheet}, колонка {col}, стиль {scope}, цвет {color}"
-    ,"json_flatten_summary": "[INFO] {column} → новых колонок: {count}"
-    ,"json_flatten_keys":    "[INFO] Все новые колонки: {keys}"
-    ,"csv_sample":           "[DEBUG] CSV {file} поле {column}: {sample}"
-    ,"excel_path":           "Excel file: {path}"
-    ,"log_path":             "Log file: {path}"
-    ,"json_flatten_done":    "[JSON FLATTEN] {sheet}: поле '{column}' развернуто с префиксом '{prefix}'"
-    ,"json_flatten_missing": "[JSON FLATTEN] {sheet}: поле '{column}' не найдено в колонках!"
-    ,"missing_column":       "[add_fields_to_sheet] Колонка {column} не найдена в {sheet}, создаём пустую."
-    ,"missing_key":          "[add_fields_to_sheet] Ключевая колонка {key} не найдена в {sheet}, создаём пустую."
-    ,"safe_json_error":      "[safe_json_loads] Ошибка: {error} | Исходная строка: {line}"
-    ,"multiply_rows_start":  "[MULTIPLY ROWS] {sheet}: начинаем размножение строк для поля {column}"
-    ,"multiply_rows_result": "[MULTIPLY ROWS] {sheet}: {old_rows} строк -> {new_rows} строк (размножение: {multiply_factor}x)"
-    ,"column_width_set":     "[COLUMN WIDTH] {sheet}: колонка '{column}' -> ширина {width} (режим: {mode})"
-    ,"dynamic_color_scheme": "[DYNAMIC COLOR] Сгенерирована схема для {sheet}: {columns}"
-    ,"gender_detection_start": "[GENDER DETECTION] Начинаем определение пола для листа {sheet}, строк: {rows}"
-    ,"gender_detection_progress": "[GENDER DETECTION] Обработано {processed} из {total} строк ({percent:.1f}%)"
-    ,"gender_detection_stats": "[GENDER DETECTION] Статистика: М={male}, Ж={female}, неопределено={unknown} (всего: {total})"
-    ,"gender_detection_end": "[GENDER DETECTION] Завершено за {time:.3f}s для листа {sheet}"
-    ,"gender_by_patronymic": "[DEBUG] Строка {row}: пол по отчеству '{patronymic}' -> {gender}"
-    ,"gender_by_name": "[DEBUG] Строка {row}: пол по имени '{name}' -> {gender}"
-    ,"gender_by_surname": "[DEBUG] Строка {row}: пол по фамилии '{surname}' -> {gender}"
-    ,"gender_unknown": "[DEBUG] Строка {row}: пол не определен (отч:'{patronymic}', имя:'{name}', фам:'{surname}')"
-    ,"field_length_start": "[FIELD LENGTH] Проверка длины полей для листа {sheet}, строк: {rows}"
-    ,"field_length_progress": "[FIELD LENGTH] Обработано {processed} из {total} строк ({percent:.1f}%)"
-    ,"field_length_stats": "[FIELD LENGTH] Статистика: корректных={correct}, с ошибками={errors} (всего: {total})"
-    ,"field_length_end": "[FIELD LENGTH] Завершено за {time:.3f}s для листа {sheet}"
-    ,"field_length_violation": "[DEBUG] Строка {row}: поле '{field}' = {length} {operator} {limit} (нарушение)"
+    , "json_flatten_summary": "[INFO] {column} → новых колонок: {count}"
+    , "json_flatten_keys": "[INFO] Все новые колонки: {keys}"
+    , "csv_sample": "[DEBUG] CSV {file} поле {column}: {sample}"
+    , "excel_path": "Excel file: {path}"
+    , "log_path": "Log file: {path}"
+    , "json_flatten_done": "[JSON FLATTEN] {sheet}: поле '{column}' развернуто с префиксом '{prefix}'"
+    , "json_flatten_missing": "[JSON FLATTEN] {sheet}: поле '{column}' не найдено в колонках!"
+    , "missing_column": "[add_fields_to_sheet] Колонка {column} не найдена в {sheet}, создаём пустую."
+    , "missing_key": "[add_fields_to_sheet] Ключевая колонка {key} не найдена в {sheet}, создаём пустую."
+    , "safe_json_error": "[safe_json_loads] Ошибка: {error} | Исходная строка: {line}"
+    , "multiply_rows_start": "[MULTIPLY ROWS] {sheet}: начинаем размножение строк для поля {column}"
+    ,
+    "multiply_rows_result": "[MULTIPLY ROWS] {sheet}: {old_rows} строк -> {new_rows} строк (размножение: {multiply_factor}x)"
+    , "column_width_set": "[COLUMN WIDTH] {sheet}: колонка '{column}' -> ширина {width} (режим: {mode})"
+    , "dynamic_color_scheme": "[DYNAMIC COLOR] Сгенерирована схема для {sheet}: {columns}"
+    , "gender_detection_start": "[GENDER DETECTION] Начинаем определение пола для листа {sheet}, строк: {rows}"
+    , "gender_detection_progress": "[GENDER DETECTION] Обработано {processed} из {total} строк ({percent:.1f}%)"
+    ,
+    "gender_detection_stats": "[GENDER DETECTION] Статистика: М={male}, Ж={female}, неопределено={unknown} (всего: {total})"
+    , "gender_detection_end": "[GENDER DETECTION] Завершено за {time:.3f}s для листа {sheet}"
+    , "gender_by_patronymic": "[DEBUG] Строка {row}: пол по отчеству '{patronymic}' -> {gender}"
+    , "gender_by_name": "[DEBUG] Строка {row}: пол по имени '{name}' -> {gender}"
+    , "gender_by_surname": "[DEBUG] Строка {row}: пол по фамилии '{surname}' -> {gender}"
+    , "gender_unknown": "[DEBUG] Строка {row}: пол не определен (отч:'{patronymic}', имя:'{name}', фам:'{surname}')"
+    , "field_length_start": "[FIELD LENGTH] Проверка длины полей для листа {sheet}, строк: {rows}"
+    , "field_length_progress": "[FIELD LENGTH] Обработано {processed} из {total} строк ({percent:.1f}%)"
+    , "field_length_stats": "[FIELD LENGTH] Статистика: корректных={correct}, с ошибками={errors} (всего: {total})"
+    , "field_length_end": "[FIELD LENGTH] Завершено за {time:.3f}s для листа {sheet}"
+    , "field_length_violation": "[DEBUG] Строка {row}: поле '{field}' = {length} {operator} {limit} (нарушение)"
 }
 
 # === Константы для определения пола ===
@@ -178,7 +180,7 @@ GENDER_PATTERNS = {
     'patronymic_male': [
         'ович', 'евич', 'ич', 'ыч', 'оглы', 'улы', 'уулу', 'заде'
     ],
-    # Отчества - женские окончания  
+    # Отчества - женские окончания
     'patronymic_female': [
         'овна', 'евна', 'инична', 'ична', 'на', 'кызы'
     ],
@@ -213,7 +215,7 @@ FIELD_LENGTH_VALIDATIONS = {
         }
     },
     "EMPLOYEE": {
-        "result_column": "FIELD_LENGTH_CHECK", 
+        "result_column": "FIELD_LENGTH_CHECK",
         "fields": {
             "PERSON_NUMBER": {"limit": 20, "operator": "="},
             "PERSON_NUMBER_ADD": {"limit": 20, "operator": "="}
@@ -242,10 +244,10 @@ MERGE_FIELDS = [
         "dst_key": ["CONTEST_CODE"],
         "column": ["CONTEST_TYPE", "FULL_NAME", "BUSINESS_STATUS", "BUSINESS_BLOCK"],
         "mode": "value",
-        "multiply_rows": False,           # Новый параметр: размножать ли строки при множественных совпадениях
-        "col_max_width": 80,             # Максимальная ширина добавляемых колонок
-        "col_width_mode": "AUTO",        # Режим растягивания для добавляемых колонок
-        "col_min_width": 8               # Минимальная ширина для добавляемых колонок
+        "multiply_rows": False,  # Новый параметр: размножать ли строки при множественных совпадениях
+        "col_max_width": 80,  # Максимальная ширина добавляемых колонок
+        "col_width_mode": "AUTO",  # Режим растягивания для добавляемых колонок
+        "col_min_width": 8  # Минимальная ширина для добавляемых колонок
     },
     # REPORT: добавляем даты и статус из TOURNAMENT-SCHEDULE
     {
@@ -416,6 +418,8 @@ MERGE_FIELDS = [
         "dst_key": ["CONTEST_CODE"],
         "column": [
             "FULL_NAME",
+            "CONTEST_DESCRIPTION",
+            f"{PREFIX_CONTEST_FEATURE} => feature",
             f"{PREFIX_CONTEST_FEATURE} => momentRewarding",
             "FACTOR_MATCH",
             "PLAN_MOD_VALUE",
@@ -564,6 +568,11 @@ MERGE_FIELDS = [
         "src_key": [COL_REWARD_LINK_CONTEST_CODE, "REWARD_CODE"],
         "dst_key": ["CONTEST_CODE", "REWARD_CODE"],
         "column": [
+            "FULL_NAME",
+            "REWARD_DESCRIPTION",
+            f"{PREFIX_ADD_DATA} => feature",
+            f"{PREFIX_ADD_DATA} => itemFeature",
+            f"{PREFIX_ADD_DATA} => rewardRule",
             f"{PREFIX_ADD_DATA} => rewardAgainGlobal",
             f"{PREFIX_ADD_DATA} => rewardAgainTournament",
             f"{PREFIX_ADD_DATA} => outstanding",
@@ -583,6 +592,11 @@ MERGE_FIELDS = [
         "src_key": ["REWARD_CODE"],
         "dst_key": ["REWARD_CODE"],
         "column": [
+            "FULL_NAME",
+            "REWARD_DESCRIPTION",
+            f"{PREFIX_ADD_DATA} => feature",
+            f"{PREFIX_ADD_DATA} => itemFeature",
+            f"{PREFIX_ADD_DATA} => rewardRule",
             f"{PREFIX_ADD_DATA} => rewardAgainGlobal",
             f"{PREFIX_ADD_DATA} => rewardAgainTournament",
             f"{PREFIX_ADD_DATA} => outstanding",
@@ -647,7 +661,7 @@ MERGE_FIELDS = [
 # Пример правила с размножением строк (закомментировано для демонстрации):
 # {
 #     "sheet_src": "REWARD-LINK",
-#     "sheet_dst": "SUMMARY", 
+#     "sheet_dst": "SUMMARY",
 #     "src_key": ["CONTEST_CODE"],
 #     "dst_key": ["CONTEST_CODE"],
 #     "column": ["REWARD_CODE"],
@@ -659,11 +673,11 @@ MERGE_FIELDS = [
 # },
 
 SUMMARY_KEY_DEFS = [
-    {"sheet": "CONTEST-DATA",    "cols": ["CONTEST_CODE"]},
+    {"sheet": "CONTEST-DATA", "cols": ["CONTEST_CODE"]},
     {"sheet": "TOURNAMENT-SCHEDULE", "cols": ["TOURNAMENT_CODE", "CONTEST_CODE"]},
-    {"sheet": "REWARD-LINK",     "cols": ["REWARD_CODE", "CONTEST_CODE"]},
-    {"sheet": "GROUP",           "cols": ["GROUP_CODE", "CONTEST_CODE", "GROUP_VALUE"]},
-    {"sheet": "REWARD",          "cols": ["REWARD_CODE"]},
+    {"sheet": "REWARD-LINK", "cols": ["REWARD_CODE", "CONTEST_CODE"]},
+    {"sheet": "GROUP", "cols": ["GROUP_CODE", "CONTEST_CODE", "GROUP_VALUE"]},
+    {"sheet": "REWARD", "cols": ["REWARD_CODE"]},
 ]
 
 # Построить упорядоченный список всех уникальных ключей
@@ -672,7 +686,6 @@ for entry in SUMMARY_KEY_DEFS:
     for col in entry["cols"]:
         if col not in SUMMARY_KEY_COLUMNS:
             SUMMARY_KEY_COLUMNS.append(col)
-
 
 COLOR_SCHEME = [
     # --- ИСХОДНЫЕ ДАННЫЕ (загружаются из CSV) — пастельный голубой ---
@@ -683,7 +696,8 @@ COLOR_SCHEME = [
         "column_bg": None,
         "column_fg": None,
         "style_scope": "header",
-        "sheets": ["CONTEST-DATA", "GROUP", "INDICATOR", "REPORT", "REWARD", "REWARD-LINK", "TOURNAMENT-SCHEDULE", "ORG_UNIT_V20", "USER_ROLE", "USER_ROLE SB", "EMPLOYEE"],
+        "sheets": ["CONTEST-DATA", "GROUP", "INDICATOR", "REPORT", "REWARD", "REWARD-LINK", "TOURNAMENT-SCHEDULE",
+                   "ORG_UNIT_V20", "USER_ROLE", "USER_ROLE SB", "EMPLOYEE"],
         "columns": [],  # все колонки (если не указано — все)
         # Назначение: базовые поля из CSV файлов
     },
@@ -712,20 +726,32 @@ COLOR_SCHEME = [
         "sheets": ["CONTEST-DATA", "REWARD"],
         "columns": [
             # CONTEST_FEATURE развёрнутые поля
-            "CONTEST_FEATURE => momentRewarding", "CONTEST_FEATURE => tournamentStartMailing", "CONTEST_FEATURE => tournamentEndMailing",
-            "CONTEST_FEATURE => tournamentRewardingMailing", "CONTEST_FEATURE => tournamentLikeMailing", "CONTEST_FEATURE => capacity",
-            "CONTEST_FEATURE => tournamentListMailing", "CONTEST_FEATURE => vid", "CONTEST_FEATURE => tbVisible", "CONTEST_FEATURE => tbHidden",
-            "CONTEST_FEATURE => persomanNumberVisible", "CONTEST_FEATURE => typeRewarding", "CONTEST_FEATURE => masking",
-            "CONTEST_FEATURE => minNumber", "CONTEST_FEATURE => businessBlock", "CONTEST_FEATURE => accuracy", "CONTEST_FEATURE => gosbHidden",
-            "CONTEST_FEATURE => preferences", "CONTEST_FEATURE => persomanNumberHidden", "CONTEST_FEATURE => gosbVisible", "CONTEST_FEATURE => feature",
+            "CONTEST_FEATURE => momentRewarding", "CONTEST_FEATURE => tournamentStartMailing",
+            "CONTEST_FEATURE => tournamentEndMailing",
+            "CONTEST_FEATURE => tournamentRewardingMailing", "CONTEST_FEATURE => tournamentLikeMailing",
+            "CONTEST_FEATURE => capacity",
+            "CONTEST_FEATURE => tournamentListMailing", "CONTEST_FEATURE => vid", "CONTEST_FEATURE => tbVisible",
+            "CONTEST_FEATURE => tbHidden",
+            "CONTEST_FEATURE => persomanNumberVisible", "CONTEST_FEATURE => typeRewarding",
+            "CONTEST_FEATURE => masking",
+            "CONTEST_FEATURE => minNumber", "CONTEST_FEATURE => businessBlock", "CONTEST_FEATURE => accuracy",
+            "CONTEST_FEATURE => gosbHidden",
+            "CONTEST_FEATURE => preferences", "CONTEST_FEATURE => persomanNumberHidden",
+            "CONTEST_FEATURE => gosbVisible", "CONTEST_FEATURE => feature",
             # ADD_DATA развёрнутые поля первого уровня
-            "ADD_DATA => refreshOldNews", "ADD_DATA => fileName", "ADD_DATA => rewardRule", "ADD_DATA => bookingRequired", "ADD_DATA => outstanding",
-            "ADD_DATA => teamNews", "ADD_DATA => singleNews", "ADD_DATA => rewardAgainGlobal", "ADD_DATA => rewardAgainTournament",
+            "ADD_DATA => refreshOldNews", "ADD_DATA => fileName", "ADD_DATA => rewardRule",
+            "ADD_DATA => bookingRequired", "ADD_DATA => outstanding",
+            "ADD_DATA => teamNews", "ADD_DATA => singleNews", "ADD_DATA => rewardAgainGlobal",
+            "ADD_DATA => rewardAgainTournament",
             "ADD_DATA => isGrouping", "ADD_DATA => tagEndDT", "ADD_DATA => itemAmount", "ADD_DATA => isGroupingTitle",
-            "ADD_DATA => itemLimitCount", "ADD_DATA => recommendationLevel", "ADD_DATA => isGroupingName", "ADD_DATA => ignoreConditions",
-            "ADD_DATA => masterBadge", "ADD_DATA => priority", "ADD_DATA => nftFlg", "ADD_DATA => itemMinShow", "ADD_DATA => itemFeature",
-            "ADD_DATA => itemLimitPeriod", "ADD_DATA => businessBlock", "ADD_DATA => parentRewardCode", "ADD_DATA => deliveryRequired",
-            "ADD_DATA => feature", "ADD_DATA => itemGroupAmount", "ADD_DATA => seasonItem", "ADD_DATA => isGroupingTultip", "ADD_DATA => tagColor",
+            "ADD_DATA => itemLimitCount", "ADD_DATA => recommendationLevel", "ADD_DATA => isGroupingName",
+            "ADD_DATA => ignoreConditions",
+            "ADD_DATA => masterBadge", "ADD_DATA => priority", "ADD_DATA => nftFlg", "ADD_DATA => itemMinShow",
+            "ADD_DATA => itemFeature",
+            "ADD_DATA => itemLimitPeriod", "ADD_DATA => businessBlock", "ADD_DATA => parentRewardCode",
+            "ADD_DATA => deliveryRequired",
+            "ADD_DATA => feature", "ADD_DATA => itemGroupAmount", "ADD_DATA => seasonItem",
+            "ADD_DATA => isGroupingTultip", "ADD_DATA => tagColor",
             "ADD_DATA => commingSoon", "ADD_DATA => tournamentTeam", "ADD_DATA => hidden"
         ],
         # Назначение: поля первого уровня развёртывания JSON (светлее исходных)
@@ -744,8 +770,10 @@ COLOR_SCHEME = [
             # ADD_DATA => getCondition развёрнутые поля
             "ADD_DATA => getCondition => nonRewards", "ADD_DATA => getCondition => rewards",
             # ADD_DATA => getCondition => employeeRating развёрнутые поля
-            "ADD_DATA => getCondition => employeeRating => minRatingTB", "ADD_DATA => getCondition => employeeRating => minRatingGOSB",
-            "ADD_DATA => getCondition => employeeRating => minRatingBANK", "ADD_DATA => getCondition => employeeRating => seasonCode",
+            "ADD_DATA => getCondition => employeeRating => minRatingTB",
+            "ADD_DATA => getCondition => employeeRating => minRatingGOSB",
+            "ADD_DATA => getCondition => employeeRating => minRatingBANK",
+            "ADD_DATA => getCondition => employeeRating => seasonCode",
             "ADD_DATA => getCondition => employeeRating => minCrystalEarnedTotal"
         ],
         # Назначение: поля второго уровня развёртывания JSON (вложенные объекты)
@@ -759,12 +787,15 @@ COLOR_SCHEME = [
         "column_bg": None,
         "column_fg": None,
         "style_scope": "header",
-        "sheets": ["REWARD", "REPORT", "TOURNAMENT-SCHEDULE", "EMPLOYEE", "CONTEST-DATA", "GROUP", "INDICATOR", "REWARD-LINK"],  # поля добавляемые через merge_fields
+        "sheets": ["REWARD", "REPORT", "TOURNAMENT-SCHEDULE", "EMPLOYEE", "CONTEST-DATA", "GROUP", "INDICATOR",
+                   "REWARD-LINK"],  # поля добавляемые через merge_fields
         "columns": [
             COL_REWARD_LINK_CONTEST_CODE,
-            "CONTEST-DATA=>CONTEST_TYPE", "CONTEST-DATA=>FULL_NAME", "CONTEST-DATA=>BUSINESS_BLOCK", "CONTEST-DATA=>BUSINESS_STATUS",
+            "CONTEST-DATA=>CONTEST_TYPE", "CONTEST-DATA=>FULL_NAME", "CONTEST-DATA=>BUSINESS_BLOCK",
+            "CONTEST-DATA=>BUSINESS_STATUS",
             "TOURNAMENT-SCHEDULE=>END_DT", "TOURNAMENT-SCHEDULE=>RESULT_DT", "TOURNAMENT-SCHEDULE=>TOURNAMENT_STATUS",
-            "REPORT=>CONTEST_DATE", "REPORT=>COUNT_CONTEST_DATE", "AUTO_GENDER", "CALC_TOURNAMENT_STATUS", "FIELD_LENGTH_CHECK"
+            "REPORT=>CONTEST_DATE", "REPORT=>COUNT_CONTEST_DATE", "AUTO_GENDER", "CALC_TOURNAMENT_STATUS",
+            "FIELD_LENGTH_CHECK"
         ],
         # Назначение: поля добавляемые через merge_fields_across_sheets
     },
@@ -840,7 +871,8 @@ COLOR_SCHEME = [
         "column_fg": None,
         "style_scope": "header",
         "sheets": ["SUMMARY"],
-        "columns": ["TOURNAMENT-SCHEDULE=>START_DT", "TOURNAMENT-SCHEDULE=>END_DT", "TOURNAMENT-SCHEDULE=>RESULT_DT", "TOURNAMENT-SCHEDULE=>TOURNAMENT_STATUS", "TOURNAMENT-SCHEDULE=>TARGET_TYPE"],
+        "columns": ["TOURNAMENT-SCHEDULE=>START_DT", "TOURNAMENT-SCHEDULE=>END_DT", "TOURNAMENT-SCHEDULE=>RESULT_DT",
+                    "TOURNAMENT-SCHEDULE=>TOURNAMENT_STATUS", "TOURNAMENT-SCHEDULE=>TARGET_TYPE"],
         # Назначение: поля из TOURNAMENT-SCHEDULE в SUMMARY
     },
 
@@ -893,11 +925,11 @@ COLOR_SCHEME = [
 # Добавление секции для дублей по CHECK_DUPLICATES
 CHECK_DUPLICATES = [
     {"sheet": "CONTEST-DATA", "key": ["CONTEST_CODE"]},
-    {"sheet": "GROUP",        "key": ["CONTEST_CODE", "GROUP_CODE", "GROUP_VALUE"]},
-    {"sheet": "INDICATOR",    "key": ["CONTEST_CODE", "INDICATOR_ADD_CALC_TYPE"]},
-    {"sheet": "REPORT",       "key": ["MANAGER_PERSON_NUMBER", "TOURNAMENT_CODE", "CONTEST_CODE"]},
-    {"sheet": "REWARD",       "key": ["REWARD_CODE"]},
-    {"sheet": "REWARD-LINK",  "key": ["CONTEST_CODE", "REWARD_CODE"]},
+    {"sheet": "GROUP", "key": ["CONTEST_CODE", "GROUP_CODE", "GROUP_VALUE"]},
+    {"sheet": "INDICATOR", "key": ["CONTEST_CODE", "INDICATOR_ADD_CALC_TYPE"]},
+    {"sheet": "REPORT", "key": ["MANAGER_PERSON_NUMBER", "TOURNAMENT_CODE", "CONTEST_CODE"]},
+    {"sheet": "REWARD", "key": ["REWARD_CODE"]},
+    {"sheet": "REWARD-LINK", "key": ["CONTEST_CODE", "REWARD_CODE"]},
     {"sheet": "TOURNAMENT-SCHEDULE", "key": ["TOURNAMENT_CODE", "CONTEST_CODE"]},
     {"sheet": "ORG_UNIT_V20", "key": ["ORG_UNIT_CODE"]},
     {"sheet": "USER_ROLE", "key": ["RULE_NUM"]},
@@ -937,6 +969,7 @@ JSON_COLUMNS = {
 def get_output_filename():
     return f'SPOD_ALL_IN_ONE_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.xlsx'
 
+
 # Лог-файл с учетом уровня
 def get_log_filename():
     # Имя лог-файла по дате с уровнем логирования, например: LOGS_INFO_2025-07-25.log
@@ -965,10 +998,10 @@ def setup_logger():
 def calculate_tournament_status(df_tournament, df_report=None):
     """
     Вычисляет статус турнира на основе текущей даты и дат турнира.
-    
+
     Логика:
     - Если сегодня между START_DT и END_DT включительно → "АКТИВНЫЙ"
-    - Если сегодня < START_DT → "ЗАПЛАНИРОВАН"  
+    - Если сегодня < START_DT → "ЗАПЛАНИРОВАН"
     - Если сегодня > END_DT но < RESULT_DT → "ПОДВЕДЕНИЕ ИТОГОВ"
     - Если сегодня >= RESULT_DT:
         - Если макс CONTEST_DATE < RESULT_DT → "ПОДВЕДЕНИЕ ИТОГОВ"
@@ -977,10 +1010,10 @@ def calculate_tournament_status(df_tournament, df_report=None):
     func_start = time()
     params = "(TOURNAMENT-SCHEDULE status calculation)"
     logging.info(LOG_MESSAGES["func_start"].format(func="calculate_tournament_status", params=params))
-    
+
     today = pd.Timestamp.now().date()
     df = df_tournament.copy()
-    
+
     # Преобразуем даты в pandas datetime, обрабатываем ошибки
     def safe_to_date(date_str):
         try:
@@ -989,74 +1022,74 @@ def calculate_tournament_status(df_tournament, df_report=None):
             return pd.to_datetime(date_str).date()
         except:
             return None
-    
+
     df['START_DT_parsed'] = df['START_DT'].apply(safe_to_date)
-    df['END_DT_parsed'] = df['END_DT'].apply(safe_to_date)  
+    df['END_DT_parsed'] = df['END_DT'].apply(safe_to_date)
     df['RESULT_DT_parsed'] = df['RESULT_DT'].apply(safe_to_date)
-    
+
     # Получаем максимальные CONTEST_DATE для каждого TOURNAMENT_CODE из REPORT
     max_contest_dates = {}
     if df_report is not None and 'CONTEST_DATE' in df_report.columns and 'TOURNAMENT_CODE' in df_report.columns:
         df_report_dates = df_report.copy()
         df_report_dates['CONTEST_DATE_parsed'] = df_report_dates['CONTEST_DATE'].apply(safe_to_date)
         df_report_dates = df_report_dates.dropna(subset=['CONTEST_DATE_parsed', 'TOURNAMENT_CODE'])
-        
+
         if not df_report_dates.empty:
             max_contest_dates = df_report_dates.groupby('TOURNAMENT_CODE')['CONTEST_DATE_parsed'].max().to_dict()
-    
+
     def get_status(row):
         start_dt = row['START_DT_parsed']
         end_dt = row['END_DT_parsed']
         result_dt = row['RESULT_DT_parsed']
         tournament_code = row['TOURNAMENT_CODE']
-        
+
         # Если нет ключевых дат - возвращаем неопределенный статус
         if not start_dt or not end_dt:
             return "НЕОПРЕДЕЛЕН"
-        
+
         # 1. Если сегодня между START_DT и END_DT включительно
         if start_dt <= today <= end_dt:
             return "АКТИВНЫЙ"
-        
+
         # 2. Если сегодня < START_DT
         if today < start_dt:
             return "ЗАПЛАНИРОВАН"
-        
+
         # 3. Если сегодня > END_DT
         if today > end_dt:
             # Если нет RESULT_DT или сегодня < RESULT_DT
             if not result_dt or today < result_dt:
                 return "ПОДВЕДЕНИЕ ИТОГОВ"
-            
+
             # 4. Если сегодня >= RESULT_DT
             if today >= result_dt:
                 max_contest_date = max_contest_dates.get(tournament_code)
-                
+
                 # Если нет данных в REPORT для этого турнира
                 if not max_contest_date:
                     return "ПОДВЕДЕНИЕ ИТОГОВ"
-                
+
                 # Сравниваем максимальную CONTEST_DATE с RESULT_DT
                 if max_contest_date < result_dt:
                     return "ПОДВЕДЕНИЕ ИТОГОВ"
                 else:
                     return "ЗАВЕРШЕН"
-        
+
         return "НЕОПРЕДЕЛЕН"
-    
+
     # Применяем функцию для каждой строки
     df['CALC_TOURNAMENT_STATUS'] = df.apply(get_status, axis=1)
-    
+
     # Удаляем временные колонки
     df = df.drop(columns=['START_DT_parsed', 'END_DT_parsed', 'RESULT_DT_parsed'])
-    
+
     # Статистика по статусам
     status_counts = df['CALC_TOURNAMENT_STATUS'].value_counts()
     logging.info(f"[TOURNAMENT STATUS] Статистика: {status_counts.to_dict()}")
-    
+
     func_time = time() - func_start
     logging.info(LOG_MESSAGES["func_end"].format(func="calculate_tournament_status", params=params, time=func_time))
-    
+
     return df
 
 
@@ -1064,21 +1097,21 @@ def validate_field_lengths(df, sheet_name):
     """
     Проверяет длину полей согласно конфигурации FIELD_LENGTH_VALIDATIONS.
     Добавляет колонку с результатом проверки.
-    
+
     Формат результата:
     - "-" если все поля соответствуют ограничениям
     - "поле1 = длина > ограничение; поле2 = длина > ограничение" если есть нарушения
     """
     func_start = time()
-    
+
     # Проверяем есть ли конфигурация для этого листа
     if sheet_name not in FIELD_LENGTH_VALIDATIONS:
         return df
-    
+
     config = FIELD_LENGTH_VALIDATIONS[sheet_name]
     result_column = config["result_column"]
     fields_config = config["fields"]
-    
+
     # Проверяем наличие полей в DataFrame
     missing_fields = [field for field in fields_config.keys() if field not in df.columns]
     if missing_fields:
@@ -1086,21 +1119,21 @@ def validate_field_lengths(df, sheet_name):
         # Создаем пустую колонку если нет полей для проверки
         df[result_column] = '-'
         return df
-    
+
     total_rows = len(df)
     logging.info(LOG_MESSAGES["field_length_start"].format(sheet=sheet_name, rows=total_rows))
-    
+
     # Счетчики для статистики
     correct_count = 0
     error_count = 0
-    
+
     def check_field_length(value, limit, operator):
         """Проверяет соответствие длины поля ограничению"""
         if pd.isna(value) or value in ['', '-', 'None', 'null']:
             return True  # Пустые значения считаем корректными
-        
+
         length = len(str(value))
-        
+
         if operator == "<=":
             return length <= limit
         elif operator == "=":
@@ -1113,55 +1146,55 @@ def validate_field_lengths(df, sheet_name):
             return length > limit
         else:
             return True  # Неизвестный оператор - считаем корректным
-    
+
     def check_row(row, row_idx):
         """Проверяет одну строку и возвращает результат проверки"""
         violations = []
-        
+
         for field_name, field_config in fields_config.items():
             limit = field_config["limit"]
             operator = field_config["operator"]
             value = row.get(field_name, '')
-            
+
             if not check_field_length(value, limit, operator):
                 length = len(str(value)) if not pd.isna(value) else 0
                 violations.append(f"{field_name} = {length} {operator} {limit}")
-                
+
                 logging.debug(LOG_MESSAGES["field_length_violation"].format(
                     row=row_idx, field=field_name, length=length, operator=operator, limit=limit
                 ))
-        
+
         return "; ".join(violations) if violations else "-"
-    
+
     # Обрабатываем каждую строку
     results = []
     for idx, row in df.iterrows():
         result = check_row(row, idx)
         results.append(result)
-        
+
         # Обновляем статистику
         if result == "-":
             correct_count += 1
         else:
             error_count += 1
-        
+
         # Прогресс каждые GENDER_PROGRESS_STEP строк
         if (idx + 1) % GENDER_PROGRESS_STEP == 0:
             percent = ((idx + 1) / total_rows) * 100
             logging.info(LOG_MESSAGES["field_length_progress"].format(
                 processed=idx + 1, total=total_rows, percent=percent
             ))
-    
+
     # Добавляем колонку к DataFrame
     df[result_column] = results
-    
+
     # Логируем финальную статистику
     func_time = time() - func_start
     logging.info(LOG_MESSAGES["field_length_stats"].format(
         correct=correct_count, errors=error_count, total=total_rows
     ))
     logging.info(LOG_MESSAGES["field_length_end"].format(time=func_time, sheet=sheet_name))
-    
+
     return df
 
 
@@ -1191,6 +1224,7 @@ def read_csv_file(file_path):
         logging.info(LOG_MESSAGES["func_end"].format(func="read_csv_file", params=params, time=func_time))
         return None
 
+
 # === Запись в Excel с форматированием ===
 def write_to_excel(sheets_data, output_path):
     func_start = time()
@@ -1216,6 +1250,7 @@ def write_to_excel(sheets_data, output_path):
         logging.error(LOG_MESSAGES["func_error"].format(func="write_to_excel", params=params, error=ex))
         logging.info(LOG_MESSAGES["func_end"].format(func="write_to_excel", params=params, time=func_time))
 
+
 # === Форматирование листа ===
 def calculate_column_width(col_name, ws, params, col_num):
     """
@@ -1233,11 +1268,11 @@ def calculate_column_width(col_name, ws, params, col_num):
         max_width = params.get("max_col_width", 30)
         width_mode = params.get("col_width_mode", "AUTO")
         min_width = params.get("min_col_width", 8)
-    
+
     # Вычисляем ширину на основе содержимого
     col_letter = get_column_letter(col_num)
     content_width = max([len(str(cell.value)) for cell in ws[col_letter] if cell.value] + [min_width])
-    
+
     if width_mode == "AUTO":
         # Автоматическое растягивание по содержимому, но не более максимальной ширины
         final_width = min(content_width, max_width)
@@ -1249,8 +1284,9 @@ def calculate_column_width(col_name, ws, params, col_num):
         # Без растягивания - просто не более максимальной
         final_width = min(content_width, max_width)
         final_width = max(final_width, min_width)
-    
+
     return final_width
+
 
 def _format_sheet(ws, df, params):
     func_start = time()
@@ -1265,21 +1301,21 @@ def _format_sheet(ws, df, params):
         cell.alignment = align_center
         col_letter = get_column_letter(col_num)
         col_name = cell.value
-        
+
         # Вычисляем ширину колонки с учетом новых параметров
         width = calculate_column_width(col_name, ws, params, col_num)
         ws.column_dimensions[col_letter].width = width
-        
+
         # Определяем режим для логирования
         width_mode_info = params.get("col_width_mode", "AUTO")
         added_cols_width = params.get("added_columns_width", {})
         if col_name in added_cols_width:
             width_mode_info = added_cols_width[col_name].get("width_mode", "AUTO")
-        
+
         logging.debug(LOG_MESSAGES["column_width_set"].format(
             sheet=ws.title, column=col_name, width=width, mode=width_mode_info
         ))
-    
+
     # Применяем цветовую схему
     apply_color_scheme(ws, ws.title)
 
@@ -1295,11 +1331,11 @@ def _format_sheet(ws, df, params):
     func_time = time() - func_start
     logging.debug(LOG_MESSAGES["func_end"].format(func="_format_sheet", params=params_str, time=func_time))
 
-
     # Данные: перенос строк, выравнивание по левому краю, по вертикали по центру
     for row in ws.iter_rows(min_row=2, max_row=ws.max_row, max_col=ws.max_column):
         for cell in row:
             cell.alignment = align_data
+
 
 def safe_json_loads(s: str):
     """
@@ -1348,13 +1384,15 @@ def safe_json_loads(s: str):
                 )
                 return None
 
+
 def flatten_json_column_recursive(df, column, prefix=None, sheet=None, sep="; "):
     import time as tmod
     func_start = tmod.time()
     n_rows = len(df)
     n_errors = 0
     prefix = prefix if prefix is not None else column
-    logging.info(LOG_MESSAGES["func_start"].format(func="flatten_json_column_recursive", params=f"(лист: {sheet}, колонка: {column})"))
+    logging.info(LOG_MESSAGES["func_start"].format(func="flatten_json_column_recursive",
+                                                   params=f"(лист: {sheet}, колонка: {column})"))
 
     def extract(obj, current_prefix):
         """Recursively flattens obj. Keeps the field itself and expands nested JSON
@@ -1428,14 +1466,13 @@ def flatten_json_column_recursive(df, column, prefix=None, sheet=None, sep="; ")
     return df
 
 
-
 def generate_dynamic_color_scheme_from_merge_fields():
     """
     Автоматически генерирует элементы цветовой схемы на основе MERGE_FIELDS.
     Добавляет правила для колонок, которые создаются через merge операции.
     """
     dynamic_scheme = []
-    
+
     # Группируем по целевым листам
     sheets_targets = {}
     for rule in MERGE_FIELDS:
@@ -1443,13 +1480,13 @@ def generate_dynamic_color_scheme_from_merge_fields():
         sheet_src = rule["sheet_src"]
         columns = rule["column"]
         mode = rule.get("mode", "value")
-        
+
         if sheet_dst not in sheets_targets:
             sheets_targets[sheet_dst] = {}
-        
+
         if sheet_src not in sheets_targets[sheet_dst]:
             sheets_targets[sheet_dst][sheet_src] = []
-        
+
         # Формируем имена колонок, которые будут созданы
         for col in columns:
             if mode == "count":
@@ -1457,11 +1494,11 @@ def generate_dynamic_color_scheme_from_merge_fields():
             else:
                 new_col_name = f"{sheet_src}=>{col}"
             sheets_targets[sheet_dst][sheet_src].append(new_col_name)
-    
+
     # Создаем цветовые схемы для каждой комбинации лист-источник
     color_palette = [
         ("FF9999", "2C3E50"),  # Светло-красный
-        ("99FF99", "2C3E50"),  # Светло-зеленый  
+        ("99FF99", "2C3E50"),  # Светло-зеленый
         ("9999FF", "FFFFFF"),  # Светло-синий
         ("FFFF99", "2C3E50"),  # Светло-желтый
         ("FF99FF", "2C3E50"),  # Светло-розовый
@@ -1469,13 +1506,13 @@ def generate_dynamic_color_scheme_from_merge_fields():
         ("FFB366", "2C3E50"),  # Светло-оранжевый
         ("D8BFD8", "2C3E50"),  # Светло-фиолетовый
     ]
-    
+
     color_idx = 0
     for sheet_dst, sources in sheets_targets.items():
         for sheet_src, columns in sources.items():
             if columns:  # Если есть колонки для этого источника
                 bg_color, fg_color = color_palette[color_idx % len(color_palette)]
-                
+
                 dynamic_scheme.append({
                     "group": f"MERGE: {sheet_src} -> {sheet_dst}",
                     "header_bg": bg_color,
@@ -1487,13 +1524,14 @@ def generate_dynamic_color_scheme_from_merge_fields():
                     "columns": columns,
                     "auto_generated": True  # Маркер автогенерации
                 })
-                
+
                 logging.debug(LOG_MESSAGES["dynamic_color_scheme"].format(
                     sheet=f"{sheet_src} -> {sheet_dst}", columns=columns
                 ))
                 color_idx += 1
-    
+
     return dynamic_scheme
+
 
 def apply_color_scheme(ws, sheet_name):
     """
@@ -1503,7 +1541,7 @@ def apply_color_scheme(ws, sheet_name):
     """
     # Объединяем статическую и динамическую цветовые схемы
     all_color_schemes = COLOR_SCHEME + generate_dynamic_color_scheme_from_merge_fields()
-    
+
     for color_conf in all_color_schemes:
         if sheet_name not in color_conf["sheets"]:
             continue
@@ -1524,7 +1562,8 @@ def apply_color_scheme(ws, sheet_name):
             if style_scope == "header":
                 cell = ws.cell(row=1, column=col_idx)
                 if color_conf.get("header_bg"):
-                    cell.fill = PatternFill(start_color=color_conf["header_bg"], end_color=color_conf["header_bg"], fill_type="solid")
+                    cell.fill = PatternFill(start_color=color_conf["header_bg"], end_color=color_conf["header_bg"],
+                                            fill_type="solid")
                 if color_conf.get("header_fg"):
                     cell.font = Font(color=color_conf["header_fg"])
                 # Логирование
@@ -1539,11 +1578,13 @@ def apply_color_scheme(ws, sheet_name):
                 for row in ws.iter_rows(min_row=1, max_row=ws.max_row, min_col=col_idx, max_col=col_idx):
                     for cell in row:
                         if cell.row == 1 and color_conf.get("header_bg"):
-                            cell.fill = PatternFill(start_color=color_conf["header_bg"], end_color=color_conf["header_bg"], fill_type="solid")
+                            cell.fill = PatternFill(start_color=color_conf["header_bg"],
+                                                    end_color=color_conf["header_bg"], fill_type="solid")
                             if color_conf.get("header_fg"):
                                 cell.font = Font(color=color_conf["header_fg"])
                         elif color_conf.get("column_bg"):
-                            cell.fill = PatternFill(start_color=color_conf["column_bg"], end_color=color_conf["column_bg"], fill_type="solid")
+                            cell.fill = PatternFill(start_color=color_conf["column_bg"],
+                                                    end_color=color_conf["column_bg"], fill_type="solid")
                             if color_conf.get("column_fg"):
                                 cell.font = Font(color=color_conf["column_fg"])
                 logging.debug(LOG_MESSAGES["color_scheme_applied"].format(
@@ -1552,7 +1593,6 @@ def apply_color_scheme(ws, sheet_name):
                     scope="all",
                     color=color_conf.get("column_bg", "default")
                 ))
-
 
 
 def collect_summary_keys(dfs):
@@ -1585,15 +1625,17 @@ def collect_summary_keys(dfs):
         all_contest_codes.update(groups["CONTEST_CODE"].dropna())
         all_group_codes.update(groups["GROUP_CODE"].dropna())
         all_group_values.update(groups["GROUP_VALUE"].dropna())
-    
+
     # КРИТИЧНО: Добавляем ВСЕ REWARD_CODE из таблицы REWARD, даже если их нет в REWARD-LINK
     if not reward_data.empty:
         all_reward_codes.update(reward_data["REWARD_CODE"].dropna())
 
     # 1. Для каждого CONTEST_CODE
     for code in all_contest_codes:
-        tourns = tournaments[tournaments["CONTEST_CODE"] == code]["TOURNAMENT_CODE"].dropna().unique() if not tournaments.empty else []
-        rewards_ = rewards[rewards["CONTEST_CODE"] == code]["REWARD_CODE"].dropna().unique() if not rewards.empty else []
+        tourns = tournaments[tournaments["CONTEST_CODE"] == code][
+            "TOURNAMENT_CODE"].dropna().unique() if not tournaments.empty else []
+        rewards_ = rewards[rewards["CONTEST_CODE"] == code][
+            "REWARD_CODE"].dropna().unique() if not rewards.empty else []
         groups_df = groups[groups["CONTEST_CODE"] == code] if not groups.empty else pd.DataFrame()
         groups_ = groups_df["GROUP_CODE"].dropna().unique() if not groups_df.empty else []
         group_values_ = groups_df["GROUP_VALUE"].dropna().unique() if not groups_df.empty else []
@@ -1614,7 +1656,8 @@ def collect_summary_keys(dfs):
         for t_code in tournaments["TOURNAMENT_CODE"].dropna().unique():
             code = tournaments[tournaments["TOURNAMENT_CODE"] == t_code]["CONTEST_CODE"].dropna().unique()
             code = code[0] if len(code) else "-"
-            rewards_ = rewards[rewards["CONTEST_CODE"] == code]["REWARD_CODE"].dropna().unique() if not rewards.empty else ["-"]
+            rewards_ = rewards[rewards["CONTEST_CODE"] == code][
+                "REWARD_CODE"].dropna().unique() if not rewards.empty else ["-"]
             groups_df = groups[groups["CONTEST_CODE"] == code] if not groups.empty else pd.DataFrame()
             groups_ = groups_df["GROUP_CODE"].dropna().unique() if not groups_df.empty else []
             group_values_ = groups_df["GROUP_VALUE"].dropna().unique() if not groups_df.empty else []
@@ -1635,13 +1678,13 @@ def collect_summary_keys(dfs):
             code = code[0] if len(code) else "-"
         else:
             code = "-"
-        
+
         # Ищем связанные TOURNAMENT_CODE
         if code != "-" and not tournaments.empty:
             tourns = tournaments[tournaments["CONTEST_CODE"] == code]["TOURNAMENT_CODE"].dropna().unique()
         else:
             tourns = []
-        
+
         # Ищем связанные GROUP_CODE и GROUP_VALUE
         if code != "-" and not groups.empty:
             groups_df = groups[groups["CONTEST_CODE"] == code]
@@ -1650,12 +1693,12 @@ def collect_summary_keys(dfs):
         else:
             groups_ = []
             group_values_ = []
-        
+
         # Если нет связей, создаем строки с "-" для остальных полей
         tourns = tourns if len(tourns) else ["-"]
         groups_ = groups_ if len(groups_) else ["-"]
         group_values_ = group_values_ if len(group_values_) else ["-"]
-        
+
         for t in tourns:
             for g in groups_:
                 for gv in group_values_:
@@ -1666,9 +1709,12 @@ def collect_summary_keys(dfs):
         for g_code in groups["GROUP_CODE"].dropna().unique():
             code = groups[groups["GROUP_CODE"] == g_code]["CONTEST_CODE"].dropna().unique()
             code = code[0] if len(code) else "-"
-            tourns = tournaments[tournaments["CONTEST_CODE"] == code]["TOURNAMENT_CODE"].dropna().unique() if not tournaments.empty else []
-            rewards_ = rewards[rewards["CONTEST_CODE"] == code]["REWARD_CODE"].dropna().unique() if not rewards.empty else []
-            group_values_ = groups[groups["GROUP_CODE"] == g_code]["GROUP_VALUE"].dropna().unique() if not groups.empty else []
+            tourns = tournaments[tournaments["CONTEST_CODE"] == code][
+                "TOURNAMENT_CODE"].dropna().unique() if not tournaments.empty else []
+            rewards_ = rewards[rewards["CONTEST_CODE"] == code][
+                "REWARD_CODE"].dropna().unique() if not rewards.empty else []
+            group_values_ = groups[groups["GROUP_CODE"] == g_code][
+                "GROUP_VALUE"].dropna().unique() if not groups.empty else []
             tourns = tourns if len(tourns) else ["-"]
             rewards_ = rewards_ if len(rewards_) else ["-"]
             group_values_ = group_values_ if len(group_values_) else ["-"]
@@ -1680,6 +1726,7 @@ def collect_summary_keys(dfs):
     # Удалить дубли
     summary_keys = pd.DataFrame(all_rows, columns=SUMMARY_KEY_COLUMNS).drop_duplicates().reset_index(drop=True)
     return summary_keys
+
 
 def mark_duplicates(df, key_cols, sheet_name=None):
     """
@@ -1706,7 +1753,9 @@ def mark_duplicates(df, key_cols, sheet_name=None):
         logging.info(LOG_MESSAGES["duplicates_end"].format(sheet=sheet_name, time=func_time))
     return df
 
-def add_fields_to_sheet(df_base, df_ref, src_keys, dst_keys, columns, sheet_name, ref_sheet_name, mode="value", multiply_rows=False):
+
+def add_fields_to_sheet(df_base, df_ref, src_keys, dst_keys, columns, sheet_name, ref_sheet_name, mode="value",
+                        multiply_rows=False):
     """
     Добавляет к df_base поля из df_ref по ключам.
     Если mode == "value": подтягивает значения (первого найденного или всех при multiply_rows=True).
@@ -1766,7 +1815,7 @@ def add_fields_to_sheet(df_base, df_ref, src_keys, dst_keys, columns, sheet_name
 
     # Создаем ключи для df_ref
     df_ref_keys = df_ref.apply(lambda row: tuple_key(row, src_keys), axis=1)
-    
+
     if not multiply_rows:
         # Старая логика: первое найденное значение
         new_keys = df_base.apply(lambda row: tuple_key(row, dst_keys), axis=1)
@@ -1775,8 +1824,13 @@ def add_fields_to_sheet(df_base, df_ref, src_keys, dst_keys, columns, sheet_name
             new_col_name = f"{ref_sheet_name}=>{col}"
             df_base[new_col_name] = new_keys.map(ref_map).fillna("-")
             # Специально для REWARD_LINK =>CONTEST_CODE: auto-rename, если создали с дефисом
-            if new_col_name.replace("-", "_").replace(" ", "") == COL_REWARD_LINK_CONTEST_CODE.replace("-", "_").replace(" ", ""):
-                candidates = [c for c in df_base.columns if c.replace("-", "_").replace(" ", "") == COL_REWARD_LINK_CONTEST_CODE.replace("-", "_").replace(" ", "")]
+            if new_col_name.replace("-", "_").replace(" ", "") == COL_REWARD_LINK_CONTEST_CODE.replace("-",
+                                                                                                       "_").replace(" ",
+                                                                                                                    ""):
+                candidates = [c for c in df_base.columns if
+                              c.replace("-", "_").replace(" ", "") == COL_REWARD_LINK_CONTEST_CODE.replace("-",
+                                                                                                           "_").replace(
+                                  " ", "")]
                 for cand in candidates:
                     if cand != COL_REWARD_LINK_CONTEST_CODE:
                         df_base = df_base.rename(columns={cand: COL_REWARD_LINK_CONTEST_CODE})
@@ -1785,12 +1839,12 @@ def add_fields_to_sheet(df_base, df_ref, src_keys, dst_keys, columns, sheet_name
         logging.info(LOG_MESSAGES["multiply_rows_start"].format(sheet=sheet_name, column=columns))
         result_rows = []
         old_rows_count = len(df_base)
-        
+
         for base_idx, base_row in df_base.iterrows():
             base_key = tuple_key(base_row, dst_keys)
             # Находим все строки в df_ref с таким ключом
             matching_ref_rows = df_ref[df_ref_keys == base_key]
-            
+
             if matching_ref_rows.empty:
                 # Нет совпадений - добавляем строку с пустыми значениями
                 new_row = base_row.copy()
@@ -1806,7 +1860,7 @@ def add_fields_to_sheet(df_base, df_ref, src_keys, dst_keys, columns, sheet_name
                         new_col_name = f"{ref_sheet_name}=>{col}"
                         new_row[new_col_name] = ref_row[col]
                     result_rows.append(new_row)
-        
+
         # Создаем новый DataFrame из размноженных строк
         df_base = pd.DataFrame(result_rows).reset_index(drop=True)
         new_rows_count = len(df_base)
@@ -1814,12 +1868,17 @@ def add_fields_to_sheet(df_base, df_ref, src_keys, dst_keys, columns, sheet_name
         logging.info(LOG_MESSAGES["multiply_rows_result"].format(
             sheet=sheet_name, old_rows=old_rows_count, new_rows=new_rows_count, multiply_factor=multiply_factor
         ))
-        
+
         # Обработка специального случая для REWARD_LINK
         for col in columns:
             new_col_name = f"{ref_sheet_name}=>{col}"
-            if new_col_name.replace("-", "_").replace(" ", "") == COL_REWARD_LINK_CONTEST_CODE.replace("-", "_").replace(" ", ""):
-                candidates = [c for c in df_base.columns if c.replace("-", "_").replace(" ", "") == COL_REWARD_LINK_CONTEST_CODE.replace("-", "_").replace(" ", "")]
+            if new_col_name.replace("-", "_").replace(" ", "") == COL_REWARD_LINK_CONTEST_CODE.replace("-",
+                                                                                                       "_").replace(" ",
+                                                                                                                    ""):
+                candidates = [c for c in df_base.columns if
+                              c.replace("-", "_").replace(" ", "") == COL_REWARD_LINK_CONTEST_CODE.replace("-",
+                                                                                                           "_").replace(
+                                  " ", "")]
                 for cand in candidates:
                     if cand != COL_REWARD_LINK_CONTEST_CODE:
                         df_base = df_base.rename(columns={cand: COL_REWARD_LINK_CONTEST_CODE})
@@ -1859,23 +1918,24 @@ def merge_fields_across_sheets(sheets_data, merge_fields):
         df_dst, params_dst = sheets_data[sheet_dst]
 
         logging.info(LOG_MESSAGES["func_start"].format(func="merge_fields_across_sheets", params=params_str))
-        df_dst = add_fields_to_sheet(df_dst, df_src, src_keys, dst_keys, col_names, sheet_dst, sheet_src, mode=mode, multiply_rows=multiply_rows)
-        
+        df_dst = add_fields_to_sheet(df_dst, df_src, src_keys, dst_keys, col_names, sheet_dst, sheet_src, mode=mode,
+                                     multiply_rows=multiply_rows)
+
         # Сохраняем информацию о ширине колонок для добавленных полей
         if "added_columns_width" not in params_dst:
             params_dst["added_columns_width"] = {}
-        
+
         for col in col_names:
             new_col_name = f"{sheet_src}=>{col}"
             if mode == "count":
                 new_col_name = f"{sheet_src}=>COUNT_{col}"
-            
+
             params_dst["added_columns_width"][new_col_name] = {
                 "max_width": rule.get("col_max_width"),
                 "width_mode": rule.get("col_width_mode", "AUTO"),
                 "min_width": rule.get("col_min_width", 8)
             }
-        
+
         sheets_data[sheet_dst] = (df_dst, params_dst)
         logging.info(LOG_MESSAGES["func_end"].format(func="merge_fields_across_sheets", params=params_str, time=0))
     return sheets_data
@@ -1885,31 +1945,31 @@ def detect_gender_by_patterns(value, patterns_male, patterns_female):
     """Определение пола по окончаниям в тексте"""
     if pd.isna(value) or not isinstance(value, str):
         return None
-    
+
     value_lower = value.lower().strip()
     if not value_lower:
         return None
-    
+
     # Проверяем мужские окончания
     for pattern in patterns_male:
         if value_lower.endswith(pattern.lower()):
             return 'М'
-    
+
     # Проверяем женские окончания
     for pattern in patterns_female:
         if value_lower.endswith(pattern.lower()):
             return 'Ж'
-    
+
     return None
 
 
 def detect_gender_for_person(patronymic, first_name, surname, row_idx):
     """Определение пола для одного человека по приоритету: отчество -> имя -> фамилия"""
-    
+
     # 1. Попытка определить по отчеству
     gender = detect_gender_by_patterns(
-        patronymic, 
-        GENDER_PATTERNS['patronymic_male'], 
+        patronymic,
+        GENDER_PATTERNS['patronymic_male'],
         GENDER_PATTERNS['patronymic_female']
     )
     if gender:
@@ -1917,7 +1977,7 @@ def detect_gender_for_person(patronymic, first_name, surname, row_idx):
             row=row_idx, patronymic=patronymic, gender=gender
         ))
         return gender
-    
+
     # 2. Попытка определить по имени
     gender = detect_gender_by_patterns(
         first_name,
@@ -1929,7 +1989,7 @@ def detect_gender_for_person(patronymic, first_name, surname, row_idx):
             row=row_idx, name=first_name, gender=gender
         ))
         return gender
-    
+
     # 3. Попытка определить по фамилии
     gender = detect_gender_by_patterns(
         surname,
@@ -1941,7 +2001,7 @@ def detect_gender_for_person(patronymic, first_name, surname, row_idx):
             row=row_idx, surname=surname, gender=gender
         ))
         return gender
-    
+
     # Не удалось определить
     logging.debug(LOG_MESSAGES["gender_unknown"].format(
         row=row_idx, patronymic=patronymic, name=first_name, surname=surname
@@ -1952,37 +2012,37 @@ def detect_gender_for_person(patronymic, first_name, surname, row_idx):
 def add_auto_gender_column(df, sheet_name):
     """Добавление колонки AUTO_GENDER к DataFrame с автоматическим определением пола"""
     func_start = time()
-    
+
     # Проверяем наличие необходимых колонок
     required_columns = ['MIDDLE_NAME', 'FIRST_NAME', 'SURNAME']
     missing_columns = [col for col in required_columns if col not in df.columns]
-    
+
     if missing_columns:
         logging.warning(f"[GENDER DETECTION] Пропущены колонки {missing_columns} в листе {sheet_name}")
         df['AUTO_GENDER'] = '-'
         return df
-    
+
     total_rows = len(df)
     logging.info(LOG_MESSAGES["gender_detection_start"].format(sheet=sheet_name, rows=total_rows))
-    
+
     # Счетчики для статистики
     male_count = 0
     female_count = 0
     unknown_count = 0
-    
+
     # Создаем новую колонку
     auto_gender = []
-    
+
     for idx, row in df.iterrows():
         # Получаем значения полей
         patronymic = row.get('MIDDLE_NAME', '')
         first_name = row.get('FIRST_NAME', '')
         surname = row.get('SURNAME', '')
-        
+
         # Определяем пол
         gender = detect_gender_for_person(patronymic, first_name, surname, idx)
         auto_gender.append(gender)
-        
+
         # Обновляем статистику
         if gender == 'М':
             male_count += 1
@@ -1990,24 +2050,24 @@ def add_auto_gender_column(df, sheet_name):
             female_count += 1
         else:
             unknown_count += 1
-        
+
         # Прогресс каждые GENDER_PROGRESS_STEP строк
         if (idx + 1) % GENDER_PROGRESS_STEP == 0:
             percent = ((idx + 1) / total_rows) * 100
             logging.info(LOG_MESSAGES["gender_detection_progress"].format(
                 processed=idx + 1, total=total_rows, percent=percent
             ))
-    
+
     # Добавляем колонку к DataFrame
     df['AUTO_GENDER'] = auto_gender
-    
+
     # Логируем финальную статистику
     func_time = time() - func_start
     logging.info(LOG_MESSAGES["gender_detection_stats"].format(
         male=male_count, female=female_count, unknown=unknown_count, total=total_rows
     ))
     logging.info(LOG_MESSAGES["gender_detection_end"].format(time=func_time, sheet=sheet_name))
-    
+
     return df
 
 
@@ -2040,7 +2100,8 @@ def build_summary_sheet(dfs, params_summary, merge_fields):
             continue
 
         multiply_rows = field.get("multiply_rows", False)
-        summary = add_fields_to_sheet(summary, ref_df, src_keys, dst_keys, col_names, params_summary["sheet"], sheet_src, mode=mode, multiply_rows=multiply_rows)
+        summary = add_fields_to_sheet(summary, ref_df, src_keys, dst_keys, col_names, params_summary["sheet"],
+                                      sheet_src, mode=mode, multiply_rows=multiply_rows)
         logging.info(LOG_MESSAGES["func_end"].format(func="add_fields_to_sheet", params=params_str, time=0))
 
     n_rows, n_cols = summary.shape
@@ -2048,9 +2109,11 @@ def build_summary_sheet(dfs, params_summary, merge_fields):
     logging.info(LOG_MESSAGES["fields_summary"].format(rows=n_rows, cols=n_cols))
     logging.info(LOG_MESSAGES["sheet_written"].format(sheet=params_summary['sheet'], rows=n_rows, cols=n_cols))
     logging.info(LOG_MESSAGES["func_end"].format(func="build_summary_sheet", params=params_log, time=func_time))
-    logging.debug(LOG_MESSAGES["debug_columns"].format(sheet=params_summary["sheet"], columns=', '.join(summary.columns.tolist())))
+    logging.debug(LOG_MESSAGES["debug_columns"].format(sheet=params_summary["sheet"],
+                                                       columns=', '.join(summary.columns.tolist())))
     logging.debug(LOG_MESSAGES["debug_head"].format(sheet=params_summary["sheet"], head=summary.head(5).to_string()))
     return summary
+
 
 # Функция enrich_reward_with_contest_code удалена - CONTEST_CODE теперь добавляется через merge_fields_across_sheets
 
@@ -2083,7 +2146,8 @@ def main():
                     logging.warning(LOG_MESSAGES["json_flatten_missing"].format(sheet=sheet_name, column=col))
 
             # Для дебага: логируем итоговый список колонок после всех разворотов
-            logging.debug(LOG_MESSAGES["debug_columns"].format(sheet=sheet_name, columns=', '.join(df.columns.tolist())))
+            logging.debug(
+                LOG_MESSAGES["debug_columns"].format(sheet=sheet_name, columns=', '.join(df.columns.tolist())))
             sheets_data[sheet_name] = (df, file_conf)
             files_processed += 1
             rows_total += len(df)
