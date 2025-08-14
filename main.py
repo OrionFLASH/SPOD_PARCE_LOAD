@@ -1,758 +1,818 @@
-import os
-import sys
-import pandas as pd
-import logging
-from datetime import datetime
-from openpyxl.utils import get_column_letter
-from openpyxl.styles import Alignment, Font, PatternFill
-from time import time
-import json
-import re
+# === ИМПОРТЫ БИБЛИОТЕК ===
+import os          # Для работы с операционной системой и путями
+import sys         # Для системных функций и аргументов командной строки
+import pandas as pd  # Для работы с данными в табличном формате
+import logging     # Для логирования процессов
+from datetime import datetime  # Для работы с датами и временем
+from openpyxl.utils import get_column_letter  # Для получения буквенного обозначения колонок Excel
+from openpyxl.styles import Alignment, Font, PatternFill  # Для стилизации ячеек Excel
+from time import time  # Для измерения времени выполнения операций
+import json        # Для работы с JSON данными
+import re          # Для работы с регулярными выражениями
 
-# === Глобальные константы и переменные ===
-# Каталоги
-DIR_INPUT = r'/Users/orionflash/Desktop/MyProject/SPOD_PROM/SPOD'
-DIR_OUTPUT = r'/Users/orionflash/Desktop/MyProject/SPOD_PROM/OUT'
-DIR_LOGS = r'/Users/orionflash/Desktop/MyProject/SPOD_PROM/LOGS'
+# === ГЛОБАЛЬНЫЕ КОНСТАНТЫ И ПЕРЕМЕННЫЕ ===
+# Каталоги для работы программы
+DIR_INPUT = r'/Users/orionflash/Desktop/MyProject/SPOD_PROM/SPOD'    # Каталог с входными файлами
+DIR_OUTPUT = r'/Users/orionflash/Desktop/MyProject/SPOD_PROM/OUT'    # Каталог для выходных файлов
+DIR_LOGS = r'/Users/orionflash/Desktop/MyProject/SPOD_PROM/LOGS'    # Каталог для логов
 
-# Входные файлы (имя без расширения)
-# Соответствие: Имя листа, максимальная ширина колонки, закрепление, режим растягивания колонок
+# Конфигурация входных файлов (имя без расширения)
+# Каждый файл содержит настройки для обработки:
+# - file: имя файла
+# - sheet: название листа для обработки
+# - max_col_width: максимальная ширина колонки
+# - freeze: закрепление области (например, "C2" закрепляет колонки A,B и строки 1)
+# - col_width_mode: режим растягивания колонок ("AUTO", число, None)
+# - min_col_width: минимальная ширина колонки
 INPUT_FILES = [
     {
-        "file": "CONTEST-DATA (PROM) 2025-08-12 v1",
-        "sheet": "CONTEST-DATA",
-        "max_col_width": 120,
-        "freeze": "C2",
-        "col_width_mode": "AUTO",  # "AUTO", число, None - режим растягивания колонок
-        "min_col_width": 8  # минимальная ширина колонки
+        "file": "CONTEST-DATA (PROM) 2025-08-12 v1",  # Файл с данными конкурсов
+        "sheet": "CONTEST-DATA",                        # Лист для обработки
+        "max_col_width": 120,                          # Максимальная ширина колонки
+        "freeze": "C2",                                # Закрепление области
+        "col_width_mode": "AUTO",                      # Автоматическое растягивание колонок
+        "min_col_width": 8                             # Минимальная ширина колонки
     },
     {
-        "file": "GROUP (PROM) 2025-08-04",
-        "sheet": "GROUP",
-        "max_col_width": 20,
-        "freeze": "C2",
-        "col_width_mode": "AUTO",
-        "min_col_width": 8
+        "file": "GROUP (PROM) 2025-08-04",            # Файл с данными групп
+        "sheet": "GROUP",                              # Лист для обработки
+        "max_col_width": 20,                           # Максимальная ширина колонки
+        "freeze": "C2",                                # Закрепление области
+        "col_width_mode": "AUTO",                      # Автоматическое растягивание колонок
+        "min_col_width": 8                             # Минимальная ширина колонки
     },
     {
-        "file": "INDICATOR (PROM) 2025-08-04",
-        "sheet": "INDICATOR",
-        "max_col_width": 20,
-        "freeze": "B2",
-        "col_width_mode": "AUTO",
-        "min_col_width": 8
+        "file": "INDICATOR (PROM) 2025-08-04",        # Файл с индикаторами
+        "sheet": "INDICATOR",                          # Лист для обработки
+        "max_col_width": 20,                           # Максимальная ширина колонки
+        "freeze": "B2",                                # Закрепление области
+        "col_width_mode": "AUTO",                      # Автоматическое растягивание колонок
+        "min_col_width": 8                             # Минимальная ширина колонки
     },
     {
-        "file": "REPORT (PROM-KMKKSB) 2025-08-12 v0",
-        "sheet": "REPORT",
-        "max_col_width": 25,
-        "freeze": "D2",
-        "col_width_mode": "AUTO",
-        "min_col_width": 8
+        "file": "REPORT (PROM-KMKKSB) 2025-08-12 v0", # Файл с отчетами
+        "sheet": "REPORT",                             # Лист для обработки
+        "max_col_width": 25,                           # Максимальная ширина колонки
+        "freeze": "D2",                                # Закрепление области
+        "col_width_mode": "AUTO",                      # Автоматическое растягивание колонок
+        "min_col_width": 8                             # Минимальная ширина колонки
     },
     {
-        "file": "REWARD (PROM) 2025-08-14 v0",
-        "sheet": "REWARD",
-        "max_col_width": 250,
-        "freeze": "D2",
-        "col_width_mode": "AUTO",
-        "min_col_width": 8
+        "file": "REWARD (PROM) 2025-08-14 v0",        # Файл с наградами
+        "sheet": "REWARD",                             # Лист для обработки
+        "max_col_width": 250,                          # Максимальная ширина колонки (большая для длинных описаний)
+        "freeze": "D2",                                # Закрепление области
+        "col_width_mode": "AUTO",                      # Автоматическое растягивание колонок
+        "min_col_width": 8                             # Минимальная ширина колонки
     },
     {
-        "file": "REWARD-LINK (PROM) 2025-08-07",
-        "sheet": "REWARD-LINK",
-        "max_col_width": 30,
-        "freeze": "A2",
-        "col_width_mode": "AUTO",
-        "min_col_width": 8
+        "file": "REWARD-LINK (PROM) 2025-08-07",      # Файл со связями наград
+        "sheet": "REWARD-LINK",                        # Лист для обработки
+        "max_col_width": 30,                           # Максимальная ширина колонки
+        "freeze": "A2",                                # Закрепление области
+        "col_width_mode": "AUTO",                      # Автоматическое растягивание колонок
+        "min_col_width": 8                             # Минимальная ширина колонки
     },
     {
-        "file": "SVD_KB_DM_GAMIFICATION_ORG_UNIT_V20 2025_07_11 v1",
-        "sheet": "ORG_UNIT_V20",
-        "max_col_width": 60,
-        "freeze": "A2",
-        "col_width_mode": "AUTO",
-        "min_col_width": 8
+        "file": "SVD_KB_DM_GAMIFICATION_ORG_UNIT_V20 2025_07_11 v1", # Файл с организационными единицами
+        "sheet": "ORG_UNIT_V20",                       # Лист для обработки
+        "max_col_width": 60,                           # Максимальная ширина колонки
+        "freeze": "A2",                                # Закрепление области
+        "col_width_mode": "AUTO",                      # Автоматическое растягивание колонок
+        "min_col_width": 8                             # Минимальная ширина колонки
     },
     {
-        "file": "TOURNAMENT-SCHEDULE (PROM) 2025-08-12 v0",
-        "sheet": "TOURNAMENT-SCHEDULE",
-        "max_col_width": 120,
-        "freeze": "B2",
-        "col_width_mode": "AUTO",
-        "min_col_width": 8
+        "file": "TOURNAMENT-SCHEDULE (PROM) 2025-08-12 v0", # Файл с расписанием турниров
+        "sheet": "TOURNAMENT-SCHEDULE",                # Лист для обработки
+        "max_col_width": 120,                          # Максимальная ширина колонки
+        "freeze": "B2",                                # Закрепление области
+        "col_width_mode": "AUTO",                      # Автоматическое растягивание колонок
+        "min_col_width": 8                             # Минимальная ширина колонки
     },
     {
-        "file": "PROM_USER_ROLE 2025-07-21 v0",
-        "sheet": "USER_ROLE",
-        "max_col_width": 60,
-        "freeze": "D2",
-        "col_width_mode": "AUTO",
-        "min_col_width": 8
+        "file": "PROM_USER_ROLE 2025-07-21 v0",       # Файл с ролями пользователей
+        "sheet": "USER_ROLE",                          # Лист для обработки
+        "max_col_width": 60,                           # Максимальная ширина колонки
+        "freeze": "D2",                                # Закрепление области
+        "col_width_mode": "AUTO",                      # Автоматическое растягивание колонок
+        "min_col_width": 8                             # Минимальная ширина колонки
     },
     {
-        "file": "PROM_USER_ROLE SB 2025-07-21 v0",
-        "sheet": "USER_ROLE SB",
-        "max_col_width": 60,
-        "freeze": "D2",
-        "col_width_mode": "AUTO",
-        "min_col_width": 8
+        "file": "PROM_USER_ROLE SB 2025-07-21 v0",    # Файл с ролями пользователей SB
+        "sheet": "USER_ROLE SB",                       # Лист для обработки
+        "max_col_width": 60,                           # Максимальная ширина колонки
+        "freeze": "D2",                                # Закрепление области
+        "col_width_mode": "AUTO",                      # Автоматическое растягивание колонок
+        "min_col_width": 8                             # Минимальная ширина колонки
     },
     {
-        "file": "employee_PROM_final_5000_2025-07-26_00-09-03",
-        "sheet": "EMPLOYEE",
-        "max_col_width": 70,
-        "freeze": "F2",
-        "col_width_mode": "AUTO",
-        "min_col_width": 8
+        "file": "employee_PROM_final_5000_2025-07-26_00-09-03",  # Файл с данными сотрудников
+        "sheet": "EMPLOYEE",                              # Лист для обработки
+        "max_col_width": 70,                              # Максимальная ширина колонки
+        "freeze": "F2",                                   # Закрепление области (колонки A-E и строка 1)
+        "col_width_mode": "AUTO",                         # Автоматическое растягивание колонок
+        "min_col_width": 8                                # Минимальная ширина колонки
     }
 ]
 
+# === КОНФИГУРАЦИЯ СВОДНОГО ЛИСТА ===
+# Настройки для создания итогового листа с объединенными данными
 SUMMARY_SHEET = {
-    "sheet": "SUMMARY",
-    "max_col_width": 70,
-    "freeze": "F2",
-    "col_width_mode": "AUTO",
-    "min_col_width": 8
+    "sheet": "SUMMARY",                                   # Название сводного листа
+    "max_col_width": 70,                                 # Максимальная ширина колонки
+    "freeze": "F2",                                      # Закрепление области (колонки A-E и строка 1)
+    "col_width_mode": "AUTO",                            # Автоматическое растягивание колонок
+    "min_col_width": 8                                   # Минимальная ширина колонки
 }
 
-# Логирование: уровень, шаблоны, имена
-LOG_LEVEL = "INFO"  # "INFO" или "DEBUG"
-LOG_BASE_NAME = "LOGS"
+# === НАСТРОЙКИ ЛОГИРОВАНИЯ ===
+LOG_LEVEL = "INFO"  # Уровень логирования: "INFO" для продакшена, "DEBUG" для отладки
+LOG_BASE_NAME = "LOGS"  # Базовое имя для файлов логов
+
+# Словарь сообщений для логирования различных событий
+# Используется для стандартизации сообщений и локализации
 LOG_MESSAGES = {
-    "start": "=== Старт работы программы: {time} ===",
-    "reading_file": "Загрузка файла: {file_path}",
-    "read_ok": "Файл успешно загружен: {file_path}, строк: {rows}, колонок: {cols}",
-    "read_fail": "Ошибка загрузки файла: {file_path}. {error}",
-    "sheet_written": "Лист Excel сформирован: {sheet} (строк: {rows}, колонок: {cols})",
-    "finish": "=== Завершение работы. Обработано файлов: {files}, строк всего: {rows_total}. Время выполнения: {time_elapsed} ===",
-    "summary": "Summary: {summary}",
-    "func_start": "[START] {func} {params}",
-    "func_end": "[END] {func} {params} (время: {time:.3f}s)",
-    "func_error": "[ERROR] {func} {params} — {error}",
-    "json_flatten_start": "Разворачивание колонки {column} (строк: {rows})",
-    "json_flatten_end": "Развёрнуто {n_cols} колонок из {n_keys} ключей, ошибок JSON: {n_errors}, строк: {rows}, время: {time:.3f}s",
-    "json_flatten_error": "Ошибка разбора JSON (строка {row}): {error}",
-    "debug_columns": "[DEBUG] {sheet}: колонки после разворачивания: {columns}",
-    "debug_head": "[DEBUG] {sheet}: первые строки после разворачивания:\n{head}",
-    "field_joined": "Колонка {column} присоединена из {src_sheet} по ключу {dst_key} -> {src_key}",
-    "field_missing": "Колонка {column} не добавлена: нет листа {src_sheet} или ключей {src_key}",
-    "fields_summary": "Итоговая структура: {rows} строк, {cols} колонок",
-    "duplicates_start": "[START] Проверка дублей: {sheet}, ключ: {keys}",
-    "duplicates_found": "[INFO] Дублей найдено: {count} на листе {sheet} по ключу {keys}",
-    "duplicates_error": "[ERROR] Ошибка при поиске дублей: {sheet}, ключ: {keys}: {error}",
-    "duplicates_end": "[END] Проверка дублей: {sheet}, время: {time:.3f}s",
-    "color_scheme_applied": "[INFO] Цветовая схема применена: лист {sheet}, колонка {col}, стиль {scope}, цвет {color}"
-    , "json_flatten_summary": "[INFO] {column} → новых колонок: {count}"
-    , "json_flatten_keys": "[INFO] Все новые колонки: {keys}"
-    , "csv_sample": "[DEBUG] CSV {file} поле {column}: {sample}"
-    , "excel_path": "Excel file: {path}"
-    , "log_path": "Log file: {path}"
-    , "json_flatten_done": "[JSON FLATTEN] {sheet}: поле '{column}' развернуто с префиксом '{prefix}'"
-    , "json_flatten_missing": "[JSON FLATTEN] {sheet}: поле '{column}' не найдено в колонках!"
-    , "missing_column": "[add_fields_to_sheet] Колонка {column} не найдена в {sheet}, создаём пустую."
-    , "missing_key": "[add_fields_to_sheet] Ключевая колонка {key} не найдена в {sheet}, создаём пустую."
-    , "safe_json_error": "[safe_json_loads] Ошибка: {error} | Исходная строка: {line}"
-    , "multiply_rows_start": "[MULTIPLY ROWS] {sheet}: начинаем размножение строк для поля {column}"
-    ,
-    "multiply_rows_result": "[MULTIPLY ROWS] {sheet}: {old_rows} строк -> {new_rows} строк (размножение: {multiply_factor}x)"
-    , "column_width_set": "[COLUMN WIDTH] {sheet}: колонка '{column}' -> ширина {width} (режим: {mode})"
-    , "dynamic_color_scheme": "[DYNAMIC COLOR] Сгенерирована схема для {sheet}: {columns}"
-    , "gender_detection_start": "[GENDER DETECTION] Начинаем определение пола для листа {sheet}, строк: {rows}"
-    , "gender_detection_progress": "[GENDER DETECTION] Обработано {processed} из {total} строк ({percent:.1f}%)"
-    ,
-    "gender_detection_stats": "[GENDER DETECTION] Статистика: М={male}, Ж={female}, неопределено={unknown} (всего: {total})"
-    , "gender_detection_end": "[GENDER DETECTION] Завершено за {time:.3f}s для листа {sheet}"
-    , "gender_by_patronymic": "[DEBUG] Строка {row}: пол по отчеству '{patronymic}' -> {gender}"
-    , "gender_by_name": "[DEBUG] Строка {row}: пол по имени '{name}' -> {gender}"
-    , "gender_by_surname": "[DEBUG] Строка {row}: пол по фамилии '{surname}' -> {gender}"
-    , "gender_unknown": "[DEBUG] Строка {row}: пол не определен (отч:'{patronymic}', имя:'{name}', фам:'{surname}')"
-    , "field_length_start": "[FIELD LENGTH] Проверка длины полей для листа {sheet}, строк: {rows}"
-    , "field_length_progress": "[FIELD LENGTH] Обработано {processed} из {total} строк ({percent:.1f}%)"
-    , "field_length_stats": "[FIELD LENGTH] Статистика: корректных={correct}, с ошибками={errors} (всего: {total})"
-    , "field_length_end": "[FIELD LENGTH] Завершено за {time:.3f}s для листа {sheet}"
-    , "field_length_violation": "[DEBUG] Строка {row}: поле '{field}' = {length} {operator} {limit} (нарушение)"
+    # Основные события программы
+    "start": "=== Старт работы программы: {time} ===",                    # Начало работы
+    "reading_file": "Загрузка файла: {file_path}",                        # Чтение файла
+    "read_ok": "Файл успешно загружен: {file_path}, строк: {rows}, колонок: {cols}",  # Успешное чтение
+    "read_fail": "Ошибка загрузки файла: {file_path}. {error}",           # Ошибка чтения
+    "sheet_written": "Лист Excel сформирован: {sheet} (строк: {rows}, колонок: {cols})",  # Лист создан
+    "finish": "=== Завершение работы. Обработано файлов: {files}, строк всего: {rows_total}. Время выполнения: {time_elapsed} ===",  # Завершение
+    "summary": "Summary: {summary}",                                      # Сводка
+    
+    # События функций
+    "func_start": "[START] {func} {params}",                              # Начало выполнения функции
+    "func_end": "[END] {func} {params} (время: {time:.3f}s)",            # Завершение функции
+    "func_error": "[ERROR] {func} {params} — {error}",                    # Ошибка в функции
+    
+    # Обработка JSON данных
+    "json_flatten_start": "Разворачивание колонки {column} (строк: {rows})",  # Начало разворачивания JSON
+    "json_flatten_end": "Развёрнуто {n_cols} колонок из {n_keys} ключей, ошибок JSON: {n_errors}, строк: {rows}, время: {time:.3f}s",  # Завершение разворачивания
+    "json_flatten_error": "Ошибка разбора JSON (строка {row}): {error}",  # Ошибка парсинга JSON
+    "debug_columns": "[DEBUG] {sheet}: колонки после разворачивания: {columns}",  # Отладка колонок
+    "debug_head": "[DEBUG] {sheet}: первые строки после разворачивания:\n{head}",  # Отладка данных
+    
+    # Присоединение полей между листами
+    "field_joined": "Колонка {column} присоединена из {src_sheet} по ключу {dst_key} -> {src_key}",  # Поле присоединено
+    "field_missing": "Колонка {column} не добавлена: нет листа {src_sheet} или ключей {src_key}",  # Поле не найдено
+    "fields_summary": "Итоговая структура: {rows} строк, {cols} колонок",  # Сводка по полям
+    
+    # Проверка дублей
+    "duplicates_start": "[START] Проверка дублей: {sheet}, ключ: {keys}",  # Начало проверки
+    "duplicates_found": "[INFO] Дублей найдено: {count} на листе {sheet} по ключу {keys}",  # Дубли найдены
+    "duplicates_error": "[ERROR] Ошибка при поиске дублей: {sheet}, ключ: {keys}: {error}",  # Ошибка поиска
+    "duplicates_end": "[END] Проверка дублей: {sheet}, время: {time:.3f}s",  # Завершение проверки
+    
+    # Цветовые схемы
+    "color_scheme_applied": "[INFO] Цветовая схема применена: лист {sheet}, колонка {col}, стиль {scope}, цвет {color}",  # Схема применена
+    
+    # Дополнительные сообщения для JSON
+    "json_flatten_summary": "[INFO] {column} → новых колонок: {count}",  # Сводка по разворачиванию
+    "json_flatten_keys": "[INFO] Все новые колонки: {keys}",  # Список новых колонок
+    "csv_sample": "[DEBUG] CSV {file} поле {column}: {sample}",  # Образец CSV данных
+    "excel_path": "Excel file: {path}",  # Путь к Excel файлу
+    "log_path": "Log file: {path}",  # Путь к лог файлу
+    "json_flatten_done": "[JSON FLATTEN] {sheet}: поле '{column}' развернуто с префиксом '{prefix}'",  # JSON развернут
+    "json_flatten_missing": "[JSON FLATTEN] {sheet}: поле '{column}' не найдено в колонках!",  # Поле не найдено
+    
+    # Добавление полей
+    "missing_column": "[add_fields_to_sheet] Колонка {column} не найдена в {sheet}, создаём пустую.",  # Колонка отсутствует
+    "missing_key": "[add_fields_to_sheet] Ключевая колонка {key} не найдена в {sheet}, создаём пустую.",  # Ключ отсутствует
+    
+    # Безопасный парсинг JSON
+    "safe_json_error": "[safe_json_loads] Ошибка: {error} | Исходная строка: {line}",  # Ошибка парсинга
+    
+    # Размножение строк
+    "multiply_rows_start": "[MULTIPLY ROWS] {sheet}: начинаем размножение строк для поля {column}",  # Начало размножения
+    "multiply_rows_result": "[MULTIPLY ROWS] {sheet}: {old_rows} строк -> {new_rows} строк (размножение: {multiply_factor}x)",  # Результат размножения
+    
+    # Ширина колонок
+    "column_width_set": "[COLUMN WIDTH] {sheet}: колонка '{column}' -> ширина {width} (режим: {mode})",  # Установка ширины
+    
+    # Динамические цветовые схемы
+    "dynamic_color_scheme": "[DYNAMIC COLOR] Сгенерирована схема для {sheet}: {columns}",  # Схема сгенерирована
+    
+    # Определение пола
+    "gender_detection_start": "[GENDER DETECTION] Начинаем определение пола для листа {sheet}, строк: {rows}",  # Начало определения
+    "gender_detection_progress": "[GENDER DETECTION] Обработано {processed} из {total} строк ({percent:.1f}%)",  # Прогресс определения
+    "gender_detection_stats": "[GENDER DETECTION] Статистика: М={male}, Ж={female}, неопределено={unknown} (всего: {total})",  # Статистика
+    "gender_detection_end": "[GENDER DETECTION] Завершено за {time:.3f}s для листа {sheet}",  # Завершение определения
+    "gender_by_patronymic": "[DEBUG] Строка {row}: пол по отчеству '{patronymic}' -> {gender}",  # Пол по отчеству
+    "gender_by_name": "[DEBUG] Строка {row}: пол по имени '{name}' -> {gender}",  # Пол по имени
+    "gender_by_surname": "[DEBUG] Строка {row}: пол по фамилии '{surname}' -> {gender}",  # Пол по фамилии
+    "gender_unknown": "[DEBUG] Строка {row}: пол не определен (отч:'{patronymic}', имя:'{name}', фам:'{surname}')",  # Пол не определен
+    
+    # Проверка длины полей
+    "field_length_start": "[FIELD LENGTH] Проверка длины полей для листа {sheet}, строк: {rows}",  # Начало проверки
+    "field_length_progress": "[FIELD LENGTH] Обработано {processed} из {total} строк ({percent:.1f}%)",  # Прогресс проверки
+    "field_length_stats": "[FIELD LENGTH] Статистика: корректных={correct}, с ошибками={errors} (всего: {total})",  # Статистика проверки
+    "field_length_end": "[FIELD LENGTH] Завершено за {time:.3f}s для листа {sheet}",  # Завершение проверки
+    "field_length_violation": "[DEBUG] Строка {row}: поле '{field}' = {length} {operator} {limit} (нарушение)"  # Нарушение ограничений
 }
 
-# === Константы для определения пола ===
+# === КОНСТАНТЫ ДЛЯ ОПРЕДЕЛЕНИЯ ПОЛА ===
+# Паттерны для автоматического определения пола по отчеству, имени и фамилии
 GENDER_PATTERNS = {
-    # Отчества - мужские окончания
+    # Отчества - мужские окончания (характерные для мужчин)
     'patronymic_male': [
-        'ович', 'евич', 'ич', 'ыч', 'оглы', 'улы', 'уулу', 'заде'
+        'ович', 'евич', 'ич', 'ыч', 'оглы', 'улы', 'уулу', 'заде'  # Русские, кавказские, тюркские
     ],
-    # Отчества - женские окончания
+    # Отчества - женские окончания (характерные для женщин)
     'patronymic_female': [
-        'овна', 'евна', 'инична', 'ична', 'на', 'кызы'
+        'овна', 'евна', 'инична', 'ична', 'на', 'кызы'  # Русские, тюркские
     ],
-    # Имена - мужские окончания
+    # Имена - мужские окончания (характерные для мужчин)
     'name_male': [
-        'ий', 'ей', 'ай', 'ой', 'ый', 'ев', 'ов', 'ин', 'ан', 'он', 'ен', 'ур', 'ич', 'ыч'
+        'ий', 'ей', 'ай', 'ой', 'ый', 'ев', 'ов', 'ин', 'ан', 'он', 'ен', 'ур', 'ич', 'ыч'  # Русские окончания
     ],
-    # Имена - женские окончания
+    # Имена - женские окончания (характерные для женщин)
     'name_female': [
-        'а', 'я', 'ина', 'ана', 'ена', 'ия', 'ья', 'на', 'ла', 'ра', 'са', 'та', 'да', 'ка', 'га'
+        'а', 'я', 'ина', 'ана', 'ена', 'ия', 'ья', 'на', 'ла', 'ра', 'са', 'та', 'да', 'ка', 'га'  # Русские окончания
     ],
-    # Фамилии - мужские окончания
+    # Фамилии - мужские окончания (характерные для мужчин)
     'surname_male': [
-        'ов', 'ев', 'ин', 'ын', 'ский', 'цкий', 'ич', 'енко', 'ко', 'як', 'ук', 'юк', 'ич', 'ыч'
+        'ов', 'ев', 'ин', 'ын', 'ский', 'цкий', 'ич', 'енко', 'ко', 'як', 'ук', 'юк', 'ич', 'ыч'  # Русские, украинские окончания
     ],
-    # Фамилии - женские окончания
+    # Фамилии - женские окончания (характерные для женщин)
     'surname_female': [
-        'ова', 'ева', 'ина', 'ына', 'ская', 'цкая', 'енко', 'ко'
+        'ова', 'ева', 'ина', 'ына', 'ская', 'цкая', 'енко', 'ко'  # Русские, украинские окончания
     ]
 }
 
-GENDER_PROGRESS_STEP = 500  # Шаг для отображения прогресса
+# Шаг для отображения прогресса при обработке больших объемов данных
+GENDER_PROGRESS_STEP = 500  # Показывать прогресс каждые 500 обработанных строк
 
-# === Константы для проверки длины полей ===
+# === КОНСТАНТЫ ДЛЯ ПРОВЕРКИ ДЛИНЫ ПОЛЕЙ ===
+# Настройки валидации длины полей для различных листов
+# Каждый лист содержит правила проверки для конкретных полей
 FIELD_LENGTH_VALIDATIONS = {
-    "ORG_UNIT_V20": {
-        "result_column": "FIELD_LENGTH_CHECK",
+    "ORG_UNIT_V20": {  # Лист с организационными единицами
+        "result_column": "FIELD_LENGTH_CHECK",  # Колонка для результатов проверки
         "fields": {
-            "TB_FULL_NAME": {"limit": 100, "operator": "<="},
-            "GOSB_NAME": {"limit": 100, "operator": "<="},
-            "GOSB_SHORT_NAME": {"limit": 20, "operator": "<="}
+            "TB_FULL_NAME": {"limit": 100, "operator": "<="},      # Полное имя ТБ: максимум 100 символов
+            "GOSB_NAME": {"limit": 100, "operator": "<="},         # Название ГОСБ: максимум 100 символов
+            "GOSB_SHORT_NAME": {"limit": 20, "operator": "<="}     # Краткое название ГОСБ: максимум 20 символов
         }
     },
-    "EMPLOYEE": {
-        "result_column": "FIELD_LENGTH_CHECK",
+    "EMPLOYEE": {  # Лист с сотрудниками
+        "result_column": "FIELD_LENGTH_CHECK",  # Колонка для результатов проверки
         "fields": {
-            "PERSON_NUMBER": {"limit": 20, "operator": "="},
-            "PERSON_NUMBER_ADD": {"limit": 20, "operator": "="}
+            "PERSON_NUMBER": {"limit": 20, "operator": "="},       # Номер сотрудника: точно 20 символов
+            "PERSON_NUMBER_ADD": {"limit": 20, "operator": "="}    # Дополнительный номер: точно 20 символов
         }
     },
-    "REPORT": {
-        "result_column": "FIELD_LENGTH_CHECK",
+    "REPORT": {  # Лист с отчетами
+        "result_column": "FIELD_LENGTH_CHECK",  # Колонка для результатов проверки
         "fields": {
-            "MANAGER_PERSON_NUMBER": {"limit": 20, "operator": "="}
+            "MANAGER_PERSON_NUMBER": {"limit": 20, "operator": "="}  # Номер менеджера: точно 20 символов
         }
     }
 }
 
-# --- Общие префиксы для колонок JSON ---
-PREFIX_CONTEST_FEATURE = "CONTEST_FEATURE"
-PREFIX_ADD_DATA = "ADD_DATA"
-PREFIX_REWARD_LINK = "REWARD_LINK => "
-COL_REWARD_LINK_CONTEST_CODE = f"{PREFIX_REWARD_LINK}CONTEST_CODE"
+# --- ОБЩИЕ ПРЕФИКСЫ ДЛЯ КОЛОНОК JSON ---
+# Префиксы для развернутых JSON колонок, чтобы избежать конфликтов имен
+PREFIX_CONTEST_FEATURE = "CONTEST_FEATURE"  # Префикс для признаков конкурса
+PREFIX_ADD_DATA = "ADD_DATA"                # Префикс для дополнительных данных
+PREFIX_REWARD_LINK = "REWARD_LINK => "      # Префикс для связей наград
+COL_REWARD_LINK_CONTEST_CODE = f"{PREFIX_REWARD_LINK}CONTEST_CODE"  # Полное имя колонки
 
+# === КОНФИГУРАЦИЯ ОБЪЕДИНЕНИЯ ДАННЫХ МЕЖДУ ЛИСТАМИ ===
+# MERGE_FIELDS определяет, какие поля из каких листов добавляются в другие листы
+# Каждый элемент содержит настройки для одного типа объединения
 MERGE_FIELDS = [
     # REPORT: добавляем CONTEST_TYPE, FULL_NAME, BUSINESS_STATUS, BUSINESS_BLOCK из CONTEST-DATA
+    # Это позволяет в отчетах видеть полную информацию о конкурсе
     {
-        "sheet_src": "CONTEST-DATA",
-        "sheet_dst": "REPORT",
-        "src_key": ["CONTEST_CODE"],
-        "dst_key": ["CONTEST_CODE"],
-        "column": ["CONTEST_TYPE", "FULL_NAME", "BUSINESS_STATUS", "BUSINESS_BLOCK"],
-        "mode": "value",
-        "multiply_rows": False,  # Новый параметр: размножать ли строки при множественных совпадениях
-        "col_max_width": 80,  # Максимальная ширина добавляемых колонок
-        "col_width_mode": "AUTO",  # Режим растягивания для добавляемых колонок
-        "col_min_width": 8  # Минимальная ширина для добавляемых колонок
+        "sheet_src": "CONTEST-DATA",        # Источник данных - лист с данными конкурсов
+        "sheet_dst": "REPORT",              # Целевой лист - отчеты
+        "src_key": ["CONTEST_CODE"],        # Ключ в источнике - код конкурса
+        "dst_key": ["CONTEST_CODE"],        # Ключ в целевом листе - код конкурса
+        "column": ["CONTEST_TYPE", "FULL_NAME", "BUSINESS_STATUS", "BUSINESS_BLOCK"],  # Добавляемые колонки
+        "mode": "value",                    # Режим: добавляем значения (не количество)
+        "multiply_rows": False,             # Не размножаем строки при множественных совпадениях
+        "col_max_width": 80,               # Максимальная ширина добавляемых колонок
+        "col_width_mode": "AUTO",          # Автоматическое растягивание колонок
+        "col_min_width": 8                 # Минимальная ширина колонок
     },
     # REPORT: добавляем даты и статус из TOURNAMENT-SCHEDULE
+    # Позволяет видеть расписание турниров в отчетах
     {
-        "sheet_src": "TOURNAMENT-SCHEDULE",
-        "sheet_dst": "REPORT",
-        "src_key": ["TOURNAMENT_CODE"],
-        "dst_key": ["TOURNAMENT_CODE"],
-        "column": ["END_DT", "RESULT_DT", "TOURNAMENT_STATUS"],
-        "mode": "value",
-        "multiply_rows": False,
-        "col_max_width": 25,
-        "col_width_mode": "AUTO",
-        "col_min_width": 8
+        "sheet_src": "TOURNAMENT-SCHEDULE", # Источник - расписание турниров
+        "sheet_dst": "REPORT",              # Цель - отчеты
+        "src_key": ["TOURNAMENT_CODE"],     # Ключ - код турнира
+        "dst_key": ["TOURNAMENT_CODE"],     # Ключ - код турнира
+        "column": ["END_DT", "RESULT_DT", "TOURNAMENT_STATUS"],  # Даты и статус
+        "mode": "value",                    # Добавляем значения
+        "multiply_rows": False,             # Не размножаем строки
+        "col_max_width": 25,               # Максимальная ширина (даты короткие)
+        "col_width_mode": "AUTO",          # Автоматическое растягивание
+        "col_min_width": 8                 # Минимальная ширина
     },
     # REWARD: добавляем CONTEST_CODE из REWARD-LINK по REWARD_CODE
+    # Связывает награды с конкурсами через промежуточную таблицу
     {
-        "sheet_src": "REWARD-LINK",
-        "sheet_dst": "REWARD",
-        "src_key": ["REWARD_CODE"],
-        "dst_key": ["REWARD_CODE"],
-        "column": ["CONTEST_CODE"],
-        "mode": "value",
-        "multiply_rows": False,
-        "col_max_width": 30,
-        "col_width_mode": "AUTO",
-        "col_min_width": 8
+        "sheet_src": "REWARD-LINK",         # Источник - связи наград
+        "sheet_dst": "REWARD",              # Цель - награды
+        "src_key": ["REWARD_CODE"],         # Ключ - код награды
+        "dst_key": ["REWARD_CODE"],         # Ключ - код награды
+        "column": ["CONTEST_CODE"],         # Добавляем код конкурса
+        "mode": "value",                    # Добавляем значение
+        "multiply_rows": False,             # Не размножаем строки
+        "col_max_width": 30,               # Максимальная ширина
+        "col_width_mode": "AUTO",          # Автоматическое растягивание
+        "col_min_width": 8                 # Минимальная ширина
     },
+    # REWARD: добавляем TOURNAMENT_CODE из TOURNAMENT-SCHEDULE
+    # Связывает награды с турнирами через код конкурса
     {
-        "sheet_src": "TOURNAMENT-SCHEDULE",
-        "sheet_dst": "REWARD",
-        "src_key": ["CONTEST_CODE"],
-        "dst_key": ["REWARD_LINK => CONTEST_CODE"],
-        "column": ["TOURNAMENT_CODE"],
-        "mode": "count",
-        "multiply_rows": False,
-        "col_max_width": 11,
-        "col_width_mode": "AUTO",
-        "col_min_width": 8
+        "sheet_src": "TOURNAMENT-SCHEDULE", # Источник - расписание турниров
+        "sheet_dst": "REWARD",              # Цель - награды
+        "src_key": ["CONTEST_CODE"],        # Ключ в источнике - код конкурса
+        "dst_key": ["REWARD_LINK => CONTEST_CODE"],  # Ключ в цели - код конкурса из связи
+        "column": ["TOURNAMENT_CODE"],      # Добавляем код турнира
+        "mode": "count",                    # Режим: подсчитываем количество турниров
+        "multiply_rows": False,             # Не размножаем строки
+        "col_max_width": 11,               # Максимальная ширина (код турнира короткий)
+        "col_width_mode": "AUTO",          # Автоматическое растягивание
+        "col_min_width": 8                 # Минимальная ширина
     },
+    # EMPLOYEE: добавляем ORG_UNIT_CODE из ORG_UNIT_V20 по составному ключу
+    # Связывает сотрудников с организационными единицами
     {
-        "sheet_src": "ORG_UNIT_V20",
-        "sheet_dst": "EMPLOYEE",
-        "src_key": ["TB_CODE", "GOSB_CODE"],
-        "dst_key": ["TB_CODE", "GOSB_CODE"],
-        "column": ["ORG_UNIT_CODE"],
-        "mode": "value",
-        "multiply_rows": False,
-        "col_max_width": 15,
-        "col_width_mode": "AUTO",
-        "col_min_width": 11
+        "sheet_src": "ORG_UNIT_V20",       # Источник - организационные единицы
+        "sheet_dst": "EMPLOYEE",            # Цель - сотрудники
+        "src_key": ["TB_CODE", "GOSB_CODE"], # Составной ключ: код ТБ + код ГОСБ
+        "dst_key": ["TB_CODE", "GOSB_CODE"], # Составной ключ: код ТБ + код ГОСБ
+        "column": ["ORG_UNIT_CODE"],        # Добавляем код организационной единицы
+        "mode": "value",                    # Добавляем значение
+        "multiply_rows": False,             # Не размножаем строки
+        "col_max_width": 15,               # Максимальная ширина
+        "col_width_mode": "AUTO",          # Автоматическое растягивание
+        "col_min_width": 11                # Минимальная ширина
     },
+    # EMPLOYEE: добавляем GOSB_SHORT_NAME из ORG_UNIT_V20 по ORG_UNIT_CODE
+    # Добавляет краткое название ГОСБ к сотрудникам
     {
-        "sheet_src": "ORG_UNIT_V20",
-        "sheet_dst": "EMPLOYEE",
-        "src_key": ["ORG_UNIT_CODE"],
-        "dst_key": ["ORG_UNIT_CODE"],
-        "column": ["GOSB_SHORT_NAME"],
-        "mode": "value",
-        "multiply_rows": False,
-        "col_max_width": 25,
-        "col_width_mode": "AUTO",
-        "col_min_width": 11
+        "sheet_src": "ORG_UNIT_V20",       # Источник - организационные единицы
+        "sheet_dst": "EMPLOYEE",            # Цель - сотрудники
+        "src_key": ["ORG_UNIT_CODE"],       # Ключ - код организационной единицы
+        "dst_key": ["ORG_UNIT_CODE"],       # Ключ - код организационной единицы
+        "column": ["GOSB_SHORT_NAME"],      # Добавляем краткое название ГОСБ
+        "mode": "value",                    # Добавляем значение
+        "multiply_rows": False,             # Не размножаем строки
+        "col_max_width": 25,               # Максимальная ширина
+        "col_width_mode": "AUTO",          # Автоматическое растягивание
+        "col_min_width": 11                # Минимальная ширина
     },
     # TOURNAMENT-SCHEDULE: добавляем поля из CONTEST-DATA
+    # Обогащает расписание турниров информацией о конкурсах
     {
-        "sheet_src": "CONTEST-DATA",
-        "sheet_dst": "TOURNAMENT-SCHEDULE",
-        "src_key": ["CONTEST_CODE"],
-        "dst_key": ["CONTEST_CODE"],
-        "column": ["FULL_NAME", "BUSINESS_BLOCK", "CONTEST_TYPE", "BUSINESS_STATUS"],
-        "mode": "value",
-        "multiply_rows": False,
-        "col_max_width": 70,
-        "col_width_mode": "AUTO",
-        "col_min_width": 35
+        "sheet_src": "CONTEST-DATA",        # Источник - данные конкурсов
+        "sheet_dst": "TOURNAMENT-SCHEDULE", # Цель - расписание турниров
+        "src_key": ["CONTEST_CODE"],        # Ключ - код конкурса
+        "dst_key": ["CONTEST_CODE"],        # Ключ - код конкурса
+        "column": ["FULL_NAME", "BUSINESS_BLOCK", "CONTEST_TYPE", "BUSINESS_STATUS"],  # Добавляемые поля
+        "mode": "value",                    # Добавляем значения
+        "multiply_rows": False,             # Не размножаем строки
+        "col_max_width": 70,               # Максимальная ширина
+        "col_width_mode": "AUTO",          # Автоматическое растягивание
+        "col_min_width": 35                # Минимальная ширина
     },
+    # GROUP: добавляем FULL_NAME из CONTEST-DATA
+    # Добавляет название конкурса к группам
     {
-        "sheet_src": "CONTEST-DATA",
-        "sheet_dst": "GROUP",
-        "src_key": ["CONTEST_CODE"],
-        "dst_key": ["CONTEST_CODE"],
-        "column": ["FULL_NAME"],
-        "mode": "value",
-        "multiply_rows": False,
-        "col_max_width": 70,
-        "col_width_mode": "AUTO",
-        "col_min_width": 35
+        "sheet_src": "CONTEST-DATA",        # Источник - данные конкурсов
+        "sheet_dst": "GROUP",               # Цель - группы
+        "src_key": ["CONTEST_CODE"],        # Ключ - код конкурса
+        "dst_key": ["CONTEST_CODE"],        # Ключ - код конкурса
+        "column": ["FULL_NAME"],            # Добавляем полное название
+        "mode": "value",                    # Добавляем значение
+        "multiply_rows": False,             # Не размножаем строки
+        "col_max_width": 70,               # Максимальная ширина
+        "col_width_mode": "AUTO",          # Автоматическое растягивание
+        "col_min_width": 35                # Минимальная ширина
     },
+    # INDICATOR: добавляем FULL_NAME из CONTEST-DATA
+    # Добавляет название конкурса к индикаторам
     {
-        "sheet_src": "CONTEST-DATA",
-        "sheet_dst": "INDICATOR",
-        "src_key": ["CONTEST_CODE"],
-        "dst_key": ["CONTEST_CODE"],
-        "column": ["FULL_NAME"],
-        "mode": "value",
-        "multiply_rows": False,
-        "col_max_width": 70,
-        "col_width_mode": "AUTO",
-        "col_min_width": 35
+        "sheet_src": "CONTEST-DATA",        # Источник - данные конкурсов
+        "sheet_dst": "INDICATOR",           # Цель - индикаторы
+        "src_key": ["CONTEST_CODE"],        # Ключ - код конкурса
+        "dst_key": ["CONTEST_CODE"],        # Ключ - код конкурса
+        "column": ["FULL_NAME"],            # Добавляем полное название
+        "mode": "value",                    # Добавляем значение
+        "multiply_rows": False,             # Не размножаем строки
+        "col_max_width": 70,               # Максимальная ширина
+        "col_width_mode": "AUTO",          # Автоматическое растягивание
+        "col_min_width": 35                # Минимальная ширина
     },
+    # REWARD-LINK: добавляем FULL_NAME из CONTEST-DATA
+    # Добавляет название конкурса к связям наград
     {
-        "sheet_src": "CONTEST-DATA",
-        "sheet_dst": "REWARD-LINK",
-        "src_key": ["CONTEST_CODE"],
-        "dst_key": ["CONTEST_CODE"],
-        "column": ["FULL_NAME"],
-        "mode": "value",
-        "multiply_rows": False,
-        "col_max_width": 70,
-        "col_width_mode": "AUTO",
-        "col_min_width": 35
-    },
-    {
-        "sheet_src": "CONTEST-DATA",
-        "sheet_dst": "REWARD",
-        "src_key": ["CONTEST_CODE"],
-        "dst_key": ["REWARD_LINK => CONTEST_CODE"],
-        "column": ["FULL_NAME"],
-        "mode": "value",
-        "multiply_rows": False,
-        "col_max_width": 70,
-        "col_width_mode": "AUTO",
-        "col_min_width": 35
+        "sheet_src": "CONTEST-DATA",        # Источник - данные конкурсов
+        "sheet_dst": "REWARD-LINK",         # Цель - связи наград
+        "src_key": ["CONTEST_CODE"],        # Ключ - код конкурса
+        "dst_key": ["CONTEST_CODE"],        # Ключ - код конкурса
+        "column": ["FULL_NAME"],            # Добавляем полное название
+        "mode": "value",                    # Добавляем значение
+        "multiply_rows": False,             # Не размножаем строки
+        "col_max_width": 70,               # Максимальная ширина
+        "col_width_mode": "AUTO",          # Автоматическое растягивание
+        "col_min_width": 35                # Минимальная ширина
     },
     # TOURNAMENT-SCHEDULE: добавляем CONTEST_DATE из REPORT (значение)
+    # Добавляет дату конкурса из отчетов в расписание турниров
     {
-        "sheet_src": "REPORT",
-        "sheet_dst": "TOURNAMENT-SCHEDULE",
-        "src_key": ["CONTEST_CODE", "TOURNAMENT_CODE"],
-        "dst_key": ["CONTEST_CODE", "TOURNAMENT_CODE"],
-        "column": ["CONTEST_DATE"],
-        "mode": "value",
-        "multiply_rows": False,
-        "col_max_width": 25,
-        "col_width_mode": "AUTO",
-        "col_min_width": 8
+        "sheet_src": "REPORT",              # Источник - отчеты
+        "sheet_dst": "TOURNAMENT-SCHEDULE", # Цель - расписание турниров
+        "src_key": ["CONTEST_CODE", "TOURNAMENT_CODE"],  # Составной ключ: код конкурса + код турнира
+        "dst_key": ["CONTEST_CODE", "TOURNAMENT_CODE"],  # Составной ключ: код конкурса + код турнира
+        "column": ["CONTEST_DATE"],         # Добавляем дату конкурса
+        "mode": "value",                    # Добавляем значение
+        "multiply_rows": False,             # Не размножаем строки
+        "col_max_width": 25,               # Максимальная ширина (дата короткая)
+        "col_width_mode": "AUTO",          # Автоматическое растягивание
+        "col_min_width": 8                 # Минимальная ширина
     },
+    # CONTEST-DATA: добавляем TOURNAMENT_CODE из TOURNAMENT-SCHEDULE
+    # Подсчитывает количество турниров для каждого конкурса
     {
-        "sheet_src": "TOURNAMENT-SCHEDULE",
-        "sheet_dst": "CONTEST-DATA",
-        "src_key": ["CONTEST_CODE"],
-        "dst_key": ["CONTEST_CODE"],
-        "column": ["TOURNAMENT_CODE"],
-        "mode": "count",
-        "multiply_rows": False,
-        "col_max_width": 11,
-        "col_width_mode": "AUTO",
-        "col_min_width": 8
+        "sheet_src": "TOURNAMENT-SCHEDULE", # Источник - расписание турниров
+        "sheet_dst": "CONTEST-DATA",        # Цель - данные конкурсов
+        "src_key": ["CONTEST_CODE"],        # Ключ - код конкурса
+        "dst_key": ["CONTEST_CODE"],        # Ключ - код конкурса
+        "column": ["TOURNAMENT_CODE"],      # Добавляем код турнира
+        "mode": "count",                    # Режим: подсчитываем количество
+        "multiply_rows": False,             # Не размножаем строки
+        "col_max_width": 11,               # Максимальная ширина (код турнира короткий)
+        "col_width_mode": "AUTO",          # Автоматическое растягивание
+        "col_min_width": 8                 # Минимальная ширина
     },
     # TOURNAMENT-SCHEDULE: добавляем количество записей из REPORT (подсчёт)
+    # Подсчитывает количество отчетов для каждой пары конкурс-турнир
     {
-        "sheet_src": "REPORT",
-        "sheet_dst": "TOURNAMENT-SCHEDULE",
-        "src_key": ["CONTEST_CODE", "TOURNAMENT_CODE"],
-        "dst_key": ["CONTEST_CODE", "TOURNAMENT_CODE"],
-        "column": ["CONTEST_DATE"],
-        "mode": "count",
-        "multiply_rows": False,
-        "col_max_width": 20,
-        "col_width_mode": 15,
-        "col_min_width": 8
+        "sheet_src": "REPORT",              # Источник - отчеты
+        "sheet_dst": "TOURNAMENT-SCHEDULE", # Цель - расписание турниров
+        "src_key": ["CONTEST_CODE", "TOURNAMENT_CODE"],  # Составной ключ: код конкурса + код турнира
+        "dst_key": ["CONTEST_CODE", "TOURNAMENT_CODE"],  # Составной ключ: код конкурса + код турнира
+        "column": ["CONTEST_DATE"],         # Используем CONTEST_DATE для подсчета (любое поле подойдет)
+        "mode": "count",                    # Режим: подсчитываем количество
+        "multiply_rows": False,             # Не размножаем строки
+        "col_max_width": 20,               # Максимальная ширина
+        "col_width_mode": 15,              # Фиксированная ширина (15 символов)
+        "col_min_width": 8                 # Минимальная ширина
     },
     # SUMMARY: из CONTEST-DATA по CONTEST_CODE — основные поля
+    # Создает сводный лист с основной информацией о конкурсах
     {
-        "sheet_src": "CONTEST-DATA",
-        "sheet_dst": "SUMMARY",
-        "src_key": ["CONTEST_CODE"],
-        "dst_key": ["CONTEST_CODE"],
-        "column": [
-            "FULL_NAME",
-            "CONTEST_DESCRIPTION",
-            f"{PREFIX_CONTEST_FEATURE} => feature",
-            f"{PREFIX_CONTEST_FEATURE} => momentRewarding",
-            "FACTOR_MATCH",
-            "PLAN_MOD_VALUE",
-            "BUSINESS_BLOCK",
-            f"{PREFIX_CONTEST_FEATURE} => tournamentStartMailing",
-            f"{PREFIX_CONTEST_FEATURE} => tournamentEndMailing",
-            f"{PREFIX_CONTEST_FEATURE} => tournamentRewardingMailing",
-            f"{PREFIX_CONTEST_FEATURE} => tournamentLikeMailing"
+        "sheet_src": "CONTEST-DATA",        # Источник - данные конкурсов
+        "sheet_dst": "SUMMARY",             # Цель - сводный лист
+        "src_key": ["CONTEST_CODE"],        # Ключ - код конкурса
+        "dst_key": ["CONTEST_CODE"],        # Ключ - код конкурса
+        "column": [                         # Добавляемые колонки:
+            "FULL_NAME",                    # Полное название конкурса
+            "CONTEST_DESCRIPTION",          # Описание конкурса
+            f"{PREFIX_CONTEST_FEATURE} => feature",  # Признак конкурса (развернутый JSON)
+            f"{PREFIX_CONTEST_FEATURE} => momentRewarding",  # Момент награждения
+            "FACTOR_MATCH",                 # Фактор соответствия
+            "PLAN_MOD_VALUE",               # Плановое значение модуля
+            "BUSINESS_BLOCK",               # Бизнес-блок
+            f"{PREFIX_CONTEST_FEATURE} => tournamentStartMailing",  # Рассылка начала турнира
+            f"{PREFIX_CONTEST_FEATURE} => tournamentEndMailing",  # Рассылка окончания турнира
+            f"{PREFIX_CONTEST_FEATURE} => tournamentRewardingMailing",  # Рассылка награждения турнира
+            f"{PREFIX_CONTEST_FEATURE} => tournamentLikeMailing"  # Рассылка лайков турнира
         ],
-        "mode": "value",
-        "multiply_rows": False,
-        "col_max_width": 60,
-        "col_width_mode": "AUTO",
-        "col_min_width": 8
+        "mode": "value",                    # Добавляем значения
+        "multiply_rows": False,             # Не размножаем строки
+        "col_max_width": 60,               # Максимальная ширина
+        "col_width_mode": "AUTO",          # Автоматическое растягивание
+        "col_min_width": 8                 # Минимальная ширина
     },
     # SUMMARY: из GROUP по составному ключу (для полностью связанных записей)
+    # Добавляет критерии расчета из групп по полному соответствию ключей
     {
-        "sheet_src": "GROUP",
-        "sheet_dst": "SUMMARY",
-        "src_key": ["CONTEST_CODE", "GROUP_CODE", "GROUP_VALUE"],
-        "dst_key": ["CONTEST_CODE", "GROUP_CODE", "GROUP_VALUE"],
-        "column": [
-            "GET_CALC_CRITERION",
-            "ADD_CALC_CRITERION",
-            "ADD_CALC_CRITERION_2"
+        "sheet_src": "GROUP",               # Источник - группы
+        "sheet_dst": "SUMMARY",             # Цель - сводный лист
+        "src_key": ["CONTEST_CODE", "GROUP_CODE", "GROUP_VALUE"],  # Составной ключ: код конкурса + код группы + значение группы
+        "dst_key": ["CONTEST_CODE", "GROUP_CODE", "GROUP_VALUE"],  # Составной ключ: код конкурса + код группы + значение группы
+        "column": [                         # Добавляемые колонки:
+            "GET_CALC_CRITERION",          # Основной критерий расчета
+            "ADD_CALC_CRITERION",          # Дополнительный критерий расчета
+            "ADD_CALC_CRITERION_2"        # Второй дополнительный критерий расчета
         ],
-        "mode": "value",
-        "multiply_rows": False,
-        "col_max_width": 40,
-        "col_width_mode": "AUTO",
-        "col_min_width": 8
+        "mode": "value",                    # Добавляем значения
+        "multiply_rows": False,             # Не размножаем строки
+        "col_max_width": 40,               # Максимальная ширина
+        "col_width_mode": "AUTO",          # Автоматическое растягивание
+        "col_min_width": 8                 # Минимальная ширина
     },
     # SUMMARY: из GROUP по составному ключу
+    # Добавляет критерии расчета из групп по коду группы (частичное соответствие)
     {
-        "sheet_src": "GROUP",
-        "sheet_dst": "SUMMARY",
-        "src_key": ["GROUP_CODE"],  # ИСПРАВЛЕНИЕ: используем только GROUP_CODE как ключ
-        "dst_key": ["GROUP_CODE"],  # ИСПРАВЛЕНИЕ: используем только GROUP_CODE как ключ
-        "column": [
-            "GET_CALC_CRITERION",
-            "ADD_CALC_CRITERION",
-            "ADD_CALC_CRITERION_2"
+        "sheet_src": "GROUP",               # Источник - группы
+        "sheet_dst": "SUMMARY",             # Цель - сводный лист
+        "src_key": ["GROUP_CODE"],          # Ключ - только код группы
+        "dst_key": ["GROUP_CODE"],          # Ключ - только код группы
+        "column": [                         # Добавляемые колонки:
+            "GET_CALC_CRITERION",          # Основной критерий расчета
+            "ADD_CALC_CRITERION",          # Дополнительный критерий расчета
+            "ADD_CALC_CRITERION_2"        # Второй дополнительный критерий расчета
         ],
-        "mode": "value",
-        "multiply_rows": False,
-        "col_max_width": 40,
-        "col_width_mode": "AUTO",
-        "col_min_width": 8
+        "mode": "value",                    # Добавляем значения
+        "multiply_rows": False,             # Не размножаем строки
+        "col_max_width": 40,               # Максимальная ширина
+        "col_width_mode": "AUTO",          # Автоматическое растягивание
+        "col_min_width": 8                 # Минимальная ширина
     },
     # SUMMARY: CONTEST_CODE из GROUP по GROUP_CODE (для частично связанных групп)
+    # Добавляет код конкурса из групп по коду группы
     {
-        "sheet_src": "GROUP",
-        "sheet_dst": "SUMMARY",
-        "src_key": ["GROUP_CODE"],
-        "dst_key": ["GROUP_CODE"],
-        "column": ["CONTEST_CODE"],
-        "mode": "value",
-        "multiply_rows": False,
-        "col_max_width": 30,
-        "col_width_mode": "AUTO",
-        "col_min_width": 8
+        "sheet_src": "GROUP",               # Источник - группы
+        "sheet_dst": "SUMMARY",             # Цель - сводный лист
+        "src_key": ["GROUP_CODE"],          # Ключ - код группы
+        "dst_key": ["GROUP_CODE"],          # Ключ - код группы
+        "column": ["CONTEST_CODE"],         # Добавляем код конкурса
+        "mode": "value",                    # Добавляем значение
+        "multiply_rows": False,             # Не размножаем строки
+        "col_max_width": 30,               # Максимальная ширина
+        "col_width_mode": "AUTO",          # Автоматическое растягивание
+        "col_min_width": 8                 # Минимальная ширина
     },
     # SUMMARY: GROUP_VALUE из GROUP по GROUP_CODE (для частично связанных групп)
+    # Добавляет значение группы из групп по коду группы
     {
-        "sheet_src": "GROUP",
-        "sheet_dst": "SUMMARY",
-        "src_key": ["GROUP_CODE"],
-        "dst_key": ["GROUP_CODE"],
-        "column": ["GROUP_VALUE"],
-        "mode": "value",
-        "multiply_rows": False,
-        "col_max_width": 20,
-        "col_width_mode": "AUTO",
-        "col_min_width": 8
+        "sheet_src": "GROUP",               # Источник - группы
+        "sheet_dst": "SUMMARY",             # Цель - сводный лист
+        "src_key": ["GROUP_CODE"],          # Ключ - код группы
+        "dst_key": ["GROUP_CODE"],          # Ключ - код группы
+        "column": ["GROUP_VALUE"],          # Добавляем значение группы
+        "mode": "value",                    # Добавляем значение
+        "multiply_rows": False,             # Не размножаем строки
+        "col_max_width": 20,               # Максимальная ширина
+        "col_width_mode": "AUTO",          # Автоматическое растягивание
+        "col_min_width": 8                 # Минимальная ширина
     },
     # SUMMARY: из INDICATOR по CONTEST_CODE
+    # Добавляет информацию об индикаторах конкурса
     {
-        "sheet_src": "INDICATOR",
-        "sheet_dst": "SUMMARY",
-        "src_key": ["CONTEST_CODE"],
-        "dst_key": ["CONTEST_CODE"],
-        "column": [
-            "INDICATOR_MARK_TYPE",
-            "INDICATOR_MATCH",
-            "INDICATOR_VALUE"
+        "sheet_src": "INDICATOR",           # Источник - индикаторы
+        "sheet_dst": "SUMMARY",             # Цель - сводный лист
+        "src_key": ["CONTEST_CODE"],        # Ключ - код конкурса
+        "dst_key": ["CONTEST_CODE"],        # Ключ - код конкурса
+        "column": [                         # Добавляемые колонки:
+            "INDICATOR_MARK_TYPE",          # Тип отметки индикатора
+            "INDICATOR_MATCH",              # Соответствие индикатора
+            "INDICATOR_VALUE"               # Значение индикатора
         ],
-        "mode": "value",
-        "multiply_rows": False,
-        "col_max_width": 35,
-        "col_width_mode": "AUTO",
-        "col_min_width": 8
+        "mode": "value",                    # Добавляем значения
+        "multiply_rows": False,             # Не размножаем строки
+        "col_max_width": 35,               # Максимальная ширина
+        "col_width_mode": "AUTO",          # Автоматическое растягивание
+        "col_min_width": 8                 # Минимальная ширина
     },
     # SUMMARY: из TOURNAMENT-SCHEDULE по TOURNAMENT_CODE
+    # Добавляет информацию о расписании турниров
     {
-        "sheet_src": "TOURNAMENT-SCHEDULE",
-        "sheet_dst": "SUMMARY",
-        "src_key": ["TOURNAMENT_CODE"],
-        "dst_key": ["TOURNAMENT_CODE"],
-        "column": [
-            "START_DT",
-            "END_DT",
-            "RESULT_DT",
-            "TOURNAMENT_STATUS",
-            "TARGET_TYPE"
+        "sheet_src": "TOURNAMENT-SCHEDULE", # Источник - расписание турниров
+        "sheet_dst": "SUMMARY",             # Цель - сводный лист
+        "src_key": ["TOURNAMENT_CODE"],     # Ключ - код турнира
+        "dst_key": ["TOURNAMENT_CODE"],     # Ключ - код турнира
+        "column": [                         # Добавляемые колонки:
+            "START_DT",                     # Дата начала турнира
+            "END_DT",                       # Дата окончания турнира
+            "RESULT_DT",                    # Дата результатов турнира
+            "TOURNAMENT_STATUS",            # Статус турнира
+            "TARGET_TYPE"                   # Тип цели турнира
         ],
-        "mode": "value",
-        "multiply_rows": False,
-        "col_max_width": 30,
-        "col_width_mode": "AUTO",
-        "col_min_width": 8
+        "mode": "value",                    # Добавляем значения
+        "multiply_rows": False,             # Не размножаем строки
+        "col_max_width": 30,               # Максимальная ширина
+        "col_width_mode": "AUTO",          # Автоматическое растягивание
+        "col_min_width": 8                 # Минимальная ширина
     },
     # SUMMARY: CONTEST_DATE из REPORT по TOURNAMENT_CODE
+    # Добавляет дату конкурса из отчетов
     {
-        "sheet_src": "REPORT",
-        "sheet_dst": "SUMMARY",
-        "src_key": ["TOURNAMENT_CODE"],
-        "dst_key": ["TOURNAMENT_CODE"],
-        "column": [
-            "CONTEST_DATE"
+        "sheet_src": "REPORT",              # Источник - отчеты
+        "sheet_dst": "SUMMARY",             # Цель - сводный лист
+        "src_key": ["TOURNAMENT_CODE"],     # Ключ - код турнира
+        "dst_key": ["TOURNAMENT_CODE"],     # Ключ - код турнира
+        "column": [                         # Добавляемые колонки:
+            "CONTEST_DATE"                  # Дата конкурса
         ],
-        "mode": "value",
-        "multiply_rows": False,
-        "col_max_width": 25,
-        "col_width_mode": "AUTO",
-        "col_min_width": 8
+        "mode": "value",                    # Добавляем значение
+        "multiply_rows": False,             # Не размножаем строки
+        "col_max_width": 25,               # Максимальная ширина
+        "col_width_mode": "AUTO",          # Автоматическое растягивание
+        "col_min_width": 8                 # Минимальная ширина
     },
     # SUMMARY: сколько в REPORT строк по паре TOURNAMENT_CODE + CONTEST_CODE (для полностью связанных записей)
+    # Подсчитывает количество отчетов для каждой пары турнир-конкурс
     {
-        "sheet_src": "REPORT",
-        "sheet_dst": "SUMMARY",
-        "src_key": ["TOURNAMENT_CODE", "CONTEST_CODE"],
-        "dst_key": ["TOURNAMENT_CODE", "CONTEST_CODE"],
-        "column": [
-            "CONTEST_DATE"
+        "sheet_src": "REPORT",              # Источник - отчеты
+        "sheet_dst": "SUMMARY",             # Цель - сводный лист
+        "src_key": ["TOURNAMENT_CODE", "CONTEST_CODE"],  # Составной ключ: код турнира + код конкурса
+        "dst_key": ["TOURNAMENT_CODE", "CONTEST_CODE"],  # Составной ключ: код турнира + код конкурса
+        "column": [                         # Добавляемые колонки:
+            "CONTEST_DATE"                  # Используем CONTEST_DATE для подсчета (любое поле подойдет)
         ],
-        "mode": "count",
-        "multiply_rows": False,
-        "col_max_width": 20,
-        "col_width_mode": 15,
-        "col_min_width": 8
+        "mode": "count",                    # Режим: подсчитываем количество
+        "multiply_rows": False,             # Не размножаем строки
+        "col_max_width": 20,               # Максимальная ширина
+        "col_width_mode": 15,              # Фиксированная ширина (15 символов)
+        "col_min_width": 8                 # Минимальная ширина
     },
     # SUMMARY: все нужные поля из REWARD по составному ключу (для полностью связанных записей)
+    # Добавляет информацию о наградах по полному соответствию ключей конкурс-награда
     {
-        "sheet_src": "REWARD",
-        "sheet_dst": "SUMMARY",
-        "src_key": [COL_REWARD_LINK_CONTEST_CODE, "REWARD_CODE"],
-        "dst_key": ["CONTEST_CODE", "REWARD_CODE"],
-        "column": [
-            "FULL_NAME",
-            "REWARD_DESCRIPTION",
-            f"{PREFIX_ADD_DATA} => feature",
-            f"{PREFIX_ADD_DATA} => itemFeature",
-            f"{PREFIX_ADD_DATA} => rewardRule",
-            f"{PREFIX_ADD_DATA} => rewardAgainGlobal",
-            f"{PREFIX_ADD_DATA} => rewardAgainTournament",
-            f"{PREFIX_ADD_DATA} => outstanding",
-            f"{PREFIX_ADD_DATA} => teamNews",
-            f"{PREFIX_ADD_DATA} => singleNews"
+        "sheet_src": "REWARD",              # Источник - награды
+        "sheet_dst": "SUMMARY",             # Цель - сводный лист
+        "src_key": [COL_REWARD_LINK_CONTEST_CODE, "REWARD_CODE"],  # Составной ключ: код конкурса из связи + код награды
+        "dst_key": ["CONTEST_CODE", "REWARD_CODE"],                # Составной ключ: код конкурса + код награды
+        "column": [                         # Добавляемые колонки:
+            "FULL_NAME",                    # Полное название награды
+            "REWARD_DESCRIPTION",           # Описание награды
+            f"{PREFIX_ADD_DATA} => feature",  # Признак награды (развернутый JSON)
+            f"{PREFIX_ADD_DATA} => itemFeature",  # Признак элемента награды
+            f"{PREFIX_ADD_DATA} => rewardRule",  # Правило награды
+            f"{PREFIX_ADD_DATA} => rewardAgainGlobal",  # Повторная награда глобально
+            f"{PREFIX_ADD_DATA} => rewardAgainTournament",  # Повторная награда в турнире
+            f"{PREFIX_ADD_DATA} => outstanding",  # Выдающийся
+            f"{PREFIX_ADD_DATA} => teamNews",  # Новости команды
+            f"{PREFIX_ADD_DATA} => singleNews"  # Единичные новости
         ],
-        "mode": "value",
-        "multiply_rows": False,
-        "col_max_width": 50,
-        "col_width_mode": "AUTO",
-        "col_min_width": 8
+        "mode": "value",                    # Добавляем значения
+        "multiply_rows": False,             # Не размножаем строки
+        "col_max_width": 50,               # Максимальная ширина
+        "col_width_mode": "AUTO",          # Автоматическое растягивание
+        "col_min_width": 8                 # Минимальная ширина
     },
     # SUMMARY: поля из REWARD по REWARD_CODE (для частично связанных и не связанных наград)
+    # Добавляет информацию о наградах по коду награды (без привязки к конкурсу)
     {
-        "sheet_src": "REWARD",
-        "sheet_dst": "SUMMARY",
-        "src_key": ["REWARD_CODE"],
-        "dst_key": ["REWARD_CODE"],
-        "column": [
-            "FULL_NAME",
-            "REWARD_DESCRIPTION",
-            f"{PREFIX_ADD_DATA} => feature",
-            f"{PREFIX_ADD_DATA} => itemFeature",
-            f"{PREFIX_ADD_DATA} => rewardRule",
-            f"{PREFIX_ADD_DATA} => rewardAgainGlobal",
-            f"{PREFIX_ADD_DATA} => rewardAgainTournament",
-            f"{PREFIX_ADD_DATA} => outstanding",
-            f"{PREFIX_ADD_DATA} => teamNews",
-            f"{PREFIX_ADD_DATA} => singleNews"
+        "sheet_src": "REWARD",              # Источник - награды
+        "sheet_dst": "SUMMARY",             # Цель - сводный лист
+        "src_key": ["REWARD_CODE"],         # Ключ - код награды
+        "dst_key": ["REWARD_CODE"],         # Ключ - код награды
+        "column": [                         # Добавляемые колонки (те же, что и выше):
+            "FULL_NAME",                    # Полное название награды
+            "REWARD_DESCRIPTION",           # Описание награды
+            f"{PREFIX_ADD_DATA} => feature",  # Признак награды
+            f"{PREFIX_ADD_DATA} => itemFeature",  # Признак элемента награды
+            f"{PREFIX_ADD_DATA} => rewardRule",  # Правило награды
+            f"{PREFIX_ADD_DATA} => rewardAgainGlobal",  # Повторная награда глобально
+            f"{PREFIX_ADD_DATA} => rewardAgainTournament",  # Повторная награда в турнире
+            f"{PREFIX_ADD_DATA} => outstanding",  # Выдающийся
+            f"{PREFIX_ADD_DATA} => teamNews",  # Новости команды
+            f"{PREFIX_ADD_DATA} => singleNews"  # Единичные новости
         ],
-        "mode": "value",
-        "multiply_rows": False,
-        "col_max_width": 50,
-        "col_width_mode": "AUTO",
-        "col_min_width": 8
+        "mode": "value",                    # Добавляем значения
+        "multiply_rows": False,             # Не размножаем строки
+        "col_max_width": 50,               # Максимальная ширина
+        "col_width_mode": "AUTO",          # Автоматическое растягивание
+        "col_min_width": 8                 # Минимальная ширина
     },
     # SUMMARY: CONTEST_CODE из REWARD-LINK по REWARD_CODE (для связи наград с конкурсами)
+    # Связывает награды с конкурсами через промежуточную таблицу
     {
-        "sheet_src": "REWARD-LINK",
-        "sheet_dst": "SUMMARY",
-        "src_key": ["REWARD_CODE"],
-        "dst_key": ["REWARD_CODE"],
-        "column": ["CONTEST_CODE"],
-        "mode": "value",
-        "multiply_rows": False,
-        "col_max_width": 30,
-        "col_width_mode": "AUTO",
-        "col_min_width": 8
+        "sheet_src": "REWARD-LINK",         # Источник - связи наград
+        "sheet_dst": "SUMMARY",             # Цель - сводный лист
+        "src_key": ["REWARD_CODE"],         # Ключ - код награды
+        "dst_key": ["REWARD_CODE"],         # Ключ - код награды
+        "column": ["CONTEST_CODE"],         # Добавляем код конкурса
+        "mode": "value",                    # Добавляем значение
+        "multiply_rows": False,             # Не размножаем строки
+        "col_max_width": 30,               # Максимальная ширина
+        "col_width_mode": "AUTO",          # Автоматическое растягивание
+        "col_min_width": 8                 # Минимальная ширина
     },
     # SUMMARY: CONTEST_DATE из REPORT по CONTEST_CODE (для частично связанных записей)
+    # Добавляет дату конкурса из отчетов для частично связанных записей
     {
-        "sheet_src": "REPORT",
-        "sheet_dst": "SUMMARY",
-        "src_key": ["CONTEST_CODE"],
-        "dst_key": ["CONTEST_CODE"],
-        "column": [
-            "CONTEST_DATE"
+        "sheet_src": "REPORT",              # Источник - отчеты
+        "sheet_dst": "SUMMARY",             # Цель - сводный лист
+        "src_key": ["CONTEST_CODE"],        # Ключ - код конкурса
+        "dst_key": ["CONTEST_CODE"],        # Ключ - код конкурса
+        "column": [                         # Добавляемые колонки:
+            "CONTEST_DATE"                  # Дата конкурса
         ],
-        "mode": "value",
-        "multiply_rows": False,
-        "col_max_width": 25,
-        "col_width_mode": "AUTO",
-        "col_min_width": 8
+        "mode": "value",                    # Добавляем значение
+        "multiply_rows": False,             # Не размножаем строки
+        "col_max_width": 25,               # Максимальная ширина
+        "col_width_mode": "AUTO",          # Автоматическое растягивание
+        "col_min_width": 8                 # Минимальная ширина
     },
     # SUMMARY: поля из TOURNAMENT-SCHEDULE по CONTEST_CODE (для частично связанных записей)
+    # Добавляет информацию о турнирах по коду конкурса (без привязки к конкретному турниру)
     {
-        "sheet_src": "TOURNAMENT-SCHEDULE",
-        "sheet_dst": "SUMMARY",
-        "src_key": ["CONTEST_CODE"],
-        "dst_key": ["CONTEST_CODE"],
-        "column": [
-            "START_DT",
-            "END_DT",
-            "RESULT_DT",
-            "TOURNAMENT_STATUS",
-            "TARGET_TYPE"
+        "sheet_src": "TOURNAMENT-SCHEDULE", # Источник - расписание турниров
+        "sheet_dst": "SUMMARY",             # Цель - сводный лист
+        "src_key": ["CONTEST_CODE"],        # Ключ - код конкурса
+        "dst_key": ["CONTEST_CODE"],        # Ключ - код конкурса
+        "column": [                         # Добавляемые колонки:
+            "START_DT",                     # Дата начала турнира
+            "END_DT",                       # Дата окончания турнира
+            "RESULT_DT",                    # Дата результатов турнира
+            "TOURNAMENT_STATUS",            # Статус турнира
+            "TARGET_TYPE"                   # Тип цели турнира
         ],
-        "mode": "value",
-        "multiply_rows": False,
-        "col_max_width": 30,
-        "col_width_mode": "AUTO",
-        "col_min_width": 8
+        "mode": "value",                    # Добавляем значения
+        "multiply_rows": False,             # Не размножаем строки
+        "col_max_width": 30,               # Максимальная ширина
+        "col_width_mode": "AUTO",          # Автоматическое растягивание
+        "col_min_width": 8                 # Минимальная ширина
     },
 ]
 
-# Пример правила с размножением строк (закомментировано для демонстрации):
-# {
-#     "sheet_src": "REWARD-LINK",
-#     "sheet_dst": "SUMMARY",
-#     "src_key": ["CONTEST_CODE"],
-#     "dst_key": ["CONTEST_CODE"],
-#     "column": ["REWARD_CODE"],
-#     "mode": "value",
-#     "multiply_rows": True,           # ВКЛЮЧЕНО: размножать строки при множественных наградах
-#     "col_max_width": 40,            # Максимальная ширина для новой колонки
-#     "col_width_mode": "AUTO",       # Автоподбор ширины
-#     "col_min_width": 12             # Минимальная ширина
-# },
-
+# === ОПРЕДЕЛЕНИЕ КЛЮЧЕВЫХ КОЛОНОК ДЛЯ СВОДНОГО ЛИСТА ===
+# SUMMARY_KEY_DEFS определяет, какие колонки являются ключевыми для каждого листа
+# Это используется для правильного объединения данных в сводном листе
 SUMMARY_KEY_DEFS = [
-    {"sheet": "CONTEST-DATA", "cols": ["CONTEST_CODE"]},
-    {"sheet": "TOURNAMENT-SCHEDULE", "cols": ["TOURNAMENT_CODE", "CONTEST_CODE"]},
-    {"sheet": "REWARD-LINK", "cols": ["REWARD_CODE", "CONTEST_CODE"]},
-    {"sheet": "GROUP", "cols": ["GROUP_CODE", "CONTEST_CODE", "GROUP_VALUE"]},
-    {"sheet": "REWARD", "cols": ["REWARD_CODE"]},
+    {"sheet": "CONTEST-DATA", "cols": ["CONTEST_CODE"]},                    # Ключ конкурса для данных конкурсов
+    {"sheet": "TOURNAMENT-SCHEDULE", "cols": ["TOURNAMENT_CODE", "CONTEST_CODE"]},  # Ключи турнира и конкурса для расписания
+    {"sheet": "REWARD-LINK", "cols": ["REWARD_CODE", "CONTEST_CODE"]},      # Ключи награды и конкурса для связей
+    {"sheet": "GROUP", "cols": ["GROUP_CODE", "CONTEST_CODE", "GROUP_VALUE"]},  # Составной ключ для групп
+    {"sheet": "REWARD", "cols": ["REWARD_CODE"]},                           # Ключ награды для наград
 ]
 
 # Построить упорядоченный список всех уникальных ключей
+# Это нужно для создания правильной структуры сводного листа
 SUMMARY_KEY_COLUMNS = []
 for entry in SUMMARY_KEY_DEFS:
     for col in entry["cols"]:
         if col not in SUMMARY_KEY_COLUMNS:
             SUMMARY_KEY_COLUMNS.append(col)
 
+# === ЦВЕТОВАЯ СХЕМА ДЛЯ EXCEL ЛИСТОВ ===
+# COLOR_SCHEME определяет цветовое оформление различных типов колонок
+# Это помогает визуально различать типы данных и улучшает читаемость
 COLOR_SCHEME = [
     # --- ИСХОДНЫЕ ДАННЫЕ (загружаются из CSV) — пастельный голубой ---
+    # Базовые поля, загруженные из исходных CSV файлов
     {
-        "group": "Исходные данные",
-        "header_bg": "E6F3FF",  # пастельный голубой - приятный для глаз
-        "header_fg": "2C3E50",  # тёмно-серый для лучшей читаемости
-        "column_bg": None,
-        "column_fg": None,
-        "style_scope": "header",
+        "group": "Исходные данные",         # Группа: исходные данные
+        "header_bg": "E6F3FF",              # Фон заголовка: пастельный голубой (приятный для глаз)
+        "header_fg": "2C3E50",              # Цвет текста заголовка: тёмно-серый (для лучшей читаемости)
+        "column_bg": None,                  # Фон колонки: не задан (по умолчанию)
+        "column_fg": None,                  # Цвет текста колонки: не задан (по умолчанию)
+        "style_scope": "header",            # Область применения стиля: только заголовки
         "sheets": ["CONTEST-DATA", "GROUP", "INDICATOR", "REPORT", "REWARD", "REWARD-LINK", "TOURNAMENT-SCHEDULE",
-                   "ORG_UNIT_V20", "USER_ROLE", "USER_ROLE SB", "EMPLOYEE"],
-        "columns": [],  # все колонки (если не указано — все)
+                   "ORG_UNIT_V20", "USER_ROLE", "USER_ROLE SB", "EMPLOYEE"],  # Применяется ко всем листам
+        "columns": [],                      # Все колонки (если не указано — все)
         # Назначение: базовые поля из CSV файлов
     },
 
     # --- ИСХОДНЫЕ JSON ПОЛЯ (CONTEST_FEATURE, REWARD_ADD_DATA) — тёмно-оранжевый со светлыми буквами ---
+    # Исходные поля, содержащие JSON данные, которые будут развернуты
     {
-        "group": "JSON source columns",
-        "header_bg": "FF8C42",  # тёмно-оранжевый - самый верхний уровень JSON полей
-        "header_fg": "FFFFFF",  # белый текст для контраста
-        "column_bg": None,
-        "column_fg": None,
-        "style_scope": "header",
-        "sheets": ["CONTEST-DATA", "REWARD"],
-        "columns": ["CONTEST_FEATURE", "REWARD_ADD_DATA"],
+        "group": "JSON source columns",     # Группа: исходные JSON колонки
+        "header_bg": "FF8C42",              # Фон заголовка: тёмно-оранжевый (самый верхний уровень JSON полей)
+        "header_fg": "FFFFFF",              # Цвет текста заголовка: белый (для контраста)
+        "column_bg": None,                  # Фон колонки: не задан
+        "column_fg": None,                  # Цвет текста колонки: не задан
+        "style_scope": "header",            # Область применения стиля: только заголовки
+        "sheets": ["CONTEST-DATA", "REWARD"],  # Применяется к листам с JSON данными
+        "columns": ["CONTEST_FEATURE", "REWARD_ADD_DATA"],  # Конкретные JSON колонки
         # Назначение: исходные поля с JSON, которые разворачиваются
     },
 
     # --- РАЗВОРАЧИВАЕМЫЕ JSON ПОЛЯ ПЕРВОГО УРОВНЯ — светлее исходных ---
+    # Колонки, созданные при разворачивании JSON данных первого уровня
     {
-        "group": "JSON expanded level 1",
-        "header_bg": "FFB366",  # светло-оранжевый - светлее исходных JSON полей
-        "header_fg": "2C3E50",  # тёмно-серый для читаемости
-        "column_bg": None,
-        "column_fg": None,
-        "style_scope": "header",
-        "sheets": ["CONTEST-DATA", "REWARD"],
-        "columns": [
-            # CONTEST_FEATURE развёрнутые поля
-            "CONTEST_FEATURE => momentRewarding", "CONTEST_FEATURE => tournamentStartMailing",
-            "CONTEST_FEATURE => tournamentEndMailing",
-            "CONTEST_FEATURE => tournamentRewardingMailing", "CONTEST_FEATURE => tournamentLikeMailing",
-            "CONTEST_FEATURE => capacity",
-            "CONTEST_FEATURE => tournamentListMailing", "CONTEST_FEATURE => vid", "CONTEST_FEATURE => tbVisible",
-            "CONTEST_FEATURE => tbHidden",
-            "CONTEST_FEATURE => persomanNumberVisible", "CONTEST_FEATURE => typeRewarding",
-            "CONTEST_FEATURE => masking",
-            "CONTEST_FEATURE => minNumber", "CONTEST_FEATURE => businessBlock", "CONTEST_FEATURE => accuracy",
-            "CONTEST_FEATURE => gosbHidden",
-            "CONTEST_FEATURE => preferences", "CONTEST_FEATURE => persomanNumberHidden",
-            "CONTEST_FEATURE => gosbVisible", "CONTEST_FEATURE => feature",
-            # ADD_DATA развёрнутые поля первого уровня
-            "ADD_DATA => refreshOldNews", "ADD_DATA => fileName", "ADD_DATA => rewardRule",
-            "ADD_DATA => bookingRequired", "ADD_DATA => outstanding",
-            "ADD_DATA => teamNews", "ADD_DATA => singleNews", "ADD_DATA => rewardAgainGlobal",
-            "ADD_DATA => rewardAgainTournament",
-            "ADD_DATA => isGrouping", "ADD_DATA => tagEndDT", "ADD_DATA => itemAmount", "ADD_DATA => isGroupingTitle",
-            "ADD_DATA => itemLimitCount", "ADD_DATA => recommendationLevel", "ADD_DATA => isGroupingName",
-            "ADD_DATA => ignoreConditions",
-            "ADD_DATA => masterBadge", "ADD_DATA => priority", "ADD_DATA => nftFlg", "ADD_DATA => itemMinShow",
-            "ADD_DATA => itemFeature",
-            "ADD_DATA => itemLimitPeriod", "ADD_DATA => businessBlock", "ADD_DATA => parentRewardCode",
-            "ADD_DATA => deliveryRequired",
-            "ADD_DATA => feature", "ADD_DATA => itemGroupAmount", "ADD_DATA => seasonItem",
-            "ADD_DATA => isGroupingTultip", "ADD_DATA => tagColor",
-            "ADD_DATA => commingSoon", "ADD_DATA => tournamentTeam", "ADD_DATA => hidden"
+        "group": "JSON expanded level 1",   # Группа: развернутые JSON поля первого уровня
+        "header_bg": "FFB366",              # Фон заголовка: светло-оранжевый (светлее исходных JSON полей)
+        "header_fg": "2C3E50",              # Цвет текста заголовка: тёмно-серый (для читаемости)
+        "column_bg": None,                  # Фон колонки: не задан
+        "column_fg": None,                  # Цвет текста колонки: не задан
+        "style_scope": "header",            # Область применения стиля: только заголовки
+        "sheets": ["CONTEST-DATA", "REWARD"],  # Применяется к листам с развернутыми JSON данными
+        "columns": [                        # Список развернутых полей:
+            # CONTEST_FEATURE развёрнутые поля (признаки конкурса)
+            "CONTEST_FEATURE => momentRewarding", "CONTEST_FEATURE => tournamentStartMailing",  # Момент награждения, рассылка начала
+            "CONTEST_FEATURE => tournamentEndMailing",  # Рассылка окончания турнира
+            "CONTEST_FEATURE => tournamentRewardingMailing", "CONTEST_FEATURE => tournamentLikeMailing",  # Рассылка награждения, лайков
+            "CONTEST_FEATURE => capacity",  # Вместимость
+            "CONTEST_FEATURE => tournamentListMailing", "CONTEST_FEATURE => vid", "CONTEST_FEATURE => tbVisible",  # Рассылка списка, вид, видимость ТБ
+            "CONTEST_FEATURE => tbHidden",  # Скрытость ТБ
+            "CONTEST_FEATURE => persomanNumberVisible", "CONTEST_FEATURE => typeRewarding",  # Видимость номера, тип награды
+            "CONTEST_FEATURE => masking",   # Маскирование
+            "CONTEST_FEATURE => minNumber", "CONTEST_FEATURE => businessBlock", "CONTEST_FEATURE => accuracy",  # Мин. номер, бизнес-блок, точность
+            "CONTEST_FEATURE => gosbHidden",  # Скрытость ГОСБ
+            "CONTEST_FEATURE => preferences", "CONTEST_FEATURE => persomanNumberHidden",  # Предпочтения, скрытость номера
+            "CONTEST_FEATURE => gosbVisible", "CONTEST_FEATURE => feature",  # Видимость ГОСБ, признак
+            # ADD_DATA развёрнутые поля первого уровня (дополнительные данные наград)
+            "ADD_DATA => refreshOldNews", "ADD_DATA => fileName", "ADD_DATA => rewardRule",  # Обновление новостей, имя файла, правило
+            "ADD_DATA => bookingRequired", "ADD_DATA => outstanding",  # Требуется бронирование, выдающийся
+            "ADD_DATA => teamNews", "ADD_DATA => singleNews", "ADD_DATA => rewardAgainGlobal",  # Новости команды, единичные, повторная глобально
+            "ADD_DATA => rewardAgainTournament",  # Повторная в турнире
+            "ADD_DATA => isGrouping", "ADD_DATA => tagEndDT", "ADD_DATA => itemAmount", "ADD_DATA => isGroupingTitle",  # Группировка, тег окончания, количество, заголовок группировки
+            "ADD_DATA => itemLimitCount", "ADD_DATA => recommendationLevel", "ADD_DATA => isGroupingName",  # Лимит количества, уровень рекомендации, имя группировки
+            "ADD_DATA => ignoreConditions",  # Игнорировать условия
+            "ADD_DATA => masterBadge", "ADD_DATA => priority", "ADD_DATA => nftFlg", "ADD_DATA => itemMinShow",  # Мастер-значок, приоритет, NFT флаг, мин. показ
+            "ADD_DATA => itemFeature",      # Признак элемента
+            "ADD_DATA => itemLimitPeriod", "ADD_DATA => businessBlock", "ADD_DATA => parentRewardCode",  # Лимит периода, бизнес-блок, код родительской награды
+            "ADD_DATA => deliveryRequired",  # Требуется доставка
         ],
         # Назначение: поля первого уровня развёртывания JSON (светлее исходных)
     },
@@ -954,12 +1014,14 @@ for check in CHECK_DUPLICATES:
     })
 
 # Какие поля разворачивать, в каком листе, с каким префиксом (строго регламентировано)
+# JSON_COLUMNS определяет, какие JSON колонки нужно развернуть в каждом листе
+# Это позволяет контролировать процесс разворачивания и избежать лишних операций
 JSON_COLUMNS = {
-    "CONTEST-DATA": [
-        {"column": "CONTEST_FEATURE", "prefix": PREFIX_CONTEST_FEATURE},
+    "CONTEST-DATA": [                        # Лист с данными конкурсов
+        {"column": "CONTEST_FEATURE", "prefix": PREFIX_CONTEST_FEATURE},  # Разворачиваем признаки конкурса
     ],
-    "REWARD": [
-        {"column": "REWARD_ADD_DATA", "prefix": PREFIX_ADD_DATA},
+    "REWARD": [                              # Лист с наградами
+        {"column": "REWARD_ADD_DATA", "prefix": PREFIX_ADD_DATA},        # Разворачиваем дополнительные данные наград
     ],
     # Если появятся другие листы — добавить по аналогии
 }
@@ -967,11 +1029,23 @@ JSON_COLUMNS = {
 
 # Выходной файл Excel
 def get_output_filename():
+    """
+    Генерирует имя выходного Excel файла с текущей датой и временем.
+    
+    Returns:
+        str: Имя файла в формате 'SPOD_ALL_IN_ONE_YYYY-MM-DD_HH-MM-SS.xlsx'
+    """
     return f'SPOD_ALL_IN_ONE_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.xlsx'
 
 
 # Лог-файл с учетом уровня
 def get_log_filename():
+    """
+    Генерирует имя лог-файла с учетом уровня логирования и текущей даты.
+    
+    Returns:
+        str: Путь к лог-файлу в формате 'LOGS/LOGS_LEVEL_YYYY-MM-DD.log'
+    """
     # Имя лог-файла по дате с уровнем логирования, например: LOGS_INFO_2025-07-25.log
     level_suffix = f"_{LOG_LEVEL}" if LOG_LEVEL else ""
     date_suffix = f"_{datetime.now().strftime('%Y-%m-%d')}.log"
@@ -980,16 +1054,26 @@ def get_log_filename():
 
 # === Логирование ===
 def setup_logger():
+    """
+    Настраивает систему логирования для программы.
+    
+    Создает логгер с двумя обработчиками:
+    - Файловый: записывает логи в файл с кодировкой UTF-8
+    - Консольный: выводит логи в стандартный вывод
+    
+    Returns:
+        str: Путь к созданному лог-файлу
+    """
     log_file = get_log_filename()
     # Если логгер уже инициализирован, не добавляем обработчики ещё раз
     if logging.getLogger().hasHandlers():
         return log_file
     logging.basicConfig(
-        level=logging.DEBUG if LOG_LEVEL == "DEBUG" else logging.INFO,
-        format="%(asctime)s | %(levelname)s | %(message)s",
+        level=logging.DEBUG if LOG_LEVEL == "DEBUG" else logging.INFO,  # Уровень логирования
+        format="%(asctime)s | %(levelname)s | %(message)s",           # Формат сообщений
         handlers=[
-            logging.FileHandler(log_file, encoding="utf-8", mode="a"),  # append mode
-            logging.StreamHandler(sys.stdout)
+            logging.FileHandler(log_file, encoding="utf-8", mode="a"),  # Файловый обработчик (режим добавления)
+            logging.StreamHandler(sys.stdout)                           # Консольный обработчик
         ]
     )
     return log_file
@@ -998,24 +1082,48 @@ def setup_logger():
 def calculate_tournament_status(df_tournament, df_report=None):
     """
     Вычисляет статус турнира на основе текущей даты и дат турнира.
+    
+    Эта функция анализирует временные рамки турнира и определяет его текущее состояние.
+    Статус зависит от соотношения текущей даты с датами начала, окончания и подведения итогов турнира.
 
-    Логика:
+    Логика определения статуса:
     - Если сегодня между START_DT и END_DT включительно → "АКТИВНЫЙ"
     - Если сегодня < START_DT → "ЗАПЛАНИРОВАН"
     - Если сегодня > END_DT но < RESULT_DT → "ПОДВЕДЕНИЕ ИТОГОВ"
     - Если сегодня >= RESULT_DT:
         - Если макс CONTEST_DATE < RESULT_DT → "ПОДВЕДЕНИЕ ИТОГОВ"
         - Если макс CONTEST_DATE >= RESULT_DT → "ЗАВЕРШЕН"
+
+    Args:
+        df_tournament (pd.DataFrame): DataFrame с данными турниров, должен содержать колонки:
+            - START_DT: дата начала турнира
+            - END_DT: дата окончания турнира  
+            - RESULT_DT: дата подведения итогов
+        df_report (pd.DataFrame, optional): DataFrame с отчетами для анализа CONTEST_DATE.
+            Должен содержать колонки TOURNAMENT_CODE и CONTEST_DATE.
+
+    Returns:
+        pd.DataFrame: DataFrame с добавленной колонкой CALC_TOURNAMENT_STATUS,
+                     содержащей вычисленный статус для каждого турнира
     """
-    func_start = time()
+    func_start = time()  # Засекаем время начала выполнения
     params = "(TOURNAMENT-SCHEDULE status calculation)"
     logging.info(LOG_MESSAGES["func_start"].format(func="calculate_tournament_status", params=params))
 
-    today = pd.Timestamp.now().date()
-    df = df_tournament.copy()
+    today = pd.Timestamp.now().date()  # Текущая дата
+    df = df_tournament.copy()          # Копируем DataFrame для безопасной работы
 
-    # Преобразуем даты в pandas datetime, обрабатываем ошибки
+    # Вспомогательная функция для безопасного преобразования строк в даты
     def safe_to_date(date_str):
+        """
+        Безопасно преобразует строку в дату, обрабатывая некорректные значения.
+        
+        Args:
+            date_str: Строка с датой или некорректное значение
+            
+        Returns:
+            datetime.date or None: Преобразованная дата или None при ошибке
+        """
         try:
             if pd.isna(date_str) or date_str in ['', '-', 'None', 'null']:
                 return None
@@ -1023,11 +1131,13 @@ def calculate_tournament_status(df_tournament, df_report=None):
         except:
             return None
 
-    df['START_DT_parsed'] = df['START_DT'].apply(safe_to_date)
-    df['END_DT_parsed'] = df['END_DT'].apply(safe_to_date)
-    df['RESULT_DT_parsed'] = df['RESULT_DT'].apply(safe_to_date)
+    # Преобразуем даты в pandas datetime, обрабатываем ошибки
+    df['START_DT_parsed'] = df['START_DT'].apply(safe_to_date)      # Парсим дату начала
+    df['END_DT_parsed'] = df['END_DT'].apply(safe_to_date)          # Парсим дату окончания
+    df['RESULT_DT_parsed'] = df['RESULT_DT'].apply(safe_to_date)    # Парсим дату результатов
 
     # Получаем максимальные CONTEST_DATE для каждого TOURNAMENT_CODE из REPORT
+    # Это нужно для определения, завершились ли все конкурсы турнира
     max_contest_dates = {}
     if df_report is not None and 'CONTEST_DATE' in df_report.columns and 'TOURNAMENT_CODE' in df_report.columns:
         df_report_dates = df_report.copy()
@@ -1035,60 +1145,76 @@ def calculate_tournament_status(df_tournament, df_report=None):
         df_report_dates = df_report_dates.dropna(subset=['CONTEST_DATE_parsed', 'TOURNAMENT_CODE'])
 
         if not df_report_dates.empty:
+            # Группируем по коду турнира и находим максимальную дату конкурса
             max_contest_dates = df_report_dates.groupby('TOURNAMENT_CODE')['CONTEST_DATE_parsed'].max().to_dict()
 
     def get_status(row):
-        start_dt = row['START_DT_parsed']
-        end_dt = row['END_DT_parsed']
-        result_dt = row['RESULT_DT_parsed']
-        tournament_code = row['TOURNAMENT_CODE']
+        """
+        Определяет статус турнира для конкретной строки данных.
+        
+        Args:
+            row: Строка DataFrame с данными турнира
+            
+        Returns:
+            str: Статус турнира: "АКТИВНЫЙ", "ЗАПЛАНИРОВАН", "ПОДВЕДЕНИЕ ИТОГОВ", "ЗАВЕРШЕН", "НЕОПРЕДЕЛЕН"
+        """
+        start_dt = row['START_DT_parsed']      # Дата начала турнира
+        end_dt = row['END_DT_parsed']          # Дата окончания турнира
+        result_dt = row['RESULT_DT_parsed']    # Дата подведения итогов
+        tournament_code = row['TOURNAMENT_CODE']  # Код турнира
 
         # Если нет ключевых дат - возвращаем неопределенный статус
         if not start_dt or not end_dt:
             return "НЕОПРЕДЕЛЕН"
 
-        # 1. Если сегодня между START_DT и END_DT включительно
+        # 1. Если сегодня между START_DT и END_DT включительно → турнир активен
         if start_dt <= today <= end_dt:
             return "АКТИВНЫЙ"
 
-        # 2. Если сегодня < START_DT
+        # 2. Если сегодня < START_DT → турнир еще не начался
         if today < start_dt:
             return "ЗАПЛАНИРОВАН"
 
-        # 3. Если сегодня > END_DT
+        # 3. Если сегодня > END_DT → турнир закончился, но возможно еще подводятся итоги
         if today > end_dt:
-            # Если нет RESULT_DT или сегодня < RESULT_DT
+            # Если нет RESULT_DT или сегодня < RESULT_DT → еще идет подведение итогов
             if not result_dt or today < result_dt:
                 return "ПОДВЕДЕНИЕ ИТОГОВ"
 
-            # 4. Если сегодня >= RESULT_DT
+            # 4. Если сегодня >= RESULT_DT → проверяем, завершились ли все конкурсы
             if today >= result_dt:
                 max_contest_date = max_contest_dates.get(tournament_code)
 
-                # Если нет данных в REPORT для этого турнира
+                # Если нет данных в REPORT для этого турнира → не можем определить завершение
                 if not max_contest_date:
                     return "ПОДВЕДЕНИЕ ИТОГОВ"
 
                 # Сравниваем максимальную CONTEST_DATE с RESULT_DT
+                # Если последний конкурс был до подведения итогов → турнир завершен
                 if max_contest_date < result_dt:
                     return "ПОДВЕДЕНИЕ ИТОГОВ"
                 else:
                     return "ЗАВЕРШЕН"
 
-        return "НЕОПРЕДЕЛЕН"
+        return "НЕОПРЕДЕЛЕН"  # Запасной вариант для неожиданных случаев
 
-    # Применяем функцию для каждой строки
+    # Применяем функцию для каждой строки DataFrame
     df['CALC_TOURNAMENT_STATUS'] = df.apply(get_status, axis=1)
 
-    # Удаляем временные колонки
+    # Удаляем временные колонки с распарсенными датами
     df = df.drop(columns=['START_DT_parsed', 'END_DT_parsed', 'RESULT_DT_parsed'])
 
-    # Статистика по статусам
+    # Логируем статистику по статусам для мониторинга
     status_counts = df['CALC_TOURNAMENT_STATUS'].value_counts()
     logging.info(f"[TOURNAMENT STATUS] Статистика: {status_counts.to_dict()}")
 
+    # Засекаем время выполнения и логируем завершение
     func_time = time() - func_start
-    logging.info(LOG_MESSAGES["func_end"].format(func="calculate_tournament_status", params=params, time=func_time))
+    logging.info(LOG_MESSAGES["func_end"].format(
+        func="calculate_tournament_status", 
+        params=params, 
+        time=func_time
+    ))
 
     return df
 
@@ -1096,21 +1222,31 @@ def calculate_tournament_status(df_tournament, df_report=None):
 def validate_field_lengths(df, sheet_name):
     """
     Проверяет длину полей согласно конфигурации FIELD_LENGTH_VALIDATIONS.
-    Добавляет колонку с результатом проверки.
+    Добавляет колонку с результатом проверки для каждого листа.
+    
+    Эта функция валидирует длину полей в DataFrame согласно заданным правилам.
+    Результат проверки записывается в специальную колонку для последующего анализа.
 
     Формат результата:
     - "-" если все поля соответствуют ограничениям
     - "поле1 = длина > ограничение; поле2 = длина > ограничение" если есть нарушения
+
+    Args:
+        df (pd.DataFrame): DataFrame для проверки
+        sheet_name (str): Название листа (используется для поиска конфигурации)
+
+    Returns:
+        pd.DataFrame: DataFrame с добавленной колонкой результата проверки
     """
-    func_start = time()
+    func_start = time()  # Засекаем время начала выполнения
 
     # Проверяем есть ли конфигурация для этого листа
     if sheet_name not in FIELD_LENGTH_VALIDATIONS:
-        return df
+        return df  # Если конфигурации нет - возвращаем DataFrame без изменений
 
-    config = FIELD_LENGTH_VALIDATIONS[sheet_name]
-    result_column = config["result_column"]
-    fields_config = config["fields"]
+    config = FIELD_LENGTH_VALIDATIONS[sheet_name]        # Получаем конфигурацию для листа
+    result_column = config["result_column"]              # Название колонки для результатов
+    fields_config = config["fields"]                     # Конфигурация полей для проверки
 
     # Проверяем наличие полей в DataFrame
     missing_fields = [field for field in fields_config.keys() if field not in df.columns]
@@ -1120,20 +1256,31 @@ def validate_field_lengths(df, sheet_name):
         df[result_column] = '-'
         return df
 
-    total_rows = len(df)
+    total_rows = len(df)  # Общее количество строк для проверки
     logging.info(LOG_MESSAGES["field_length_start"].format(sheet=sheet_name, rows=total_rows))
 
-    # Счетчики для статистики
-    correct_count = 0
-    error_count = 0
+    # Счетчики для статистики выполнения
+    correct_count = 0    # Количество корректных строк
+    error_count = 0      # Количество строк с ошибками
 
     def check_field_length(value, limit, operator):
-        """Проверяет соответствие длины поля ограничению"""
+        """
+        Проверяет соответствие длины поля заданному ограничению.
+        
+        Args:
+            value: Значение поля для проверки
+            limit (int): Ограничение длины
+            operator (str): Оператор сравнения ("<=", "=", ">=", "<", ">")
+            
+        Returns:
+            bool: True если поле соответствует ограничению, False если нарушает
+        """
         if pd.isna(value) or value in ['', '-', 'None', 'null']:
             return True  # Пустые значения считаем корректными
 
-        length = len(str(value))
+        length = len(str(value))  # Преобразуем в строку и считаем длину
 
+        # Проверяем соответствие ограничению в зависимости от оператора
         if operator == "<=":
             return length <= limit
         elif operator == "=":
@@ -1148,47 +1295,60 @@ def validate_field_lengths(df, sheet_name):
             return True  # Неизвестный оператор - считаем корректным
 
     def check_row(row, row_idx):
-        """Проверяет одну строку и возвращает результат проверки"""
-        violations = []
+        """
+        Проверяет одну строку и возвращает результат проверки.
+        
+        Args:
+            row: Строка DataFrame для проверки
+            row_idx: Индекс строки для логирования
+            
+        Returns:
+            str: Результат проверки: "-" если все корректно, иначе описание нарушений
+        """
+        violations = []  # Список нарушений для текущей строки
 
+        # Проверяем каждое поле согласно конфигурации
         for field_name, field_config in fields_config.items():
-            limit = field_config["limit"]
-            operator = field_config["operator"]
-            value = row.get(field_name, '')
+            limit = field_config["limit"]      # Ограничение длины
+            operator = field_config["operator"]  # Оператор сравнения
+            value = row.get(field_name, '')   # Значение поля (по умолчанию пустая строка)
 
+            # Если поле не соответствует ограничению - добавляем в список нарушений
             if not check_field_length(value, limit, operator):
                 length = len(str(value)) if not pd.isna(value) else 0
                 violations.append(f"{field_name} = {length} {operator} {limit}")
 
+                # Логируем нарушение для отладки
                 logging.debug(LOG_MESSAGES["field_length_violation"].format(
                     row=row_idx, field=field_name, length=length, operator=operator, limit=limit
                 ))
 
+        # Возвращаем результат: "-" если нарушений нет, иначе список нарушений через "; "
         return "; ".join(violations) if violations else "-"
 
-    # Обрабатываем каждую строку
+    # Обрабатываем каждую строку DataFrame
     results = []
     for idx, row in df.iterrows():
-        result = check_row(row, idx)
-        results.append(result)
+        result = check_row(row, idx)  # Проверяем текущую строку
+        results.append(result)        # Добавляем результат в список
 
-        # Обновляем статистику
+        # Обновляем статистику выполнения
         if result == "-":
-            correct_count += 1
+            correct_count += 1        # Строка корректна
         else:
-            error_count += 1
+            error_count += 1          # Строка содержит нарушения
 
-        # Прогресс каждые GENDER_PROGRESS_STEP строк
+        # Показываем прогресс каждые GENDER_PROGRESS_STEP строк
         if (idx + 1) % GENDER_PROGRESS_STEP == 0:
             percent = ((idx + 1) / total_rows) * 100
             logging.info(LOG_MESSAGES["field_length_progress"].format(
                 processed=idx + 1, total=total_rows, percent=percent
             ))
 
-    # Добавляем колонку к DataFrame
+    # Добавляем колонку с результатами проверки к DataFrame
     df[result_column] = results
 
-    # Логируем финальную статистику
+    # Логируем финальную статистику выполнения
     func_time = time() - func_start
     logging.info(LOG_MESSAGES["field_length_stats"].format(
         correct=correct_count, errors=error_count, total=total_rows
@@ -1198,26 +1358,56 @@ def validate_field_lengths(df, sheet_name):
     return df
 
 
-# === Чтение CSV ===
+# === ЧТЕНИЕ И ЗАПИСЬ ДАННЫХ ===
+
 def read_csv_file(file_path):
-    func_start = time()
+    """
+    Читает CSV файл с заданными параметрами и логирует процесс.
+    
+    Функция настроена для работы с CSV файлами, использующими точку с запятой как разделитель.
+    Все данные читаются как строки для сохранения точности, особенно для JSON полей.
+    
+    Args:
+        file_path (str): Путь к CSV файлу для чтения
+        
+    Returns:
+        pd.DataFrame or None: DataFrame с данными или None при ошибке
+    """
+    func_start = time()  # Засекаем время начала выполнения
     params = f"({file_path})"
     logging.info(LOG_MESSAGES["func_start"].format(func="read_csv_file", params=params))
+    
     try:
-        df = pd.read_csv(file_path, sep=";", header=0, dtype=str, quoting=3, encoding="utf-8", keep_default_na=False)
-        # Добавь лог первых строк для всех JSON-полей
+        # Читаем CSV файл с настройками для корректной обработки
+        df = pd.read_csv(
+            file_path, 
+            sep=";",              # Разделитель - точка с запятой
+            header=0,             # Первая строка - заголовки
+            dtype=str,            # Все данные как строки (сохраняем точность)
+            quoting=3,            # QUOTE_NONE - не обрабатываем кавычки
+            encoding="utf-8",     # Кодировка UTF-8
+            keep_default_na=False # Не заменяем значения на NaN
+        )
+        
+        # Логируем образцы JSON полей для отладки
         for col in df.columns:
             if "FEATURE" in col or "ADD_DATA" in col:
                 logging.debug(LOG_MESSAGES["csv_sample"].format(
                     file=file_path,
                     column=col,
-                    sample=df[col].dropna().head(2).to_list()
+                    sample=df[col].dropna().head(2).to_list()  # Первые 2 непустых значения
                 ))
+        
+        # Логируем успешное чтение файла
         logging.info(LOG_MESSAGES["read_ok"].format(file_path=file_path, rows=len(df), cols=len(df.columns)))
+        
+        # Засекаем время выполнения и логируем завершение
         func_time = time() - func_start
         logging.info(LOG_MESSAGES["func_end"].format(func="read_csv_file", params=params, time=func_time))
         return df
+        
     except Exception as e:
+        # Логируем ошибку и возвращаем None
         func_time = time() - func_start
         logging.error(LOG_MESSAGES["read_fail"].format(file_path=file_path, error=e))
         logging.error(LOG_MESSAGES["func_error"].format(func="read_csv_file", params=params, error=e))
@@ -1225,27 +1415,49 @@ def read_csv_file(file_path):
         return None
 
 
-# === Запись в Excel с форматированием ===
 def write_to_excel(sheets_data, output_path):
-    func_start = time()
+    """
+    Записывает данные в Excel файл с форматированием и настройками.
+    
+    Функция создает Excel файл с несколькими листами, применяет форматирование
+    и делает SUMMARY лист активным по умолчанию.
+    
+    Args:
+        sheets_data (dict): Словарь с данными листов в формате {sheet_name: (df, params)}
+        output_path (str): Путь к выходному Excel файлу
+    """
+    func_start = time()  # Засекаем время начала выполнения
     params = f"({output_path})"
     logging.info(LOG_MESSAGES["func_start"].format(func="write_to_excel", params=params))
+    
     try:
-        # SUMMARY первый, остальные — по алфавиту
+        # Определяем порядок листов: SUMMARY первый, остальные по алфавиту
         ordered_sheets = ["SUMMARY"] + [s for s in sheets_data if s != "SUMMARY"]
+        
+        # Создаем Excel файл с помощью pandas ExcelWriter
         with pd.ExcelWriter(output_path, engine="openpyxl") as writer:
+            # Записываем каждый лист
             for sheet_name in ordered_sheets:
-                df, params_sheet = sheets_data[sheet_name]
-                df.to_excel(writer, index=False, sheet_name=sheet_name)
+                df, params_sheet = sheets_data[sheet_name]  # Получаем данные и параметры листа
+                df.to_excel(writer, index=False, sheet_name=sheet_name)  # Записываем данные
+                
+                # Получаем объект листа для форматирования
                 ws = writer.sheets[sheet_name]
-                _format_sheet(ws, df, params_sheet)
+                _format_sheet(ws, df, params_sheet)  # Применяем форматирование
+                
+                # Логируем создание листа
                 logging.info(LOG_MESSAGES["sheet_written"].format(sheet=sheet_name, rows=len(df), cols=len(df.columns)))
-            # Делать SUMMARY активным
+            
+            # Делаем SUMMARY лист активным по умолчанию
             writer.book.active = writer.book.sheetnames.index("SUMMARY")
-            writer.book.save(output_path)
+            writer.book.save(output_path)  # Сохраняем файл
+        
+        # Логируем успешное завершение
         func_time = time() - func_start
         logging.info(LOG_MESSAGES["func_end"].format(func="write_to_excel", params=params, time=func_time))
+        
     except Exception as ex:
+        # Логируем ошибку
         func_time = time() - func_start
         logging.error(LOG_MESSAGES["func_error"].format(func="write_to_excel", params=params, error=ex))
         logging.info(LOG_MESSAGES["func_end"].format(func="write_to_excel", params=params, time=func_time))
