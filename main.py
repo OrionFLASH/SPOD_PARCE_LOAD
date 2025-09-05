@@ -26,7 +26,7 @@ DIR_LOGS = r'/Users/orionflash/Desktop/MyProject/SPOD_PROM/LOGS'    # Катал
 # - min_col_width: минимальная ширина колонки
 INPUT_FILES = [
     {
-        "file": "CONTEST-DATA (PROM) 2025-08-29 v1",  # Файл с данными конкурсов
+        "file": "CONTEST-DATA (PROM) 2025-09-05 v1",  # Файл с данными конкурсов
         "sheet": "CONTEST-DATA",                        # Лист для обработки
         "max_col_width": 120,                          # Максимальная ширина колонки
         "freeze": "C2",                                # Закрепление области
@@ -42,7 +42,7 @@ INPUT_FILES = [
         "min_col_width": 8                             # Минимальная ширина колонки
     },
     {
-        "file": "INDICATOR (PROM) 2025-08-25 v0",        # Файл с индикаторами
+        "file": "INDICATOR (PROM) 2025-09-05 v1",        # Файл с индикаторами
         "sheet": "INDICATOR",                          # Лист для обработки
         "max_col_width": 20,                           # Максимальная ширина колонки
         "freeze": "B2",                                # Закрепление области
@@ -50,7 +50,7 @@ INPUT_FILES = [
         "min_col_width": 8                             # Минимальная ширина колонки
     },
     {
-        "file": "REPORT (PROM-KMKKSB) 2025-08-28 v1", # Файл с отчетами
+        "file": "REPORT (PROM-KMKKSB) 2025-09-05 v3", # Файл с отчетами
         "sheet": "REPORT",                             # Лист для обработки
         "max_col_width": 25,                           # Максимальная ширина колонки
         "freeze": "D2",                                # Закрепление области
@@ -58,7 +58,7 @@ INPUT_FILES = [
         "min_col_width": 8                             # Минимальная ширина колонки
     },
     {
-        "file": "REWARD (PROM) 2025-08-25 v0",        # Файл с наградами
+        "file": "REWARD (PROM) 2025-09-04 v2",        # Файл с наградами
         "sheet": "REWARD",                             # Лист для обработки
         "max_col_width": 250,                          # Максимальная ширина колонки (большая для длинных описаний)
         "freeze": "D2",                                # Закрепление области
@@ -82,7 +82,7 @@ INPUT_FILES = [
         "min_col_width": 8                             # Минимальная ширина колонки
     },
     {
-        "file": "TOURNAMENT-SCHEDULE (PROM) 2025-09-01 v1", # Файл с расписанием турниров
+        "file": "TOURNAMENT-SCHEDULE (PROM) 2025-09-05 v3", # Файл с расписанием турниров
         "sheet": "TOURNAMENT-SCHEDULE",                # Лист для обработки
         "max_col_width": 120,                          # Максимальная ширина колонки
         "freeze": "B2",                                # Закрепление области
