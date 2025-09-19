@@ -26,7 +26,7 @@ DIR_LOGS = r'/Users/orionflash/Desktop/MyProject/SPOD_PROM/LOGS'    # Катал
 # - min_col_width: минимальная ширина колонки
 INPUT_FILES = [
     {
-        "file": "CONTEST-DATA (PROM) 2025-09-16 v1",  # Файл с данными конкурсов
+        "file": "CONTEST-DATA (PROM) 2025-09-19 v2",  # Файл с данными конкурсов
         "sheet": "CONTEST-DATA",                        # Лист для обработки
         "max_col_width": 120,                          # Максимальная ширина колонки
         "freeze": "C2",                                # Закрепление области
@@ -50,7 +50,7 @@ INPUT_FILES = [
         "min_col_width": 8                             # Минимальная ширина колонки
     },
     {
-        "file": "REPORT (PROM-KMKKSB) 2025-09-11 v1", # Файл с отчетами
+        "file": "REPORT (PROM-KMKKSB) 2025-09-19 v2", # Файл с отчетами
         "sheet": "REPORT",                             # Лист для обработки
         "max_col_width": 25,                           # Максимальная ширина колонки
         "freeze": "D2",                                # Закрепление области
@@ -58,7 +58,7 @@ INPUT_FILES = [
         "min_col_width": 8                             # Минимальная ширина колонки
     },
     {
-        "file": "REWARD (PROM) 2025-09-17 v0",        # Файл с наградами
+        "file": "REWARD (PROM) 2025-09-18 v0",        # Файл с наградами
         "sheet": "REWARD",                             # Лист для обработки
         "max_col_width": 250,                          # Максимальная ширина колонки (большая для длинных описаний)
         "freeze": "D2",                                # Закрепление области
@@ -82,7 +82,7 @@ INPUT_FILES = [
         "min_col_width": 8                             # Минимальная ширина колонки
     },
     {
-        "file": "TOURNAMENT-SCHEDULE (PROM) 2025-09-16 v1", # Файл с расписанием турниров
+        "file": "TOURNAMENT-SCHEDULE (PROM) 2025-09-19 v2", # Файл с расписанием турниров
         "sheet": "TOURNAMENT-SCHEDULE",                # Лист для обработки
         "max_col_width": 120,                          # Максимальная ширина колонки
         "freeze": "B2",                                # Закрепление области
@@ -90,7 +90,7 @@ INPUT_FILES = [
         "min_col_width": 8                             # Минимальная ширина колонки
     },
     {
-        "file": "PROM_USER_ROLE 2025-09-17 v1",       # Файл с ролями пользователей
+        "file": "PROM_USER_ROLE 2025-09-17 v2",       # Файл с ролями пользователей
         "sheet": "USER_ROLE",                          # Лист для обработки
         "max_col_width": 60,                           # Максимальная ширина колонки
         "freeze": "D2",                                # Закрепление области
@@ -98,7 +98,7 @@ INPUT_FILES = [
         "min_col_width": 8                             # Минимальная ширина колонки
     },
     {
-        "file": "PROM_USER_ROLE SB2025-09-17 v1",    # Файл с ролями пользователей SB
+        "file": "PROM_USER_ROLE SB 2025-09-17 v2",    # Файл с ролями пользователей SB
         "sheet": "USER_ROLE SB",                       # Лист для обработки
         "max_col_width": 60,                           # Максимальная ширина колонки
         "freeze": "D2",                                # Закрепление области
@@ -181,6 +181,17 @@ LOG_MESSAGES = {
     "missing_key": "[add_fields_to_sheet] Ключевая колонка {key} не найдена в {sheet}, создаём пустую.",  # Ключ отсутствует
     
     # Безопасный парсинг JSON
+    
+    # Новые сообщения для расширенной системы MERGE_FIELDS
+    "status_filter_applied": "[FILTER] Применен фильтр по статусу: {column}={values}, осталось строк: {count}",  # Фильтр по статусу применен
+    "status_filter_column_missing": "[WARNING] Колонка для фильтрации по статусу не найдена: {column} в листе {sheet}",  # Колонка для фильтрации отсутствует
+    "custom_filter_applied": "[FILTER] Применено пользовательское условие: {column}={condition}, осталось строк: {count}",  # Пользовательское условие применено
+    "custom_filter_column_missing": "[WARNING] Колонка для пользовательского условия не найдена: {column} в листе {sheet}",  # Колонка для пользовательского условия отсутствует
+    "filtering_completed": "[FILTER] Фильтрация завершена: {original} -> {filtered} строк в листе {sheet}",  # Фильтрация завершена
+    "grouping_columns_missing": "[WARNING] Колонки для группировки не найдены: {columns} в листе {sheet}",  # Колонки для группировки отсутствуют
+    "aggregate_column_missing": "[WARNING] Колонка для агрегации не найдена: {column} в листе {sheet}",  # Колонка для агрегации отсутствует
+    "grouping_completed": "[GROUP] Группировка и агрегация завершены: {original} -> {grouped} строк в листе {sheet}",  # Группировка завершена
+    "grouping_error": "[ERROR] Ошибка при группировке в листе {sheet}: {error}",  # Ошибка группировки
     "safe_json_error": "[safe_json_loads] Ошибка: {error} | Исходная строка: {line}",  # Ошибка парсинга
     
     # Размножение строк
@@ -280,6 +291,13 @@ COL_REWARD_LINK_CONTEST_CODE = f"{PREFIX_REWARD_LINK}CONTEST_CODE"  # Полно
 # === КОНФИГУРАЦИЯ ОБЪЕДИНЕНИЯ ДАННЫХ МЕЖДУ ЛИСТАМИ ===
 # MERGE_FIELDS определяет, какие поля из каких листов добавляются в другие листы
 # Каждый элемент содержит настройки для одного типа объединения
+# 
+# НОВЫЕ ВОЗМОЖНОСТИ:
+# - status_filters: фильтрация по статусам колонок (например, только активные)
+# - group_by: группировка данных перед добавлением
+# - aggregate: подведение итогов (sum, count, avg, max, min)
+# - custom_conditions: пользовательские условия фильтрации
+# - multiple_sources: объединение данных из нескольких источников
 MERGE_FIELDS = [
     # REPORT: добавляем CONTEST_TYPE, FULL_NAME, BUSINESS_STATUS, BUSINESS_BLOCK из CONTEST-DATA
     # Это позволяет в отчетах видеть полную информацию о конкурсе
@@ -293,7 +311,14 @@ MERGE_FIELDS = [
         "multiply_rows": False,             # Не размножаем строки при множественных совпадениях
         "col_max_width": 80,               # Максимальная ширина добавляемых колонок
         "col_width_mode": "AUTO",          # Автоматическое растягивание колонок
-        "col_min_width": 8                 # Минимальная ширина колонок
+        "col_min_width": 8,                # Минимальная ширина колонок
+        # Новые параметры:
+        "status_filters": {                 # Фильтрация по статусам
+            "BUSINESS_STATUS": ["ACTIVE", "PENDING"]  # Берем только активные и ожидающие статусы
+        },
+        "custom_conditions": None,          # Пользовательские условия (None = нет)
+        "group_by": None,                   # Группировка (None = нет группировки)
+        "aggregate": None                   # Подведение итогов (None = нет агрегации)
     },
     # REPORT: добавляем даты и статус из TOURNAMENT-SCHEDULE
     # Позволяет видеть расписание турниров в отчетах
@@ -722,7 +747,117 @@ MERGE_FIELDS = [
         "col_max_width": 30,               # Максимальная ширина
         "col_width_mode": "AUTO",          # Автоматическое растягивание
         "col_min_width": 8                 # Минимальная ширина
+    }
+]
+
+# === ДОПОЛНИТЕЛЬНЫЕ ПРАВИЛА ДЛЯ CONTEST-DATA ===
+# Добавляем поля с суммой по статусам из TOURNAMENT-SCHEDULE
+
+MERGE_FIELDS_ADVANCED = [
+    # CONTEST-DATA: добавляем количество турниров по статусам
+    {
+        "sheet_src": "TOURNAMENT-SCHEDULE", # Источник - расписание турниров
+        "sheet_dst": "CONTEST-DATA",        # Цель - данные конкурсов
+        "src_key": ["CONTEST_CODE"],        # Ключ - код конкурса
+        "dst_key": ["CONTEST_CODE"],        # Ключ - код конкурса
+        "column": ["TOURNAMENT_CODE"],      # Колонка для подсчета
+        "mode": "count",                    # Режим подсчета
+        "multiply_rows": False,             # Не размножаем строки
+        "col_max_width": 15,               # Максимальная ширина
+        "col_width_mode": "AUTO",          # Автоматическое растягивание
+        "col_min_width": 8,                # Минимальная ширина
+        # Новые параметры:
+        "status_filters": {                 # Фильтрация по статусам
+            "TOURNAMENT_STATUS": ["АКТИВНЫЙ"] # Только активные турниры
+        },
+        "custom_conditions": None,          # Без дополнительных условий
+        "group_by": None,                   # Без группировки
+        "aggregate": None                   # Без агрегации
     },
+    
+    # CONTEST-DATA: добавляем количество завершенных турниров
+    {
+        "sheet_src": "TOURNAMENT-SCHEDULE", # Источник - расписание турниров
+        "sheet_dst": "CONTEST-DATA",        # Цель - данные конкурсов
+        "src_key": ["CONTEST_CODE"],        # Ключ - код конкурса
+        "dst_key": ["CONTEST_CODE"],        # Ключ - код конкурса
+        "column": ["TOURNAMENT_CODE"],      # Колонка для подсчета
+        "mode": "count",                    # Режим подсчета
+        "multiply_rows": False,             # Не размножаем строки
+        "col_max_width": 15,               # Максимальная ширина
+        "col_width_mode": "AUTO",          # Автоматическое растягивание
+        "col_min_width": 8,                # Минимальная ширина
+        # Новые параметры:
+        "status_filters": {                 # Фильтрация по статусам
+            "TOURNAMENT_STATUS": ["ЗАВЕРШЕН"] # Только завершенные турниры
+        },
+        "custom_conditions": None,          # Без дополнительных условий
+        "group_by": None,                   # Без группировки
+        "aggregate": None                   # Без агрегации
+    },
+    
+    # CONTEST-DATA: добавляем количество отмененных турниров
+    {
+        "sheet_src": "TOURNAMENT-SCHEDULE", # Источник - расписание турниров
+        "sheet_dst": "CONTEST-DATA",        # Цель - данные конкурсов
+        "src_key": ["CONTEST_CODE"],        # Ключ - код конкурса
+        "dst_key": ["CONTEST_CODE"],        # Ключ - код конкурса
+        "column": ["TOURNAMENT_CODE"],      # Колонка для подсчета
+        "mode": "count",                    # Режим подсчета
+        "multiply_rows": False,             # Не размножаем строки
+        "col_max_width": 15,               # Максимальная ширина
+        "col_width_mode": "AUTO",          # Автоматическое растягивание
+        "col_min_width": 8,                # Минимальная ширина
+        # Новые параметры:
+        "status_filters": {                 # Фильтрация по статусам
+            "TOURNAMENT_STATUS": ["ОТМЕНЕН"] # Только отмененные турниры
+        },
+        "custom_conditions": None,          # Без дополнительных условий
+        "group_by": None,                   # Без группировки
+        "aggregate": None                   # Без агрегации
+    },
+    
+    # CONTEST-DATA: добавляем количество турниров в подведении итогов
+    {
+        "sheet_src": "TOURNAMENT-SCHEDULE", # Источник - расписание турниров
+        "sheet_dst": "CONTEST-DATA",        # Цель - данные конкурсов
+        "src_key": ["CONTEST_CODE"],        # Ключ - код конкурса
+        "dst_key": ["CONTEST_CODE"],        # Ключ - код конкурса
+        "column": ["TOURNAMENT_CODE"],      # Колонка для подсчета
+        "mode": "count",                    # Режим подсчета
+        "multiply_rows": False,             # Не размножаем строки
+        "col_max_width": 15,               # Максимальная ширина
+        "col_width_mode": "AUTO",          # Автоматическое растягивание
+        "col_min_width": 8,                # Минимальная ширина
+        # Новые параметры:
+        "status_filters": {                 # Фильтрация по статусам
+            "TOURNAMENT_STATUS": ["ПОДВЕДЕНИЕ ИТОГОВ"] # Только в подведении итогов
+        },
+        "custom_conditions": None,          # Без дополнительных условий
+        "group_by": None,                   # Без группировки
+        "aggregate": None                   # Без агрегации
+    },
+    
+    # CONTEST-DATA: добавляем количество удаленных турниров
+    {
+        "sheet_src": "TOURNAMENT-SCHEDULE", # Источник - расписание турниров
+        "sheet_dst": "CONTEST-DATA",        # Цель - данные конкурсов
+        "src_key": ["CONTEST_CODE"],        # Ключ - код конкурса
+        "dst_key": ["CONTEST_CODE"],        # Ключ - код конкурса
+        "column": ["TOURNAMENT_CODE"],      # Колонка для подсчета
+        "mode": "count",                    # Режим подсчета
+        "multiply_rows": False,             # Не размножаем строки
+        "col_max_width": 15,               # Максимальная ширина
+        "col_width_mode": "AUTO",          # Автоматическое растягивание
+        "col_min_width": 8,                # Минимальная ширина
+        # Новые параметры:
+        "status_filters": {                 # Фильтрация по статусам
+            "TOURNAMENT_STATUS": ["УДАЛЕН"] # Только удаленные турниры
+        },
+        "custom_conditions": None,          # Без дополнительных условий
+        "group_by": None,                   # Без группировки
+        "aggregate": None                   # Без агрегации
+    }
 ]
 
 # === ОПРЕДЕЛЕНИЕ КЛЮЧЕВЫХ КОЛОНОК ДЛЯ СВОДНОГО ЛИСТА ===
@@ -1966,6 +2101,74 @@ def mark_duplicates(df, key_cols, sheet_name=None):
     return df
 
 
+def add_tournament_status_counts(df_contest, df_tournament):
+    """
+    Добавляет к df_contest колонки с количеством турниров по каждому статусу.
+    
+    Эта функция анализирует статусы турниров и подсчитывает количество турниров
+    для каждого конкурса по каждому статусу отдельно.
+    
+    Args:
+        df_contest (pd.DataFrame): DataFrame с данными конкурсов (должен содержать CONTEST_CODE)
+        df_tournament (pd.DataFrame): DataFrame с расписанием турниров (должен содержать CONTEST_CODE, TOURNAMENT_CODE, TOURNAMENT_STATUS)
+        
+    Returns:
+        pd.DataFrame: DataFrame с добавленными колонками статусов турниров
+    """
+    func_start = time()
+    logging.info(LOG_MESSAGES["func_start"].format(
+        func="add_tournament_status_counts",
+        params=f"(contest_rows: {len(df_contest)}, tournament_rows: {len(df_tournament)})"
+    ))
+    
+    # Создаем копию DataFrame для безопасной работы
+    df_result = df_contest.copy()
+    
+    # Получаем уникальные статусы турниров (исключаем пустые значения)
+    unique_statuses = df_tournament['TOURNAMENT_STATUS'].dropna().unique()
+    
+    # Сортируем статусы для предсказуемого порядка колонок
+    unique_statuses = sorted([status for status in unique_statuses if status.strip()])
+    
+    logging.info(f"[TOURNAMENT STATUS COUNTS] Найдено статусов: {len(unique_statuses)} - {unique_statuses}")
+    
+    # Для каждого статуса подсчитываем количество уникальных турниров по CONTEST_CODE
+    for status in unique_statuses:
+        # Фильтруем турниры по статусу
+        status_df = df_tournament[df_tournament['TOURNAMENT_STATUS'] == status]
+        
+        if len(status_df) == 0:
+            # Если нет турниров с таким статусом - все конкурсы получают 0
+            col_name = f"TOURNAMENT_COUNT_{status.upper()}"
+            df_result[col_name] = 0
+            logging.debug(f"[TOURNAMENT STATUS COUNTS] Статус '{status}': 0 турниров")
+            continue
+        
+        # Подсчитываем количество уникальных турниров для каждого конкурса
+        status_counts = status_df.groupby('CONTEST_CODE')['TOURNAMENT_CODE'].nunique().to_dict()
+        
+        # Добавляем колонку с количеством турниров данного статуса
+        col_name = f"TOURNAMENT_COUNT_{status.upper()}"
+        df_result[col_name] = df_result['CONTEST_CODE'].map(status_counts).fillna(0).astype(int)
+        
+        # Логируем статистику для этого статуса
+        total_tournaments = status_counts.values()
+        total_contests = len(status_counts)
+        logging.debug(f"[TOURNAMENT STATUS COUNTS] Статус '{status}': {total_contests} конкурсов, {sum(total_tournaments)} турниров")
+    
+    # Логируем итоговую статистику
+    func_time = time() - func_start
+    added_columns = [f"TOURNAMENT_COUNT_{status.upper()}" for status in unique_statuses]
+    logging.info(f"[TOURNAMENT STATUS COUNTS] Добавлено колонок: {len(added_columns)} - {added_columns}")
+    logging.info(LOG_MESSAGES["func_end"].format(
+        func="add_tournament_status_counts",
+        params=f"(добавлено колонок: {len(added_columns)})",
+        time=func_time
+    ))
+    
+    return df_result
+
+
 def add_fields_to_sheet(df_base, df_ref, src_keys, dst_keys, columns, sheet_name, ref_sheet_name, mode="value",
                         multiply_rows=False):
     """
@@ -2107,6 +2310,13 @@ def merge_fields_across_sheets(sheets_data, merge_fields):
     """
     Универсально добавляет поля по правилам из merge_fields
     (source_df -> target_df), поддержка mode value / count, multiply_rows.
+    
+    НОВЫЕ ВОЗМОЖНОСТИ:
+    - status_filters: фильтрация по статусам колонок
+    - custom_conditions: пользовательские условия фильтрации
+    - group_by: группировка данных перед добавлением
+    - aggregate: подведение итогов (sum, count, avg, max, min)
+    
     sheets_data: dict {sheet_name: (df, params)}
     merge_fields: список блоков с параметрами (см. выше)
     """
@@ -2118,7 +2328,24 @@ def merge_fields_across_sheets(sheets_data, merge_fields):
         col_names = rule["column"]
         mode = rule.get("mode", "value")
         multiply_rows = rule.get("multiply_rows", False)
+        
+        # Новые параметры
+        status_filters = rule.get("status_filters", None)
+        custom_conditions = rule.get("custom_conditions", None)
+        group_by = rule.get("group_by", None)
+        aggregate = rule.get("aggregate", None)
+        
         params_str = f"(src: {sheet_src} -> dst: {sheet_dst}, поля: {col_names}, ключ: {dst_keys}<-{src_keys}, mode: {mode}, multiply: {multiply_rows})"
+        
+        # Добавляем информацию о новых параметрах в логирование
+        if status_filters:
+            params_str += f", status_filters: {status_filters}"
+        if custom_conditions:
+            params_str += f", custom_conditions: {list(custom_conditions.keys())}"
+        if group_by:
+            params_str += f", group_by: {group_by}"
+        if aggregate:
+            params_str += f", aggregate: {list(aggregate.keys())}"
 
         if sheet_src not in sheets_data or sheet_dst not in sheets_data:
             logging.warning(LOG_MESSAGES.get("field_missing", LOG_MESSAGES["func_error"]).format(
@@ -2126,11 +2353,20 @@ def merge_fields_across_sheets(sheets_data, merge_fields):
             ))
             continue
 
-        df_src = sheets_data[sheet_src][0]
+        df_src = sheets_data[sheet_src][0].copy()
         df_dst, params_dst = sheets_data[sheet_dst]
 
         logging.info(LOG_MESSAGES["func_start"].format(func="merge_fields_across_sheets", params=params_str))
-        df_dst = add_fields_to_sheet(df_dst, df_src, src_keys, dst_keys, col_names, sheet_dst, sheet_src, mode=mode,
+        
+        # Применяем фильтрацию к исходным данным
+        df_src_filtered = apply_filters_to_dataframe(df_src, status_filters, custom_conditions, sheet_src)
+        
+        # Применяем группировку и агрегацию если необходимо
+        if group_by or aggregate:
+            df_src_filtered = apply_grouping_and_aggregation(df_src_filtered, group_by, aggregate, sheet_src)
+        
+        # Вызываем основную функцию добавления полей
+        df_dst = add_fields_to_sheet(df_dst, df_src_filtered, src_keys, dst_keys, col_names, sheet_dst, sheet_src, mode=mode,
                                      multiply_rows=multiply_rows)
 
         # Сохраняем информацию о ширине колонок для добавленных полей
@@ -2151,6 +2387,149 @@ def merge_fields_across_sheets(sheets_data, merge_fields):
         sheets_data[sheet_dst] = (df_dst, params_dst)
         logging.info(LOG_MESSAGES["func_end"].format(func="merge_fields_across_sheets", params=params_str, time=0))
     return sheets_data
+
+
+def apply_filters_to_dataframe(df, status_filters, custom_conditions, sheet_name):
+    """
+    Применяет фильтрацию к DataFrame на основе status_filters и custom_conditions.
+    
+    Args:
+        df: исходный DataFrame
+        status_filters: словарь с фильтрами по статусам {column: [allowed_values]}
+        custom_conditions: словарь с пользовательскими условиями {column: condition}
+        sheet_name: имя листа для логирования
+        
+    Returns:
+        отфильтрованный DataFrame
+    """
+    if df.empty:
+        return df
+    
+    df_filtered = df.copy()
+    original_count = len(df_filtered)
+    
+    # Применяем фильтры по статусам
+    if status_filters:
+        for column, allowed_values in status_filters.items():
+            if column in df_filtered.columns:
+                df_filtered = df_filtered[df_filtered[column].isin(allowed_values)]
+                logging.info(LOG_MESSAGES.get("status_filter_applied", "Применен фильтр по статусу: {column}={values}, осталось строк: {count}").format(
+                    column=column, values=allowed_values, count=len(df_filtered)
+                ))
+            else:
+                logging.warning(LOG_MESSAGES.get("status_filter_column_missing", "Колонка для фильтрации по статусу не найдена: {column} в листе {sheet}").format(
+                    column=column, sheet=sheet_name
+                ))
+    
+    # Применяем пользовательские условия
+    if custom_conditions:
+        for column, condition in custom_conditions.items():
+            if column in df_filtered.columns:
+                if callable(condition):
+                    # Лямбда-функция
+                    df_filtered = df_filtered[df_filtered[column].apply(condition)]
+                elif isinstance(condition, list):
+                    # Список разрешенных значений
+                    df_filtered = df_filtered[df_filtered[column].isin(condition)]
+                else:
+                    # Точное совпадение
+                    df_filtered = df_filtered[df_filtered[column] == condition]
+                
+                logging.info(LOG_MESSAGES.get("custom_filter_applied", "Применено пользовательское условие: {column}={condition}, осталось строк: {count}").format(
+                    column=column, condition=str(condition), count=len(df_filtered)
+                ))
+            else:
+                logging.warning(LOG_MESSAGES.get("custom_filter_column_missing", "Колонка для пользовательского условия не найдена: {column} в листе {sheet}").format(
+                    column=column, sheet=sheet_name
+                ))
+    
+    filtered_count = len(df_filtered)
+    if original_count != filtered_count:
+        logging.info(LOG_MESSAGES.get("filtering_completed", "Фильтрация завершена: {original} -> {filtered} строк в листе {sheet}").format(
+            original=original_count, filtered=filtered_count, sheet=sheet_name
+        ))
+    
+    return df_filtered
+
+
+def apply_grouping_and_aggregation(df, group_by, aggregate, sheet_name):
+    """
+    Применяет группировку и агрегацию к DataFrame.
+    
+    Args:
+        df: исходный DataFrame
+        group_by: список колонок для группировки
+        aggregate: словарь с правилами агрегации {column: function}
+        sheet_name: имя листа для логирования
+        
+    Returns:
+        DataFrame с примененной группировкой и агрегацией
+    """
+    if df.empty:
+        return df
+    
+    if not group_by and not aggregate:
+        return df
+    
+    df_grouped = df.copy()
+    original_count = len(df_grouped)
+    
+    try:
+        if group_by:
+            # Проверяем наличие колонок для группировки
+            missing_group_cols = [col for col in group_by if col not in df_grouped.columns]
+            if missing_group_cols:
+                logging.warning(LOG_MESSAGES.get("grouping_columns_missing", "Колонки для группировки не найдены: {columns} в листе {sheet}").format(
+                    columns=missing_group_cols, sheet=sheet_name
+                ))
+                return df_grouped
+            
+            # Применяем группировку
+            if aggregate:
+                # Группировка с агрегацией
+                agg_dict = {}
+                for col, func in aggregate.items():
+                    if col in df_grouped.columns:
+                        agg_dict[col] = func
+                    else:
+                        logging.warning(LOG_MESSAGES.get("aggregate_column_missing", "Колонка для агрегации не найдена: {column} в листе {sheet}").format(
+                            column=col, sheet=sheet_name
+                        ))
+                
+                if agg_dict:
+                    df_grouped = df_grouped.groupby(group_by).agg(agg_dict).reset_index()
+                    # Убираем многоуровневые заголовки если они появились
+                    if isinstance(df_grouped.columns, pd.MultiIndex):
+                        df_grouped.columns = [col[0] if col[1] == '' else f"{col[0]}_{col[1]}" for col in df_grouped.columns]
+            else:
+                # Простая группировка (убираем дубликаты)
+                df_grouped = df_grouped.groupby(group_by).first().reset_index()
+        else:
+            # Только агрегация без группировки
+            agg_dict = {}
+            for col, func in aggregate.items():
+                if col in df_grouped.columns:
+                    agg_dict[col] = func
+                else:
+                    logging.warning(LOG_MESSAGES.get("aggregate_column_missing", "Колонка для агрегации не найдена: {column} в листе {sheet}").format(
+                        column=col, sheet=sheet_name
+                    ))
+            
+            if agg_dict:
+                df_grouped = df_grouped.agg(agg_dict).to_frame().T
+        
+        grouped_count = len(df_grouped)
+        logging.info(LOG_MESSAGES.get("grouping_completed", "Группировка и агрегация завершены: {original} -> {grouped} строк в листе {sheet}").format(
+            original=original_count, grouped=grouped_count, sheet=sheet_name
+        ))
+        
+    except Exception as e:
+        logging.error(LOG_MESSAGES.get("grouping_error", "Ошибка при группировке в листе {sheet}: {error}").format(
+            sheet=sheet_name, error=str(e)
+        ))
+        return df
+    
+    return df_grouped
 
 
 def detect_gender_by_patterns(value, patterns_male, patterns_female):
@@ -2394,10 +2773,24 @@ def main():
         df_tournament = calculate_tournament_status(df_tournament, df_report)
         sheets_data["TOURNAMENT-SCHEDULE"] = (df_tournament, conf_tournament)
 
+    # 4.5. Добавление количества турниров по статусам для CONTEST-DATA
+    if "CONTEST-DATA" in sheets_data and "TOURNAMENT-SCHEDULE" in sheets_data:
+        df_contest, conf_contest = sheets_data["CONTEST-DATA"]
+        df_tournament, conf_tournament = sheets_data["TOURNAMENT-SCHEDULE"]
+        df_contest = add_tournament_status_counts(df_contest, df_tournament)
+        sheets_data["CONTEST-DATA"] = (df_contest, conf_contest)
+
     # 5. Merge fields (только после полного разворота JSON)
+    # Сначала применяем обычные правила MERGE_FIELDS
     merge_fields_across_sheets(
         sheets_data,
         [f for f in MERGE_FIELDS if f.get("sheet_dst") != "SUMMARY"]
+    )
+    
+    # Затем применяем дополнительные правила для CONTEST-DATA (статусы турниров)
+    merge_fields_across_sheets(
+        sheets_data,
+        MERGE_FIELDS_ADVANCED
     )
 
     # 6. Проверка на дубли
