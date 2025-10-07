@@ -192,6 +192,13 @@ LOG_MESSAGES = {
     "aggregate_column_missing": "[WARNING] Колонка для агрегации не найдена: {column} в листе {sheet}",  # Колонка для агрегации отсутствует
     "grouping_completed": "[GROUP] Группировка и агрегация завершены: {original} -> {grouped} строк в листе {sheet}",  # Группировка завершена
     "grouping_error": "[ERROR] Ошибка при группировке в листе {sheet}: {error}",  # Ошибка группировки
+    
+    # Новые сообщения для создания уникальных листов SUMMARY
+    "summary_sheet_start": "[SUMMARY_SHEET] Создание уникального листа {sheet_name} по ключу {key_column}",  # Начало создания листа
+    "summary_sheet_processing": "[SUMMARY_SHEET] Обработка {total_rows} строк, найдено {unique_count} уникальных значений",  # Обработка данных
+    "summary_sheet_duplicates_removed": "[SUMMARY_SHEET] Удалено {removed_count} дублей, осталось {final_count} уникальных строк",  # Удаление дублей
+    "summary_sheet_completed": "[SUMMARY_SHEET] Лист {sheet_name} создан: {final_count} уникальных строк по ключу {key_column}",  # Завершение создания
+    "summary_sheet_error": "[ERROR] Ошибка создания листа {sheet_name}: {error}",  # Ошибка создания листа
     "safe_json_error": "[safe_json_loads] Ошибка: {error} | Исходная строка: {line}",  # Ошибка парсинга
     
     # Размножение строк
@@ -1114,6 +1121,369 @@ COLOR_SCHEME = [
         "sheets": ["SUMMARY"],
         "columns": ["ДУБЛЬ: CONTEST_CODE_TOURNAMENT_CODE_REWARD_CODE_GROUP_CODE"],
         # Назначение: поля дублей в SUMMARY
+    },
+
+    # --- SUMMARY_REWARD: КЛЮЧЕВЫЕ ПОЛЯ — пастельный голубой ---
+    {
+        "group": "SUMMARY_REWARD: Key Fields",
+        "header_bg": "E6F3FF",  # пастельный голубой - как исходные данные
+        "header_fg": "2C3E50",  # тёмно-серый для читаемости
+        "column_bg": None,
+        "column_fg": None,
+        "style_scope": "header",
+        "sheets": ["SUMMARY_REWARD"],
+        "columns": ["REWARD_CODE", "CONTEST_CODE", "TOURNAMENT_CODE", "GROUP_CODE"],
+        # Назначение: ключевые поля в SUMMARY_REWARD
+    },
+
+    # --- SUMMARY_REWARD: CONTEST-DATA — пастельный голубой ---
+    {
+        "group": "SUMMARY_REWARD: CONTEST-DATA",
+        "header_bg": "CCE5FF",  # пастельный голубой - оттенок для CONTEST-DATA
+        "header_fg": "2C3E50",  # тёмно-серый для читаемости
+        "column_bg": None,
+        "column_fg": None,
+        "style_scope": "header",
+        "sheets": ["SUMMARY_REWARD"],
+        "columns": [
+            "CONTEST-DATA=>FULL_NAME", "CONTEST-DATA=>CONTEST_FEATURE => momentRewarding",
+            "CONTEST-DATA=>FACTOR_MATCH", "CONTEST-DATA=>PLAN_MOD_VALUE", "CONTEST-DATA=>BUSINESS_BLOCK",
+            "CONTEST-DATA=>CONTEST_FEATURE => tournamentStartMailing", "CONTEST-DATA=>CONTEST_FEATURE => tournamentEndMailing",
+            "CONTEST-DATA=>CONTEST_FEATURE => tournamentRewardingMailing", "CONTEST-DATA=>CONTEST_FEATURE => tournamentLikeMailing",
+            "CONTEST-DATA=>CONTEST_FEATURE => capacity", "CONTEST-DATA=>CONTEST_FEATURE => tournamentListMailing",
+            "CONTEST-DATA=>CONTEST_FEATURE => vid", "CONTEST-DATA=>CONTEST_FEATURE => tbVisible",
+            "CONTEST-DATA=>CONTEST_FEATURE => tbHidden", "CONTEST-DATA=>CONTEST_FEATURE => persomanNumberVisible",
+            "CONTEST-DATA=>CONTEST_FEATURE => typeRewarding", "CONTEST-DATA=>CONTEST_FEATURE => masking",
+            "CONTEST-DATA=>CONTEST_FEATURE => minNumber", "CONTEST-DATA=>CONTEST_FEATURE => businessBlock",
+            "CONTEST-DATA=>CONTEST_FEATURE => accuracy", "CONTEST-DATA=>CONTEST_FEATURE => gosbHidden",
+            "CONTEST-DATA=>CONTEST_FEATURE => preferences", "CONTEST-DATA=>CONTEST_FEATURE => persomanNumberHidden",
+            "CONTEST-DATA=>CONTEST_FEATURE => gosbVisible", "CONTEST-DATA=>CONTEST_FEATURE => feature"
+        ],
+        # Назначение: поля из CONTEST-DATA в SUMMARY_REWARD
+    },
+
+    # --- SUMMARY_REWARD: GROUP — пастельный зелёный ---
+    {
+        "group": "SUMMARY_REWARD: GROUP",
+        "header_bg": "E8F5E8",  # пастельный зелёный - оттенок для GROUP
+        "header_fg": "2C3E50",  # тёмно-серый для читаемости
+        "column_bg": None,
+        "column_fg": None,
+        "style_scope": "header",
+        "sheets": ["SUMMARY_REWARD"],
+        "columns": ["GROUP=>GET_CALC_CRITERION", "GROUP=>ADD_CALC_CRITERION", "GROUP=>ADD_CALC_CRITERION_2"],
+        # Назначение: поля из GROUP в SUMMARY_REWARD
+    },
+
+    # --- SUMMARY_REWARD: INDICATOR — пастельный жёлтый ---
+    {
+        "group": "SUMMARY_REWARD: INDICATOR",
+        "header_bg": "FFF8E1",  # пастельный жёлтый - оттенок для INDICATOR
+        "header_fg": "2C3E50",  # тёмно-серый для читаемости
+        "column_bg": None,
+        "column_fg": None,
+        "style_scope": "header",
+        "sheets": ["SUMMARY_REWARD"],
+        "columns": ["INDICATOR=>INDICATOR_MARK_TYPE", "INDICATOR=>INDICATOR_MATCH", "INDICATOR=>INDICATOR_VALUE"],
+        # Назначение: поля из INDICATOR в SUMMARY_REWARD
+    },
+
+    # --- SUMMARY_REWARD: TOURNAMENT-SCHEDULE — пастельный голубой ---
+    {
+        "group": "SUMMARY_REWARD: TOURNAMENT-SCHEDULE",
+        "header_bg": "E1F5FE",  # пастельный голубой - оттенок для TOURNAMENT-SCHEDULE
+        "header_fg": "2C3E50",  # тёмно-серый для читаемости
+        "column_bg": None,
+        "column_fg": None,
+        "style_scope": "header",
+        "sheets": ["SUMMARY_REWARD"],
+        "columns": ["TOURNAMENT-SCHEDULE=>START_DT", "TOURNAMENT-SCHEDULE=>END_DT", "TOURNAMENT-SCHEDULE=>RESULT_DT",
+                    "TOURNAMENT-SCHEDULE=>TOURNAMENT_STATUS", "TOURNAMENT-SCHEDULE=>TARGET_TYPE"],
+        # Назначение: поля из TOURNAMENT-SCHEDULE в SUMMARY_REWARD
+    },
+
+    # --- SUMMARY_REWARD: REPORT — пастельный зелёный ---
+    {
+        "group": "SUMMARY_REWARD: REPORT",
+        "header_bg": "E8F5E8",  # пастельный зелёный - оттенок для REPORT
+        "header_fg": "2C3E50",  # тёмно-серый для читаемости
+        "column_bg": None,
+        "column_fg": None,
+        "style_scope": "header",
+        "sheets": ["SUMMARY_REWARD"],
+        "columns": ["REPORT=>CONTEST_DATE", "REPORT=>COUNT_CONTEST_DATE"],
+        # Назначение: поля из REPORT в SUMMARY_REWARD
+    },
+
+    # --- SUMMARY_REWARD: REWARD — пастельный оранжевый ---
+    {
+        "group": "SUMMARY_REWARD: REWARD",
+        "header_bg": "FFE8CC",  # пастельный оранжевый - оттенок для REWARD
+        "header_fg": "2C3E50",  # тёмно-серый для читаемости
+        "column_bg": None,
+        "column_fg": None,
+        "style_scope": "header",
+        "sheets": ["SUMMARY_REWARD"],
+        "columns": [
+            "REWARD=>ADD_DATA => rewardAgainGlobal", "REWARD=>ADD_DATA => rewardAgainTournament",
+            "REWARD=>ADD_DATA => outstanding", "REWARD=>ADD_DATA => teamNews", "REWARD=>ADD_DATA => singleNews"
+        ],
+        # Назначение: поля из REWARD в SUMMARY_REWARD
+    },
+
+    # --- SUMMARY_REWARD: ДУБЛИ — пастельный розовый ---
+    {
+        "group": "SUMMARY_REWARD: DUPLICATES",
+        "header_bg": "FFE6F2",  # пастельный розовый - для дублей
+        "header_fg": "2C3E50",  # тёмно-серый для читаемости
+        "column_bg": None,
+        "column_fg": None,
+        "style_scope": "header",
+        "sheets": ["SUMMARY_REWARD"],
+        "columns": ["ДУБЛЬ: CONTEST_CODE_TOURNAMENT_CODE_REWARD_CODE_GROUP_CODE"],
+        # Назначение: поля дублей в SUMMARY_REWARD
+    },
+
+    # --- SUMMARY_CONTEST: КЛЮЧЕВЫЕ ПОЛЯ — пастельный голубой ---
+    {
+        "group": "SUMMARY_CONTEST: Key Fields",
+        "header_bg": "E6F3FF",  # пастельный голубой - как исходные данные
+        "header_fg": "2C3E50",  # тёмно-серый для читаемости
+        "column_bg": None,
+        "column_fg": None,
+        "style_scope": "header",
+        "sheets": ["SUMMARY_CONTEST"],
+        "columns": ["REWARD_CODE", "CONTEST_CODE", "TOURNAMENT_CODE", "GROUP_CODE"],
+        # Назначение: ключевые поля в SUMMARY_CONTEST
+    },
+
+    # --- SUMMARY_CONTEST: CONTEST-DATA — пастельный голубой ---
+    {
+        "group": "SUMMARY_CONTEST: CONTEST-DATA",
+        "header_bg": "CCE5FF",  # пастельный голубой - оттенок для CONTEST-DATA
+        "header_fg": "2C3E50",  # тёмно-серый для читаемости
+        "column_bg": None,
+        "column_fg": None,
+        "style_scope": "header",
+        "sheets": ["SUMMARY_CONTEST"],
+        "columns": [
+            "CONTEST-DATA=>FULL_NAME", "CONTEST-DATA=>CONTEST_FEATURE => momentRewarding",
+            "CONTEST-DATA=>FACTOR_MATCH", "CONTEST-DATA=>PLAN_MOD_VALUE", "CONTEST-DATA=>BUSINESS_BLOCK",
+            "CONTEST-DATA=>CONTEST_FEATURE => tournamentStartMailing", "CONTEST-DATA=>CONTEST_FEATURE => tournamentEndMailing",
+            "CONTEST-DATA=>CONTEST_FEATURE => tournamentRewardingMailing", "CONTEST-DATA=>CONTEST_FEATURE => tournamentLikeMailing",
+            "CONTEST-DATA=>CONTEST_FEATURE => capacity", "CONTEST-DATA=>CONTEST_FEATURE => tournamentListMailing",
+            "CONTEST-DATA=>CONTEST_FEATURE => vid", "CONTEST-DATA=>CONTEST_FEATURE => tbVisible",
+            "CONTEST-DATA=>CONTEST_FEATURE => tbHidden", "CONTEST-DATA=>CONTEST_FEATURE => persomanNumberVisible",
+            "CONTEST-DATA=>CONTEST_FEATURE => typeRewarding", "CONTEST-DATA=>CONTEST_FEATURE => masking",
+            "CONTEST-DATA=>CONTEST_FEATURE => minNumber", "CONTEST-DATA=>CONTEST_FEATURE => businessBlock",
+            "CONTEST-DATA=>CONTEST_FEATURE => accuracy", "CONTEST-DATA=>CONTEST_FEATURE => gosbHidden",
+            "CONTEST-DATA=>CONTEST_FEATURE => preferences", "CONTEST-DATA=>CONTEST_FEATURE => persomanNumberHidden",
+            "CONTEST-DATA=>CONTEST_FEATURE => gosbVisible", "CONTEST-DATA=>CONTEST_FEATURE => feature"
+        ],
+        # Назначение: поля из CONTEST-DATA в SUMMARY_CONTEST
+    },
+
+    # --- SUMMARY_CONTEST: GROUP — пастельный зелёный ---
+    {
+        "group": "SUMMARY_CONTEST: GROUP",
+        "header_bg": "E8F5E8",  # пастельный зелёный - оттенок для GROUP
+        "header_fg": "2C3E50",  # тёмно-серый для читаемости
+        "column_bg": None,
+        "column_fg": None,
+        "style_scope": "header",
+        "sheets": ["SUMMARY_CONTEST"],
+        "columns": ["GROUP=>GET_CALC_CRITERION", "GROUP=>ADD_CALC_CRITERION", "GROUP=>ADD_CALC_CRITERION_2"],
+        # Назначение: поля из GROUP в SUMMARY_CONTEST
+    },
+
+    # --- SUMMARY_CONTEST: INDICATOR — пастельный жёлтый ---
+    {
+        "group": "SUMMARY_CONTEST: INDICATOR",
+        "header_bg": "FFF8E1",  # пастельный жёлтый - оттенок для INDICATOR
+        "header_fg": "2C3E50",  # тёмно-серый для читаемости
+        "column_bg": None,
+        "column_fg": None,
+        "style_scope": "header",
+        "sheets": ["SUMMARY_CONTEST"],
+        "columns": ["INDICATOR=>INDICATOR_MARK_TYPE", "INDICATOR=>INDICATOR_MATCH", "INDICATOR=>INDICATOR_VALUE"],
+        # Назначение: поля из INDICATOR в SUMMARY_CONTEST
+    },
+
+    # --- SUMMARY_CONTEST: TOURNAMENT-SCHEDULE — пастельный голубой ---
+    {
+        "group": "SUMMARY_CONTEST: TOURNAMENT-SCHEDULE",
+        "header_bg": "E1F5FE",  # пастельный голубой - оттенок для TOURNAMENT-SCHEDULE
+        "header_fg": "2C3E50",  # тёмно-серый для читаемости
+        "column_bg": None,
+        "column_fg": None,
+        "style_scope": "header",
+        "sheets": ["SUMMARY_CONTEST"],
+        "columns": ["TOURNAMENT-SCHEDULE=>START_DT", "TOURNAMENT-SCHEDULE=>END_DT", "TOURNAMENT-SCHEDULE=>RESULT_DT",
+                    "TOURNAMENT-SCHEDULE=>TOURNAMENT_STATUS", "TOURNAMENT-SCHEDULE=>TARGET_TYPE"],
+        # Назначение: поля из TOURNAMENT-SCHEDULE в SUMMARY_CONTEST
+    },
+
+    # --- SUMMARY_CONTEST: REPORT — пастельный зелёный ---
+    {
+        "group": "SUMMARY_CONTEST: REPORT",
+        "header_bg": "E8F5E8",  # пастельный зелёный - оттенок для REPORT
+        "header_fg": "2C3E50",  # тёмно-серый для читаемости
+        "column_bg": None,
+        "column_fg": None,
+        "style_scope": "header",
+        "sheets": ["SUMMARY_CONTEST"],
+        "columns": ["REPORT=>CONTEST_DATE", "REPORT=>COUNT_CONTEST_DATE"],
+        # Назначение: поля из REPORT в SUMMARY_CONTEST
+    },
+
+    # --- SUMMARY_CONTEST: REWARD — пастельный оранжевый ---
+    {
+        "group": "SUMMARY_CONTEST: REWARD",
+        "header_bg": "FFE8CC",  # пастельный оранжевый - оттенок для REWARD
+        "header_fg": "2C3E50",  # тёмно-серый для читаемости
+        "column_bg": None,
+        "column_fg": None,
+        "style_scope": "header",
+        "sheets": ["SUMMARY_CONTEST"],
+        "columns": [
+            "REWARD=>ADD_DATA => rewardAgainGlobal", "REWARD=>ADD_DATA => rewardAgainTournament",
+            "REWARD=>ADD_DATA => outstanding", "REWARD=>ADD_DATA => teamNews", "REWARD=>ADD_DATA => singleNews"
+        ],
+        # Назначение: поля из REWARD в SUMMARY_CONTEST
+    },
+
+    # --- SUMMARY_CONTEST: ДУБЛИ — пастельный розовый ---
+    {
+        "group": "SUMMARY_CONTEST: DUPLICATES",
+        "header_bg": "FFE6F2",  # пастельный розовый - для дублей
+        "header_fg": "2C3E50",  # тёмно-серый для читаемости
+        "column_bg": None,
+        "column_fg": None,
+        "style_scope": "header",
+        "sheets": ["SUMMARY_CONTEST"],
+        "columns": ["ДУБЛЬ: CONTEST_CODE_TOURNAMENT_CODE_REWARD_CODE_GROUP_CODE"],
+        # Назначение: поля дублей в SUMMARY_CONTEST
+    },
+
+    # --- SUMMARY_SCHEDULE: КЛЮЧЕВЫЕ ПОЛЯ — пастельный голубой ---
+    {
+        "group": "SUMMARY_SCHEDULE: Key Fields",
+        "header_bg": "E6F3FF",  # пастельный голубой - как исходные данные
+        "header_fg": "2C3E50",  # тёмно-серый для читаемости
+        "column_bg": None,
+        "column_fg": None,
+        "style_scope": "header",
+        "sheets": ["SUMMARY_SCHEDULE"],
+        "columns": ["REWARD_CODE", "CONTEST_CODE", "TOURNAMENT_CODE", "GROUP_CODE"],
+        # Назначение: ключевые поля в SUMMARY_SCHEDULE
+    },
+
+    # --- SUMMARY_SCHEDULE: CONTEST-DATA — пастельный голубой ---
+    {
+        "group": "SUMMARY_SCHEDULE: CONTEST-DATA",
+        "header_bg": "CCE5FF",  # пастельный голубой - оттенок для CONTEST-DATA
+        "header_fg": "2C3E50",  # тёмно-серый для читаемости
+        "column_bg": None,
+        "column_fg": None,
+        "style_scope": "header",
+        "sheets": ["SUMMARY_SCHEDULE"],
+        "columns": [
+            "CONTEST-DATA=>FULL_NAME", "CONTEST-DATA=>CONTEST_FEATURE => momentRewarding",
+            "CONTEST-DATA=>FACTOR_MATCH", "CONTEST-DATA=>PLAN_MOD_VALUE", "CONTEST-DATA=>BUSINESS_BLOCK",
+            "CONTEST-DATA=>CONTEST_FEATURE => tournamentStartMailing", "CONTEST-DATA=>CONTEST_FEATURE => tournamentEndMailing",
+            "CONTEST-DATA=>CONTEST_FEATURE => tournamentRewardingMailing", "CONTEST-DATA=>CONTEST_FEATURE => tournamentLikeMailing",
+            "CONTEST-DATA=>CONTEST_FEATURE => capacity", "CONTEST-DATA=>CONTEST_FEATURE => tournamentListMailing",
+            "CONTEST-DATA=>CONTEST_FEATURE => vid", "CONTEST-DATA=>CONTEST_FEATURE => tbVisible",
+            "CONTEST-DATA=>CONTEST_FEATURE => tbHidden", "CONTEST-DATA=>CONTEST_FEATURE => persomanNumberVisible",
+            "CONTEST-DATA=>CONTEST_FEATURE => typeRewarding", "CONTEST-DATA=>CONTEST_FEATURE => masking",
+            "CONTEST-DATA=>CONTEST_FEATURE => minNumber", "CONTEST-DATA=>CONTEST_FEATURE => businessBlock",
+            "CONTEST-DATA=>CONTEST_FEATURE => accuracy", "CONTEST-DATA=>CONTEST_FEATURE => gosbHidden",
+            "CONTEST-DATA=>CONTEST_FEATURE => preferences", "CONTEST-DATA=>CONTEST_FEATURE => persomanNumberHidden",
+            "CONTEST-DATA=>CONTEST_FEATURE => gosbVisible", "CONTEST-DATA=>CONTEST_FEATURE => feature"
+        ],
+        # Назначение: поля из CONTEST-DATA в SUMMARY_SCHEDULE
+    },
+
+    # --- SUMMARY_SCHEDULE: GROUP — пастельный зелёный ---
+    {
+        "group": "SUMMARY_SCHEDULE: GROUP",
+        "header_bg": "E8F5E8",  # пастельный зелёный - оттенок для GROUP
+        "header_fg": "2C3E50",  # тёмно-серый для читаемости
+        "column_bg": None,
+        "column_fg": None,
+        "style_scope": "header",
+        "sheets": ["SUMMARY_SCHEDULE"],
+        "columns": ["GROUP=>GET_CALC_CRITERION", "GROUP=>ADD_CALC_CRITERION", "GROUP=>ADD_CALC_CRITERION_2"],
+        # Назначение: поля из GROUP в SUMMARY_SCHEDULE
+    },
+
+    # --- SUMMARY_SCHEDULE: INDICATOR — пастельный жёлтый ---
+    {
+        "group": "SUMMARY_SCHEDULE: INDICATOR",
+        "header_bg": "FFF8E1",  # пастельный жёлтый - оттенок для INDICATOR
+        "header_fg": "2C3E50",  # тёмно-серый для читаемости
+        "column_bg": None,
+        "column_fg": None,
+        "style_scope": "header",
+        "sheets": ["SUMMARY_SCHEDULE"],
+        "columns": ["INDICATOR=>INDICATOR_MARK_TYPE", "INDICATOR=>INDICATOR_MATCH", "INDICATOR=>INDICATOR_VALUE"],
+        # Назначение: поля из INDICATOR в SUMMARY_SCHEDULE
+    },
+
+    # --- SUMMARY_SCHEDULE: TOURNAMENT-SCHEDULE — пастельный голубой ---
+    {
+        "group": "SUMMARY_SCHEDULE: TOURNAMENT-SCHEDULE",
+        "header_bg": "E1F5FE",  # пастельный голубой - оттенок для TOURNAMENT-SCHEDULE
+        "header_fg": "2C3E50",  # тёмно-серый для читаемости
+        "column_bg": None,
+        "column_fg": None,
+        "style_scope": "header",
+        "sheets": ["SUMMARY_SCHEDULE"],
+        "columns": ["TOURNAMENT-SCHEDULE=>START_DT", "TOURNAMENT-SCHEDULE=>END_DT", "TOURNAMENT-SCHEDULE=>RESULT_DT",
+                    "TOURNAMENT-SCHEDULE=>TOURNAMENT_STATUS", "TOURNAMENT-SCHEDULE=>TARGET_TYPE"],
+        # Назначение: поля из TOURNAMENT-SCHEDULE в SUMMARY_SCHEDULE
+    },
+
+    # --- SUMMARY_SCHEDULE: REPORT — пастельный зелёный ---
+    {
+        "group": "SUMMARY_SCHEDULE: REPORT",
+        "header_bg": "E8F5E8",  # пастельный зелёный - оттенок для REPORT
+        "header_fg": "2C3E50",  # тёмно-серый для читаемости
+        "column_bg": None,
+        "column_fg": None,
+        "style_scope": "header",
+        "sheets": ["SUMMARY_SCHEDULE"],
+        "columns": ["REPORT=>CONTEST_DATE", "REPORT=>COUNT_CONTEST_DATE"],
+        # Назначение: поля из REPORT в SUMMARY_SCHEDULE
+    },
+
+    # --- SUMMARY_SCHEDULE: REWARD — пастельный оранжевый ---
+    {
+        "group": "SUMMARY_SCHEDULE: REWARD",
+        "header_bg": "FFE8CC",  # пастельный оранжевый - оттенок для REWARD
+        "header_fg": "2C3E50",  # тёмно-серый для читаемости
+        "column_bg": None,
+        "column_fg": None,
+        "style_scope": "header",
+        "sheets": ["SUMMARY_SCHEDULE"],
+        "columns": [
+            "REWARD=>ADD_DATA => rewardAgainGlobal", "REWARD=>ADD_DATA => rewardAgainTournament",
+            "REWARD=>ADD_DATA => outstanding", "REWARD=>ADD_DATA => teamNews", "REWARD=>ADD_DATA => singleNews"
+        ],
+        # Назначение: поля из REWARD в SUMMARY_SCHEDULE
+    },
+
+    # --- SUMMARY_SCHEDULE: ДУБЛИ — пастельный розовый ---
+    {
+        "group": "SUMMARY_SCHEDULE: DUPLICATES",
+        "header_bg": "FFE6F2",  # пастельный розовый - для дублей
+        "header_fg": "2C3E50",  # тёмно-серый для читаемости
+        "column_bg": None,
+        "column_fg": None,
+        "style_scope": "header",
+        "sheets": ["SUMMARY_SCHEDULE"],
+        "columns": ["ДУБЛЬ: CONTEST_CODE_TOURNAMENT_CODE_REWARD_CODE_GROUP_CODE"],
+        # Назначение: поля дублей в SUMMARY_SCHEDULE
     }
 ]
 
@@ -1501,6 +1871,7 @@ def read_csv_file(file_path):
     
     Функция настроена для работы с CSV файлами, использующими точку с запятой как разделитель.
     Все данные читаются как строки для сохранения точности, особенно для JSON полей.
+    Сохраняет тройные кавычки в неизменном виде.
     
     Args:
         file_path (str): Путь к CSV файлу для чтения
@@ -1513,16 +1884,27 @@ def read_csv_file(file_path):
     logging.info(LOG_MESSAGES["func_start"].format(func="read_csv_file", params=params))
     
     try:
-        # Читаем CSV файл с настройками для корректной обработки
-        df = pd.read_csv(
-            file_path, 
-            sep=";",              # Разделитель - точка с запятой
-            header=0,             # Первая строка - заголовки
-            dtype=str,            # Все данные как строки (сохраняем точность)
-            quoting=3,            # QUOTE_NONE - не обрабатываем кавычки
-            encoding="utf-8",     # Кодировка UTF-8
-            keep_default_na=False # Не заменяем значения на NaN
-        )
+        # Читаем CSV файл построчно для сохранения тройных кавычек
+        import csv
+        rows = []
+        headers = None
+        
+        with open(file_path, 'r', encoding='utf-8', newline='') as file:
+            # Используем csv.reader с настройками для сохранения кавычек
+            csv_reader = csv.reader(file, delimiter=';', quoting=csv.QUOTE_NONE)
+            
+            for i, row in enumerate(csv_reader):
+                if i == 0:
+                    headers = row
+                else:
+                    rows.append(row)
+        
+        # Создаем DataFrame из прочитанных данных
+        df = pd.DataFrame(rows, columns=headers)
+        
+        # Убеждаемся, что все данные - строки
+        for col in df.columns:
+            df[col] = df[col].astype(str)
         
         # Логируем образцы JSON полей для отладки
         for col in df.columns:
@@ -1566,8 +1948,10 @@ def write_to_excel(sheets_data, output_path):
     logging.info(LOG_MESSAGES["func_start"].format(func="write_to_excel", params=params))
     
     try:
-        # Определяем порядок листов: SUMMARY первый, остальные по алфавиту
-        ordered_sheets = ["SUMMARY"] + [s for s in sheets_data if s != "SUMMARY"]
+        # Определяем порядок листов: SUMMARY первый, затем уникальные листы, остальные по алфавиту
+        unique_summary_sheets = ["SUMMARY_REWARD", "SUMMARY_CONTEST", "SUMMARY_SCHEDULE"]
+        other_sheets = [s for s in sheets_data if s not in ["SUMMARY"] + unique_summary_sheets]
+        ordered_sheets = ["SUMMARY"] + [s for s in unique_summary_sheets if s in sheets_data] + sorted(other_sheets)
         
         # Создаем Excel файл с помощью pandas ExcelWriter
         with pd.ExcelWriter(output_path, engine="openpyxl") as writer:
@@ -1732,6 +2116,29 @@ def safe_json_loads(s: str):
                 return None
 
 
+def safe_json_loads_preserve_triple_quotes(s: str):
+    """
+    Преобразует строку в объект JSON, сохраняя тройные кавычки как есть.
+    Используется для обработки JSON из CSV файлов с тройными кавычками.
+    """
+    if not isinstance(s, str):
+        return s
+    s = s.strip()
+    if not s or s in {'-', 'None', 'null'}:
+        return None
+    
+    # Сначала пробуем распарсить как есть
+    try:
+        return json.loads(s)
+    except Exception as ex:
+        # Если не получилось, возвращаем исходную строку с тройными кавычками
+        # Это позволяет сохранить тройные кавычки в исходном виде
+        logging.debug(
+            f"[safe_json_loads_preserve_triple_quotes] Сохраняем исходную строку с тройными кавычками: {repr(s)}"
+        )
+        return s  # Возвращаем исходную строку с тройными кавычками
+
+
 def flatten_json_column_recursive(df, column, prefix=None, sheet=None, sep="; "):
     import time as tmod
     func_start = tmod.time()
@@ -1740,20 +2147,38 @@ def flatten_json_column_recursive(df, column, prefix=None, sheet=None, sep="; ")
     prefix = prefix if prefix is not None else column
     logging.info(LOG_MESSAGES["func_start"].format(func="flatten_json_column_recursive",
                                                    params=f"(лист: {sheet}, колонка: {column})"))
+    
+    # Для CONTEST_FEATURE создаем копию с валидным JSON для парсинга
+    # Сохраняем исходную колонку с тройными кавычками как есть
+    original_column_data = None
+    if column == "CONTEST_FEATURE" and column in df.columns:
+        # Сохраняем исходные данные
+        original_column_data = df[column].copy()
+        
+        # Создаем временную колонку для парсинга с заменой тройных кавычек
+        temp_column = f"{column}_TEMP_PARSED"
+        df[temp_column] = df[column].apply(lambda x: x.replace('"""', '"') if isinstance(x, str) else x)
+        
+        # Теперь будем парсить из временной колонки
+        column_to_parse = temp_column
+    else:
+        column_to_parse = column
 
     def extract(obj, current_prefix):
         """Recursively flattens obj. Keeps the field itself and expands nested JSON
         if the value looks like a JSON string."""
         fields = {}
         if isinstance(obj, str):
-            # try to parse nested json inside string
+            # Сначала пробуем распарсить JSON (для разворачивания)
             nested = safe_json_loads(obj)
+            
             if isinstance(nested, (dict, list)):
-                # keep original string
+                # keep original string (с тройными кавычками, если они были)
                 fields[current_prefix] = obj
                 fields.update(extract(nested, current_prefix))
                 return fields
             else:
+                # Если не удалось распарсить как JSON, сохраняем исходную строку
                 fields[current_prefix] = obj
                 return fields
 
@@ -1778,7 +2203,7 @@ def flatten_json_column_recursive(df, column, prefix=None, sheet=None, sep="; ")
         return fields
 
     new_cols = {}
-    for idx, val in enumerate(df[column]):
+    for idx, val in enumerate(df[column_to_parse]):
         try:
             parsed = None
             # Строка — парсим JSON; dict/list — оставляем; иначе пропускаем
@@ -1807,6 +2232,17 @@ def flatten_json_column_recursive(df, column, prefix=None, sheet=None, sep="; ")
     for col_name, values in new_cols.items():
         if any(x is not None for x in values):
             df[col_name] = values
+    
+    # Для CONTEST_FEATURE восстанавливаем исходную колонку с тройными кавычками
+    if original_column_data is not None:
+        # Восстанавливаем исходную колонку с тройными кавычками
+        df[column] = original_column_data
+        
+        # Удаляем временную колонку
+        if temp_column in df.columns:
+            df = df.drop(columns=[temp_column])
+        
+        logging.info(f"[CONTEST_FEATURE] Исходная колонка восстановлена с тройными кавычками")
 
     logging.info(LOG_MESSAGES["json_flatten_summary"].format(column=column, count=len(new_cols)))
     logging.info(LOG_MESSAGES["json_flatten_keys"].format(keys=list(new_cols.keys())))
@@ -2532,6 +2968,82 @@ def apply_grouping_and_aggregation(df, group_by, aggregate, sheet_name):
     return df_grouped
 
 
+def create_unique_summary_sheet(df_summary, key_column, sheet_name):
+    """
+    Создает уникальный лист SUMMARY по указанному ключевому столбцу.
+    Каждый код = 1 строка, если под этот код других кодов несколько - оставляем первый попавшийся.
+    
+    Args:
+        df_summary: исходный DataFrame SUMMARY
+        key_column: ключевой столбец для уникальности (REWARD_CODE, CONTEST_CODE, TOURNAMENT_CODE)
+        sheet_name: имя создаваемого листа
+        
+    Returns:
+        DataFrame с уникальными строками по ключевому столбцу
+    """
+    func_start = time()
+    logging.info(LOG_MESSAGES["summary_sheet_start"].format(sheet_name=sheet_name, key_column=key_column))
+    
+    try:
+        if df_summary.empty:
+            logging.warning(LOG_MESSAGES.get("summary_sheet_error", "Исходный DataFrame SUMMARY пуст").format(
+                sheet_name=sheet_name, error="Пустой DataFrame"
+            ))
+            return pd.DataFrame()
+        
+        if key_column not in df_summary.columns:
+            logging.error(LOG_MESSAGES.get("summary_sheet_error", "Ключевой столбец {key_column} не найден в SUMMARY").format(
+                sheet_name=sheet_name, error=f"Столбец {key_column} отсутствует"
+            ))
+            return pd.DataFrame()
+        
+        # Создаем копию для работы
+        df_unique = df_summary.copy()
+        original_count = len(df_unique)
+        
+        # Удаляем строки с пустыми значениями ключевого столбца
+        df_unique = df_unique[df_unique[key_column].notna() & (df_unique[key_column] != '') & (df_unique[key_column] != '-')]
+        
+        if df_unique.empty:
+            logging.warning(LOG_MESSAGES.get("summary_sheet_error", "Нет данных с заполненным ключевым столбцом {key_column}").format(
+                sheet_name=sheet_name, error=f"Нет данных для {key_column}"
+            ))
+            return pd.DataFrame()
+        
+        # Подсчитываем уникальные значения
+        unique_count = df_unique[key_column].nunique()
+        logging.info(LOG_MESSAGES["summary_sheet_processing"].format(
+            total_rows=original_count, unique_count=unique_count
+        ))
+        
+        # Группируем по ключевому столбцу и берем первую строку для каждой группы
+        df_unique = df_unique.groupby(key_column).first().reset_index()
+        
+        final_count = len(df_unique)
+        removed_count = original_count - final_count
+        
+        logging.info(LOG_MESSAGES["summary_sheet_duplicates_removed"].format(
+            removed_count=removed_count, final_count=final_count
+        ))
+        
+        # Сортируем по ключевому столбцу для удобства
+        df_unique = df_unique.sort_values(by=key_column)
+        
+        func_time = time() - func_start
+        logging.info(LOG_MESSAGES["summary_sheet_completed"].format(
+            sheet_name=sheet_name, final_count=final_count, key_column=key_column
+        ))
+        
+        return df_unique
+        
+    except Exception as e:
+        func_time = time() - func_start
+        logging.error(LOG_MESSAGES.get("summary_sheet_error", "Ошибка создания листа {sheet_name}: {error}").format(
+            sheet_name=sheet_name, error=str(e)
+        ))
+        return pd.DataFrame()
+
+
 def detect_gender_by_patterns(value, patterns_male, patterns_female):
     """Определение пола по окончаниям в тексте"""
     if pd.isna(value) or not isinstance(value, str):
@@ -2808,6 +3320,48 @@ def main():
         merge_fields=[f for f in MERGE_FIELDS if f.get("sheet_dst") == "SUMMARY"]
     )
     sheets_data[SUMMARY_SHEET["sheet"]] = (df_summary, SUMMARY_SHEET)
+    
+    # 7.1. Создание уникальных листов SUMMARY по ключевым кодам
+    logging.info(LOG_MESSAGES.get("func_start", "[START] {func} {params}").format(
+        func="create_unique_summary_sheets", params="(создание уникальных листов SUMMARY)"
+    ))
+    
+    # SUMMARY_REWARD - по коду REWARD_CODE
+    df_summary_reward = create_unique_summary_sheet(df_summary, "REWARD_CODE", "SUMMARY_REWARD")
+    if not df_summary_reward.empty:
+        sheets_data["SUMMARY_REWARD"] = (df_summary_reward, {
+            "sheet": "SUMMARY_REWARD",
+            "max_col_width": 80,
+            "freeze": "B2",
+            "col_width_mode": "AUTO",
+            "min_col_width": 8
+        })
+    
+    # SUMMARY_CONTEST - по коду CONTEST_CODE
+    df_summary_contest = create_unique_summary_sheet(df_summary, "CONTEST_CODE", "SUMMARY_CONTEST")
+    if not df_summary_contest.empty:
+        sheets_data["SUMMARY_CONTEST"] = (df_summary_contest, {
+            "sheet": "SUMMARY_CONTEST",
+            "max_col_width": 80,
+            "freeze": "B2",
+            "col_width_mode": "AUTO",
+            "min_col_width": 8
+        })
+    
+    # SUMMARY_SCHEDULE - по коду TOURNAMENT_CODE
+    df_summary_schedule = create_unique_summary_sheet(df_summary, "TOURNAMENT_CODE", "SUMMARY_SCHEDULE")
+    if not df_summary_schedule.empty:
+        sheets_data["SUMMARY_SCHEDULE"] = (df_summary_schedule, {
+            "sheet": "SUMMARY_SCHEDULE",
+            "max_col_width": 80,
+            "freeze": "B2",
+            "col_width_mode": "AUTO",
+            "min_col_width": 8
+        })
+    
+    logging.info(LOG_MESSAGES.get("func_end", "[END] {func} {params} (время: {time:.3f}s)").format(
+        func="create_unique_summary_sheets", params="(создание уникальных листов SUMMARY)", time=0
+    ))
 
     # 8. Запись в Excel
     output_excel = os.path.join(DIR_OUTPUT, get_output_filename())
