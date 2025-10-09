@@ -26,7 +26,7 @@ DIR_LOGS = r'/Users/orionflash/Desktop/MyProject/SPOD_PROM/LOGS'    # Катал
 # - min_col_width: минимальная ширина колонки
 INPUT_FILES = [
     {
-        "file": "CONTEST-DATA (PROM) 2025-10-07 v0",  # Файл с данными конкурсов
+        "file": "CONTEST-DATA (PROM) 2025-10-08 v1",  # Файл с данными конкурсов
         "sheet": "CONTEST-DATA",                        # Лист для обработки
         "max_col_width": 120,                          # Максимальная ширина колонки
         "freeze": "C2",                                # Закрепление области
@@ -50,7 +50,7 @@ INPUT_FILES = [
         "min_col_width": 8                             # Минимальная ширина колонки
     },
     {
-        "file": "REPORT (PROM-KMKKSB) 2025-10-07 v0", # Файл с отчетами
+        "file": "REPORT (PROM-KMKKSB) 2025-10-09 v0", # Файл с отчетами
         "sheet": "REPORT",                             # Лист для обработки
         "max_col_width": 25,                           # Максимальная ширина колонки
         "freeze": "D2",                                # Закрепление области
@@ -58,7 +58,7 @@ INPUT_FILES = [
         "min_col_width": 8                             # Минимальная ширина колонки
     },
     {
-        "file": "REWARD (PROM) 2025-10-08 v0",        # Файл с наградами
+        "file": "REWARD (PROM) 2025-10-08 v2",        # Файл с наградами
         "sheet": "REWARD",                             # Лист для обработки
         "max_col_width": 200,                          # Максимальная ширина колонки (большая для длинных описаний)
         "freeze": "D2",                                # Закрепление области
@@ -82,7 +82,7 @@ INPUT_FILES = [
         "min_col_width": 8                             # Минимальная ширина колонки
     },
     {
-        "file": "TOURNAMENT-SCHEDULE (PROM) 2025-10-08 v0", # Файл с расписанием турниров
+        "file": "TOURNAMENT-SCHEDULE (PROM) 2025-10-09 v0", # Файл с расписанием турниров
         "sheet": "TOURNAMENT-SCHEDULE",                # Лист для обработки
         "max_col_width": 120,                          # Максимальная ширина колонки
         "freeze": "B2",                                # Закрепление области
@@ -321,7 +321,7 @@ MERGE_FIELDS = [
         "col_min_width": 8,                # Минимальная ширина колонок
         # Новые параметры:
         "status_filters": {                 # Фильтрация по статусам
-            "BUSINESS_STATUS": ["ACTIVE", "PENDING"]  # Берем только активные и ожидающие статусы
+            "BUSINESS_STATUS": ["АКТИВНЫЙ", "ПОДВЕДЕНИЕ ИТОГОВ"]  # Берем только активные и ожидающие статусы
         },
         "custom_conditions": None,          # Пользовательские условия (None = нет)
         "group_by": None,                   # Группировка (None = нет группировки)
@@ -559,32 +559,32 @@ MERGE_FIELDS = [
     },
     # SUMMARY: CONTEST_CODE из GROUP по GROUP_CODE (для частично связанных групп)
     # Добавляет код конкурса из групп по коду группы
-    {
-        "sheet_src": "GROUP",               # Источник - группы
-        "sheet_dst": "SUMMARY",             # Цель - сводный лист
-        "src_key": ["GROUP_CODE"],          # Ключ - код группы
-        "dst_key": ["GROUP_CODE"],          # Ключ - код группы
-        "column": ["CONTEST_CODE"],         # Добавляем код конкурса
-        "mode": "value",                    # Добавляем значение
-        "multiply_rows": False,             # Не размножаем строки
-        "col_max_width": 30,               # Максимальная ширина
-        "col_width_mode": "AUTO",          # Автоматическое растягивание
-        "col_min_width": 8                 # Минимальная ширина
-    },
+    # {
+    #     "sheet_src": "GROUP",               # Источник - группы
+    #     "sheet_dst": "SUMMARY",             # Цель - сводный лист
+    #     "src_key": ["GROUP_CODE"],          # Ключ - код группы
+    #     "dst_key": ["GROUP_CODE"],          # Ключ - код группы
+    #     "column": ["CONTEST_CODE"],         # Добавляем код конкурса
+    #     "mode": "value",                    # Добавляем значение
+    #     "multiply_rows": False,             # Не размножаем строки
+    #     "col_max_width": 30,               # Максимальная ширина
+    #     "col_width_mode": "AUTO",          # Автоматическое растягивание
+    #     "col_min_width": 8                 # Минимальная ширина
+    # },
     # SUMMARY: GROUP_VALUE из GROUP по GROUP_CODE (для частично связанных групп)
     # Добавляет значение группы из групп по коду группы
-    {
-        "sheet_src": "GROUP",               # Источник - группы
-        "sheet_dst": "SUMMARY",             # Цель - сводный лист
-        "src_key": ["GROUP_CODE"],          # Ключ - код группы
-        "dst_key": ["GROUP_CODE"],          # Ключ - код группы
-        "column": ["GROUP_VALUE"],          # Добавляем значение группы
-        "mode": "value",                    # Добавляем значение
-        "multiply_rows": False,             # Не размножаем строки
-        "col_max_width": 20,               # Максимальная ширина
-        "col_width_mode": "AUTO",          # Автоматическое растягивание
-        "col_min_width": 8                 # Минимальная ширина
-    },
+    # {
+    #     "sheet_src": "GROUP",               # Источник - группы
+    #     "sheet_dst": "SUMMARY",             # Цель - сводный лист
+    #     "src_key": ["GROUP_CODE"],          # Ключ - код группы
+    #     "dst_key": ["GROUP_CODE"],          # Ключ - код группы
+    #     "column": ["GROUP_VALUE"],          # Добавляем значение группы
+    #     "mode": "value",                    # Добавляем значение
+    #     "multiply_rows": False,             # Не размножаем строки
+    #     "col_max_width": 20,               # Максимальная ширина
+    #     "col_width_mode": "AUTO",          # Автоматическое растягивание
+    #     "col_min_width": 8                 # Минимальная ширина
+    # },
     # SUMMARY: из INDICATOR по CONTEST_CODE
     # Добавляет информацию об индикаторах конкурса
     {
@@ -628,8 +628,8 @@ MERGE_FIELDS = [
     {
         "sheet_src": "REPORT",              # Источник - отчеты
         "sheet_dst": "SUMMARY",             # Цель - сводный лист
-        "src_key": ["TOURNAMENT_CODE"],     # Ключ - код турнира
-        "dst_key": ["TOURNAMENT_CODE"],     # Ключ - код турнира
+        "src_key": ["TOURNAMENT_CODE", "CONTEST_CODE"],     # Ключ - код турнира
+        "dst_key": ["TOURNAMENT_CODE", "CONTEST_CODE"],     # Ключ - код турнира
         "column": [                         # Добавляемые колонки:
             "CONTEST_DATE"                  # Дата конкурса
         ],
@@ -655,6 +655,214 @@ MERGE_FIELDS = [
         "col_width_mode": 15,              # Фиксированная ширина (15 символов)
         "col_min_width": 8                 # Минимальная ширина
     },
+    # SUMMARY: сколько в CONTEST-DATA строк по ключу CONTEST_CODE
+    # Подсчитывает количество записей конкурсов
+    {
+        "sheet_src": "CONTEST-DATA",        # Источник - данные конкурсов
+        "sheet_dst": "SUMMARY",             # Цель - сводный лист
+        "src_key": ["CONTEST_CODE"],        # Ключ: код конкурса
+        "dst_key": ["CONTEST_CODE"],        # Ключ: код конкурса
+        "column": [                         # Добавляемые колонки:
+            "CONTEST_CODE"                  # Используем CONTEST_CODE для подсчета
+        ],
+        "mode": "count",                    # Режим: подсчитываем количество
+        "multiply_rows": False,             # Не размножаем строки
+        "col_max_width": 20,               # Максимальная ширина
+        "col_width_mode": 15,              # Фиксированная ширина (15 символов)
+        "col_min_width": 8                 # Минимальная ширина
+    },
+    # SUMMARY: сколько в TOURNAMENT-SCHEDULE турниров по ключу CONTEST_CODE
+    # Подсчитывает количество турниров для каждого конкурса
+    {
+        "sheet_src": "TOURNAMENT-SCHEDULE", # Источник - расписание турниров
+        "sheet_dst": "SUMMARY",             # Цель - сводный лист
+        "src_key": ["CONTEST_CODE"],        # Ключ: код конкурса
+        "dst_key": ["CONTEST_CODE"],        # Ключ: код конкурса
+        "column": [                         # Добавляемые колонки:
+            "CONTEST_CODE"                  # Используем CONTEST_CODE для подсчета
+        ],
+        "mode": "count",                    # Режим: подсчитываем количество
+        "multiply_rows": False,             # Не размножаем строки
+        "col_max_width": 20,               # Максимальная ширина
+        "col_width_mode": 15,              # Фиксированная ширина (15 символов)
+        "col_min_width": 8                 # Минимальная ширина
+    },
+    # SUMMARY: сколько в GROUP строк по ключу CONTEST_CODE
+    # Подсчитывает количество групп для каждого конкурса
+    {
+        "sheet_src": "GROUP",               # Источник - группы
+        "sheet_dst": "SUMMARY",             # Цель - сводный лист
+        "src_key": ["CONTEST_CODE"],        # Ключ: код конкурса
+        "dst_key": ["CONTEST_CODE"],        # Ключ: код конкурса
+        "column": [                         # Добавляемые колонки:
+            "CONTEST_CODE"                  # Используем CONTEST_CODE для подсчета
+        ],
+        "mode": "count",                    # Режим: подсчитываем количество
+        "multiply_rows": False,             # Не размножаем строки
+        "col_max_width": 20,               # Максимальная ширина
+        "col_width_mode": 15,              # Фиксированная ширина (15 символов)
+        "col_min_width": 8                 # Минимальная ширина
+    },
+    # SUMMARY: сколько в GROUP строк по составному ключу CONTEST_CODE + GROUP_CODE + GROUP_VALUE
+    # Подсчитывает количество уникальных комбинаций группа-значение для каждого конкурса
+    {
+        "sheet_src": "GROUP",               # Источник - группы
+        "sheet_dst": "SUMMARY",             # Цель - сводный лист
+        "src_key": ["CONTEST_CODE", "GROUP_CODE", "GROUP_VALUE"],  # Составной ключ: код конкурса + код группы + значение группы
+        "dst_key": ["CONTEST_CODE", "GROUP_CODE", "GROUP_VALUE"],  # Составной ключ: код конкурса + код группы + значение группы
+        "column": [                         # Добавляемые колонки:
+            "CONTEST_CODE"                  # Используем CONTEST_CODE для подсчета
+        ],
+        "mode": "count",                    # Режим: подсчитываем количество
+        "multiply_rows": False,             # Не размножаем строки
+        "col_max_width": 20,               # Максимальная ширина
+        "col_width_mode": 15,              # Фиксированная ширина (15 символов)
+        "col_min_width": 8                 # Минимальная ширина
+    },
+    # SUMMARY: сколько в INDICATOR строк по ключу CONTEST_CODE
+    # Подсчитывает количество индикаторов для каждого конкурса
+    {
+        "sheet_src": "INDICATOR",           # Источник - индикаторы
+        "sheet_dst": "SUMMARY",             # Цель - сводный лист
+        "src_key": ["CONTEST_CODE"],        # Ключ: код конкурса
+        "dst_key": ["CONTEST_CODE"],        # Ключ: код конкурса
+        "column": [                         # Добавляемые колонки:
+            "INDICATOR_MARK_TYPE"           # Используем INDICATOR_MARK_TYPE для подсчета
+        ],
+        "mode": "count",                    # Режим: подсчитываем количество
+        "multiply_rows": False,             # Не размножаем строки
+        "col_max_width": 20,               # Максимальная ширина
+        "col_width_mode": 15,              # Фиксированная ширина (15 символов)
+        "col_min_width": 8                 # Минимальная ширина
+    },
+    # SUMMARY: сколько в REWARD-LINK связей по ключу REWARD_CODE
+    # Подсчитывает количество связей награды с конкурсами
+    {
+        "sheet_src": "REWARD-LINK",         # Источник - связи наград
+        "sheet_dst": "SUMMARY",             # Цель - сводный лист
+        "src_key": ["REWARD_CODE"],         # Ключ: код награды
+        "dst_key": ["REWARD_CODE"],         # Ключ: код награды
+        "column": [                         # Добавляемые колонки:
+            "CONTEST_CODE"                  # Используем CONTEST_CODE для подсчета
+        ],
+        "mode": "count",                    # Режим: подсчитываем количество
+        "multiply_rows": False,             # Не размножаем строки
+        "col_max_width": 20,               # Максимальная ширина
+        "col_width_mode": 15,              # Фиксированная ширина (15 символов)
+        "col_min_width": 8                 # Минимальная ширина
+    },
+    # SUMMARY: сколько в REWARD-LINK строк по составному ключу CONTEST_CODE + REWARD_CODE
+    # Подсчитывает количество связей конкурс-награда
+    {
+        "sheet_src": "REWARD-LINK",         # Источник - связи наград
+        "sheet_dst": "SUMMARY",             # Цель - сводный лист
+        "src_key": ["CONTEST_CODE", "REWARD_CODE"],  # Составной ключ: код конкурса + код награды
+        "dst_key": ["CONTEST_CODE", "REWARD_CODE"],  # Составной ключ: код конкурса + код награды
+        "column": [                         # Добавляемые колонки:
+            "CONTEST_CODE"                  # Используем CONTEST_CODE для подсчета
+        ],
+        "mode": "count",                    # Режим: подсчитываем количество
+        "multiply_rows": False,             # Не размножаем строки
+        "col_max_width": 20,               # Максимальная ширина
+        "col_width_mode": 15,              # Фиксированная ширина (15 символов)
+        "col_min_width": 8                 # Минимальная ширина
+    },
+    # SUMMARY: сколько в REWARD строк по ключу REWARD_CODE
+    # Подсчитывает количество наград
+    {
+        "sheet_src": "REWARD",              # Источник - награды
+        "sheet_dst": "SUMMARY",             # Цель - сводный лист
+        "src_key": ["REWARD_CODE"],         # Ключ: код награды
+        "dst_key": ["REWARD_CODE"],         # Ключ: код награды
+        "column": [                         # Добавляемые колонки:
+            "REWARD_CODE"                   # Используем REWARD_CODE для подсчета
+        ],
+        "mode": "count",                    # Режим: подсчитываем количество
+        "multiply_rows": False,             # Не размножаем строки
+        "col_max_width": 20,               # Максимальная ширина
+        "col_width_mode": 15,              # Фиксированная ширина (15 символов)
+        "col_min_width": 8                 # Минимальная ширина
+    },
+    # SUMMARY: сколько в TOURNAMENT-SCHEDULE строк по ключу CONTEST_CODE
+    # Подсчитывает количество записей расписания для каждого конкурса
+    {
+        "sheet_src": "TOURNAMENT-SCHEDULE", # Источник - расписание турниров
+        "sheet_dst": "SUMMARY",             # Цель - сводный лист
+        "src_key": ["CONTEST_CODE"],        # Ключ: код конкурса
+        "dst_key": ["CONTEST_CODE"],        # Ключ: код конкурса
+        "column": [                         # Добавляемые колонки:
+            "CONTEST_CODE"                  # Используем CONTEST_CODE для подсчета
+        ],
+        "mode": "count",                    # Режим: подсчитываем количество
+        "multiply_rows": False,             # Не размножаем строки
+        "col_max_width": 20,               # Максимальная ширина
+        "col_width_mode": 15,              # Фиксированная ширина (15 символов)
+        "col_min_width": 8                 # Минимальная ширина
+    },
+    # SUMMARY: сколько в REPORT записей по ключу CONTEST_CODE
+    # Подсчитывает количество отчетов для каждого конкурса
+    {
+        "sheet_src": "REPORT",              # Источник - отчеты
+        "sheet_dst": "SUMMARY",             # Цель - сводный лист
+        "src_key": ["CONTEST_CODE"],        # Ключ: код конкурса
+        "dst_key": ["CONTEST_CODE"],        # Ключ: код конкурса
+        "column": [                         # Добавляемые колонки:
+            "CONTEST_DATE"                  # Используем CONTEST_DATE для подсчета
+        ],
+        "mode": "count",                    # Режим: подсчитываем количество
+        "multiply_rows": False,             # Не размножаем строки
+        "col_max_width": 20,               # Максимальная ширина
+        "col_width_mode": 15,              # Фиксированная ширина (15 символов)
+        "col_min_width": 8                 # Минимальная ширина
+    },
+    # SUMMARY: сколько в REPORT записей по ключу TOURNAMENT_CODE
+    # Подсчитывает количество отчетов для каждого турнира
+    {
+        "sheet_src": "REPORT",              # Источник - отчеты
+        "sheet_dst": "SUMMARY",             # Цель - сводный лист
+        "src_key": ["TOURNAMENT_CODE"],     # Ключ: код турнира
+        "dst_key": ["TOURNAMENT_CODE"],     # Ключ: код турнира
+        "column": [                         # Добавляемые колонки:
+            "CONTEST_DATE"                  # Используем CONTEST_DATE для подсчета
+        ],
+        "mode": "count",                    # Режим: подсчитываем количество
+        "multiply_rows": False,             # Не размножаем строки
+        "col_max_width": 20,               # Максимальная ширина
+        "col_width_mode": 15,              # Фиксированная ширина (15 символов)
+        "col_min_width": 8                 # Минимальная ширина
+    },
+    # SUMMARY: сколько в TOURNAMENT-SCHEDULE строк по ключу TOURNAMENT_CODE
+    # Подсчитывает количество записей расписания для каждого турнира
+    {
+        "sheet_src": "TOURNAMENT-SCHEDULE", # Источник - расписание турниров
+        "sheet_dst": "SUMMARY",             # Цель - сводный лист
+        "src_key": ["TOURNAMENT_CODE"],     # Ключ: код турнира
+        "dst_key": ["TOURNAMENT_CODE"],     # Ключ: код турнира
+        "column": [                         # Добавляемые колонки:
+            "CONTEST_CODE"                  # Используем CONTEST_CODE для подсчета
+        ],
+        "mode": "count",                    # Режим: подсчитываем количество
+        "multiply_rows": False,             # Не размножаем строки
+        "col_max_width": 20,               # Максимальная ширина
+        "col_width_mode": 15,              # Фиксированная ширина (15 символов)
+        "col_min_width": 8                 # Минимальная ширина
+    },
+    # SUMMARY: сколько в TOURNAMENT-SCHEDULE строк по составному ключу CONTEST_CODE + TOURNAMENT_CODE
+    # Подсчитывает количество записей расписания для каждой пары конкурс-турнир
+    {
+        "sheet_src": "TOURNAMENT-SCHEDULE", # Источник - расписание турниров
+        "sheet_dst": "SUMMARY",             # Цель - сводный лист
+        "src_key": ["CONTEST_CODE", "TOURNAMENT_CODE"],  # Составной ключ: код конкурса + код турнира
+        "dst_key": ["CONTEST_CODE", "TOURNAMENT_CODE"],  # Составной ключ: код конкурса + код турнира
+        "column": [                         # Добавляемые колонки:
+            "CONTEST_CODE"                  # Используем CONTEST_CODE для подсчета
+        ],
+        "mode": "count",                    # Режим: подсчитываем количество
+        "multiply_rows": False,             # Не размножаем строки
+        "col_max_width": 20,               # Максимальная ширина
+        "col_width_mode": 15,              # Фиксированная ширина (15 символов)
+        "col_min_width": 8                 # Минимальная ширина
+    },
     # SUMMARY: все нужные поля из REWARD по составному ключу (для полностью связанных записей)
     # Добавляет информацию о наградах по полному соответствию ключей конкурс-награда
     {
@@ -668,6 +876,7 @@ MERGE_FIELDS = [
             f"{PREFIX_ADD_DATA} => feature",  # Признак награды (развернутый JSON)
             f"{PREFIX_ADD_DATA} => itemFeature",  # Признак элемента награды
             f"{PREFIX_ADD_DATA} => rewardRule",  # Правило награды
+            f"{PREFIX_ADD_DATA} => hidden",     # Признак скрытия награды
             f"{PREFIX_ADD_DATA} => rewardAgainGlobal",  # Повторная награда глобально
             f"{PREFIX_ADD_DATA} => rewardAgainTournament",  # Повторная награда в турнире
             f"{PREFIX_ADD_DATA} => outstanding",  # Выдающийся
@@ -753,6 +962,38 @@ MERGE_FIELDS = [
         "multiply_rows": False,             # Не размножаем строки
         "col_max_width": 30,               # Максимальная ширина
         "col_width_mode": "AUTO",          # Автоматическое растягивание
+        "col_min_width": 8                 # Минимальная ширина
+    },
+    # SUMMARY: сколько в REWARD наград по ключу CONTEST_CODE
+    # Подсчитывает количество наград для каждого конкурса
+    {
+        "sheet_src": "REWARD",              # Источник - награды
+        "sheet_dst": "SUMMARY",             # Цель - сводный лист
+        "src_key": [COL_REWARD_LINK_CONTEST_CODE],  # Ключ: код конкурса из связи
+        "dst_key": ["CONTEST_CODE"],        # Ключ: код конкурса
+        "column": [                         # Добавляемые колонки:
+            "REWARD_CODE"                   # Используем REWARD_CODE для подсчета
+        ],
+        "mode": "count",                    # Режим: подсчитываем количество
+        "multiply_rows": False,             # Не размножаем строки
+        "col_max_width": 20,               # Максимальная ширина
+        "col_width_mode": 15,              # Фиксированная ширина (15 символов)
+        "col_min_width": 8                 # Минимальная ширина
+    },
+    # SUMMARY: сколько в REWARD наград по составному ключу CONTEST_CODE + REWARD_CODE
+    # Подсчитывает количество наград для каждой пары конкурс-награда
+    {
+        "sheet_src": "REWARD",              # Источник - награды
+        "sheet_dst": "SUMMARY",             # Цель - сводный лист
+        "src_key": [COL_REWARD_LINK_CONTEST_CODE, "REWARD_CODE"],  # Составной ключ: код конкурса из связи + код награды
+        "dst_key": ["CONTEST_CODE", "REWARD_CODE"],  # Составной ключ: код конкурса + код награды
+        "column": [                         # Добавляемые колонки:
+            "REWARD_CODE"                   # Используем REWARD_CODE для подсчета
+        ],
+        "mode": "count",                    # Режим: подсчитываем количество
+        "multiply_rows": False,             # Не размножаем строки
+        "col_max_width": 20,               # Максимальная ширина
+        "col_width_mode": 15,              # Фиксированная ширина (15 символов)
         "col_min_width": 8                 # Минимальная ширина
     }
 ]
@@ -2653,10 +2894,27 @@ def add_fields_to_sheet(df_base, df_ref, src_keys, dst_keys, columns, sheet_name
 
     if mode == "count":
         new_keys = df_base.apply(lambda row: tuple_key(row, dst_keys), axis=1)
-        group_counts = df_ref.groupby(src_keys).size().to_dict()
+        group_counts = df_ref.groupby(src_keys).size()
+        
+        # Создаем словарь для сопоставления ключей
+        # group_counts.items() возвращает (index, value), где index может быть строкой или кортежем
+        count_dict = {}
+        for key_tuple, count in group_counts.items():
+            count_dict[key_tuple] = count
+            
         for col in columns:
             count_col_name = f"{ref_sheet_name}=>COUNT_{col}"
-            df_base[count_col_name] = new_keys.map(group_counts).fillna(0).astype(int)
+            # Сопоставляем ключи и заполняем 0 для отсутствующих
+            # Используем прямое сопоставление через Series для правильной работы с индексами
+            # Исправляем сопоставление для правильной работы с разными типами ключей
+            # Если у нас один ключ, используем прямое сопоставление через Series
+            if len(src_keys) == 1:
+                # Для одного ключа нужно извлечь первый элемент из кортежей
+                new_keys_single = new_keys.apply(lambda x: x[0] if x and len(x) > 0 else None)
+                df_base[count_col_name] = new_keys_single.map(group_counts).fillna(0).astype(int)
+            else:
+                # Для составных ключей используем словарь
+                df_base[count_col_name] = new_keys.map(count_dict).fillna(0).astype(int)
         logging.info(LOG_MESSAGES["func_end"].format(
             func="add_fields_to_sheet",
             params=f"(лист: {sheet_name}, mode: count, ключ: {dst_keys}->{src_keys})",
