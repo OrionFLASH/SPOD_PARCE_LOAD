@@ -12,9 +12,9 @@ import re          # Для работы с регулярными выраже�
 
 # === ГЛОБАЛЬНЫЕ КОНСТАНТЫ И ПЕРЕМЕННЫЕ ===
 # Каталоги для работы программы
-DIR_INPUT = r'/Users/orionflash/Desktop/MyProject/SPOD_PROM/SPOD'    # Каталог с входными файлами
-DIR_OUTPUT = r'/Users/orionflash/Desktop/MyProject/SPOD_PROM/OUT'    # Каталог для выходных файлов
-DIR_LOGS = r'/Users/orionflash/Desktop/MyProject/SPOD_PROM/LOGS'    # Каталог для логов
+DIR_INPUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "SPOD")    # Каталог с входными файлами
+DIR_OUTPUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "OUT")    # Каталог для выходных файлов
+DIR_LOGS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "LOGS")    # Каталог для логов
 
 # Конфигурация входных файлов (имя без расширения)
 # Каждый файл содержит настройки для обработки:
@@ -2106,6 +2106,42 @@ def validate_field_lengths(df, sheet_name):
 
 # === ЧТЕНИЕ И ЗАПИСЬ ДАННЫХ ===
 
+
+def find_file_case_insensitive(directory, base_name, extensions):
+    """
+    Ищет файл в каталоге без учета регистра имени файла и расширения.
+    
+    Args:
+        directory (str): Каталог для поиска
+        base_name (str): Базовое имя файла (без расширения)
+        extensions (list): Список возможных расширений (например, ['.csv', '.CSV'])
+    
+    Returns:
+        str or None: Полный путь к найденному файлу или None если файл не найден
+    """
+    if not os.path.exists(directory):
+        return None
+    
+    # Получаем список всех файлов в каталоге
+    try:
+        files_in_dir = os.listdir(directory)
+    except OSError:
+        return None
+    
+    # Ищем файл без учета регистра
+    for file_name in files_in_dir:
+        # Разделяем имя файла и расширение
+        name, ext = os.path.splitext(file_name)
+        
+        # Проверяем совпадение имени и расширения без учета регистра
+        if (name.lower() == base_name.lower() and 
+            ext.lower() in [e.lower() for e in extensions]):
+            return os.path.join(directory, file_name)
+    
+    return None
+
+
+
 def read_csv_file(file_path):
     """
     Читает CSV файл с заданными параметрами и логирует процесс.
@@ -3490,8 +3526,15 @@ def main():
 
     # 1. Чтение всех CSV и разворот ВСЕХ JSON‑полей на каждом листе
     for file_conf in INPUT_FILES:
-        file_path = os.path.join(DIR_INPUT, file_conf["file"] + ".CSV")
+        file_path = find_file_case_insensitive(DIR_INPUT, file_conf["file"], [".csv", ".CSV"])
         sheet_name = file_conf["sheet"]
+        
+        # Проверяем, найден ли файл
+        if file_path is None:
+            logging.error(f"Файл не найден: {file_conf['file']} в каталоге {DIR_INPUT}")
+            summary.append(f"{sheet_name}: файл не найден")
+            continue
+        
         logging.info(LOG_MESSAGES["reading_file"].format(file_path=file_path))
         df = read_csv_file(file_path)
         if df is not None:

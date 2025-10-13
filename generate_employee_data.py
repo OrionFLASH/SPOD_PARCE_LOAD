@@ -25,9 +25,9 @@ CSV_SEPARATOR = ';'
 CSV_ENCODING = 'utf-8'
 
 # Директории
-DIR_INPUT = r'/Users/orionflash/Desktop/MyProject/SPOD_PROM/SPOD'
-DIR_OUTPUT = r'/Users/orionflash/Desktop/MyProject/SPOD_PROM/OUT'
-DIR_LOGS = r'/Users/orionflash/Desktop/MyProject/SPOD_PROM/LOGS'
+DIR_INPUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "SPOD")
+DIR_OUTPUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "OUT")
+DIR_LOGS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "LOGS")
 
 # Имена входных файлов (без расширения)
 INPUT_FILES = {
@@ -256,6 +256,42 @@ def setup_logging() -> str:
     return log_path
 
 # === ОСНОВНОЙ КЛАСС ГЕНЕРАТОРА ===
+
+def find_file_case_insensitive(directory, base_name, extensions):
+    """
+    Ищет файл в каталоге без учета регистра имени файла и расширения.
+    
+    Args:
+        directory (str): Каталог для поиска
+        base_name (str): Базовое имя файла (без расширения)
+        extensions (list): Список возможных расширений (например, ['.csv', '.CSV'])
+    
+    Returns:
+        str or None: Полный путь к найденному файла или None если файл не найден
+    """
+    if not os.path.exists(directory):
+        return None
+    
+    # Получаем список всех файлов в каталоге
+    try:
+        files_in_dir = os.listdir(directory)
+    except OSError:
+        return None
+    
+    # Ищем файл без учета регистра
+    for file_name in files_in_dir:
+        # Разделяем имя файла и расширение
+        name, ext = os.path.splitext(file_name)
+        
+        # Проверяем совпадение имени и расширения без учета регистра
+        if (name.lower() == base_name.lower() and 
+            ext.lower() in [e.lower() for e in extensions]):
+            return os.path.join(directory, file_name)
+    
+    return None
+
+
+
 class EmployeeGenerator:
     def __init__(self):
         self.org_units: List[Dict] = []
@@ -294,8 +330,13 @@ class EmployeeGenerator:
         
     def load_csv_file(self, file_key: str, required_columns: List[str] = None) -> List[Dict]:
         """Загружает CSV файл и возвращает список словарей"""
-        filename = INPUT_FILES[file_key] + FILE_EXTENSION
-        file_path = os.path.join(DIR_INPUT, filename)
+        filename = INPUT_FILES[file_key]
+        file_path = find_file_case_insensitive(DIR_INPUT, filename, [".csv", ".CSV"])
+        
+        # Проверяем, найден ли файл
+        if file_path is None:
+            logging.error(f"Файл не найден: {filename} в каталоге {DIR_INPUT}")
+            return []
         
         try:
             with open(file_path, 'r', encoding=CSV_ENCODING) as f:
