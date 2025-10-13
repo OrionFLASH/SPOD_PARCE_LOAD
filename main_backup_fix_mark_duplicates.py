@@ -229,18 +229,7 @@ LOG_MESSAGES = {
     "field_length_progress": "[FIELD LENGTH] Обработано {processed} из {total} строк ({percent:.1f}%)",  # Прогресс проверки
     "field_length_stats": "[FIELD LENGTH] Статистика: корректных={correct}, с ошибками={errors} (всего: {total})",  # Статистика проверки
     "field_length_end": "[FIELD LENGTH] Завершено за {time:.3f}s для листа {sheet}",  # Завершение проверки
-    "field_length_violation": "[DEBUG] Строка {row}: поле '{field}' = {length} {operator} {limit} (нарушение)",  # Нарушение ограничений
-    "tournament_status_stats": "[TOURNAMENT STATUS] Статистика: {stats}",
-    "field_length_missing": "[FIELD LENGTH] Пропущены поля {fields} в листе {sheet}",
-    "contest_feature_restored": "[CONTEST_FEATURE] Исходная колонка восстановлена с тройными кавычками",
-    "tournament_status_counts_found": "[TOURNAMENT STATUS COUNTS] Найдено статусов: {count} - {statuses}",
-    "tournament_status_counts_debug": "[TOURNAMENT STATUS COUNTS] Статус '{status}': {contests} конкурсов, {tournaments} турниров",
-    "tournament_status_counts_added": "[TOURNAMENT STATUS COUNTS] Добавлено колонок: {count} - {columns}",
-    "gender_detection_missing": "[GENDER DETECTION] Пропущены колонки {columns} в листе {sheet}",
-    "file_not_found": "Файл не найден: {file} в каталоге {directory}",
-    "debug_json_preserve": "[safe_json_loads_preserve_triple_quotes] Сохраняем исходную строку с тройными кавычками: {string}",
-    "debug_json_error": "[safe_json_loads] Ошибка: {error} | Исходная строка: {string}"
-
+    "field_length_violation": "[DEBUG] Строка {row}: поле '{field}' = {length} {operator} {limit} (нарушение)"  # Нарушение ограничений
 }
 
 # === КОНСТАНТЫ ДЛЯ ОПРЕДЕЛЕНИЯ ПОЛА ===
@@ -1966,7 +1955,7 @@ def calculate_tournament_status(df_tournament, df_report=None):
 
     # Логируем статистику по статусам для мониторинга
     status_counts = df['CALC_TOURNAMENT_STATUS'].value_counts()
-    logging.info(LOG_MESSAGES["tournament_status_stats"].format(stats=status_counts.to_dict()))
+    logging.info(f"[TOURNAMENT STATUS] Статистика: {status_counts.to_dict()}")
 
     # Засекаем время выполнения и логируем завершение
     func_time = time() - func_start
@@ -2011,7 +2000,7 @@ def validate_field_lengths(df, sheet_name):
     # Проверяем наличие полей в DataFrame
     missing_fields = [field for field in fields_config.keys() if field not in df.columns]
     if missing_fields:
-        logging.warning(LOG_MESSAGES["field_length_missing"].format(fields=missing_fields, sheet=sheet_name))
+        logging.warning(f"[FIELD LENGTH] Пропущены поля {missing_fields} в листе {sheet_name}")
         # Создаем пустую колонку если нет полей для проверки
         df[result_column] = '-'
         return df
@@ -2397,9 +2386,9 @@ def safe_json_loads(s: str):
             try:
                 pass  # import ast перенесен в начало файла
             except Exception:
-                logging.debug(LOG_MESSAGES["debug_json_error"].format(error=ex, string=repr(s)))
-                logging.debug(LOG_MESSAGES["debug_json_error"].format(error=ex, string=repr(s)))
-                logging.debug(LOG_MESSAGES["debug_json_error"].format(error=ex, string=repr(s)))
+                logging.debug(
+                    f"[safe_json_loads] Ошибка: {ex} | Исходная строка: {repr(s)}"
+                )
                 return None
 
 
@@ -2420,9 +2409,9 @@ def safe_json_loads_preserve_triple_quotes(s: str):
     except Exception as ex:
         # Если не получилось, возвращаем исходную строку с тройными кавычками
         # Это позволяет сохранить тройные кавычки в исходном виде
-        logging.debug(LOG_MESSAGES["debug_json_preserve"].format(string=repr(s)))
-        logging.debug(LOG_MESSAGES["debug_json_preserve"].format(string=repr(s)))
-        logging.debug(LOG_MESSAGES["debug_json_preserve"].format(string=repr(s)))
+        logging.debug(
+            f"[safe_json_loads_preserve_triple_quotes] Сохраняем исходную строку с тройными кавычками: {repr(s)}"
+        )
         return s  # Возвращаем исходную строку с тройными кавычками
 
 
@@ -2528,7 +2517,7 @@ def flatten_json_column_recursive(df, column, prefix=None, sheet=None, sep="; ")
         if temp_column in df.columns:
             df = df.drop(columns=[temp_column])
         
-        logging.info(LOG_MESSAGES["contest_feature_restored"])
+        logging.info(f"[CONTEST_FEATURE] Исходная колонка восстановлена с тройными кавычками")
 
     logging.info(LOG_MESSAGES["json_flatten_summary"].format(column=column, count=len(new_cols)))
     logging.info(LOG_MESSAGES["json_flatten_keys"].format(keys=list(new_cols.keys())))
@@ -2803,9 +2792,6 @@ def mark_duplicates(df, key_cols, sheet_name=None):
     Если строк по ключу больше одной — пишем xN, иначе пусто.
     """
     params = {"sheet": sheet_name, "keys": key_cols}
-    func_start = tmod.time()
-    col_name = "DUPLICATES"
-    
 
     logging.info(LOG_MESSAGES["duplicates_start"].format(sheet=sheet_name, keys=key_cols))
     try:
@@ -2851,7 +2837,7 @@ def add_tournament_status_counts(df_contest, df_tournament):
     # Сортируем статусы для предсказуемого порядка колонок
     unique_statuses = sorted([status for status in unique_statuses if status.strip()])
     
-    logging.info(LOG_MESSAGES["tournament_status_counts_found"].format(count=len(unique_statuses), statuses=unique_statuses))
+    logging.info(f"[TOURNAMENT STATUS COUNTS] Найдено статусов: {len(unique_statuses)} - {unique_statuses}")
     
     # Для каждого статуса подсчитываем количество уникальных турниров по CONTEST_CODE
     for status in unique_statuses:
@@ -2862,7 +2848,7 @@ def add_tournament_status_counts(df_contest, df_tournament):
             # Если нет турниров с таким статусом - все конкурсы получают 0
             col_name = f"TOURNAMENT_COUNT_{status.upper()}"
             df_result[col_name] = 0
-            logging.debug(LOG_MESSAGES["tournament_status_counts_debug"].format(status=status, contests=0, tournaments=0))
+            logging.debug(f"[TOURNAMENT STATUS COUNTS] Статус '{status}': 0 турниров")
             continue
         
         # Подсчитываем количество уникальных турниров для каждого конкурса
@@ -2875,12 +2861,12 @@ def add_tournament_status_counts(df_contest, df_tournament):
         # Логируем статистику для этого статуса
         total_tournaments = status_counts.values()
         total_contests = len(status_counts)
-        logging.debug(LOG_MESSAGES["tournament_status_counts_debug"].format(status=status, contests=total_contests, tournaments=sum(total_tournaments)))
+        logging.debug(f"[TOURNAMENT STATUS COUNTS] Статус '{status}': {total_contests} конкурсов, {sum(total_tournaments)} турниров")
     
     # Логируем итоговую статистику
     func_time = time() - func_start
     added_columns = [f"TOURNAMENT_COUNT_{status.upper()}" for status in unique_statuses]
-    logging.info(LOG_MESSAGES["tournament_status_counts_added"].format(count=len(added_columns), columns=added_columns))
+    logging.info(f"[TOURNAMENT STATUS COUNTS] Добавлено колонок: {len(added_columns)} - {added_columns}")
     logging.info(LOG_MESSAGES["func_end"].format(
         func="add_tournament_status_counts",
         params=f"(добавлено колонок: {len(added_columns)})",
@@ -3423,7 +3409,7 @@ def add_auto_gender_column(df, sheet_name):
     missing_columns = [col for col in required_columns if col not in df.columns]
 
     if missing_columns:
-        logging.warning(LOG_MESSAGES["gender_detection_missing"].format(columns=missing_columns, sheet=sheet_name))
+        logging.warning(f"[GENDER DETECTION] Пропущены колонки {missing_columns} в листе {sheet_name}")
         df['AUTO_GENDER'] = '-'
         return df
 
@@ -3539,7 +3525,7 @@ def main():
         
         # Проверяем, найден ли файл
         if file_path is None:
-            logging.error(LOG_MESSAGES["file_not_found"].format(file=file_conf["file"], directory=DIR_INPUT))
+            logging.error(f"Файл не найден: {file_conf['file']} в каталоге {DIR_INPUT}")
             summary.append(f"{sheet_name}: файл не найден")
             continue
         
