@@ -1,0 +1,9 @@
+{
+    "cursor.ai.autoApply": false,
+    "cursor.ai.showDiff": true,
+    "cursor.ai.confirmChanges": true,
+    "cursor.ai.previewMode": true,
+    "cursor.ai.askBeforeApply": true,
+    "cursor.ai.showInlineDiff": true,
+    "cursor.ai.highlightChanges": true
+}

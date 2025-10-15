@@ -1,0 +1,13 @@
+{
+    "files.autoSave": "off",
+    "files.autoSaveDelay": 1000,
+    "files.hotExit": "off",
+    "files.backup": false,
+    "files.autoSaveAfterDelay": false,
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+        "source.organizeImports": true
+    },
+    "python.defaultInterpreterPath": "./venv/bin/python",
+    "python.terminal.activateEnvironment": true
+}

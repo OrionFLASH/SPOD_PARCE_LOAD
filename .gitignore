@@ -58,3 +58,7 @@ SPOD/
 # Temporary files
 *.tmp
 *.temp 
+# Cursor backup files
+*.backup
+main_backup*.py
+*.tmp
