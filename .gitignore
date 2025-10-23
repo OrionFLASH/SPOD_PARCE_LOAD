@@ -53,3 +53,4 @@ main_backup*.py
 
 # Cursor IDE files
 .cursor/
+.cursorignore
