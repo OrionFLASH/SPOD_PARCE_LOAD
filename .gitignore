@@ -54,6 +54,11 @@ SPOD/
 
 # Backup files
 main_backup*.py
+main_fixed*.py
+main_working.py
+main_final.py
+main_original_backup.py
+fix_gender_patterns.py
 *.backup
 
 # Cursor IDE files

@@ -29,7 +29,7 @@ DIR_LOGS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "LOGS")    #
 # - min_col_width: минимальная ширина колонки
 INPUT_FILES = [
     {
-        "file": "CONTEST-DATA (PROM) 2025-10-08 v1",  # Файл с данными конкурсов
+        "file": "CONTEST-DATA (PROM) 2025-10-24 v0",  # Файл с данными конкурсов
         "sheet": "CONTEST-DATA",                        # Лист для обработки
         "max_col_width": 120,                          # Максимальная ширина колонки
         "freeze": "C2",                                # Закрепление области
@@ -37,7 +37,7 @@ INPUT_FILES = [
         "min_col_width": 8                             # Минимальная ширина колонки
     },
     {
-        "file": "GROUP (PROM) 2025-10-08 v0",            # Файл с данными групп
+        "file": "GROUP (PROM) 2025-10-23 v0",            # Файл с данными групп
         "sheet": "GROUP",                              # Лист для обработки
         "max_col_width": 20,                           # Максимальная ширина колонки
         "freeze": "C2",                                # Закрепление области
@@ -45,7 +45,7 @@ INPUT_FILES = [
         "min_col_width": 8                             # Минимальная ширина колонки
     },
     {
-        "file": "INDICATOR (PROM) 2025-10-07 v0",        # Файл с индикаторами
+        "file": "INDICATOR (PROM) 2025-10-24 v0",        # Файл с индикаторами
         "sheet": "INDICATOR",                          # Лист для обработки
         "max_col_width": 100,                           # Максимальная ширина колонки
         "freeze": "B2",                                # Закрепление области
@@ -53,7 +53,7 @@ INPUT_FILES = [
         "min_col_width": 8                             # Минимальная ширина колонки
     },
     {
-        "file": "REPORT (PROM-KMKKSB) 2025-10-09 v0", # Файл с отчетами
+        "file": "REPORT (PROM-KMKKSB) 2025-10-24 v0", # Файл с отчетами
         "sheet": "REPORT",                             # Лист для обработки
         "max_col_width": 25,                           # Максимальная ширина колонки
         "freeze": "D2",                                # Закрепление области
@@ -61,7 +61,7 @@ INPUT_FILES = [
         "min_col_width": 8                             # Минимальная ширина колонки
     },
     {
-        "file": "REWARD (PROM) 2025-10-08 v2",        # Файл с наградами
+        "file": "REWARD (PROM) 2025-10-24 v0",        # Файл с наградами
         "sheet": "REWARD",                             # Лист для обработки
         "max_col_width": 200,                          # Максимальная ширина колонки (большая для длинных описаний)
         "freeze": "D2",                                # Закрепление области
@@ -69,7 +69,7 @@ INPUT_FILES = [
         "min_col_width": 8                             # Минимальная ширина колонки
     },
     {
-        "file": "REWARD-LINK (PROM) 2025-10-07 v0",      # Файл со связями наград
+        "file": "REWARD-LINK (PROM) 2025-10-23 v1",      # Файл со связями наград
         "sheet": "REWARD-LINK",                        # Лист для обработки
         "max_col_width": 30,                           # Максимальная ширина колонки
         "freeze": "A2",                                # Закрепление области
@@ -85,7 +85,7 @@ INPUT_FILES = [
         "min_col_width": 8                             # Минимальная ширина колонки
     },
     {
-        "file": "TOURNAMENT-SCHEDULE (PROM) 2025-10-09 v0", # Файл с расписанием турниров
+        "file": "TOURNAMENT-SCHEDULE (PROM) 2025-10-24 v0", # Файл с расписанием турниров
         "sheet": "TOURNAMENT-SCHEDULE",                # Лист для обработки
         "max_col_width": 120,                          # Максимальная ширина колонки
         "freeze": "B2",                                # Закрепление области
@@ -129,7 +129,7 @@ SUMMARY_SHEET = {
 }
 
 # === НАСТРОЙКИ ЛОГИРОВАНИЯ ===
-LOG_LEVEL = "DEBUG"  # Уровень логирования: "INFO" для продакшена, "DEBUG" для отладки
+LOG_LEVEL = "INFO"  # Уровень логирования: "INFO" для продакшена, "DEBUG" для отладки
 LOG_BASE_NAME = "LOGS"  # Базовое имя для файлов логов
 
 # Словарь сообщений для логирования различных событий
@@ -327,7 +327,7 @@ MERGE_FIELDS = [
         "sheet_dst": "REPORT",              # Целевой лист - отчеты
         "src_key": ["CONTEST_CODE"],        # Ключ в источнике - код конкурса
         "dst_key": ["CONTEST_CODE"],        # Ключ в целевом листе - код конкурса
-        "column": ["CONTEST_TYPE", "FULL_NAME", "BUSINESS_STATUS", "BUSINESS_BLOCK"],  # Добавляемые колонки
+        "column": ["CONTEST_TYPE", "FULL_NAME", "CONTEST_DESCRIPTION", "BUSINESS_STATUS", "BUSINESS_BLOCK"],  # Добавляемые колонки
         "mode": "value",                    # Режим: добавляем значения (не количество)
         "multiply_rows": False,             # Не размножаем строки при множественных совпадениях
         "col_max_width": 80,               # Максимальная ширина добавляемых колонок
