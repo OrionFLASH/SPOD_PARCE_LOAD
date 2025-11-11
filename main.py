@@ -29,15 +29,15 @@ DIR_LOGS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "LOGS")    #
 # - min_col_width: минимальная ширина колонки
 INPUT_FILES = [
     {
-        "file": "CONTEST-DATA (PROM) 2025-10-24 v0",  # Файл с данными конкурсов
+        "file": "CONTEST-DATA (PROM) 2025-11-11 v3",  # Файл с данными конкурсов
         "sheet": "CONTEST-DATA",                        # Лист для обработки
         "max_col_width": 120,                          # Максимальная ширина колонки
         "freeze": "C2",                                # Закрепление области
         "col_width_mode": "AUTO",                      # Автоматическое растягивание колонок
-        "min_col_width": 8                             # Минимальная ширина колонки
+        "min_col_width": 12                             # Минимальная ширина колонки
     },
     {
-        "file": "GROUP (PROM) 2025-10-23 v0",            # Файл с данными групп
+        "file": "GROUP (PROM) 2025-11-11 v3",            # Файл с данными групп
         "sheet": "GROUP",                              # Лист для обработки
         "max_col_width": 20,                           # Максимальная ширина колонки
         "freeze": "C2",                                # Закрепление области
@@ -45,7 +45,7 @@ INPUT_FILES = [
         "min_col_width": 8                             # Минимальная ширина колонки
     },
     {
-        "file": "INDICATOR (PROM) 2025-10-24 v0",        # Файл с индикаторами
+        "file": "INDICATOR (PROM) 2025-11-11 v3",        # Файл с индикаторами
         "sheet": "INDICATOR",                          # Лист для обработки
         "max_col_width": 100,                           # Максимальная ширина колонки
         "freeze": "B2",                                # Закрепление области
@@ -53,28 +53,28 @@ INPUT_FILES = [
         "min_col_width": 8                             # Минимальная ширина колонки
     },
     {
-        "file": "REPORT (PROM-KMKKSB) 2025-10-24 v0", # Файл с отчетами
+        "file": "REPORT (PROM-KMKKSB) 2025-11-10 v1 (correct)", # Файл с отчетами
         "sheet": "REPORT",                             # Лист для обработки
         "max_col_width": 25,                           # Максимальная ширина колонки
         "freeze": "D2",                                # Закрепление области
         "col_width_mode": "AUTO",                      # Автоматическое растягивание колонок
-        "min_col_width": 8                             # Минимальная ширина колонки
+        "min_col_width": 10                             # Минимальная ширина колонки
     },
     {
-        "file": "REWARD (PROM) 2025-10-24 v0",        # Файл с наградами
+        "file": "REWARD (PROM) 2025-11-11 v3",        # Файл с наградами
         "sheet": "REWARD",                             # Лист для обработки
         "max_col_width": 200,                          # Максимальная ширина колонки (большая для длинных описаний)
         "freeze": "D2",                                # Закрепление области
         "col_width_mode": "AUTO",                      # Автоматическое растягивание колонок
-        "min_col_width": 8                             # Минимальная ширина колонки
+        "min_col_width": 10                             # Минимальная ширина колонки
     },
     {
-        "file": "REWARD-LINK (PROM) 2025-10-23 v1",      # Файл со связями наград
+        "file": "REWARD-LINK (PROM) 2025-11-11 v3",      # Файл со связями наград
         "sheet": "REWARD-LINK",                        # Лист для обработки
         "max_col_width": 30,                           # Максимальная ширина колонки
         "freeze": "A2",                                # Закрепление области
         "col_width_mode": "AUTO",                      # Автоматическое растягивание колонок
-        "min_col_width": 8                             # Минимальная ширина колонки
+        "min_col_width": 10                             # Минимальная ширина колонки
     },
     {
         "file": "SVD_KB_DM_GAMIFICATION_ORG_UNIT_V20 - 2025.08.28", # Файл с организационными единицами
@@ -82,39 +82,39 @@ INPUT_FILES = [
         "max_col_width": 60,                           # Максимальная ширина колонки
         "freeze": "A2",                                # Закрепление области
         "col_width_mode": "AUTO",                      # Автоматическое растягивание колонок
-        "min_col_width": 8                             # Минимальная ширина колонки
+        "min_col_width": 10                             # Минимальная ширина колонки
     },
     {
-        "file": "TOURNAMENT-SCHEDULE (PROM) 2025-10-24 v0", # Файл с расписанием турниров
+        "file": "TOURNAMENT-SCHEDULE (PROM) 2025-11-11 v3", # Файл с расписанием турниров
         "sheet": "TOURNAMENT-SCHEDULE",                # Лист для обработки
         "max_col_width": 120,                          # Максимальная ширина колонки
         "freeze": "B2",                                # Закрепление области
         "col_width_mode": "AUTO",                      # Автоматическое растягивание колонок
-        "min_col_width": 8                             # Минимальная ширина колонки
+        "min_col_width": 10                             # Минимальная ширина колонки
     },
     {
-        "file": "PROM_USER_ROLE 2025-09-17 v2",       # Файл с ролями пользователей
+        "file": "PROM_USER_ROLE 2025-10-29 v0",       # Файл с ролями пользователей
         "sheet": "USER_ROLE",                          # Лист для обработки
-        "max_col_width": 60,                           # Максимальная ширина колонки
+        "max_col_width": 65,                           # Максимальная ширина колонки
         "freeze": "D2",                                # Закрепление области
         "col_width_mode": "AUTO",                      # Автоматическое растягивание колонок
-        "min_col_width": 8                             # Минимальная ширина колонки
+        "min_col_width": 12                             # Минимальная ширина колонки
     },
     {
-        "file": "PROM_USER_ROLE SB 2025-09-17 v2",    # Файл с ролями пользователей SB
+        "file": "PROM_USER_ROLE SB 2025-10-29 v0",    # Файл с ролями пользователей SB
         "sheet": "USER_ROLE SB",                       # Лист для обработки
-        "max_col_width": 60,                           # Максимальная ширина колонки
+        "max_col_width": 65,                           # Максимальная ширина колонки
         "freeze": "D2",                                # Закрепление области
         "col_width_mode": "AUTO",                      # Автоматическое растягивание колонок
-        "min_col_width": 8                             # Минимальная ширина колонки
+        "min_col_width": 12                             # Минимальная ширина колонки
     },
     {
-        "file": "employee_PROM_final_5000_2025-07-26_00-09-03",  # Файл с данными сотрудников
+        "file": "employee_PROM_2025-10-29 v0",  # Файл с данными сотрудников
         "sheet": "EMPLOYEE",                              # Лист для обработки
-        "max_col_width": 70,                              # Максимальная ширина колонки
+        "max_col_width": 80,                              # Максимальная ширина колонки
         "freeze": "F2",                                   # Закрепление области (колонки A-E и строка 1)
         "col_width_mode": "AUTO",                         # Автоматическое растягивание колонок
-        "min_col_width": 8                                # Минимальная ширина колонки
+        "min_col_width": 15                                # Минимальная ширина колонки
     }
 ]
 
@@ -327,7 +327,7 @@ MERGE_FIELDS = [
         "sheet_dst": "REPORT",              # Целевой лист - отчеты
         "src_key": ["CONTEST_CODE"],        # Ключ в источнике - код конкурса
         "dst_key": ["CONTEST_CODE"],        # Ключ в целевом листе - код конкурса
-        "column": ["CONTEST_TYPE", "FULL_NAME", "CONTEST_DESCRIPTION", "BUSINESS_STATUS", "BUSINESS_BLOCK"],  # Добавляемые колонки
+        "column": ["CONTEST_TYPE", "FULL_NAME", "BUSINESS_STATUS", "BUSINESS_BLOCK"],  # Добавляемые колонки
         "mode": "value",                    # Режим: добавляем значения (не количество)
         "multiply_rows": False,             # Не размножаем строки при множественных совпадениях
         "col_max_width": 80,               # Максимальная ширина добавляемых колонок
@@ -404,7 +404,7 @@ MERGE_FIELDS = [
         "sheet_dst": "EMPLOYEE",            # Цель - сотрудники
         "src_key": ["ORG_UNIT_CODE"],       # Ключ - код организационной единицы
         "dst_key": ["ORG_UNIT_CODE"],       # Ключ - код организационной единицы
-        "column": ["GOSB_SHORT_NAME"],      # Добавляем краткое название ГОСБ
+        "column": ["GOSB_CODE", "GOSB_SHORT_NAME", "GOSB_NAME", "TB_CODE", "TB_SHORT_NAME"],      # Добавляем краткое название ГОСБ
         "mode": "value",                    # Добавляем значение
         "multiply_rows": False,             # Не размножаем строки
         "col_max_width": 25,               # Максимальная ширина
@@ -521,6 +521,11 @@ MERGE_FIELDS = [
             "CONTEST_DESCRIPTION",          # Описание конкурса
             f"{PREFIX_CONTEST_FEATURE} => feature",  # Признак конкурса (развернутый JSON)
             f"{PREFIX_CONTEST_FEATURE} => momentRewarding",  # Момент награждения
+            "TARGET_TYPE",
+            f"{PREFIX_CONTEST_FEATURE} => vid",
+            "CONTEST_TYPE",                 # тип конкурса
+            "PRODUCT_GROUP",                # группа продуктов
+            "PRODUCT",
             "FACTOR_MATCH",                 # Фактор соответствия
             "PLAN_MOD_VALUE",               # Плановое значение модуля
             "BUSINESS_BLOCK",               # Бизнес-блок
@@ -531,7 +536,7 @@ MERGE_FIELDS = [
         ],
         "mode": "value",                    # Добавляем значения
         "multiply_rows": False,             # Не размножаем строки
-        "col_max_width": 60,               # Максимальная ширина
+        "col_max_width": 55,               # Максимальная ширина
         "col_width_mode": "AUTO",          # Автоматическое растягивание
         "col_min_width": 8                 # Минимальная ширина
     },
@@ -543,6 +548,7 @@ MERGE_FIELDS = [
         "src_key": ["CONTEST_CODE", "GROUP_CODE", "GROUP_VALUE"],  # Составной ключ: код конкурса + код группы + значение группы
         "dst_key": ["CONTEST_CODE", "GROUP_CODE", "GROUP_VALUE"],  # Составной ключ: код конкурса + код группы + значение группы
         "column": [                         # Добавляемые колонки:
+            "GET_CALC_METHOD",
             "GET_CALC_CRITERION",          # Основной критерий расчета
             "ADD_CALC_CRITERION",          # Дополнительный критерий расчета
             "ADD_CALC_CRITERION_2"        # Второй дополнительный критерий расчета
@@ -561,6 +567,7 @@ MERGE_FIELDS = [
         "src_key": ["GROUP_CODE"],          # Ключ - только код группы
         "dst_key": ["GROUP_CODE"],          # Ключ - только код группы
         "column": [                         # Добавляемые колонки:
+            "GET_CALC_METHOD",
             "GET_CALC_CRITERION",          # Основной критерий расчета
             "ADD_CALC_CRITERION",          # Дополнительный критерий расчета
             "ADD_CALC_CRITERION_2"        # Второй дополнительный критерий расчета
@@ -607,6 +614,9 @@ MERGE_FIELDS = [
         "src_key": ["CONTEST_CODE"],        # Ключ - код конкурса
         "dst_key": ["CONTEST_CODE"],        # Ключ - код конкурса
         "column": [                         # Добавляемые колонки:
+            "INDICATOR_CODE",
+            "INDICATOR_AGG_FUNCTION",
+            "INDICATOR_WEIGHT",
             "INDICATOR_MARK_TYPE",          # Тип отметки индикатора
             "INDICATOR_MATCH",              # Соответствие индикатора
             "INDICATOR_VALUE"               # Значение индикатора
@@ -891,6 +901,7 @@ MERGE_FIELDS = [
             f"{PREFIX_ADD_DATA} => itemFeature",  # Признак элемента награды
             f"{PREFIX_ADD_DATA} => rewardRule",  # Правило награды
             f"{PREFIX_ADD_DATA} => hidden",     # Признак скрытия награды
+            f"{PREFIX_ADD_DATA} => nftFlg",     # Признак NFT
             f"{PREFIX_ADD_DATA} => rewardAgainGlobal",  # Повторная награда глобально
             f"{PREFIX_ADD_DATA} => rewardAgainTournament",  # Повторная награда в турнире
             f"{PREFIX_ADD_DATA} => outstanding",  # Выдающийся
