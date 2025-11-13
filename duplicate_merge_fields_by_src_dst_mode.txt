@@ -1,0 +1,182 @@
+================================================================================
+ДУБЛИКАТЫ В MERGE_FIELDS И MERGE_FIELDS_ADVANCED (только активные записи)
+================================================================================
+
+Критерий поиска: одинаковые значения для полей:
+  - sheet_src
+  - sheet_dst
+  - mode
+
+ПРИМЕЧАНИЕ: Закомментированные записи не учитываются.
+Проверяются оба списка: MERGE_FIELDS и MERGE_FIELDS_ADVANCED.
+
+
+================================================================================
+ГРУППА ДУБЛИКАТОВ #1 (2 записей)
+================================================================================
+
+Ключевые поля:
+  sheet_src: ORG_UNIT_V20
+  sheet_dst: EMPLOYEE
+  mode: value
+
+  --- Запись #1 (строки 340-351, источник: MERGE_FIELDS) ---
+    {
+        "sheet_src": "ORG_UNIT_V20",       # Источник - организационные единицы
+        "sheet_dst": "EMPLOYEE",            # Цель - сотрудники
+        "src_key": ["TB_CODE", "GOSB_CODE"], # Составной ключ: код ТБ + код ГОСБ
+        "dst_key": ["TB_CODE", "GOSB_CODE"], # Составной ключ: код ТБ + код ГОСБ
+        "column": ["ORG_UNIT_CODE"],        # Добавляем код организационной единицы
+        "mode": "value",                    # Добавляем значение
+        "multiply_rows": False,             # Не размножаем строки
+        "col_max_width": 15,               # Максимальная ширина
+        "col_width_mode": "AUTO",          # Автоматическое растягивание
+        "col_min_width": 11                # Минимальная ширина
+    },
+
+
+  --- Запись #2 (строки 354-365, источник: MERGE_FIELDS) ---
+    {
+        "sheet_src": "ORG_UNIT_V20",       # Источник - организационные единицы
+        "sheet_dst": "EMPLOYEE",            # Цель - сотрудники
+        "src_key": ["ORG_UNIT_CODE"],       # Ключ - код организационной единицы
+        "dst_key": ["ORG_UNIT_CODE"],       # Ключ - код организационной единицы
+        "column": ["GOSB_CODE", "GOSB_SHORT_NAME", "GOSB_NAME", "TB_CODE", "TB_SHORT_NAME"],      # Добавляем краткое название ГОСБ
+        "mode": "value",                    # Добавляем значение
+        "multiply_rows": False,             # Не размножаем строки
+        "col_max_width": 25,               # Максимальная ширина
+        "col_width_mode": "AUTO",          # Автоматическое растягивание
+        "col_min_width": 11                # Минимальная ширина
+    },
+
+
+
+================================================================================
+ГРУППА ДУБЛИКАТОВ #2 (6 записей)
+================================================================================
+
+Ключевые поля:
+  sheet_src: TOURNAMENT-SCHEDULE
+  sheet_dst: CONTEST-DATA
+  mode: count
+
+  --- Запись #1 (строки 455-466, источник: MERGE_FIELDS) ---
+    {
+        "sheet_src": "TOURNAMENT-SCHEDULE", # Источник - расписание турниров
+        "sheet_dst": "CONTEST-DATA",        # Цель - данные конкурсов
+        "src_key": ["CONTEST_CODE"],        # Ключ - код конкурса
+        "dst_key": ["CONTEST_CODE"],        # Ключ - код конкурса
+        "column": ["TOURNAMENT_CODE"],      # Добавляем код турнира
+        "mode": "count",                    # Режим: подсчитываем количество
+        "multiply_rows": False,             # Не размножаем строки
+        "col_max_width": 11,               # Максимальная ширина (код турнира короткий)
+        "col_width_mode": "AUTO",          # Автоматическое растягивание
+        "col_min_width": 8                 # Минимальная ширина
+    },
+
+
+  --- Запись #2 (строки 949-967, источник: MERGE_FIELDS_ADVANCED) ---
+    {
+        "sheet_src": "TOURNAMENT-SCHEDULE", # Источник - расписание турниров
+        "sheet_dst": "CONTEST-DATA",        # Цель - данные конкурсов
+        "src_key": ["CONTEST_CODE"],        # Ключ - код конкурса
+        "dst_key": ["CONTEST_CODE"],        # Ключ - код конкурса
+        "column": ["TOURNAMENT_CODE"],      # Колонка для подсчета
+        "mode": "count",                    # Режим подсчета
+        "multiply_rows": False,             # Не размножаем строки
+        "col_max_width": 15,               # Максимальная ширина
+        "col_width_mode": "AUTO",          # Автоматическое растягивание
+        "col_min_width": 8,                # Минимальная ширина
+        "status_filters": {                 # Фильтрация по статусам
+            "TOURNAMENT_STATUS": ["АКТИВНЫЙ"] # Только активные турниры
+        },
+        "custom_conditions": None,          # Без дополнительных условий
+        "group_by": None,                   # Без группировки
+        "aggregate": None                   # Без агрегации
+    },
+
+
+  --- Запись #3 (строки 970-988, источник: MERGE_FIELDS_ADVANCED) ---
+    {
+        "sheet_src": "TOURNAMENT-SCHEDULE", # Источник - расписание турниров
+        "sheet_dst": "CONTEST-DATA",        # Цель - данные конкурсов
+        "src_key": ["CONTEST_CODE"],        # Ключ - код конкурса
+        "dst_key": ["CONTEST_CODE"],        # Ключ - код конкурса
+        "column": ["TOURNAMENT_CODE"],      # Колонка для подсчета
+        "mode": "count",                    # Режим подсчета
+        "multiply_rows": False,             # Не размножаем строки
+        "col_max_width": 15,               # Максимальная ширина
+        "col_width_mode": "AUTO",          # Автоматическое растягивание
+        "col_min_width": 8,                # Минимальная ширина
+        "status_filters": {                 # Фильтрация по статусам
+            "TOURNAMENT_STATUS": ["ЗАВЕРШЕН"] # Только завершенные турниры
+        },
+        "custom_conditions": None,          # Без дополнительных условий
+        "group_by": None,                   # Без группировки
+        "aggregate": None                   # Без агрегации
+    },
+
+
+  --- Запись #4 (строки 991-1009, источник: MERGE_FIELDS_ADVANCED) ---
+    {
+        "sheet_src": "TOURNAMENT-SCHEDULE", # Источник - расписание турниров
+        "sheet_dst": "CONTEST-DATA",        # Цель - данные конкурсов
+        "src_key": ["CONTEST_CODE"],        # Ключ - код конкурса
+        "dst_key": ["CONTEST_CODE"],        # Ключ - код конкурса
+        "column": ["TOURNAMENT_CODE"],      # Колонка для подсчета
+        "mode": "count",                    # Режим подсчета
+        "multiply_rows": False,             # Не размножаем строки
+        "col_max_width": 15,               # Максимальная ширина
+        "col_width_mode": "AUTO",          # Автоматическое растягивание
+        "col_min_width": 8,                # Минимальная ширина
+        "status_filters": {                 # Фильтрация по статусам
+            "TOURNAMENT_STATUS": ["ОТМЕНЕН"] # Только отмененные турниры
+        },
+        "custom_conditions": None,          # Без дополнительных условий
+        "group_by": None,                   # Без группировки
+        "aggregate": None                   # Без агрегации
+    },
+
+
+  --- Запись #5 (строки 1012-1030, источник: MERGE_FIELDS_ADVANCED) ---
+    {
+        "sheet_src": "TOURNAMENT-SCHEDULE", # Источник - расписание турниров
+        "sheet_dst": "CONTEST-DATA",        # Цель - данные конкурсов
+        "src_key": ["CONTEST_CODE"],        # Ключ - код конкурса
+        "dst_key": ["CONTEST_CODE"],        # Ключ - код конкурса
+        "column": ["TOURNAMENT_CODE"],      # Колонка для подсчета
+        "mode": "count",                    # Режим подсчета
+        "multiply_rows": False,             # Не размножаем строки
+        "col_max_width": 15,               # Максимальная ширина
+        "col_width_mode": "AUTO",          # Автоматическое растягивание
+        "col_min_width": 8,                # Минимальная ширина
+        "status_filters": {                 # Фильтрация по статусам
+            "TOURNAMENT_STATUS": ["ПОДВЕДЕНИЕ ИТОГОВ"] # Только в подведении итогов
+        },
+        "custom_conditions": None,          # Без дополнительных условий
+        "group_by": None,                   # Без группировки
+        "aggregate": None                   # Без агрегации
+    },
+
+
+  --- Запись #6 (строки 1033-1051, источник: MERGE_FIELDS_ADVANCED) ---
+    {
+        "sheet_src": "TOURNAMENT-SCHEDULE", # Источник - расписание турниров
+        "sheet_dst": "CONTEST-DATA",        # Цель - данные конкурсов
+        "src_key": ["CONTEST_CODE"],        # Ключ - код конкурса
+        "dst_key": ["CONTEST_CODE"],        # Ключ - код конкурса
+        "column": ["TOURNAMENT_CODE"],      # Колонка для подсчета
+        "mode": "count",                    # Режим подсчета
+        "multiply_rows": False,             # Не размножаем строки
+        "col_max_width": 15,               # Максимальная ширина
+        "col_width_mode": "AUTO",          # Автоматическое растягивание
+        "col_min_width": 8,                # Минимальная ширина
+        "status_filters": {                 # Фильтрация по статусам
+            "TOURNAMENT_STATUS": ["УДАЛЕН"] # Только удаленные турниры
+        },
+        "custom_conditions": None,          # Без дополнительных условий
+        "group_by": None,                   # Без группировки
+        "aggregate": None                   # Без агрегации
+    }
+
+

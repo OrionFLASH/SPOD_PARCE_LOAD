@@ -523,7 +523,8 @@ MERGE_FIELDS = [
             f"{PREFIX_CONTEST_FEATURE} => typeRewarding",
             f"{PREFIX_CONTEST_FEATURE} => preferences",
             f"{PREFIX_CONTEST_FEATURE} => tournamentTeam",
-            f"{PREFIX_CONTEST_FEATURE} => helpCode"
+            f"{PREFIX_CONTEST_FEATURE} => helpCode",
+            "CONTEST_FEATURE"
         ],
         "mode": "value",                    # Добавляем значения
         "multiply_rows": False,             # Не размножаем строки
@@ -625,7 +626,8 @@ MERGE_FIELDS = [
             f"{PREFIX_ADD_DATA} => priority",
             f"{PREFIX_ADD_DATA} => masterBadge",
             f"{PREFIX_ADD_DATA} => parentRewardCode",
-            f"{PREFIX_ADD_DATA} => helpCode"
+            f"{PREFIX_ADD_DATA} => helpCode",
+            "ADD_DATA"
         ],
         "mode": "value",                    # Добавляем значения
         "multiply_rows": False,             # Не размножаем строки
@@ -647,26 +649,6 @@ MERGE_FIELDS = [
         "col_width_mode": "AUTO",          # Автоматическое растягивание
         "col_min_width": 8                 # Минимальная ширина
     },
-    # SUMMARY: поля из TOURNAMENT-SCHEDULE по CONTEST_CODE (для частично связанных записей)
-    # Добавляет информацию о турнирах по коду конкурса (без привязки к конкретному турниру)
-    # {
-        # "sheet_src": "TOURNAMENT-SCHEDULE", # Источник - расписание турниров
-        # "sheet_dst": "SUMMARY",             # Цель - сводный лист
-        # "src_key": ["CONTEST_CODE"],        # Ключ - код конкурса
-        # "dst_key": ["CONTEST_CODE"],        # Ключ - код конкурса
-        # "column": [                         # Добавляемые колонки:
-            # "START_DT",                     # Дата начала турнира
-            # "END_DT",                       # Дата окончания турнира
-            # "RESULT_DT",                    # Дата результатов турнира
-            # "TOURNAMENT_STATUS",            # Статус турнира
-            # "TARGET_TYPE"                   # Тип цели турнира
-        # ],
-        # "mode": "value",                    # Добавляем значения
-        # "multiply_rows": False,             # Не размножаем строки
-        # "col_max_width": 30,               # Максимальная ширина
-        # "col_width_mode": "AUTO",          # Автоматическое растягивание
-        # "col_min_width": 8                 # Минимальная ширина
-    # },
     # SUMMARY: CONTEST_DATE из REPORT по TOURNAMENT_CODE
     # Добавляет дату конкурса из отчетов
     {
@@ -683,38 +665,22 @@ MERGE_FIELDS = [
         "col_width_mode": "AUTO",          # Автоматическое растягивание
         "col_min_width": 8                 # Минимальная ширина
     },
-    # SUMMARY: CONTEST_DATE из REPORT по CONTEST_CODE (для частично связанных записей)
-    # Добавляет дату конкурса из отчетов для частично связанных записей
-    # {
-        # "sheet_src": "REPORT",              # Источник - отчеты
-        # "sheet_dst": "SUMMARY",             # Цель - сводный лист
-        # "src_key": ["CONTEST_CODE"],        # Ключ - код конкурса
-        # "dst_key": ["CONTEST_CODE"],        # Ключ - код конкурса
-        # "column": [                         # Добавляемые колонки:
-            # "CONTEST_DATE"                  # Дата конкурса
-        # ],
-        # "mode": "value",                    # Добавляем значение
-        # "multiply_rows": False,             # Не размножаем строки
-        # "col_max_width": 25,               # Максимальная ширина
-        # "col_width_mode": "AUTO",          # Автоматическое растягивание
-        # "col_min_width": 8                 # Минимальная ширина
-    # },
-     # SUMMARY: сколько в REPORT строк по паре TOURNAMENT_CODE + CONTEST_CODE (для полностью связанных записей)
-    # Подсчитывает количество отчетов для каждой пары турнир-конкурс
-    # {
-        # "sheet_src": "REPORT",              # Источник - отчеты
-        # "sheet_dst": "SUMMARY",             # Цель - сводный лист
-        # "src_key": ["TOURNAMENT_CODE", "CONTEST_CODE"],  # Составной ключ: код турнира + код конкурса
-        # "dst_key": ["TOURNAMENT_CODE", "CONTEST_CODE"],  # Составной ключ: код турнира + код конкурса
-        # "column": [                         # Добавляемые колонки:
-            # "CONTEST_DATE"                  # Используем CONTEST_DATE для подсчета (любое поле подойдет)
-        # ],
-        # "mode": "count",                    # Режим: подсчитываем количество
-        # "multiply_rows": False,             # Не размножаем строки
-        # "col_max_width": 20,               # Максимальная ширина
-        # "col_width_mode": 15,              # Фиксированная ширина (15 символов)
-        # "col_min_width": 8                 # Минимальная ширина
-    # },
+    # SUMMARY: сколько в REPORT записей по ключу TOURNAMENT_CODE
+    # Подсчитывает количество отчетов для каждого турнира
+    {
+        "sheet_src": "REPORT",              # Источник - отчеты
+        "sheet_dst": "SUMMARY",             # Цель - сводный лист
+        "src_key": ["TOURNAMENT_CODE"],     # Ключ: код турнира
+        "dst_key": ["TOURNAMENT_CODE"],     # Ключ: код турнира
+        "column": [                         # Добавляемые колонки:
+            "CONTEST_DATE"                  # Используем CONTEST_DATE для подсчета
+        ],
+        "mode": "count",                    # Режим: подсчитываем количество
+        "multiply_rows": False,             # Не размножаем строки
+        "col_max_width": 20,               # Максимальная ширина
+        "col_width_mode": 15,              # Фиксированная ширина (15 символов)
+        "col_min_width": 8                 # Минимальная ширина
+    },
     # SUMMARY: сколько в REWARD наград по ключу CONTEST_CODE
     # Подсчитывает количество наград для каждого конкурса
     {
@@ -779,22 +745,6 @@ MERGE_FIELDS = [
         "col_width_mode": 15,              # Фиксированная ширина (15 символов)
         "col_min_width": 8                 # Минимальная ширина
     },
-    # SUMMARY: сколько в GROUP строк по составному ключу CONTEST_CODE + GROUP_CODE + GROUP_VALUE
-    # Подсчитывает количество уникальных комбинаций группа-значение для каждого конкурса
-    # {
-        # "sheet_src": "GROUP",               # Источник - группы
-        # "sheet_dst": "SUMMARY",             # Цель - сводный лист
-        # "src_key": ["CONTEST_CODE", "GROUP_CODE", "GROUP_VALUE"],  # Составной ключ: код конкурса + код группы + значение группы
-        # "dst_key": ["CONTEST_CODE", "GROUP_CODE", "GROUP_VALUE"],  # Составной ключ: код конкурса + код группы + значение группы
-        # "column": [                         # Добавляемые колонки:
-            # "CONTEST_CODE"                  # Используем CONTEST_CODE для подсчета
-        # ],
-        # "mode": "count",                    # Режим: подсчитываем количество
-        # "multiply_rows": False,             # Не размножаем строки
-        # "col_max_width": 20,               # Максимальная ширина
-        # "col_width_mode": 15,              # Фиксированная ширина (15 символов)
-        # "col_min_width": 8                 # Минимальная ширина
-    # },
     # SUMMARY: сколько в INDICATOR строк по ключу CONTEST_CODE
     # Подсчитывает количество индикаторов для каждого конкурса
     {
@@ -826,119 +776,7 @@ MERGE_FIELDS = [
         "col_max_width": 20,               # Максимальная ширина
         "col_width_mode": 15,              # Фиксированная ширина (15 символов)
         "col_min_width": 8                 # Минимальная ширина
-    },
-    # SUMMARY: сколько в REWARD-LINK строк по составному ключу CONTEST_CODE + REWARD_CODE
-    # Подсчитывает количество связей конкурс-награда
-    # {
-        # "sheet_src": "REWARD-LINK",         # Источник - связи наград
-        # "sheet_dst": "SUMMARY",             # Цель - сводный лист
-        # "src_key": ["CONTEST_CODE", "REWARD_CODE"],  # Составной ключ: код конкурса + код награды
-        # "dst_key": ["CONTEST_CODE", "REWARD_CODE"],  # Составной ключ: код конкурса + код награды
-        # "column": [                         # Добавляемые колонки:
-            # "CONTEST_CODE"                  # Используем CONTEST_CODE для подсчета
-        # ],
-        # "mode": "count",                    # Режим: подсчитываем количество
-        # "multiply_rows": False,             # Не размножаем строки
-        # "col_max_width": 20,               # Максимальная ширина
-        # "col_width_mode": 15,              # Фиксированная ширина (15 символов)
-        # "col_min_width": 8                 # Минимальная ширина
-    # },
-    # SUMMARY: сколько в REWARD строк по ключу REWARD_CODE
-    # Подсчитывает количество наград
-    # {
-        # "sheet_src": "REWARD",              # Источник - награды
-        # "sheet_dst": "SUMMARY",             # Цель - сводный лист
-        # "src_key": ["REWARD_CODE"],         # Ключ: код награды
-        # "dst_key": ["REWARD_CODE"],         # Ключ: код награды
-        # "column": [                         # Добавляемые колонки:
-            # "REWARD_CODE"                   # Используем REWARD_CODE для подсчета
-        # ],
-        # "mode": "count",                    # Режим: подсчитываем количество
-        # "multiply_rows": False,             # Не размножаем строки
-        # "col_max_width": 20,               # Максимальная ширина
-        # "col_width_mode": 15,              # Фиксированная ширина (15 символов)
-        # "col_min_width": 8                 # Минимальная ширина
-    # },
-    # SUMMARY: сколько в REPORT записей по ключу CONTEST_CODE
-    # Подсчитывает количество отчетов для каждого конкурса
-    # {
-        # "sheet_src": "REPORT",              # Источник - отчеты
-        # "sheet_dst": "SUMMARY",             # Цель - сводный лист
-        # "src_key": ["CONTEST_CODE"],        # Ключ: код конкурса
-        # "dst_key": ["CONTEST_CODE"],        # Ключ: код конкурса
-        # "column": [                         # Добавляемые колонки:
-            # "CONTEST_DATE"                  # Используем CONTEST_DATE для подсчета
-        # ],
-        # "mode": "count",                    # Режим: подсчитываем количество
-        # "multiply_rows": False,             # Не размножаем строки
-        # "col_max_width": 20,               # Максимальная ширина
-        # "col_width_mode": 15,              # Фиксированная ширина (15 символов)
-        # "col_min_width": 8                 # Минимальная ширина
-    # },
-    # SUMMARY: сколько в REPORT записей по ключу TOURNAMENT_CODE
-    # Подсчитывает количество отчетов для каждого турнира
-    {
-        "sheet_src": "REPORT",              # Источник - отчеты
-        "sheet_dst": "SUMMARY",             # Цель - сводный лист
-        "src_key": ["TOURNAMENT_CODE"],     # Ключ: код турнира
-        "dst_key": ["TOURNAMENT_CODE"],     # Ключ: код турнира
-        "column": [                         # Добавляемые колонки:
-            "CONTEST_DATE"                  # Используем CONTEST_DATE для подсчета
-        ],
-        "mode": "count",                    # Режим: подсчитываем количество
-        "multiply_rows": False,             # Не размножаем строки
-        "col_max_width": 20,               # Максимальная ширина
-        "col_width_mode": 15,              # Фиксированная ширина (15 символов)
-        "col_min_width": 8                 # Минимальная ширина
-    },
-    # SUMMARY: сколько в TOURNAMENT-SCHEDULE строк по ключу TOURNAMENT_CODE
-    # Подсчитывает количество записей расписания для каждого турнира
-    # {
-        # "sheet_src": "TOURNAMENT-SCHEDULE", # Источник - расписание турниров
-        # "sheet_dst": "SUMMARY",             # Цель - сводный лист
-        # "src_key": ["TOURNAMENT_CODE"],     # Ключ: код турнира
-        # "dst_key": ["TOURNAMENT_CODE"],     # Ключ: код турнира
-        # "column": [                         # Добавляемые колонки:
-            # "CONTEST_CODE"                  # Используем CONTEST_CODE для подсчета
-        # ],
-        # "mode": "count",                    # Режим: подсчитываем количество
-        # "multiply_rows": False,             # Не размножаем строки
-        # "col_max_width": 20,               # Максимальная ширина
-        # "col_width_mode": 15,              # Фиксированная ширина (15 символов)
-        # "col_min_width": 8                 # Минимальная ширина
-    # },
-    # SUMMARY: сколько в TOURNAMENT-SCHEDULE строк по составному ключу CONTEST_CODE + TOURNAMENT_CODE
-    # Подсчитывает количество записей расписания для каждой пары конкурс-турнир
-    # {
-        # "sheet_src": "TOURNAMENT-SCHEDULE", # Источник - расписание турниров
-        # "sheet_dst": "SUMMARY",             # Цель - сводный лист
-        # "src_key": ["CONTEST_CODE", "TOURNAMENT_CODE"],  # Составной ключ: код конкурса + код турнира
-        # "dst_key": ["CONTEST_CODE", "TOURNAMENT_CODE"],  # Составной ключ: код конкурса + код турнира
-        # "column": [                         # Добавляемые колонки:
-            # "CONTEST_CODE"                  # Используем CONTEST_CODE для подсчета
-        # ],
-        # "mode": "count",                    # Режим: подсчитываем количество
-        # "multiply_rows": False,             # Не размножаем строки
-        # "col_max_width": 20,               # Максимальная ширина
-        # "col_width_mode": 15,              # Фиксированная ширина (15 символов)
-        # "col_min_width": 8                 # Минимальная ширина
-    # },
-    # SUMMARY: сколько в REWARD наград по составному ключу CONTEST_CODE + REWARD_CODE
-    # Подсчитывает количество наград для каждой пары конкурс-награда
-    # {
-        # "sheet_src": "REWARD",              # Источник - награды
-        # "sheet_dst": "SUMMARY",             # Цель - сводный лист
-        # "src_key": [COL_REWARD_LINK_CONTEST_CODE, "REWARD_CODE"],  # Составной ключ: код конкурса из связи + код награды
-        # "dst_key": ["CONTEST_CODE", "REWARD_CODE"],  # Составной ключ: код конкурса + код награды
-        # "column": [                         # Добавляемые колонки:
-            # "REWARD_CODE"                   # Используем REWARD_CODE для подсчета
-        # ],
-        # "mode": "count",                    # Режим: подсчитываем количество
-        # "multiply_rows": False,             # Не размножаем строки
-        # "col_max_width": 20,               # Максимальная ширина
-        # "col_width_mode": 15,              # Фиксированная ширина (15 символов)
-        # "col_min_width": 8                 # Минимальная ширина
-    # }
+    }
 ]
 
 # === ДОПОЛНИТЕЛЬНЫЕ ПРАВИЛА ДЛЯ CONTEST-DATA ===
