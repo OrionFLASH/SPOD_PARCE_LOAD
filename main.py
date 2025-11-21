@@ -68,7 +68,7 @@ DIR_LOGS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "LOGS")    #
 # - min_col_width: минимальная ширина колонки
 INPUT_FILES = [
     {
-        "file": "CONTEST-DATA (PROM) 2025-11-13 v0",  # Файл с данными конкурсов
+        "file": "CONTEST (PROM) 11-21 v(NEW)",  # Файл с данными конкурсов
         "sheet": "CONTEST-DATA",                        # Лист для обработки
         "max_col_width": 120,                          # Максимальная ширина колонки
         "freeze": "C2",                                # Закрепление области
@@ -76,7 +76,7 @@ INPUT_FILES = [
         "min_col_width": 12                             # Минимальная ширина колонки
     },
     {
-        "file": "GROUP (PROM) 2025-11-13 v0",            # Файл с данными групп
+        "file": "GROUP (PROM) 11-21 v(New)",            # Файл с данными групп
         "sheet": "GROUP",                              # Лист для обработки
         "max_col_width": 20,                           # Максимальная ширина колонки
         "freeze": "C2",                                # Закрепление области
@@ -84,7 +84,7 @@ INPUT_FILES = [
         "min_col_width": 8                             # Минимальная ширина колонки
     },
     {
-        "file": "INDICATOR (PROM) 2025-11-13 v0",        # Файл с индикаторами
+        "file": "INDICATOR (PROM) 11-21 v(New)",        # Файл с индикаторами
         "sheet": "INDICATOR",                          # Лист для обработки
         "max_col_width": 100,                           # Максимальная ширина колонки
         "freeze": "B2",                                # Закрепление области
@@ -92,7 +92,7 @@ INPUT_FILES = [
         "min_col_width": 8                             # Минимальная ширина колонки
     },
     {
-        "file": "REPORT (PROM-KMKKSB) 2025-11-10 v1 (correct)", # Файл с отчетами
+        "file": "REPORT (PROM) 11-21 v0", # Файл с отчетами
         "sheet": "REPORT",                             # Лист для обработки
         "max_col_width": 25,                           # Максимальная ширина колонки
         "freeze": "D2",                                # Закрепление области
@@ -100,7 +100,7 @@ INPUT_FILES = [
         "min_col_width": 10                             # Минимальная ширина колонки
     },
     {
-        "file": "REWARD (PROM) 2025-11-13 v0",        # Файл с наградами
+        "file": "REWARD (PROM) 11-21 v(NEW)",        # Файл с наградами
         "sheet": "REWARD",                             # Лист для обработки
         "max_col_width": 200,                          # Максимальная ширина колонки (большая для длинных описаний)
         "freeze": "D2",                                # Закрепление области
@@ -108,7 +108,7 @@ INPUT_FILES = [
         "min_col_width": 10                             # Минимальная ширина колонки
     },
     {
-        "file": "REWARD-LINK (PROM) 2025-11-13 v0",      # Файл со связями наград
+        "file": "REWARD-LINK (PROM) 11-21 v(New)",      # Файл со связями наград
         "sheet": "REWARD-LINK",                        # Лист для обработки
         "max_col_width": 30,                           # Максимальная ширина колонки
         "freeze": "A2",                                # Закрепление области
@@ -124,7 +124,7 @@ INPUT_FILES = [
         "min_col_width": 10                             # Минимальная ширина колонки
     },
     {
-        "file": "TOURNAMENT-SCHEDULE (PROM) 2025-11-13 v0", # Файл с расписанием турниров
+        "file": "SCHEDULE (PROM) 11-21 v(New)", # Файл с расписанием турниров
         "sheet": "TOURNAMENT-SCHEDULE",                # Лист для обработки
         "max_col_width": 120,                          # Максимальная ширина колонки
         "freeze": "B2",                                # Закрепление области
@@ -132,7 +132,7 @@ INPUT_FILES = [
         "min_col_width": 10                             # Минимальная ширина колонки
     },
     {
-        "file": "PROM_USER_ROLE 2025-10-31 v1",       # Файл с ролями пользователей
+        "file": "USER_ROLE (PROM) 11-19 v0",       # Файл с ролями пользователей
         "sheet": "USER_ROLE",                          # Лист для обработки
         "max_col_width": 65,                           # Максимальная ширина колонки
         "freeze": "D2",                                # Закрепление области
@@ -140,7 +140,7 @@ INPUT_FILES = [
         "min_col_width": 12                             # Минимальная ширина колонки
     },
     {
-        "file": "PROM_USER_ROLE SB 2025-10-31 v1",    # Файл с ролями пользователей SB
+        "file": "USER_ROLE_SB (PROM) 11-19 v0",    # Файл с ролями пользователей SB
         "sheet": "USER_ROLE SB",                       # Лист для обработки
         "max_col_width": 65,                           # Максимальная ширина колонки
         "freeze": "D2",                                # Закрепление области
@@ -279,6 +279,18 @@ MERGE_FIELDS = [
         "src_key": ["TOURNAMENT_CODE"],     # Ключ - код турнира
         "dst_key": ["TOURNAMENT_CODE"],     # Ключ - код турнира
         "column": ["END_DT", "RESULT_DT", "TOURNAMENT_STATUS"],  # Даты и статус
+        "mode": "value",                    # Добавляем значения
+        "multiply_rows": False,             # Не размножаем строки
+        "col_max_width": 25,               # Максимальная ширина (даты короткие)
+        "col_width_mode": "AUTO",          # Автоматическое растягивание
+        "col_min_width": 8                 # Минимальная ширина
+    },
+{
+        "sheet_src": "EMPLOYEE", # Источник - расписание турниров
+        "sheet_dst": "REPORT",              # Цель - отчеты
+        "src_key": ["PERSON_NUMBER"],     # Ключ - код турнира
+        "dst_key": ["MANAGER_PERSON_NUMBER"],     # Ключ - код турнира
+        "column": ["MANAGER_FULL_NAME", "POSITION_NAME", "ROLE_CODE", "UCH_CODE", "BUSINESS_BLOCK"],  # Даты и статус
         "mode": "value",                    # Добавляем значения
         "multiply_rows": False,             # Не размножаем строки
         "col_max_width": 25,               # Максимальная ширина (даты короткие)
@@ -560,7 +572,7 @@ MERGE_FIELDS = [
         "src_key": ["CONTEST_CODE"],        # Ключ - код конкурса
         "dst_key": ["CONTEST_CODE"],        # Ключ - код конкурса
         "column": [                         # Добавляемые колонки:
-            "INDICATOR_CALC_TYPE", "INDICATOR_ADD_CALC_TYPE", "FULL_NAME"
+            "INDICATOR_CALC_TYPE", "INDICATOR_ADD_CALC_TYPE", "FULL_NAME",
             "INDICATOR_CODE",
             "INDICATOR_AGG_FUNCTION",
             "INDICATOR_WEIGHT",

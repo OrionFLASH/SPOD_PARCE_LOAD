@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SPOD Admin Panel</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <h1><i class="fas fa-database"></i> SPOD Admin Panel</h1>
+                <div class="session-info">
+                    <span class="session-label">Сессия:</span>
+                    <select id="sessionSelect" class="session-select" onchange="switchSession()">
+                        <option value="">Загрузка...</option>
+                    </select>
+                    <button class="btn btn-secondary" onclick="createNewSession()">
+                        <i class="fas fa-plus"></i> Новая сессия
+                    </button>
+        <button onclick="deleteSession()" class="btn btn-danger" style="margin-left: 10px;">
+            <i class="fas fa-trash"></i> Удалить сессию
+        </button>
+                    <button class="btn btn-secondary" onclick="refreshSessions()">
+                        <i class="fas fa-sync"></i> Обновить
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Tabs -->
+        <div class="tabs-container">
+            <div class="tabs" id="fileTabs">
+                <!-- Tabs будут добавлены динамически -->
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Toolbar -->
+            <div class="toolbar">
+                <div class="toolbar-left">
+                    <button class="btn btn-primary" onclick="showAddForm()">
+                        <i class="fas fa-plus"></i> Добавить запись
+                    </button>
+                    
+        <div class="search-controls">
+            <select id="filterFieldSelect" class="form-control" style="display: inline-block; width: 200px; margin-right: 10px;">
+                <option value="">Все поля</option>
+            </select>
+            <input type="text" id="searchInput" placeholder="Поиск..." class="form-control" style="display: inline-block; width: 300px;">
+            <button onclick="loadRecords()" class="btn btn-primary">Поиск</button>
+            <button onclick="clearSearch()" class="btn btn-secondary">Очистить</button>
+        </div>
+
+                </div>
+                <div class="toolbar-right">
+                    <select id="sortSelect" class="sort-select" onchange="handleSort()">
+                        <option value="">Сортировка...</option>
+                    </select>
+                    <span class="records-count" id="recordsCount"></span>
+                </div>
+            </div>
+
+            <!-- Table -->
+            <div class="table-container">
+                <table class="data-table" id="dataTable">
+                    <thead id="tableHead"></thead>
+                    <tbody id="tableBody"></tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            <div class="pagination" id="pagination"></div>
+        </div>
+    </div>
+
+    <!-- Modal для формы редактирования -->
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">Редактирование записи</h2>
+                <span class="close" onclick="closeModal()">&times;</span>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <!-- Форма будет добавлена динамически -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal()">Отмена</button>
+                <button class="btn btn-primary" onclick="saveRecord()">Сохранить</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal для JSON редактора -->
+    <div id="jsonModal" class="modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h2 id="jsonModalTitle">Редактирование JSON</h2>
+                <span class="close" onclick="closeJsonModal()">&times;</span>
+            </div>
+            <div class="modal-body" id="jsonModalBody">
+                <!-- JSON редактор будет добавлен динамически -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeJsonModal()">Отмена</button>
+                <button class="btn btn-primary" onclick="saveJsonField()">Сохранить</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
