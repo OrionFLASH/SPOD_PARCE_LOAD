@@ -2141,7 +2141,7 @@ def collect_summary_keys(dfs):
     indicators = dfs.get("INDICATOR", pd.DataFrame())
 
     # Коды для детального логирования
-    DEBUG_CODES = ["t_01_2025-0_03-2-3_1001", "01_2025-0_03-2-3"]
+    DEBUG_CODES = []  # Отключено подробное логирование
     
     all_contest_codes = set()
     all_tournament_codes = set()
@@ -3092,7 +3092,7 @@ def build_summary_sheet(dfs, params_summary, merge_fields):
     summary = collect_summary_keys(dfs)
 
     # Детальное логирование для отладки GROUP_VALUE
-    DEBUG_CODES = ["01_2025-0_03-2-3", "t_01_2025-0_03-2-3_1001"]
+    DEBUG_CODES = []  # Отключено подробное логирование
     for debug_code in DEBUG_CODES:
         debug_rows = summary[summary["CONTEST_CODE"] == debug_code]
         if not debug_rows.empty:
