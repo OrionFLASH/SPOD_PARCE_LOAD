@@ -13,8 +13,6 @@ import csv         # Для работы с CSV файлами
 import ast         # Для безопасного парсинга Python выражений
 import time as tmod  # Для измерения времени выполнения операций (альтернативное имя)
 import inspect  # Для получения информации о вызывающей функции
-from concurrent.futures import ThreadPoolExecutor, as_completed  # Для параллельной обработки
-import threading  # Для синхронизации потоков
 
 
 class CallerFormatter(logging.Formatter):
@@ -164,7 +162,7 @@ INPUT_FILES = [
 SUMMARY_SHEET = {
     "sheet": "SUMMARY",                                   # Название сводного листа
     "max_col_width": 150,                                 # Максимальная ширина колонки
-    "freeze": "G2",                                      # Закрепление области (колонки A-E и строка 1)
+    "freeze": "F2",                                      # Закрепление области (колонки A-E и строка 1)
     "col_width_mode": "AUTO",                            # Автоматическое растягивание колонок
     "min_col_width": 8                                   # Минимальная ширина колонки
 }
@@ -585,8 +583,8 @@ MERGE_FIELDS = [
     {
         "sheet_src": "INDICATOR",           # Источник - индикаторы
         "sheet_dst": "SUMMARY",             # Цель - сводный лист
-        "src_key": ["CONTEST_CODE", "INDICATOR_ADD_CALC_TYPE"],        # Ключ - код конкурса
-        "dst_key": ["CONTEST_CODE", "INDICATOR_ADD_CALC_TYPE"],        # Ключ - код конкурса
+        "src_key": ["CONTEST_CODE"],        # Ключ - код конкурса
+        "dst_key": ["CONTEST_CODE"],        # Ключ - код конкурса
         "column": [                         # Добавляемые колонки:
             "INDICATOR_CALC_TYPE", "INDICATOR_ADD_CALC_TYPE", "FULL_NAME",
             "INDICATOR_CODE",
@@ -928,7 +926,6 @@ SUMMARY_KEY_DEFS = [
     {"sheet": "REWARD-LINK", "cols": ["REWARD_CODE", "CONTEST_CODE"]},      # Ключи награды и конкурса для связей
     {"sheet": "GROUP", "cols": ["GROUP_CODE", "CONTEST_CODE", "GROUP_VALUE"]},  # Составной ключ для групп
     {"sheet": "REWARD", "cols": ["REWARD_CODE"]},                           # Ключ награды для наград
-    {"sheet": "INDICATOR", "cols": ["INDICATOR_ADD_CALC_TYPE", "CONTEST_CODE"]},  # Дополнительный тип расчета индикатора
 ]
 
 # Построить упорядоченный список всех уникальных ключей
@@ -2127,28 +2124,21 @@ def apply_color_scheme(ws, sheet_name):
 def collect_summary_keys(dfs):
     """
     Собирает все реально существующие сочетания ключей,
-    включая осиротевшие коды и сочетания с GROUP_VALUE и INDICATOR_ADD_CALC_TYPE.
-    Теперь учитывает ВСЕ коды из всех таблиц, включая CONTEST-DATA и INDICATOR.
-    ИСПРАВЛЕНИЕ: GROUP_VALUE правильно связан с конкретным GROUP_CODE.
+    включая осиротевшие коды и сочетания с GROUP_VALUE.
+    Теперь учитывает ВСЕ коды из всех таблиц, даже если связи нет.
     """
     all_rows = []
 
     rewards = dfs.get("REWARD-LINK", pd.DataFrame())
     tournaments = dfs.get("TOURNAMENT-SCHEDULE", pd.DataFrame())
     groups = dfs.get("GROUP", pd.DataFrame())
-    reward_data = dfs.get("REWARD", pd.DataFrame())
-    contest_data = dfs.get("CONTEST-DATA", pd.DataFrame())
-    indicators = dfs.get("INDICATOR", pd.DataFrame())
+    reward_data = dfs.get("REWARD", pd.DataFrame())  # Добавляем доступ к таблице REWARD
 
-    # Коды для детального логирования
-    DEBUG_CODES = ["t_01_2025-0_03-2-3_1001", "01_2025-0_03-2-3"]
-    
     all_contest_codes = set()
     all_tournament_codes = set()
     all_reward_codes = set()
     all_group_codes = set()
     all_group_values = set()
-    all_indicator_add_calc_types = set()
 
     # Собираем ВСЕ коды из всех таблиц
     if not rewards.empty:
@@ -2161,305 +2151,108 @@ def collect_summary_keys(dfs):
         all_contest_codes.update(groups["CONTEST_CODE"].dropna())
         all_group_codes.update(groups["GROUP_CODE"].dropna())
         all_group_values.update(groups["GROUP_VALUE"].dropna())
-    if not contest_data.empty:
-        all_contest_codes.update(contest_data["CONTEST_CODE"].dropna())
+
+    # КРИТИЧНО: Добавляем ВСЕ REWARD_CODE из таблицы REWARD, даже если их нет в REWARD-LINK
     if not reward_data.empty:
         all_reward_codes.update(reward_data["REWARD_CODE"].dropna())
-    if not indicators.empty:
-        all_contest_codes.update(indicators["CONTEST_CODE"].dropna())
-        indicator_types = indicators["INDICATOR_ADD_CALC_TYPE"].fillna("").unique()
-        all_indicator_add_calc_types.update(indicator_types)
 
     # 1. Для каждого CONTEST_CODE
     for code in all_contest_codes:
-        is_debug = str(code) in DEBUG_CODES
-        if is_debug:
-            logging.info("[DEBUG GROUP] === Обработка CONTEST_CODE: {} ===".format(code))
-        
         tourns = tournaments[tournaments["CONTEST_CODE"] == code][
             "TOURNAMENT_CODE"].dropna().unique() if not tournaments.empty else []
         rewards_ = rewards[rewards["CONTEST_CODE"] == code][
             "REWARD_CODE"].dropna().unique() if not rewards.empty else []
         groups_df = groups[groups["CONTEST_CODE"] == code] if not groups.empty else pd.DataFrame()
-        
-        if is_debug:
-            logging.info("[DEBUG GROUP] Найдено строк в GROUP для CONTEST_CODE {}: {}".format(code, len(groups_df)))
-            if not groups_df.empty:
-                logging.info("[DEBUG GROUP] Строки GROUP:\n{}".format(groups_df[["GROUP_CODE", "GROUP_VALUE", "CONTEST_CODE"]].to_string()))
-        
-        # ИСПРАВЛЕНИЕ: GROUP_VALUE должен быть связан с конкретным GROUP_CODE
-        # Вместо декартова произведения создаем пары (GROUP_CODE, GROUP_VALUE)
-        group_code_value_pairs = []
-        if not groups_df.empty:
-            # Создаем список уникальных пар (GROUP_CODE, GROUP_VALUE)
-            for _, row in groups_df.iterrows():
-                g_code = row.get("GROUP_CODE", "")
-                g_value = row.get("GROUP_VALUE", "")
-                if pd.notna(g_code) and pd.notna(g_value):
-                    pair = (str(g_code), str(g_value))
-                    if pair not in group_code_value_pairs:
-                        group_code_value_pairs.append(pair)
-        
-        if is_debug:
-            logging.info("[DEBUG GROUP] Уникальные пары (GROUP_CODE, GROUP_VALUE) для CONTEST_CODE {}: {}".format(code, group_code_value_pairs))
-            if not groups_df.empty:
-                unique_groups = groups_df["GROUP_CODE"].dropna().unique()
-                unique_values = groups_df["GROUP_VALUE"].dropna().unique()
-                logging.info("[DEBUG GROUP] Уникальные GROUP_CODE: {}".format(list(unique_groups)))
-                logging.info("[DEBUG GROUP] Уникальные GROUP_VALUE: {}".format(list(unique_values)))
-        
-        # Если нет пар, создаем одну с "-"
-        if not group_code_value_pairs:
-            group_code_value_pairs = [("-", "-")]
-        
-        # Добавляем INDICATOR_ADD_CALC_TYPE для данного CONTEST_CODE
-        indicator_types_ = []
-        if not indicators.empty:
-            indicator_df = indicators[indicators["CONTEST_CODE"] == code]
-            if not indicator_df.empty:
-                indicator_types_ = indicator_df["INDICATOR_ADD_CALC_TYPE"].fillna("").unique().tolist()
-        
+        groups_ = groups_df["GROUP_CODE"].dropna().unique() if not groups_df.empty else []
+        group_values_ = groups_df["GROUP_VALUE"].dropna().unique() if not groups_df.empty else []
+
         tourns = tourns if len(tourns) else ["-"]
         rewards_ = rewards_ if len(rewards_) else ["-"]
-        indicator_types_ = indicator_types_ if len(indicator_types_) else [""]
-        
-        if is_debug:
-            logging.info("[DEBUG GROUP] TOURNAMENT_CODE: {}".format(list(tourns)))
-            logging.info("[DEBUG GROUP] REWARD_CODE: {}".format(list(rewards_)))
-            logging.info("[DEBUG GROUP] INDICATOR_ADD_CALC_TYPE: {}".format(indicator_types_))
-            logging.info("[DEBUG GROUP] Будет создано комбинаций: {} x {} x {} x {} = {}".format(
-                len(tourns), len(rewards_), len(group_code_value_pairs), len(indicator_types_),
-                len(tourns) * len(rewards_) * len(group_code_value_pairs) * len(indicator_types_)
-            ))
+        groups_ = groups_ if len(groups_) else ["-"]
+        group_values_ = group_values_ if len(group_values_) else ["-"]
 
         for t in tourns:
             for r in rewards_:
-                for g_code, g_value in group_code_value_pairs:
-                    for ind_type in indicator_types_:
-                        all_rows.append((str(code), str(t), str(r), str(g_code), str(g_value), str(ind_type)))
-                        if is_debug:
-                            logging.debug("[DEBUG GROUP] Создана строка: CONTEST={}, TOURNAMENT={}, REWARD={}, GROUP_CODE={}, GROUP_VALUE={}, INDICATOR={}".format(
-                                code, t, r, g_code, g_value, ind_type
-                            ))
+                for g in groups_:
+                    for gv in group_values_:
+                        all_rows.append((str(code), str(t), str(r), str(g), str(gv)))
 
     # 2. Для каждого TOURNAMENT_CODE (даже если нет CONTEST_CODE)
     if not tournaments.empty:
         for t_code in tournaments["TOURNAMENT_CODE"].dropna().unique():
             code = tournaments[tournaments["TOURNAMENT_CODE"] == t_code]["CONTEST_CODE"].dropna().unique()
             code = code[0] if len(code) else "-"
-            is_debug = str(code) in DEBUG_CODES or str(t_code) in DEBUG_CODES
-            
             rewards_ = rewards[rewards["CONTEST_CODE"] == code][
-                "REWARD_CODE"].dropna().unique() if not rewards.empty else []
+                "REWARD_CODE"].dropna().unique() if not rewards.empty else ["-"]
             groups_df = groups[groups["CONTEST_CODE"] == code] if not groups.empty else pd.DataFrame()
-            
-            # ИСПРАВЛЕНИЕ: Используем пары (GROUP_CODE, GROUP_VALUE)
-            group_code_value_pairs = []
-            if not groups_df.empty:
-                for _, row in groups_df.iterrows():
-                    g_code = row.get("GROUP_CODE", "")
-                    g_value = row.get("GROUP_VALUE", "")
-                    if pd.notna(g_code) and pd.notna(g_value):
-                        pair = (str(g_code), str(g_value))
-                        if pair not in group_code_value_pairs:
-                            group_code_value_pairs.append(pair)
-            
-            if not group_code_value_pairs:
-                group_code_value_pairs = [("-", "-")]
-            
-            indicator_types_ = []
-            if code != "-" and not indicators.empty:
-                indicator_df = indicators[indicators["CONTEST_CODE"] == code]
-                if not indicator_df.empty:
-                    indicator_types_ = indicator_df["INDICATOR_ADD_CALC_TYPE"].fillna("").unique().tolist()
-            
+            groups_ = groups_df["GROUP_CODE"].dropna().unique() if not groups_df.empty else []
+            group_values_ = groups_df["GROUP_VALUE"].dropna().unique() if not groups_df.empty else []
             rewards_ = rewards_ if len(rewards_) else ["-"]
-            indicator_types_ = indicator_types_ if len(indicator_types_) else [""]
-            
+            groups_ = groups_ if len(groups_) else ["-"]
+            group_values_ = group_values_ if len(group_values_) else ["-"]
             for r in rewards_:
-                for g_code, g_value in group_code_value_pairs:
-                    for ind_type in indicator_types_:
-                        all_rows.append((str(code), str(t_code), str(r), str(g_code), str(g_value), str(ind_type)))
+                for g in groups_:
+                    for gv in group_values_:
+                        all_rows.append((str(code), str(t_code), str(r), str(g), str(gv)))
 
     # 3. Для каждого REWARD_CODE (даже если нет CONTEST_CODE)
+    # ИСПРАВЛЕНИЕ: Теперь обрабатываем ВСЕ REWARD_CODE, включая осиротевшие
     for r_code in all_reward_codes:
+        # Ищем CONTEST_CODE для этого REWARD_CODE
         if not rewards.empty:
             code = rewards[rewards["REWARD_CODE"] == r_code]["CONTEST_CODE"].dropna().unique()
             code = code[0] if len(code) else "-"
         else:
             code = "-"
-        
-        is_debug = str(code) in DEBUG_CODES or str(r_code) in DEBUG_CODES
 
+        # Ищем связанные TOURNAMENT_CODE
         if code != "-" and not tournaments.empty:
             tourns = tournaments[tournaments["CONTEST_CODE"] == code]["TOURNAMENT_CODE"].dropna().unique()
         else:
             tourns = []
 
+        # Ищем связанные GROUP_CODE и GROUP_VALUE
         if code != "-" and not groups.empty:
             groups_df = groups[groups["CONTEST_CODE"] == code]
-            # ИСПРАВЛЕНИЕ: Используем пары (GROUP_CODE, GROUP_VALUE)
-            group_code_value_pairs = []
-            for _, row in groups_df.iterrows():
-                g_code = row.get("GROUP_CODE", "")
-                g_value = row.get("GROUP_VALUE", "")
-                if pd.notna(g_code) and pd.notna(g_value):
-                    pair = (str(g_code), str(g_value))
-                    if pair not in group_code_value_pairs:
-                        group_code_value_pairs.append(pair)
+            groups_ = groups_df["GROUP_CODE"].dropna().unique() if not groups_df.empty else []
+            group_values_ = groups_df["GROUP_VALUE"].dropna().unique() if not groups_df.empty else []
         else:
-            group_code_value_pairs = []
-        
-        if not group_code_value_pairs:
-            group_code_value_pairs = [("-", "-")]
-        
-        indicator_types_ = []
-        if code != "-" and not indicators.empty:
-            indicator_df = indicators[indicators["CONTEST_CODE"] == code]
-            if not indicator_df.empty:
-                indicator_types_ = indicator_df["INDICATOR_ADD_CALC_TYPE"].fillna("").unique().tolist()
+            groups_ = []
+            group_values_ = []
 
+        # Если нет связей, создаем строки с "-" для остальных полей
         tourns = tourns if len(tourns) else ["-"]
-        indicator_types_ = indicator_types_ if len(indicator_types_) else [""]
+        groups_ = groups_ if len(groups_) else ["-"]
+        group_values_ = group_values_ if len(group_values_) else ["-"]
 
         for t in tourns:
-            for g_code, g_value in group_code_value_pairs:
-                for ind_type in indicator_types_:
-                    all_rows.append((str(code), str(t), str(r_code), str(g_code), str(g_value), str(ind_type)))
+            for g in groups_:
+                for gv in group_values_:
+                    all_rows.append((str(code), str(t), str(r_code), str(g), str(gv)))
 
-        # 4. Для каждого GROUP_CODE (даже если нет CONTEST_CODE)
+    # 4. Для каждого GROUP_CODE (даже если нет CONTEST_CODE)
     if not groups.empty:
         for g_code in groups["GROUP_CODE"].dropna().unique():
-            is_debug = str(g_code) in DEBUG_CODES
-            
-            if is_debug:
-                logging.info("[DEBUG GROUP] === Обработка GROUP_CODE: {} ===".format(g_code))
-            
-            # ИСПРАВЛЕНИЕ: Находим все CONTEST_CODE для данного GROUP_CODE и обрабатываем каждый отдельно
-            group_contest_codes = groups[groups["GROUP_CODE"] == g_code]["CONTEST_CODE"].dropna().unique()
-            
-            if is_debug:
-                logging.info("[DEBUG GROUP] Найдено CONTEST_CODE для GROUP_CODE {}: {}".format(g_code, list(group_contest_codes)))
-            
-            # Обрабатываем каждый CONTEST_CODE отдельно
-            for group_contest_code in group_contest_codes:
-                actual_code = str(group_contest_code)
-                
-                if is_debug:
-                    logging.info("[DEBUG GROUP] Обработка GROUP_CODE {} для CONTEST_CODE: {}".format(g_code, actual_code))
-                
-                # Берем GROUP_VALUE только для конкретного CONTEST_CODE и GROUP_CODE
-                group_values_df = groups[(groups["GROUP_CODE"] == g_code) & (groups["CONTEST_CODE"] == actual_code)]
-                group_values_ = group_values_df["GROUP_VALUE"].dropna().unique() if not group_values_df.empty else []
-                
-                if is_debug:
-                    logging.info("[DEBUG GROUP] Найдено строк в GROUP для GROUP_CODE {} и CONTEST_CODE {}: {}".format(
-                        g_code, actual_code, len(group_values_df)
-                    ))
-                    if not group_values_df.empty:
-                        logging.info("[DEBUG GROUP] Строки GROUP:\n{}".format(
-                            group_values_df[["GROUP_CODE", "GROUP_VALUE", "CONTEST_CODE"]].to_string()
-                        ))
-                    logging.info("[DEBUG GROUP] Уникальные GROUP_VALUE: {}".format(list(group_values_)))
-                
-                # Ищем связанные TOURNAMENT_CODE и REWARD_CODE для этого CONTEST_CODE
-                tourns = tournaments[tournaments["CONTEST_CODE"] == actual_code][
-                    "TOURNAMENT_CODE"].dropna().unique() if not tournaments.empty else []
-                rewards_ = rewards[rewards["CONTEST_CODE"] == actual_code][
-                    "REWARD_CODE"].dropna().unique() if not rewards.empty else []
-                
-                # Добавляем INDICATOR_ADD_CALC_TYPE
-                indicator_types_ = []
-                if not indicators.empty:
-                    indicator_df = indicators[indicators["CONTEST_CODE"] == actual_code]
-                    if not indicator_df.empty:
-                        indicator_types_ = indicator_df["INDICATOR_ADD_CALC_TYPE"].fillna("").unique().tolist()
-                
-                tourns = tourns if len(tourns) else ["-"]
-                rewards_ = rewards_ if len(rewards_) else ["-"]
-                group_values_ = group_values_ if len(group_values_) else ["-"]
-                indicator_types_ = indicator_types_ if len(indicator_types_) else [""]
-                
-                if is_debug:
-                    logging.info("[DEBUG GROUP] Будет создано комбинаций: {} x {} x {} x {} = {}".format(
-                        len(tourns), len(rewards_), len(group_values_), len(indicator_types_),
-                        len(tourns) * len(rewards_) * len(group_values_) * len(indicator_types_)
-                    ))
-                
-                for t in tourns:
-                    for r in rewards_:
-                        for gv in group_values_:
-                            for ind_type in indicator_types_:
-                                all_rows.append((actual_code, str(t), str(r), str(g_code), str(gv), str(ind_type)))
-                                if is_debug:
-                                    logging.debug("[DEBUG GROUP] Создана строка: CONTEST={}, TOURNAMENT={}, REWARD={}, GROUP_CODE={}, GROUP_VALUE={}, INDICATOR={}".format(
-                                        actual_code, t, r, g_code, gv, ind_type
-                                    ))
-
-# 5. Для каждого INDICATOR_ADD_CALC_TYPE (даже если нет CONTEST_CODE)
-    if not indicators.empty:
-        for _, ind_row in indicators.iterrows():
-            code = ind_row.get("CONTEST_CODE", "")
-            ind_type = ind_row.get("INDICATOR_ADD_CALC_TYPE", "")
-            if pd.isna(code):
-                code = "-"
-            if pd.isna(ind_type):
-                ind_type = ""
-            
-            code = str(code)
-            ind_type = str(ind_type)
-
-            if code != "-" and not tournaments.empty:
-                tourns = tournaments[tournaments["CONTEST_CODE"] == code]["TOURNAMENT_CODE"].dropna().unique()
-            else:
-                tourns = []
-            
-            if code != "-" and not rewards.empty:
-                rewards_ = rewards[rewards["CONTEST_CODE"] == code]["REWARD_CODE"].dropna().unique()
-            else:
-                rewards_ = []
-            
-            if code != "-" and not groups.empty:
-                groups_df = groups[groups["CONTEST_CODE"] == code]
-                # ИСПРАВЛЕНИЕ: Используем пары (GROUP_CODE, GROUP_VALUE)
-                group_code_value_pairs = []
-                for _, row in groups_df.iterrows():
-                    g_code = row.get("GROUP_CODE", "")
-                    g_value = row.get("GROUP_VALUE", "")
-                    if pd.notna(g_code) and pd.notna(g_value):
-                        pair = (str(g_code), str(g_value))
-                        if pair not in group_code_value_pairs:
-                            group_code_value_pairs.append(pair)
-            else:
-                group_code_value_pairs = []
-            
-            if not group_code_value_pairs:
-                group_code_value_pairs = [("-", "-")]
-            
+            code = groups[groups["GROUP_CODE"] == g_code]["CONTEST_CODE"].dropna().unique()
+            code = code[0] if len(code) else "-"
+            tourns = tournaments[tournaments["CONTEST_CODE"] == code][
+                "TOURNAMENT_CODE"].dropna().unique() if not tournaments.empty else []
+            rewards_ = rewards[rewards["CONTEST_CODE"] == code][
+                "REWARD_CODE"].dropna().unique() if not rewards.empty else []
+            group_values_ = groups[groups["GROUP_CODE"] == g_code][
+                "GROUP_VALUE"].dropna().unique() if not groups.empty else []
             tourns = tourns if len(tourns) else ["-"]
             rewards_ = rewards_ if len(rewards_) else ["-"]
-            
+            group_values_ = group_values_ if len(group_values_) else ["-"]
             for t in tourns:
                 for r in rewards_:
-                    for g_code, g_value in group_code_value_pairs:
-                        all_rows.append((code, str(t), str(r), str(g_code), str(g_value), ind_type))
+                    for gv in group_values_:
+                        all_rows.append((str(code), str(t), str(r), str(g_code), str(gv)))
 
     # Удалить дубли
     summary_keys = pd.DataFrame(all_rows, columns=SUMMARY_KEY_COLUMNS).drop_duplicates().reset_index(drop=True)
-    
-    # Детальное логирование для отладки
-    for debug_code in DEBUG_CODES:
-        debug_rows = summary_keys[summary_keys["CONTEST_CODE"] == debug_code]
-        if not debug_rows.empty:
-            logging.info("[DEBUG GROUP] === ИТОГОВЫЕ СТРОКИ В SUMMARY для CONTEST_CODE: {} ===".format(debug_code))
-            logging.info("[DEBUG GROUP] Всего строк: {}".format(len(debug_rows)))
-            logging.info("[DEBUG GROUP] Уникальные GROUP_CODE: {}".format(debug_rows["GROUP_CODE"].unique().tolist()))
-            logging.info("[DEBUG GROUP] Уникальные GROUP_VALUE: {}".format(debug_rows["GROUP_VALUE"].unique().tolist()))
-            logging.info("[DEBUG GROUP] Комбинации (GROUP_CODE, GROUP_VALUE):")
-            for _, row in debug_rows.iterrows():
-                logging.info("[DEBUG GROUP]   GROUP_CODE={}, GROUP_VALUE={}".format(row["GROUP_CODE"], row["GROUP_VALUE"]))
-    
     return summary_keys
+
 
 def mark_duplicates(df, key_cols, sheet_name=None):
     """
@@ -2610,8 +2403,6 @@ def add_fields_to_sheet(df_base, df_ref, src_keys, dst_keys, columns, sheet_name
         for key_tuple, count in group_counts.items():
             count_dict[key_tuple] = count
             
-        # Оптимизация: собираем все новые колонки в словарь и добавляем их одним вызовом
-        count_columns_dict = {}
         for col in columns:
             count_col_name = f"{ref_sheet_name}=>COUNT_{col}"
             # Сопоставляем ключи и заполняем 0 для отсутствующих
@@ -2621,15 +2412,10 @@ def add_fields_to_sheet(df_base, df_ref, src_keys, dst_keys, columns, sheet_name
             if len(src_keys) == 1:
                 # Для одного ключа нужно извлечь первый элемент из кортежей
                 new_keys_single = new_keys.apply(lambda x: x[0] if x and len(x) > 0 else None)
-                count_columns_dict[count_col_name] = new_keys_single.map(group_counts).fillna(0).astype(int)
+                df_base[count_col_name] = new_keys_single.map(group_counts).fillna(0).astype(int)
             else:
                 # Для составных ключей используем словарь
-                count_columns_dict[count_col_name] = new_keys.map(count_dict).fillna(0).astype(int)
-        
-        # Добавляем все колонки одним вызовом через pd.concat для избежания фрагментации
-        if count_columns_dict:
-            count_columns_df = pd.DataFrame(count_columns_dict, index=df_base.index)
-            df_base = pd.concat([df_base, count_columns_df], axis=1)
+                df_base[count_col_name] = new_keys.map(count_dict).fillna(0).astype(int)
         logging.info("[END] {func} {params} (время: {time:.3f}s)".format(
             func="add_fields_to_sheet",
             params=f"(лист: {sheet_name}, mode: count, ключ: {dst_keys}->{src_keys})",
@@ -2643,23 +2429,11 @@ def add_fields_to_sheet(df_base, df_ref, src_keys, dst_keys, columns, sheet_name
     if not multiply_rows:
         # Старая логика: первое найденное значение
         new_keys = df_base.apply(lambda row: tuple_key(row, dst_keys), axis=1)
-        
-        # Оптимизация: собираем все новые колонки в словарь и добавляем их одним вызовом
-        # Это предотвращает фрагментацию DataFrame и устраняет PerformanceWarning
-        new_columns_dict = {}
         for col in columns:
             ref_map = dict(zip(df_ref_keys, df_ref[col]))
             new_col_name = f"{ref_sheet_name}=>{col}"
-            new_columns_dict[new_col_name] = new_keys.map(ref_map).fillna("-")
-        
-        # Добавляем все колонки одним вызовом через pd.concat для избежания фрагментации
-        if new_columns_dict:
-            new_columns_df = pd.DataFrame(new_columns_dict, index=df_base.index)
-            df_base = pd.concat([df_base, new_columns_df], axis=1)
-        
-        # Специально для REWARD_LINK =>CONTEST_CODE: auto-rename, если создали с дефисом
-        for col in columns:
-            new_col_name = f"{ref_sheet_name}=>{col}"
+            df_base[new_col_name] = new_keys.map(ref_map).fillna("-")
+            # Специально для REWARD_LINK =>CONTEST_CODE: auto-rename, если создали с дефисом
             if new_col_name.replace("-", "_").replace(" ", "") == COL_REWARD_LINK_CONTEST_CODE.replace("-",
                                                                                                        "_").replace(" ",
                                                                                                                     ""):
@@ -3091,36 +2865,11 @@ def build_summary_sheet(dfs, params_summary, merge_fields):
 
     summary = collect_summary_keys(dfs)
 
-    # Детальное логирование для отладки GROUP_VALUE
-    DEBUG_CODES = ["01_2025-0_03-2-3", "t_01_2025-0_03-2-3_1001"]
-    for debug_code in DEBUG_CODES:
-        debug_rows = summary[summary["CONTEST_CODE"] == debug_code]
-        if not debug_rows.empty:
-            logging.info("[DEBUG SUMMARY] === После collect_summary_keys для CONTEST_CODE: {} ===".format(debug_code))
-            logging.info("[DEBUG SUMMARY] Всего строк: {}".format(len(debug_rows)))
-            logging.info("[DEBUG SUMMARY] Уникальные GROUP_CODE: {}".format(debug_rows["GROUP_CODE"].unique().tolist()))
-            logging.info("[DEBUG SUMMARY] Уникальные GROUP_VALUE: {}".format(debug_rows["GROUP_VALUE"].unique().tolist()))
-            logging.info("[DEBUG SUMMARY] Комбинации (GROUP_CODE, GROUP_VALUE):")
-            for _, row in debug_rows.iterrows():
-                logging.info("[DEBUG SUMMARY]   CONTEST={}, GROUP_CODE={}, GROUP_VALUE={}".format(
-                    row.get("CONTEST_CODE", ""), row.get("GROUP_CODE", ""), row.get("GROUP_VALUE", "")
-                ))
-            
-            # Проверяем, что есть в таблице GROUP
-            if "GROUP" in dfs and not dfs["GROUP"].empty:
-                group_rows = dfs["GROUP"][dfs["GROUP"]["CONTEST_CODE"] == debug_code]
-                if not group_rows.empty:
-                    logging.info("[DEBUG SUMMARY] === Данные в таблице GROUP для CONTEST_CODE: {} ===".format(debug_code))
-                    logging.info("[DEBUG SUMMARY] Всего строк в GROUP: {}".format(len(group_rows)))
-                    logging.info("[DEBUG SUMMARY] Строки GROUP:\n{}".format(
-                        group_rows[["CONTEST_CODE", "GROUP_CODE", "GROUP_VALUE"]].to_string()
-                    ))
-
     logging.info("Summary: {summary}".format(summary=f"Каркас: {len(summary)} строк (реальные комбинации ключей)"))
     logging.debug("[DEBUG] {sheet}: первые строки после разворачивания:\n{head}".format(sheet=params_summary["sheet"], head=summary.head(5).to_string()))
 
     # Универсально добавляем все поля по merge_fields
-    for field_idx, field in enumerate(merge_fields):
+    for field in merge_fields:
         col_names = field["column"]
         if isinstance(col_names, str):
             col_names = [col_names]
@@ -3130,17 +2879,6 @@ def build_summary_sheet(dfs, params_summary, merge_fields):
         mode = field.get("mode", "value")
         params_str = f"(лист-источник: {sheet_src}, поля: {col_names}, ключ: {dst_keys}->{src_keys}, mode: {mode})"
         logging.info("[START] {func} {params}".format(func="add_fields_to_sheet", params=params_str))
-        
-        # Детальное логирование для merge_fields с GROUP
-        if sheet_src == "GROUP":
-            for debug_code in DEBUG_CODES:
-                debug_rows_before = summary[summary["CONTEST_CODE"] == debug_code]
-                if not debug_rows_before.empty:
-                    logging.info("[DEBUG SUMMARY] === Перед merge_fields из GROUP для CONTEST_CODE: {} ===".format(debug_code))
-                    logging.info("[DEBUG SUMMARY] Строк в Summary: {}".format(len(debug_rows_before)))
-                    logging.info("[DEBUG SUMMARY] GROUP_CODE: {}".format(debug_rows_before["GROUP_CODE"].unique().tolist()))
-                    logging.info("[DEBUG SUMMARY] GROUP_VALUE: {}".format(debug_rows_before["GROUP_VALUE"].unique().tolist()))
-        
         ref_df = dfs.get(sheet_src)
         if ref_df is None:
             logging.warning("Колонка {column} не добавлена: нет листа {src_sheet} или ключей {src_key}".format(
@@ -3151,195 +2889,20 @@ def build_summary_sheet(dfs, params_summary, merge_fields):
         multiply_rows = field.get("multiply_rows", False)
         summary = add_fields_to_sheet(summary, ref_df, src_keys, dst_keys, col_names, params_summary["sheet"],
                                       sheet_src, mode=mode, multiply_rows=multiply_rows)
-        
-        # Детальное логирование после merge_fields с GROUP
-        if sheet_src == "GROUP":
-            for debug_code in DEBUG_CODES:
-                debug_rows_after = summary[summary["CONTEST_CODE"] == debug_code]
-                if not debug_rows_after.empty:
-                    logging.info("[DEBUG SUMMARY] === После merge_fields из GROUP для CONTEST_CODE: {} ===".format(debug_code))
-                    logging.info("[DEBUG SUMMARY] Строк в Summary: {}".format(len(debug_rows_after)))
-                    logging.info("[DEBUG SUMMARY] GROUP_CODE: {}".format(debug_rows_after["GROUP_CODE"].unique().tolist()))
-                    logging.info("[DEBUG SUMMARY] GROUP_VALUE: {}".format(debug_rows_after["GROUP_VALUE"].unique().tolist()))
-                    logging.info("[DEBUG SUMMARY] Комбинации (GROUP_CODE, GROUP_VALUE):")
-                    for _, row in debug_rows_after.iterrows():
-                        logging.info("[DEBUG SUMMARY]   CONTEST={}, GROUP_CODE={}, GROUP_VALUE={}".format(
-                            row.get("CONTEST_CODE", ""), row.get("GROUP_CODE", ""), row.get("GROUP_VALUE", "")
-                        ))
-        
         logging.info("[END] {func} {params} (время: {time:.3f}s)".format(func="add_fields_to_sheet", params=params_str, time=0))
 
     n_rows, n_cols = summary.shape
     func_time = time() - func_start
     logging.info("Итоговая структура: {rows} строк, {cols} колонок".format(rows=n_rows, cols=n_cols))
     logging.info("Лист Excel сформирован: {sheet} (строк: {rows}, колонок: {cols})".format(sheet=params_summary['sheet'], rows=n_rows, cols=n_cols))
-    
-    # Финальное логирование для отладки
-    for debug_code in DEBUG_CODES:
-        debug_rows = summary[summary["CONTEST_CODE"] == debug_code]
-        if not debug_rows.empty:
-            logging.info("[DEBUG SUMMARY] === ИТОГОВЫЙ Summary для CONTEST_CODE: {} ===".format(debug_code))
-            logging.info("[DEBUG SUMMARY] Всего строк: {}".format(len(debug_rows)))
-            logging.info("[DEBUG SUMMARY] Уникальные GROUP_CODE: {}".format(debug_rows["GROUP_CODE"].unique().tolist()))
-            logging.info("[DEBUG SUMMARY] Уникальные GROUP_VALUE: {}".format(debug_rows["GROUP_VALUE"].unique().tolist()))
-            logging.info("[DEBUG SUMMARY] Первые 5 строк:\n{}".format(debug_rows.head(5).to_string()))
-    
     logging.info("[END] {func} {params} (время: {time:.3f}s)".format(func="build_summary_sheet", params=params_log, time=func_time))
     logging.debug("[DEBUG] {sheet}: колонки после разворачивания: {columns}".format(sheet=params_summary["sheet"],
                                                        columns=', '.join(summary.columns.tolist())))
     logging.debug("[DEBUG] {sheet}: первые строки после разворачивания:{head}".format(sheet=params_summary["sheet"], head=summary.head(5).to_string()))
     return summary
 
-# === КОНСТАНТЫ ДЛЯ ПАРАЛЛЕЛЬНОЙ ОБРАБОТКИ ===
-# Количество потоков для параллельной обработки (по умолчанию 8)
-MAX_WORKERS = min(8, os.cpu_count() or 1)  # Используем минимум из 8 и количества ядер CPU
 
-
-def process_single_file(file_conf):
-    """
-    Обрабатывает один CSV файл: поиск, чтение и разворачивание JSON полей.
-    Используется для параллельной обработки файлов.
-    
-    Args:
-        file_conf (dict): Конфигурация файла из INPUT_FILES
-        
-    Returns:
-        tuple: (df, sheet_name, file_conf) или (None, sheet_name, None) при ошибке
-    """
-    sheet_name = file_conf["sheet"]
-    try:
-        file_path = find_file_case_insensitive(DIR_INPUT, file_conf["file"], [".csv", ".CSV"])
-        
-        # Проверяем, найден ли файл
-        if file_path is None:
-            logging.error("Файл не найден: {file} в каталоге {directory} [поток: {thread}]".format(
-                file=file_conf["file"], 
-                directory=DIR_INPUT,
-                thread=threading.current_thread().name
-            ))
-            return None, sheet_name, None
-        
-        logging.info("Загрузка файла: {file_path} [поток: {thread}]".format(
-            file_path=file_path,
-            thread=threading.current_thread().name
-        ))
-        
-        df = read_csv_file(file_path)
-        if df is None:
-            logging.error("Ошибка чтения файла: {file_path} [поток: {thread}]".format(
-                file_path=file_path,
-                thread=threading.current_thread().name
-            ))
-            return None, sheet_name, None
-        
-        # Разворачиваем только нужные JSON-поля по строгому списку
-        json_columns = JSON_COLUMNS.get(sheet_name, [])
-        for json_conf in json_columns:
-            col = json_conf["column"]
-            prefix = json_conf.get("prefix", col)
-            if col in df.columns:
-                df = flatten_json_column_recursive(df, col, prefix=prefix, sheet=sheet_name)
-                logging.info("[JSON FLATTEN] {sheet}: поле '{column}' развернуто с префиксом '{prefix}' [поток: {thread}]".format(
-                    sheet=sheet_name, 
-                    column=col, 
-                    prefix=prefix,
-                    thread=threading.current_thread().name
-                ))
-            else:
-                logging.warning("[JSON FLATTEN] {sheet}: поле '{column}' не найдено в колонках! [поток: {thread}]".format(
-                    sheet=sheet_name, 
-                    column=col,
-                    thread=threading.current_thread().name
-                ))
-        
-        # Для дебага: логируем итоговый список колонок после всех разворотов
-        logging.debug("[DEBUG] {sheet}: колонки после разворачивания: {columns} [поток: {thread}]".format(
-            sheet=sheet_name, 
-            columns=', '.join(df.columns.tolist()),
-            thread=threading.current_thread().name
-        ))
-        
-        logging.info("Файл успешно обработан: {sheet_name}, строк: {rows} [поток: {thread}]".format(
-            sheet_name=sheet_name,
-            rows=len(df),
-            thread=threading.current_thread().name
-        ))
-        
-        return df, sheet_name, file_conf
-        
-    except Exception as e:
-        logging.error("Ошибка обработки файла {file}: {error} [поток: {thread}]".format(
-            file=file_conf.get("file", "unknown"),
-            error=str(e),
-            thread=threading.current_thread().name
-        ))
-        return None, sheet_name, None
-
-
-def validate_single_sheet(sheet_name, sheets_data_item):
-    """
-    Проверяет длину полей для одного листа.
-    Используется для параллельной проверки валидации.
-    
-    Args:
-        sheet_name (str): Имя листа для проверки
-        sheets_data_item (tuple): (df, conf) - данные листа и конфигурация
-        
-    Returns:
-        tuple: (sheet_name, (df_validated, conf))
-    """
-    try:
-        df, conf = sheets_data_item
-        df_validated = validate_field_lengths(df, sheet_name)
-        logging.debug("Проверка длины полей завершена: {sheet} [поток: {thread}]".format(
-            sheet=sheet_name,
-            thread=threading.current_thread().name
-        ))
-        return sheet_name, (df_validated, conf)
-    except Exception as e:
-        logging.error("Ошибка проверки длины полей для {sheet}: {error} [поток: {thread}]".format(
-            sheet=sheet_name,
-            error=str(e),
-            thread=threading.current_thread().name
-        ))
-        # Возвращаем исходные данные при ошибке
-        return sheet_name, sheets_data_item
-
-
-def check_duplicates_single_sheet(sheet_name, sheets_data_item):
-    """
-    Проверяет дубликаты для одного листа.
-    Используется для параллельной проверки дубликатов.
-    
-    Args:
-        sheet_name (str): Имя листа для проверки
-        sheets_data_item (tuple): (df, conf) - данные листа и конфигурация
-        
-    Returns:
-        tuple: (sheet_name, (df, conf))
-    """
-    try:
-        df, conf = sheets_data_item
-        # Находим ВСЕ записи для этого листа (не только первую)
-        check_configs = [x for x in CHECK_DUPLICATES if x["sheet"] == sheet_name]
-        for check_cfg in check_configs:
-            df = mark_duplicates(df, check_cfg["key"], sheet_name=sheet_name)
-        
-        if check_configs:
-            logging.debug("Проверка дубликатов завершена: {sheet} [поток: {thread}]".format(
-                sheet=sheet_name,
-                thread=threading.current_thread().name
-            ))
-        
-        return sheet_name, (df, conf)
-    except Exception as e:
-        logging.error("Ошибка проверки дубликатов для {sheet}: {error} [поток: {thread}]".format(
-            sheet=sheet_name,
-            error=str(e),
-            thread=threading.current_thread().name
-        ))
-        # Возвращаем исходные данные при ошибке
-        return sheet_name, sheets_data_item
+# Функция enrich_reward_with_contest_code удалена - CONTEST_CODE теперь добавляется через merge_fields_across_sheets
 
 def main():
     start_time = datetime.now()
@@ -3351,52 +2914,61 @@ def main():
     rows_total = 0
     summary = []
 
-        # 1. Параллельное чтение всех CSV и разворот ВСЕХ JSON‑полей на каждом листе
-    logging.info("Начало параллельного чтения CSV файлов (потоков: {workers})".format(workers=MAX_WORKERS))
-    
-    lock = threading.Lock()  # Для безопасного доступа к sheets_data
-    
-    with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
-        # Запускаем обработку всех файлов параллельно
-        futures = {executor.submit(process_single_file, file_conf): file_conf 
-                   for file_conf in INPUT_FILES}
+    # 1. Чтение всех CSV и разворот ВСЕХ JSON‑полей на каждом листе
+    for file_conf in INPUT_FILES:
+        file_path = find_file_case_insensitive(DIR_INPUT, file_conf["file"], [".csv", ".CSV"])
+        sheet_name = file_conf["sheet"]
         
-        # Собираем результаты по мере их готовности
-        for future in as_completed(futures):
-            df, sheet_name, file_conf = future.result()
-            if df is not None and file_conf is not None:
-                with lock:
-                    sheets_data[sheet_name] = (df, file_conf)
-                    files_processed += 1
-                    rows_total += len(df)
-                    summary.append(f"{sheet_name}: {len(df)} строк")
-            elif sheet_name:
-                # Файл не найден или ошибка чтения
-                summary.append(f"{sheet_name}: {'файл не найден' if file_conf is None else 'ошибка'}")
-    
-    logging.info("Параллельное чтение CSV файлов завершено. Обработано файлов: {files}".format(files=files_processed))
+        # Проверяем, найден ли файл
+        if file_path is None:
+            logging.error("Файл не найден: {file} в каталоге {directory}".format(file=file_conf["file"], directory=DIR_INPUT))
+            summary.append(f"{sheet_name}: файл не найден")
+            continue
+        
+        logging.info("Загрузка файла: {file_path}".format(file_path=file_path))
+        df = read_csv_file(file_path)
+        if df is not None:
+            # --- Разворачиваем только нужные JSON-поля по строгому списку ---
+            json_columns = JSON_COLUMNS.get(sheet_name, [])
+            for json_conf in json_columns:
+                col = json_conf["column"]
+                prefix = json_conf.get("prefix", col)
+                if col in df.columns:
+                    df = flatten_json_column_recursive(df, col, prefix=prefix, sheet=sheet_name)
+                    logging.info("[JSON FLATTEN] {sheet}: поле '{column}' развернуто с префиксом '{prefix}'".format(sheet=sheet_name, column=col, prefix=prefix))
+                else:
+                    logging.warning("[JSON FLATTEN] {sheet}: поле '{column}' не найдено в колонках!".format(sheet=sheet_name, column=col))
+
+            # Для дебага: логируем итоговый список колонок после всех разворотов
+            logging.debug(
+                "[DEBUG] {sheet}: колонки после разворачивания: {columns}".format(sheet=sheet_name, columns=', '.join(df.columns.tolist())))
+            sheets_data[sheet_name] = (df, file_conf)
+            files_processed += 1
+            rows_total += len(df)
+            summary.append(f"{sheet_name}: {len(df)} строк")
+        else:
+            summary.append(f"{sheet_name}: ошибка")
+    # CONTEST_CODE добавляется через merge_fields_across_sheets, поэтому enrich_reward_with_contest_code больше не нужен
+    # if "REWARD" in sheets_data and "REWARD-LINK" in sheets_data:
+    #     df_reward, conf_reward = sheets_data["REWARD"]
+    #     df_link, conf_link = sheets_data["REWARD-LINK"]
+    #     # Всегда пересоздаём колонку с нужным именем (автоочистка битых вариантов)
+    #     df_reward = enrich_reward_with_contest_code(df_reward, df_link)
+    #     sheets_data["REWARD"] = (df_reward, conf_reward)
+
     # 2. Добавление колонки AUTO_GENDER для листа EMPLOYEE
     if "EMPLOYEE" in sheets_data:
         df_employee, conf_employee = sheets_data["EMPLOYEE"]
         df_employee = add_auto_gender_column(df_employee, "EMPLOYEE")
         sheets_data["EMPLOYEE"] = (df_employee, conf_employee)
 
-        # 3. Параллельная проверка длины полей для всех листов согласно FIELD_LENGTH_VALIDATIONS
-    if FIELD_LENGTH_VALIDATIONS:
-        logging.info("Начало параллельной проверки длины полей (потоков: {workers})".format(workers=MAX_WORKERS))
-        sheets_to_validate = {name: sheets_data[name] for name in FIELD_LENGTH_VALIDATIONS.keys() 
-                             if name in sheets_data}
-        
-        if sheets_to_validate:
-            with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
-                futures = {executor.submit(validate_single_sheet, sheet_name, data): sheet_name
-                          for sheet_name, data in sheets_to_validate.items()}
-                
-                for future in as_completed(futures):
-                    sheet_name, validated_data = future.result()
-                    sheets_data[sheet_name] = validated_data
-            
-            logging.info("Параллельная проверка длины полей завершена")
+    # 3. Проверка длины полей для всех листов согласно FIELD_LENGTH_VALIDATIONS
+    for sheet_name in FIELD_LENGTH_VALIDATIONS.keys():
+        if sheet_name in sheets_data:
+            df, conf = sheets_data[sheet_name]
+            df = validate_field_lengths(df, sheet_name)
+            sheets_data[sheet_name] = (df, conf)
+
     # 4. Добавление расчетного статуса турнира для TOURNAMENT-SCHEDULE
     if "TOURNAMENT-SCHEDULE" in sheets_data:
         df_tournament, conf_tournament = sheets_data["TOURNAMENT-SCHEDULE"]
@@ -3424,17 +2996,14 @@ def main():
         MERGE_FIELDS_ADVANCED
     )
 
-        # 6. Параллельная проверка на дубли
-    logging.info("Начало параллельной проверки на дубликаты (потоков: {workers})".format(workers=MAX_WORKERS))
-    with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
-        futures = {executor.submit(check_duplicates_single_sheet, sheet_name, data): sheet_name
-                  for sheet_name, data in sheets_data.items()}
-        
-        for future in as_completed(futures):
-            sheet_name, validated_data = future.result()
-            sheets_data[sheet_name] = validated_data
-    
-    logging.info("Параллельная проверка на дубликаты завершена")
+    # 6. Проверка на дубли
+    for sheet_name, (df, conf) in sheets_data.items():
+        # Находим ВСЕ записи для этого листа (не только первую)
+        check_configs = [x for x in CHECK_DUPLICATES if x["sheet"] == sheet_name]
+        for check_cfg in check_configs:
+            df = mark_duplicates(df, check_cfg["key"], sheet_name=sheet_name)
+        if check_configs:
+            sheets_data[sheet_name] = (df, conf)
     # 7. Формирование итогового Summary (build_summary_sheet)
     dfs = {k: v[0] for k, v in sheets_data.items()}
     df_summary = build_summary_sheet(
