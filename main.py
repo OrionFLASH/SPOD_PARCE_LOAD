@@ -70,7 +70,7 @@ DIR_LOGS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "LOGS")    #
 # - min_col_width: минимальная ширина колонки
 INPUT_FILES = [
     {
-        "file": "CONTEST (PROM) 23-12 v2",  # Файл с данными конкурсов
+        "file": "CONTEST (PROM) 19-01 v1",  # Файл с данными конкурсов
         "sheet": "CONTEST-DATA",                        # Лист для обработки
         "max_col_width": 120,                          # Максимальная ширина колонки
         "freeze": "C2",                                # Закрепление области
@@ -78,7 +78,7 @@ INPUT_FILES = [
         "min_col_width": 12                             # Минимальная ширина колонки
     },
     {
-        "file": "GROUP (PROM) 24-12 v0",            # Файл с данными групп
+        "file": "GROUP (PROM) 19-01 v1",            # Файл с данными групп
         "sheet": "GROUP",                              # Лист для обработки
         "max_col_width": 20,                           # Максимальная ширина колонки
         "freeze": "C2",                                # Закрепление области
@@ -86,7 +86,7 @@ INPUT_FILES = [
         "min_col_width": 8                             # Минимальная ширина колонки
     },
     {
-        "file": "INDICATOR (PROM) 24-12 v0",        # Файл с индикаторами
+        "file": "INDICATOR (PROM) 19-01 v1",        # Файл с индикаторами
         "sheet": "INDICATOR",                          # Лист для обработки
         "max_col_width": 100,                           # Максимальная ширина колонки
         "freeze": "B2",                                # Закрепление области
@@ -94,7 +94,7 @@ INPUT_FILES = [
         "min_col_width": 8                             # Минимальная ширина колонки
     },
     {
-        "file": "REPORT (PROM) 24-12 v1", # Файл с отчетами
+        "file": "REPORT (PROM) 19-01 v1", # Файл с отчетами
         "sheet": "REPORT",                             # Лист для обработки
         "max_col_width": 25,                           # Максимальная ширина колонки
         "freeze": "D2",                                # Закрепление области
@@ -102,7 +102,7 @@ INPUT_FILES = [
         "min_col_width": 10                             # Минимальная ширина колонки
     },
     {
-        "file": "REWARD (PROM) 24-12 v0",        # Файл с наградами
+        "file": "REWARD (PROM) 19-01 v2",        # Файл с наградами
         "sheet": "REWARD",                             # Лист для обработки
         "max_col_width": 200,                          # Максимальная ширина колонки (большая для длинных описаний)
         "freeze": "D2",                                # Закрепление области
@@ -110,7 +110,7 @@ INPUT_FILES = [
         "min_col_width": 10                             # Минимальная ширина колонки
     },
     {
-        "file": "REWARD-LINK (PROM) 24-12 v0",      # Файл со связями наград
+        "file": "REWARD-LINK (PROM) 19-01 v1",      # Файл со связями наград
         "sheet": "REWARD-LINK",                        # Лист для обработки
         "max_col_width": 30,                           # Максимальная ширина колонки
         "freeze": "A2",                                # Закрепление области
@@ -126,7 +126,7 @@ INPUT_FILES = [
         "min_col_width": 10                             # Минимальная ширина колонки
     },
     {
-        "file": "SCHEDULE (PROM) 24-12 v0", # Файл с расписанием турниров
+        "file": "SCHEDULE (PROM) 19-01 v2", # Файл с расписанием турниров
         "sheet": "TOURNAMENT-SCHEDULE",                # Лист для обработки
         "max_col_width": 120,                          # Максимальная ширина колонки
         "freeze": "B2",                                # Закрепление области
@@ -641,6 +641,7 @@ MERGE_FIELDS = [
             f"{PREFIX_ADD_DATA} => itemFeature",  # Признак элемента награды
             f"{PREFIX_ADD_DATA} => rewardRule",  # Правило награды
             f"{PREFIX_ADD_DATA} => hidden",     # Признак скрытия награды
+            f"{PREFIX_ADD_DATA} => hiddenRewardList",     # Признак скрытия награды
             f"{PREFIX_ADD_DATA} => nftFlg",     # Признак NFT
             f"{PREFIX_ADD_DATA} => newsType",
             f"{PREFIX_ADD_DATA} => winCriterion",
