@@ -3141,7 +3141,11 @@ def _process_single_merge_rule(rule, sheets_data_copy):
     
     updated_sheets = {}
     
-    if sheet_src not in sheets_data_copy or sheet_dst not in sheets_data_copy:
+    # ОПТИМИЗАЦИЯ v5.0: Проверка на существование листов и None
+    if (sheet_src not in sheets_data_copy or sheet_dst not in sheets_data_copy or
+        sheets_data_copy[sheet_src] is None or sheets_data_copy[sheet_dst] is None or
+        sheets_data_copy[sheet_src][0] is None or sheets_data_copy[sheet_dst][0] is None):
+        logging.warning(f"[PARALLEL MERGE] Пропущено правило: лист {sheet_src} или {sheet_dst} отсутствует или None")
         return (rule, updated_sheets)
     
     df_src = sheets_data_copy[sheet_src][0].copy()
@@ -3262,9 +3266,12 @@ def merge_fields_across_sheets(sheets_data, merge_fields):
             if aggregate:
                 params_str += f", aggregate: {list(aggregate.keys())}"
 
-            if sheet_src not in sheets_data or sheet_dst not in sheets_data:
-                logging.warning("Колонка {column} не добавлена: нет листа {src_sheet} или ключей {src_key}".format(
-                    column=col_names, src_sheet=sheet_src, src_key=src_keys
+            # ОПТИМИЗАЦИЯ v5.0: Проверка на существование листов и None
+            if (sheet_src not in sheets_data or sheet_dst not in sheets_data or
+                sheets_data[sheet_src] is None or sheets_data[sheet_dst] is None or
+                sheets_data[sheet_src][0] is None or sheets_data[sheet_dst][0] is None):
+                logging.warning("Колонка {column} не добавлена: нет листа {src_sheet} или {dst_sheet} или они None".format(
+                    column=col_names, src_sheet=sheet_src, dst_sheet=sheet_dst
                 ))
                 continue
 
