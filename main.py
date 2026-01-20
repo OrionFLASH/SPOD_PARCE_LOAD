@@ -2167,16 +2167,78 @@ def flatten_json_column_recursive(df, column, prefix=None, sheet=None, sep="; ")
                 fields[current_prefix] = obj
         return fields
 
-        # ОПТИМИЗИРОВАННАЯ ВЕРСИЯ: Параллельный парсинг JSON для ускорения
+            # ОПТИМИЗИРОВАННАЯ ВЕРСИЯ v2: Параллельный парсинг JSON с проверкой размера
     new_cols = {}
     
-    def parse_json_chunk(chunk_data):
-        """Парсит chunk данных и возвращает словарь с результатами"""
-        chunk_results = {}
-        chunk_errors = 0
-        chunk_idx, chunk_values = chunk_data
-        for local_idx, val in enumerate(chunk_values):
-            global_idx = chunk_idx + local_idx
+    # ОПТИМИЗАЦИЯ: Параллелизация только для больших данных (>5000 строк)
+    # Для небольших данных накладные расходы превышают выигрыш
+    PARALLEL_JSON_THRESHOLD = 5000
+    
+    if n_rows > PARALLEL_JSON_THRESHOLD:
+        def parse_json_chunk(chunk_data):
+            """Парсит chunk данных и возвращает словарь с результатами"""
+            chunk_results = {}
+            chunk_errors = 0
+            chunk_idx, chunk_values = chunk_data
+            for local_idx, val in enumerate(chunk_values):
+                global_idx = chunk_idx + local_idx
+                try:
+                    parsed = None
+                    if isinstance(val, str):
+                        val = val.strip()
+                        if val in {"", "-", "None", "null"}:
+                            parsed = {}
+                        else:
+                            parsed = safe_json_loads(val)
+                    elif isinstance(val, (dict, list)):
+                        parsed = val
+                    else:
+                        parsed = {}
+                    flat = extract(parsed, prefix)
+                except Exception as ex:
+                    logging.debug("Ошибка разбора JSON (строка {row}): {error}".format(row=global_idx, error=ex))
+                    chunk_errors += 1
+                    flat = {}
+                
+                for k, v in flat.items():
+                    if k not in chunk_results:
+                        chunk_results[k] = {}
+                    chunk_results[k][global_idx] = v
+            return chunk_results, chunk_errors
+        
+        # Разбиваем на chunks для параллельной обработки
+        # Оптимизированный размер chunk: минимум 2000 строк на chunk
+        chunk_size = max(2000, n_rows // MAX_WORKERS_IO)
+        chunks = [(i * chunk_size, df[column_to_parse].iloc[i * chunk_size:(i + 1) * chunk_size].tolist()) 
+                  for i in range((n_rows + chunk_size - 1) // chunk_size)]
+        
+        # Параллельная обработка chunks только если chunks > 1
+        if len(chunks) > 1:
+            from concurrent.futures import ThreadPoolExecutor as TPE
+            with TPE(max_workers=min(MAX_WORKERS_IO, len(chunks))) as executor:
+                chunk_data_list = list(executor.map(parse_json_chunk, chunks))
+                chunk_results_list = [data[0] for data in chunk_data_list]
+                n_errors += sum(data[1] for data in chunk_data_list)
+            
+            # Объединяем результаты
+            for chunk_results in chunk_results_list:
+                for k, v_dict in chunk_results.items():
+                    if k not in new_cols:
+                        new_cols[k] = [None] * n_rows
+                    for idx, val in v_dict.items():
+                        new_cols[k][idx] = val
+        else:
+            # Один chunk - обрабатываем последовательно
+            chunk_results, chunk_errors = parse_json_chunk(chunks[0])
+            n_errors += chunk_errors
+            for k, v_dict in chunk_results.items():
+                if k not in new_cols:
+                    new_cols[k] = [None] * n_rows
+                for idx, val in v_dict.items():
+                    new_cols[k][idx] = val
+    else:
+        # Небольшие данные - последовательная обработка (быстрее из-за отсутствия накладных расходов)
+        for idx, val in enumerate(df[column_to_parse]):
             try:
                 parsed = None
                 if isinstance(val, str):
@@ -2191,37 +2253,14 @@ def flatten_json_column_recursive(df, column, prefix=None, sheet=None, sep="; ")
                     parsed = {}
                 flat = extract(parsed, prefix)
             except Exception as ex:
-                logging.debug("Ошибка разбора JSON (строка {row}): {error}".format(row=global_idx, error=ex))
-                chunk_errors += 1
+                logging.debug("Ошибка разбора JSON (строка {row}): {error}".format(row=idx, error=ex))
+                n_errors += 1
                 flat = {}
-            
             for k, v in flat.items():
-                if k not in chunk_results:
-                    chunk_results[k] = {}
-                chunk_results[k][global_idx] = v
-        return chunk_results, chunk_errors
-    
-    # Разбиваем на chunks для параллельной обработки
-    chunk_size = max(1000, n_rows // (MAX_WORKERS_IO * 2))  # Размер chunk зависит от количества потоков
-    chunks = [(i * chunk_size, df[column_to_parse].iloc[i * chunk_size:(i + 1) * chunk_size].tolist()) 
-              for i in range((n_rows + chunk_size - 1) // chunk_size)]
-    
-    # Параллельная обработка chunks
-    if len(chunks) > 1 and MAX_WORKERS_IO > 1:
-        from concurrent.futures import ThreadPoolExecutor as TPE
-        with TPE(max_workers=MAX_WORKERS_IO) as executor:
-            chunk_data_list = list(executor.map(parse_json_chunk, chunks))
-        chunk_results_list = [data[0] for data in chunk_data_list]
-        n_errors += sum(data[1] for data in chunk_data_list)
-        
-        # Объединяем результаты
-        for chunk_results in chunk_results_list:
-            for k, v_dict in chunk_results.items():
                 if k not in new_cols:
                     new_cols[k] = [None] * n_rows
-                for idx, val in v_dict.items():
-                    new_cols[k][idx] = val
-    else:
+                new_cols[k][idx] = val
+                else:
         # Если chunks мало или один поток - обрабатываем последовательно
         for idx, val in enumerate(df[column_to_parse]):
             try:
@@ -3755,7 +3794,7 @@ def build_summary_sheet(dfs, params_summary, merge_fields):
 
 # === КОНСТАНТЫ ДЛЯ ПАРАЛЛЕЛЬНОЙ ОБРАБОТКИ ===
 # Количество потоков для I/O операций (чтение файлов, форматирование Excel)
-MAX_WORKERS_IO = min(32, (os.cpu_count() or 1) * 4)  # Для I/O операций используем больше потоков
+MAX_WORKERS_IO = min(16, (os.cpu_count() or 1) * 2)  # Для I/O операций (оптимизировано: 16 вместо 32)
 # Количество потоков для CPU операций (вычисления, фильтрация)
 MAX_WORKERS_CPU = min(8, os.cpu_count() or 1)  # Для CPU операций используем количество ядер
 # Обратная совместимость
