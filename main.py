@@ -1931,7 +1931,17 @@ def write_to_excel(sheets_data, output_path):
         with pd.ExcelWriter(output_path, engine="openpyxl") as writer:
             # ОПТИМИЗАЦИЯ: Сначала записываем все данные (последовательно, т.к. ExcelWriter не поддерживает параллелизм)
             for sheet_name in ordered_sheets:
-                df, params_sheet = sheets_data[sheet_name]
+                # ОПТИМИЗАЦИЯ v5.0: Проверка на None перед записью
+                if sheet_name not in sheets_data or sheets_data[sheet_name] is None:
+                    logging.warning(f"[write_to_excel] Пропущен лист {sheet_name}: данные отсутствуют или равны None")
+                    continue
+                
+                sheet_data = sheets_data[sheet_name]
+                if len(sheet_data) < 1 or sheet_data[0] is None:
+                    logging.warning(f"[write_to_excel] Пропущен лист {sheet_name}: DataFrame равен None")
+                    continue
+                
+                df, params_sheet = sheet_data
                 df.to_excel(writer, index=False, sheet_name=sheet_name)
                 logging.info("Лист Excel записан: {sheet} (строк: {rows}, колонок: {cols})".format(sheet=sheet_name, rows=len(df), cols=len(df.columns)))
             
@@ -1939,7 +1949,17 @@ def write_to_excel(sheets_data, output_path):
             # Примечание: Параллелизация форматирования Excel была откачена, т.к. openpyxl не thread-safe
             # и параллельная запись в один файл создает блокировки, замедляющие выполнение
             for sheet_name in ordered_sheets:
-                df, params_sheet = sheets_data[sheet_name]
+                # ОПТИМИЗАЦИЯ v5.0: Проверка на None перед форматированием
+                if sheet_name not in sheets_data or sheets_data[sheet_name] is None:
+                    logging.warning(f"[write_to_excel] Пропущен лист {sheet_name} при форматировании: данные отсутствуют или равны None")
+                    continue
+                
+                sheet_data = sheets_data[sheet_name]
+                if len(sheet_data) < 1 or sheet_data[0] is None:
+                    logging.warning(f"[write_to_excel] Пропущен лист {sheet_name} при форматировании: DataFrame равен None")
+                    continue
+                
+                df, params_sheet = sheet_data
                 ws = writer.sheets[sheet_name]
                 _format_sheet(ws, df, params_sheet)  # Применяем форматирование
                 logging.info("Лист Excel сформирован: {sheet} (строк: {rows}, колонок: {cols})".format(
@@ -2780,7 +2800,13 @@ def collect_summary_keys(dfs):
                         all_rows.append((code, str(t), str(r), str(g_code), str(g_value), ind_type))
 
     # Удалить дубли
-    summary_keys = pd.DataFrame(all_rows, columns=SUMMARY_KEY_COLUMNS).drop_duplicates().reset_index(drop=True)
+    
+    # ОПТИМИЗАЦИЯ v5.0: Гарантируем, что всегда возвращаем DataFrame
+    if len(all_rows) == 0:
+        # Если нет данных, создаем пустой DataFrame с правильными колонками
+        summary_keys = pd.DataFrame(columns=SUMMARY_KEY_COLUMNS)
+    else:
+        summary_keys = pd.DataFrame(all_rows, columns=SUMMARY_KEY_COLUMNS).drop_duplicates().reset_index(drop=True)
     
     # Детальное логирование для отладки
     for debug_code in DEBUG_CODES:
@@ -2793,6 +2819,12 @@ def collect_summary_keys(dfs):
             logging.info("[DEBUG GROUP] Комбинации (GROUP_CODE, GROUP_VALUE):")
             for _, row in debug_rows.iterrows():
                 logging.info("[DEBUG GROUP]   GROUP_CODE={}, GROUP_VALUE={}".format(row["GROUP_CODE"], row["GROUP_VALUE"]))
+    
+    
+    # ОПТИМИЗАЦИЯ v5.0: Финальная проверка - гарантируем возврат DataFrame
+    if summary_keys is None or not isinstance(summary_keys, pd.DataFrame):
+        logging.warning("[collect_summary_keys] summary_keys равен None или не DataFrame, создаем пустой DataFrame")
+        summary_keys = pd.DataFrame(columns=SUMMARY_KEY_COLUMNS)
     
     return summary_keys
 
@@ -3352,7 +3384,11 @@ def merge_fields_across_sheets(sheets_data, merge_fields):
                         # Обновляем sheets_data с блокировкой
                         with lock:
                             for sheet_name, data in updated_sheets.items():
-                                sheets_data[sheet_name] = data
+                                # ОПТИМИЗАЦИЯ v5.0: Проверка на None перед обновлением
+                                if data is not None and len(data) > 0 and data[0] is not None:
+                                    sheets_data[sheet_name] = data
+                                else:
+                                    logging.warning(f"[PARALLEL MERGE] Пропущено обновление листа {sheet_name}: данные равны None")
                             
                             # Логируем завершение
                             sheet_src = rule["sheet_src"]
@@ -3767,6 +3803,14 @@ def build_summary_sheet(dfs, params_summary, merge_fields):
     logging.info("[START] {func} {params}".format(func="build_summary_sheet", params=params_log))
 
     summary = collect_summary_keys(dfs)
+    
+    # ОПТИМИЗАЦИЯ v5.0: Проверка на None
+    if summary is None:
+        logging.error("[build_summary_sheet] collect_summary_keys вернул None, создаем пустой DataFrame")
+        summary = pd.DataFrame(columns=SUMMARY_KEY_COLUMNS)
+    elif not isinstance(summary, pd.DataFrame):
+        logging.error("[build_summary_sheet] collect_summary_keys вернул не DataFrame, создаем пустой DataFrame")
+        summary = pd.DataFrame(columns=SUMMARY_KEY_COLUMNS)
 
     # Детальное логирование для отладки GROUP_VALUE
     DEBUG_CODES = []  # Отключено подробное логирование
@@ -3846,6 +3890,11 @@ def build_summary_sheet(dfs, params_summary, merge_fields):
         
         logging.info("[END] {func} {params} (время: {time:.3f}s)".format(func="add_fields_to_sheet", params=params_str, time=0))
 
+    # ОПТИМИЗАЦИЯ v5.0: Финальная проверка перед использованием shape
+    if summary is None or not isinstance(summary, pd.DataFrame):
+        logging.error("[build_summary_sheet] summary равен None после обработки merge_fields, создаем пустой DataFrame")
+        summary = pd.DataFrame(columns=SUMMARY_KEY_COLUMNS)
+    
     n_rows, n_cols = summary.shape
     func_time = time() - func_start
     logging.info("Итоговая структура: {rows} строк, {cols} колонок".format(rows=n_rows, cols=n_cols))
@@ -3970,8 +4019,17 @@ def validate_single_sheet(sheet_name, sheets_data_item):
     Returns:
         tuple: (sheet_name, (df_validated, conf))
     """
+    # ОПТИМИЗАЦИЯ v5.0: Проверка на None
+    if sheets_data_item is None:
+        logging.warning(f"[check_duplicates_single_sheet] Данные для листа {sheet_name} равны None, пропускаем")
+        return sheet_name, sheets_data_item
+    
     try:
         df, conf = sheets_data_item
+        # Дополнительная проверка на None
+        if df is None or conf is None:
+            logging.warning(f"[check_duplicates_single_sheet] DataFrame или конфигурация для листа {sheet_name} равны None, пропускаем")
+            return sheet_name, sheets_data_item
         # ОПТИМИЗАЦИЯ: Используем векторизованную версию с проверкой результатов
         df_old = df.copy()
         df_validated = validate_field_lengths_vectorized(df, sheet_name)
@@ -4020,8 +4078,17 @@ def check_duplicates_single_sheet(sheet_name, sheets_data_item):
     Returns:
         tuple: (sheet_name, (df, conf))
     """
+    # ОПТИМИЗАЦИЯ v5.0: Проверка на None
+    if sheets_data_item is None:
+        logging.warning(f"[check_duplicates_single_sheet] Данные для листа {sheet_name} равны None, пропускаем")
+        return sheet_name, sheets_data_item
+    
     try:
         df, conf = sheets_data_item
+        # Дополнительная проверка на None
+        if df is None or conf is None:
+            logging.warning(f"[check_duplicates_single_sheet] DataFrame или конфигурация для листа {sheet_name} равны None, пропускаем")
+            return sheet_name, sheets_data_item
         # Находим ВСЕ записи для этого листа (не только первую)
         check_configs = [x for x in CHECK_DUPLICATES if x["sheet"] == sheet_name]
         for check_cfg in check_configs:
@@ -4154,7 +4221,13 @@ def main():
     
     logging.info("Параллельная проверка на дубликаты завершена")
     # 7. Формирование итогового Summary (build_summary_sheet)
-    dfs = {k: v[0] for k, v in sheets_data.items()}
+    # ОПТИМИЗАЦИЯ v5.0: Фильтруем None значения при создании dfs
+    dfs = {}
+    for k, v in sheets_data.items():
+        if v is not None and len(v) > 0 and v[0] is not None:
+            dfs[k] = v[0]
+        else:
+            logging.warning(f"[main] Пропущен лист {k}: данные равны None")
     df_summary = build_summary_sheet(
         dfs,
         params_summary=SUMMARY_SHEET,
