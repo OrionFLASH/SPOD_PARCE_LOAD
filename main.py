@@ -2453,12 +2453,27 @@ def collect_summary_keys(dfs):
     """
     all_rows = []
 
+    # ОПТИМИЗАЦИЯ v5.0: Проверка на None перед использованием
     rewards = dfs.get("REWARD-LINK", pd.DataFrame())
     tournaments = dfs.get("TOURNAMENT-SCHEDULE", pd.DataFrame())
     groups = dfs.get("GROUP", pd.DataFrame())
     reward_data = dfs.get("REWARD", pd.DataFrame())
     contest_data = dfs.get("CONTEST-DATA", pd.DataFrame())
     indicators = dfs.get("INDICATOR", pd.DataFrame())
+    
+    # Заменяем None на пустые DataFrame
+    if rewards is None:
+        rewards = pd.DataFrame()
+    if tournaments is None:
+        tournaments = pd.DataFrame()
+    if groups is None:
+        groups = pd.DataFrame()
+    if reward_data is None:
+        reward_data = pd.DataFrame()
+    if contest_data is None:
+        contest_data = pd.DataFrame()
+    if indicators is None:
+        indicators = pd.DataFrame()
 
     # Коды для детального логирования
     DEBUG_CODES = []  # Отключено подробное логирование
@@ -2809,6 +2824,11 @@ def collect_summary_keys_optimized(dfs):
 
 
 def mark_duplicates(df, key_cols, sheet_name=None):
+
+    # ОПТИМИЗАЦИЯ v5.0: Проверка на None
+    if df is None:
+        logging.warning(f"[mark_duplicates] DataFrame для листа {sheet_name} равен None, пропускаем проверку дублей")
+        return df
     """
     Добавляет колонку с пометкой о дублях по key_cols.
     Если строк по ключу больше одной — пишем xN, иначе пусто.
