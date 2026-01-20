@@ -2260,12 +2260,6 @@ def flatten_json_column_recursive(df, column, prefix=None, sheet=None, sep="; ")
                 if k not in new_cols:
                     new_cols[k] = [None] * n_rows
                 new_cols[k][idx] = val
-                flat = {}
-            for k, v in flat.items():
-                if k not in new_cols:
-                    new_cols[k] = [None] * n_rows
-                new_cols[k][idx] = v
-
     # Оставлять только реально созданные колонки (не пустые)
     for col_name, values in new_cols.items():
         if any(x is not None for x in values):
