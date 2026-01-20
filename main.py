@@ -1416,7 +1416,8 @@ def calculate_tournament_status(df_tournament, df_report=None):
         tournament_code = row['TOURNAMENT_CODE']  # Код турнира
 
         # Если нет ключевых дат - возвращаем неопределенный статус
-        if not start_dt or not end_dt:
+        # Используем pd.isna() для корректной проверки NaT значений
+        if pd.isna(start_dt) or pd.isna(end_dt):
             return "НЕОПРЕДЕЛЕН"
 
         # 1. Если сегодня между START_DT и END_DT включительно → турнир активен
@@ -1430,7 +1431,8 @@ def calculate_tournament_status(df_tournament, df_report=None):
         # 3. Если сегодня > END_DT → турнир закончился, но возможно еще подводятся итоги
         if today > end_dt:
             # Если нет RESULT_DT или сегодня < RESULT_DT → еще идет подведение итогов
-            if not result_dt or today < result_dt:
+            # Используем pd.isna() для корректной проверки NaT значений
+            if pd.isna(result_dt) or today < result_dt:
                 return "ПОДВЕДЕНИЕ ИТОГОВ"
 
             # 4. Если сегодня >= RESULT_DT → проверяем, завершились ли все конкурсы
