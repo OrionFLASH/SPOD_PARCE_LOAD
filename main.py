@@ -14,6 +14,7 @@ import ast         # Для безопасного парсинга Python вы�
 import time as tmod  # Для измерения времени выполнения операций (альтернативное имя)
 import inspect  # Для получения информации о вызывающей функции
 from concurrent.futures import ThreadPoolExecutor, as_completed  # Для параллельной обработки
+from itertools import product
 import threading  # Для синхронизации потоков
 
 # === ОПТИМИЗАЦИИ ПРОИЗВОДИТЕЛЬНОСТИ ===
@@ -2166,31 +2167,84 @@ def flatten_json_column_recursive(df, column, prefix=None, sheet=None, sep="; ")
                 fields[current_prefix] = obj
         return fields
 
+        # ОПТИМИЗИРОВАННАЯ ВЕРСИЯ: Параллельный парсинг JSON для ускорения
     new_cols = {}
-    for idx, val in enumerate(df[column_to_parse]):
-        try:
-            parsed = None
-            # Строка — парсим JSON; dict/list — оставляем; иначе пропускаем
-            if isinstance(val, str):
-                val = val.strip()
-                if val in {"", "-", "None", "null"}:
-                    parsed = {}
+    
+    def parse_json_chunk(chunk_data):
+        """Парсит chunk данных и возвращает словарь с результатами"""
+        chunk_results = {}
+        chunk_errors = 0
+        chunk_idx, chunk_values = chunk_data
+        for local_idx, val in enumerate(chunk_values):
+            global_idx = chunk_idx + local_idx
+            try:
+                parsed = None
+                if isinstance(val, str):
+                    val = val.strip()
+                    if val in {"", "-", "None", "null"}:
+                        parsed = {}
+                    else:
+                        parsed = safe_json_loads(val)
+                elif isinstance(val, (dict, list)):
+                    parsed = val
                 else:
-                    parsed = safe_json_loads(val)
-            elif isinstance(val, (dict, list)):
-                parsed = val
-            else:
-                # Необрабатываемые типы (например float('nan'))
-                parsed = {}
-            flat = extract(parsed, prefix)
-        except Exception as ex:
-            logging.debug("Ошибка разбора JSON (строка {row}): {error}".format(row=idx, error=ex))
-            n_errors += 1
-            flat = {}
-        for k, v in flat.items():
-            if k not in new_cols:
-                new_cols[k] = [None] * n_rows
-            new_cols[k][idx] = v
+                    parsed = {}
+                flat = extract(parsed, prefix)
+            except Exception as ex:
+                logging.debug("Ошибка разбора JSON (строка {row}): {error}".format(row=global_idx, error=ex))
+                chunk_errors += 1
+                flat = {}
+            
+            for k, v in flat.items():
+                if k not in chunk_results:
+                    chunk_results[k] = {}
+                chunk_results[k][global_idx] = v
+        return chunk_results, chunk_errors
+    
+    # Разбиваем на chunks для параллельной обработки
+    chunk_size = max(1000, n_rows // (MAX_WORKERS_IO * 2))  # Размер chunk зависит от количества потоков
+    chunks = [(i * chunk_size, df[column_to_parse].iloc[i * chunk_size:(i + 1) * chunk_size].tolist()) 
+              for i in range((n_rows + chunk_size - 1) // chunk_size)]
+    
+    # Параллельная обработка chunks
+    if len(chunks) > 1 and MAX_WORKERS_IO > 1:
+        from concurrent.futures import ThreadPoolExecutor as TPE
+        with TPE(max_workers=MAX_WORKERS_IO) as executor:
+            chunk_data_list = list(executor.map(parse_json_chunk, chunks))
+        chunk_results_list = [data[0] for data in chunk_data_list]
+        n_errors += sum(data[1] for data in chunk_data_list)
+        
+        # Объединяем результаты
+        for chunk_results in chunk_results_list:
+            for k, v_dict in chunk_results.items():
+                if k not in new_cols:
+                    new_cols[k] = [None] * n_rows
+                for idx, val in v_dict.items():
+                    new_cols[k][idx] = val
+    else:
+        # Если chunks мало или один поток - обрабатываем последовательно
+        for idx, val in enumerate(df[column_to_parse]):
+            try:
+                parsed = None
+                if isinstance(val, str):
+                    val = val.strip()
+                    if val in {"", "-", "None", "null"}:
+                        parsed = {}
+                    else:
+                        parsed = safe_json_loads(val)
+                elif isinstance(val, (dict, list)):
+                    parsed = val
+                else:
+                    parsed = {}
+                flat = extract(parsed, prefix)
+            except Exception as ex:
+                logging.debug("Ошибка разбора JSON (строка {row}): {error}".format(row=idx, error=ex))
+                n_errors += 1
+                flat = {}
+            for k, v in flat.items():
+                if k not in new_cols:
+                    new_cols[k] = [None] * n_rows
+                new_cols[k][idx] = v
 
     # Оставлять только реально созданные колонки (не пустые)
     for col_name, values in new_cols.items():
@@ -2916,23 +2970,49 @@ def add_fields_to_sheet(df_base, df_ref, src_keys, dst_keys, columns, sheet_name
                     if cand != COL_REWARD_LINK_CONTEST_CODE:
                         df_base = df_base.rename(columns={cand: COL_REWARD_LINK_CONTEST_CODE})
     else:
-        # Новая логика: размножение строк при множественных совпадениях
+                # ОПТИМИЗИРОВАННАЯ ВЕРСИЯ: Используем pd.merge вместо iterrows для ускорения
         logging.info("[MULTIPLY ROWS] {sheet}: начинаем размножение строк для поля {column}".format(sheet=sheet_name, column=columns))
-        result_rows = []
         old_rows_count = len(df_base)
-
-        for base_idx, base_row in df_base.iterrows():
-            base_key = tuple_key(base_row, dst_keys)
-            # Находим все строки в df_ref с таким ключом
-            matching_ref_rows = df_ref[df_ref_keys == base_key]
-
-            if matching_ref_rows.empty:
-                # Нет совпадений - добавляем строку с пустыми значениями
-                new_row = base_row.copy()
-                for col in columns:
-                    new_col_name = f"{ref_sheet_name}=>{col}"
-                    new_row[new_col_name] = "-"
-                result_rows.append(new_row)
+        
+        # Создаем ключи для обоих DataFrame
+        df_base_keys = df_base.apply(lambda row: tuple_key(row, dst_keys), axis=1)
+        df_ref_keys = df_ref.apply(lambda row: tuple_key(row, src_keys), axis=1)
+        
+        # Добавляем ключи как временные колонки
+        df_base_with_key = df_base.copy()
+        df_base_with_key['_temp_key'] = df_base_keys
+        
+        df_ref_with_key = df_ref.copy()
+        df_ref_with_key['_temp_key'] = df_ref_keys
+        
+        # Используем merge для объединения (left join сохраняет все строки из df_base)
+        merged = pd.merge(
+            df_base_with_key,
+            df_ref_with_key[['_temp_key'] + columns],
+            on='_temp_key',
+            how='left',
+            suffixes=('', '_ref')
+        )
+        
+        # Переименовываем колонки из df_ref
+        for col in columns:
+            new_col_name = f"{ref_sheet_name}=>{col}"
+            if col + '_ref' in merged.columns:
+                merged[new_col_name] = merged[col + '_ref'].fillna("-")
+                merged = merged.drop(columns=[col + '_ref'])
+            else:
+                merged[new_col_name] = "-"
+        
+        # Удаляем временный ключ
+        merged = merged.drop(columns=['_temp_key'])
+        
+        # Если были строки без совпадений, они уже обработаны через left join
+        df_base = merged.reset_index(drop=True)
+        new_rows_count = len(df_base)
+        multiply_factor = round(new_rows_count / old_rows_count, 2) if old_rows_count > 0 else 0
+        logging.info("[MULTIPLY ROWS] {sheet}: {old_rows} строк -> {new_rows} строк (размножение: {multiply_factor}x)".format(
+            sheet=sheet_name, old_rows=old_rows_count, new_rows=new_rows_count, multiply_factor=multiply_factor
+        ))
             else:
                 # Есть совпадения - создаем строку для каждого совпадения
                 for ref_idx, ref_row in matching_ref_rows.iterrows():
@@ -3690,8 +3770,13 @@ def build_summary_sheet(dfs, params_summary, merge_fields):
     return summary
 
 # === КОНСТАНТЫ ДЛЯ ПАРАЛЛЕЛЬНОЙ ОБРАБОТКИ ===
-# Количество потоков для параллельной обработки (по умолчанию 8)
-MAX_WORKERS = min(8, os.cpu_count() or 1)  # Используем минимум из 8 и количества ядер CPU
+# Количество потоков для I/O операций (чтение файлов, форматирование Excel)
+MAX_WORKERS_IO = min(32, (os.cpu_count() or 1) * 4)  # Для I/O операций используем больше потоков
+# Количество потоков для CPU операций (вычисления, фильтрация)
+MAX_WORKERS_CPU = min(8, os.cpu_count() or 1)  # Для CPU операций используем количество ядер
+# Обратная совместимость
+MAX_WORKERS = MAX_WORKERS_CPU  # По умолчанию используем CPU потоки
+
 
 
 def process_single_file(file_conf):
@@ -3871,11 +3956,11 @@ def main():
     summary = []
 
         # 1. Параллельное чтение всех CSV и разворот ВСЕХ JSON‑полей на каждом листе
-    logging.info("Начало параллельного чтения CSV файлов (потоков: {workers})".format(workers=MAX_WORKERS))
+    logging.info("Начало параллельного чтения CSV файлов (потоков: {workers})".format(workers=MAX_WORKERS_IO))
     
     lock = threading.Lock()  # Для безопасного доступа к sheets_data
     
-    with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+    with ThreadPoolExecutor(max_workers=MAX_WORKERS_IO) as executor:  # I/O операция
         # Запускаем обработку всех файлов параллельно
         futures = {executor.submit(process_single_file, file_conf): file_conf 
                    for file_conf in INPUT_FILES}
@@ -3918,7 +4003,7 @@ def main():
 
         # 3. Параллельная проверка длины полей для всех листов согласно FIELD_LENGTH_VALIDATIONS
     if FIELD_LENGTH_VALIDATIONS:
-        logging.info("Начало параллельной проверки длины полей (потоков: {workers})".format(workers=MAX_WORKERS))
+        logging.info("Начало параллельной проверки длины полей (потоков: {workers})".format(workers=MAX_WORKERS_CPU))
         sheets_to_validate = {name: sheets_data[name] for name in FIELD_LENGTH_VALIDATIONS.keys() 
                              if name in sheets_data}
         
@@ -3960,8 +4045,8 @@ def main():
     )
 
         # 6. Параллельная проверка на дубли
-    logging.info("Начало параллельной проверки на дубликаты (потоков: {workers})".format(workers=MAX_WORKERS))
-    with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+    logging.info("Начало параллельной проверки на дубликаты (потоков: {workers})".format(workers=MAX_WORKERS_CPU))
+    with ThreadPoolExecutor(max_workers=MAX_WORKERS_IO) as executor:
         futures = {executor.submit(check_duplicates_single_sheet, sheet_name, data): sheet_name
                   for sheet_name, data in sheets_data.items()}
         
