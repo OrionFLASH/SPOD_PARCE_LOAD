@@ -3013,22 +3013,6 @@ def add_fields_to_sheet(df_base, df_ref, src_keys, dst_keys, columns, sheet_name
         logging.info("[MULTIPLY ROWS] {sheet}: {old_rows} строк -> {new_rows} строк (размножение: {multiply_factor}x)".format(
             sheet=sheet_name, old_rows=old_rows_count, new_rows=new_rows_count, multiply_factor=multiply_factor
         ))
-            else:
-                # Есть совпадения - создаем строку для каждого совпадения
-                for ref_idx, ref_row in matching_ref_rows.iterrows():
-                    new_row = base_row.copy()
-                    for col in columns:
-                        new_col_name = f"{ref_sheet_name}=>{col}"
-                        new_row[new_col_name] = ref_row[col]
-                    result_rows.append(new_row)
-
-        # Создаем новый DataFrame из размноженных строк
-        df_base = pd.DataFrame(result_rows).reset_index(drop=True)
-        new_rows_count = len(df_base)
-        multiply_factor = round(new_rows_count / old_rows_count, 2) if old_rows_count > 0 else 0
-        logging.info("[MULTIPLY ROWS] {sheet}: {old_rows} строк -> {new_rows} строк (размножение: {multiply_factor}x)".format(
-            sheet=sheet_name, old_rows=old_rows_count, new_rows=new_rows_count, multiply_factor=multiply_factor
-        ))
 
         # Обработка специального случая для REWARD_LINK
         for col in columns:
