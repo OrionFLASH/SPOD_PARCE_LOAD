@@ -2260,25 +2260,6 @@ def flatten_json_column_recursive(df, column, prefix=None, sheet=None, sep="; ")
                 if k not in new_cols:
                     new_cols[k] = [None] * n_rows
                 new_cols[k][idx] = val
-                else:
-        # Если chunks мало или один поток - обрабатываем последовательно
-        for idx, val in enumerate(df[column_to_parse]):
-            try:
-                parsed = None
-                if isinstance(val, str):
-                    val = val.strip()
-                    if val in {"", "-", "None", "null"}:
-                        parsed = {}
-                    else:
-                        parsed = safe_json_loads(val)
-                elif isinstance(val, (dict, list)):
-                    parsed = val
-                else:
-                    parsed = {}
-                flat = extract(parsed, prefix)
-            except Exception as ex:
-                logging.debug("Ошибка разбора JSON (строка {row}): {error}".format(row=idx, error=ex))
-                n_errors += 1
                 flat = {}
             for k, v in flat.items():
                 if k not in new_cols:
