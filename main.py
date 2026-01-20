@@ -3141,11 +3141,15 @@ def _process_single_merge_rule(rule, sheets_data_copy):
     
     updated_sheets = {}
     
-    # ОПТИМИЗАЦИЯ v5.0: Проверка на существование листов и None
-    if (sheet_src not in sheets_data_copy or sheet_dst not in sheets_data_copy or
-        sheets_data_copy[sheet_src] is None or sheets_data_copy[sheet_dst] is None or
+    # ОПТИМИЗАЦИЯ v5.0: Проверка на существование листов и None (правильный порядок)
+    if (sheet_src not in sheets_data_copy or sheet_dst not in sheets_data_copy):
+        logging.warning(f"[PARALLEL MERGE] Пропущено правило: лист {sheet_src} или {sheet_dst} отсутствует")
+        return (rule, updated_sheets)
+    
+    if (sheets_data_copy[sheet_src] is None or sheets_data_copy[sheet_dst] is None or
+        len(sheets_data_copy[sheet_src]) < 1 or len(sheets_data_copy[sheet_dst]) < 1 or
         sheets_data_copy[sheet_src][0] is None or sheets_data_copy[sheet_dst][0] is None):
-        logging.warning(f"[PARALLEL MERGE] Пропущено правило: лист {sheet_src} или {sheet_dst} отсутствует или None")
+        logging.warning(f"[PARALLEL MERGE] Пропущено правило: лист {sheet_src} или {sheet_dst} содержит None")
         return (rule, updated_sheets)
     
     df_src = sheets_data_copy[sheet_src][0].copy()
@@ -3266,11 +3270,17 @@ def merge_fields_across_sheets(sheets_data, merge_fields):
             if aggregate:
                 params_str += f", aggregate: {list(aggregate.keys())}"
 
-            # ОПТИМИЗАЦИЯ v5.0: Проверка на существование листов и None
-            if (sheet_src not in sheets_data or sheet_dst not in sheets_data or
-                sheets_data[sheet_src] is None or sheets_data[sheet_dst] is None or
+            # ОПТИМИЗАЦИЯ v5.0: Проверка на существование листов и None (правильный порядок)
+            if sheet_src not in sheets_data or sheet_dst not in sheets_data:
+                logging.warning("Колонка {column} не добавлена: нет листа {src_sheet} или {dst_sheet}".format(
+                    column=col_names, src_sheet=sheet_src, dst_sheet=sheet_dst
+                ))
+                continue
+            
+            if (sheets_data[sheet_src] is None or sheets_data[sheet_dst] is None or
+                len(sheets_data[sheet_src]) < 1 or len(sheets_data[sheet_dst]) < 1 or
                 sheets_data[sheet_src][0] is None or sheets_data[sheet_dst][0] is None):
-                logging.warning("Колонка {column} не добавлена: нет листа {src_sheet} или {dst_sheet} или они None".format(
+                logging.warning("Колонка {column} не добавлена: лист {src_sheet} или {dst_sheet} содержит None".format(
                     column=col_names, src_sheet=sheet_src, dst_sheet=sheet_dst
                 ))
                 continue
