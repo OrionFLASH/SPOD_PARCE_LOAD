@@ -1895,7 +1895,6 @@ def read_csv_file(file_path):
         
         # Засекаем время выполнения и логируем завершение
         func_time = time() - func_start
-        logging.info("[END] {func} {params} (время: {time:.3f}s)".format(func="read_csv_file", params=params, time=func_time))
         return df
         
     except Exception as e:
@@ -1918,6 +1917,22 @@ def write_to_excel(sheets_data, output_path):
         sheets_data (dict): Словарь с данными листов в формате {sheet_name: (df, params)}
         output_path (str): Путь к выходному Excel файлу
     """
+    logging.debug(f"[DEBUG write_to_excel] === НАЧАЛО === Путь: {output_path}")
+    logging.debug(f"[DEBUG write_to_excel] Листов для записи: {len(sheets_data)}")
+    for sheet_name, sheet_data in sheets_data.items():
+        if sheet_data is not None and len(sheet_data) > 0:
+            df, params = sheet_data
+            if df is not None and isinstance(df, pd.DataFrame):
+                logging.debug(f"[DEBUG write_to_excel] Лист {sheet_name}: shape={df.shape}, колонок={len(df.columns)}")
+                if len(df) == 0:
+                    logging.warning(f"[DEBUG write_to_excel] ⚠️  Лист {sheet_name} ПУСТОЙ (0 строк)!")
+                else:
+                    logging.debug(f"[DEBUG write_to_excel] Лист {sheet_name} первые 3 строки:\n{df.head(3).to_string()}")
+            else:
+                logging.warning(f"[DEBUG write_to_excel] ⚠️  Лист {sheet_name}: DataFrame равен None")
+        else:
+            logging.warning(f"[DEBUG write_to_excel] ⚠️  Лист {sheet_name}: sheet_data равен None или пуст")
+
     func_start = time()  # Засекаем время начала выполнения
     params = f"({output_path})"
     logging.info("[START] {func} {params}".format(func="write_to_excel", params=params))
@@ -1942,6 +1957,13 @@ def write_to_excel(sheets_data, output_path):
                     continue
                 
                 df, params_sheet = sheet_data
+                logging.debug(f"[DEBUG write_to_excel] Записываем лист {sheet_name}...")
+                logging.debug(f"[DEBUG write_to_excel] DataFrame shape: {df.shape}, колонок: {len(df.columns)}")
+                if len(df) == 0:
+                    logging.error(f"[DEBUG write_to_excel] ❌ ОШИБКА: Лист {sheet_name} ПУСТОЙ перед записью!")
+                else:
+                    logging.debug(f"[DEBUG write_to_excel] Первые 3 строки перед записью:\n{df.head(3).to_string()}")
+
                 df.to_excel(writer, index=False, sheet_name=sheet_name)
                 logging.info("Лист Excel записан: {sheet} (строк: {rows}, колонок: {cols})".format(sheet=sheet_name, rows=len(df), cols=len(df.columns)))
             
@@ -2971,6 +2993,38 @@ def add_fields_to_sheet(df_base, df_ref, src_keys, dst_keys, columns, sheet_name
     if isinstance(columns, str):
         columns = [columns]
 
+    # ИСПРАВЛЕНИЕ: Проверка на пустой или None df_ref
+    if df_ref is None or (isinstance(df_ref, pd.DataFrame) and df_ref.empty):
+        logging.warning(f"[add_fields_to_sheet] Лист {ref_sheet_name} пустой или None, пропускаем добавление полей")
+        # Добавляем пустые колонки с дефолтными значениями "-"
+        for col in columns:
+            new_col_name = f"{ref_sheet_name}=>{col}"
+            if new_col_name not in df_base.columns:
+                df_base[new_col_name] = "-"
+        logging.info("[END] {func} {params} (время: {time:.3f}s)".format(
+            func="add_fields_to_sheet",
+            params=f"(лист: {sheet_name}, поля: {columns}, ключ: {dst_keys}->{src_keys}, mode: {mode}, multiply: {multiply_rows})",
+            time=time() - func_start
+        ))
+
+        return df_base
+    logging.debug(f"[DEBUG add_fields_to_sheet] === НАЧАЛО === Лист: {sheet_name}, Источник: {ref_sheet_name}")
+    logging.debug(f"[DEBUG add_fields_to_sheet] df_base shape: {df_base.shape if df_base is not None and isinstance(df_base, pd.DataFrame) else "None или не DataFrame"}")
+    logging.debug(f"[DEBUG add_fields_to_sheet] df_ref shape: {df_ref.shape if df_ref is not None and isinstance(df_ref, pd.DataFrame) else "None или не DataFrame"}")
+    logging.debug(f"[DEBUG add_fields_to_sheet] Колонки для добавления: {columns}")
+    logging.debug(f"[DEBUG add_fields_to_sheet] Ключи: dst_keys={dst_keys}, src_keys={src_keys}")
+    logging.debug(f"[DEBUG add_fields_to_sheet] Режим: mode={mode}, multiply_rows={multiply_rows}")
+    if df_base is not None and isinstance(df_base, pd.DataFrame) and len(df_base) > 0:
+        logging.debug(f"[DEBUG add_fields_to_sheet] df_base колонки: {list(df_base.columns)}")
+        logging.debug(f"[DEBUG add_fields_to_sheet] df_base первые 3 строки:\n{df_base.head(3).to_string()}")
+    if df_ref is not None and isinstance(df_ref, pd.DataFrame) and len(df_ref) > 0:
+        logging.debug(f"[DEBUG add_fields_to_sheet] df_ref колонки: {list(df_ref.columns)}")
+        logging.debug(f"[DEBUG add_fields_to_sheet] df_ref первые 3 строки:\n{df_ref.head(3).to_string()}")
+
+
+
+
+
     def tuple_key(row, keys):
         # Гарантируем, что всегда возвращается кортеж скаляров, даже если ключ один
         if isinstance(keys, (list, tuple)):
@@ -2988,6 +3042,133 @@ def add_fields_to_sheet(df_base, df_ref, src_keys, dst_keys, columns, sheet_name
                 v = v.iloc[0]
             return (v,)
 
+    # --- Добавлено: авто-дополнение отсутствующих колонок и ключей ---
+    missing_cols = [col for col in columns if col not in df_ref.columns]
+    for col in missing_cols:
+        logging.warning("[add_fields_to_sheet] Колонка {column} не найдена в {sheet}, создаём пустую.".format(column=col, sheet=ref_sheet_name))
+        df_ref[col] = "-"
+
+    missing_keys = [k for k in src_keys if k not in df_ref.columns]
+    for k in missing_keys:
+        logging.warning("[add_fields_to_sheet] Ключевая колонка {key} не найдена в {sheet}, создаём пустую.".format(key=k, sheet=ref_sheet_name))
+        df_ref[k] = "-"
+
+    # ИСПРАВЛЕНИЕ: Проверка и создание отсутствующих ключевых колонок в df_base
+    missing_dst_keys = [k for k in dst_keys if k not in df_base.columns]
+    for k in missing_dst_keys:
+        logging.warning("[add_fields_to_sheet] Ключевая колонка {key} не найдена в {sheet}, создаём пустую.".format(key=k, sheet=sheet_name))
+        df_base[k] = "-"
+
+
+    if mode == "count":
+        # ОПТИМИЗАЦИЯ v5.0: Векторизованное создание ключей (3-5x быстрее)
+        new_keys = _vectorized_tuple_key(df_base, dst_keys)
+        group_counts = df_ref.groupby(src_keys).size()
+        
+        # Создаем словарь для сопоставления ключей
+        count_dict = {}
+        for key_tuple, count in group_counts.items():
+            count_dict[key_tuple] = count
+            
+        for col in columns:
+            count_col_name = f"{ref_sheet_name}=>COUNT_{col}"
+            # Если у нас один ключ, используем прямое сопоставление через Series
+            if len(src_keys) == 1:
+                # Для одного ключа нужно извлечь первый элемент из кортежей
+                new_keys_single = new_keys.apply(lambda x: x[0] if x and len(x) > 0 else None)
+                df_base[count_col_name] = new_keys_single.map(group_counts).fillna(0).astype(int)
+            else:
+                # Для составных ключей используем словарь
+                df_base[count_col_name] = new_keys.map(count_dict).fillna(0).astype(int)
+        logging.info("[END] {func} {params} (время: {time:.3f}s)".format(
+            func="add_fields_to_sheet",
+            params=f"(лист: {sheet_name}, mode: count, ключ: {dst_keys}->{src_keys})",
+            time=time() - func_start
+        ))
+        return df_base
+
+    # Создаем ключи для df_ref
+    # ОПТИМИЗАЦИЯ v5.0: Векторизованное создание ключей (3-5x быстрее)
+    df_ref_keys = _vectorized_tuple_key(df_ref, src_keys)
+
+    if not multiply_rows:
+        # Старая логика: первое найденное значение
+        # ОПТИМИЗАЦИЯ v5.0: Векторизованное создание ключей (3-5x быстрее)
+        new_keys = _vectorized_tuple_key(df_base, dst_keys)
+        
+        # Оптимизация: собираем все новые колонки в словарь и добавляем их одним вызовом
+        new_columns_dict = {}
+        for col in columns:
+            ref_map = dict(zip(df_ref_keys, df_ref[col]))
+            new_col_name = f"{ref_sheet_name}=>{col}"
+            new_columns_dict[new_col_name] = new_keys.map(ref_map).fillna("-")
+        
+        # Добавляем все колонки одним вызовом через pd.concat для избежания фрагментации
+        if new_columns_dict:
+            new_columns_df = pd.DataFrame(new_columns_dict, index=df_base.index)
+            df_base = pd.concat([df_base, new_columns_df], axis=1)
+        
+        # Специально для REWARD_LINK =>CONTEST_CODE: auto-rename, если создали с дефисом
+        for col in columns:
+            new_col_name = f"{ref_sheet_name}=>{col}"
+            if new_col_name.replace("-", "_").replace(" ", "") == COL_REWARD_LINK_CONTEST_CODE.replace("-", "_").replace(" ", ""):
+                candidates = [c for c in df_base.columns if
+                              c.replace("-", "_").replace(" ", "") == COL_REWARD_LINK_CONTEST_CODE.replace("-", "_").replace(" ", "")]
+                for cand in candidates:
+                    if cand != COL_REWARD_LINK_CONTEST_CODE:
+                        df_base = df_base.rename(columns={cand: COL_REWARD_LINK_CONTEST_CODE})
+    else:
+        # Новая логика: размножение строк при множественных совпадениях
+        logging.info("[MULTIPLY ROWS] {sheet}: начинаем размножение строк для поля {column}".format(sheet=sheet_name, column=columns))
+        result_rows = []
+        old_rows_count = len(df_base)
+
+        for base_idx, base_row in df_base.iterrows():
+            base_key = tuple_key(base_row, dst_keys)
+            # Находим все строки в df_ref с таким ключом
+            matching_ref_rows = df_ref[df_ref_keys == base_key]
+
+            if matching_ref_rows.empty:
+                # Нет совпадений - добавляем строку с пустыми значениями
+                new_row = base_row.copy()
+                for col in columns:
+                    new_col_name = f"{ref_sheet_name}=>{col}"
+                    new_row[new_col_name] = "-"
+                result_rows.append(new_row)
+            else:
+                # Есть совпадения - создаем строку для каждого совпадения
+                for ref_idx, ref_row in matching_ref_rows.iterrows():
+                    new_row = base_row.copy()
+                    for col in columns:
+                        new_col_name = f"{ref_sheet_name}=>{col}"
+                        new_row[new_col_name] = ref_row[col]
+                    result_rows.append(new_row)
+
+        # Создаем новый DataFrame из размноженных строк
+        df_base = pd.DataFrame(result_rows).reset_index(drop=True)
+        new_rows_count = len(df_base)
+        multiply_factor = round(new_rows_count / old_rows_count, 2) if old_rows_count > 0 else 0
+        logging.info("[MULTIPLY ROWS] {sheet}: {old_rows} строк -> {new_rows} строк (размножение: {multiply_factor}x)".format(
+            sheet=sheet_name, old_rows=old_rows_count, new_rows=new_rows_count, multiply_factor=multiply_factor
+        ))
+
+        # Обработка специального случая для REWARD_LINK
+        for col in columns:
+            new_col_name = f"{ref_sheet_name}=>{col}"
+            if new_col_name.replace("-", "_").replace(" ", "") == COL_REWARD_LINK_CONTEST_CODE.replace("-", "_").replace(" ", ""):
+                candidates = [c for c in df_base.columns if
+                              c.replace("-", "_").replace(" ", "") == COL_REWARD_LINK_CONTEST_CODE.replace("-", "_").replace(" ", "")]
+                for cand in candidates:
+                    if cand != COL_REWARD_LINK_CONTEST_CODE:
+                        df_base = df_base.rename(columns={cand: COL_REWARD_LINK_CONTEST_CODE})
+
+    logging.info("[END] {func} {params} (время: {time:.3f}s)".format(
+        func="add_fields_to_sheet",
+        params=f"(лист: {sheet_name}, поля: {columns}, ключ: {dst_keys}->{src_keys}, mode: {mode}, multiply: {multiply_rows})",
+        time=time() - func_start
+    ))
+
+    return df_base
 
 def _vectorized_tuple_key(df, keys):
     """
@@ -3013,57 +3194,10 @@ def _vectorized_tuple_key(df, keys):
         return df[keys].apply(lambda x: (x,))
 
     # --- Добавлено: авто-дополнение отсутствующих колонок и ключей ---
-    missing_cols = [col for col in columns if col not in df_ref.columns]
-    for col in missing_cols:
-        logging.warning("[add_fields_to_sheet] Колонка {column} не найдена в {sheet}, создаём пустую.".format(column=col, sheet=ref_sheet_name))
-        df_ref[col] = "-"
-
-    missing_keys = [k for k in src_keys if k not in df_ref.columns]
-    for k in missing_keys:
-        logging.warning("[add_fields_to_sheet] Ключевая колонка {key} не найдена в {sheet}, создаём пустую.".format(key=k, sheet=ref_sheet_name))
-        df_ref[k] = "-"
-
-    if mode == "count":
-        # ОПТИМИЗАЦИЯ v5.0: Векторизованное создание ключей (3-5x быстрее)
-        new_keys = _vectorized_tuple_key(df_base, dst_keys)
-        group_counts = df_ref.groupby(src_keys).size()
-        
-        # Создаем словарь для сопоставления ключей
-        # group_counts.items() возвращает (index, value), где index может быть строкой или кортежем
-        count_dict = {}
-        for key_tuple, count in group_counts.items():
-            count_dict[key_tuple] = count
-            
-        # Оптимизация: собираем все новые колонки в словарь и добавляем их одним вызовом
-        count_columns_dict = {}
-        for col in columns:
-            count_col_name = f"{ref_sheet_name}=>COUNT_{col}"
-            # Сопоставляем ключи и заполняем 0 для отсутствующих
-            # Используем прямое сопоставление через Series для правильной работы с индексами
-            # Исправляем сопоставление для правильной работы с разными типами ключей
-            # Если у нас один ключ, используем прямое сопоставление через Series
-            if len(src_keys) == 1:
-                # Для одного ключа нужно извлечь первый элемент из кортежей
-                new_keys_single = new_keys.apply(lambda x: x[0] if x and len(x) > 0 else None)
-                count_columns_dict[count_col_name] = new_keys_single.map(group_counts).fillna(0).astype(int)
-            else:
-                # Для составных ключей используем словарь
-                count_columns_dict[count_col_name] = new_keys.map(count_dict).fillna(0).astype(int)
-        
-        # Добавляем все колонки одним вызовом через pd.concat для избежания фрагментации
-        if count_columns_dict:
-            count_columns_df = pd.DataFrame(count_columns_dict, index=df_base.index)
-            df_base = pd.concat([df_base, count_columns_df], axis=1)
-        logging.info("[END] {func} {params} (время: {time:.3f}s)".format(
-            func="add_fields_to_sheet",
-            params=f"(лист: {sheet_name}, mode: count, ключ: {dst_keys}->{src_keys})",
-            time=time() - func_start
-        ))
-        return df_base
 
     # Создаем ключи для df_ref
     # ОПТИМИЗАЦИЯ v5.0: Векторизованное создание ключей (3-5x быстрее)
-        df_ref_keys = _vectorized_tuple_key(df_ref, src_keys)
+    df_ref_keys = _vectorized_tuple_key(df_ref, src_keys)
 
     if not multiply_rows:
         # Старая логика: первое найденное значение
@@ -3162,6 +3296,7 @@ def _vectorized_tuple_key(df, keys):
         params=f"(лист: {sheet_name}, поля: {columns}, ключ: {dst_keys}->{src_keys}, mode: {mode}, multiply: {multiply_rows})",
         time=time() - func_start
     ))
+
     return df_base
 
 
@@ -3192,6 +3327,21 @@ def _process_single_merge_rule(rule, sheets_data_copy):
     aggregate = rule.get("aggregate", None)
     
     updated_sheets = {}
+    logging.debug(f"[DEBUG _process_single_merge_rule] === НАЧАЛО === Правило: {sheet_src} -> {sheet_dst}")
+    logging.debug(f"[DEBUG _process_single_merge_rule] Поля: {col_names}, ключи: {dst_keys}->{src_keys}, mode={mode}")
+    if sheet_src in sheets_data_copy and sheets_data_copy[sheet_src] is not None:
+        df_src_check = sheets_data_copy[sheet_src][0] if len(sheets_data_copy[sheet_src]) > 0 else None
+        if df_src_check is not None and isinstance(df_src_check, pd.DataFrame):
+            logging.debug(f"[DEBUG _process_single_merge_rule] df_src ({sheet_src}): shape={df_src_check.shape}")
+        else:
+            logging.warning(f"[DEBUG _process_single_merge_rule] ⚠️  df_src ({sheet_src}) равен None!")
+    if sheet_dst in sheets_data_copy and sheets_data_copy[sheet_dst] is not None:
+        df_dst_check = sheets_data_copy[sheet_dst][0] if len(sheets_data_copy[sheet_dst]) > 0 else None
+        if df_dst_check is not None and isinstance(df_dst_check, pd.DataFrame):
+            logging.debug(f"[DEBUG _process_single_merge_rule] df_dst ({sheet_dst}): shape={df_dst_check.shape}")
+        else:
+            logging.warning(f"[DEBUG _process_single_merge_rule] ⚠️  df_dst ({sheet_dst}) равен None!")
+
     
     # ОПТИМИЗАЦИЯ v5.0: Проверка на существование листов и None (правильный порядок)
     if (sheet_src not in sheets_data_copy or sheet_dst not in sheets_data_copy):
@@ -3219,6 +3369,18 @@ def _process_single_merge_rule(rule, sheets_data_copy):
     df_dst = add_fields_to_sheet(df_dst, df_src_filtered, src_keys, dst_keys, col_names, sheet_dst, sheet_src, mode=mode,
                                  multiply_rows=multiply_rows)
     
+    # ИСПРАВЛЕНИЕ: Проверка на None после add_fields_to_sheet
+    if df_dst is None or not isinstance(df_dst, pd.DataFrame):
+        logging.error(f"[PARALLEL MERGE] add_fields_to_sheet вернул None для листа {sheet_dst}, используем исходный DataFrame")
+        df_dst = sheets_data_copy[sheet_dst][0].copy() if sheets_data_copy[sheet_dst][0] is not None else pd.DataFrame()
+    
+
+    logging.debug(f"[DEBUG _process_single_merge_rule] df_dst ПОСЛЕ add_fields_to_sheet: shape={df_dst.shape if df_dst is not None and isinstance(df_dst, pd.DataFrame) else "None"}")
+    if df_dst is not None and isinstance(df_dst, pd.DataFrame) and len(df_dst) > 0:
+        logging.debug(f"[DEBUG _process_single_merge_rule] df_dst колонки: {list(df_dst.columns)[:15]}...")
+    else:
+        logging.error(f"[DEBUG _process_single_merge_rule] ❌ ОШИБКА: df_dst стал None или пустым!")
+
     # Сохраняем информацию о ширине колонок
     if "added_columns_width" not in params_dst:
         params_dst["added_columns_width"] = {}
@@ -3277,6 +3439,18 @@ def _group_independent_rules(merge_fields):
 
 
 def merge_fields_across_sheets(sheets_data, merge_fields):
+    logging.debug(f"[DEBUG merge_fields_across_sheets] === НАЧАЛО === Правил для обработки: {len(merge_fields)}")
+    logging.debug(f"[DEBUG merge_fields_across_sheets] Доступные листы в sheets_data: {list(sheets_data.keys())}")
+    for sheet_name, sheet_data in sheets_data.items():
+        if sheet_data is not None and len(sheet_data) > 0:
+            df, params = sheet_data
+            if df is not None and isinstance(df, pd.DataFrame):
+                logging.debug(f"[DEBUG merge_fields_across_sheets] Лист {sheet_name}: shape={df.shape}, колонки={list(df.columns)[:10]}...")
+            else:
+                logging.debug(f"[DEBUG merge_fields_across_sheets] Лист {sheet_name}: DataFrame равен None")
+        else:
+            logging.debug(f"[DEBUG merge_fields_across_sheets] Лист {sheet_name}: sheet_data равен None или пуст")
+
     """
     Универсально добавляет поля по правилам из merge_fields
     (source_df -> target_df), поддержка mode value / count, multiply_rows.
@@ -3349,6 +3523,12 @@ def merge_fields_across_sheets(sheets_data, merge_fields):
             
             df_dst = add_fields_to_sheet(df_dst, df_src_filtered, src_keys, dst_keys, col_names, sheet_dst, sheet_src, mode=mode,
                                          multiply_rows=multiply_rows)
+            
+            # ИСПРАВЛЕНИЕ: Проверка на None после add_fields_to_sheet
+            if df_dst is None or not isinstance(df_dst, pd.DataFrame):
+                logging.error(f"[MERGE] add_fields_to_sheet вернул None для листа {sheet_dst}, используем исходный DataFrame")
+                df_dst = sheets_data[sheet_dst][0].copy() if sheets_data[sheet_dst][0] is not None else pd.DataFrame()
+            
 
             if "added_columns_width" not in params_dst:
                 params_dst["added_columns_width"] = {}
@@ -3366,6 +3546,13 @@ def merge_fields_across_sheets(sheets_data, merge_fields):
 
             sheets_data[sheet_dst] = (df_dst, params_dst)
             logging.info("[END] {func} {params} (время: {time:.3f}s)".format(func="merge_fields_across_sheets", params=params_str, time=0))
+    logging.debug(f"[DEBUG merge_fields_across_sheets] === КОНЕЦ === Результат:")
+    for sheet_name, sheet_data in sheets_data.items():
+        if sheet_data is not None and len(sheet_data) > 0:
+            df, params = sheet_data
+            if df is not None and isinstance(df, pd.DataFrame):
+                logging.debug(f"[DEBUG merge_fields_across_sheets] Лист {sheet_name}: shape={df.shape}, колонок={len(df.columns)}")
+
         else:
             # Несколько независимых правил - обрабатываем параллельно
             logging.info(f"[PARALLEL MERGE] Обработка группы из {len(rule_group)} независимых правил")
@@ -3798,11 +3985,24 @@ def compare_gender_results(df_old, df_new):
 
 
 def build_summary_sheet(dfs, params_summary, merge_fields):
+    logging.debug(f"[DEBUG build_summary_sheet] === НАЧАЛО === Доступные листы в dfs: {list(dfs.keys())}")
+    for sheet_name, df in dfs.items():
+        if df is not None and isinstance(df, pd.DataFrame):
+            logging.debug(f"[DEBUG build_summary_sheet] Лист {sheet_name}: shape={df.shape}, колонки={list(df.columns)[:10]}...")
+        else:
+            logging.debug(f"[DEBUG build_summary_sheet] Лист {sheet_name}: DataFrame равен None")
+    logging.debug(f"[DEBUG build_summary_sheet] Правил merge_fields: {len(merge_fields)}")
+
     func_start = time()
     params_log = f"(лист: {params_summary['sheet']})"
     logging.info("[START] {func} {params}".format(func="build_summary_sheet", params=params_log))
 
     summary = collect_summary_keys(dfs)
+    logging.debug(f"[DEBUG build_summary_sheet] После collect_summary_keys: summary shape={summary.shape if summary is not None and isinstance(summary, pd.DataFrame) else "None"}")
+    if summary is not None and isinstance(summary, pd.DataFrame) and len(summary) > 0:
+        logging.debug(f"[DEBUG build_summary_sheet] summary колонки: {list(summary.columns)}")
+        logging.debug(f"[DEBUG build_summary_sheet] summary первые 3 строки:\n{summary.head(3).to_string()}")
+
     
     # ОПТИМИЗАЦИЯ v5.0: Проверка на None
     if summary is None:
@@ -3852,6 +4052,13 @@ def build_summary_sheet(dfs, params_summary, merge_fields):
         params_str = f"(лист-источник: {sheet_src}, поля: {col_names}, ключ: {dst_keys}->{src_keys}, mode: {mode})"
         logging.info("[START] {func} {params}".format(func="add_fields_to_sheet", params=params_str))
         
+        logging.debug(f"[DEBUG build_summary_sheet] === MERGE {field_idx+1}/{len(merge_fields)} ===")
+        logging.debug(f"[DEBUG build_summary_sheet] Правило: sheet_src={sheet_src}, sheet_dst={params_summary["sheet"]}")
+        logging.debug(f"[DEBUG build_summary_sheet] Поля: {col_names}, ключи: {dst_keys}->{src_keys}, mode={mode}")
+        logging.debug(f"[DEBUG build_summary_sheet] summary ДО merge: shape={summary.shape if summary is not None and isinstance(summary, pd.DataFrame) else "None"}")
+        if summary is not None and isinstance(summary, pd.DataFrame) and len(summary) > 0:
+            logging.debug(f"[DEBUG build_summary_sheet] summary ДО merge первые 3 строки:\n{summary.head(3).to_string()}")
+
         # Детальное логирование для merge_fields с GROUP
         if sheet_src == "GROUP":
             for debug_code in DEBUG_CODES:
@@ -3863,6 +4070,10 @@ def build_summary_sheet(dfs, params_summary, merge_fields):
                     logging.info("[DEBUG SUMMARY] GROUP_VALUE: {}".format(debug_rows_before["GROUP_VALUE"].unique().tolist()))
         
         ref_df = dfs.get(sheet_src)
+        if ref_df is not None and isinstance(ref_df, pd.DataFrame):
+            logging.debug(f"[DEBUG build_summary_sheet] ref_df ({sheet_src}): shape={ref_df.shape}, колонки={list(ref_df.columns)[:10]}...")
+        else:
+            logging.warning(f"[DEBUG build_summary_sheet] ⚠️  ref_df ({sheet_src}) равен None!")
         if ref_df is None:
             logging.warning("Колонка {column} не добавлена: нет листа {src_sheet} или ключей {src_key}".format(
                 column=col_names, src_sheet=sheet_src, src_key=src_keys
@@ -3870,9 +4081,34 @@ def build_summary_sheet(dfs, params_summary, merge_fields):
             continue
 
         multiply_rows = field.get("multiply_rows", False)
-        summary = add_fields_to_sheet(summary, ref_df, src_keys, dst_keys, col_names, params_summary["sheet"],
-                                      sheet_src, mode=mode, multiply_rows=multiply_rows)
-        
+        try:
+            # ИСПРАВЛЕНИЕ: Сохраняем исходный summary перед merge
+            summary_before_merge = summary.copy() if summary is not None and isinstance(summary, pd.DataFrame) else None
+            
+            summary = add_fields_to_sheet(summary, ref_df, src_keys, dst_keys, col_names, params_summary["sheet"],
+                                          sheet_src, mode=mode, multiply_rows=multiply_rows)
+            
+            # ИСПРАВЛЕНИЕ: Логирование размера summary после каждого merge
+            if summary is None:
+                logging.error(f"[build_summary_sheet] КРИТИЧЕСКАЯ ОШИБКА: summary стал None после merge {field_idx+1}/{len(merge_fields)} с {sheet_src}!")
+                logging.error(f"[build_summary_sheet] Параметры merge: поля={col_names}, ключи={dst_keys}->{src_keys}, mode={mode}")
+                summary = summary_before_merge.copy() if summary_before_merge is not None else pd.DataFrame(columns=SUMMARY_KEY_COLUMNS)  # Восстанавливаем исходный summary
+
+            logging.debug(f"[DEBUG build_summary_sheet] summary ПОСЛЕ merge: shape={summary.shape if summary is not None and isinstance(summary, pd.DataFrame) else "None"}")
+            if summary is not None and isinstance(summary, pd.DataFrame) and len(summary) > 0:
+                logging.debug(f"[DEBUG build_summary_sheet] summary ПОСЛЕ merge первые 3 строки:\n{summary.head(3).to_string()}")
+            else:
+                logging.error(f"[DEBUG build_summary_sheet] ❌ КРИТИЧЕСКАЯ ОШИБКА: summary стал None или пустым после merge!")
+
+                logging.warning(f"[build_summary_sheet] Восстановлен исходный summary ({len(summary)} строк) после None merge с {sheet_src}")
+        except Exception as e:
+            logging.error(f"[build_summary_sheet] ОШИБКА при merge с {sheet_src}: {e}")
+            logging.error(f"[build_summary_sheet] Параметры: поля={col_names}, ключи={dst_keys}->{src_keys}, mode={mode}")
+            # Восстанавливаем исходный summary из сохраненной копии
+            summary = summary_before_merge.copy() if summary_before_merge is not None else pd.DataFrame(columns=SUMMARY_KEY_COLUMNS)
+            logging.warning(f"[build_summary_sheet] Восстановлен исходный summary ({len(summary)} строк) после ошибки merge с {sheet_src}")
+            # Продолжаем работу с остальными merge_fields
+            continue
         # Детальное логирование после merge_fields с GROUP
         if sheet_src == "GROUP":
             for debug_code in DEBUG_CODES:
@@ -3888,32 +4124,7 @@ def build_summary_sheet(dfs, params_summary, merge_fields):
                             row.get("CONTEST_CODE", ""), row.get("GROUP_CODE", ""), row.get("GROUP_VALUE", "")
                         ))
         
-        logging.info("[END] {func} {params} (время: {time:.3f}s)".format(func="add_fields_to_sheet", params=params_str, time=0))
 
-    # ОПТИМИЗАЦИЯ v5.0: Финальная проверка перед использованием shape
-    if summary is None or not isinstance(summary, pd.DataFrame):
-        logging.error("[build_summary_sheet] summary равен None после обработки merge_fields, создаем пустой DataFrame")
-        summary = pd.DataFrame(columns=SUMMARY_KEY_COLUMNS)
-    
-    n_rows, n_cols = summary.shape
-    func_time = time() - func_start
-    logging.info("Итоговая структура: {rows} строк, {cols} колонок".format(rows=n_rows, cols=n_cols))
-    logging.info("Лист Excel сформирован: {sheet} (строк: {rows}, колонок: {cols})".format(sheet=params_summary['sheet'], rows=n_rows, cols=n_cols))
-    
-    # Финальное логирование для отладки
-    for debug_code in DEBUG_CODES:
-        debug_rows = summary[summary["CONTEST_CODE"] == debug_code]
-        if not debug_rows.empty:
-            logging.info("[DEBUG SUMMARY] === ИТОГОВЫЙ Summary для CONTEST_CODE: {} ===".format(debug_code))
-            logging.info("[DEBUG SUMMARY] Всего строк: {}".format(len(debug_rows)))
-            logging.info("[DEBUG SUMMARY] Уникальные GROUP_CODE: {}".format(debug_rows["GROUP_CODE"].unique().tolist()))
-            logging.info("[DEBUG SUMMARY] Уникальные GROUP_VALUE: {}".format(debug_rows["GROUP_VALUE"].unique().tolist()))
-            logging.info("[DEBUG SUMMARY] Первые 5 строк:\n{}".format(debug_rows.head(5).to_string()))
-    
-    logging.info("[END] {func} {params} (время: {time:.3f}s)".format(func="build_summary_sheet", params=params_log, time=func_time))
-    logging.debug("[DEBUG] {sheet}: колонки после разворачивания: {columns}".format(sheet=params_summary["sheet"],
-                                                       columns=', '.join(summary.columns.tolist())))
-    logging.debug("[DEBUG] {sheet}: первые строки после разворачивания:{head}".format(sheet=params_summary["sheet"], head=summary.head(5).to_string()))
     return summary
 
 # === КОНСТАНТЫ ДЛЯ ПАРАЛЛЕЛЬНОЙ ОБРАБОТКИ ===
@@ -3923,8 +4134,6 @@ MAX_WORKERS_IO = min(16, (os.cpu_count() or 1) * 2)  # Для I/O операци
 MAX_WORKERS_CPU = min(8, os.cpu_count() or 1)  # Для CPU операций используем количество ядер
 # Обратная совместимость
 MAX_WORKERS = MAX_WORKERS_CPU  # По умолчанию используем CPU потоки
-
-
 
 def process_single_file(file_conf):
     """
@@ -4195,7 +4404,17 @@ def main():
         df_tournament, conf_tournament = sheets_data["TOURNAMENT-SCHEDULE"]
         df_contest = add_tournament_status_counts(df_contest, df_tournament)
         sheets_data["CONTEST-DATA"] = (df_contest, conf_contest)
-
+    
+    # ИСПРАВЛЕНИЕ: Сохраняем копию sheets_data ДО merge для collect_summary_keys
+    # Это гарантирует доступность всех исходных данных для SUMMARY
+    sheets_data_before_merge = {}
+    for k, v in sheets_data.items():
+        if v is not None and len(v) > 0:
+            df_copy = v[0].copy() if v[0] is not None else None
+            sheets_data_before_merge[k] = (df_copy, v[1])
+        else:
+            sheets_data_before_merge[k] = None
+    
     # 5. Merge fields (только после полного разворота JSON)
     # Сначала применяем обычные правила MERGE_FIELDS
     merge_fields_across_sheets(
@@ -4221,18 +4440,29 @@ def main():
     
     logging.info("Параллельная проверка на дубликаты завершена")
     # 7. Формирование итогового Summary (build_summary_sheet)
-    # ОПТИМИЗАЦИЯ v5.0: Фильтруем None значения при создании dfs
+    # ИСПРАВЛЕНИЕ: Используем исходные данные ДО merge для collect_summary_keys
+    # Это гарантирует, что все листы доступны для формирования SUMMARY
     dfs = {}
-    for k, v in sheets_data.items():
+    for k, v in sheets_data_before_merge.items():
         if v is not None and len(v) > 0 and v[0] is not None:
             dfs[k] = v[0]
         else:
-            logging.warning(f"[main] Пропущен лист {k}: данные равны None")
+            logging.warning(f"[main] Пропущен лист {k} в исходных данных: данные равны None")
     df_summary = build_summary_sheet(
         dfs,
         params_summary=SUMMARY_SHEET,
         merge_fields=[f for f in MERGE_FIELDS if f.get("sheet_dst") == "SUMMARY"]
     )
+    # ОПТИМИЗАЦИЯ v5.0: Проверка df_summary на None
+    if df_summary is None or not isinstance(df_summary, pd.DataFrame):
+        logging.error("[main] КРИТИЧЕСКАЯ ОШИБКА: df_summary равен None или не DataFrame после build_summary_sheet!")
+        logging.error("[main] Создаем пустой DataFrame для SUMMARY")
+        df_summary = pd.DataFrame(columns=SUMMARY_KEY_COLUMNS)
+    elif len(df_summary) == 0:
+        logging.warning("[main] df_summary пустой после build_summary_sheet, но продолжаем работу")
+    else:
+        logging.info(f"[main] df_summary успешно создан: {len(df_summary)} строк, {len(df_summary.columns)} колонок")
+
     sheets_data[SUMMARY_SHEET["sheet"]] = (df_summary, SUMMARY_SHEET)
     
     # 8. Запись в Excel
