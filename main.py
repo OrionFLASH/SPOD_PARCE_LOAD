@@ -164,7 +164,7 @@ DIR_LOGS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "LOGS")    #
 # - min_col_width: минимальная ширина колонки
 INPUT_FILES = [
     {
-        "file": "CONTEST (PROM) 19-01 v1",  # Файл с данными конкурсов
+        "file": "CONTEST (PROM) 29-01 v0",  # Файл с данными конкурсов
         "sheet": "CONTEST-DATA",                        # Лист для обработки
         "max_col_width": 120,                          # Максимальная ширина колонки
         "freeze": "C2",                                # Закрепление области
@@ -172,7 +172,7 @@ INPUT_FILES = [
         "min_col_width": 12                             # Минимальная ширина колонки
     },
     {
-        "file": "GROUP (PROM) 19-01 v1",            # Файл с данными групп
+        "file": "GROUP (PROM) 29-01 v0",            # Файл с данными групп
         "sheet": "GROUP",                              # Лист для обработки
         "max_col_width": 20,                           # Максимальная ширина колонки
         "freeze": "C2",                                # Закрепление области
@@ -180,7 +180,7 @@ INPUT_FILES = [
         "min_col_width": 8                             # Минимальная ширина колонки
     },
     {
-        "file": "INDICATOR (PROM) 19-01 v1",        # Файл с индикаторами
+        "file": "INDICATOR (PROM) 29-01 v0",        # Файл с индикаторами
         "sheet": "INDICATOR",                          # Лист для обработки
         "max_col_width": 100,                           # Максимальная ширина колонки
         "freeze": "B2",                                # Закрепление области
@@ -188,7 +188,7 @@ INPUT_FILES = [
         "min_col_width": 8                             # Минимальная ширина колонки
     },
     {
-        "file": "REPORT (PROM) 19-01 v1", # Файл с отчетами
+        "file": "REPORT (PROM) 28-01 v0", # Файл с отчетами
         "sheet": "REPORT",                             # Лист для обработки
         "max_col_width": 25,                           # Максимальная ширина колонки
         "freeze": "D2",                                # Закрепление области
@@ -196,7 +196,7 @@ INPUT_FILES = [
         "min_col_width": 10                             # Минимальная ширина колонки
     },
     {
-        "file": "REWARD (PROM) 19-01 v2",        # Файл с наградами
+        "file": "REWARD (PROM) 29-01 v0",        # Файл с наградами
         "sheet": "REWARD",                             # Лист для обработки
         "max_col_width": 200,                          # Максимальная ширина колонки (большая для длинных описаний)
         "freeze": "D2",                                # Закрепление области
@@ -204,7 +204,7 @@ INPUT_FILES = [
         "min_col_width": 10                             # Минимальная ширина колонки
     },
     {
-        "file": "REWARD-LINK (PROM) 19-01 v1",      # Файл со связями наград
+        "file": "REWARD-LINK (PROM) 29-01 v0",      # Файл со связями наград
         "sheet": "REWARD-LINK",                        # Лист для обработки
         "max_col_width": 30,                           # Максимальная ширина колонки
         "freeze": "A2",                                # Закрепление области
@@ -220,7 +220,7 @@ INPUT_FILES = [
         "min_col_width": 10                             # Минимальная ширина колонки
     },
     {
-        "file": "SCHEDULE (PROM) 19-01 v2", # Файл с расписанием турниров
+        "file": "SCHEDULE (PROM) 29-01 v0", # Файл с расписанием турниров
         "sheet": "TOURNAMENT-SCHEDULE",                # Лист для обработки
         "max_col_width": 120,                          # Максимальная ширина колонки
         "freeze": "B2",                                # Закрепление области
@@ -2322,7 +2322,7 @@ def flatten_json_column_recursive(df, column, prefix=None, sheet=None, sep="; ")
             for k, v in flat.items():
                 if k not in new_cols:
                     new_cols[k] = [None] * n_rows
-                new_cols[k][idx] = val
+                new_cols[k][idx] = v
     # Оставлять только реально созданные колонки (не пустые)
     for col_name, values in new_cols.items():
         if any(x is not None for x in values):
@@ -4405,16 +4405,6 @@ def main():
         df_contest = add_tournament_status_counts(df_contest, df_tournament)
         sheets_data["CONTEST-DATA"] = (df_contest, conf_contest)
     
-    # ИСПРАВЛЕНИЕ: Сохраняем копию sheets_data ДО merge для collect_summary_keys
-    # Это гарантирует доступность всех исходных данных для SUMMARY
-    sheets_data_before_merge = {}
-    for k, v in sheets_data.items():
-        if v is not None and len(v) > 0:
-            df_copy = v[0].copy() if v[0] is not None else None
-            sheets_data_before_merge[k] = (df_copy, v[1])
-        else:
-            sheets_data_before_merge[k] = None
-    
     # 5. Merge fields (только после полного разворота JSON)
     # Сначала применяем обычные правила MERGE_FIELDS
     merge_fields_across_sheets(
@@ -4440,14 +4430,9 @@ def main():
     
     logging.info("Параллельная проверка на дубликаты завершена")
     # 7. Формирование итогового Summary (build_summary_sheet)
-    # ИСПРАВЛЕНИЕ: Используем исходные данные ДО merge для collect_summary_keys
-    # Это гарантирует, что все листы доступны для формирования SUMMARY
-    dfs = {}
-    for k, v in sheets_data_before_merge.items():
-        if v is not None and len(v) > 0 and v[0] is not None:
-            dfs[k] = v[0]
-        else:
-            logging.warning(f"[main] Пропущен лист {k} в исходных данных: данные равны None")
+    # Как в base main.py: используем данные ПОСЛЕ merge и ПОСЛЕ check_duplicates,
+    # чтобы колонки и содержимое SUMMARY (и всех листов) совпадали с верным файлом.
+    dfs = {k: v[0] for k, v in sheets_data.items()}
     df_summary = build_summary_sheet(
         dfs,
         params_summary=SUMMARY_SHEET,
