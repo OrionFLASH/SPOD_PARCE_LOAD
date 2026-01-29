@@ -956,113 +956,145 @@ MERGE_FIELDS = [
     }
 ]
 
-# === ДОПОЛНИТЕЛЬНЫЕ ПРАВИЛА ДЛЯ CONTEST-DATA ===
-# Добавляем поля с суммой по статусам из TOURNAMENT-SCHEDULE
+# === ДОПОЛНИТЕЛЬНЫЕ ПРАВИЛА ДЛЯ CONTEST-DATA (MERGE_FIELDS_ADVANCED) ===
+#
+# Описание параметров правила (все параметры и возможные значения):
+#
+# sheet_src (str) — имя листа-источника. Откуда берутся данные (например "TOURNAMENT-SCHEDULE").
+# sheet_dst (str) — имя листа-назначения. Куда добавляются поля (например "CONTEST-DATA").
+#
+# src_key (list[str]) — ключевые колонки в листе-источнике для связывания. Варианты: ["CONTEST_CODE"], ["CONTEST_CODE", "TOURNAMENT_CODE"] и т.д.
+# dst_key (list[str]) — ключевые колонки в листе-назначении. Должны совпадать по смыслу с src_key (сопоставление по ним).
+#
+# column (list[str]) — имена колонок из sheet_src, которые подтягиваются или по которым считается агрегат.
+#   При mode="value" — эти колонки копируются в sheet_dst (имена в результате: sheet_src=>col).
+#   При mode="count" без count_label — имя колонки в результате: sheet_src=>COUNT_<col> (или COUNT_SELECT_<col>).
+#   При mode="count" с count_label — column задаёт поле для nunique (если count_aggregation="nunique"); имя колонки не из column, а из count_label.
+#
+# mode (str) — режим добавления. Варианты:
+#   "value" — подтянуть значения из sheet_src в sheet_dst по ключу (первое совпадение или размножение строк при multiply_rows=True).
+#   "count"  — добавить количество: по ключу считается агрегат (size или nunique) и записывается в новую колонку.
+#
+# multiply_rows (bool) — при True для mode="value" строки в sheet_dst размножаются по числу совпадений в sheet_src; при False берётся первое совпадение.
+#
+# col_max_width (int|None) — максимальная ширина колонки в Excel. Варианты: число (например 15) или None.
+# col_width_mode (str|int) — режим ширины. Варианты: "AUTO" (авто по содержимому), число (фиксированная ширина в символах).
+# col_min_width (int) — минимальная ширина колонки в Excel (например 8).
+#
+# count_aggregation (str) — только для mode="count". Варианты:
+#   "size"   — считать число строк по ключу (groupby(...).size()).
+#   "nunique" — считать число уникальных значений по первой колонке из column (groupby(...)[col].nunique()).
+#   Имя колонки в результате при заданном count_label: sheet_src=>COUNT_<count_aggregation>_<count_label>.
+#
+# count_label (str|None) — только для mode="count". Короткое имя для колонки (например "ACTIVE", "DELETED").
+#   Если задано — создаётся одна колонка с именем sheet_src=>COUNT_<count_aggregation>_<count_label>; иначе используется column для имени (COUNT_<col>).
+#
+# status_filters (dict|None) — фильтр по статусам перед расчётом. Формат: { "ИМЯ_КОЛОНКИ": [ "значение1", "значение2" ] }.
+#   Оставляются только строки, у которых в указанной колонке значение из списка. Пример: {"TOURNAMENT_STATUS": ["УДАЛЕН"]}.
+#
+# custom_conditions (dict|None) — дополнительные условия фильтрации. Формат: { "колонка": условие }.
+#   Условие: список допустимых значений (isin), callable (предикат от значения) или одно значение (равенство).
+#
+# group_by (list|None) — список колонок для группировки в sheet_src перед добавлением. Если задан вместе с aggregate — сначала группировка, потом агрегация.
+# aggregate (dict|None) — агрегации после group_by. Формат: { "колонка": "sum"|"count"|"avg"|"max"|"min" }. Используется при необходимости сводных расчётов.
+#
+# Что получаем: в sheet_dst добавляются новые колонки (значения или счётчики по ключу), без перезаписи существующих колонок.
 
 MERGE_FIELDS_ADVANCED = [
-    # CONTEST-DATA: добавляем количество турниров по статусам
+    # CONTEST-DATA: количество турниров по статусам (nunique). Имя: TOURNAMENT-SCHEDULE=>COUNT_nunique_ACTIVE
     {
-        "sheet_src": "TOURNAMENT-SCHEDULE", # Источник - расписание турниров
-        "sheet_dst": "CONTEST-DATA",        # Цель - данные конкурсов
-        "src_key": ["CONTEST_CODE"],        # Ключ - код конкурса
-        "dst_key": ["CONTEST_CODE"],        # Ключ - код конкурса
-        "column": ["TOURNAMENT_CODE"],      # Колонка для подсчета
-        "mode": "count",                    # Режим подсчета
-        "multiply_rows": False,             # Не размножаем строки
-        "col_max_width": 15,               # Максимальная ширина
-        "col_width_mode": "AUTO",          # Автоматическое растягивание
-        "col_min_width": 8,                # Минимальная ширина
-        # Новые параметры:
-        "status_filters": {                 # Фильтрация по статусам
-            "TOURNAMENT_STATUS": ["АКТИВНЫЙ"] # Только активные турниры
-        },
-        "custom_conditions": None,          # Без дополнительных условий
-        "group_by": None,                   # Без группировки
-        "aggregate": None                   # Без агрегации
+        "sheet_src": "TOURNAMENT-SCHEDULE",
+        "sheet_dst": "CONTEST-DATA",
+        "src_key": ["CONTEST_CODE"],
+        "dst_key": ["CONTEST_CODE"],
+        "column": ["TOURNAMENT_CODE"],
+        "mode": "count",
+        "multiply_rows": False,
+        "col_max_width": 15,
+        "col_width_mode": "AUTO",
+        "col_min_width": 8,
+        "count_aggregation": "nunique",
+        "count_label": "ACTIVE",
+        "status_filters": {"TOURNAMENT_STATUS": ["АКТИВНЫЙ"]},
+        "custom_conditions": None,
+        "group_by": None,
+        "aggregate": None
     },
     
-    # CONTEST-DATA: добавляем количество завершенных турниров
     {
-        "sheet_src": "TOURNAMENT-SCHEDULE", # Источник - расписание турниров
-        "sheet_dst": "CONTEST-DATA",        # Цель - данные конкурсов
-        "src_key": ["CONTEST_CODE"],        # Ключ - код конкурса
-        "dst_key": ["CONTEST_CODE"],        # Ключ - код конкурса
-        "column": ["TOURNAMENT_CODE"],      # Колонка для подсчета
-        "mode": "count",                    # Режим подсчета
-        "multiply_rows": False,             # Не размножаем строки
-        "col_max_width": 15,               # Максимальная ширина
-        "col_width_mode": "AUTO",          # Автоматическое растягивание
-        "col_min_width": 8,                # Минимальная ширина
-        # Новые параметры:
-        "status_filters": {                 # Фильтрация по статусам
-            "TOURNAMENT_STATUS": ["ЗАВЕРШЕН"] # Только завершенные турниры
-        },
-        "custom_conditions": None,          # Без дополнительных условий
-        "group_by": None,                   # Без группировки
-        "aggregate": None                   # Без агрегации
+        "sheet_src": "TOURNAMENT-SCHEDULE",
+        "sheet_dst": "CONTEST-DATA",
+        "src_key": ["CONTEST_CODE"],
+        "dst_key": ["CONTEST_CODE"],
+        "column": ["TOURNAMENT_CODE"],
+        "mode": "count",
+        "multiply_rows": False,
+        "col_max_width": 15,
+        "col_width_mode": "AUTO",
+        "col_min_width": 8,
+        "count_aggregation": "nunique",
+        "count_label": "COMPLETED",
+        "status_filters": {"TOURNAMENT_STATUS": ["ЗАВЕРШЕН"]},
+        "custom_conditions": None,
+        "group_by": None,
+        "aggregate": None
     },
     
-    # CONTEST-DATA: добавляем количество отмененных турниров
     {
-        "sheet_src": "TOURNAMENT-SCHEDULE", # Источник - расписание турниров
-        "sheet_dst": "CONTEST-DATA",        # Цель - данные конкурсов
-        "src_key": ["CONTEST_CODE"],        # Ключ - код конкурса
-        "dst_key": ["CONTEST_CODE"],        # Ключ - код конкурса
-        "column": ["TOURNAMENT_CODE"],      # Колонка для подсчета
-        "mode": "count",                    # Режим подсчета
-        "multiply_rows": False,             # Не размножаем строки
-        "col_max_width": 15,               # Максимальная ширина
-        "col_width_mode": "AUTO",          # Автоматическое растягивание
-        "col_min_width": 8,                # Минимальная ширина
-        # Новые параметры:
-        "status_filters": {                 # Фильтрация по статусам
-            "TOURNAMENT_STATUS": ["ОТМЕНЕН"] # Только отмененные турниры
-        },
-        "custom_conditions": None,          # Без дополнительных условий
-        "group_by": None,                   # Без группировки
-        "aggregate": None                   # Без агрегации
+        "sheet_src": "TOURNAMENT-SCHEDULE",
+        "sheet_dst": "CONTEST-DATA",
+        "src_key": ["CONTEST_CODE"],
+        "dst_key": ["CONTEST_CODE"],
+        "column": ["TOURNAMENT_CODE"],
+        "mode": "count",
+        "multiply_rows": False,
+        "col_max_width": 15,
+        "col_width_mode": "AUTO",
+        "col_min_width": 8,
+        "count_aggregation": "nunique",
+        "count_label": "CANCELLED",
+        "status_filters": {"TOURNAMENT_STATUS": ["ОТМЕНЕН"]},
+        "custom_conditions": None,
+        "group_by": None,
+        "aggregate": None
     },
     
-    # CONTEST-DATA: добавляем количество турниров в подведении итогов
     {
-        "sheet_src": "TOURNAMENT-SCHEDULE", # Источник - расписание турниров
-        "sheet_dst": "CONTEST-DATA",        # Цель - данные конкурсов
-        "src_key": ["CONTEST_CODE"],        # Ключ - код конкурса
-        "dst_key": ["CONTEST_CODE"],        # Ключ - код конкурса
-        "column": ["TOURNAMENT_CODE"],      # Колонка для подсчета
-        "mode": "count",                    # Режим подсчета
-        "multiply_rows": False,             # Не размножаем строки
-        "col_max_width": 15,               # Максимальная ширина
-        "col_width_mode": "AUTO",          # Автоматическое растягивание
-        "col_min_width": 8,                # Минимальная ширина
-        # Новые параметры:
-        "status_filters": {                 # Фильтрация по статусам
-            "TOURNAMENT_STATUS": ["ПОДВЕДЕНИЕ ИТОГОВ"] # Только в подведении итогов
-        },
-        "custom_conditions": None,          # Без дополнительных условий
-        "group_by": None,                   # Без группировки
-        "aggregate": None                   # Без агрегации
+        "sheet_src": "TOURNAMENT-SCHEDULE",
+        "sheet_dst": "CONTEST-DATA",
+        "src_key": ["CONTEST_CODE"],
+        "dst_key": ["CONTEST_CODE"],
+        "column": ["TOURNAMENT_CODE"],
+        "mode": "count",
+        "multiply_rows": False,
+        "col_max_width": 15,
+        "col_width_mode": "AUTO",
+        "col_min_width": 8,
+        "count_aggregation": "nunique",
+        "count_label": "SUMMING_UP",
+        "status_filters": {"TOURNAMENT_STATUS": ["ПОДВЕДЕНИЕ ИТОГОВ"]},
+        "custom_conditions": None,
+        "group_by": None,
+        "aggregate": None
     },
     
-    # CONTEST-DATA: добавляем количество удаленных турниров
     {
-        "sheet_src": "TOURNAMENT-SCHEDULE", # Источник - расписание турниров
-        "sheet_dst": "CONTEST-DATA",        # Цель - данные конкурсов
-        "src_key": ["CONTEST_CODE"],        # Ключ - код конкурса
-        "dst_key": ["CONTEST_CODE"],        # Ключ - код конкурса
-        "column": ["TOURNAMENT_CODE"],  # Имя колонки для подсчёта только удалённых (не перезаписывает COUNT_TOURNAMENT_CODE)
-        "mode": "count",                    # Режим подсчета
-        "multiply_rows": False,             # Не размножаем строки
-        "col_max_width": 15,               # Максимальная ширина
-        "col_width_mode": "AUTO",          # Автоматическое растягивание
-        "col_min_width": 8,                # Минимальная ширина
-        # Новые параметры:
-        "status_filters": {                 # Фильтрация по статусам
-            "TOURNAMENT_STATUS": ["УДАЛЕН"] # Только удаленные турниры
-        },
-        "custom_conditions": None,          # Без дополнительных условий
-        "group_by": None,                   # Без группировки
-        "aggregate": None                   # Без агрегации
+        "sheet_src": "TOURNAMENT-SCHEDULE",
+        "sheet_dst": "CONTEST-DATA",
+        "src_key": ["CONTEST_CODE"],
+        "dst_key": ["CONTEST_CODE"],
+        "column": ["TOURNAMENT_CODE"],
+        "mode": "count",
+        "multiply_rows": False,
+        "col_max_width": 15,
+        "col_width_mode": "AUTO",
+        "col_min_width": 8,
+        "count_aggregation": "nunique",
+        "count_label": "DELETED",
+        "status_filters": {"TOURNAMENT_STATUS": ["УДАЛЕН"]},
+        "custom_conditions": None,
+        "group_by": None,
+        "aggregate": None
     }
 ]
 
@@ -2977,80 +3009,14 @@ def mark_duplicates(df, key_cols, sheet_name=None):
     return df
 
 
-def add_tournament_status_counts(df_contest, df_tournament):
-    """
-    Добавляет к df_contest колонки с количеством турниров по каждому статусу.
-    
-    Эта функция анализирует статусы турниров и подсчитывает количество турниров
-    для каждого конкурса по каждому статусу отдельно.
-    
-    Args:
-        df_contest (pd.DataFrame): DataFrame с данными конкурсов (должен содержать CONTEST_CODE)
-        df_tournament (pd.DataFrame): DataFrame с расписанием турниров (должен содержать CONTEST_CODE, TOURNAMENT_CODE, TOURNAMENT_STATUS)
-        
-    Returns:
-        pd.DataFrame: DataFrame с добавленными колонками статусов турниров
-    """
-    func_start = time()
-    logging.info("[START] {func} {params}".format(
-        func="add_tournament_status_counts",
-        params=f"(contest_rows: {len(df_contest)}, tournament_rows: {len(df_tournament)})"
-    ))
-    
-    # Создаем копию DataFrame для безопасной работы
-    df_result = df_contest.copy()
-    
-    # Получаем уникальные статусы турниров (исключаем пустые значения)
-    unique_statuses = df_tournament['TOURNAMENT_STATUS'].dropna().unique()
-    
-    # Сортируем статусы для предсказуемого порядка колонок
-    unique_statuses = sorted([status for status in unique_statuses if status.strip()])
-    
-    logging.info("[TOURNAMENT STATUS COUNTS] Найдено статусов: {count} - {statuses}".format(count=len(unique_statuses), statuses=unique_statuses))
-    
-    # Для каждого статуса подсчитываем количество уникальных турниров по CONTEST_CODE
-    for status in unique_statuses:
-        # Фильтруем турниры по статусу
-        status_df = df_tournament[df_tournament['TOURNAMENT_STATUS'] == status]
-        
-        if len(status_df) == 0:
-            # Если нет турниров с таким статусом - все конкурсы получают 0
-            col_name = f"TOURNAMENT_COUNT_{status.upper()}"
-            df_result[col_name] = 0
-            logging.debug("[TOURNAMENT STATUS COUNTS] Статус '{status}': {contests} конкурсов, {tournaments} турниров".format(status=status, contests=0, tournaments=0))
-            continue
-        
-        # Подсчитываем количество уникальных турниров для каждого конкурса
-        status_counts = status_df.groupby('CONTEST_CODE')['TOURNAMENT_CODE'].nunique().to_dict()
-        
-        # Добавляем колонку с количеством турниров данного статуса
-        col_name = f"TOURNAMENT_COUNT_{status.upper()}"
-        df_result[col_name] = df_result['CONTEST_CODE'].map(status_counts).fillna(0).astype(int)
-        
-        # Логируем статистику для этого статуса
-        total_tournaments = status_counts.values()
-        total_contests = len(status_counts)
-        logging.debug("[TOURNAMENT STATUS COUNTS] Статус '{status}': {contests} конкурсов, {tournaments} турниров".format(status=status, contests=total_contests, tournaments=sum(total_tournaments)))
-    
-    # Логируем итоговую статистику
-    func_time = time() - func_start
-    added_columns = [f"TOURNAMENT_COUNT_{status.upper()}" for status in unique_statuses]
-    logging.info("[TOURNAMENT STATUS COUNTS] Добавлено колонок: {count} - {columns}".format(count=len(added_columns), columns=added_columns))
-    logging.info("[END] {func} {params} (время: {time:.3f}s)".format(
-        func="add_tournament_status_counts",
-        params=f"(добавлено колонок: {len(added_columns)})",
-        time=func_time
-    ))
-    
-    return df_result
-
-
 def add_fields_to_sheet(df_base, df_ref, src_keys, dst_keys, columns, sheet_name, ref_sheet_name, mode="value",
-                        multiply_rows=False, count_prefix="COUNT"):
+                        multiply_rows=False, count_prefix="COUNT", count_aggregation="size", count_label=None):
     """
     Добавляет к df_base поля из df_ref по ключам.
     Если mode == "value": подтягивает значения (первого найденного или всех при multiply_rows=True).
-    Если mode == "count": добавляет количество строк в df_ref по каждому ключу.
+    Если mode == "count": добавляет количество по каждому ключу.
+      count_aggregation: "size" — число строк, "nunique" — число уникальных значений (по первой колонке из columns).
+      count_label: если задан, создаётся одна колонка с именем ref_sheet_name=>COUNT_{count_aggregation}_{count_label}.
     Если multiply_rows == True: при множественных совпадениях размножает строки в df_base.
     Если multiply_rows == False: берет первое найденное значение (по умолчанию).
     Если нужной колонки нет — создаёт её с дефолтными значениями "-".
@@ -3067,10 +3033,15 @@ def add_fields_to_sheet(df_base, df_ref, src_keys, dst_keys, columns, sheet_name
     if df_ref is None or (isinstance(df_ref, pd.DataFrame) and df_ref.empty):
         logging.warning(f"[add_fields_to_sheet] Лист {ref_sheet_name} пустой или None, пропускаем добавление полей")
         # Добавляем пустые колонки с дефолтными значениями "-"
-        for col in columns:
-            new_col_name = f"{ref_sheet_name}=>{count_prefix}_{col}" if mode == "count" else f"{ref_sheet_name}=>{col}"
+        if mode == "count" and count_label is not None:
+            new_col_name = f"{ref_sheet_name}=>COUNT_{count_aggregation}_{count_label}"
             if new_col_name not in df_base.columns:
                 df_base[new_col_name] = "-"
+        else:
+            for col in columns:
+                new_col_name = f"{ref_sheet_name}=>{count_prefix}_{col}" if mode == "count" else f"{ref_sheet_name}=>{col}"
+                if new_col_name not in df_base.columns:
+                    df_base[new_col_name] = "-"
         logging.info("[END] {func} {params} (время: {time:.3f}s)".format(
             func="add_fields_to_sheet",
             params=f"(лист: {sheet_name}, поля: {columns}, ключ: {dst_keys}->{src_keys}, mode: {mode}, multiply: {multiply_rows})",
@@ -3133,26 +3104,36 @@ def add_fields_to_sheet(df_base, df_ref, src_keys, dst_keys, columns, sheet_name
     if mode == "count":
         # ОПТИМИЗАЦИЯ v5.0: Векторизованное создание ключей (3-5x быстрее)
         new_keys = _vectorized_tuple_key(df_base, dst_keys)
-        group_counts = df_ref.groupby(src_keys).size()
+        if count_aggregation == "nunique":
+            col_to_count = columns[0] if columns else None
+            if col_to_count and col_to_count in df_ref.columns:
+                group_counts = df_ref.groupby(src_keys)[col_to_count].nunique()
+            else:
+                group_counts = df_ref.groupby(src_keys).size()
+        else:
+            group_counts = df_ref.groupby(src_keys).size()
         
-        # Создаем словарь для сопоставления ключей
-        count_dict = {}
-        for key_tuple, count in group_counts.items():
-            count_dict[key_tuple] = count
-            
-        for col in columns:
-            count_col_name = f"{ref_sheet_name}=>{count_prefix}_{col}"
-            # Если у нас один ключ, используем прямое сопоставление через Series
+        count_dict = {key_tuple: count for key_tuple, count in group_counts.items()}
+        
+        if count_label is not None:
+            # Одна колонка с именем COUNT_{count_aggregation}_{count_label}
+            count_col_name = f"{ref_sheet_name}=>COUNT_{count_aggregation}_{count_label}"
             if len(src_keys) == 1:
-                # Для одного ключа нужно извлечь первый элемент из кортежей
                 new_keys_single = new_keys.apply(lambda x: x[0] if x and len(x) > 0 else None)
                 df_base[count_col_name] = new_keys_single.map(group_counts).fillna(0).astype(int)
             else:
-                # Для составных ключей используем словарь
                 df_base[count_col_name] = new_keys.map(count_dict).fillna(0).astype(int)
+        else:
+            for col in columns:
+                count_col_name = f"{ref_sheet_name}=>{count_prefix}_{col}"
+                if len(src_keys) == 1:
+                    new_keys_single = new_keys.apply(lambda x: x[0] if x and len(x) > 0 else None)
+                    df_base[count_col_name] = new_keys_single.map(group_counts).fillna(0).astype(int)
+                else:
+                    df_base[count_col_name] = new_keys.map(count_dict).fillna(0).astype(int)
         logging.info("[END] {func} {params} (время: {time:.3f}s)".format(
             func="add_fields_to_sheet",
-            params=f"(лист: {sheet_name}, mode: count, ключ: {dst_keys}->{src_keys})",
+            params=f"(лист: {sheet_name}, mode: count, agg: {count_aggregation}, ключ: {dst_keys}->{src_keys})",
             time=time() - func_start
         ))
         return df_base
@@ -3396,6 +3377,8 @@ def _process_single_merge_rule(rule, sheets_data_copy, count_column_prefix="COUN
     custom_conditions = rule.get("custom_conditions", None)
     group_by = rule.get("group_by", None)
     aggregate = rule.get("aggregate", None)
+    count_aggregation = rule.get("count_aggregation", "size")
+    count_label = rule.get("count_label", None)
     
     updated_sheets = {}
     logging.debug(f"[DEBUG _process_single_merge_rule] === НАЧАЛО === Правило: {sheet_src} -> {sheet_dst}")
@@ -3438,7 +3421,8 @@ def _process_single_merge_rule(rule, sheets_data_copy, count_column_prefix="COUN
     
     # Вызываем основную функцию добавления полей
     df_dst = add_fields_to_sheet(df_dst, df_src_filtered, src_keys, dst_keys, col_names, sheet_dst, sheet_src, mode=mode,
-                                 multiply_rows=multiply_rows, count_prefix=count_column_prefix)
+                                 multiply_rows=multiply_rows, count_prefix=count_column_prefix,
+                                 count_aggregation=count_aggregation, count_label=count_label)
     
     # ИСПРАВЛЕНИЕ: Проверка на None после add_fields_to_sheet
     if df_dst is None or not isinstance(df_dst, pd.DataFrame):
@@ -3456,15 +3440,23 @@ def _process_single_merge_rule(rule, sheets_data_copy, count_column_prefix="COUN
     if "added_columns_width" not in params_dst:
         params_dst["added_columns_width"] = {}
     
-    for col in col_names:
-        new_col_name = f"{sheet_src}=>{col}"
-        if mode == "count":
-            new_col_name = f"{sheet_src}=>{count_column_prefix}_{col}"
+    if mode == "count" and count_label is not None:
+        new_col_name = f"{sheet_src}=>COUNT_{count_aggregation}_{count_label}"
         params_dst["added_columns_width"][new_col_name] = {
             "max_width": rule.get("col_max_width"),
             "width_mode": rule.get("col_width_mode", "AUTO"),
             "min_width": rule.get("col_min_width", 8)
         }
+    else:
+        for col in col_names:
+            new_col_name = f"{sheet_src}=>{col}"
+            if mode == "count":
+                new_col_name = f"{sheet_src}=>{count_column_prefix}_{col}"
+            params_dst["added_columns_width"][new_col_name] = {
+                "max_width": rule.get("col_max_width"),
+                "width_mode": rule.get("col_width_mode", "AUTO"),
+                "min_width": rule.get("col_min_width", 8)
+            }
     
     updated_sheets[sheet_dst] = (df_dst, params_dst)
     return (rule, updated_sheets)
@@ -3559,6 +3551,8 @@ def merge_fields_across_sheets(sheets_data, merge_fields, count_column_prefix="C
             custom_conditions = rule.get("custom_conditions", None)
             group_by = rule.get("group_by", None)
             aggregate = rule.get("aggregate", None)
+            count_aggregation = rule.get("count_aggregation", "size")
+            count_label = rule.get("count_label", None)
             
             params_str = f"(src: {sheet_src} -> dst: {sheet_dst}, поля: {col_names}, ключ: {dst_keys}<-{src_keys}, mode: {mode}, multiply: {multiply_rows})"
             
@@ -3570,6 +3564,8 @@ def merge_fields_across_sheets(sheets_data, merge_fields, count_column_prefix="C
                 params_str += f", group_by: {group_by}"
             if aggregate:
                 params_str += f", aggregate: {list(aggregate.keys())}"
+            if mode == "count" and count_label is not None:
+                params_str += f", count_aggregation: {count_aggregation}, count_label: {count_label}"
 
             # ОПТИМИЗАЦИЯ v5.0: Проверка на существование листов и None (правильный порядок)
             if sheet_src not in sheets_data or sheet_dst not in sheets_data:
@@ -3597,7 +3593,8 @@ def merge_fields_across_sheets(sheets_data, merge_fields, count_column_prefix="C
                 df_src_filtered = apply_grouping_and_aggregation(df_src_filtered, group_by, aggregate, sheet_src)
             
             df_dst = add_fields_to_sheet(df_dst, df_src_filtered, src_keys, dst_keys, col_names, sheet_dst, sheet_src, mode=mode,
-                                         multiply_rows=multiply_rows, count_prefix=count_column_prefix)
+                                         multiply_rows=multiply_rows, count_prefix=count_column_prefix,
+                                         count_aggregation=count_aggregation, count_label=count_label)
             
             # ИСПРАВЛЕНИЕ: Проверка на None после add_fields_to_sheet
             if df_dst is None or not isinstance(df_dst, pd.DataFrame):
@@ -3608,16 +3605,23 @@ def merge_fields_across_sheets(sheets_data, merge_fields, count_column_prefix="C
             if "added_columns_width" not in params_dst:
                 params_dst["added_columns_width"] = {}
 
-            for col in col_names:
-                new_col_name = f"{sheet_src}=>{col}"
-                if mode == "count":
-                    new_col_name = f"{sheet_src}=>{count_column_prefix}_{col}"
-
+            if mode == "count" and count_label is not None:
+                new_col_name = f"{sheet_src}=>COUNT_{count_aggregation}_{count_label}"
                 params_dst["added_columns_width"][new_col_name] = {
                     "max_width": rule.get("col_max_width"),
                     "width_mode": rule.get("col_width_mode", "AUTO"),
                     "min_width": rule.get("col_min_width", 8)
                 }
+            else:
+                for col in col_names:
+                    new_col_name = f"{sheet_src}=>{col}"
+                    if mode == "count":
+                        new_col_name = f"{sheet_src}=>{count_column_prefix}_{col}"
+                    params_dst["added_columns_width"][new_col_name] = {
+                        "max_width": rule.get("col_max_width"),
+                        "width_mode": rule.get("col_width_mode", "AUTO"),
+                        "min_width": rule.get("col_min_width", 8)
+                    }
 
             sheets_data[sheet_dst] = (df_dst, params_dst)
             logging.info("[END] {func} {params} (время: {time:.3f}s)".format(func="merge_fields_across_sheets", params=params_str, time=0))
@@ -3643,16 +3647,38 @@ def merge_fields_across_sheets(sheets_data, merge_fields, count_column_prefix="C
                     try:
                         rule, updated_sheets = future.result()
                         
-                        # Обновляем sheets_data с блокировкой
+                        # Обновляем sheets_data с блокировкой. Не перезаписываем лист целиком —
+                        # дополняем колонки и params, чтобы теоретически не потерять данные от других правил.
                         with lock:
                             for sheet_name, data in updated_sheets.items():
-                                # ОПТИМИЗАЦИЯ v5.0: Проверка на None перед обновлением
-                                if data is not None and len(data) > 0 and data[0] is not None:
-                                    sheets_data[sheet_name] = data
-                                else:
+                                if data is None or len(data) < 1 or data[0] is None:
                                     logging.warning(f"[PARALLEL MERGE] Пропущено обновление листа {sheet_name}: данные равны None")
+                                    continue
+                                new_df, new_params = data
+                                if sheet_name in sheets_data and sheets_data[sheet_name] is not None:
+                                    existing_df, existing_params = sheets_data[sheet_name]
+                                    if existing_df is not None and isinstance(existing_df, pd.DataFrame):
+                                        # Дополняем существующий df новыми колонками (не перезаписываем)
+                                        for col in new_df.columns:
+                                            if col not in existing_df.columns:
+                                                existing_df[col] = new_df[col].values
+                                        # Объединяем params (в т.ч. added_columns_width)
+                                        merged_params = existing_params.copy() if isinstance(existing_params, dict) else {}
+                                        new_added = new_params.get("added_columns_width", {}) if isinstance(new_params, dict) else {}
+                                        merged_params["added_columns_width"] = {
+                                            **merged_params.get("added_columns_width", {}),
+                                            **new_added
+                                        }
+                                        if isinstance(new_params, dict):
+                                            for k, v in new_params.items():
+                                                if k != "added_columns_width" and k not in merged_params:
+                                                    merged_params[k] = v
+                                        sheets_data[sheet_name] = (existing_df, merged_params)
+                                    else:
+                                        sheets_data[sheet_name] = data
+                                else:
+                                    sheets_data[sheet_name] = data
                             
-                            # Логируем завершение
                             sheet_src = rule["sheet_src"]
                             sheet_dst = rule["sheet_dst"]
                             col_names = rule["column"]
@@ -4487,13 +4513,6 @@ def main():
         df_tournament = calculate_tournament_status(df_tournament, df_report)
         sheets_data["TOURNAMENT-SCHEDULE"] = (df_tournament, conf_tournament)
 
-    # 4.5. Добавление количества турниров по статусам для CONTEST-DATA
-    if "CONTEST-DATA" in sheets_data and "TOURNAMENT-SCHEDULE" in sheets_data:
-        df_contest, conf_contest = sheets_data["CONTEST-DATA"]
-        df_tournament, conf_tournament = sheets_data["TOURNAMENT-SCHEDULE"]
-        df_contest = add_tournament_status_counts(df_contest, df_tournament)
-        sheets_data["CONTEST-DATA"] = (df_contest, conf_contest)
-    
     # 5. Merge fields (только после полного разворота JSON)
     # Сначала применяем обычные правила MERGE_FIELDS
     merge_fields_across_sheets(
