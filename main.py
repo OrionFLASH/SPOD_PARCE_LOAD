@@ -250,6 +250,30 @@ INPUT_FILES = [
         "freeze": "F2",                                   # Закрепление области (колонки A-E и строка 1)
         "col_width_mode": "AUTO",                         # Автоматическое растягивание колонок
         "min_col_width": 15                                # Минимальная ширина колонки
+    },
+    {
+        "file": "gamification-employeeRewards-2",         # Файл с наградами сотрудников (геймификация)
+        "sheet": "LIST-REWARDS",        # Лист для обработки
+        "max_col_width": 40,                              # Максимальная ширина колонки
+        "freeze": "D2",                                   # Закрепление области
+        "col_width_mode": "AUTO",                         # Автоматическое растягивание колонок
+        "min_col_width": 12                               # Минимальная ширина колонки
+    },
+    {
+        "file": "gamification-statistics-3",              # Файл со статистикой (геймификация)
+        "sheet": "STATISTICS",               # Лист для обработки
+        "max_col_width": 25,                              # Максимальная ширина колонки
+        "freeze": "C2",                                   # Закрепление области
+        "col_width_mode": "AUTO",                         # Автоматическое растягивание колонок
+        "min_col_width": 10                               # Минимальная ширина колонки
+    },
+    {
+        "file": "gamification-tournamentList",            # Файл со списком турниров (геймификация)
+        "sheet": "LIST-TOURNAMENT",         # Лист для обработки
+        "max_col_width": 80,                              # Максимальная ширина колонки
+        "freeze": "C2",                                   # Закрепление области
+        "col_width_mode": "AUTO",                         # Автоматическое растягивание колонок
+        "min_col_width": 12                               # Минимальная ширина колонки
     }
 ]
 
@@ -774,6 +798,20 @@ MERGE_FIELDS = [
         "col_width_mode": "AUTO",          # Автоматическое растягивание
         "col_min_width": 8                 # Минимальная ширина
     },
+    {
+        "sheet_src": "LIST-TOURNAMENT", # Источник - расписание турниров
+        "sheet_dst": "SUMMARY",             # Цель - сводный лист
+        "src_key": ["Код турнира"],     # Ключ - код турнира
+        "dst_key": ["TOURNAMENT_CODE"],     # Ключ - код турнира
+        "column": [                         # Добавляемые колонки:
+            "Бизнес-статус турнира"
+        ],
+        "mode": "value",                    # Добавляем значения
+        "multiply_rows": False,             # Не размножаем строки
+        "col_max_width": 30,               # Максимальная ширина
+        "col_width_mode": "AUTO",          # Автоматическое растягивание
+        "col_min_width": 8                 # Минимальная ширина
+    },
     # SUMMARY: CONTEST_DATE из REPORT по TOURNAMENT_CODE
     # Добавляет дату конкурса из отчетов
     {
@@ -815,6 +853,20 @@ MERGE_FIELDS = [
         "dst_key": ["CONTEST_CODE"],        # Ключ: код конкурса
         "column": [                         # Добавляемые колонки:
             "REWARD_CODE"                   # Используем REWARD_CODE для подсчета
+        ],
+        "mode": "count",                    # Режим: подсчитываем количество
+        "multiply_rows": False,             # Не размножаем строки
+        "col_max_width": 20,               # Максимальная ширина
+        "col_width_mode": 15,              # Фиксированная ширина (15 символов)
+        "col_min_width": 8                 # Минимальная ширина
+    },
+    {
+        "sheet_src": "LIST-REWARDS",              # Источник - награды
+        "sheet_dst": "SUMMARY",             # Цель - сводный лист
+        "src_key": ["Код награды"],  # Ключ: код конкурса из связи
+        "dst_key": ["REWARD_CODE"],        # Ключ: код конкурса
+        "column": [                         # Добавляемые колонки:
+            "Код награды"                   # Используем REWARD_CODE для подсчета
         ],
         "mode": "count",                    # Режим: подсчитываем количество
         "multiply_rows": False,             # Не размножаем строки
@@ -1840,6 +1892,24 @@ def find_file_case_insensitive(directory, base_name, extensions):
     
     return None
 
+
+def check_input_files_exist():
+    """
+    Проверяет наличие всех файлов из INPUT_FILES в каталоге DIR_INPUT.
+    Использует ту же логику поиска, что и при загрузке (find_file_case_insensitive).
+    
+    Returns:
+        list: Список ненайденных файлов. Каждый элемент — dict с ключами "file", "sheet".
+              Пустой список, если все файлы найдены.
+    """
+    missing = []
+    for file_conf in INPUT_FILES:
+        base_name = file_conf["file"]
+        sheet_name = file_conf["sheet"]
+        path = find_file_case_insensitive(DIR_INPUT, base_name, [".csv", ".CSV"])
+        if path is None:
+            missing.append({"file": base_name, "sheet": sheet_name})
+    return missing
 
 
 def read_csv_file(file_path):
@@ -4323,6 +4393,20 @@ def main():
     start_time = datetime.now()
     log_file = setup_logger()
     logging.info("=== Старт работы программы: {time} ===".format(time=start_time.strftime("%Y-%m-%d %H:%M:%S")))
+
+    # Проверка наличия всех файлов из INPUT_FILES до начала обработки
+    missing_files = check_input_files_exist()
+    if missing_files:
+        msg_lines = [
+            "Программа не запущена: не найдены следующие файлы из INPUT_FILES:",
+            "  (ожидаемый каталог: {})".format(DIR_INPUT),
+        ]
+        for m in missing_files:
+            msg_lines.append("  - {file}.csv (лист: {sheet})".format(file=m["file"], sheet=m["sheet"]))
+        msg = "\n".join(msg_lines)
+        logging.error(msg)
+        print(msg, file=sys.stderr)
+        sys.exit(1)
 
     sheets_data = {}
     files_processed = 0
