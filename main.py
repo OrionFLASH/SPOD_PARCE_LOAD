@@ -1050,7 +1050,7 @@ MERGE_FIELDS_ADVANCED = [
         "sheet_dst": "CONTEST-DATA",        # Цель - данные конкурсов
         "src_key": ["CONTEST_CODE"],        # Ключ - код конкурса
         "dst_key": ["CONTEST_CODE"],        # Ключ - код конкурса
-        "column": ["TOURNAMENT_CODE"],      # Колонка для подсчета
+        "column": ["TOURNAMENT_CODE"],  # Имя колонки для подсчёта только удалённых (не перезаписывает COUNT_TOURNAMENT_CODE)
         "mode": "count",                    # Режим подсчета
         "multiply_rows": False,             # Не размножаем строки
         "col_max_width": 15,               # Максимальная ширина
@@ -3046,7 +3046,7 @@ def add_tournament_status_counts(df_contest, df_tournament):
 
 
 def add_fields_to_sheet(df_base, df_ref, src_keys, dst_keys, columns, sheet_name, ref_sheet_name, mode="value",
-                        multiply_rows=False):
+                        multiply_rows=False, count_prefix="COUNT"):
     """
     Добавляет к df_base поля из df_ref по ключам.
     Если mode == "value": подтягивает значения (первого найденного или всех при multiply_rows=True).
@@ -3068,7 +3068,7 @@ def add_fields_to_sheet(df_base, df_ref, src_keys, dst_keys, columns, sheet_name
         logging.warning(f"[add_fields_to_sheet] Лист {ref_sheet_name} пустой или None, пропускаем добавление полей")
         # Добавляем пустые колонки с дефолтными значениями "-"
         for col in columns:
-            new_col_name = f"{ref_sheet_name}=>{col}"
+            new_col_name = f"{ref_sheet_name}=>{count_prefix}_{col}" if mode == "count" else f"{ref_sheet_name}=>{col}"
             if new_col_name not in df_base.columns:
                 df_base[new_col_name] = "-"
         logging.info("[END] {func} {params} (время: {time:.3f}s)".format(
@@ -3141,7 +3141,7 @@ def add_fields_to_sheet(df_base, df_ref, src_keys, dst_keys, columns, sheet_name
             count_dict[key_tuple] = count
             
         for col in columns:
-            count_col_name = f"{ref_sheet_name}=>COUNT_{col}"
+            count_col_name = f"{ref_sheet_name}=>{count_prefix}_{col}"
             # Если у нас один ключ, используем прямое сопоставление через Series
             if len(src_keys) == 1:
                 # Для одного ключа нужно извлечь первый элемент из кортежей
@@ -3371,7 +3371,7 @@ def _vectorized_tuple_key(df, keys):
 
 
 
-def _process_single_merge_rule(rule, sheets_data_copy):
+def _process_single_merge_rule(rule, sheets_data_copy, count_column_prefix="COUNT"):
     """
     Обрабатывает одно правило merge_fields.
     Используется для параллельной обработки независимых правил.
@@ -3379,6 +3379,7 @@ def _process_single_merge_rule(rule, sheets_data_copy):
     Args:
         rule: Правило из merge_fields
         sheets_data_copy: Копия sheets_data для безопасной работы в потоке
+        count_column_prefix: префикс для имён count-колонок (COUNT или COUNT_SELECT для MERGE_FIELDS_ADVANCED)
         
     Returns:
         tuple: (rule, updated_sheets_dict) где updated_sheets_dict содержит обновленные листы
@@ -3437,7 +3438,7 @@ def _process_single_merge_rule(rule, sheets_data_copy):
     
     # Вызываем основную функцию добавления полей
     df_dst = add_fields_to_sheet(df_dst, df_src_filtered, src_keys, dst_keys, col_names, sheet_dst, sheet_src, mode=mode,
-                                 multiply_rows=multiply_rows)
+                                 multiply_rows=multiply_rows, count_prefix=count_column_prefix)
     
     # ИСПРАВЛЕНИЕ: Проверка на None после add_fields_to_sheet
     if df_dst is None or not isinstance(df_dst, pd.DataFrame):
@@ -3458,7 +3459,7 @@ def _process_single_merge_rule(rule, sheets_data_copy):
     for col in col_names:
         new_col_name = f"{sheet_src}=>{col}"
         if mode == "count":
-            new_col_name = f"{sheet_src}=>COUNT_{col}"
+            new_col_name = f"{sheet_src}=>{count_column_prefix}_{col}"
         params_dst["added_columns_width"][new_col_name] = {
             "max_width": rule.get("col_max_width"),
             "width_mode": rule.get("col_width_mode", "AUTO"),
@@ -3508,7 +3509,11 @@ def _group_independent_rules(merge_fields):
     return groups
 
 
-def merge_fields_across_sheets(sheets_data, merge_fields):
+def merge_fields_across_sheets(sheets_data, merge_fields, count_column_prefix="COUNT"):
+    """
+    count_column_prefix: для режима count имя колонки будет {sheet_src}=>{count_column_prefix}_{col}.
+    Для MERGE_FIELDS оставить "COUNT", для MERGE_FIELDS_ADVANCED передать "COUNT_SELECT".
+    """
     logging.debug(f"[DEBUG merge_fields_across_sheets] === НАЧАЛО === Правил для обработки: {len(merge_fields)}")
     logging.debug(f"[DEBUG merge_fields_across_sheets] Доступные листы в sheets_data: {list(sheets_data.keys())}")
     for sheet_name, sheet_data in sheets_data.items():
@@ -3592,7 +3597,7 @@ def merge_fields_across_sheets(sheets_data, merge_fields):
                 df_src_filtered = apply_grouping_and_aggregation(df_src_filtered, group_by, aggregate, sheet_src)
             
             df_dst = add_fields_to_sheet(df_dst, df_src_filtered, src_keys, dst_keys, col_names, sheet_dst, sheet_src, mode=mode,
-                                         multiply_rows=multiply_rows)
+                                         multiply_rows=multiply_rows, count_prefix=count_column_prefix)
             
             # ИСПРАВЛЕНИЕ: Проверка на None после add_fields_to_sheet
             if df_dst is None or not isinstance(df_dst, pd.DataFrame):
@@ -3606,7 +3611,7 @@ def merge_fields_across_sheets(sheets_data, merge_fields):
             for col in col_names:
                 new_col_name = f"{sheet_src}=>{col}"
                 if mode == "count":
-                    new_col_name = f"{sheet_src}=>COUNT_{col}"
+                    new_col_name = f"{sheet_src}=>{count_column_prefix}_{col}"
 
                 params_dst["added_columns_width"][new_col_name] = {
                     "max_width": rule.get("col_max_width"),
@@ -3630,7 +3635,7 @@ def merge_fields_across_sheets(sheets_data, merge_fields):
             with ThreadPoolExecutor(max_workers=min(MAX_WORKERS, len(rule_group))) as executor:
                 # Создаем копию sheets_data для каждого потока (безопасность)
                 futures = {
-                    executor.submit(_process_single_merge_rule, rule, sheets_data.copy()): rule
+                    executor.submit(_process_single_merge_rule, rule, sheets_data.copy(), count_column_prefix): rule
                     for rule in rule_group
                 }
                 
@@ -4496,10 +4501,12 @@ def main():
         [f for f in MERGE_FIELDS if f.get("sheet_dst") != "SUMMARY"]
     )
     
-    # Затем применяем дополнительные правила для CONTEST-DATA (статусы турниров)
+    # Затем применяем дополнительные правила для CONTEST-DATA (статусы турниров).
+    # count_column_prefix="COUNT_SELECT" — колонки count из MERGE_FIELDS_ADVANCED получают имена вида =>COUNT_SELECT_*, без перезаписи COUNT_* из MERGE_FIELDS.
     merge_fields_across_sheets(
         sheets_data,
-        MERGE_FIELDS_ADVANCED
+        MERGE_FIELDS_ADVANCED,
+        count_column_prefix="COUNT_SELECT"
     )
 
         # 6. Параллельная проверка на дубли
