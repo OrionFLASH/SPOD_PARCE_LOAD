@@ -164,7 +164,7 @@ DIR_LOGS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "LOGS")    #
 # - min_col_width: минимальная ширина колонки
 INPUT_FILES = [
     {
-        "file": "CONTEST (PROM) 29-01 v0",  # Файл с данными конкурсов
+        "file": "CONTEST (PROM) 30-01 v2",  # Файл с данными конкурсов
         "sheet": "CONTEST-DATA",                        # Лист для обработки
         "max_col_width": 120,                          # Максимальная ширина колонки
         "freeze": "C2",                                # Закрепление области
@@ -172,7 +172,7 @@ INPUT_FILES = [
         "min_col_width": 12                             # Минимальная ширина колонки
     },
     {
-        "file": "GROUP (PROM) 29-01 v0",            # Файл с данными групп
+        "file": "GROUP (PROM) 30-01 v1",            # Файл с данными групп
         "sheet": "GROUP",                              # Лист для обработки
         "max_col_width": 20,                           # Максимальная ширина колонки
         "freeze": "C2",                                # Закрепление области
@@ -180,7 +180,7 @@ INPUT_FILES = [
         "min_col_width": 8                             # Минимальная ширина колонки
     },
     {
-        "file": "INDICATOR (PROM) 29-01 v0",        # Файл с индикаторами
+        "file": "INDICATOR (PROM) 30-01 v1",        # Файл с индикаторами
         "sheet": "INDICATOR",                          # Лист для обработки
         "max_col_width": 100,                           # Максимальная ширина колонки
         "freeze": "B2",                                # Закрепление области
@@ -188,7 +188,7 @@ INPUT_FILES = [
         "min_col_width": 8                             # Минимальная ширина колонки
     },
     {
-        "file": "REPORT (PROM) 28-01 v0", # Файл с отчетами
+        "file": "REPORT (PROM) 30-01 v2", # Файл с отчетами
         "sheet": "REPORT",                             # Лист для обработки
         "max_col_width": 25,                           # Максимальная ширина колонки
         "freeze": "D2",                                # Закрепление области
@@ -196,7 +196,7 @@ INPUT_FILES = [
         "min_col_width": 10                             # Минимальная ширина колонки
     },
     {
-        "file": "REWARD (PROM) 29-01 v0",        # Файл с наградами
+        "file": "REWARD (PROM) 30-01 v2",        # Файл с наградами
         "sheet": "REWARD",                             # Лист для обработки
         "max_col_width": 200,                          # Максимальная ширина колонки (большая для длинных описаний)
         "freeze": "D2",                                # Закрепление области
@@ -204,10 +204,18 @@ INPUT_FILES = [
         "min_col_width": 10                             # Минимальная ширина колонки
     },
     {
-        "file": "REWARD-LINK (PROM) 29-01 v0",      # Файл со связями наград
+        "file": "REWARD-LINK (PROM) 30-01 v1",      # Файл со связями наград
         "sheet": "REWARD-LINK",                        # Лист для обработки
         "max_col_width": 30,                           # Максимальная ширина колонки
         "freeze": "A2",                                # Закрепление области
+        "col_width_mode": "AUTO",                      # Автоматическое растягивание колонок
+        "min_col_width": 10                             # Минимальная ширина колонки
+    },
+    {
+        "file": "SCHEDULE (PROM) 30-01 v2", # Файл с расписанием турниров
+        "sheet": "TOURNAMENT-SCHEDULE",                # Лист для обработки
+        "max_col_width": 120,                          # Максимальная ширина колонки
+        "freeze": "B2",                                # Закрепление области
         "col_width_mode": "AUTO",                      # Автоматическое растягивание колонок
         "min_col_width": 10                             # Минимальная ширина колонки
     },
@@ -216,14 +224,6 @@ INPUT_FILES = [
         "sheet": "ORG_UNIT_V20",                       # Лист для обработки
         "max_col_width": 60,                           # Максимальная ширина колонки
         "freeze": "A2",                                # Закрепление области
-        "col_width_mode": "AUTO",                      # Автоматическое растягивание колонок
-        "min_col_width": 10                             # Минимальная ширина колонки
-    },
-    {
-        "file": "SCHEDULE (PROM) 29-01 v0", # Файл с расписанием турниров
-        "sheet": "TOURNAMENT-SCHEDULE",                # Лист для обработки
-        "max_col_width": 120,                          # Максимальная ширина колонки
-        "freeze": "B2",                                # Закрепление области
         "col_width_mode": "AUTO",                      # Автоматическое растягивание колонок
         "min_col_width": 10                             # Минимальная ширина колонки
     },
@@ -252,7 +252,7 @@ INPUT_FILES = [
         "min_col_width": 15                                # Минимальная ширина колонки
     },
     {
-        "file": "gamification-employeeRewards-2",         # Файл с наградами сотрудников (геймификация)
+        "file": "gamification-employeeRewards-3",         # Файл с наградами сотрудников (геймификация)
         "sheet": "LIST-REWARDS",        # Лист для обработки
         "max_col_width": 40,                              # Максимальная ширина колонки
         "freeze": "D2",                                   # Закрепление области
@@ -260,7 +260,7 @@ INPUT_FILES = [
         "min_col_width": 12                               # Минимальная ширина колонки
     },
     {
-        "file": "gamification-statistics-3",              # Файл со статистикой (геймификация)
+        "file": "gamification-statistics-4",              # Файл со статистикой (геймификация)
         "sheet": "STATISTICS",               # Лист для обработки
         "max_col_width": 25,                              # Максимальная ширина колонки
         "freeze": "C2",                                   # Закрепление области
@@ -268,7 +268,7 @@ INPUT_FILES = [
         "min_col_width": 10                               # Минимальная ширина колонки
     },
     {
-        "file": "gamification-tournamentList",            # Файл со списком турниров (геймификация)
+        "file": "gamification-tournamentList-2",            # Файл со списком турниров (геймификация)
         "sheet": "LIST-TOURNAMENT",         # Лист для обработки
         "max_col_width": 80,                              # Максимальная ширина колонки
         "freeze": "C2",                                   # Закрепление области
@@ -812,6 +812,22 @@ MERGE_FIELDS = [
         "col_width_mode": "AUTO",          # Автоматическое растягивание
         "col_min_width": 8                 # Минимальная ширина
     },
+    # TOURNAMENT-SCHEDULE: колонка "Бизнес-статус турнира" из LIST-TOURNAMENT (файл gamification-tournamentList*.csv).
+    # В результате колонка будет: LIST-TOURNAMENT=>Бизнес-статус турнира. Ключ в источнике: "Код турнира" или TOURNAMENT_CODE.
+    {
+        "sheet_src": "LIST-TOURNAMENT", # Источник - список турниров геймификации
+        "sheet_dst": "TOURNAMENT-SCHEDULE",             # Цель - сводный лист
+        "src_key": ["Код турнира"],     # Ключ в источнике (если в CSV нет — подставляется TOURNAMENT_CODE)
+        "dst_key": ["TOURNAMENT_CODE"],     # Ключ в целевом листе
+        "column": [                         # Добавляемые колонки:
+            "Бизнес-статус турнира"
+        ],
+        "mode": "value",                    # Добавляем значения
+        "multiply_rows": False,             # Не размножаем строки
+        "col_max_width": 30,               # Максимальная ширина
+        "col_width_mode": "AUTO",          # Автоматическое растягивание
+        "col_min_width": 8                 # Минимальная ширина
+    },
     # SUMMARY: CONTEST_DATE из REPORT по TOURNAMENT_CODE
     # Добавляет дату конкурса из отчетов
     {
@@ -863,6 +879,20 @@ MERGE_FIELDS = [
     {
         "sheet_src": "LIST-REWARDS",              # Источник - награды
         "sheet_dst": "SUMMARY",             # Цель - сводный лист
+        "src_key": ["Код награды"],  # Ключ: код конкурса из связи
+        "dst_key": ["REWARD_CODE"],        # Ключ: код конкурса
+        "column": [                         # Добавляемые колонки:
+            "Код награды"                   # Используем REWARD_CODE для подсчета
+        ],
+        "mode": "count",                    # Режим: подсчитываем количество
+        "multiply_rows": False,             # Не размножаем строки
+        "col_max_width": 20,               # Максимальная ширина
+        "col_width_mode": 15,              # Фиксированная ширина (15 символов)
+        "col_min_width": 8                 # Минимальная ширина
+    },
+    {
+        "sheet_src": "LIST-REWARDS",              # Источник - награды
+        "sheet_dst": "REWARD",             # Цель - сводный лист
         "src_key": ["Код награды"],  # Ключ: код конкурса из связи
         "dst_key": ["REWARD_CODE"],        # Ключ: код конкурса
         "column": [                         # Добавляемые колонки:
@@ -3049,6 +3079,25 @@ def add_fields_to_sheet(df_base, df_ref, src_keys, dst_keys, columns, sheet_name
         ))
 
         return df_base
+    
+    # Подстановка ключа/колонки для LIST-TOURNAMENT во всех путях вызова (MERGE_FIELDS, MERGE_FIELDS_ADVANCED, build_summary_sheet)
+    if ref_sheet_name == "LIST-TOURNAMENT":
+        if (isinstance(src_keys, list) and src_keys == ["Код турнира"]) or src_keys == ["Код турнира"]:
+            if "Код турнира" not in df_ref.columns and "TOURNAMENT_CODE" in df_ref.columns:
+                src_keys = ["TOURNAMENT_CODE"]
+                logging.info(f"[MERGE] add_fields_to_sheet LIST-TOURNAMENT: подстановка ключа TOURNAMENT_CODE вместо 'Код турнира' (лист назначения: {sheet_name})")
+        for col in (columns if isinstance(columns, list) else [columns]):
+            if col not in df_ref.columns and col == "Бизнес-статус турнира" and "Бизнес-статус" in df_ref.columns:
+                df_ref["Бизнес-статус турнира"] = df_ref["Бизнес-статус"]
+                logging.info(f"[MERGE] add_fields_to_sheet LIST-TOURNAMENT: подстановка колонки 'Бизнес-статус' для 'Бизнес-статус турнира' (лист назначения: {sheet_name})")
+                break
+    
+    if ref_sheet_name == "LIST-TOURNAMENT" and sheet_name == "TOURNAMENT-SCHEDULE":
+        logging.info(f"[MERGE] add_fields_to_sheet LIST-TOURNAMENT -> TOURNAMENT-SCHEDULE: src_keys={src_keys}, dst_keys={dst_keys}, columns={columns}")
+        logging.info(f"[MERGE] add_fields_to_sheet df_ref (LIST-TOURNAMENT) колонки: {list(df_ref.columns)}, shape={df_ref.shape}")
+        if df_base is not None and isinstance(df_base, pd.DataFrame):
+            logging.info(f"[MERGE] add_fields_to_sheet df_base (TOURNAMENT-SCHEDULE) колонок: {len(df_base.columns)}, есть TOURNAMENT_CODE: {'TOURNAMENT_CODE' in df_base.columns}")
+    
     logging.debug(f"[DEBUG add_fields_to_sheet] === НАЧАЛО === Лист: {sheet_name}, Источник: {ref_sheet_name}")
     logging.debug(f"[DEBUG add_fields_to_sheet] df_base shape: {df_base.shape if df_base is not None and isinstance(df_base, pd.DataFrame) else "None или не DataFrame"}")
     logging.debug(f"[DEBUG add_fields_to_sheet] df_ref shape: {df_ref.shape if df_ref is not None and isinstance(df_ref, pd.DataFrame) else "None или не DataFrame"}")
@@ -3158,6 +3207,12 @@ def add_fields_to_sheet(df_base, df_ref, src_keys, dst_keys, columns, sheet_name
         if new_columns_dict:
             new_columns_df = pd.DataFrame(new_columns_dict, index=df_base.index)
             df_base = pd.concat([df_base, new_columns_df], axis=1)
+            if ref_sheet_name == "LIST-TOURNAMENT" and sheet_name == "TOURNAMENT-SCHEDULE":
+                for col in columns:
+                    new_col_name = f"{ref_sheet_name}=>{col}"
+                    if new_col_name in df_base.columns:
+                        filled = (df_base[new_col_name] != "-").sum()
+                        logging.info(f"[MERGE] add_fields_to_sheet результат LIST-TOURNAMENT -> TOURNAMENT-SCHEDULE: колонка '{new_col_name}', заполнено строк: {filled} из {len(df_base)}")
         
         # Специально для REWARD_LINK =>CONTEST_CODE: auto-rename, если создали с дефисом
         for col in columns:
@@ -3352,10 +3407,11 @@ def _vectorized_tuple_key(df, keys):
 
 
 
-def _process_single_merge_rule(rule, sheets_data_copy, count_column_prefix="COUNT"):
+def _process_single_merge_rule(rule, sheets_data_copy, count_column_prefix="COUNT", merge_name="MERGE_FIELDS_ADVANCED"):
     """
     Обрабатывает одно правило merge_fields.
     Используется для параллельной обработки независимых правил.
+    merge_name: имя набора правил для логов (MERGE_FIELDS или MERGE_FIELDS_ADVANCED).
     
     Args:
         rule: Правило из merge_fields
@@ -3381,8 +3437,7 @@ def _process_single_merge_rule(rule, sheets_data_copy, count_column_prefix="COUN
     count_label = rule.get("count_label", None)
     
     updated_sheets = {}
-    logging.debug(f"[DEBUG _process_single_merge_rule] === НАЧАЛО === Правило: {sheet_src} -> {sheet_dst}")
-    logging.debug(f"[DEBUG _process_single_merge_rule] Поля: {col_names}, ключи: {dst_keys}->{src_keys}, mode={mode}")
+    logging.info(f"[MERGE] {merge_name} (_process_single_merge_rule) правило: {sheet_src} -> {sheet_dst}, колонки: {col_names}, ключи: {dst_keys} <- {src_keys}, mode={mode}")
     if sheet_src in sheets_data_copy and sheets_data_copy[sheet_src] is not None:
         df_src_check = sheets_data_copy[sheet_src][0] if len(sheets_data_copy[sheet_src]) > 0 else None
         if df_src_check is not None and isinstance(df_src_check, pd.DataFrame):
@@ -3399,18 +3454,30 @@ def _process_single_merge_rule(rule, sheets_data_copy, count_column_prefix="COUN
     
     # ОПТИМИЗАЦИЯ v5.0: Проверка на существование листов и None (правильный порядок)
     if (sheet_src not in sheets_data_copy or sheet_dst not in sheets_data_copy):
-        logging.warning(f"[PARALLEL MERGE] Пропущено правило: лист {sheet_src} или {sheet_dst} отсутствует")
+        logging.warning(f"[MERGE] {merge_name} ПРОПУСК (параллель): лист {sheet_src} или {sheet_dst} отсутствует в sheets_data")
         return (rule, updated_sheets)
     
     if (sheets_data_copy[sheet_src] is None or sheets_data_copy[sheet_dst] is None or
         len(sheets_data_copy[sheet_src]) < 1 or len(sheets_data_copy[sheet_dst]) < 1 or
         sheets_data_copy[sheet_src][0] is None or sheets_data_copy[sheet_dst][0] is None):
-        logging.warning(f"[PARALLEL MERGE] Пропущено правило: лист {sheet_src} или {sheet_dst} содержит None")
+        logging.warning(f"[MERGE] {merge_name} ПРОПУСК (параллель): лист {sheet_src} или {sheet_dst} содержит None")
         return (rule, updated_sheets)
     
     df_src = sheets_data_copy[sheet_src][0].copy()
+    logging.debug(f"[MERGE] {merge_name} df_src ({sheet_src}): shape={df_src.shape}, колонки: {list(df_src.columns)}")
     df_dst, params_dst = sheets_data_copy[sheet_dst]
     params_dst = params_dst.copy()  # Копируем параметры
+    
+    # Подстановка ключа/колонки для LIST-TOURNAMENT: в файле геймификации часто "TOURNAMENT_CODE" и "Бизнес-статус"
+    if sheet_src == "LIST-TOURNAMENT":
+        if src_keys == ["Код турнира"] and "Код турнира" not in df_src.columns and "TOURNAMENT_CODE" in df_src.columns:
+            src_keys = ["TOURNAMENT_CODE"]
+            logging.info(f"[MERGE] {merge_name} LIST-TOURNAMENT: подстановка ключа TOURNAMENT_CODE вместо 'Код турнира'")
+        for col in col_names:
+            if col not in df_src.columns and col == "Бизнес-статус турнира" and "Бизнес-статус" in df_src.columns:
+                df_src["Бизнес-статус турнира"] = df_src["Бизнес-статус"]
+                logging.info(f"[MERGE] {merge_name} LIST-TOURNAMENT: подстановка колонки 'Бизнес-статус' для 'Бизнес-статус турнира'")
+                break
     
     # Применяем фильтрацию
     df_src_filtered = apply_filters_to_dataframe(df_src, status_filters, custom_conditions, sheet_src)
@@ -3426,15 +3493,11 @@ def _process_single_merge_rule(rule, sheets_data_copy, count_column_prefix="COUN
     
     # ИСПРАВЛЕНИЕ: Проверка на None после add_fields_to_sheet
     if df_dst is None or not isinstance(df_dst, pd.DataFrame):
-        logging.error(f"[PARALLEL MERGE] add_fields_to_sheet вернул None для листа {sheet_dst}, используем исходный DataFrame")
+        logging.error(f"[MERGE] {merge_name} add_fields_to_sheet вернул None для листа {sheet_dst}, используем исходный DataFrame")
         df_dst = sheets_data_copy[sheet_dst][0].copy() if sheets_data_copy[sheet_dst][0] is not None else pd.DataFrame()
-    
-
-    logging.debug(f"[DEBUG _process_single_merge_rule] df_dst ПОСЛЕ add_fields_to_sheet: shape={df_dst.shape if df_dst is not None and isinstance(df_dst, pd.DataFrame) else "None"}")
-    if df_dst is not None and isinstance(df_dst, pd.DataFrame) and len(df_dst) > 0:
-        logging.debug(f"[DEBUG _process_single_merge_rule] df_dst колонки: {list(df_dst.columns)[:15]}...")
     else:
-        logging.error(f"[DEBUG _process_single_merge_rule] ❌ ОШИБКА: df_dst стал None или пустым!")
+        added_cols = [c for c in df_dst.columns if c.startswith(sheet_src + "=>")]
+        logging.info(f"[MERGE] {merge_name} результат правила {sheet_src} -> {sheet_dst}: добавлены колонки: {added_cols}, всего колонок в {sheet_dst}: {len(df_dst.columns)}")
 
     # Сохраняем информацию о ширине колонок
     if "added_columns_width" not in params_dst:
@@ -3501,22 +3564,30 @@ def _group_independent_rules(merge_fields):
     return groups
 
 
-def merge_fields_across_sheets(sheets_data, merge_fields, count_column_prefix="COUNT"):
+def merge_fields_across_sheets(sheets_data, merge_fields, count_column_prefix="COUNT", merge_name=""):
     """
     count_column_prefix: для режима count имя колонки будет {sheet_src}=>{count_column_prefix}_{col}.
     Для MERGE_FIELDS оставить "COUNT", для MERGE_FIELDS_ADVANCED передать "COUNT_SELECT".
+    merge_name: имя набора правил для логов (например "MERGE_FIELDS" или "MERGE_FIELDS_ADVANCED").
     """
-    logging.debug(f"[DEBUG merge_fields_across_sheets] === НАЧАЛО === Правил для обработки: {len(merge_fields)}")
-    logging.debug(f"[DEBUG merge_fields_across_sheets] Доступные листы в sheets_data: {list(sheets_data.keys())}")
+    name_tag = merge_name or "merge_fields"
+    logging.info(f"[MERGE] ========== {name_tag}: НАЧАЛО ========== Правил: {len(merge_fields)}, листов в sheets_data: {list(sheets_data.keys())}")
+    for idx, rule in enumerate(merge_fields):
+        src = rule.get("sheet_src", "?")
+        dst = rule.get("sheet_dst", "?")
+        col = rule.get("column", [])
+        sk = rule.get("src_key", [])
+        dk = rule.get("dst_key", [])
+        logging.info(f"[MERGE] {name_tag} правило {idx+1}/{len(merge_fields)}: {src} -> {dst}, колонки: {col}, ключи: {dk} <- {sk}")
+    rule_groups = _group_independent_rules(merge_fields)
+    logging.info(f"[MERGE] {name_tag}: сгруппировано в {len(rule_groups)} групп(ы) для обработки")
     for sheet_name, sheet_data in sheets_data.items():
         if sheet_data is not None and len(sheet_data) > 0:
             df, params = sheet_data
             if df is not None and isinstance(df, pd.DataFrame):
-                logging.debug(f"[DEBUG merge_fields_across_sheets] Лист {sheet_name}: shape={df.shape}, колонки={list(df.columns)[:10]}...")
-            else:
-                logging.debug(f"[DEBUG merge_fields_across_sheets] Лист {sheet_name}: DataFrame равен None")
+                logging.debug(f"[MERGE] {name_tag} лист {sheet_name}: shape={df.shape}, колонок: {len(df.columns)}")
         else:
-            logging.debug(f"[DEBUG merge_fields_across_sheets] Лист {sheet_name}: sheet_data равен None или пуст")
+            logging.debug(f"[MERGE] {name_tag} лист {sheet_name}: нет данных")
 
     """
     Универсально добавляет поля по правилам из merge_fields
@@ -3531,8 +3602,6 @@ def merge_fields_across_sheets(sheets_data, merge_fields, count_column_prefix="C
     sheets_data: dict {sheet_name: (df, params)}
     merge_fields: список блоков с параметрами (см. выше)
     """
-    # ОПТИМИЗАЦИЯ: Группируем независимые правила и обрабатываем их параллельно
-    rule_groups = _group_independent_rules(merge_fields)
     lock = threading.Lock()  # Для безопасного доступа к sheets_data
     
     for group_idx, rule_group in enumerate(rule_groups):
@@ -3567,25 +3636,35 @@ def merge_fields_across_sheets(sheets_data, merge_fields, count_column_prefix="C
             if mode == "count" and count_label is not None:
                 params_str += f", count_aggregation: {count_aggregation}, count_label: {count_label}"
 
+            logging.info(f"[MERGE] {name_tag} обработка правила (последовательно): {sheet_src} -> {sheet_dst}, колонки: {col_names}")
             # ОПТИМИЗАЦИЯ v5.0: Проверка на существование листов и None (правильный порядок)
             if sheet_src not in sheets_data or sheet_dst not in sheets_data:
-                logging.warning("Колонка {column} не добавлена: нет листа {src_sheet} или {dst_sheet}".format(
-                    column=col_names, src_sheet=sheet_src, dst_sheet=sheet_dst
-                ))
+                logging.warning(f"[MERGE] {name_tag} ПРОПУСК: нет листа {sheet_src} или {sheet_dst}, колонки {col_names} не добавлены")
                 continue
             
             if (sheets_data[sheet_src] is None or sheets_data[sheet_dst] is None or
                 len(sheets_data[sheet_src]) < 1 or len(sheets_data[sheet_dst]) < 1 or
                 sheets_data[sheet_src][0] is None or sheets_data[sheet_dst][0] is None):
-                logging.warning("Колонка {column} не добавлена: лист {src_sheet} или {dst_sheet} содержит None".format(
-                    column=col_names, src_sheet=sheet_src, dst_sheet=sheet_dst
-                ))
+                logging.warning(f"[MERGE] {name_tag} ПРОПУСК: лист {sheet_src} или {sheet_dst} содержит None, колонки {col_names} не добавлены")
                 continue
 
             df_src = sheets_data[sheet_src][0].copy()
+            logging.debug(f"[MERGE] {name_tag} df_src ({sheet_src}): shape={df_src.shape}, колонки: {list(df_src.columns)}")
             df_dst, params_dst = sheets_data[sheet_dst]
 
-            logging.info("[START] {func} {params}".format(func="merge_fields_across_sheets", params=params_str))
+            # Подстановка ключа/колонки для LIST-TOURNAMENT (как в _process_single_merge_rule для MERGE_FIELDS_ADVANCED)
+            if sheet_src == "LIST-TOURNAMENT":
+                if src_keys == ["Код турнира"] and "Код турнира" not in df_src.columns and "TOURNAMENT_CODE" in df_src.columns:
+                    src_keys = ["TOURNAMENT_CODE"]
+                    logging.info(f"[MERGE] {name_tag} LIST-TOURNAMENT: подстановка ключа TOURNAMENT_CODE вместо 'Код турнира'")
+                for col in (col_names if isinstance(col_names, list) else [col_names]):
+                    if col not in df_src.columns and col == "Бизнес-статус турнира" and "Бизнес-статус" in df_src.columns:
+                        df_src["Бизнес-статус турнира"] = df_src["Бизнес-статус"]
+                        logging.info(f"[MERGE] {name_tag} LIST-TOURNAMENT: подстановка колонки 'Бизнес-статус' для 'Бизнес-статус турнира'")
+                        break
+
+            cols_dst_before = set(df_dst.columns) if df_dst is not None and isinstance(df_dst, pd.DataFrame) else set()
+            logging.info(f"[MERGE] {name_tag} вызов add_fields_to_sheet: {sheet_src} -> {sheet_dst}, src_keys={src_keys}, dst_keys={dst_keys}, col_names={col_names}")
             
             df_src_filtered = apply_filters_to_dataframe(df_src, status_filters, custom_conditions, sheet_src)
             
@@ -3598,9 +3677,13 @@ def merge_fields_across_sheets(sheets_data, merge_fields, count_column_prefix="C
             
             # ИСПРАВЛЕНИЕ: Проверка на None после add_fields_to_sheet
             if df_dst is None or not isinstance(df_dst, pd.DataFrame):
-                logging.error(f"[MERGE] add_fields_to_sheet вернул None для листа {sheet_dst}, используем исходный DataFrame")
+                logging.error(f"[MERGE] {name_tag} add_fields_to_sheet вернул None для листа {sheet_dst}, используем исходный DataFrame")
                 df_dst = sheets_data[sheet_dst][0].copy() if sheets_data[sheet_dst][0] is not None else pd.DataFrame()
-            
+            else:
+                cols_dst_after = set(df_dst.columns)
+                new_cols = cols_dst_after - cols_dst_before
+                added_from_src = [c for c in new_cols if c.startswith(sheet_src + "=>")]
+                logging.info(f"[MERGE] {name_tag} результат правила {sheet_src} -> {sheet_dst}: добавлены колонки: {added_from_src or list(new_cols)[:10]}, всего колонок в {sheet_dst}: {len(df_dst.columns)}")
 
             if "added_columns_width" not in params_dst:
                 params_dst["added_columns_width"] = {}
@@ -3624,22 +3707,15 @@ def merge_fields_across_sheets(sheets_data, merge_fields, count_column_prefix="C
                     }
 
             sheets_data[sheet_dst] = (df_dst, params_dst)
-            logging.info("[END] {func} {params} (время: {time:.3f}s)".format(func="merge_fields_across_sheets", params=params_str, time=0))
-    logging.debug(f"[DEBUG merge_fields_across_sheets] === КОНЕЦ === Результат:")
-    for sheet_name, sheet_data in sheets_data.items():
-        if sheet_data is not None and len(sheet_data) > 0:
-            df, params = sheet_data
-            if df is not None and isinstance(df, pd.DataFrame):
-                logging.debug(f"[DEBUG merge_fields_across_sheets] Лист {sheet_name}: shape={df.shape}, колонок={len(df.columns)}")
-
+            logging.info(f"[MERGE] {name_tag} правило завершено: {sheet_src} -> {sheet_dst}")
         else:
             # Несколько независимых правил - обрабатываем параллельно
-            logging.info(f"[PARALLEL MERGE] Обработка группы из {len(rule_group)} независимых правил")
+            logging.info(f"[MERGE] {name_tag} обработка группы из {len(rule_group)} правил (параллельно)")
             
             with ThreadPoolExecutor(max_workers=min(MAX_WORKERS, len(rule_group))) as executor:
                 # Создаем копию sheets_data для каждого потока (безопасность)
                 futures = {
-                    executor.submit(_process_single_merge_rule, rule, sheets_data.copy(), count_column_prefix): rule
+                    executor.submit(_process_single_merge_rule, rule, sheets_data.copy(), count_column_prefix, name_tag): rule
                     for rule in rule_group
                 }
                 
@@ -3682,11 +3758,11 @@ def merge_fields_across_sheets(sheets_data, merge_fields, count_column_prefix="C
                             sheet_src = rule["sheet_src"]
                             sheet_dst = rule["sheet_dst"]
                             col_names = rule["column"]
-                            params_str = f"(src: {sheet_src} -> dst: {sheet_dst}, поля: {col_names})"
-                            logging.info("[END] {func} {params} (параллельно)".format(func="merge_fields_across_sheets", params=params_str))
+                            logging.info(f"[MERGE] {name_tag} правило завершено (параллельно): {sheet_src} -> {sheet_dst}, колонки: {col_names}")
                     except Exception as e:
                         logging.error(f"[PARALLEL MERGE ERROR] Ошибка обработки правила: {e}")
     
+    logging.info(f"[MERGE] ========== {name_tag}: КОНЕЦ ========== Обработано групп: {len(rule_groups)}")
     return sheets_data
 
 
@@ -4250,7 +4326,11 @@ def process_single_file(file_conf):
     sheet_name = file_conf["sheet"]
     try:
         file_path = find_file_case_insensitive(DIR_INPUT, file_conf["file"], [".csv", ".CSV"])
-        
+        # Для LIST-TOURNAMENT: если файл с суффиксом "-2" не найден, пробуем без суффикса (gamification-tournamentList.csv)
+        if file_path is None and sheet_name == "LIST-TOURNAMENT" and file_conf["file"] == "gamification-tournamentList-2":
+            file_path = find_file_case_insensitive(DIR_INPUT, "gamification-tournamentList", [".csv", ".CSV"])
+            if file_path:
+                logging.info("LIST-TOURNAMENT: использован файл по альтернативному имени: {path}".format(path=file_path))
         # Проверяем, найден ли файл
         if file_path is None:
             logging.error("Файл не найден: {file} в каталоге {directory} [поток: {thread}]".format(
@@ -4514,18 +4594,20 @@ def main():
         sheets_data["TOURNAMENT-SCHEDULE"] = (df_tournament, conf_tournament)
 
     # 5. Merge fields (только после полного разворота JSON)
-    # Сначала применяем обычные правила MERGE_FIELDS
+    # Сначала применяем обычные правила MERGE_FIELDS (без правил для SUMMARY — они в build_summary_sheet)
     merge_fields_across_sheets(
         sheets_data,
-        [f for f in MERGE_FIELDS if f.get("sheet_dst") != "SUMMARY"]
+        [f for f in MERGE_FIELDS if f.get("sheet_dst") != "SUMMARY"],
+        merge_name="MERGE_FIELDS"
     )
     
-    # Затем применяем дополнительные правила для CONTEST-DATA (статусы турниров).
-    # count_column_prefix="COUNT_SELECT" — колонки count из MERGE_FIELDS_ADVANCED получают имена вида =>COUNT_SELECT_*, без перезаписи COUNT_* из MERGE_FIELDS.
+    # Затем применяем дополнительные правила MERGE_FIELDS_ADVANCED (статусы турниров и т.д.).
+    # count_column_prefix="COUNT_SELECT" — колонки count получают имена вида =>COUNT_SELECT_*, без перезаписи COUNT_* из MERGE_FIELDS.
     merge_fields_across_sheets(
         sheets_data,
         MERGE_FIELDS_ADVANCED,
-        count_column_prefix="COUNT_SELECT"
+        count_column_prefix="COUNT_SELECT",
+        merge_name="MERGE_FIELDS_ADVANCED"
     )
 
         # 6. Параллельная проверка на дубли
