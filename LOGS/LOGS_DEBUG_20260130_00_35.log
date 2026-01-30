@@ -1,5 +1,0 @@
-2026-01-30 00:35:24 | INFO | === Старт работы программы: 2026-01-30 00:35:24 === [def: main]
-2026-01-30 00:35:24 | ERROR | Программа не запущена: не найдены следующие файлы из INPUT_FILES:
-  (ожидаемый каталог: /Users/orionflash/Desktop/MyProject/SPOD_PROM/SPOD-cursor-Parce/SPOD_PARCE_LOAD/SPOD)
-  - CONTEST (PROM) 29-01 v.csv (лист: CONTEST-DATA)
-  - INDICATOR (PROM) 29-01 v.csv (лист: INDICATOR) [def: main]

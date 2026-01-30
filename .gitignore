@@ -37,6 +37,7 @@ Thumbs.db
 # Logs
 *.log
 logs/
+LOGS/
 
 # Output files
 *.xlsx
@@ -47,10 +48,13 @@ OUT/
 *.csv
 *.CSV
 SPOD/
+EDIT/
+File/
 
 # Temporary files
 *.tmp
 *.temp
+*.pid
 
 # Backup files
 main_backup*.py
