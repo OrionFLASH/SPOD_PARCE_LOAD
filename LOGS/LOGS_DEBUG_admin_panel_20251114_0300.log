@@ -1,0 +1,73 @@
+2025-11-14 03:00:08,318 | INFO | __main__ | <module> | Запуск сервера админ-панели...
+2025-11-14 03:00:08,318 | INFO | __main__ | <module> | Сервер готов к работе
+2025-11-14 03:00:08,335 | WARNING | werkzeug | _log |  * Debugger is active!
+2025-11-14 03:00:08,344 | INFO | werkzeug | _log |  * Debugger PIN: 767-849-785
+2025-11-14 03:00:11,370 | INFO | werkzeug | _log |  * Detected change in '/Users/orionflash/Desktop/MyProject/SPOD_PROM/SPOD-cursor-Parce/SPOD_PARCE_LOAD/admin_panel/utils/file_manager.py', reloading
+2025-11-14 03:00:11,643 | INFO | __main__ | <module> | Запуск сервера админ-панели...
+2025-11-14 03:00:11,643 | INFO | __main__ | <module> | Сервер готов к работе
+2025-11-14 03:00:11,663 | WARNING | werkzeug | _log |  * Debugger is active!
+2025-11-14 03:00:11,675 | INFO | werkzeug | _log |  * Debugger PIN: 767-849-785
+2025-11-14 03:00:14,703 | INFO | werkzeug | _log |  * Detected change in '/Users/orionflash/Desktop/MyProject/SPOD_PROM/SPOD-cursor-Parce/SPOD_PARCE_LOAD/admin_panel/utils/file_manager.py', reloading
+2025-11-14 03:00:14,944 | INFO | __main__ | <module> | Запуск сервера админ-панели...
+2025-11-14 03:00:14,944 | INFO | __main__ | <module> | Сервер готов к работе
+2025-11-14 03:00:14,959 | WARNING | werkzeug | _log |  * Debugger is active!
+2025-11-14 03:00:14,967 | INFO | werkzeug | _log |  * Debugger PIN: 767-849-785
+2025-11-14 03:00:22,648 | INFO | werkzeug | _log | 127.0.0.1 - - [14/Nov/2025 03:00:22] "GET /api/files HTTP/1.1" 200 -
+2025-11-14 03:00:29,080 | INFO | werkzeug | _log |  * Detected change in '/Users/orionflash/Desktop/MyProject/SPOD_PROM/SPOD-cursor-Parce/SPOD_PARCE_LOAD/admin_panel/utils/file_manager.py', reloading
+2025-11-14 03:00:29,330 | INFO | __main__ | <module> | Запуск сервера админ-панели...
+2025-11-14 03:00:29,330 | INFO | __main__ | <module> | Сервер готов к работе
+2025-11-14 03:00:29,345 | WARNING | werkzeug | _log |  * Debugger is active!
+2025-11-14 03:00:29,353 | INFO | werkzeug | _log |  * Debugger PIN: 767-849-785
+2025-11-14 03:00:37,205 | INFO | __main__ | create_new_session | Запрос на создание новой сессии
+2025-11-14 03:00:37,205 | DEBUG | __main__ | create_new_session | Запрос на создание новой сессии от пользователя
+2025-11-14 03:00:37,206 | INFO | utils.file_manager | create_edit_session | Создание новой сессии: 20251114_0300
+2025-11-14 03:00:37,206 | DEBUG | utils.file_manager | create_edit_session | Скопирован файл: CONTEST-DATA (PROM) 2025-11-13 v0.csv
+2025-11-14 03:00:37,206 | DEBUG | utils.file_manager | create_edit_session | Скопирован файл: GROUP (PROM) 2025-11-13 v0.csv
+2025-11-14 03:00:37,206 | DEBUG | utils.file_manager | create_edit_session | Скопирован файл: INDICATOR (PROM) 2025-11-13 v0.csv
+2025-11-14 03:00:37,207 | DEBUG | utils.file_manager | create_edit_session | Скопирован файл: REPORT (PROM-KMKKSB) 2025-11-10 v1 (correct).csv
+2025-11-14 03:00:37,207 | DEBUG | utils.file_manager | create_edit_session | Скопирован файл: REWARD (PROM) 2025-11-13 v0.csv
+2025-11-14 03:00:37,208 | DEBUG | utils.file_manager | create_edit_session | Скопирован файл: REWARD-LINK (PROM) 2025-11-13 v0.csv
+2025-11-14 03:00:37,208 | DEBUG | utils.file_manager | create_edit_session | Скопирован файл: SVD_KB_DM_GAMIFICATION_ORG_UNIT_V20 - 2025.08.28.csv
+2025-11-14 03:00:37,208 | DEBUG | utils.file_manager | create_edit_session | Скопирован файл: TOURNAMENT-SCHEDULE (PROM) 2025-11-13 v0.csv
+2025-11-14 03:00:37,208 | DEBUG | utils.file_manager | create_edit_session | Скопирован файл: PROM_USER_ROLE 2025-10-31 v1.csv
+2025-11-14 03:00:37,209 | DEBUG | utils.file_manager | create_edit_session | Скопирован файл: PROM_USER_ROLE SB 2025-10-31 v1.csv
+2025-11-14 03:00:37,209 | DEBUG | utils.file_manager | create_edit_session | Скопирован файл: employee_PROM_final_5000.csv
+2025-11-14 03:00:37,209 | INFO | utils.file_manager | create_edit_session | Сессия создана: скопировано 11 файлов из 11
+2025-11-14 03:00:37,209 | INFO | __main__ | create_new_session | Создана новая сессия: 20251114_0300
+2025-11-14 03:00:37,209 | DEBUG | __main__ | create_new_session | Создана новая сессия: 20251114_0300, путь: /Users/orionflash/Desktop/MyProject/SPOD_PROM/SPOD-cursor-Parce/SPOD_PARCE_LOAD/EDIT/20251114_0300
+2025-11-14 03:00:37,209 | INFO | werkzeug | _log | 127.0.0.1 - - [14/Nov/2025 03:00:37] "POST /api/session/new HTTP/1.1" 200 -
+2025-11-14 03:00:37,218 | ERROR | __main__ | delete_session | Ошибка удаления сессии 20251114_0300: 'FileManager' object has no attribute 'dir_edit'
+2025-11-14 03:00:37,218 | INFO | werkzeug | _log | 127.0.0.1 - - [14/Nov/2025 03:00:37] "[35m[1mDELETE /api/session/20251114_0300 HTTP/1.1[0m" 500 -
+2025-11-14 03:00:45,475 | INFO | werkzeug | _log |  * Detected change in '/Users/orionflash/Desktop/MyProject/SPOD_PROM/SPOD-cursor-Parce/SPOD_PARCE_LOAD/admin_panel/utils/file_manager.py', reloading
+2025-11-14 03:00:45,724 | INFO | __main__ | <module> | Запуск сервера админ-панели...
+2025-11-14 03:00:45,724 | INFO | __main__ | <module> | Сервер готов к работе
+2025-11-14 03:00:45,741 | WARNING | werkzeug | _log |  * Debugger is active!
+2025-11-14 03:00:45,748 | INFO | werkzeug | _log |  * Debugger PIN: 767-849-785
+2025-11-14 03:00:47,766 | INFO | werkzeug | _log |  * Detected change in '/Users/orionflash/Desktop/MyProject/SPOD_PROM/SPOD-cursor-Parce/SPOD_PARCE_LOAD/admin_panel/app.py', reloading
+2025-11-14 03:00:47,985 | INFO | __main__ | <module> | Запуск сервера админ-панели...
+2025-11-14 03:00:47,985 | INFO | __main__ | <module> | Сервер готов к работе
+2025-11-14 03:00:47,999 | WARNING | werkzeug | _log |  * Debugger is active!
+2025-11-14 03:00:48,007 | INFO | werkzeug | _log |  * Debugger PIN: 767-849-785
+2025-11-14 03:00:54,517 | INFO | __main__ | create_new_session | Запрос на создание новой сессии
+2025-11-14 03:00:54,518 | DEBUG | __main__ | create_new_session | Запрос на создание новой сессии от пользователя
+2025-11-14 03:00:54,518 | INFO | utils.file_manager | create_edit_session | Создание новой сессии: 20251114_0300
+2025-11-14 03:00:54,518 | DEBUG | utils.file_manager | create_edit_session | Скопирован файл: CONTEST-DATA (PROM) 2025-11-13 v0.csv
+2025-11-14 03:00:54,518 | DEBUG | utils.file_manager | create_edit_session | Скопирован файл: GROUP (PROM) 2025-11-13 v0.csv
+2025-11-14 03:00:54,519 | DEBUG | utils.file_manager | create_edit_session | Скопирован файл: INDICATOR (PROM) 2025-11-13 v0.csv
+2025-11-14 03:00:54,519 | DEBUG | utils.file_manager | create_edit_session | Скопирован файл: REPORT (PROM-KMKKSB) 2025-11-10 v1 (correct).csv
+2025-11-14 03:00:54,520 | DEBUG | utils.file_manager | create_edit_session | Скопирован файл: REWARD (PROM) 2025-11-13 v0.csv
+2025-11-14 03:00:54,520 | DEBUG | utils.file_manager | create_edit_session | Скопирован файл: REWARD-LINK (PROM) 2025-11-13 v0.csv
+2025-11-14 03:00:54,520 | DEBUG | utils.file_manager | create_edit_session | Скопирован файл: SVD_KB_DM_GAMIFICATION_ORG_UNIT_V20 - 2025.08.28.csv
+2025-11-14 03:00:54,521 | DEBUG | utils.file_manager | create_edit_session | Скопирован файл: TOURNAMENT-SCHEDULE (PROM) 2025-11-13 v0.csv
+2025-11-14 03:00:54,521 | DEBUG | utils.file_manager | create_edit_session | Скопирован файл: PROM_USER_ROLE 2025-10-31 v1.csv
+2025-11-14 03:00:54,521 | DEBUG | utils.file_manager | create_edit_session | Скопирован файл: PROM_USER_ROLE SB 2025-10-31 v1.csv
+2025-11-14 03:00:54,522 | DEBUG | utils.file_manager | create_edit_session | Скопирован файл: employee_PROM_final_5000.csv
+2025-11-14 03:00:54,522 | INFO | utils.file_manager | create_edit_session | Сессия создана: скопировано 11 файлов из 11
+2025-11-14 03:00:54,522 | INFO | __main__ | create_new_session | Создана новая сессия: 20251114_0300
+2025-11-14 03:00:54,522 | DEBUG | __main__ | create_new_session | Создана новая сессия: 20251114_0300, путь: /Users/orionflash/Desktop/MyProject/SPOD_PROM/SPOD-cursor-Parce/SPOD_PARCE_LOAD/EDIT/20251114_0300
+2025-11-14 03:00:54,522 | INFO | werkzeug | _log | 127.0.0.1 - - [14/Nov/2025 03:00:54] "POST /api/session/new HTTP/1.1" 200 -
+2025-11-14 03:00:54,530 | INFO | __main__ | delete_session | Удаление сессии: 20251114_0300
+2025-11-14 03:00:54,530 | DEBUG | __main__ | delete_session | Удаление сессии: 20251114_0300, файлов в сессии: 11
+2025-11-14 03:00:54,531 | ERROR | __main__ | delete_session | Ошибка удаления сессии 20251114_0300: 'FileManager' object has no attribute 'logger'
+2025-11-14 03:00:54,531 | INFO | werkzeug | _log | 127.0.0.1 - - [14/Nov/2025 03:00:54] "[35m[1mDELETE /api/session/20251114_0300 HTTP/1.1[0m" 500 -
+2025-11-14 03:01:02,114 | INFO | werkzeug | _log |  * Detected change in '/Users/orionflash/Desktop/MyProject/SPOD_PROM/SPOD-cursor-Parce/SPOD_PARCE_LOAD/admin_panel/utils/file_manager.py', reloading

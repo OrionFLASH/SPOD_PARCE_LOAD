@@ -1,0 +1,397 @@
+2025-11-13 20:16:53,761 | INFO | === Старт работы программы: 2025-11-13 20:16:53 ===
+2025-11-13 20:16:53,761 | INFO | Загрузка файла: /Users/orionflash/Desktop/MyProject/SPOD_PROM/SPOD-cursor-Parce/SPOD_PARCE_LOAD/SPOD/CONTEST-DATA (PROM) 2025-11-13 v0.csv
+2025-11-13 20:16:53,761 | INFO | [START] read_csv_file (/Users/orionflash/Desktop/MyProject/SPOD_PROM/SPOD-cursor-Parce/SPOD_PARCE_LOAD/SPOD/CONTEST-DATA (PROM) 2025-11-13 v0.csv)
+2025-11-13 20:16:53,765 | INFO | Файл успешно загружен: /Users/orionflash/Desktop/MyProject/SPOD_PROM/SPOD-cursor-Parce/SPOD_PARCE_LOAD/SPOD/CONTEST-DATA (PROM) 2025-11-13 v0.csv, строк: 261, колонок: 25
+2025-11-13 20:16:53,765 | INFO | [END] read_csv_file (/Users/orionflash/Desktop/MyProject/SPOD_PROM/SPOD-cursor-Parce/SPOD_PARCE_LOAD/SPOD/CONTEST-DATA (PROM) 2025-11-13 v0.csv) (время: 0.004s)
+2025-11-13 20:16:53,765 | INFO | [START] flatten_json_column_recursive (лист: CONTEST-DATA, колонка: CONTEST_FEATURE)
+2025-11-13 20:16:53,780 | INFO | [CONTEST_FEATURE] Исходная колонка восстановлена с тройными кавычками
+2025-11-13 20:16:53,780 | INFO | [INFO] CONTEST_FEATURE → новых колонок: 24
+2025-11-13 20:16:53,780 | INFO | [INFO] Все новые колонки: ['CONTEST_FEATURE', 'CONTEST_FEATURE => feature', 'CONTEST_FEATURE => vid', 'CONTEST_FEATURE => momentRewarding', 'CONTEST_FEATURE => minNumber', 'CONTEST_FEATURE => capacity', 'CONTEST_FEATURE => accuracy', 'CONTEST_FEATURE => masking', 'CONTEST_FEATURE => tournamentStartMailing', 'CONTEST_FEATURE => tournamentEndMailing', 'CONTEST_FEATURE => tournamentLikeMailing', 'CONTEST_FEATURE => tournamentRewardingMailing', 'CONTEST_FEATURE => tournamentListMailing', 'CONTEST_FEATURE => persomanNumberVisible', 'CONTEST_FEATURE => persomanNumberHidden', 'CONTEST_FEATURE => gosbVisible', 'CONTEST_FEATURE => gosbHidden', 'CONTEST_FEATURE => tbVisible', 'CONTEST_FEATURE => tbHidden', 'CONTEST_FEATURE => businessBlock', 'CONTEST_FEATURE => typeRewarding', 'CONTEST_FEATURE => preferences', 'CONTEST_FEATURE => tournamentTeam', 'CONTEST_FEATURE => helpCode']
+2025-11-13 20:16:53,780 | INFO | [JSON FLATTEN] CONTEST-DATA: поле 'CONTEST_FEATURE' развернуто с префиксом 'CONTEST_FEATURE'
+2025-11-13 20:16:53,780 | INFO | Загрузка файла: /Users/orionflash/Desktop/MyProject/SPOD_PROM/SPOD-cursor-Parce/SPOD_PARCE_LOAD/SPOD/GROUP (PROM) 2025-11-13 v0.csv
+2025-11-13 20:16:53,780 | INFO | [START] read_csv_file (/Users/orionflash/Desktop/MyProject/SPOD_PROM/SPOD-cursor-Parce/SPOD_PARCE_LOAD/SPOD/GROUP (PROM) 2025-11-13 v0.csv)
+2025-11-13 20:16:53,781 | INFO | Файл успешно загружен: /Users/orionflash/Desktop/MyProject/SPOD_PROM/SPOD-cursor-Parce/SPOD_PARCE_LOAD/SPOD/GROUP (PROM) 2025-11-13 v0.csv, строк: 351, колонок: 8
+2025-11-13 20:16:53,781 | INFO | [END] read_csv_file (/Users/orionflash/Desktop/MyProject/SPOD_PROM/SPOD-cursor-Parce/SPOD_PARCE_LOAD/SPOD/GROUP (PROM) 2025-11-13 v0.csv) (время: 0.001s)
+2025-11-13 20:16:53,781 | INFO | Загрузка файла: /Users/orionflash/Desktop/MyProject/SPOD_PROM/SPOD-cursor-Parce/SPOD_PARCE_LOAD/SPOD/INDICATOR (PROM) 2025-11-13 v0.csv
+2025-11-13 20:16:53,781 | INFO | [START] read_csv_file (/Users/orionflash/Desktop/MyProject/SPOD_PROM/SPOD-cursor-Parce/SPOD_PARCE_LOAD/SPOD/INDICATOR (PROM) 2025-11-13 v0.csv)
+2025-11-13 20:16:53,782 | INFO | Файл успешно загружен: /Users/orionflash/Desktop/MyProject/SPOD_PROM/SPOD-cursor-Parce/SPOD_PARCE_LOAD/SPOD/INDICATOR (PROM) 2025-11-13 v0.csv, строк: 248, колонок: 16
+2025-11-13 20:16:53,782 | INFO | [END] read_csv_file (/Users/orionflash/Desktop/MyProject/SPOD_PROM/SPOD-cursor-Parce/SPOD_PARCE_LOAD/SPOD/INDICATOR (PROM) 2025-11-13 v0.csv) (время: 0.001s)
+2025-11-13 20:16:53,782 | INFO | Загрузка файла: /Users/orionflash/Desktop/MyProject/SPOD_PROM/SPOD-cursor-Parce/SPOD_PARCE_LOAD/SPOD/REPORT (PROM-KMKKSB) 2025-11-10 v1 (correct).csv
+2025-11-13 20:16:53,782 | INFO | [START] read_csv_file (/Users/orionflash/Desktop/MyProject/SPOD_PROM/SPOD-cursor-Parce/SPOD_PARCE_LOAD/SPOD/REPORT (PROM-KMKKSB) 2025-11-10 v1 (correct).csv)
+2025-11-13 20:16:53,797 | INFO | Файл успешно загружен: /Users/orionflash/Desktop/MyProject/SPOD_PROM/SPOD-cursor-Parce/SPOD_PARCE_LOAD/SPOD/REPORT (PROM-KMKKSB) 2025-11-10 v1 (correct).csv, строк: 20566, колонок: 7
+2025-11-13 20:16:53,797 | INFO | [END] read_csv_file (/Users/orionflash/Desktop/MyProject/SPOD_PROM/SPOD-cursor-Parce/SPOD_PARCE_LOAD/SPOD/REPORT (PROM-KMKKSB) 2025-11-10 v1 (correct).csv) (время: 0.014s)
+2025-11-13 20:16:53,797 | INFO | Загрузка файла: /Users/orionflash/Desktop/MyProject/SPOD_PROM/SPOD-cursor-Parce/SPOD_PARCE_LOAD/SPOD/REWARD (PROM) 2025-11-13 v0.csv
+2025-11-13 20:16:53,797 | INFO | [START] read_csv_file (/Users/orionflash/Desktop/MyProject/SPOD_PROM/SPOD-cursor-Parce/SPOD_PARCE_LOAD/SPOD/REWARD (PROM) 2025-11-13 v0.csv)
+2025-11-13 20:16:53,800 | INFO | Файл успешно загружен: /Users/orionflash/Desktop/MyProject/SPOD_PROM/SPOD-cursor-Parce/SPOD_PARCE_LOAD/SPOD/REWARD (PROM) 2025-11-13 v0.csv, строк: 535, колонок: 7
+2025-11-13 20:16:53,800 | INFO | [END] read_csv_file (/Users/orionflash/Desktop/MyProject/SPOD_PROM/SPOD-cursor-Parce/SPOD_PARCE_LOAD/SPOD/REWARD (PROM) 2025-11-13 v0.csv) (время: 0.003s)
+2025-11-13 20:16:53,800 | INFO | [START] flatten_json_column_recursive (лист: REWARD, колонка: REWARD_ADD_DATA)
+2025-11-13 20:16:53,840 | INFO | [INFO] REWARD_ADD_DATA → новых колонок: 76
+2025-11-13 20:16:53,840 | INFO | [INFO] Все новые колонки: ['ADD_DATA', 'ADD_DATA => feature', 'ADD_DATA => itemFeature', 'ADD_DATA => nftFlg', 'ADD_DATA => outstanding', 'ADD_DATA => rewardRule', 'ADD_DATA => rewardAgainGlobal', 'ADD_DATA => rewardAgainTournament', 'ADD_DATA => hidden', 'ADD_DATA => fileName', 'ADD_DATA => teamNews', 'ADD_DATA => singleNews', 'ADD_DATA => refreshOldNews', 'ADD_DATA => businessBlock', 'ADD_DATA => getCondition', 'ADD_DATA => getCondition => rewards', 'ADD_DATA => getCondition => nonRewards', 'ADD_DATA => getCondition => nonRewards => [0]', 'ADD_DATA => getCondition => nonRewards => [0] => nonRewardCode', 'ADD_DATA => getCondition => nonRewards => [1]', 'ADD_DATA => getCondition => nonRewards => [1] => nonRewardCode', 'ADD_DATA => getCondition => employeeRating', 'ADD_DATA => getCondition => employeeRating => minRatingBANK', 'ADD_DATA => getCondition => employeeRating => minRatingTB', 'ADD_DATA => getCondition => employeeRating => minRatingGOSB', 'ADD_DATA => getCondition => employeeRating => minCrystalEarnedTotal', 'ADD_DATA => getCondition => employeeRating => seasonCode', 'ADD_DATA => itemGroupAmount', 'ADD_DATA => isGroupingTitle', 'ADD_DATA => isGroupingTultip', 'ADD_DATA => itemAmount', 'ADD_DATA => isGrouping', 'ADD_DATA => isGroupingName', 'ADD_DATA => itemMinShow', 'ADD_DATA => itemLimitCount', 'ADD_DATA => itemLimitPeriod', 'ADD_DATA => seasonItem', 'ADD_DATA => bookingRequired', 'ADD_DATA => deliveryRequired', 'ADD_DATA => commingSoon', 'ADD_DATA => ignoreConditions', 'ADD_DATA => getCondition => nonRewards => [2]', 'ADD_DATA => getCondition => nonRewards => [2] => nonRewardCode', 'ADD_DATA => itemGroupAmount => [0]', 'ADD_DATA => itemGroupAmount => [0] => itemParam', 'ADD_DATA => itemGroupAmount => [0] => itemParamAmount', 'ADD_DATA => itemGroupAmount => [1]', 'ADD_DATA => itemGroupAmount => [1] => itemParam', 'ADD_DATA => itemGroupAmount => [1] => itemParamAmount', 'ADD_DATA => itemGroupAmount => [2]', 'ADD_DATA => itemGroupAmount => [2] => itemParam', 'ADD_DATA => itemGroupAmount => [2] => itemParamAmount', 'ADD_DATA => itemGroupAmount => [3]', 'ADD_DATA => itemGroupAmount => [3] => itemParam', 'ADD_DATA => itemGroupAmount => [3] => itemParamAmount', 'ADD_DATA => itemGroupAmount => [4]', 'ADD_DATA => itemGroupAmount => [4] => itemParam', 'ADD_DATA => itemGroupAmount => [4] => itemParamAmount', 'ADD_DATA => itemGroupAmount => [5]', 'ADD_DATA => itemGroupAmount => [5] => itemParam', 'ADD_DATA => itemGroupAmount => [5] => itemParamAmount', 'ADD_DATA => itemGroupAmount => [6]', 'ADD_DATA => itemGroupAmount => [6] => itemParam', 'ADD_DATA => itemGroupAmount => [6] => itemParamAmount', 'ADD_DATA => getCondition => rewards => [0]', 'ADD_DATA => getCondition => rewards => [0] => rewardCode', 'ADD_DATA => getCondition => rewards => [0] => amount', 'ADD_DATA => recommendationLevel', 'ADD_DATA => priority', 'ADD_DATA => masterBadge', 'ADD_DATA => parentRewardCode', 'ADD_DATA => tagColor', 'ADD_DATA => tagEndDT', 'ADD_DATA => helpCode', 'ADD_DATA => preferences', 'ADD_DATA => tournamentTeam']
+2025-11-13 20:16:53,840 | INFO | [JSON FLATTEN] REWARD: поле 'REWARD_ADD_DATA' развернуто с префиксом 'ADD_DATA'
+2025-11-13 20:16:53,840 | INFO | Загрузка файла: /Users/orionflash/Desktop/MyProject/SPOD_PROM/SPOD-cursor-Parce/SPOD_PARCE_LOAD/SPOD/REWARD-LINK (PROM) 2025-11-13 v0.csv
+2025-11-13 20:16:53,840 | INFO | [START] read_csv_file (/Users/orionflash/Desktop/MyProject/SPOD_PROM/SPOD-cursor-Parce/SPOD_PARCE_LOAD/SPOD/REWARD-LINK (PROM) 2025-11-13 v0.csv)
+2025-11-13 20:16:53,841 | INFO | Файл успешно загружен: /Users/orionflash/Desktop/MyProject/SPOD_PROM/SPOD-cursor-Parce/SPOD_PARCE_LOAD/SPOD/REWARD-LINK (PROM) 2025-11-13 v0.csv, строк: 465, колонок: 3
+2025-11-13 20:16:53,841 | INFO | [END] read_csv_file (/Users/orionflash/Desktop/MyProject/SPOD_PROM/SPOD-cursor-Parce/SPOD_PARCE_LOAD/SPOD/REWARD-LINK (PROM) 2025-11-13 v0.csv) (время: 0.001s)
+2025-11-13 20:16:53,841 | INFO | Загрузка файла: /Users/orionflash/Desktop/MyProject/SPOD_PROM/SPOD-cursor-Parce/SPOD_PARCE_LOAD/SPOD/SVD_KB_DM_GAMIFICATION_ORG_UNIT_V20 - 2025.08.28.csv
+2025-11-13 20:16:53,841 | INFO | [START] read_csv_file (/Users/orionflash/Desktop/MyProject/SPOD_PROM/SPOD-cursor-Parce/SPOD_PARCE_LOAD/SPOD/SVD_KB_DM_GAMIFICATION_ORG_UNIT_V20 - 2025.08.28.csv)
+2025-11-13 20:16:53,844 | INFO | Файл успешно загружен: /Users/orionflash/Desktop/MyProject/SPOD_PROM/SPOD-cursor-Parce/SPOD_PARCE_LOAD/SPOD/SVD_KB_DM_GAMIFICATION_ORG_UNIT_V20 - 2025.08.28.csv, строк: 121, колонок: 11
+2025-11-13 20:16:53,844 | INFO | [END] read_csv_file (/Users/orionflash/Desktop/MyProject/SPOD_PROM/SPOD-cursor-Parce/SPOD_PARCE_LOAD/SPOD/SVD_KB_DM_GAMIFICATION_ORG_UNIT_V20 - 2025.08.28.csv) (время: 0.003s)
+2025-11-13 20:16:53,844 | INFO | Загрузка файла: /Users/orionflash/Desktop/MyProject/SPOD_PROM/SPOD-cursor-Parce/SPOD_PARCE_LOAD/SPOD/TOURNAMENT-SCHEDULE (PROM) 2025-11-13 v0.csv
+2025-11-13 20:16:53,844 | INFO | [START] read_csv_file (/Users/orionflash/Desktop/MyProject/SPOD_PROM/SPOD-cursor-Parce/SPOD_PARCE_LOAD/SPOD/TOURNAMENT-SCHEDULE (PROM) 2025-11-13 v0.csv)
+2025-11-13 20:16:53,845 | INFO | Файл успешно загружен: /Users/orionflash/Desktop/MyProject/SPOD_PROM/SPOD-cursor-Parce/SPOD_PARCE_LOAD/SPOD/TOURNAMENT-SCHEDULE (PROM) 2025-11-13 v0.csv, строк: 480, колонок: 15
+2025-11-13 20:16:53,845 | INFO | [END] read_csv_file (/Users/orionflash/Desktop/MyProject/SPOD_PROM/SPOD-cursor-Parce/SPOD_PARCE_LOAD/SPOD/TOURNAMENT-SCHEDULE (PROM) 2025-11-13 v0.csv) (время: 0.001s)
+2025-11-13 20:16:53,845 | INFO | Загрузка файла: /Users/orionflash/Desktop/MyProject/SPOD_PROM/SPOD-cursor-Parce/SPOD_PARCE_LOAD/SPOD/PROM_USER_ROLE 2025-10-31 v1.csv
+2025-11-13 20:16:53,845 | INFO | [START] read_csv_file (/Users/orionflash/Desktop/MyProject/SPOD_PROM/SPOD-cursor-Parce/SPOD_PARCE_LOAD/SPOD/PROM_USER_ROLE 2025-10-31 v1.csv)
+2025-11-13 20:16:53,847 | INFO | Файл успешно загружен: /Users/orionflash/Desktop/MyProject/SPOD_PROM/SPOD-cursor-Parce/SPOD_PARCE_LOAD/SPOD/PROM_USER_ROLE 2025-10-31 v1.csv, строк: 174, колонок: 13
+2025-11-13 20:16:53,847 | INFO | [END] read_csv_file (/Users/orionflash/Desktop/MyProject/SPOD_PROM/SPOD-cursor-Parce/SPOD_PARCE_LOAD/SPOD/PROM_USER_ROLE 2025-10-31 v1.csv) (время: 0.002s)
+2025-11-13 20:16:53,847 | INFO | Загрузка файла: /Users/orionflash/Desktop/MyProject/SPOD_PROM/SPOD-cursor-Parce/SPOD_PARCE_LOAD/SPOD/PROM_USER_ROLE SB 2025-10-31 v1.csv
+2025-11-13 20:16:53,847 | INFO | [START] read_csv_file (/Users/orionflash/Desktop/MyProject/SPOD_PROM/SPOD-cursor-Parce/SPOD_PARCE_LOAD/SPOD/PROM_USER_ROLE SB 2025-10-31 v1.csv)
+2025-11-13 20:16:53,848 | INFO | Файл успешно загружен: /Users/orionflash/Desktop/MyProject/SPOD_PROM/SPOD-cursor-Parce/SPOD_PARCE_LOAD/SPOD/PROM_USER_ROLE SB 2025-10-31 v1.csv, строк: 174, колонок: 13
+2025-11-13 20:16:53,848 | INFO | [END] read_csv_file (/Users/orionflash/Desktop/MyProject/SPOD_PROM/SPOD-cursor-Parce/SPOD_PARCE_LOAD/SPOD/PROM_USER_ROLE SB 2025-10-31 v1.csv) (время: 0.001s)
+2025-11-13 20:16:53,848 | INFO | Загрузка файла: /Users/orionflash/Desktop/MyProject/SPOD_PROM/SPOD-cursor-Parce/SPOD_PARCE_LOAD/SPOD/employee_PROM_final_5000.csv
+2025-11-13 20:16:53,848 | INFO | [START] read_csv_file (/Users/orionflash/Desktop/MyProject/SPOD_PROM/SPOD-cursor-Parce/SPOD_PARCE_LOAD/SPOD/employee_PROM_final_5000.csv)
+2025-11-13 20:16:53,858 | INFO | Файл успешно загружен: /Users/orionflash/Desktop/MyProject/SPOD_PROM/SPOD-cursor-Parce/SPOD_PARCE_LOAD/SPOD/employee_PROM_final_5000.csv, строк: 5000, колонок: 17
+2025-11-13 20:16:53,858 | INFO | [END] read_csv_file (/Users/orionflash/Desktop/MyProject/SPOD_PROM/SPOD-cursor-Parce/SPOD_PARCE_LOAD/SPOD/employee_PROM_final_5000.csv) (время: 0.009s)
+2025-11-13 20:16:53,858 | INFO | [GENDER DETECTION] Начинаем определение пола для листа EMPLOYEE, строк: 5000
+2025-11-13 20:16:53,863 | INFO | [GENDER DETECTION] Обработано 500 из 5000 строк (10.0%)
+2025-11-13 20:16:53,868 | INFO | [GENDER DETECTION] Обработано 1000 из 5000 строк (20.0%)
+2025-11-13 20:16:53,874 | INFO | [GENDER DETECTION] Обработано 1500 из 5000 строк (30.0%)
+2025-11-13 20:16:53,878 | INFO | [GENDER DETECTION] Обработано 2000 из 5000 строк (40.0%)
+2025-11-13 20:16:53,883 | INFO | [GENDER DETECTION] Обработано 2500 из 5000 строк (50.0%)
+2025-11-13 20:16:53,888 | INFO | [GENDER DETECTION] Обработано 3000 из 5000 строк (60.0%)
+2025-11-13 20:16:53,893 | INFO | [GENDER DETECTION] Обработано 3500 из 5000 строк (70.0%)
+2025-11-13 20:16:53,898 | INFO | [GENDER DETECTION] Обработано 4000 из 5000 строк (80.0%)
+2025-11-13 20:16:53,903 | INFO | [GENDER DETECTION] Обработано 4500 из 5000 строк (90.0%)
+2025-11-13 20:16:53,908 | INFO | [GENDER DETECTION] Обработано 5000 из 5000 строк (100.0%)
+2025-11-13 20:16:53,909 | INFO | [GENDER DETECTION] Статистика: М=2494, Ж=2506, неопределено=0 (всего: 5000)
+2025-11-13 20:16:53,909 | INFO | [GENDER DETECTION] Завершено за 0.051s для листа EMPLOYEE
+2025-11-13 20:16:53,909 | INFO | [FIELD LENGTH] Проверка длины полей для листа ORG_UNIT_V20, строк: 121
+2025-11-13 20:16:53,910 | INFO | [FIELD LENGTH] Статистика: корректных=121, с ошибками=0 (всего: 121)
+2025-11-13 20:16:53,910 | INFO | [FIELD LENGTH] Завершено за 0.001s для листа ORG_UNIT_V20
+2025-11-13 20:16:53,910 | WARNING | [FIELD LENGTH] Пропущены поля ['PERSON_NUMBER'] в листе EMPLOYEE
+2025-11-13 20:16:53,910 | INFO | [FIELD LENGTH] Проверка длины полей для листа REPORT, строк: 20566
+2025-11-13 20:16:53,915 | INFO | [FIELD LENGTH] Обработано 500 из 20566 строк (2.4%)
+2025-11-13 20:16:53,919 | INFO | [FIELD LENGTH] Обработано 1000 из 20566 строк (4.9%)
+2025-11-13 20:16:53,923 | INFO | [FIELD LENGTH] Обработано 1500 из 20566 строк (7.3%)
+2025-11-13 20:16:53,927 | INFO | [FIELD LENGTH] Обработано 2000 из 20566 строк (9.7%)
+2025-11-13 20:16:53,931 | INFO | [FIELD LENGTH] Обработано 2500 из 20566 строк (12.2%)
+2025-11-13 20:16:53,934 | INFO | [FIELD LENGTH] Обработано 3000 из 20566 строк (14.6%)
+2025-11-13 20:16:53,938 | INFO | [FIELD LENGTH] Обработано 3500 из 20566 строк (17.0%)
+2025-11-13 20:16:53,942 | INFO | [FIELD LENGTH] Обработано 4000 из 20566 строк (19.4%)
+2025-11-13 20:16:53,946 | INFO | [FIELD LENGTH] Обработано 4500 из 20566 строк (21.9%)
+2025-11-13 20:16:53,950 | INFO | [FIELD LENGTH] Обработано 5000 из 20566 строк (24.3%)
+2025-11-13 20:16:53,954 | INFO | [FIELD LENGTH] Обработано 5500 из 20566 строк (26.7%)
+2025-11-13 20:16:53,958 | INFO | [FIELD LENGTH] Обработано 6000 из 20566 строк (29.2%)
+2025-11-13 20:16:53,962 | INFO | [FIELD LENGTH] Обработано 6500 из 20566 строк (31.6%)
+2025-11-13 20:16:53,966 | INFO | [FIELD LENGTH] Обработано 7000 из 20566 строк (34.0%)
+2025-11-13 20:16:53,970 | INFO | [FIELD LENGTH] Обработано 7500 из 20566 строк (36.5%)
+2025-11-13 20:16:53,974 | INFO | [FIELD LENGTH] Обработано 8000 из 20566 строк (38.9%)
+2025-11-13 20:16:53,977 | INFO | [FIELD LENGTH] Обработано 8500 из 20566 строк (41.3%)
+2025-11-13 20:16:53,981 | INFO | [FIELD LENGTH] Обработано 9000 из 20566 строк (43.8%)
+2025-11-13 20:16:53,985 | INFO | [FIELD LENGTH] Обработано 9500 из 20566 строк (46.2%)
+2025-11-13 20:16:53,989 | INFO | [FIELD LENGTH] Обработано 10000 из 20566 строк (48.6%)
+2025-11-13 20:16:53,993 | INFO | [FIELD LENGTH] Обработано 10500 из 20566 строк (51.1%)
+2025-11-13 20:16:53,997 | INFO | [FIELD LENGTH] Обработано 11000 из 20566 строк (53.5%)
+2025-11-13 20:16:54,001 | INFO | [FIELD LENGTH] Обработано 11500 из 20566 строк (55.9%)
+2025-11-13 20:16:54,005 | INFO | [FIELD LENGTH] Обработано 12000 из 20566 строк (58.3%)
+2025-11-13 20:16:54,009 | INFO | [FIELD LENGTH] Обработано 12500 из 20566 строк (60.8%)
+2025-11-13 20:16:54,012 | INFO | [FIELD LENGTH] Обработано 13000 из 20566 строк (63.2%)
+2025-11-13 20:16:54,016 | INFO | [FIELD LENGTH] Обработано 13500 из 20566 строк (65.6%)
+2025-11-13 20:16:54,020 | INFO | [FIELD LENGTH] Обработано 14000 из 20566 строк (68.1%)
+2025-11-13 20:16:54,024 | INFO | [FIELD LENGTH] Обработано 14500 из 20566 строк (70.5%)
+2025-11-13 20:16:54,028 | INFO | [FIELD LENGTH] Обработано 15000 из 20566 строк (72.9%)
+2025-11-13 20:16:54,032 | INFO | [FIELD LENGTH] Обработано 15500 из 20566 строк (75.4%)
+2025-11-13 20:16:54,036 | INFO | [FIELD LENGTH] Обработано 16000 из 20566 строк (77.8%)
+2025-11-13 20:16:54,040 | INFO | [FIELD LENGTH] Обработано 16500 из 20566 строк (80.2%)
+2025-11-13 20:16:54,043 | INFO | [FIELD LENGTH] Обработано 17000 из 20566 строк (82.7%)
+2025-11-13 20:16:54,047 | INFO | [FIELD LENGTH] Обработано 17500 из 20566 строк (85.1%)
+2025-11-13 20:16:54,051 | INFO | [FIELD LENGTH] Обработано 18000 из 20566 строк (87.5%)
+2025-11-13 20:16:54,055 | INFO | [FIELD LENGTH] Обработано 18500 из 20566 строк (90.0%)
+2025-11-13 20:16:54,059 | INFO | [FIELD LENGTH] Обработано 19000 из 20566 строк (92.4%)
+2025-11-13 20:16:54,063 | INFO | [FIELD LENGTH] Обработано 19500 из 20566 строк (94.8%)
+2025-11-13 20:16:54,067 | INFO | [FIELD LENGTH] Обработано 20000 из 20566 строк (97.2%)
+2025-11-13 20:16:54,071 | INFO | [FIELD LENGTH] Обработано 20500 из 20566 строк (99.7%)
+2025-11-13 20:16:54,072 | INFO | [FIELD LENGTH] Статистика: корректных=20566, с ошибками=0 (всего: 20566)
+2025-11-13 20:16:54,072 | INFO | [FIELD LENGTH] Завершено за 0.162s для листа REPORT
+2025-11-13 20:16:54,072 | INFO | [START] calculate_tournament_status (TOURNAMENT-SCHEDULE status calculation)
+2025-11-13 20:16:55,532 | INFO | [TOURNAMENT STATUS] Статистика: {'ПОДВЕДЕНИЕ ИТОГОВ': 363, 'АКТИВНЫЙ': 103, 'НЕОПРЕДЕЛЕН': 10, 'ЗАВЕРШЕН': 4}
+2025-11-13 20:16:55,533 | INFO | [END] calculate_tournament_status (TOURNAMENT-SCHEDULE status calculation) (время: 1.460s)
+2025-11-13 20:16:55,533 | INFO | [START] add_tournament_status_counts (contest_rows: 261, tournament_rows: 480)
+2025-11-13 20:16:55,533 | INFO | [TOURNAMENT STATUS COUNTS] Найдено статусов: 5 - ['АКТИВНЫЙ', 'ЗАВЕРШЕН', 'ОТМЕНЕН', 'ПОДВЕДЕНИЕ ИТОГОВ', 'УДАЛЕН']
+2025-11-13 20:16:55,535 | INFO | [TOURNAMENT STATUS COUNTS] Добавлено колонок: 5 - ['TOURNAMENT_COUNT_АКТИВНЫЙ', 'TOURNAMENT_COUNT_ЗАВЕРШЕН', 'TOURNAMENT_COUNT_ОТМЕНЕН', 'TOURNAMENT_COUNT_ПОДВЕДЕНИЕ ИТОГОВ', 'TOURNAMENT_COUNT_УДАЛЕН']
+2025-11-13 20:16:55,535 | INFO | [END] add_tournament_status_counts (добавлено колонок: 5) (время: 0.002s)
+2025-11-13 20:16:55,535 | INFO | [START] merge_fields_across_sheets (src: CONTEST-DATA -> dst: REPORT, поля: ['CONTEST_TYPE', 'FULL_NAME', 'BUSINESS_STATUS', 'BUSINESS_BLOCK'], ключ: ['CONTEST_CODE']<-['CONTEST_CODE'], mode: value, multiply: False), status_filters: {'BUSINESS_STATUS': ['АКТИВНЫЙ', 'ПОДВЕДЕНИЕ ИТОГОВ']}
+2025-11-13 20:16:55,536 | INFO | [FILTER] Применен фильтр по статусу: BUSINESS_STATUS=['АКТИВНЫЙ', 'ПОДВЕДЕНИЕ ИТОГОВ'], осталось строк: 209
+2025-11-13 20:16:55,536 | INFO | [FILTER] Фильтрация завершена: 261 -> 209 строк в листе CONTEST-DATA
+2025-11-13 20:16:55,536 | INFO | [START] add_fields_to_sheet (лист: REPORT, поля: ['CONTEST_TYPE', 'FULL_NAME', 'BUSINESS_STATUS', 'BUSINESS_BLOCK'], ключ: ['CONTEST_CODE']->['CONTEST_CODE'], mode: value, multiply: False)
+2025-11-13 20:16:55,576 | INFO | [END] add_fields_to_sheet (лист: REPORT, поля: ['CONTEST_TYPE', 'FULL_NAME', 'BUSINESS_STATUS', 'BUSINESS_BLOCK'], ключ: ['CONTEST_CODE']->['CONTEST_CODE'], mode: value, multiply: False) (время: 0.041s)
+2025-11-13 20:16:55,577 | INFO | [END] merge_fields_across_sheets (src: CONTEST-DATA -> dst: REPORT, поля: ['CONTEST_TYPE', 'FULL_NAME', 'BUSINESS_STATUS', 'BUSINESS_BLOCK'], ключ: ['CONTEST_CODE']<-['CONTEST_CODE'], mode: value, multiply: False), status_filters: {'BUSINESS_STATUS': ['АКТИВНЫЙ', 'ПОДВЕДЕНИЕ ИТОГОВ']} (время: 0.000s)
+2025-11-13 20:16:55,577 | INFO | [START] merge_fields_across_sheets (src: TOURNAMENT-SCHEDULE -> dst: REPORT, поля: ['END_DT', 'RESULT_DT', 'TOURNAMENT_STATUS'], ключ: ['TOURNAMENT_CODE']<-['TOURNAMENT_CODE'], mode: value, multiply: False)
+2025-11-13 20:16:55,577 | INFO | [START] add_fields_to_sheet (лист: REPORT, поля: ['END_DT', 'RESULT_DT', 'TOURNAMENT_STATUS'], ключ: ['TOURNAMENT_CODE']->['TOURNAMENT_CODE'], mode: value, multiply: False)
+2025-11-13 20:16:55,613 | INFO | [END] add_fields_to_sheet (лист: REPORT, поля: ['END_DT', 'RESULT_DT', 'TOURNAMENT_STATUS'], ключ: ['TOURNAMENT_CODE']->['TOURNAMENT_CODE'], mode: value, multiply: False) (время: 0.036s)
+2025-11-13 20:16:55,613 | INFO | [END] merge_fields_across_sheets (src: TOURNAMENT-SCHEDULE -> dst: REPORT, поля: ['END_DT', 'RESULT_DT', 'TOURNAMENT_STATUS'], ключ: ['TOURNAMENT_CODE']<-['TOURNAMENT_CODE'], mode: value, multiply: False) (время: 0.000s)
+2025-11-13 20:16:55,613 | INFO | [START] merge_fields_across_sheets (src: REWARD-LINK -> dst: REWARD, поля: ['CONTEST_CODE'], ключ: ['REWARD_CODE']<-['REWARD_CODE'], mode: value, multiply: False)
+2025-11-13 20:16:55,613 | INFO | [START] add_fields_to_sheet (лист: REWARD, поля: ['CONTEST_CODE'], ключ: ['REWARD_CODE']->['REWARD_CODE'], mode: value, multiply: False)
+2025-11-13 20:16:55,616 | INFO | [END] add_fields_to_sheet (лист: REWARD, поля: ['CONTEST_CODE'], ключ: ['REWARD_CODE']->['REWARD_CODE'], mode: value, multiply: False) (время: 0.003s)
+2025-11-13 20:16:55,616 | INFO | [END] merge_fields_across_sheets (src: REWARD-LINK -> dst: REWARD, поля: ['CONTEST_CODE'], ключ: ['REWARD_CODE']<-['REWARD_CODE'], mode: value, multiply: False) (время: 0.000s)
+2025-11-13 20:16:55,616 | INFO | [START] merge_fields_across_sheets (src: TOURNAMENT-SCHEDULE -> dst: REWARD, поля: ['TOURNAMENT_CODE'], ключ: ['REWARD_LINK => CONTEST_CODE']<-['CONTEST_CODE'], mode: count, multiply: False)
+2025-11-13 20:16:55,616 | INFO | [START] add_fields_to_sheet (лист: REWARD, поля: ['TOURNAMENT_CODE'], ключ: ['REWARD_LINK => CONTEST_CODE']->['CONTEST_CODE'], mode: count, multiply: False)
+2025-11-13 20:16:55,617 | INFO | [END] add_fields_to_sheet (лист: REWARD, mode: count, ключ: ['REWARD_LINK => CONTEST_CODE']->['CONTEST_CODE']) (время: 0.001s)
+2025-11-13 20:16:55,617 | INFO | [END] merge_fields_across_sheets (src: TOURNAMENT-SCHEDULE -> dst: REWARD, поля: ['TOURNAMENT_CODE'], ключ: ['REWARD_LINK => CONTEST_CODE']<-['CONTEST_CODE'], mode: count, multiply: False) (время: 0.000s)
+2025-11-13 20:16:55,618 | INFO | [START] merge_fields_across_sheets (src: CONTEST-DATA -> dst: REWARD, поля: ['FULL_NAME', 'CONTEST_TYPE', 'CONTEST_DESCRIPTION', 'PRODUCT_GROUP', 'PRODUCT', 'TARGET_TYPE', 'CONTEST_FEATURE => businessBlock', 'CREATE_DT'], ключ: ['REWARD_LINK => CONTEST_CODE']<-['CONTEST_CODE'], mode: value, multiply: False)
+2025-11-13 20:16:55,618 | INFO | [START] add_fields_to_sheet (лист: REWARD, поля: ['FULL_NAME', 'CONTEST_TYPE', 'CONTEST_DESCRIPTION', 'PRODUCT_GROUP', 'PRODUCT', 'TARGET_TYPE', 'CONTEST_FEATURE => businessBlock', 'CREATE_DT'], ключ: ['REWARD_LINK => CONTEST_CODE']->['CONTEST_CODE'], mode: value, multiply: False)
+2025-11-13 20:16:55,623 | INFO | [END] add_fields_to_sheet (лист: REWARD, поля: ['FULL_NAME', 'CONTEST_TYPE', 'CONTEST_DESCRIPTION', 'PRODUCT_GROUP', 'PRODUCT', 'TARGET_TYPE', 'CONTEST_FEATURE => businessBlock', 'CREATE_DT'], ключ: ['REWARD_LINK => CONTEST_CODE']->['CONTEST_CODE'], mode: value, multiply: False) (время: 0.005s)
+2025-11-13 20:16:55,623 | INFO | [END] merge_fields_across_sheets (src: CONTEST-DATA -> dst: REWARD, поля: ['FULL_NAME', 'CONTEST_TYPE', 'CONTEST_DESCRIPTION', 'PRODUCT_GROUP', 'PRODUCT', 'TARGET_TYPE', 'CONTEST_FEATURE => businessBlock', 'CREATE_DT'], ключ: ['REWARD_LINK => CONTEST_CODE']<-['CONTEST_CODE'], mode: value, multiply: False) (время: 0.000s)
+2025-11-13 20:16:55,623 | INFO | [START] merge_fields_across_sheets (src: ORG_UNIT_V20 -> dst: EMPLOYEE, поля: ['ORG_UNIT_CODE'], ключ: ['TB_CODE', 'GOSB_CODE']<-['TB_CODE', 'GOSB_CODE'], mode: value, multiply: False)
+2025-11-13 20:16:55,623 | INFO | [START] add_fields_to_sheet (лист: EMPLOYEE, поля: ['ORG_UNIT_CODE'], ключ: ['TB_CODE', 'GOSB_CODE']->['TB_CODE', 'GOSB_CODE'], mode: value, multiply: False)
+2025-11-13 20:16:55,637 | INFO | [END] add_fields_to_sheet (лист: EMPLOYEE, поля: ['ORG_UNIT_CODE'], ключ: ['TB_CODE', 'GOSB_CODE']->['TB_CODE', 'GOSB_CODE'], mode: value, multiply: False) (время: 0.013s)
+2025-11-13 20:16:55,637 | INFO | [END] merge_fields_across_sheets (src: ORG_UNIT_V20 -> dst: EMPLOYEE, поля: ['ORG_UNIT_CODE'], ключ: ['TB_CODE', 'GOSB_CODE']<-['TB_CODE', 'GOSB_CODE'], mode: value, multiply: False) (время: 0.000s)
+2025-11-13 20:16:55,637 | INFO | [START] merge_fields_across_sheets (src: ORG_UNIT_V20 -> dst: EMPLOYEE, поля: ['GOSB_CODE', 'GOSB_SHORT_NAME', 'GOSB_NAME', 'TB_CODE', 'TB_SHORT_NAME'], ключ: ['ORG_UNIT_CODE']<-['ORG_UNIT_CODE'], mode: value, multiply: False)
+2025-11-13 20:16:55,637 | INFO | [START] add_fields_to_sheet (лист: EMPLOYEE, поля: ['GOSB_CODE', 'GOSB_SHORT_NAME', 'GOSB_NAME', 'TB_CODE', 'TB_SHORT_NAME'], ключ: ['ORG_UNIT_CODE']->['ORG_UNIT_CODE'], mode: value, multiply: False)
+2025-11-13 20:16:55,655 | INFO | [END] add_fields_to_sheet (лист: EMPLOYEE, поля: ['GOSB_CODE', 'GOSB_SHORT_NAME', 'GOSB_NAME', 'TB_CODE', 'TB_SHORT_NAME'], ключ: ['ORG_UNIT_CODE']->['ORG_UNIT_CODE'], mode: value, multiply: False) (время: 0.018s)
+2025-11-13 20:16:55,655 | INFO | [END] merge_fields_across_sheets (src: ORG_UNIT_V20 -> dst: EMPLOYEE, поля: ['GOSB_CODE', 'GOSB_SHORT_NAME', 'GOSB_NAME', 'TB_CODE', 'TB_SHORT_NAME'], ключ: ['ORG_UNIT_CODE']<-['ORG_UNIT_CODE'], mode: value, multiply: False) (время: 0.000s)
+2025-11-13 20:16:55,655 | INFO | [START] merge_fields_across_sheets (src: CONTEST-DATA -> dst: TOURNAMENT-SCHEDULE, поля: ['FULL_NAME', 'BUSINESS_BLOCK', 'CONTEST_TYPE', 'BUSINESS_STATUS', 'PRODUCT_GROUP', 'PRODUCT', 'TARGET_TYPE'], ключ: ['CONTEST_CODE']<-['CONTEST_CODE'], mode: value, multiply: False)
+2025-11-13 20:16:55,656 | INFO | [START] add_fields_to_sheet (лист: TOURNAMENT-SCHEDULE, поля: ['FULL_NAME', 'BUSINESS_BLOCK', 'CONTEST_TYPE', 'BUSINESS_STATUS', 'PRODUCT_GROUP', 'PRODUCT', 'TARGET_TYPE'], ключ: ['CONTEST_CODE']->['CONTEST_CODE'], mode: value, multiply: False)
+2025-11-13 20:16:55,660 | INFO | [END] add_fields_to_sheet (лист: TOURNAMENT-SCHEDULE, поля: ['FULL_NAME', 'BUSINESS_BLOCK', 'CONTEST_TYPE', 'BUSINESS_STATUS', 'PRODUCT_GROUP', 'PRODUCT', 'TARGET_TYPE'], ключ: ['CONTEST_CODE']->['CONTEST_CODE'], mode: value, multiply: False) (время: 0.004s)
+2025-11-13 20:16:55,660 | INFO | [END] merge_fields_across_sheets (src: CONTEST-DATA -> dst: TOURNAMENT-SCHEDULE, поля: ['FULL_NAME', 'BUSINESS_BLOCK', 'CONTEST_TYPE', 'BUSINESS_STATUS', 'PRODUCT_GROUP', 'PRODUCT', 'TARGET_TYPE'], ключ: ['CONTEST_CODE']<-['CONTEST_CODE'], mode: value, multiply: False) (время: 0.000s)
+2025-11-13 20:16:55,660 | INFO | [START] merge_fields_across_sheets (src: CONTEST-DATA -> dst: GROUP, поля: ['FULL_NAME', 'CONTEST_TYPE', 'TARGET_TYPE'], ключ: ['CONTEST_CODE']<-['CONTEST_CODE'], mode: value, multiply: False)
+2025-11-13 20:16:55,660 | INFO | [START] add_fields_to_sheet (лист: GROUP, поля: ['FULL_NAME', 'CONTEST_TYPE', 'TARGET_TYPE'], ключ: ['CONTEST_CODE']->['CONTEST_CODE'], mode: value, multiply: False)
+2025-11-13 20:16:55,663 | INFO | [END] add_fields_to_sheet (лист: GROUP, поля: ['FULL_NAME', 'CONTEST_TYPE', 'TARGET_TYPE'], ключ: ['CONTEST_CODE']->['CONTEST_CODE'], mode: value, multiply: False) (время: 0.003s)
+2025-11-13 20:16:55,663 | INFO | [END] merge_fields_across_sheets (src: CONTEST-DATA -> dst: GROUP, поля: ['FULL_NAME', 'CONTEST_TYPE', 'TARGET_TYPE'], ключ: ['CONTEST_CODE']<-['CONTEST_CODE'], mode: value, multiply: False) (время: 0.000s)
+2025-11-13 20:16:55,663 | INFO | [START] merge_fields_across_sheets (src: TOURNAMENT-SCHEDULE -> dst: GROUP, поля: ['TOURNAMENT_STATUS', 'TARGET_TYPE'], ключ: ['CONTEST_CODE']<-['CONTEST_CODE'], mode: value, multiply: False)
+2025-11-13 20:16:55,663 | INFO | [START] add_fields_to_sheet (лист: GROUP, поля: ['TOURNAMENT_STATUS', 'TARGET_TYPE'], ключ: ['CONTEST_CODE']->['CONTEST_CODE'], mode: value, multiply: False)
+2025-11-13 20:16:55,665 | INFO | [END] add_fields_to_sheet (лист: GROUP, поля: ['TOURNAMENT_STATUS', 'TARGET_TYPE'], ключ: ['CONTEST_CODE']->['CONTEST_CODE'], mode: value, multiply: False) (время: 0.002s)
+2025-11-13 20:16:55,665 | INFO | [END] merge_fields_across_sheets (src: TOURNAMENT-SCHEDULE -> dst: GROUP, поля: ['TOURNAMENT_STATUS', 'TARGET_TYPE'], ключ: ['CONTEST_CODE']<-['CONTEST_CODE'], mode: value, multiply: False) (время: 0.000s)
+2025-11-13 20:16:55,665 | INFO | [START] merge_fields_across_sheets (src: CONTEST-DATA -> dst: INDICATOR, поля: ['FULL_NAME'], ключ: ['CONTEST_CODE']<-['CONTEST_CODE'], mode: value, multiply: False)
+2025-11-13 20:16:55,665 | INFO | [START] add_fields_to_sheet (лист: INDICATOR, поля: ['FULL_NAME'], ключ: ['CONTEST_CODE']->['CONTEST_CODE'], mode: value, multiply: False)
+2025-11-13 20:16:55,667 | INFO | [END] add_fields_to_sheet (лист: INDICATOR, поля: ['FULL_NAME'], ключ: ['CONTEST_CODE']->['CONTEST_CODE'], mode: value, multiply: False) (время: 0.002s)
+2025-11-13 20:16:55,667 | INFO | [END] merge_fields_across_sheets (src: CONTEST-DATA -> dst: INDICATOR, поля: ['FULL_NAME'], ключ: ['CONTEST_CODE']<-['CONTEST_CODE'], mode: value, multiply: False) (время: 0.000s)
+2025-11-13 20:16:55,667 | INFO | [START] merge_fields_across_sheets (src: CONTEST-DATA -> dst: REWARD-LINK, поля: ['FULL_NAME'], ключ: ['CONTEST_CODE']<-['CONTEST_CODE'], mode: value, multiply: False)
+2025-11-13 20:16:55,667 | INFO | [START] add_fields_to_sheet (лист: REWARD-LINK, поля: ['FULL_NAME'], ключ: ['CONTEST_CODE']->['CONTEST_CODE'], mode: value, multiply: False)
+2025-11-13 20:16:55,669 | INFO | [END] add_fields_to_sheet (лист: REWARD-LINK, поля: ['FULL_NAME'], ключ: ['CONTEST_CODE']->['CONTEST_CODE'], mode: value, multiply: False) (время: 0.002s)
+2025-11-13 20:16:55,669 | INFO | [END] merge_fields_across_sheets (src: CONTEST-DATA -> dst: REWARD-LINK, поля: ['FULL_NAME'], ключ: ['CONTEST_CODE']<-['CONTEST_CODE'], mode: value, multiply: False) (время: 0.000s)
+2025-11-13 20:16:55,672 | INFO | [START] merge_fields_across_sheets (src: REPORT -> dst: TOURNAMENT-SCHEDULE, поля: ['CONTEST_DATE'], ключ: ['CONTEST_CODE', 'TOURNAMENT_CODE']<-['CONTEST_CODE', 'TOURNAMENT_CODE'], mode: value, multiply: False)
+2025-11-13 20:16:55,672 | INFO | [START] add_fields_to_sheet (лист: TOURNAMENT-SCHEDULE, поля: ['CONTEST_DATE'], ключ: ['CONTEST_CODE', 'TOURNAMENT_CODE']->['CONTEST_CODE', 'TOURNAMENT_CODE'], mode: value, multiply: False)
+2025-11-13 20:16:55,712 | INFO | [END] add_fields_to_sheet (лист: TOURNAMENT-SCHEDULE, поля: ['CONTEST_DATE'], ключ: ['CONTEST_CODE', 'TOURNAMENT_CODE']->['CONTEST_CODE', 'TOURNAMENT_CODE'], mode: value, multiply: False) (время: 0.039s)
+2025-11-13 20:16:55,712 | INFO | [END] merge_fields_across_sheets (src: REPORT -> dst: TOURNAMENT-SCHEDULE, поля: ['CONTEST_DATE'], ключ: ['CONTEST_CODE', 'TOURNAMENT_CODE']<-['CONTEST_CODE', 'TOURNAMENT_CODE'], mode: value, multiply: False) (время: 0.000s)
+2025-11-13 20:16:55,712 | INFO | [START] merge_fields_across_sheets (src: TOURNAMENT-SCHEDULE -> dst: CONTEST-DATA, поля: ['TOURNAMENT_CODE'], ключ: ['CONTEST_CODE']<-['CONTEST_CODE'], mode: count, multiply: False)
+2025-11-13 20:16:55,713 | INFO | [START] add_fields_to_sheet (лист: CONTEST-DATA, поля: ['TOURNAMENT_CODE'], ключ: ['CONTEST_CODE']->['CONTEST_CODE'], mode: count, multiply: False)
+2025-11-13 20:16:55,714 | INFO | [END] add_fields_to_sheet (лист: CONTEST-DATA, mode: count, ключ: ['CONTEST_CODE']->['CONTEST_CODE']) (время: 0.001s)
+2025-11-13 20:16:55,714 | INFO | [END] merge_fields_across_sheets (src: TOURNAMENT-SCHEDULE -> dst: CONTEST-DATA, поля: ['TOURNAMENT_CODE'], ключ: ['CONTEST_CODE']<-['CONTEST_CODE'], mode: count, multiply: False) (время: 0.000s)
+2025-11-13 20:16:55,716 | INFO | [START] merge_fields_across_sheets (src: REPORT -> dst: TOURNAMENT-SCHEDULE, поля: ['CONTEST_DATE'], ключ: ['CONTEST_CODE', 'TOURNAMENT_CODE']<-['CONTEST_CODE', 'TOURNAMENT_CODE'], mode: count, multiply: False)
+2025-11-13 20:16:55,716 | INFO | [START] add_fields_to_sheet (лист: TOURNAMENT-SCHEDULE, поля: ['CONTEST_DATE'], ключ: ['CONTEST_CODE', 'TOURNAMENT_CODE']->['CONTEST_CODE', 'TOURNAMENT_CODE'], mode: count, multiply: False)
+2025-11-13 20:16:55,719 | INFO | [END] add_fields_to_sheet (лист: TOURNAMENT-SCHEDULE, mode: count, ключ: ['CONTEST_CODE', 'TOURNAMENT_CODE']->['CONTEST_CODE', 'TOURNAMENT_CODE']) (время: 0.003s)
+2025-11-13 20:16:55,720 | INFO | [END] merge_fields_across_sheets (src: REPORT -> dst: TOURNAMENT-SCHEDULE, поля: ['CONTEST_DATE'], ключ: ['CONTEST_CODE', 'TOURNAMENT_CODE']<-['CONTEST_CODE', 'TOURNAMENT_CODE'], mode: count, multiply: False) (время: 0.000s)
+2025-11-13 20:16:55,720 | INFO | [START] merge_fields_across_sheets (src: TOURNAMENT-SCHEDULE -> dst: CONTEST-DATA, поля: ['TOURNAMENT_CODE'], ключ: ['CONTEST_CODE']<-['CONTEST_CODE'], mode: count, multiply: False), status_filters: {'TOURNAMENT_STATUS': ['АКТИВНЫЙ']}
+2025-11-13 20:16:55,721 | INFO | [FILTER] Применен фильтр по статусу: TOURNAMENT_STATUS=['АКТИВНЫЙ'], осталось строк: 114
+2025-11-13 20:16:55,721 | INFO | [FILTER] Фильтрация завершена: 480 -> 114 строк в листе TOURNAMENT-SCHEDULE
+2025-11-13 20:16:55,721 | INFO | [START] add_fields_to_sheet (лист: CONTEST-DATA, поля: ['TOURNAMENT_CODE'], ключ: ['CONTEST_CODE']->['CONTEST_CODE'], mode: count, multiply: False)
+2025-11-13 20:16:55,721 | INFO | [END] add_fields_to_sheet (лист: CONTEST-DATA, mode: count, ключ: ['CONTEST_CODE']->['CONTEST_CODE']) (время: 0.001s)
+2025-11-13 20:16:55,721 | INFO | [END] merge_fields_across_sheets (src: TOURNAMENT-SCHEDULE -> dst: CONTEST-DATA, поля: ['TOURNAMENT_CODE'], ключ: ['CONTEST_CODE']<-['CONTEST_CODE'], mode: count, multiply: False), status_filters: {'TOURNAMENT_STATUS': ['АКТИВНЫЙ']} (время: 0.000s)
+2025-11-13 20:16:55,722 | INFO | [START] merge_fields_across_sheets (src: TOURNAMENT-SCHEDULE -> dst: CONTEST-DATA, поля: ['TOURNAMENT_CODE'], ключ: ['CONTEST_CODE']<-['CONTEST_CODE'], mode: count, multiply: False), status_filters: {'TOURNAMENT_STATUS': ['ЗАВЕРШЕН']}
+2025-11-13 20:16:55,722 | INFO | [FILTER] Применен фильтр по статусу: TOURNAMENT_STATUS=['ЗАВЕРШЕН'], осталось строк: 229
+2025-11-13 20:16:55,722 | INFO | [FILTER] Фильтрация завершена: 480 -> 229 строк в листе TOURNAMENT-SCHEDULE
+2025-11-13 20:16:55,722 | INFO | [START] add_fields_to_sheet (лист: CONTEST-DATA, поля: ['TOURNAMENT_CODE'], ключ: ['CONTEST_CODE']->['CONTEST_CODE'], mode: count, multiply: False)
+2025-11-13 20:16:55,723 | INFO | [END] add_fields_to_sheet (лист: CONTEST-DATA, mode: count, ключ: ['CONTEST_CODE']->['CONTEST_CODE']) (время: 0.001s)
+2025-11-13 20:16:55,723 | INFO | [END] merge_fields_across_sheets (src: TOURNAMENT-SCHEDULE -> dst: CONTEST-DATA, поля: ['TOURNAMENT_CODE'], ключ: ['CONTEST_CODE']<-['CONTEST_CODE'], mode: count, multiply: False), status_filters: {'TOURNAMENT_STATUS': ['ЗАВЕРШЕН']} (время: 0.000s)
+2025-11-13 20:16:55,723 | INFO | [START] merge_fields_across_sheets (src: TOURNAMENT-SCHEDULE -> dst: CONTEST-DATA, поля: ['TOURNAMENT_CODE'], ключ: ['CONTEST_CODE']<-['CONTEST_CODE'], mode: count, multiply: False), status_filters: {'TOURNAMENT_STATUS': ['ОТМЕНЕН']}
+2025-11-13 20:16:55,723 | INFO | [FILTER] Применен фильтр по статусу: TOURNAMENT_STATUS=['ОТМЕНЕН'], осталось строк: 13
+2025-11-13 20:16:55,723 | INFO | [FILTER] Фильтрация завершена: 480 -> 13 строк в листе TOURNAMENT-SCHEDULE
+2025-11-13 20:16:55,723 | INFO | [START] add_fields_to_sheet (лист: CONTEST-DATA, поля: ['TOURNAMENT_CODE'], ключ: ['CONTEST_CODE']->['CONTEST_CODE'], mode: count, multiply: False)
+2025-11-13 20:16:55,724 | INFO | [END] add_fields_to_sheet (лист: CONTEST-DATA, mode: count, ключ: ['CONTEST_CODE']->['CONTEST_CODE']) (время: 0.001s)
+2025-11-13 20:16:55,724 | INFO | [END] merge_fields_across_sheets (src: TOURNAMENT-SCHEDULE -> dst: CONTEST-DATA, поля: ['TOURNAMENT_CODE'], ключ: ['CONTEST_CODE']<-['CONTEST_CODE'], mode: count, multiply: False), status_filters: {'TOURNAMENT_STATUS': ['ОТМЕНЕН']} (время: 0.000s)
+2025-11-13 20:16:55,724 | INFO | [START] merge_fields_across_sheets (src: TOURNAMENT-SCHEDULE -> dst: CONTEST-DATA, поля: ['TOURNAMENT_CODE'], ключ: ['CONTEST_CODE']<-['CONTEST_CODE'], mode: count, multiply: False), status_filters: {'TOURNAMENT_STATUS': ['ПОДВЕДЕНИЕ ИТОГОВ']}
+2025-11-13 20:16:55,724 | INFO | [FILTER] Применен фильтр по статусу: TOURNAMENT_STATUS=['ПОДВЕДЕНИЕ ИТОГОВ'], осталось строк: 27
+2025-11-13 20:16:55,724 | INFO | [FILTER] Фильтрация завершена: 480 -> 27 строк в листе TOURNAMENT-SCHEDULE
+2025-11-13 20:16:55,724 | INFO | [START] add_fields_to_sheet (лист: CONTEST-DATA, поля: ['TOURNAMENT_CODE'], ключ: ['CONTEST_CODE']->['CONTEST_CODE'], mode: count, multiply: False)
+2025-11-13 20:16:55,725 | INFO | [END] add_fields_to_sheet (лист: CONTEST-DATA, mode: count, ключ: ['CONTEST_CODE']->['CONTEST_CODE']) (время: 0.001s)
+2025-11-13 20:16:55,725 | INFO | [END] merge_fields_across_sheets (src: TOURNAMENT-SCHEDULE -> dst: CONTEST-DATA, поля: ['TOURNAMENT_CODE'], ключ: ['CONTEST_CODE']<-['CONTEST_CODE'], mode: count, multiply: False), status_filters: {'TOURNAMENT_STATUS': ['ПОДВЕДЕНИЕ ИТОГОВ']} (время: 0.000s)
+2025-11-13 20:16:55,725 | INFO | [START] merge_fields_across_sheets (src: TOURNAMENT-SCHEDULE -> dst: CONTEST-DATA, поля: ['TOURNAMENT_CODE'], ключ: ['CONTEST_CODE']<-['CONTEST_CODE'], mode: count, multiply: False), status_filters: {'TOURNAMENT_STATUS': ['УДАЛЕН']}
+2025-11-13 20:16:55,725 | INFO | [FILTER] Применен фильтр по статусу: TOURNAMENT_STATUS=['УДАЛЕН'], осталось строк: 97
+2025-11-13 20:16:55,725 | INFO | [FILTER] Фильтрация завершена: 480 -> 97 строк в листе TOURNAMENT-SCHEDULE
+2025-11-13 20:16:55,725 | INFO | [START] add_fields_to_sheet (лист: CONTEST-DATA, поля: ['TOURNAMENT_CODE'], ключ: ['CONTEST_CODE']->['CONTEST_CODE'], mode: count, multiply: False)
+2025-11-13 20:16:55,726 | INFO | [END] add_fields_to_sheet (лист: CONTEST-DATA, mode: count, ключ: ['CONTEST_CODE']->['CONTEST_CODE']) (время: 0.001s)
+2025-11-13 20:16:55,726 | INFO | [END] merge_fields_across_sheets (src: TOURNAMENT-SCHEDULE -> dst: CONTEST-DATA, поля: ['TOURNAMENT_CODE'], ключ: ['CONTEST_CODE']<-['CONTEST_CODE'], mode: count, multiply: False), status_filters: {'TOURNAMENT_STATUS': ['УДАЛЕН']} (время: 0.000s)
+2025-11-13 20:16:55,726 | INFO | [START] Проверка дублей: CONTEST-DATA, ключ: ['CONTEST_CODE']
+2025-11-13 20:16:55,727 | INFO | [INFO] Дублей найдено: 0 на листе CONTEST-DATA по ключу ['CONTEST_CODE']
+2025-11-13 20:16:55,727 | INFO | [END] Проверка дублей: CONTEST-DATA, время: 0.000s
+2025-11-13 20:16:55,727 | INFO | [START] Проверка дублей: GROUP, ключ: ['CONTEST_CODE', 'GROUP_CODE', 'GROUP_VALUE']
+2025-11-13 20:16:55,727 | INFO | [INFO] Дублей найдено: 0 на листе GROUP по ключу ['CONTEST_CODE', 'GROUP_CODE', 'GROUP_VALUE']
+2025-11-13 20:16:55,727 | INFO | [END] Проверка дублей: GROUP, время: 0.000s
+2025-11-13 20:16:55,727 | INFO | [START] Проверка дублей: INDICATOR, ключ: ['CONTEST_CODE', 'INDICATOR_ADD_CALC_TYPE']
+2025-11-13 20:16:55,728 | INFO | [INFO] Дублей найдено: 0 на листе INDICATOR по ключу ['CONTEST_CODE', 'INDICATOR_ADD_CALC_TYPE']
+2025-11-13 20:16:55,728 | INFO | [END] Проверка дублей: INDICATOR, время: 0.000s
+2025-11-13 20:16:55,728 | INFO | [START] Проверка дублей: REPORT, ключ: ['MANAGER_PERSON_NUMBER', 'TOURNAMENT_CODE', 'CONTEST_CODE']
+2025-11-13 20:16:55,733 | INFO | [INFO] Дублей найдено: 2 на листе REPORT по ключу ['MANAGER_PERSON_NUMBER', 'TOURNAMENT_CODE', 'CONTEST_CODE']
+2025-11-13 20:16:55,733 | INFO | [END] Проверка дублей: REPORT, время: 0.005s
+2025-11-13 20:16:55,733 | INFO | [START] Проверка дублей: REWARD, ключ: ['REWARD_CODE']
+2025-11-13 20:16:55,733 | INFO | [INFO] Дублей найдено: 0 на листе REWARD по ключу ['REWARD_CODE']
+2025-11-13 20:16:55,733 | INFO | [END] Проверка дублей: REWARD, время: 0.000s
+2025-11-13 20:16:55,733 | INFO | [START] Проверка дублей: REWARD-LINK, ключ: ['CONTEST_CODE', 'REWARD_CODE']
+2025-11-13 20:16:55,734 | INFO | [INFO] Дублей найдено: 0 на листе REWARD-LINK по ключу ['CONTEST_CODE', 'REWARD_CODE']
+2025-11-13 20:16:55,734 | INFO | [END] Проверка дублей: REWARD-LINK, время: 0.001s
+2025-11-13 20:16:55,734 | INFO | [START] Проверка дублей: ORG_UNIT_V20, ключ: ['ORG_UNIT_CODE']
+2025-11-13 20:16:55,734 | INFO | [INFO] Дублей найдено: 0 на листе ORG_UNIT_V20 по ключу ['ORG_UNIT_CODE']
+2025-11-13 20:16:55,734 | INFO | [END] Проверка дублей: ORG_UNIT_V20, время: 0.000s
+2025-11-13 20:16:55,734 | INFO | [START] Проверка дублей: TOURNAMENT-SCHEDULE, ключ: ['TOURNAMENT_CODE', 'CONTEST_CODE']
+2025-11-13 20:16:55,735 | INFO | [INFO] Дублей найдено: 0 на листе TOURNAMENT-SCHEDULE по ключу ['TOURNAMENT_CODE', 'CONTEST_CODE']
+2025-11-13 20:16:55,735 | INFO | [END] Проверка дублей: TOURNAMENT-SCHEDULE, время: 0.000s
+2025-11-13 20:16:55,735 | INFO | [START] Проверка дублей: USER_ROLE, ключ: ['RULE_NUM']
+2025-11-13 20:16:55,735 | INFO | [INFO] Дублей найдено: 0 на листе USER_ROLE по ключу ['RULE_NUM']
+2025-11-13 20:16:55,735 | INFO | [END] Проверка дублей: USER_ROLE, время: 0.000s
+2025-11-13 20:16:55,735 | INFO | [START] Проверка дублей: USER_ROLE SB, ключ: ['RULE_NUM']
+2025-11-13 20:16:55,735 | INFO | [INFO] Дублей найдено: 0 на листе USER_ROLE SB по ключу ['RULE_NUM']
+2025-11-13 20:16:55,735 | INFO | [END] Проверка дублей: USER_ROLE SB, время: 0.000s
+2025-11-13 20:16:55,735 | INFO | [START] Проверка дублей: EMPLOYEE, ключ: ['PERSON_NUMBER']
+2025-11-13 20:16:55,735 | ERROR | [ERROR] Ошибка при поиске дублей: EMPLOYEE, ключ: ['PERSON_NUMBER']: 'PERSON_NUMBER'
+2025-11-13 20:16:55,735 | INFO | [END] Проверка дублей: EMPLOYEE, время: 0.000s
+2025-11-13 20:16:55,735 | INFO | [START] build_summary_sheet (лист: SUMMARY)
+2025-11-13 20:16:56,126 | INFO | Summary: Каркас: 1951 строк (реальные комбинации ключей)
+2025-11-13 20:16:56,128 | INFO | [START] add_fields_to_sheet (лист-источник: CONTEST-DATA, поля: ['FULL_NAME', 'CONTEST_DESCRIPTION', 'CONTEST_FEATURE => feature', 'CONTEST_FEATURE => momentRewarding', 'TARGET_TYPE', 'CONTEST_FEATURE => vid', 'CONTEST_TYPE', 'PRODUCT_GROUP', 'PRODUCT', 'FACTOR_MATCH', 'PLAN_MOD_VALUE', 'BUSINESS_BLOCK', 'CONTEST_FEATURE => tournamentStartMailing', 'CONTEST_FEATURE => tournamentEndMailing', 'CONTEST_FEATURE => tournamentRewardingMailing', 'CONTEST_FEATURE => tournamentLikeMailing', 'CONTEST_FEATURE => persomanNumberVisible'], ключ: ['CONTEST_CODE']->['CONTEST_CODE'], mode: value)
+2025-11-13 20:16:56,128 | INFO | [START] add_fields_to_sheet (лист: SUMMARY, поля: ['FULL_NAME', 'CONTEST_DESCRIPTION', 'CONTEST_FEATURE => feature', 'CONTEST_FEATURE => momentRewarding', 'TARGET_TYPE', 'CONTEST_FEATURE => vid', 'CONTEST_TYPE', 'PRODUCT_GROUP', 'PRODUCT', 'FACTOR_MATCH', 'PLAN_MOD_VALUE', 'BUSINESS_BLOCK', 'CONTEST_FEATURE => tournamentStartMailing', 'CONTEST_FEATURE => tournamentEndMailing', 'CONTEST_FEATURE => tournamentRewardingMailing', 'CONTEST_FEATURE => tournamentLikeMailing', 'CONTEST_FEATURE => persomanNumberVisible'], ключ: ['CONTEST_CODE']->['CONTEST_CODE'], mode: value, multiply: False)
+2025-11-13 20:16:56,140 | INFO | [END] add_fields_to_sheet (лист: SUMMARY, поля: ['FULL_NAME', 'CONTEST_DESCRIPTION', 'CONTEST_FEATURE => feature', 'CONTEST_FEATURE => momentRewarding', 'TARGET_TYPE', 'CONTEST_FEATURE => vid', 'CONTEST_TYPE', 'PRODUCT_GROUP', 'PRODUCT', 'FACTOR_MATCH', 'PLAN_MOD_VALUE', 'BUSINESS_BLOCK', 'CONTEST_FEATURE => tournamentStartMailing', 'CONTEST_FEATURE => tournamentEndMailing', 'CONTEST_FEATURE => tournamentRewardingMailing', 'CONTEST_FEATURE => tournamentLikeMailing', 'CONTEST_FEATURE => persomanNumberVisible'], ключ: ['CONTEST_CODE']->['CONTEST_CODE'], mode: value, multiply: False) (время: 0.012s)
+2025-11-13 20:16:56,140 | INFO | [END] add_fields_to_sheet (лист-источник: CONTEST-DATA, поля: ['FULL_NAME', 'CONTEST_DESCRIPTION', 'CONTEST_FEATURE => feature', 'CONTEST_FEATURE => momentRewarding', 'TARGET_TYPE', 'CONTEST_FEATURE => vid', 'CONTEST_TYPE', 'PRODUCT_GROUP', 'PRODUCT', 'FACTOR_MATCH', 'PLAN_MOD_VALUE', 'BUSINESS_BLOCK', 'CONTEST_FEATURE => tournamentStartMailing', 'CONTEST_FEATURE => tournamentEndMailing', 'CONTEST_FEATURE => tournamentRewardingMailing', 'CONTEST_FEATURE => tournamentLikeMailing', 'CONTEST_FEATURE => persomanNumberVisible'], ключ: ['CONTEST_CODE']->['CONTEST_CODE'], mode: value) (время: 0.000s)
+2025-11-13 20:16:56,140 | INFO | [START] add_fields_to_sheet (лист-источник: GROUP, поля: ['GET_CALC_METHOD', 'GET_CALC_CRITERION', 'ADD_CALC_CRITERION', 'ADD_CALC_CRITERION_2'], ключ: ['CONTEST_CODE', 'GROUP_CODE', 'GROUP_VALUE']->['CONTEST_CODE', 'GROUP_CODE', 'GROUP_VALUE'], mode: value)
+2025-11-13 20:16:56,140 | INFO | [START] add_fields_to_sheet (лист: SUMMARY, поля: ['GET_CALC_METHOD', 'GET_CALC_CRITERION', 'ADD_CALC_CRITERION', 'ADD_CALC_CRITERION_2'], ключ: ['CONTEST_CODE', 'GROUP_CODE', 'GROUP_VALUE']->['CONTEST_CODE', 'GROUP_CODE', 'GROUP_VALUE'], mode: value, multiply: False)
+2025-11-13 20:16:56,150 | INFO | [END] add_fields_to_sheet (лист: SUMMARY, поля: ['GET_CALC_METHOD', 'GET_CALC_CRITERION', 'ADD_CALC_CRITERION', 'ADD_CALC_CRITERION_2'], ключ: ['CONTEST_CODE', 'GROUP_CODE', 'GROUP_VALUE']->['CONTEST_CODE', 'GROUP_CODE', 'GROUP_VALUE'], mode: value, multiply: False) (время: 0.010s)
+2025-11-13 20:16:56,150 | INFO | [END] add_fields_to_sheet (лист-источник: GROUP, поля: ['GET_CALC_METHOD', 'GET_CALC_CRITERION', 'ADD_CALC_CRITERION', 'ADD_CALC_CRITERION_2'], ключ: ['CONTEST_CODE', 'GROUP_CODE', 'GROUP_VALUE']->['CONTEST_CODE', 'GROUP_CODE', 'GROUP_VALUE'], mode: value) (время: 0.000s)
+2025-11-13 20:16:56,150 | INFO | [START] add_fields_to_sheet (лист-источник: GROUP, поля: ['GET_CALC_METHOD', 'GET_CALC_CRITERION', 'ADD_CALC_CRITERION', 'ADD_CALC_CRITERION_2'], ключ: ['GROUP_CODE']->['GROUP_CODE'], mode: value)
+2025-11-13 20:16:56,150 | INFO | [START] add_fields_to_sheet (лист: SUMMARY, поля: ['GET_CALC_METHOD', 'GET_CALC_CRITERION', 'ADD_CALC_CRITERION', 'ADD_CALC_CRITERION_2'], ключ: ['GROUP_CODE']->['GROUP_CODE'], mode: value, multiply: False)
+2025-11-13 20:16:56,155 | INFO | [END] add_fields_to_sheet (лист: SUMMARY, поля: ['GET_CALC_METHOD', 'GET_CALC_CRITERION', 'ADD_CALC_CRITERION', 'ADD_CALC_CRITERION_2'], ключ: ['GROUP_CODE']->['GROUP_CODE'], mode: value, multiply: False) (время: 0.005s)
+2025-11-13 20:16:56,155 | INFO | [END] add_fields_to_sheet (лист-источник: GROUP, поля: ['GET_CALC_METHOD', 'GET_CALC_CRITERION', 'ADD_CALC_CRITERION', 'ADD_CALC_CRITERION_2'], ключ: ['GROUP_CODE']->['GROUP_CODE'], mode: value) (время: 0.000s)
+2025-11-13 20:16:56,155 | INFO | [START] add_fields_to_sheet (лист-источник: INDICATOR, поля: ['INDICATOR_CODE', 'INDICATOR_AGG_FUNCTION', 'INDICATOR_WEIGHT', 'INDICATOR_MARK_TYPE', 'INDICATOR_MATCH', 'INDICATOR_VALUE'], ключ: ['CONTEST_CODE']->['CONTEST_CODE'], mode: value)
+2025-11-13 20:16:56,155 | INFO | [START] add_fields_to_sheet (лист: SUMMARY, поля: ['INDICATOR_CODE', 'INDICATOR_AGG_FUNCTION', 'INDICATOR_WEIGHT', 'INDICATOR_MARK_TYPE', 'INDICATOR_MATCH', 'INDICATOR_VALUE'], ключ: ['CONTEST_CODE']->['CONTEST_CODE'], mode: value, multiply: False)
+2025-11-13 20:16:56,162 | INFO | [END] add_fields_to_sheet (лист: SUMMARY, поля: ['INDICATOR_CODE', 'INDICATOR_AGG_FUNCTION', 'INDICATOR_WEIGHT', 'INDICATOR_MARK_TYPE', 'INDICATOR_MATCH', 'INDICATOR_VALUE'], ключ: ['CONTEST_CODE']->['CONTEST_CODE'], mode: value, multiply: False) (время: 0.007s)
+2025-11-13 20:16:56,162 | INFO | [END] add_fields_to_sheet (лист-источник: INDICATOR, поля: ['INDICATOR_CODE', 'INDICATOR_AGG_FUNCTION', 'INDICATOR_WEIGHT', 'INDICATOR_MARK_TYPE', 'INDICATOR_MATCH', 'INDICATOR_VALUE'], ключ: ['CONTEST_CODE']->['CONTEST_CODE'], mode: value) (время: 0.000s)
+2025-11-13 20:16:56,162 | INFO | [START] add_fields_to_sheet (лист-источник: TOURNAMENT-SCHEDULE, поля: ['START_DT', 'END_DT', 'RESULT_DT', 'TOURNAMENT_STATUS', 'TARGET_TYPE'], ключ: ['TOURNAMENT_CODE']->['TOURNAMENT_CODE'], mode: value)
+2025-11-13 20:16:56,162 | INFO | [START] add_fields_to_sheet (лист: SUMMARY, поля: ['START_DT', 'END_DT', 'RESULT_DT', 'TOURNAMENT_STATUS', 'TARGET_TYPE'], ключ: ['TOURNAMENT_CODE']->['TOURNAMENT_CODE'], mode: value, multiply: False)
+2025-11-13 20:16:56,169 | INFO | [END] add_fields_to_sheet (лист: SUMMARY, поля: ['START_DT', 'END_DT', 'RESULT_DT', 'TOURNAMENT_STATUS', 'TARGET_TYPE'], ключ: ['TOURNAMENT_CODE']->['TOURNAMENT_CODE'], mode: value, multiply: False) (время: 0.007s)
+2025-11-13 20:16:56,169 | INFO | [END] add_fields_to_sheet (лист-источник: TOURNAMENT-SCHEDULE, поля: ['START_DT', 'END_DT', 'RESULT_DT', 'TOURNAMENT_STATUS', 'TARGET_TYPE'], ключ: ['TOURNAMENT_CODE']->['TOURNAMENT_CODE'], mode: value) (время: 0.000s)
+2025-11-13 20:16:56,169 | INFO | [START] add_fields_to_sheet (лист-источник: REPORT, поля: ['CONTEST_DATE'], ключ: ['TOURNAMENT_CODE', 'CONTEST_CODE']->['TOURNAMENT_CODE', 'CONTEST_CODE'], mode: value)
+2025-11-13 20:16:56,169 | INFO | [START] add_fields_to_sheet (лист: SUMMARY, поля: ['CONTEST_DATE'], ключ: ['TOURNAMENT_CODE', 'CONTEST_CODE']->['TOURNAMENT_CODE', 'CONTEST_CODE'], mode: value, multiply: False)
+2025-11-13 20:16:56,220 | INFO | [END] add_fields_to_sheet (лист: SUMMARY, поля: ['CONTEST_DATE'], ключ: ['TOURNAMENT_CODE', 'CONTEST_CODE']->['TOURNAMENT_CODE', 'CONTEST_CODE'], mode: value, multiply: False) (время: 0.051s)
+2025-11-13 20:16:56,220 | INFO | [END] add_fields_to_sheet (лист-источник: REPORT, поля: ['CONTEST_DATE'], ключ: ['TOURNAMENT_CODE', 'CONTEST_CODE']->['TOURNAMENT_CODE', 'CONTEST_CODE'], mode: value) (время: 0.000s)
+2025-11-13 20:16:56,220 | INFO | [START] add_fields_to_sheet (лист-источник: REPORT, поля: ['CONTEST_DATE'], ключ: ['TOURNAMENT_CODE', 'CONTEST_CODE']->['TOURNAMENT_CODE', 'CONTEST_CODE'], mode: count)
+2025-11-13 20:16:56,220 | INFO | [START] add_fields_to_sheet (лист: SUMMARY, поля: ['CONTEST_DATE'], ключ: ['TOURNAMENT_CODE', 'CONTEST_CODE']->['TOURNAMENT_CODE', 'CONTEST_CODE'], mode: count, multiply: False)
+2025-11-13 20:16:56,226 | INFO | [END] add_fields_to_sheet (лист: SUMMARY, mode: count, ключ: ['TOURNAMENT_CODE', 'CONTEST_CODE']->['TOURNAMENT_CODE', 'CONTEST_CODE']) (время: 0.006s)
+2025-11-13 20:16:56,226 | INFO | [END] add_fields_to_sheet (лист-источник: REPORT, поля: ['CONTEST_DATE'], ключ: ['TOURNAMENT_CODE', 'CONTEST_CODE']->['TOURNAMENT_CODE', 'CONTEST_CODE'], mode: count) (время: 0.000s)
+2025-11-13 20:16:56,226 | INFO | [START] add_fields_to_sheet (лист-источник: CONTEST-DATA, поля: ['CONTEST_CODE'], ключ: ['CONTEST_CODE']->['CONTEST_CODE'], mode: count)
+2025-11-13 20:16:56,226 | INFO | [START] add_fields_to_sheet (лист: SUMMARY, поля: ['CONTEST_CODE'], ключ: ['CONTEST_CODE']->['CONTEST_CODE'], mode: count, multiply: False)
+2025-11-13 20:16:56,233 | INFO | [END] add_fields_to_sheet (лист: SUMMARY, mode: count, ключ: ['CONTEST_CODE']->['CONTEST_CODE']) (время: 0.007s)
+2025-11-13 20:16:56,233 | INFO | [END] add_fields_to_sheet (лист-источник: CONTEST-DATA, поля: ['CONTEST_CODE'], ключ: ['CONTEST_CODE']->['CONTEST_CODE'], mode: count) (время: 0.000s)
+2025-11-13 20:16:56,233 | INFO | [START] add_fields_to_sheet (лист-источник: TOURNAMENT-SCHEDULE, поля: ['CONTEST_CODE'], ключ: ['CONTEST_CODE']->['CONTEST_CODE'], mode: count)
+2025-11-13 20:16:56,233 | INFO | [START] add_fields_to_sheet (лист: SUMMARY, поля: ['CONTEST_CODE'], ключ: ['CONTEST_CODE']->['CONTEST_CODE'], mode: count, multiply: False)
+2025-11-13 20:16:56,238 | INFO | [END] add_fields_to_sheet (лист: SUMMARY, mode: count, ключ: ['CONTEST_CODE']->['CONTEST_CODE']) (время: 0.005s)
+2025-11-13 20:16:56,238 | INFO | [END] add_fields_to_sheet (лист-источник: TOURNAMENT-SCHEDULE, поля: ['CONTEST_CODE'], ключ: ['CONTEST_CODE']->['CONTEST_CODE'], mode: count) (время: 0.000s)
+2025-11-13 20:16:56,238 | INFO | [START] add_fields_to_sheet (лист-источник: GROUP, поля: ['CONTEST_CODE'], ключ: ['CONTEST_CODE']->['CONTEST_CODE'], mode: count)
+2025-11-13 20:16:56,238 | INFO | [START] add_fields_to_sheet (лист: SUMMARY, поля: ['CONTEST_CODE'], ключ: ['CONTEST_CODE']->['CONTEST_CODE'], mode: count, multiply: False)
+2025-11-13 20:16:56,242 | INFO | [END] add_fields_to_sheet (лист: SUMMARY, mode: count, ключ: ['CONTEST_CODE']->['CONTEST_CODE']) (время: 0.004s)
+2025-11-13 20:16:56,242 | INFO | [END] add_fields_to_sheet (лист-источник: GROUP, поля: ['CONTEST_CODE'], ключ: ['CONTEST_CODE']->['CONTEST_CODE'], mode: count) (время: 0.000s)
+2025-11-13 20:16:56,242 | INFO | [START] add_fields_to_sheet (лист-источник: GROUP, поля: ['CONTEST_CODE'], ключ: ['CONTEST_CODE', 'GROUP_CODE', 'GROUP_VALUE']->['CONTEST_CODE', 'GROUP_CODE', 'GROUP_VALUE'], mode: count)
+2025-11-13 20:16:56,242 | INFO | [START] add_fields_to_sheet (лист: SUMMARY, поля: ['CONTEST_CODE'], ключ: ['CONTEST_CODE', 'GROUP_CODE', 'GROUP_VALUE']->['CONTEST_CODE', 'GROUP_CODE', 'GROUP_VALUE'], mode: count, multiply: False)
+2025-11-13 20:16:56,249 | INFO | [END] add_fields_to_sheet (лист: SUMMARY, mode: count, ключ: ['CONTEST_CODE', 'GROUP_CODE', 'GROUP_VALUE']->['CONTEST_CODE', 'GROUP_CODE', 'GROUP_VALUE']) (время: 0.007s)
+2025-11-13 20:16:56,249 | INFO | [END] add_fields_to_sheet (лист-источник: GROUP, поля: ['CONTEST_CODE'], ключ: ['CONTEST_CODE', 'GROUP_CODE', 'GROUP_VALUE']->['CONTEST_CODE', 'GROUP_CODE', 'GROUP_VALUE'], mode: count) (время: 0.000s)
+2025-11-13 20:16:56,249 | INFO | [START] add_fields_to_sheet (лист-источник: INDICATOR, поля: ['INDICATOR_MARK_TYPE'], ключ: ['CONTEST_CODE']->['CONTEST_CODE'], mode: count)
+2025-11-13 20:16:56,249 | INFO | [START] add_fields_to_sheet (лист: SUMMARY, поля: ['INDICATOR_MARK_TYPE'], ключ: ['CONTEST_CODE']->['CONTEST_CODE'], mode: count, multiply: False)
+2025-11-13 20:16:56,253 | INFO | [END] add_fields_to_sheet (лист: SUMMARY, mode: count, ключ: ['CONTEST_CODE']->['CONTEST_CODE']) (время: 0.004s)
+2025-11-13 20:16:56,253 | INFO | [END] add_fields_to_sheet (лист-источник: INDICATOR, поля: ['INDICATOR_MARK_TYPE'], ключ: ['CONTEST_CODE']->['CONTEST_CODE'], mode: count) (время: 0.000s)
+2025-11-13 20:16:56,253 | INFO | [START] add_fields_to_sheet (лист-источник: REWARD-LINK, поля: ['CONTEST_CODE'], ключ: ['REWARD_CODE']->['REWARD_CODE'], mode: count)
+2025-11-13 20:16:56,253 | INFO | [START] add_fields_to_sheet (лист: SUMMARY, поля: ['CONTEST_CODE'], ключ: ['REWARD_CODE']->['REWARD_CODE'], mode: count, multiply: False)
+2025-11-13 20:16:56,257 | INFO | [END] add_fields_to_sheet (лист: SUMMARY, mode: count, ключ: ['REWARD_CODE']->['REWARD_CODE']) (время: 0.004s)
+2025-11-13 20:16:56,257 | INFO | [END] add_fields_to_sheet (лист-источник: REWARD-LINK, поля: ['CONTEST_CODE'], ключ: ['REWARD_CODE']->['REWARD_CODE'], mode: count) (время: 0.000s)
+2025-11-13 20:16:56,257 | INFO | [START] add_fields_to_sheet (лист-источник: REWARD-LINK, поля: ['CONTEST_CODE'], ключ: ['CONTEST_CODE', 'REWARD_CODE']->['CONTEST_CODE', 'REWARD_CODE'], mode: count)
+2025-11-13 20:16:56,257 | INFO | [START] add_fields_to_sheet (лист: SUMMARY, поля: ['CONTEST_CODE'], ключ: ['CONTEST_CODE', 'REWARD_CODE']->['CONTEST_CODE', 'REWARD_CODE'], mode: count, multiply: False)
+2025-11-13 20:16:56,263 | INFO | [END] add_fields_to_sheet (лист: SUMMARY, mode: count, ключ: ['CONTEST_CODE', 'REWARD_CODE']->['CONTEST_CODE', 'REWARD_CODE']) (время: 0.006s)
+2025-11-13 20:16:56,263 | INFO | [END] add_fields_to_sheet (лист-источник: REWARD-LINK, поля: ['CONTEST_CODE'], ключ: ['CONTEST_CODE', 'REWARD_CODE']->['CONTEST_CODE', 'REWARD_CODE'], mode: count) (время: 0.000s)
+2025-11-13 20:16:56,263 | INFO | [START] add_fields_to_sheet (лист-источник: REWARD, поля: ['REWARD_CODE'], ключ: ['REWARD_CODE']->['REWARD_CODE'], mode: count)
+2025-11-13 20:16:56,263 | INFO | [START] add_fields_to_sheet (лист: SUMMARY, поля: ['REWARD_CODE'], ключ: ['REWARD_CODE']->['REWARD_CODE'], mode: count, multiply: False)
+2025-11-13 20:16:56,266 | INFO | [END] add_fields_to_sheet (лист: SUMMARY, mode: count, ключ: ['REWARD_CODE']->['REWARD_CODE']) (время: 0.004s)
+2025-11-13 20:16:56,266 | INFO | [END] add_fields_to_sheet (лист-источник: REWARD, поля: ['REWARD_CODE'], ключ: ['REWARD_CODE']->['REWARD_CODE'], mode: count) (время: 0.000s)
+2025-11-13 20:16:56,267 | INFO | [START] add_fields_to_sheet (лист-источник: TOURNAMENT-SCHEDULE, поля: ['CONTEST_CODE'], ключ: ['CONTEST_CODE']->['CONTEST_CODE'], mode: count)
+2025-11-13 20:16:56,267 | INFO | [START] add_fields_to_sheet (лист: SUMMARY, поля: ['CONTEST_CODE'], ключ: ['CONTEST_CODE']->['CONTEST_CODE'], mode: count, multiply: False)
+2025-11-13 20:16:56,270 | INFO | [END] add_fields_to_sheet (лист: SUMMARY, mode: count, ключ: ['CONTEST_CODE']->['CONTEST_CODE']) (время: 0.004s)
+2025-11-13 20:16:56,270 | INFO | [END] add_fields_to_sheet (лист-источник: TOURNAMENT-SCHEDULE, поля: ['CONTEST_CODE'], ключ: ['CONTEST_CODE']->['CONTEST_CODE'], mode: count) (время: 0.000s)
+2025-11-13 20:16:56,270 | INFO | [START] add_fields_to_sheet (лист-источник: REPORT, поля: ['CONTEST_DATE'], ключ: ['CONTEST_CODE']->['CONTEST_CODE'], mode: count)
+2025-11-13 20:16:56,270 | INFO | [START] add_fields_to_sheet (лист: SUMMARY, поля: ['CONTEST_DATE'], ключ: ['CONTEST_CODE']->['CONTEST_CODE'], mode: count, multiply: False)
+2025-11-13 20:16:56,275 | INFO | [END] add_fields_to_sheet (лист: SUMMARY, mode: count, ключ: ['CONTEST_CODE']->['CONTEST_CODE']) (время: 0.004s)
+2025-11-13 20:16:56,275 | INFO | [END] add_fields_to_sheet (лист-источник: REPORT, поля: ['CONTEST_DATE'], ключ: ['CONTEST_CODE']->['CONTEST_CODE'], mode: count) (время: 0.000s)
+2025-11-13 20:16:56,275 | INFO | [START] add_fields_to_sheet (лист-источник: REPORT, поля: ['CONTEST_DATE'], ключ: ['TOURNAMENT_CODE']->['TOURNAMENT_CODE'], mode: count)
+2025-11-13 20:16:56,275 | INFO | [START] add_fields_to_sheet (лист: SUMMARY, поля: ['CONTEST_DATE'], ключ: ['TOURNAMENT_CODE']->['TOURNAMENT_CODE'], mode: count, multiply: False)
+2025-11-13 20:16:56,279 | INFO | [END] add_fields_to_sheet (лист: SUMMARY, mode: count, ключ: ['TOURNAMENT_CODE']->['TOURNAMENT_CODE']) (время: 0.004s)
+2025-11-13 20:16:56,279 | INFO | [END] add_fields_to_sheet (лист-источник: REPORT, поля: ['CONTEST_DATE'], ключ: ['TOURNAMENT_CODE']->['TOURNAMENT_CODE'], mode: count) (время: 0.000s)
+2025-11-13 20:16:56,279 | INFO | [START] add_fields_to_sheet (лист-источник: TOURNAMENT-SCHEDULE, поля: ['CONTEST_CODE'], ключ: ['TOURNAMENT_CODE']->['TOURNAMENT_CODE'], mode: count)
+2025-11-13 20:16:56,279 | INFO | [START] add_fields_to_sheet (лист: SUMMARY, поля: ['CONTEST_CODE'], ключ: ['TOURNAMENT_CODE']->['TOURNAMENT_CODE'], mode: count, multiply: False)
+2025-11-13 20:16:56,283 | INFO | [END] add_fields_to_sheet (лист: SUMMARY, mode: count, ключ: ['TOURNAMENT_CODE']->['TOURNAMENT_CODE']) (время: 0.004s)
+2025-11-13 20:16:56,283 | INFO | [END] add_fields_to_sheet (лист-источник: TOURNAMENT-SCHEDULE, поля: ['CONTEST_CODE'], ключ: ['TOURNAMENT_CODE']->['TOURNAMENT_CODE'], mode: count) (время: 0.000s)
+2025-11-13 20:16:56,283 | INFO | [START] add_fields_to_sheet (лист-источник: TOURNAMENT-SCHEDULE, поля: ['CONTEST_CODE'], ключ: ['CONTEST_CODE', 'TOURNAMENT_CODE']->['CONTEST_CODE', 'TOURNAMENT_CODE'], mode: count)
+2025-11-13 20:16:56,283 | INFO | [START] add_fields_to_sheet (лист: SUMMARY, поля: ['CONTEST_CODE'], ключ: ['CONTEST_CODE', 'TOURNAMENT_CODE']->['CONTEST_CODE', 'TOURNAMENT_CODE'], mode: count, multiply: False)
+2025-11-13 20:16:56,289 | INFO | [END] add_fields_to_sheet (лист: SUMMARY, mode: count, ключ: ['CONTEST_CODE', 'TOURNAMENT_CODE']->['CONTEST_CODE', 'TOURNAMENT_CODE']) (время: 0.006s)
+2025-11-13 20:16:56,289 | INFO | [END] add_fields_to_sheet (лист-источник: TOURNAMENT-SCHEDULE, поля: ['CONTEST_CODE'], ключ: ['CONTEST_CODE', 'TOURNAMENT_CODE']->['CONTEST_CODE', 'TOURNAMENT_CODE'], mode: count) (время: 0.000s)
+2025-11-13 20:16:56,289 | INFO | [START] add_fields_to_sheet (лист-источник: REWARD, поля: ['FULL_NAME', 'REWARD_DESCRIPTION', 'ADD_DATA => feature', 'ADD_DATA => itemFeature', 'ADD_DATA => rewardRule', 'ADD_DATA => hidden', 'ADD_DATA => nftFlg', 'ADD_DATA => rewardAgainGlobal', 'ADD_DATA => rewardAgainTournament', 'ADD_DATA => outstanding', 'ADD_DATA => teamNews', 'ADD_DATA => singleNews'], ключ: ['CONTEST_CODE', 'REWARD_CODE']->['REWARD_LINK => CONTEST_CODE', 'REWARD_CODE'], mode: value)
+2025-11-13 20:16:56,289 | INFO | [START] add_fields_to_sheet (лист: SUMMARY, поля: ['FULL_NAME', 'REWARD_DESCRIPTION', 'ADD_DATA => feature', 'ADD_DATA => itemFeature', 'ADD_DATA => rewardRule', 'ADD_DATA => hidden', 'ADD_DATA => nftFlg', 'ADD_DATA => rewardAgainGlobal', 'ADD_DATA => rewardAgainTournament', 'ADD_DATA => outstanding', 'ADD_DATA => teamNews', 'ADD_DATA => singleNews'], ключ: ['CONTEST_CODE', 'REWARD_CODE']->['REWARD_LINK => CONTEST_CODE', 'REWARD_CODE'], mode: value, multiply: False)
+2025-11-13 20:16:56,307 | INFO | [END] add_fields_to_sheet (лист: SUMMARY, поля: ['FULL_NAME', 'REWARD_DESCRIPTION', 'ADD_DATA => feature', 'ADD_DATA => itemFeature', 'ADD_DATA => rewardRule', 'ADD_DATA => hidden', 'ADD_DATA => nftFlg', 'ADD_DATA => rewardAgainGlobal', 'ADD_DATA => rewardAgainTournament', 'ADD_DATA => outstanding', 'ADD_DATA => teamNews', 'ADD_DATA => singleNews'], ключ: ['CONTEST_CODE', 'REWARD_CODE']->['REWARD_LINK => CONTEST_CODE', 'REWARD_CODE'], mode: value, multiply: False) (время: 0.018s)
+2025-11-13 20:16:56,307 | INFO | [END] add_fields_to_sheet (лист-источник: REWARD, поля: ['FULL_NAME', 'REWARD_DESCRIPTION', 'ADD_DATA => feature', 'ADD_DATA => itemFeature', 'ADD_DATA => rewardRule', 'ADD_DATA => hidden', 'ADD_DATA => nftFlg', 'ADD_DATA => rewardAgainGlobal', 'ADD_DATA => rewardAgainTournament', 'ADD_DATA => outstanding', 'ADD_DATA => teamNews', 'ADD_DATA => singleNews'], ключ: ['CONTEST_CODE', 'REWARD_CODE']->['REWARD_LINK => CONTEST_CODE', 'REWARD_CODE'], mode: value) (время: 0.000s)
+2025-11-13 20:16:56,307 | INFO | [START] add_fields_to_sheet (лист-источник: REWARD, поля: ['FULL_NAME', 'REWARD_DESCRIPTION', 'ADD_DATA => feature', 'ADD_DATA => itemFeature', 'ADD_DATA => rewardRule', 'ADD_DATA => businessBlock', 'ADD_DATA => parentRewardCode', 'ADD_DATA => masterBadge', 'ADD_DATA => rewardAgainGlobal', 'ADD_DATA => rewardAgainTournament', 'ADD_DATA => outstanding', 'ADD_DATA => teamNews', 'ADD_DATA => singleNews'], ключ: ['REWARD_CODE']->['REWARD_CODE'], mode: value)
+2025-11-13 20:16:56,307 | INFO | [START] add_fields_to_sheet (лист: SUMMARY, поля: ['FULL_NAME', 'REWARD_DESCRIPTION', 'ADD_DATA => feature', 'ADD_DATA => itemFeature', 'ADD_DATA => rewardRule', 'ADD_DATA => businessBlock', 'ADD_DATA => parentRewardCode', 'ADD_DATA => masterBadge', 'ADD_DATA => rewardAgainGlobal', 'ADD_DATA => rewardAgainTournament', 'ADD_DATA => outstanding', 'ADD_DATA => teamNews', 'ADD_DATA => singleNews'], ключ: ['REWARD_CODE']->['REWARD_CODE'], mode: value, multiply: False)
+2025-11-13 20:16:56,320 | INFO | [END] add_fields_to_sheet (лист: SUMMARY, поля: ['FULL_NAME', 'REWARD_DESCRIPTION', 'ADD_DATA => feature', 'ADD_DATA => itemFeature', 'ADD_DATA => rewardRule', 'ADD_DATA => businessBlock', 'ADD_DATA => parentRewardCode', 'ADD_DATA => masterBadge', 'ADD_DATA => rewardAgainGlobal', 'ADD_DATA => rewardAgainTournament', 'ADD_DATA => outstanding', 'ADD_DATA => teamNews', 'ADD_DATA => singleNews'], ключ: ['REWARD_CODE']->['REWARD_CODE'], mode: value, multiply: False) (время: 0.013s)
+2025-11-13 20:16:56,320 | INFO | [END] add_fields_to_sheet (лист-источник: REWARD, поля: ['FULL_NAME', 'REWARD_DESCRIPTION', 'ADD_DATA => feature', 'ADD_DATA => itemFeature', 'ADD_DATA => rewardRule', 'ADD_DATA => businessBlock', 'ADD_DATA => parentRewardCode', 'ADD_DATA => masterBadge', 'ADD_DATA => rewardAgainGlobal', 'ADD_DATA => rewardAgainTournament', 'ADD_DATA => outstanding', 'ADD_DATA => teamNews', 'ADD_DATA => singleNews'], ключ: ['REWARD_CODE']->['REWARD_CODE'], mode: value) (время: 0.000s)
+2025-11-13 20:16:56,320 | INFO | [START] add_fields_to_sheet (лист-источник: REWARD-LINK, поля: ['CONTEST_CODE'], ключ: ['REWARD_CODE']->['REWARD_CODE'], mode: value)
+2025-11-13 20:16:56,320 | INFO | [START] add_fields_to_sheet (лист: SUMMARY, поля: ['CONTEST_CODE'], ключ: ['REWARD_CODE']->['REWARD_CODE'], mode: value, multiply: False)
+2025-11-13 20:16:56,325 | INFO | [END] add_fields_to_sheet (лист: SUMMARY, поля: ['CONTEST_CODE'], ключ: ['REWARD_CODE']->['REWARD_CODE'], mode: value, multiply: False) (время: 0.006s)
+2025-11-13 20:16:56,325 | INFO | [END] add_fields_to_sheet (лист-источник: REWARD-LINK, поля: ['CONTEST_CODE'], ключ: ['REWARD_CODE']->['REWARD_CODE'], mode: value) (время: 0.000s)
+2025-11-13 20:16:56,325 | INFO | [START] add_fields_to_sheet (лист-источник: REPORT, поля: ['CONTEST_DATE'], ключ: ['CONTEST_CODE']->['CONTEST_CODE'], mode: value)
+2025-11-13 20:16:56,326 | INFO | [START] add_fields_to_sheet (лист: SUMMARY, поля: ['CONTEST_DATE'], ключ: ['CONTEST_CODE']->['CONTEST_CODE'], mode: value, multiply: False)
+2025-11-13 20:16:56,361 | INFO | [END] add_fields_to_sheet (лист: SUMMARY, поля: ['CONTEST_DATE'], ключ: ['CONTEST_CODE']->['CONTEST_CODE'], mode: value, multiply: False) (время: 0.035s)
+2025-11-13 20:16:56,361 | INFO | [END] add_fields_to_sheet (лист-источник: REPORT, поля: ['CONTEST_DATE'], ключ: ['CONTEST_CODE']->['CONTEST_CODE'], mode: value) (время: 0.000s)
+2025-11-13 20:16:56,361 | INFO | [START] add_fields_to_sheet (лист-источник: TOURNAMENT-SCHEDULE, поля: ['START_DT', 'END_DT', 'RESULT_DT', 'TOURNAMENT_STATUS', 'TARGET_TYPE'], ключ: ['CONTEST_CODE']->['CONTEST_CODE'], mode: value)
+2025-11-13 20:16:56,361 | INFO | [START] add_fields_to_sheet (лист: SUMMARY, поля: ['START_DT', 'END_DT', 'RESULT_DT', 'TOURNAMENT_STATUS', 'TARGET_TYPE'], ключ: ['CONTEST_CODE']->['CONTEST_CODE'], mode: value, multiply: False)
+2025-11-13 20:16:56,368 | INFO | [END] add_fields_to_sheet (лист: SUMMARY, поля: ['START_DT', 'END_DT', 'RESULT_DT', 'TOURNAMENT_STATUS', 'TARGET_TYPE'], ключ: ['CONTEST_CODE']->['CONTEST_CODE'], mode: value, multiply: False) (время: 0.007s)
+2025-11-13 20:16:56,368 | INFO | [END] add_fields_to_sheet (лист-источник: TOURNAMENT-SCHEDULE, поля: ['START_DT', 'END_DT', 'RESULT_DT', 'TOURNAMENT_STATUS', 'TARGET_TYPE'], ключ: ['CONTEST_CODE']->['CONTEST_CODE'], mode: value) (время: 0.000s)
+2025-11-13 20:16:56,368 | INFO | [START] add_fields_to_sheet (лист-источник: REWARD, поля: ['REWARD_CODE'], ключ: ['CONTEST_CODE']->['REWARD_LINK => CONTEST_CODE'], mode: count)
+2025-11-13 20:16:56,368 | INFO | [START] add_fields_to_sheet (лист: SUMMARY, поля: ['REWARD_CODE'], ключ: ['CONTEST_CODE']->['REWARD_LINK => CONTEST_CODE'], mode: count, multiply: False)
+2025-11-13 20:16:56,372 | INFO | [END] add_fields_to_sheet (лист: SUMMARY, mode: count, ключ: ['CONTEST_CODE']->['REWARD_LINK => CONTEST_CODE']) (время: 0.004s)
+2025-11-13 20:16:56,372 | INFO | [END] add_fields_to_sheet (лист-источник: REWARD, поля: ['REWARD_CODE'], ключ: ['CONTEST_CODE']->['REWARD_LINK => CONTEST_CODE'], mode: count) (время: 0.000s)
+2025-11-13 20:16:56,372 | INFO | [START] add_fields_to_sheet (лист-источник: REWARD, поля: ['REWARD_CODE'], ключ: ['CONTEST_CODE', 'REWARD_CODE']->['REWARD_LINK => CONTEST_CODE', 'REWARD_CODE'], mode: count)
+2025-11-13 20:16:56,372 | INFO | [START] add_fields_to_sheet (лист: SUMMARY, поля: ['REWARD_CODE'], ключ: ['CONTEST_CODE', 'REWARD_CODE']->['REWARD_LINK => CONTEST_CODE', 'REWARD_CODE'], mode: count, multiply: False)
+2025-11-13 20:16:56,377 | INFO | [END] add_fields_to_sheet (лист: SUMMARY, mode: count, ключ: ['CONTEST_CODE', 'REWARD_CODE']->['REWARD_LINK => CONTEST_CODE', 'REWARD_CODE']) (время: 0.006s)
+2025-11-13 20:16:56,378 | INFO | [END] add_fields_to_sheet (лист-источник: REWARD, поля: ['REWARD_CODE'], ключ: ['CONTEST_CODE', 'REWARD_CODE']->['REWARD_LINK => CONTEST_CODE', 'REWARD_CODE'], mode: count) (время: 0.000s)
+2025-11-13 20:16:56,378 | INFO | Итоговая структура: 1951 строк, 61 колонок
+2025-11-13 20:16:56,378 | INFO | Лист Excel сформирован: SUMMARY (строк: 1951, колонок: 61)
+2025-11-13 20:16:56,378 | INFO | [END] build_summary_sheet (лист: SUMMARY) (время: 0.642s)
+2025-11-13 20:16:56,380 | INFO | [START] create_unique_summary_sheets (создание уникальных листов SUMMARY)
+2025-11-13 20:16:56,380 | INFO | [SUMMARY_SHEET] Создание уникального листа SUMMARY_REWARD по ключу REWARD_CODE
+2025-11-13 20:16:56,382 | INFO | [SUMMARY_SHEET] Обработка 1951 строк, найдено 535 уникальных значений
+2025-11-13 20:16:56,386 | INFO | [SUMMARY_SHEET] Удалено 1416 дублей, осталось 535 уникальных строк
+2025-11-13 20:16:56,386 | INFO | [SUMMARY_SHEET] Лист SUMMARY_REWARD создан: 535 уникальных строк по ключу REWARD_CODE
+2025-11-13 20:16:56,386 | INFO | [SUMMARY_SHEET] Создание уникального листа SUMMARY_CONTEST по ключу CONTEST_CODE
+2025-11-13 20:16:56,387 | INFO | [SUMMARY_SHEET] Обработка 1951 строк, найдено 261 уникальных значений
+2025-11-13 20:16:56,390 | INFO | [SUMMARY_SHEET] Удалено 1690 дублей, осталось 261 уникальных строк
+2025-11-13 20:16:56,391 | INFO | [SUMMARY_SHEET] Лист SUMMARY_CONTEST создан: 261 уникальных строк по ключу CONTEST_CODE
+2025-11-13 20:16:56,391 | INFO | [SUMMARY_SHEET] Создание уникального листа SUMMARY_SCHEDULE по ключу TOURNAMENT_CODE
+2025-11-13 20:16:56,392 | INFO | [SUMMARY_SHEET] Обработка 1951 строк, найдено 480 уникальных значений
+2025-11-13 20:16:56,395 | INFO | [SUMMARY_SHEET] Удалено 1471 дублей, осталось 480 уникальных строк
+2025-11-13 20:16:56,395 | INFO | [SUMMARY_SHEET] Лист SUMMARY_SCHEDULE создан: 480 уникальных строк по ключу TOURNAMENT_CODE
+2025-11-13 20:16:56,395 | INFO | [END] create_unique_summary_sheets (создание уникальных листов SUMMARY) (время: 0.000s)
+2025-11-13 20:16:56,395 | INFO | [START] write_to_excel (/Users/orionflash/Desktop/MyProject/SPOD_PROM/SPOD-cursor-Parce/SPOD_PARCE_LOAD/OUT/SPOD_ALL_IN_ONE_2025-11-13_20-16-56.xlsx)
+2025-11-13 20:16:56,395 | INFO | [START] write_to_excel (/Users/orionflash/Desktop/MyProject/SPOD_PROM/SPOD-cursor-Parce/SPOD_PARCE_LOAD/OUT/SPOD_ALL_IN_ONE_2025-11-13_20-16-56.xlsx)
+2025-11-13 20:16:57,071 | INFO | Лист Excel сформирован: SUMMARY (строк: 1951, колонок: 61)
+2025-11-13 20:16:57,543 | INFO | Лист Excel сформирован: SUMMARY_REWARD (строк: 535, колонок: 61)
+2025-11-13 20:16:57,768 | INFO | Лист Excel сформирован: SUMMARY_CONTEST (строк: 261, колонок: 61)
+2025-11-13 20:16:58,192 | INFO | Лист Excel сформирован: SUMMARY_SCHEDULE (строк: 480, колонок: 61)
+2025-11-13 20:16:58,393 | INFO | Лист Excel сформирован: CONTEST-DATA (строк: 261, колонок: 55)
+2025-11-13 20:17:00,184 | INFO | Лист Excel сформирован: EMPLOYEE (строк: 5000, колонок: 25)
+2025-11-13 20:17:00,254 | INFO | Лист Excel сформирован: GROUP (строк: 351, колонок: 14)
+2025-11-13 20:17:00,319 | INFO | Лист Excel сформирован: INDICATOR (строк: 248, колонок: 18)
+2025-11-13 20:17:00,342 | INFO | Лист Excel сформирован: ORG_UNIT_V20 (строк: 121, колонок: 13)
+2025-11-13 20:17:04,963 | INFO | Лист Excel сформирован: REPORT (строк: 20566, колонок: 16)
+2025-11-13 20:17:05,700 | INFO | Лист Excel сформирован: REWARD (строк: 535, колонок: 94)
+2025-11-13 20:17:05,795 | INFO | Лист Excel сформирован: REWARD-LINK (строк: 465, колонок: 5)
+2025-11-13 20:17:05,967 | INFO | Лист Excel сформирован: TOURNAMENT-SCHEDULE (строк: 480, колонок: 26)
+2025-11-13 20:17:06,001 | INFO | Лист Excel сформирован: USER_ROLE (строк: 174, колонок: 14)
+2025-11-13 20:17:06,035 | INFO | Лист Excel сформирован: USER_ROLE SB (строк: 174, колонок: 14)
+2025-11-13 20:17:11,505 | INFO | [END] write_to_excel (/Users/orionflash/Desktop/MyProject/SPOD_PROM/SPOD-cursor-Parce/SPOD_PARCE_LOAD/OUT/SPOD_ALL_IN_ONE_2025-11-13_20-16-56.xlsx) (время: 15.109s)
+2025-11-13 20:17:11,505 | INFO | [END] write_to_excel (/Users/orionflash/Desktop/MyProject/SPOD_PROM/SPOD-cursor-Parce/SPOD_PARCE_LOAD/OUT/SPOD_ALL_IN_ONE_2025-11-13_20-16-56.xlsx) (время: 0.000s)
+2025-11-13 20:17:11,505 | INFO | === Завершение работы. Обработано файлов: 11, строк всего: 28375. Время выполнения: 0:00:17.743632 ===
+2025-11-13 20:17:11,505 | INFO | Summary: CONTEST-DATA: 261 строк; GROUP: 351 строк; INDICATOR: 248 строк; REPORT: 20566 строк; REWARD: 535 строк; REWARD-LINK: 465 строк; ORG_UNIT_V20: 121 строк; TOURNAMENT-SCHEDULE: 480 строк; USER_ROLE: 174 строк; USER_ROLE SB: 174 строк; EMPLOYEE: 5000 строк
+2025-11-13 20:17:11,505 | INFO | Excel file: /Users/orionflash/Desktop/MyProject/SPOD_PROM/SPOD-cursor-Parce/SPOD_PARCE_LOAD/OUT/SPOD_ALL_IN_ONE_2025-11-13_20-16-56.xlsx
+2025-11-13 20:17:11,505 | INFO | Log file: /Users/orionflash/Desktop/MyProject/SPOD_PROM/SPOD-cursor-Parce/SPOD_PARCE_LOAD/LOGS/LOGS_INFO_2025-11-13.log
