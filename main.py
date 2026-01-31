@@ -360,16 +360,10 @@ PREFIX_REWARD_LINK = "REWARD_LINK => "      # Префикс для связей
 COL_REWARD_LINK_CONTEST_CODE = f"{PREFIX_REWARD_LINK}CONTEST_CODE"  # Полное имя колонки
 
 # === КОНФИГУРАЦИЯ ОБЪЕДИНЕНИЯ ДАННЫХ МЕЖДУ ЛИСТАМИ ===
-# MERGE_FIELDS определяет, какие поля из каких листов добавляются в другие листы
-# Каждый элемент содержит настройки для одного типа объединения
-# 
-# НОВЫЕ ВОЗМОЖНОСТИ:
-# - status_filters: фильтрация по статусам колонок (например, только активные)
-# - group_by: группировка данных перед добавлением
-# - aggregate: подведение итогов (sum, count, avg, max, min)
-# - custom_conditions: пользовательские условия фильтрации
-# - multiple_sources: объединение данных из нескольких источников
-MERGE_FIELDS = [
+# Все правила объединения полей (merge) записаны в одном списке MERGE_FIELDS_ADVANCED:
+# сначала правила из бывшего MERGE_FIELDS (с полями по умолчанию), затем расширенные правила CONTEST-DATA.
+
+MERGE_FIELDS_ADVANCED = [
     # REPORT: добавляем CONTEST_TYPE, FULL_NAME, BUSINESS_STATUS, BUSINESS_BLOCK из CONTEST-DATA
     # Это позволяет в отчетах видеть полную информацию о конкурсе
     {
@@ -403,9 +397,13 @@ MERGE_FIELDS = [
         "multiply_rows": False,             # Не размножаем строки
         "col_max_width": 25,               # Максимальная ширина (даты короткие)
         "col_width_mode": "AUTO",          # Автоматическое растягивание
-        "col_min_width": 8                 # Минимальная ширина
+        "col_min_width": 8,                # Минимальная ширина
+        "status_filters": None,
+        "custom_conditions": None,
+        "group_by": None,
+        "aggregate": None
     },
-{
+    {
         "sheet_src": "EMPLOYEE", # Источник - расписание турниров
         "sheet_dst": "REPORT",              # Цель - отчеты
         "src_key": ["PERSON_NUMBER"],     # Ключ - код турнира
@@ -415,7 +413,11 @@ MERGE_FIELDS = [
         "multiply_rows": False,             # Не размножаем строки
         "col_max_width": 25,               # Максимальная ширина (даты короткие)
         "col_width_mode": "AUTO",          # Автоматическое растягивание
-        "col_min_width": 8                 # Минимальная ширина
+        "col_min_width": 8,                # Минимальная ширина
+        "status_filters": None,
+        "custom_conditions": None,
+        "group_by": None,
+        "aggregate": None
     },
     # REWARD: добавляем CONTEST_CODE из REWARD-LINK по REWARD_CODE
     # Связывает награды с конкурсами через промежуточную таблицу
@@ -429,7 +431,11 @@ MERGE_FIELDS = [
         "multiply_rows": False,             # Не размножаем строки
         "col_max_width": 30,               # Максимальная ширина
         "col_width_mode": "AUTO",          # Автоматическое растягивание
-        "col_min_width": 8                 # Минимальная ширина
+        "col_min_width": 8,                # Минимальная ширина
+        "status_filters": None,
+        "custom_conditions": None,
+        "group_by": None,
+        "aggregate": None
     },
     # REWARD: добавляем TOURNAMENT_CODE из TOURNAMENT-SCHEDULE
     # Связывает награды с турнирами через код конкурса
@@ -443,7 +449,13 @@ MERGE_FIELDS = [
         "multiply_rows": False,             # Не размножаем строки
         "col_max_width": 11,               # Максимальная ширина (код турнира короткий)
         "col_width_mode": "AUTO",          # Автоматическое растягивание
-        "col_min_width": 8                 # Минимальная ширина
+        "col_min_width": 8,                # Минимальная ширина
+        "status_filters": None,
+        "custom_conditions": None,
+        "group_by": None,
+        "aggregate": None,
+        "count_aggregation": "size",
+        "count_label": None
     },
     # Добавляет информацию о наградах по полному соответствию ключей конкурс-награда
     {
@@ -465,7 +477,11 @@ MERGE_FIELDS = [
         "multiply_rows": False,  # Не размножаем строки
         "col_max_width": 60,  # Максимальная ширина
         "col_width_mode": "AUTO",  # Автоматическое растягивание
-        "col_min_width": 8  # Минимальная ширина
+        "col_min_width": 8,                # Минимальная ширина
+        "status_filters": None,
+        "custom_conditions": None,
+        "group_by": None,
+        "aggregate": None
     },
     # EMPLOYEE: добавляем ORG_UNIT_CODE из ORG_UNIT_V20 по составному ключу
     # Связывает сотрудников с организационными единицами
@@ -479,7 +495,11 @@ MERGE_FIELDS = [
         "multiply_rows": False,             # Не размножаем строки
         "col_max_width": 15,               # Максимальная ширина
         "col_width_mode": "AUTO",          # Автоматическое растягивание
-        "col_min_width": 11                # Минимальная ширина
+        "col_min_width": 11,               # Минимальная ширина
+        "status_filters": None,
+        "custom_conditions": None,
+        "group_by": None,
+        "aggregate": None
     },
     # EMPLOYEE: добавляем GOSB_SHORT_NAME из ORG_UNIT_V20 по ORG_UNIT_CODE
     # Добавляет краткое название ГОСБ к сотрудникам
@@ -493,7 +513,11 @@ MERGE_FIELDS = [
         "multiply_rows": False,             # Не размножаем строки
         "col_max_width": 25,               # Максимальная ширина
         "col_width_mode": "AUTO",          # Автоматическое растягивание
-        "col_min_width": 11                # Минимальная ширина
+        "col_min_width": 11,               # Минимальная ширина
+        "status_filters": None,
+        "custom_conditions": None,
+        "group_by": None,
+        "aggregate": None
     },
     # TOURNAMENT-SCHEDULE: добавляем поля из CONTEST-DATA
     # Обогащает расписание турниров информацией о конкурсах
@@ -509,7 +533,11 @@ MERGE_FIELDS = [
         "multiply_rows": False,             # Не размножаем строки
         "col_max_width": 70,               # Максимальная ширина
         "col_width_mode": "AUTO",          # Автоматическое растягивание
-        "col_min_width": 35                # Минимальная ширина
+        "col_min_width": 35,               # Минимальная ширина
+        "status_filters": None,
+        "custom_conditions": None,
+        "group_by": None,
+        "aggregate": None
     },
     # GROUP: добавляем FULL_NAME из CONTEST-DATA
     # Добавляет название конкурса к группам
@@ -523,7 +551,11 @@ MERGE_FIELDS = [
         "multiply_rows": False,             # Не размножаем строки
         "col_max_width": 70,               # Максимальная ширина
         "col_width_mode": "AUTO",          # Автоматическое растягивание
-        "col_min_width": 35                # Минимальная ширина
+        "col_min_width": 35,               # Минимальная ширина
+        "status_filters": None,
+        "custom_conditions": None,
+        "group_by": None,
+        "aggregate": None
     },
     # поля из TOURNAMENT-SCHEDULE по CONTEST_CODE (для частично связанных записей)
     # Добавляет информацию о турнирах по коду конкурса (без привязки к конкретному турниру)
@@ -540,7 +572,11 @@ MERGE_FIELDS = [
         "multiply_rows": False,             # Не размножаем строки
         "col_max_width": 30,               # Максимальная ширина
         "col_width_mode": "AUTO",          # Автоматическое растягивание
-        "col_min_width": 8                 # Минимальная ширина
+        "col_min_width": 8,                # Минимальная ширина
+        "status_filters": None,
+        "custom_conditions": None,
+        "group_by": None,
+        "aggregate": None
     },
     # INDICATOR: добавляем FULL_NAME из CONTEST-DATA
     # Добавляет название конкурса к индикаторам
@@ -554,7 +590,11 @@ MERGE_FIELDS = [
         "multiply_rows": False,             # Не размножаем строки
         "col_max_width": 70,               # Максимальная ширина
         "col_width_mode": "AUTO",          # Автоматическое растягивание
-        "col_min_width": 35                # Минимальная ширина
+        "col_min_width": 35,               # Минимальная ширина
+        "status_filters": None,
+        "custom_conditions": None,
+        "group_by": None,
+        "aggregate": None
     },
     # REWARD-LINK: добавляем FULL_NAME из CONTEST-DATA
     # Добавляет название конкурса к связям наград
@@ -568,7 +608,11 @@ MERGE_FIELDS = [
         "multiply_rows": False,             # Не размножаем строки
         "col_max_width": 70,               # Максимальная ширина
         "col_width_mode": "AUTO",          # Автоматическое растягивание
-        "col_min_width": 35                # Минимальная ширина
+        "col_min_width": 35,               # Минимальная ширина
+        "status_filters": None,
+        "custom_conditions": None,
+        "group_by": None,
+        "aggregate": None
     },
     {
         "sheet_src": "REWARD",        # Источник - данные конкурсов
@@ -580,7 +624,11 @@ MERGE_FIELDS = [
         "multiply_rows": False,             # Не размножаем строки
         "col_max_width": 70,               # Максимальная ширина
         "col_width_mode": "AUTO",          # Автоматическое растягивание
-        "col_min_width": 35                # Минимальная ширина
+        "col_min_width": 35,               # Минимальная ширина
+        "status_filters": None,
+        "custom_conditions": None,
+        "group_by": None,
+        "aggregate": None
     },
     # TOURNAMENT-SCHEDULE: добавляем CONTEST_DATE из REPORT (значение)
     # Добавляет дату конкурса из отчетов в расписание турниров
@@ -594,7 +642,11 @@ MERGE_FIELDS = [
         "multiply_rows": False,             # Не размножаем строки
         "col_max_width": 25,               # Максимальная ширина (дата короткая)
         "col_width_mode": "AUTO",          # Автоматическое растягивание
-        "col_min_width": 8                 # Минимальная ширина
+        "col_min_width": 8,                # Минимальная ширина
+        "status_filters": None,
+        "custom_conditions": None,
+        "group_by": None,
+        "aggregate": None
     },
     # CONTEST-DATA: добавляем TOURNAMENT_CODE из TOURNAMENT-SCHEDULE
     # Подсчитывает количество турниров для каждого конкурса
@@ -608,7 +660,13 @@ MERGE_FIELDS = [
         "multiply_rows": False,             # Не размножаем строки
         "col_max_width": 11,               # Максимальная ширина (код турнира короткий)
         "col_width_mode": "AUTO",          # Автоматическое растягивание
-        "col_min_width": 8                 # Минимальная ширина
+        "col_min_width": 8,                # Минимальная ширина
+        "status_filters": None,
+        "custom_conditions": None,
+        "group_by": None,
+        "aggregate": None,
+        "count_aggregation": "size",
+        "count_label": None
     },
     # TOURNAMENT-SCHEDULE: добавляем количество записей из REPORT (подсчёт)
     # Подсчитывает количество отчетов для каждой пары конкурс-турнир
@@ -622,7 +680,13 @@ MERGE_FIELDS = [
         "multiply_rows": False,             # Не размножаем строки
         "col_max_width": 20,               # Максимальная ширина
         "col_width_mode": 15,              # Фиксированная ширина (15 символов)
-        "col_min_width": 8                 # Минимальная ширина
+        "col_min_width": 8,                # Минимальная ширина
+        "status_filters": None,
+        "custom_conditions": None,
+        "group_by": None,
+        "aggregate": None,
+        "count_aggregation": "size",
+        "count_label": None
     },
     # SUMMARY: из CONTEST-DATA по CONTEST_CODE — основные поля
     # Создает сводный лист с основной информацией о конкурсах
@@ -676,7 +740,11 @@ MERGE_FIELDS = [
         "multiply_rows": False,             # Не размножаем строки
         "col_max_width": 55,               # Максимальная ширина
         "col_width_mode": "AUTO",          # Автоматическое растягивание
-        "col_min_width": 8                 # Минимальная ширина
+        "col_min_width": 8,                # Минимальная ширина
+        "status_filters": None,
+        "custom_conditions": None,
+        "group_by": None,
+        "aggregate": None
     },
     # SUMMARY: из GROUP по составному ключу (для полностью связанных записей)
     # Добавляет критерии расчета из групп по полному соответствию ключей
@@ -696,7 +764,11 @@ MERGE_FIELDS = [
         "multiply_rows": False,             # Не размножаем строки
         "col_max_width": 40,               # Максимальная ширина
         "col_width_mode": "AUTO",          # Автоматическое растягивание
-        "col_min_width": 8                 # Минимальная ширина
+        "col_min_width": 8,                # Минимальная ширина
+        "status_filters": None,
+        "custom_conditions": None,
+        "group_by": None,
+        "aggregate": None
     },
     # SUMMARY: из INDICATOR по CONTEST_CODE
     # Добавляет информацию об индикаторах конкурса
@@ -720,7 +792,11 @@ MERGE_FIELDS = [
         "multiply_rows": False,             # Не размножаем строки
         "col_max_width": 35,               # Максимальная ширина
         "col_width_mode": "AUTO",          # Автоматическое растягивание
-        "col_min_width": 8                 # Минимальная ширина
+        "col_min_width": 8,                # Минимальная ширина
+        "status_filters": None,
+        "custom_conditions": None,
+        "group_by": None,
+        "aggregate": None
     },
     # SUMMARY: из TOURNAMENT-SCHEDULE по TOURNAMENT_CODE
     # Добавляет информацию о расписании турниров
@@ -742,7 +818,11 @@ MERGE_FIELDS = [
         "multiply_rows": False,             # Не размножаем строки
         "col_max_width": 30,               # Максимальная ширина
         "col_width_mode": "AUTO",          # Автоматическое растягивание
-        "col_min_width": 8                 # Минимальная ширина
+        "col_min_width": 8,                # Минимальная ширина
+        "status_filters": None,
+        "custom_conditions": None,
+        "group_by": None,
+        "aggregate": None
     },
     # SUMMARY: поля из REWARD по REWARD_CODE (для частично связанных и не связанных наград)
     # Добавляет информацию о наградах по коду награды (без привязки к конкурсу)
@@ -782,7 +862,11 @@ MERGE_FIELDS = [
         "multiply_rows": False,             # Не размножаем строки
         "col_max_width": 50,               # Максимальная ширина
         "col_width_mode": "AUTO",          # Автоматическое растягивание
-        "col_min_width": 8                 # Минимальная ширина
+        "col_min_width": 8,                # Минимальная ширина
+        "status_filters": None,
+        "custom_conditions": None,
+        "group_by": None,
+        "aggregate": None
     },
     # SUMMARY: CONTEST_CODE из REWARD-LINK по REWARD_CODE (для связи наград с конкурсами)
     # Связывает награды с конкурсами через промежуточную таблицу
@@ -796,7 +880,11 @@ MERGE_FIELDS = [
         "multiply_rows": False,             # Не размножаем строки
         "col_max_width": 30,               # Максимальная ширина
         "col_width_mode": "AUTO",          # Автоматическое растягивание
-        "col_min_width": 8                 # Минимальная ширина
+        "col_min_width": 8,                # Минимальная ширина
+        "status_filters": None,
+        "custom_conditions": None,
+        "group_by": None,
+        "aggregate": None
     },
     {
         "sheet_src": "LIST-TOURNAMENT", # Источник - расписание турниров
@@ -810,7 +898,11 @@ MERGE_FIELDS = [
         "multiply_rows": False,             # Не размножаем строки
         "col_max_width": 30,               # Максимальная ширина
         "col_width_mode": "AUTO",          # Автоматическое растягивание
-        "col_min_width": 8                 # Минимальная ширина
+        "col_min_width": 8,                # Минимальная ширина
+        "status_filters": None,
+        "custom_conditions": None,
+        "group_by": None,
+        "aggregate": None
     },
     # TOURNAMENT-SCHEDULE: колонка "Бизнес-статус турнира" из LIST-TOURNAMENT (файл gamification-tournamentList*.csv).
     # В результате колонка будет: LIST-TOURNAMENT=>Бизнес-статус турнира. Ключ в источнике: "Код турнира" или TOURNAMENT_CODE.
@@ -826,7 +918,11 @@ MERGE_FIELDS = [
         "multiply_rows": False,             # Не размножаем строки
         "col_max_width": 30,               # Максимальная ширина
         "col_width_mode": "AUTO",          # Автоматическое растягивание
-        "col_min_width": 8                 # Минимальная ширина
+        "col_min_width": 8,                # Минимальная ширина
+        "status_filters": None,
+        "custom_conditions": None,
+        "group_by": None,
+        "aggregate": None
     },
     # SUMMARY: CONTEST_DATE из REPORT по TOURNAMENT_CODE
     # Добавляет дату конкурса из отчетов
@@ -842,7 +938,11 @@ MERGE_FIELDS = [
         "multiply_rows": False,             # Не размножаем строки
         "col_max_width": 25,               # Максимальная ширина
         "col_width_mode": "AUTO",          # Автоматическое растягивание
-        "col_min_width": 8                 # Минимальная ширина
+        "col_min_width": 8,                # Минимальная ширина
+        "status_filters": None,
+        "custom_conditions": None,
+        "group_by": None,
+        "aggregate": None
     },
     # SUMMARY: сколько в REPORT записей по ключу TOURNAMENT_CODE
     # Подсчитывает количество отчетов для каждого турнира
@@ -858,7 +958,13 @@ MERGE_FIELDS = [
         "multiply_rows": False,             # Не размножаем строки
         "col_max_width": 20,               # Максимальная ширина
         "col_width_mode": 15,              # Фиксированная ширина (15 символов)
-        "col_min_width": 8                 # Минимальная ширина
+        "col_min_width": 8,                # Минимальная ширина
+        "status_filters": None,
+        "custom_conditions": None,
+        "group_by": None,
+        "aggregate": None,
+        "count_aggregation": "size",
+        "count_label": None
     },
     # SUMMARY: сколько в REWARD наград по ключу CONTEST_CODE
     # Подсчитывает количество наград для каждого конкурса
@@ -874,7 +980,13 @@ MERGE_FIELDS = [
         "multiply_rows": False,             # Не размножаем строки
         "col_max_width": 20,               # Максимальная ширина
         "col_width_mode": 15,              # Фиксированная ширина (15 символов)
-        "col_min_width": 8                 # Минимальная ширина
+        "col_min_width": 8,                # Минимальная ширина
+        "status_filters": None,
+        "custom_conditions": None,
+        "group_by": None,
+        "aggregate": None,
+        "count_aggregation": "size",
+        "count_label": None
     },
     {
         "sheet_src": "LIST-REWARDS",              # Источник - награды
@@ -888,7 +1000,13 @@ MERGE_FIELDS = [
         "multiply_rows": False,             # Не размножаем строки
         "col_max_width": 20,               # Максимальная ширина
         "col_width_mode": 15,              # Фиксированная ширина (15 символов)
-        "col_min_width": 8                 # Минимальная ширина
+        "col_min_width": 8,                # Минимальная ширина
+        "status_filters": None,
+        "custom_conditions": None,
+        "group_by": None,
+        "aggregate": None,
+        "count_aggregation": "size",
+        "count_label": None
     },
     {
         "sheet_src": "LIST-REWARDS",              # Источник - награды
@@ -902,7 +1020,11 @@ MERGE_FIELDS = [
         "multiply_rows": False,             # Не размножаем строки
         "col_max_width": 20,               # Максимальная ширина
         "col_width_mode": 15,              # Фиксированная ширина (15 символов)
-        "col_min_width": 8                 # Минимальная ширина
+        "col_min_width": 8,                # Минимальная ширина
+        "status_filters": None,
+        "custom_conditions": None,
+        "group_by": None,
+        "aggregate": None
     },
     # SUMMARY: сколько в CONTEST-DATA строк по ключу CONTEST_CODE
     # Подсчитывает количество записей конкурсов
@@ -918,7 +1040,13 @@ MERGE_FIELDS = [
         "multiply_rows": False,             # Не размножаем строки
         "col_max_width": 20,               # Максимальная ширина
         "col_width_mode": 15,              # Фиксированная ширина (15 символов)
-        "col_min_width": 8                 # Минимальная ширина
+        "col_min_width": 8,                # Минимальная ширина
+        "status_filters": None,
+        "custom_conditions": None,
+        "group_by": None,
+        "aggregate": None,
+        "count_aggregation": "size",
+        "count_label": None
     },
     # SUMMARY: сколько в TOURNAMENT-SCHEDULE турниров по ключу CONTEST_CODE
     # Подсчитывает количество турниров для каждого конкурса
@@ -934,7 +1062,13 @@ MERGE_FIELDS = [
         "multiply_rows": False,             # Не размножаем строки
         "col_max_width": 20,               # Максимальная ширина
         "col_width_mode": 15,              # Фиксированная ширина (15 символов)
-        "col_min_width": 8                 # Минимальная ширина
+        "col_min_width": 8,                # Минимальная ширина
+        "status_filters": None,
+        "custom_conditions": None,
+        "group_by": None,
+        "aggregate": None,
+        "count_aggregation": "size",
+        "count_label": None
     },
     # SUMMARY: сколько в GROUP строк по ключу CONTEST_CODE
     # Подсчитывает количество групп для каждого конкурса
@@ -950,7 +1084,13 @@ MERGE_FIELDS = [
         "multiply_rows": False,             # Не размножаем строки
         "col_max_width": 20,               # Максимальная ширина
         "col_width_mode": 15,              # Фиксированная ширина (15 символов)
-        "col_min_width": 8                 # Минимальная ширина
+        "col_min_width": 8,                # Минимальная ширина
+        "status_filters": None,
+        "custom_conditions": None,
+        "group_by": None,
+        "aggregate": None,
+        "count_aggregation": "size",
+        "count_label": None
     },
     # SUMMARY: сколько в INDICATOR строк по ключу CONTEST_CODE
     # Подсчитывает количество индикаторов для каждого конкурса
@@ -966,7 +1106,13 @@ MERGE_FIELDS = [
         "multiply_rows": False,             # Не размножаем строки
         "col_max_width": 20,               # Максимальная ширина
         "col_width_mode": 15,              # Фиксированная ширина (15 символов)
-        "col_min_width": 8                 # Минимальная ширина
+        "col_min_width": 8,                # Минимальная ширина
+        "status_filters": None,
+        "custom_conditions": None,
+        "group_by": None,
+        "aggregate": None,
+        "count_aggregation": "size",
+        "count_label": None
     },
     # SUMMARY: сколько в REWARD-LINK связей по ключу REWARD_CODE
     # Подсчитывает количество связей награды с конкурсами
@@ -982,55 +1128,15 @@ MERGE_FIELDS = [
         "multiply_rows": False,             # Не размножаем строки
         "col_max_width": 20,               # Максимальная ширина
         "col_width_mode": 15,              # Фиксированная ширина (15 символов)
-        "col_min_width": 8                 # Минимальная ширина
-    }
-]
-
-# === ДОПОЛНИТЕЛЬНЫЕ ПРАВИЛА ДЛЯ CONTEST-DATA (MERGE_FIELDS_ADVANCED) ===
-#
-# Описание параметров правила (все параметры и возможные значения):
-#
-# sheet_src (str) — имя листа-источника. Откуда берутся данные (например "TOURNAMENT-SCHEDULE").
-# sheet_dst (str) — имя листа-назначения. Куда добавляются поля (например "CONTEST-DATA").
-#
-# src_key (list[str]) — ключевые колонки в листе-источнике для связывания. Варианты: ["CONTEST_CODE"], ["CONTEST_CODE", "TOURNAMENT_CODE"] и т.д.
-# dst_key (list[str]) — ключевые колонки в листе-назначении. Должны совпадать по смыслу с src_key (сопоставление по ним).
-#
-# column (list[str]) — имена колонок из sheet_src, которые подтягиваются или по которым считается агрегат.
-#   При mode="value" — эти колонки копируются в sheet_dst (имена в результате: sheet_src=>col).
-#   При mode="count" без count_label — имя колонки в результате: sheet_src=>COUNT_<col> (или COUNT_SELECT_<col>).
-#   При mode="count" с count_label — column задаёт поле для nunique (если count_aggregation="nunique"); имя колонки не из column, а из count_label.
-#
-# mode (str) — режим добавления. Варианты:
-#   "value" — подтянуть значения из sheet_src в sheet_dst по ключу (первое совпадение или размножение строк при multiply_rows=True).
-#   "count"  — добавить количество: по ключу считается агрегат (size или nunique) и записывается в новую колонку.
-#
-# multiply_rows (bool) — при True для mode="value" строки в sheet_dst размножаются по числу совпадений в sheet_src; при False берётся первое совпадение.
-#
-# col_max_width (int|None) — максимальная ширина колонки в Excel. Варианты: число (например 15) или None.
-# col_width_mode (str|int) — режим ширины. Варианты: "AUTO" (авто по содержимому), число (фиксированная ширина в символах).
-# col_min_width (int) — минимальная ширина колонки в Excel (например 8).
-#
-# count_aggregation (str) — только для mode="count". Варианты:
-#   "size"   — считать число строк по ключу (groupby(...).size()).
-#   "nunique" — считать число уникальных значений по первой колонке из column (groupby(...)[col].nunique()).
-#   Имя колонки в результате при заданном count_label: sheet_src=>COUNT_<count_aggregation>_<count_label>.
-#
-# count_label (str|None) — только для mode="count". Короткое имя для колонки (например "ACTIVE", "DELETED").
-#   Если задано — создаётся одна колонка с именем sheet_src=>COUNT_<count_aggregation>_<count_label>; иначе используется column для имени (COUNT_<col>).
-#
-# status_filters (dict|None) — фильтр по статусам перед расчётом. Формат: { "ИМЯ_КОЛОНКИ": [ "значение1", "значение2" ] }.
-#   Оставляются только строки, у которых в указанной колонке значение из списка. Пример: {"TOURNAMENT_STATUS": ["УДАЛЕН"]}.
-#
-# custom_conditions (dict|None) — дополнительные условия фильтрации. Формат: { "колонка": условие }.
-#   Условие: список допустимых значений (isin), callable (предикат от значения) или одно значение (равенство).
-#
-# group_by (list|None) — список колонок для группировки в sheet_src перед добавлением. Если задан вместе с aggregate — сначала группировка, потом агрегация.
-# aggregate (dict|None) — агрегации после group_by. Формат: { "колонка": "sum"|"count"|"avg"|"max"|"min" }. Используется при необходимости сводных расчётов.
-#
-# Что получаем: в sheet_dst добавляются новые колонки (значения или счётчики по ключу), без перезаписи существующих колонок.
-
-MERGE_FIELDS_ADVANCED = [
+        "col_min_width": 8,                # Минимальная ширина
+        "status_filters": None,
+        "custom_conditions": None,
+        "group_by": None,
+        "aggregate": None,
+        "count_aggregation": "size",
+        "count_label": None
+    },
+    # === Дополнительные правила CONTEST-DATA (по статусам турниров) ===
     # CONTEST-DATA: количество турниров по статусам (nunique). Имя: TOURNAMENT-SCHEDULE=>COUNT_nunique_ACTIVE
     {
         "sheet_src": "TOURNAMENT-SCHEDULE",
@@ -2139,7 +2245,7 @@ def calculate_column_width(col_name, ws, params, col_num):
     """
     Вычисляет ширину колонки на основе параметров и содержимого.
     """
-    # Получаем параметры для конкретной колонки (если добавлена через MERGE_FIELDS)
+    # Получаем параметры для конкретной колонки (если добавлена через merge — MERGE_FIELDS_ADVANCED)
     added_cols_width = params.get("added_columns_width", {})
     if col_name in added_cols_width:
         col_params = added_cols_width[col_name]
@@ -2483,20 +2589,22 @@ _color_scheme_cache_key = None
 
 def generate_dynamic_color_scheme_from_merge_fields():
     """
-    Автоматически генерирует элементы цветовой схемы на основе MERGE_FIELDS.
+    Автоматически генерирует элементы цветовой схемы на основе MERGE_FIELDS_ADVANCED.
     Добавляет правила для колонок, которые создаются через merge операции.
     """
     dynamic_scheme = []
 
 
 
-    # Группируем по целевым листам
+    # Группируем по целевым листам (используем MERGE_FIELDS_ADVANCED — единый список правил)
     sheets_targets = {}
-    for rule in MERGE_FIELDS:
+    for rule in MERGE_FIELDS_ADVANCED:
         sheet_dst = rule["sheet_dst"]
         sheet_src = rule["sheet_src"]
         columns = rule["column"]
         mode = rule.get("mode", "value")
+        count_label = rule.get("count_label")
+        count_aggregation = rule.get("count_aggregation", "size")
 
         if sheet_dst not in sheets_targets:
             sheets_targets[sheet_dst] = {}
@@ -2504,13 +2612,17 @@ def generate_dynamic_color_scheme_from_merge_fields():
         if sheet_src not in sheets_targets[sheet_dst]:
             sheets_targets[sheet_dst][sheet_src] = []
 
-        # Формируем имена колонок, которые будут созданы
-        for col in columns:
-            if mode == "count":
-                new_col_name = f"{sheet_src}=>COUNT_{col}"
-            else:
-                new_col_name = f"{sheet_src}=>{col}"
+        # Формируем имена колонок, которые будут созданы (как в add_fields_to_sheet: COUNT_* или COUNT_agg_label)
+        if mode == "count" and count_label is not None:
+            new_col_name = f"{sheet_src}=>COUNT_{count_aggregation}_{count_label}"
             sheets_targets[sheet_dst][sheet_src].append(new_col_name)
+        else:
+            for col in columns:
+                if mode == "count":
+                    new_col_name = f"{sheet_src}=>COUNT_{col}"
+                else:
+                    new_col_name = f"{sheet_src}=>{col}"
+                sheets_targets[sheet_dst][sheet_src].append(new_col_name)
 
     # Создаем цветовые схемы для каждой комбинации лист-источник
     color_palette = [
@@ -2553,13 +2665,13 @@ def generate_dynamic_color_scheme_from_merge_fields():
 def apply_color_scheme(ws, sheet_name):
     """
     Окрашивает заголовки и/или всю колонку на листе Excel по схеме COLOR_SCHEME.
-    Также применяет динамически сгенерированную схему из MERGE_FIELDS.
+    Также применяет динамически сгенерированную схему из MERGE_FIELDS_ADVANCED.
     Все действия логируются напрямую в местах вызова.
     """
     # ОПТИМИЗАЦИЯ v5.0: Используем кэш для цветовых схем
     global _color_scheme_cache, _color_scheme_cache_key
-    # Проверяем, нужно ли обновить кэш (если MERGE_FIELDS изменились)
-    current_key = id(MERGE_FIELDS)  # Простая проверка на изменение
+    # Проверяем, нужно ли обновить кэш (если MERGE_FIELDS_ADVANCED изменились)
+    current_key = id(MERGE_FIELDS_ADVANCED)  # Простая проверка на изменение
     if _color_scheme_cache is None or _color_scheme_cache_key != current_key:
         _color_scheme_cache = COLOR_SCHEME + generate_dynamic_color_scheme_from_merge_fields()
         _color_scheme_cache_key = current_key
@@ -3562,6 +3674,65 @@ def _group_independent_rules(merge_fields):
         groups.append(current_group)
     
     return groups
+
+
+def _dump_sheets_data_for_baseline(sheets_data, max_rows: int = 3) -> dict:
+    """
+    Формирует снимок sheets_data для сохранения/сравнения baseline:
+    для каждого листа — список колонок (порядок сохранён) и первые max_rows строк как список списков.
+    Используется для верификации, что после объединения MERGE_FIELDS в MERGE_FIELDS_ADVANCED
+    выходные колонки и фрагмент данных не изменились.
+    """
+    result = {}
+    for sheet_name, sheet_data in sheets_data.items():
+        if sheet_data is None or len(sheet_data) < 1:
+            result[sheet_name] = {"columns": [], "sample_rows": []}
+            continue
+        df, _ = sheet_data
+        if df is None or not isinstance(df, pd.DataFrame):
+            result[sheet_name] = {"columns": [], "sample_rows": []}
+            continue
+        cols = list(df.columns)
+        head = df.head(max_rows)
+        # Преобразуем в список списков; NaN -> None для JSON
+        sample_rows = []
+        for _, row in head.iterrows():
+            sample_rows.append([None if pd.isna(v) else v for v in row.tolist()])
+        result[sheet_name] = {"columns": cols, "sample_rows": sample_rows}
+    return result
+
+
+def _compare_sheets_data_with_baseline(sheets_data, baseline_path: str, max_rows: int = 3) -> tuple[bool, list[str]]:
+    """
+    Сравнивает текущий sheets_data с сохранённым baseline (список колонок и сэмпл строк).
+    Возвращает (True, []) при совпадении; (False, список сообщений об отличиях) при расхождении.
+    """
+    errors = []
+    try:
+        with open(baseline_path, "r", encoding="utf-8") as f:
+            baseline = json.load(f)
+    except Exception as e:
+        return False, [f"Не удалось загрузить baseline {baseline_path}: {e}"]
+    current = _dump_sheets_data_for_baseline(sheets_data, max_rows=max_rows)
+    baseline_sheets = set(baseline.keys())
+    current_sheets = set(current.keys())
+    if baseline_sheets != current_sheets:
+        only_baseline = baseline_sheets - current_sheets
+        only_current = current_sheets - baseline_sheets
+        if only_baseline:
+            errors.append(f"В baseline есть листы, которых нет сейчас: {sorted(only_baseline)}")
+        if only_current:
+            errors.append(f"Сейчас есть листы, которых нет в baseline: {sorted(only_current)}")
+    for sheet in sorted(baseline_sheets & current_sheets):
+        bc = baseline[sheet].get("columns", [])
+        cc = current[sheet].get("columns", [])
+        if bc != cc:
+            errors.append(f"Лист {sheet}: различаются колонки. Baseline: {bc[:15]}...; текущие: {cc[:15]}...")
+        br = baseline[sheet].get("sample_rows", [])
+        cr = current[sheet].get("sample_rows", [])
+        if br != cr:
+            errors.append(f"Лист {sheet}: различаются сэмпл-строки (первые {max_rows} строк)")
+    return (len(errors) == 0, errors)
 
 
 def merge_fields_across_sheets(sheets_data, merge_fields, count_column_prefix="COUNT", merge_name=""):
@@ -4594,19 +4765,12 @@ def main():
         sheets_data["TOURNAMENT-SCHEDULE"] = (df_tournament, conf_tournament)
 
     # 5. Merge fields (только после полного разворота JSON)
-    # Сначала применяем обычные правила MERGE_FIELDS (без правил для SUMMARY — они в build_summary_sheet)
+    # Все правила в MERGE_FIELDS_ADVANCED: сначала бывшие MERGE_FIELDS (порядок сохранён), затем расширенные.
+    # count_column_prefix="COUNT" — имена колонок в Excel не меняются (COUNT_* для count без count_label).
     merge_fields_across_sheets(
         sheets_data,
-        [f for f in MERGE_FIELDS if f.get("sheet_dst") != "SUMMARY"],
-        merge_name="MERGE_FIELDS"
-    )
-    
-    # Затем применяем дополнительные правила MERGE_FIELDS_ADVANCED (статусы турниров и т.д.).
-    # count_column_prefix="COUNT_SELECT" — колонки count получают имена вида =>COUNT_SELECT_*, без перезаписи COUNT_* из MERGE_FIELDS.
-    merge_fields_across_sheets(
-        sheets_data,
-        MERGE_FIELDS_ADVANCED,
-        count_column_prefix="COUNT_SELECT",
+        [f for f in MERGE_FIELDS_ADVANCED if f.get("sheet_dst") != "SUMMARY"],
+        count_column_prefix="COUNT",
         merge_name="MERGE_FIELDS_ADVANCED"
     )
 
@@ -4628,7 +4792,7 @@ def main():
     df_summary = build_summary_sheet(
         dfs,
         params_summary=SUMMARY_SHEET,
-        merge_fields=[f for f in MERGE_FIELDS if f.get("sheet_dst") == "SUMMARY"]
+        merge_fields=[f for f in MERGE_FIELDS_ADVANCED if f.get("sheet_dst") == "SUMMARY"]
     )
     # ОПТИМИЗАЦИЯ v5.0: Проверка df_summary на None
     if df_summary is None or not isinstance(df_summary, pd.DataFrame):
@@ -4641,7 +4805,23 @@ def main():
         logging.info(f"[main] df_summary успешно создан: {len(df_summary)} строк, {len(df_summary.columns)} колонок")
 
     sheets_data[SUMMARY_SHEET["sheet"]] = (df_summary, SUMMARY_SHEET)
-    
+
+    # Верификация merge: сохранение baseline или сравнение с ним
+    _baseline_path = os.path.join(DIR_OUTPUT, "merge_output_baseline.json")
+    if os.environ.get("SAVE_MERGE_BASELINE") == "1":
+        os.makedirs(DIR_OUTPUT, exist_ok=True)
+        snapshot = _dump_sheets_data_for_baseline(sheets_data, max_rows=3)
+        with open(_baseline_path, "w", encoding="utf-8") as f:
+            json.dump(snapshot, f, ensure_ascii=False, indent=2)
+        logging.info(f"[MERGE] Baseline сохранён: {_baseline_path} (колонки и по 3 строки на лист)")
+    elif os.path.isfile(_baseline_path):
+        ok, diff_errors = _compare_sheets_data_with_baseline(sheets_data, _baseline_path, max_rows=3)
+        if ok:
+            logging.info("[MERGE] Сравнение с baseline: колонки и сэмпл данных совпадают")
+        else:
+            for msg in diff_errors:
+                logging.warning(f"[MERGE] Baseline расхождение: {msg}")
+
     # 8. Запись в Excel
     output_excel = os.path.join(DIR_OUTPUT, get_output_filename())
     logging.info("[START] {func} {params}".format(func="write_to_excel", params=f"({output_excel})"))
