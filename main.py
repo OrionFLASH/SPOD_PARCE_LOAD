@@ -164,7 +164,7 @@ DIR_LOGS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "LOGS")    #
 # - min_col_width: минимальная ширина колонки
 INPUT_FILES = [
     {
-        "file": "CONTEST (PROM) 02-02 v2",  # Файл с данными конкурсов
+        "file": "CONTEST (PROM) 02-02 v2.csv",  # Файл с данными конкурсов
         "sheet": "CONTEST-DATA",                        # Лист для обработки
         "max_col_width": 120,                          # Максимальная ширина колонки
         "freeze": "C2",                                # Закрепление области
@@ -172,7 +172,7 @@ INPUT_FILES = [
         "min_col_width": 12                             # Минимальная ширина колонки
     },
     {
-        "file": "GROUP (PROM) 02-02 v1",            # Файл с данными групп
+        "file": "GROUP (PROM) 02-02 v1.csv",            # Файл с данными групп
         "sheet": "GROUP",                              # Лист для обработки
         "max_col_width": 20,                           # Максимальная ширина колонки
         "freeze": "C2",                                # Закрепление области
@@ -180,7 +180,7 @@ INPUT_FILES = [
         "min_col_width": 8                             # Минимальная ширина колонки
     },
     {
-        "file": "INDICATOR (PROM) 02-02 v1",        # Файл с индикаторами
+        "file": "INDICATOR (PROM) 02-02 v1.csv",        # Файл с индикаторами
         "sheet": "INDICATOR",                          # Лист для обработки
         "max_col_width": 100,                           # Максимальная ширина колонки
         "freeze": "B2",                                # Закрепление области
@@ -188,7 +188,7 @@ INPUT_FILES = [
         "min_col_width": 8                             # Минимальная ширина колонки
     },
     {
-        "file": "REPORT (PROM) 02-02 v0", # Файл с отчетами
+        "file": "REPORT (PROM) 02-02 v0.csv", # Файл с отчетами
         "sheet": "REPORT",                             # Лист для обработки
         "max_col_width": 25,                           # Максимальная ширина колонки
         "freeze": "D2",                                # Закрепление области
@@ -196,7 +196,7 @@ INPUT_FILES = [
         "min_col_width": 10                             # Минимальная ширина колонки
     },
     {
-        "file": "REWARD (PROM) 02-02 v1",        # Файл с наградами
+        "file": "REWARD (PROM) 02-02 v1.csv",        # Файл с наградами
         "sheet": "REWARD",                             # Лист для обработки
         "max_col_width": 200,                          # Максимальная ширина колонки (большая для длинных описаний)
         "freeze": "D2",                                # Закрепление области
@@ -204,7 +204,7 @@ INPUT_FILES = [
         "min_col_width": 10                             # Минимальная ширина колонки
     },
     {
-        "file": "REWARD-LINK (PROM) 02-02 v1",      # Файл со связями наград
+        "file": "REWARD-LINK (PROM) 02-02 v1.csv",      # Файл со связями наград
         "sheet": "REWARD-LINK",                        # Лист для обработки
         "max_col_width": 30,                           # Максимальная ширина колонки
         "freeze": "A2",                                # Закрепление области
@@ -212,7 +212,7 @@ INPUT_FILES = [
         "min_col_width": 10                             # Минимальная ширина колонки
     },
     {
-        "file": "SCHEDULE (PROM) 02-02 v1", # Файл с расписанием турниров
+        "file": "SCHEDULE (PROM) 02-02 v1.csv", # Файл с расписанием турниров
         "sheet": "TOURNAMENT-SCHEDULE",                # Лист для обработки
         "max_col_width": 120,                          # Максимальная ширина колонки
         "freeze": "B2",                                # Закрепление области
@@ -220,7 +220,7 @@ INPUT_FILES = [
         "min_col_width": 10                             # Минимальная ширина колонки
     },
     {
-        "file": "SVD_KB_DM_GAMIFICATION_ORG_UNIT_V20 - 2025.08.28", # Файл с организационными единицами
+        "file": "SVD_KB_DM_GAMIFICATION_ORG_UNIT_V20 - 2025.08.28.csv", # Файл с организационными единицами
         "sheet": "ORG_UNIT_V20",                       # Лист для обработки
         "max_col_width": 60,                           # Максимальная ширина колонки
         "freeze": "A2",                                # Закрепление области
@@ -228,7 +228,7 @@ INPUT_FILES = [
         "min_col_width": 10                             # Минимальная ширина колонки
     },
     {
-        "file": "USER_ROLE (PROM) 12-12 v0",       # Файл с ролями пользователей
+        "file": "USER_ROLE (PROM) 12-12 v0.csv",       # Файл с ролями пользователей
         "sheet": "USER_ROLE",                          # Лист для обработки
         "max_col_width": 65,                           # Максимальная ширина колонки
         "freeze": "D2",                                # Закрепление области
@@ -236,7 +236,7 @@ INPUT_FILES = [
         "min_col_width": 12                             # Минимальная ширина колонки
     },
     {
-        "file": "USER_ROLE_SB (PROM) 12-12 v0",    # Файл с ролями пользователей SB
+        "file": "USER_ROLE_SB (PROM) 12-12 v0.csv",    # Файл с ролями пользователей SB
         "sheet": "USER_ROLE SB",                       # Лист для обработки
         "max_col_width": 65,                           # Максимальная ширина колонки
         "freeze": "D2",                                # Закрепление области
@@ -244,7 +244,7 @@ INPUT_FILES = [
         "min_col_width": 12                             # Минимальная ширина колонки
     },
     {
-        "file": "employee_PROM_final_5000_2025-07-26_00-09-03",  # Файл с данными сотрудников
+        "file": "employee_PROM_final_5000_2025-07-26_00-09-03.csv",  # Файл с данными сотрудников
         "sheet": "EMPLOYEE",                              # Лист для обработки
         "max_col_width": 80,                              # Максимальная ширина колонки
         "freeze": "F2",                                   # Закрепление области (колонки A-E и строка 1)
@@ -252,7 +252,7 @@ INPUT_FILES = [
         "min_col_width": 15                                # Минимальная ширина колонки
     },
     {
-        "file": "gamification-employeeRewards",         # Файл с наградами сотрудников (геймификация)
+        "file": "gamification-employeeRewards.csv",         # Файл с наградами сотрудников (геймификация)
         "sheet": "LIST-REWARDS",        # Лист для обработки
         "max_col_width": 40,                              # Максимальная ширина колонки
         "freeze": "D2",                                   # Закрепление области
@@ -260,7 +260,7 @@ INPUT_FILES = [
         "min_col_width": 12                               # Минимальная ширина колонки
     },
     {
-        "file": "gamification-statistics",              # Файл со статистикой (геймификация)
+        "file": "gamification-statistics.csv",              # Файл со статистикой (геймификация)
         "sheet": "STATISTICS",               # Лист для обработки
         "max_col_width": 25,                              # Максимальная ширина колонки
         "freeze": "C2",                                   # Закрепление области
@@ -268,7 +268,7 @@ INPUT_FILES = [
         "min_col_width": 10                               # Минимальная ширина колонки
     },
     {
-        "file": "gamification-tournamentList",            # Файл со списком турниров (геймификация)
+        "file": "gamification-tournamentList.csv",            # Файл со списком турниров (геймификация)
         "sheet": "LIST-TOURNAMENT",         # Лист для обработки
         "max_col_width": 80,                              # Максимальная ширина колонки
         "freeze": "C2",                                   # Закрепление области
@@ -2036,7 +2036,8 @@ def find_file_case_insensitive(directory, base_name, extensions):
 
     Args:
         directory (str): Каталог для поиска
-        base_name (str): Базовое имя файла (без расширения)
+        base_name (str): Имя файла — либо полное с расширением (например, "file.csv"),
+                         либо базовое без расширения
         extensions (list): Список возможных расширений (например, ['.csv', '.CSV'])
 
     Returns:
@@ -2045,21 +2046,31 @@ def find_file_case_insensitive(directory, base_name, extensions):
     if not os.path.exists(directory):
         return None
 
-    # Получаем список всех файлов в каталоге
+    # Если передано полное имя с расширением — используем его для сравнения
+    name_stem, name_ext = os.path.splitext(base_name)
+    if name_ext and name_ext.lower() in [e.lower() for e in extensions]:
+        match_stem = name_stem.lower()
+        match_ext = name_ext.lower()
+        match_full_name = True
+    else:
+        match_stem = base_name.lower()
+        match_ext = None
+        match_full_name = False
+
     try:
         files_in_dir = os.listdir(directory)
     except OSError:
         return None
 
-    # Ищем файл без учета регистра
     for file_name in files_in_dir:
-        # Разделяем имя файла и расширение
         name, ext = os.path.splitext(file_name)
-
-        # Проверяем совпадение имени и расширения без учета регистра
-        if (name.lower() == base_name.lower() and
-            ext.lower() in [e.lower() for e in extensions]):
-            return os.path.join(directory, file_name)
+        if match_full_name:
+            if name.lower() == match_stem and ext.lower() == match_ext:
+                return os.path.join(directory, file_name)
+        else:
+            if (name.lower() == match_stem and
+                    ext.lower() in [e.lower() for e in extensions]):
+                return os.path.join(directory, file_name)
 
     return None
 
@@ -4687,7 +4698,7 @@ def main():
             "  (ожидаемый каталог: {})".format(DIR_INPUT),
         ]
         for m in missing_files:
-            msg_lines.append("  - {file}.csv (лист: {sheet})".format(file=m["file"], sheet=m["sheet"]))
+            msg_lines.append("  - {} (лист: {})".format(m["file"], m["sheet"]))
         msg = "\n".join(msg_lines)
         logging.error(msg)
         print(msg, file=sys.stderr)
