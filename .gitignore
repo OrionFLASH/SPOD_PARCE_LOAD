@@ -68,3 +68,6 @@ fix_gender_patterns.py
 # Cursor IDE files
 .cursor/
 .cursorignore
+
+# Копии программы и документации (архивные .txt)
+POST/
