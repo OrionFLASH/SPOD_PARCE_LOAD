@@ -1494,6 +1494,118 @@ COLOR_SCHEME = [
     },
 ]
 
+# === ФОРМАТИРОВАНИЕ КОЛОНОК EXCEL (тип данных, число/дата, выравнивание, перенос) ===
+# COLUMN_FORMATS: для указанных листов и колонок задаётся тип ячейки, формат вывода и выравнивание.
+# Параметры:
+#   sheet: имя листа (как в DataFrame / Excel)
+#   columns: список названий колонок (заголовки)
+#   data_type: "text" | "number" | "date" | "general" — тип данных в ячейке
+#   decimal_places: для number — знаков после запятой (0 = только целая часть)
+#   decimal_separator: для number — "," или "." (разделитель дробной части)
+#   thousands_separator: для number — True/False (разделять разряды в целой части)
+#   date_format: для date — "YYYY-MM-DD" или "DD/MM/YYYY" (и др.)
+#   horizontal: "left" | "center" | "right" — выравнивание по горизонтали
+#   vertical: "top" | "center" | "bottom" — выравнивание по вертикали
+#   wrap_text: True/False — перенос текста по словам
+COLUMN_FORMATS = [
+    {
+        "sheet": "INDICATOR",
+        "columns": ["N", "CALC_TYPE", "INDICATOR_WEIGHT", "INDICATOR_CALC_TYPE"],
+        "data_type": "number",
+        "decimal_places": 0,
+        "decimal_separator": ",",
+        "thousands_separator": False,
+        "date_format": "YYYY-MM-DD",
+        "horizontal": "center",
+        "vertical": "center",
+        "wrap_text": False,
+    },
+    {
+        "sheet": "REWARD",
+        "columns": ["REWARD_CONDITION", "REWARD_COST"],
+        "data_type": "number",
+        "decimal_places": 0,
+        "decimal_separator": ",",
+        "thousands_separator": False,
+        "date_format": "YYYY-MM-DD",
+        "horizontal": "center",
+        "vertical": "center",
+        "wrap_text": False,
+    },
+    {
+        "sheet": "EMPLOYEE",
+        "columns": ["TB_CODE", "GOSB_CODE", "UCH_CODE", "GENDER", "PRIORITY_TYPE"],
+        "data_type": "number",
+        "decimal_places": 0,
+        "decimal_separator": ",",
+        "thousands_separator": False,
+        "date_format": "YYYY-MM-DD",
+        "horizontal": "center",
+        "vertical": "center",
+        "wrap_text": False,
+    },
+    {
+        "sheet": "TOURNAMENT-SCHEDULE",
+        "columns": ["START_DT", "END_DT", "RESULT_DT"],
+        "data_type": "date",
+        "decimal_places": 0,
+        "decimal_separator": ",",
+        "thousands_separator": False,
+        "date_format": "YYYY-MM-DD",
+        "horizontal": "center",
+        "vertical": "center",
+        "wrap_text": False,
+    },
+    {
+        "sheet": "CONTEST-DATA",
+        "columns": ["CREATE_DT", "CLOSE_DT"],
+        "data_type": "date",
+        "decimal_places": 0,
+        "decimal_separator": ",",
+        "thousands_separator": False,
+        "date_format": "YYYY-MM-DD",
+        "horizontal": "center",
+        "vertical": "center",
+        "wrap_text": False,
+    },
+    {
+        "sheet": "CONTEST-DATA",
+        "columns": ["CALC_TYPE", "SOURCE_UPD_FREQUENCY"],
+        "data_type": "number",
+        "decimal_places": 0,
+        "decimal_separator": ",",
+        "thousands_separator": False,
+        "date_format": "YYYY-MM-DD",
+        "horizontal": "center",
+        "vertical": "center",
+        "wrap_text": False,
+    },
+    {
+        "sheet": "REPORT",
+        "columns": ["CONTEST_DATE"],
+        "data_type": "date",
+        "decimal_places": 0,
+        "decimal_separator": ",",
+        "thousands_separator": False,
+        "date_format": "YYYY-MM-DD",
+        "horizontal": "center",
+        "vertical": "center",
+        "wrap_text": False,
+    },
+    {
+        "sheet": "REPORT",
+        "columns": ["priority_type"],
+        "data_type": "number",
+        "decimal_places": 0,
+        "decimal_separator": ",",
+        "thousands_separator": False,
+        "date_format": "YYYY-MM-DD",
+        "horizontal": "center",
+        "vertical": "center",
+        "wrap_text": False,
+    },
+]
+
 # Добавление секции для дублей по CHECK_DUPLICATES
 CHECK_DUPLICATES = [
     {"sheet": "CONTEST-DATA", "key": ["CONTEST_CODE"]},
@@ -2194,30 +2306,54 @@ def write_to_excel(sheets_data, output_path):
         other_sheets = [s for s in sheets_data if s != "SUMMARY"]
         ordered_sheets = ["SUMMARY"] + sorted(other_sheets)
 
+        # ОПТИМИЗАЦИЯ: Параллельная подготовка DataFrame с преобразованием типов по COLUMN_FORMATS
+        def _prepare_sheet_for_write(sheet_name):
+            if sheet_name not in sheets_data or sheets_data[sheet_name] is None:
+                return sheet_name, None
+            sheet_data = sheets_data[sheet_name]
+            if len(sheet_data) < 1 or sheet_data[0] is None:
+                return sheet_name, None
+            df, params_sheet = sheet_data
+            df_write = df.copy()
+            apply_column_format_conversion(df_write, sheet_name)
+            return sheet_name, (df_write, params_sheet)
+
+        sheets_to_prepare = [s for s in ordered_sheets if s in sheets_data and sheets_data[s] is not None]
+        prepared_sheets = {}
+        if sheets_to_prepare and COLUMN_FORMATS:
+            with ThreadPoolExecutor(max_workers=min(MAX_WORKERS_IO, len(sheets_to_prepare))) as executor:
+                futures = {executor.submit(_prepare_sheet_for_write, sn): sn for sn in sheets_to_prepare}
+                for fut in as_completed(futures):
+                    sn, data = fut.result()
+                    if data is not None:
+                        prepared_sheets[sn] = data
+        # Листы без правил COLUMN_FORMATS или без параллельной подготовки — берём исходные данные
+        for sn in ordered_sheets:
+            if sn not in prepared_sheets and sn in sheets_data and sheets_data[sn] is not None:
+                prepared_sheets[sn] = sheets_data[sn]
+
         # Создаем Excel файл с помощью pandas ExcelWriter
         with pd.ExcelWriter(output_path, engine="openpyxl") as writer:
             # ОПТИМИЗАЦИЯ: Сначала записываем все данные (последовательно, т.к. ExcelWriter не поддерживает параллелизм)
             for sheet_name in ordered_sheets:
-                # ОПТИМИЗАЦИЯ v5.0: Проверка на None перед записью
-                if sheet_name not in sheets_data or sheets_data[sheet_name] is None:
+                if sheet_name not in prepared_sheets or prepared_sheets[sheet_name] is None:
                     logging.warning(f"[write_to_excel] Пропущен лист {sheet_name}: данные отсутствуют или равны None")
                     continue
-
-                sheet_data = sheets_data[sheet_name]
+                sheet_data = prepared_sheets[sheet_name]
                 if len(sheet_data) < 1 or sheet_data[0] is None:
                     logging.warning(f"[write_to_excel] Пропущен лист {sheet_name}: DataFrame равен None")
                     continue
 
-                df, params_sheet = sheet_data
+                df_write, params_sheet = sheet_data
                 logging.debug(f"[DEBUG write_to_excel] Записываем лист {sheet_name}...")
-                logging.debug(f"[DEBUG write_to_excel] DataFrame shape: {df.shape}, колонок: {len(df.columns)}")
-                if len(df) == 0:
+                logging.debug(f"[DEBUG write_to_excel] DataFrame shape: {df_write.shape}, колонок: {len(df_write.columns)}")
+                if len(df_write) == 0:
                     logging.error(f"[DEBUG write_to_excel] ❌ ОШИБКА: Лист {sheet_name} ПУСТОЙ перед записью!")
                 else:
-                    logging.debug(f"[DEBUG write_to_excel] Первые 3 строки перед записью:\n{df.head(3).to_string()}")
+                    logging.debug(f"[DEBUG write_to_excel] Первые 3 строки перед записью:\n{df_write.head(3).to_string()}")
 
-                df.to_excel(writer, index=False, sheet_name=sheet_name)
-                logging.info("Лист Excel записан: {sheet} (строк: {rows}, колонок: {cols})".format(sheet=sheet_name, rows=len(df), cols=len(df.columns)))
+                df_write.to_excel(writer, index=False, sheet_name=sheet_name)
+                logging.info("Лист Excel записан: {sheet} (строк: {rows}, колонок: {cols})".format(sheet=sheet_name, rows=len(df_write), cols=len(df_write.columns)))
 
             # ОПТИМИЗАЦИЯ: Форматируем листы последовательно (openpyxl не thread-safe для параллельной записи)
             # Примечание: Параллелизация форматирования Excel была откачена, т.к. openpyxl не thread-safe
@@ -2291,6 +2427,158 @@ def calculate_column_width(col_name, ws, params, col_num):
     return final_width
 
 
+def _build_excel_number_format(rule):
+    """
+    Строит строку формата Excel для числовых ячеек по правилу COLUMN_FORMATS.
+    Для 0 знаков после запятой формат без дробной части, чтобы отображались целые (1, 4, а не 1,0).
+
+    Args:
+        rule (dict): Элемент из COLUMN_FORMATS с data_type="number"
+
+    Returns:
+        str: Строка формата для cell.number_format (напр. "#,##0" или "#.##0,00")
+    """
+    decimal_places = int(rule.get("decimal_places", 0))
+    decimal_sep = rule.get("decimal_separator", ",")
+    thousands = rule.get("thousands_separator", True)
+    # Европейский стиль: запятая — дробная часть, точка — разряды
+    # Для 0 знаков после запятой — формат без дробной части; явно "0" или "#.##0" без десятичной части,
+    # иначе Excel в части локалей может показывать 1,0 вместо 1
+    if decimal_places == 0:
+        if decimal_sep == ",":
+            return "#.##0" if thousands else "0"
+        return "#,##0" if thousands else "0"
+    if decimal_sep == ",":
+        int_part = "#.##0" if thousands else "0"
+        dec_part = "," + "0" * decimal_places
+    else:
+        int_part = "#,##0" if thousands else "0"
+        dec_part = "." + "0" * decimal_places
+    return int_part + dec_part
+
+
+def _build_excel_date_format(rule):
+    """
+    Строит строку формата Excel для дат по правилу COLUMN_FORMATS.
+
+    Args:
+        rule (dict): Элемент из COLUMN_FORMATS с data_type="date"
+
+    Returns:
+        str: Строка формата для cell.number_format (напр. "yyyy-mm-dd" или "dd/mm/yyyy")
+    """
+    fmt = (rule.get("date_format") or "YYYY-MM-DD").strip().upper()
+    # Excel openpyxl: yyyy-mm-dd, dd/mm/yyyy
+    if "DD/MM/YYYY" in fmt or "DD-MM-YYYY" in fmt:
+        return "dd/mm/yyyy"
+    return "yyyy-mm-dd"
+
+
+def apply_column_format_conversion(df, sheet_name):
+    """
+    Преобразует типы колонок в DataFrame по правилам COLUMN_FORMATS перед записью в Excel.
+    Вызывается для копии DataFrame перед to_excel, чтобы Excel получал числа/даты, а не строки.
+    Для числа с 0 знаков после запятой записываются целые (без .0), чтобы Excel не показывал дробную часть.
+
+    Args:
+        df (pd.DataFrame): DataFrame листа (будет изменён in-place)
+        sheet_name (str): Имя листа
+    """
+    for rule in COLUMN_FORMATS:
+        if rule.get("sheet") != sheet_name:
+            continue
+        cols = rule.get("columns") or []
+        dtype = (rule.get("data_type") or "general").lower()
+        for col in cols:
+            if col not in df.columns:
+                continue
+            if dtype == "number":
+                # Строки вида "1,0" или "1.0" — приводим к числу (запятая как десятичный разделитель в исходных данных)
+                ser = df[col].astype(str).str.replace(",", ".", regex=False)
+                ser = pd.to_numeric(ser, errors="coerce")
+                decimal_places = int(rule.get("decimal_places", 0))
+                if decimal_places == 0:
+                    # Целые: Int64, чтобы в Excel были 1, 4, а не 1.0, 4.0
+                    df[col] = ser.dropna().astype("Int64").reindex(ser.index)
+                else:
+                    df[col] = ser
+            elif dtype == "date":
+                df[col] = pd.to_datetime(df[col], errors="coerce")
+            elif dtype == "text":
+                df[col] = df[col].astype(str)
+
+
+def apply_column_formats(ws, df, sheet_name):
+    """
+    Применяет к ячейкам листа Excel формат числа/даты и выравнивание по правилам COLUMN_FORMATS.
+    Вызывается из _format_sheet после базового форматирования. Обрабатывает только колонки,
+    перечисленные в правилах для данного листа (batch по колонкам).
+
+    Args:
+        ws: openpyxl Worksheet
+        df (pd.DataFrame): DataFrame листа (для имён колонок и порядка)
+        sheet_name (str): Имя листа
+    """
+    header_cells = list(ws[1])
+    col_names = [c.value for c in header_cells]
+    rules_for_sheet = [r for r in COLUMN_FORMATS if r.get("sheet") == sheet_name]
+    if not rules_for_sheet:
+        return
+
+    for rule in rules_for_sheet:
+        cols = rule.get("columns") or []
+        data_type = (rule.get("data_type") or "general").lower()
+        # Строка формата Excel
+        if data_type == "number":
+            num_fmt = _build_excel_number_format(rule)
+        elif data_type == "date":
+            num_fmt = _build_excel_date_format(rule)
+        else:
+            num_fmt = None
+        # Выравнивание
+        h = rule.get("horizontal", "left").lower()
+        v = rule.get("vertical", "center").lower()
+        wrap = bool(rule.get("wrap_text", False))
+        h_map = {"left": "left", "center": "center", "right": "right"}
+        v_map = {"top": "top", "center": "center", "bottom": "bottom"}
+        alignment = Alignment(
+            horizontal=h_map.get(h, "left"),
+            vertical=v_map.get(v, "center"),
+            wrap_text=wrap,
+        )
+        col_names_stripped = [(n or "").strip() for n in col_names]
+        for col_name in cols:
+            name_stripped = (col_name or "").strip()
+            try:
+                col_idx = col_names_stripped.index(name_stripped) + 1
+            except ValueError:
+                logging.debug("[COLUMN_FORMATS] Колонка '{col}' не найдена на листе {sheet}".format(col=col_name, sheet=sheet_name))
+                continue
+            col_letter = get_column_letter(col_idx)
+            # Для числа с 0 знаков после запятой: записать в ячейку целое значение (1, 2), а не 1.0, 2.0,
+            # иначе Excel в части локалей отображает "1,0"
+            force_int = (data_type == "number" and int(rule.get("decimal_places", 0)) == 0)
+            for row_idx in range(2, ws.max_row + 1):
+                cell = ws.cell(row=row_idx, column=col_idx)
+                if num_fmt is not None:
+                    cell.number_format = num_fmt
+                if force_int and cell.value is not None:
+                    try:
+                        # Если в ячейке строка "1,0" (европейский формат), float("1,0") даёт ValueError —
+                        # нормализуем: запятая как десятичный разделитель → точка
+                        raw = str(cell.value).strip().replace(",", ".")
+                        v = float(raw)
+                        if v == int(v):
+                            cell.value = int(v)
+                    except (TypeError, ValueError):
+                        pass
+                cell.alignment = alignment
+            logging.debug("[COLUMN_FORMATS] Применён формат к листу {sheet}, колонка {col} (тип: {dtype})".format(
+                sheet=sheet_name, col=col_name, dtype=data_type
+            ))
+    return
+
+
 def _format_sheet(ws, df, params):
     func_start = time()
     params_str = f"({ws.title})"
@@ -2341,6 +2629,9 @@ def _format_sheet(ws, df, params):
         # Применяем alignment ко всем ячейкам сразу (batch операция)
         for cell in data_cells:
             cell.alignment = align_data
+
+        # Применяем форматирование колонок по COLUMN_FORMATS (тип данных, выравнивание, перенос)
+        apply_column_formats(ws, df, ws.title)
 
     # Закрепление строк и столбцов
     ws.freeze_panes = params.get("freeze", "A2")
