@@ -1,6 +1,7 @@
 # === ИМПОРТЫ БИБЛИОТЕК ===
 import os          # Для работы с операционной системой и путями
 import sys         # Для системных функций и аргументов командной строки
+from typing import Optional, List, Dict, Any  # Для аннотаций типов
 import pandas as pd  # Для работы с данными в табличном формате
 import logging     # Для логирования процессов
 from datetime import datetime  # Для работы с датами и временем
@@ -10,7 +11,6 @@ from time import time  # Для измерения времени выполне
 import json        # Для работы с JSON данными
 import re          # Для работы с регулярными выражениями
 import csv         # Для работы с CSV файлами
-import ast         # Для безопасного парсинга Python выражений
 import time as tmod  # Для измерения времени выполнения операций (альтернативное имя)
 import inspect  # Для получения информации о вызывающей функции
 from concurrent.futures import ThreadPoolExecutor, as_completed  # Для параллельной обработки
@@ -127,7 +127,7 @@ class CallerFormatter(logging.Formatter):
                 if 'logging' not in filename and func_name_in_frame != 'format' and func_name_in_frame != '<module>':
                     func_name = func_name_in_frame
                     break
-        except:
+        except Exception:
             func_name = record.funcName
 
         # Сохраняем оригинальное сообщение
@@ -1759,7 +1759,7 @@ def calculate_tournament_status(df_tournament, df_report=None):
     """
     func_start = time()  # Засекаем время начала выполнения
     params = "(TOURNAMENT-SCHEDULE status calculation)"
-    logging.info("[START] {func} {params}".format(func="calculate_tournament_status", params=params))
+    logging.info(f"[START] calculate_tournament_status {params}")
 
     today = pd.Timestamp.now().date()  # Текущая дата
     df = df_tournament.copy()          # Копируем DataFrame для безопасной работы
@@ -1779,7 +1779,7 @@ def calculate_tournament_status(df_tournament, df_report=None):
             if pd.isna(date_str) or date_str in ['', '-', 'None', 'null']:
                 return None
             return pd.to_datetime(date_str).date()
-        except:
+        except (ValueError, TypeError):
             return None
 
     # Преобразуем даты в pandas datetime, обрабатываем ошибки
@@ -1853,15 +1853,11 @@ def calculate_tournament_status(df_tournament, df_report=None):
 
     # Логируем статистику по статусам для мониторинга
     status_counts = df['CALC_TOURNAMENT_STATUS'].value_counts()
-    logging.info("[TOURNAMENT STATUS] Статистика: {stats}".format(stats=status_counts.to_dict()))
+    logging.info(f"[TOURNAMENT STATUS] Статистика: {status_counts.to_dict()}")
 
     # Засекаем время выполнения и логируем завершение
     func_time = time() - func_start
-    logging.info("[END] {func} {params} (время: {time:.3f}s)".format(
-        func="calculate_tournament_status",
-        params=params,
-        time=func_time
-    ))
+    logging.info(f"[END] calculate_tournament_status {params} (время: {func_time:.3f}s)")
 
     return df
 
@@ -1898,13 +1894,13 @@ def validate_field_lengths(df, sheet_name):
     # Проверяем наличие полей в DataFrame
     missing_fields = [field for field in fields_config.keys() if field not in df.columns]
     if missing_fields:
-        logging.warning("[FIELD LENGTH] Пропущены поля {fields} в листе {sheet}".format(fields=missing_fields, sheet=sheet_name))
+        logging.warning(f"[FIELD LENGTH] Пропущены поля {missing_fields} в листе {sheet_name}")
         # Создаем пустую колонку если нет полей для проверки
         df[result_column] = '-'
         return df
 
     total_rows = len(df)  # Общее количество строк для проверки
-    logging.info("[FIELD LENGTH] Проверка длины полей для листа {sheet}, строк: {rows}".format(sheet=sheet_name, rows=total_rows))
+    logging.info(f"[FIELD LENGTH] Проверка длины полей для листа {sheet_name}, строк: {total_rows}")
 
     # Счетчики для статистики выполнения
     correct_count = 0    # Количество корректных строк
@@ -1966,9 +1962,7 @@ def validate_field_lengths(df, sheet_name):
                 violations.append(f"{field_name} = {length} {operator} {limit}")
 
                 # Логируем нарушение для отладки
-                logging.debug("[DEBUG] Строка {row}: поле '{field}' = {length} {operator} {limit} (нарушение)".format(
-                    row=row_idx, field=field_name, length=length, operator=operator, limit=limit
-                ))
+                logging.debug(f"[DEBUG] Строка {row_idx}: поле '{field_name}' = {length} {operator} {limit} (нарушение)")
 
         # Возвращаем результат: "-" если нарушений нет, иначе список нарушений через "; "
         return "; ".join(violations) if violations else "-"
@@ -1988,19 +1982,15 @@ def validate_field_lengths(df, sheet_name):
         # Показываем прогресс каждые GENDER_PROGRESS_STEP строк
         if (idx + 1) % GENDER_PROGRESS_STEP == 0:
             percent = ((idx + 1) / total_rows) * 100
-            logging.info("[FIELD LENGTH] Обработано {processed} из {total} строк ({percent:.1f}%)".format(
-                processed=idx + 1, total=total_rows, percent=percent
-            ))
+            logging.info(f"[FIELD LENGTH] Обработано {idx + 1} из {total_rows} строк ({percent:.1f}%)")
 
     # Добавляем колонку с результатами проверки к DataFrame
     df[result_column] = results
 
     # Логируем финальную статистику выполнения
     func_time = time() - func_start
-    logging.info("[FIELD LENGTH] Статистика: корректных={correct}, с ошибками={errors} (всего: {total})".format(
-        correct=correct_count, errors=error_count, total=total_rows
-    ))
-    logging.info("[FIELD LENGTH] Завершено за {time:.3f}s для листа {sheet}".format(time=func_time, sheet=sheet_name))
+    logging.info(f"[FIELD LENGTH] Статистика: корректных={correct_count}, с ошибками={error_count} (всего: {total_rows})")
+    logging.info(f"[FIELD LENGTH] Завершено за {func_time:.3f}s для листа {sheet_name}")
 
     return df
 
@@ -2030,12 +2020,12 @@ def validate_field_lengths_vectorized(df, sheet_name):
 
     missing_fields = [field for field in fields_config.keys() if field not in df.columns]
     if missing_fields:
-        logging.warning("[FIELD LENGTH VECTORIZED] Пропущены поля {fields} в листе {sheet}".format(fields=missing_fields, sheet=sheet_name))
+        logging.warning(f"[FIELD LENGTH VECTORIZED] Пропущены поля {missing_fields} в листе {sheet_name}")
         df[result_column] = '-'
         return df
 
     total_rows = len(df)
-    logging.info("[FIELD LENGTH VECTORIZED] Проверка длины полей для листа {sheet}, строк: {rows}".format(sheet=sheet_name, rows=total_rows))
+    logging.info(f"[FIELD LENGTH VECTORIZED] Проверка длины полей для листа {sheet_name}, строк: {total_rows}")
 
     violations_dict = {}
 
@@ -2069,10 +2059,7 @@ def validate_field_lengths_vectorized(df, sheet_name):
             )
 
             for idx in df.index[mask]:
-                logging.debug("[DEBUG] Строка {row}: поле '{field}' = {length} {operator} {limit} (нарушение)".format(
-                    row=idx, field=field_name, length=len(str(df.loc[idx, field_name])),
-                    operator=operator, limit=limit
-                ))
+                logging.debug(f"[DEBUG] Строка {idx}: поле '{field_name}' = {len(str(df.loc[idx, field_name]))} {operator} {limit} (нарушение)")
 
     if violations_dict:
         violations_df = pd.DataFrame(violations_dict)
@@ -2088,10 +2075,8 @@ def validate_field_lengths_vectorized(df, sheet_name):
     error_count = total_rows - correct_count
 
     func_time = time() - func_start
-    logging.info("[FIELD LENGTH VECTORIZED] Статистика: корректных={correct}, с ошибками={errors} (всего: {total})".format(
-        correct=correct_count, errors=error_count, total=total_rows
-    ))
-    logging.info("[FIELD LENGTH VECTORIZED] Завершено за {time:.3f}s для листа {sheet}".format(time=func_time, sheet=sheet_name))
+    logging.info(f"[FIELD LENGTH VECTORIZED] Статистика: корректных={correct_count}, с ошибками={error_count} (всего: {total_rows})")
+    logging.info(f"[FIELD LENGTH VECTORIZED] Завершено за {func_time:.3f}s для листа {sheet_name}")
 
     return df
 
@@ -2142,7 +2127,7 @@ def compare_validate_results(df_old, df_new, result_column):
 # === ЧТЕНИЕ И ЗАПИСЬ ДАННЫХ ===
 
 
-def find_file_case_insensitive(directory, base_name, extensions):
+def find_file_case_insensitive(directory: str, base_name: str, extensions: List[str]) -> Optional[str]:
     """
     Ищет файл в каталоге без учета регистра имени файла и расширения.
 
@@ -2187,7 +2172,7 @@ def find_file_case_insensitive(directory, base_name, extensions):
     return None
 
 
-def check_input_files_exist():
+def check_input_files_exist() -> List[Dict[str, str]]:
     """
     Проверяет наличие всех файлов из INPUT_FILES в каталоге DIR_INPUT.
     Использует ту же логику поиска, что и при загрузке (find_file_case_insensitive).
@@ -2206,7 +2191,7 @@ def check_input_files_exist():
     return missing
 
 
-def read_csv_file(file_path):
+def read_csv_file(file_path: str) -> Optional[pd.DataFrame]:
     """
     Читает CSV файл с заданными параметрами и логирует процесс.
 
@@ -2222,7 +2207,7 @@ def read_csv_file(file_path):
     """
     func_start = time()  # Засекаем время начала выполнения
     params = f"({file_path})"
-    logging.info("[START] {func} {params}".format(func="read_csv_file", params=params))
+    logging.info(f"[START] read_csv_file {params}")
 
     try:
         rows = []
@@ -2248,14 +2233,10 @@ def read_csv_file(file_path):
         # Логируем образцы JSON полей для отладки
         for col in df.columns:
             if "FEATURE" in col or "ADD_DATA" in col:
-                logging.debug("[DEBUG] CSV {file} поле {column}: {sample}".format(
-                    file=file_path,
-                    column=col,
-                    sample=df[col].dropna().head(2).to_list()  # Первые 2 непустых значения
-                ))
+                logging.debug(f"[DEBUG] CSV {file_path} поле {col}: {df[col].dropna().head(2).to_list()}")
 
         # Логируем успешное чтение файла
-        logging.info("Файл успешно загружен: {file_path}, строк: {rows}, колонок: {cols}".format(file_path=file_path, rows=len(df), cols=len(df.columns)))
+        logging.info(f"Файл успешно загружен: {file_path}, строк: {len(df)}, колонок: {len(df.columns)}")
 
         # Засекаем время выполнения и логируем завершение
         func_time = time() - func_start
@@ -2264,13 +2245,13 @@ def read_csv_file(file_path):
     except Exception as e:
         # Логируем ошибку и возвращаем None
         func_time = time() - func_start
-        logging.error("Ошибка загрузки файла: {file_path}. {error}".format(file_path=file_path, error=e))
-        logging.error("[ERROR] {func} {params} — {error}".format(func="read_csv_file", params=params, error=e))
-        logging.info("[END] {func} {params} (время: {time:.3f}s)".format(func="read_csv_file", params=params, time=func_time))
+        logging.error(f"Ошибка загрузки файла: {file_path}. {e}")
+        logging.error(f"[ERROR] read_csv_file {params} — {e}")
+        logging.info(f"[END] read_csv_file {params} (время: {func_time:.3f}s)")
         return None
 
 
-def write_to_excel(sheets_data, output_path):
+def write_to_excel(sheets_data: Dict[str, Any], output_path: str) -> None:
     """
     Записывает данные в Excel файл с форматированием и настройками.
 
@@ -2299,7 +2280,7 @@ def write_to_excel(sheets_data, output_path):
 
     func_start = time()  # Засекаем время начала выполнения
     params = f"({output_path})"
-    logging.info("[START] {func} {params}".format(func="write_to_excel", params=params))
+    logging.info(f"[START] write_to_excel {params}")
 
     try:
         # Определяем порядок листов: SUMMARY первый, затем уникальные листы, остальные по алфавиту
@@ -2353,7 +2334,7 @@ def write_to_excel(sheets_data, output_path):
                     logging.debug(f"[DEBUG write_to_excel] Первые 3 строки перед записью:\n{df_write.head(3).to_string()}")
 
                 df_write.to_excel(writer, index=False, sheet_name=sheet_name)
-                logging.info("Лист Excel записан: {sheet} (строк: {rows}, колонок: {cols})".format(sheet=sheet_name, rows=len(df_write), cols=len(df_write.columns)))
+                logging.info(f"Лист Excel записан: {sheet_name} (строк: {len(df_write)}, колонок: {len(df_write.columns)})")
 
             # ОПТИМИЗАЦИЯ: Форматируем листы последовательно (openpyxl не thread-safe для параллельной записи)
             # Примечание: Параллелизация форматирования Excel была откачена, т.к. openpyxl не thread-safe
@@ -2372,8 +2353,7 @@ def write_to_excel(sheets_data, output_path):
                 df, params_sheet = sheet_data
                 ws = writer.sheets[sheet_name]
                 _format_sheet(ws, df, params_sheet)  # Применяем форматирование
-                logging.info("Лист Excel сформирован: {sheet} (строк: {rows}, колонок: {cols})".format(
-                    sheet=sheet_name, rows=len(df), cols=len(df.columns)))
+                logging.info(f"Лист Excel сформирован: {sheet_name} (строк: {len(df)}, колонок: {len(df.columns)})")
 
             # Делаем SUMMARY лист активным по умолчанию
             writer.book.active = writer.book.sheetnames.index("SUMMARY")
@@ -2381,13 +2361,13 @@ def write_to_excel(sheets_data, output_path):
 
         # Логируем успешное завершение
         func_time = time() - func_start
-        logging.info("[END] {func} {params} (время: {time:.3f}s)".format(func="write_to_excel", params=params, time=func_time))
+        logging.info(f"[END] write_to_excel {params} (время: {func_time:.3f}s)")
 
     except Exception as ex:
         # Логируем ошибку
         func_time = time() - func_start
-        logging.error("[ERROR] {func} {params} — {error}".format(func="write_to_excel", params=params, error=ex))
-        logging.info("[END] {func} {params} (время: {time:.3f}s)".format(func="write_to_excel", params=params, time=func_time))
+        logging.error(f"[ERROR] write_to_excel {params} — {ex}")
+        logging.info(f"[END] write_to_excel {params} (время: {func_time:.3f}s)")
 
 
 # === Форматирование листа ===
@@ -2474,7 +2454,7 @@ def _build_excel_date_format(rule):
     return "yyyy-mm-dd"
 
 
-def apply_column_format_conversion(df, sheet_name):
+def apply_column_format_conversion(df: pd.DataFrame, sheet_name: str) -> None:
     """
     Преобразует типы колонок в DataFrame по правилам COLUMN_FORMATS перед записью в Excel.
     Вызывается для копии DataFrame перед to_excel, чтобы Excel получал числа/даты, а не строки.
@@ -2508,19 +2488,20 @@ def apply_column_format_conversion(df, sheet_name):
                 df[col] = df[col].astype(str)
 
 
-def apply_column_formats(ws, df, sheet_name):
+def apply_column_formats(ws: Any, sheet_name: str) -> None:
     """
     Применяет к ячейкам листа Excel формат числа/даты и выравнивание по правилам COLUMN_FORMATS.
     Вызывается из _format_sheet после базового форматирования. Обрабатывает только колонки,
     перечисленные в правилах для данного листа (batch по колонкам).
+    Имена колонок берутся из заголовка листа (ws), не из DataFrame.
 
     Args:
         ws: openpyxl Worksheet
-        df (pd.DataFrame): DataFrame листа (для имён колонок и порядка)
         sheet_name (str): Имя листа
     """
     header_cells = list(ws[1])
     col_names = [c.value for c in header_cells]
+    col_names_stripped = [(n or "").strip() for n in col_names]
     rules_for_sheet = [r for r in COLUMN_FORMATS if r.get("sheet") == sheet_name]
     if not rules_for_sheet:
         return
@@ -2546,13 +2527,12 @@ def apply_column_formats(ws, df, sheet_name):
             vertical=v_map.get(v, "center"),
             wrap_text=wrap,
         )
-        col_names_stripped = [(n or "").strip() for n in col_names]
         for col_name in cols:
             name_stripped = (col_name or "").strip()
             try:
                 col_idx = col_names_stripped.index(name_stripped) + 1
             except ValueError:
-                logging.debug("[COLUMN_FORMATS] Колонка '{col}' не найдена на листе {sheet}".format(col=col_name, sheet=sheet_name))
+                logging.debug(f"[COLUMN_FORMATS] Колонка '{col_name}' не найдена на листе {sheet_name}")
                 continue
             col_letter = get_column_letter(col_idx)
             # Для числа с 0 знаков после запятой: записать в ячейку целое значение (1, 2), а не 1.0, 2.0,
@@ -2573,16 +2553,14 @@ def apply_column_formats(ws, df, sheet_name):
                     except (TypeError, ValueError):
                         pass
                 cell.alignment = alignment
-            logging.debug("[COLUMN_FORMATS] Применён формат к листу {sheet}, колонка {col} (тип: {dtype})".format(
-                sheet=sheet_name, col=col_name, dtype=data_type
-            ))
+            logging.debug(f"[COLUMN_FORMATS] Применён формат к листу {sheet_name}, колонка {col_name} (тип: {data_type})")
     return
 
 
 def _format_sheet(ws, df, params):
     func_start = time()
     params_str = f"({ws.title})"
-    logging.debug("[START] {func} {params}".format(func="_format_sheet", params=params_str))
+    logging.debug(f"[START] _format_sheet {params_str}")
     header_font = Font(bold=True)
     align_center = Alignment(horizontal="center", vertical="center", wrap_text=True)
     align_data = Alignment(horizontal="left", vertical="center", wrap_text=True)
@@ -2607,9 +2585,7 @@ def _format_sheet(ws, df, params):
         if col_name in added_cols_width:
             width_mode_info = added_cols_width[col_name].get("width_mode", "AUTO")
 
-        logging.debug("[COLUMN WIDTH] {sheet}: колонка '{column}' -> ширина {width} (режим: {mode})".format(
-            sheet=ws.title, column=col_name, width=width, mode=width_mode_info
-        ))
+        logging.debug(f"[COLUMN WIDTH] {ws.title}: колонка '{col_name}' -> ширина {width} (режим: {width_mode_info})")
 
     # Применяем все ширины колонок сразу (batch-операция)
     for col_letter, width in column_widths.items():
@@ -2631,14 +2607,14 @@ def _format_sheet(ws, df, params):
             cell.alignment = align_data
 
         # Применяем форматирование колонок по COLUMN_FORMATS (тип данных, выравнивание, перенос)
-        apply_column_formats(ws, df, ws.title)
+        apply_column_formats(ws, ws.title)
 
     # Закрепление строк и столбцов
     ws.freeze_panes = params.get("freeze", "A2")
     ws.auto_filter.ref = ws.dimensions
 
     func_time = time() - func_start
-    logging.debug("[END] {func} {params} (время: {time:.3f}s)".format(func="_format_sheet", params=params_str, time=func_time))
+    logging.debug(f"[END] _format_sheet {params_str} (время: {func_time:.3f}s)")
 
     # Возвращаем имя листа для логирования в параллельном режиме
     return ws.title
@@ -2680,12 +2656,11 @@ def safe_json_loads(s: str):
             fixed = re.sub(r'(\"[^"]+\")\s*:\s*', r'\1:', fixed)
             # 9. Попытка повторного парсинга
             return json.loads(fixed)
-        except Exception:
-            try:
-                pass  # import ast перенесен в начало файла
-            except Exception:
-                logging.debug("[safe_json_loads] Ошибка: {error} | Исходная строка: {string}".format(error=ex, string=repr(s)))
-                return None
+        except Exception as ex2:
+            logging.debug(
+                f"[safe_json_loads] Ошибка: первый парсинг {ex}, после исправления {ex2} | Исходная строка: {repr(s)}"
+            )
+            return None
 
 
 def safe_json_loads_preserve_triple_quotes(s: str):
@@ -2705,9 +2680,7 @@ def safe_json_loads_preserve_triple_quotes(s: str):
     except Exception as ex:
         # Если не получилось, возвращаем исходную строку с тройными кавычками
         # Это позволяет сохранить тройные кавычки в исходном виде
-        logging.debug("[safe_json_loads_preserve_triple_quotes] Сохраняем исходную строку с тройными кавычками: {string}".format(string=repr(s)))
-        logging.debug("[safe_json_loads_preserve_triple_quotes] Сохраняем исходную строку с тройными кавычками: {string}".format(string=repr(s)))
-        logging.debug("[safe_json_loads_preserve_triple_quotes] Сохраняем исходную строку с тройными кавычками: {string}".format(string=repr(s)))
+        logging.debug(f"[safe_json_loads_preserve_triple_quotes] Сохраняем исходную строку с тройными кавычками: {repr(s)}")
         return s  # Возвращаем исходную строку с тройными кавычками
 
 
@@ -2716,8 +2689,7 @@ def flatten_json_column_recursive(df, column, prefix=None, sheet=None, sep="; ")
     n_rows = len(df)
     n_errors = 0
     prefix = prefix if prefix is not None else column
-    logging.info("[START] {func} {params}".format(func="flatten_json_column_recursive",
-                                                   params=f"(лист: {sheet}, колонка: {column})"))
+    logging.info(f"[START] flatten_json_column_recursive (лист: {sheet}, колонка: {column})")
 
     # Для CONTEST_FEATURE создаем копию с валидным JSON для парсинга
     # Сохраняем исходную колонку с тройными кавычками как есть
@@ -2802,7 +2774,7 @@ def flatten_json_column_recursive(df, column, prefix=None, sheet=None, sep="; ")
                         parsed = {}
                     flat = extract(parsed, prefix)
                 except Exception as ex:
-                    logging.debug("Ошибка разбора JSON (строка {row}): {error}".format(row=global_idx, error=ex))
+                    logging.debug(f"Ошибка разбора JSON (строка {global_idx}): {ex}")
                     chunk_errors += 1
                     flat = {}
 
@@ -2859,7 +2831,7 @@ def flatten_json_column_recursive(df, column, prefix=None, sheet=None, sep="; ")
                     parsed = {}
                 flat = extract(parsed, prefix)
             except Exception as ex:
-                logging.debug("Ошибка разбора JSON (строка {row}): {error}".format(row=idx, error=ex))
+                logging.debug(f"Ошибка разбора JSON (строка {idx}): {ex}")
                 n_errors += 1
                 flat = {}
             for k, v in flat.items():
@@ -2882,8 +2854,8 @@ def flatten_json_column_recursive(df, column, prefix=None, sheet=None, sep="; ")
 
         logging.info("[CONTEST_FEATURE] Исходная колонка восстановлена с тройными кавычками")
 
-    logging.info("[INFO] {column} → новых колонок: {count}".format(column=column, count=len(new_cols)))
-    logging.info("[INFO] Все новые колонки: {keys}".format(keys=list(new_cols.keys())))
+    logging.info(f"[INFO] {column} → новых колонок: {len(new_cols)}")
+    logging.info(f"[INFO] Все новые колонки: {list(new_cols.keys())}")
     return df
 
 
@@ -2959,9 +2931,7 @@ def generate_dynamic_color_scheme_from_merge_fields():
                     "auto_generated": True  # Маркер автогенерации
                 })
 
-                logging.debug("[DYNAMIC COLOR] Сгенерирована схема для {sheet}: {columns}".format(
-                    sheet=f"{sheet_src} -> {sheet_dst}", columns=columns
-                ))
+                logging.debug(f"[DYNAMIC COLOR] Сгенерирована схема для {sheet_src} -> {sheet_dst}: {columns}")
                 color_idx += 1
 
     return dynamic_scheme
@@ -3007,12 +2977,7 @@ def apply_color_scheme(ws, sheet_name):
                 if color_conf.get("header_fg"):
                     cell.font = Font(color=color_conf["header_fg"])
                 # Логирование
-                logging.debug("[INFO] Цветовая схема применена: лист {sheet}, колонка {col}, стиль {scope}, цвет {color}".format(
-                    sheet=sheet_name,
-                    col=colname,
-                    scope="header",
-                    color=color_conf.get("header_bg", "default")
-                ))
+                logging.debug(f"[INFO] Цветовая схема применена: лист {sheet_name}, колонка {colname}, стиль header, цвет {color_conf.get('header_bg', 'default')}")
             # Окраска всей колонки (если понадобится в будущем)
             elif style_scope == "all":
                 for row in ws.iter_rows(min_row=1, max_row=ws.max_row, min_col=col_idx, max_col=col_idx):
@@ -3027,12 +2992,7 @@ def apply_color_scheme(ws, sheet_name):
                                                     end_color=color_conf["column_bg"], fill_type="solid")
                             if color_conf.get("column_fg"):
                                 cell.font = Font(color=color_conf["column_fg"])
-                logging.debug("[INFO] Цветовая схема применена: лист {sheet}, колонка {col}, стиль {scope}, цвет {color}".format(
-                    sheet=sheet_name,
-                    col=colname,
-                    scope="all",
-                    color=color_conf.get("column_bg", "default")
-                ))
+                logging.debug(f"[INFO] Цветовая схема применена: лист {sheet_name}, колонка {colname}, стиль all, цвет {color_conf.get('column_bg', 'default')}")
 
 
 def collect_summary_keys(dfs):
@@ -3100,7 +3060,7 @@ def collect_summary_keys(dfs):
     for code in all_contest_codes:
         is_debug = str(code) in DEBUG_CODES
         if is_debug:
-            logging.info("[DEBUG GROUP] === Обработка CONTEST_CODE: {} ===".format(code))
+            logging.info(f"[DEBUG GROUP] === Обработка CONTEST_CODE: {code} ===")
 
         tourns = tournaments[tournaments["CONTEST_CODE"] == code][
             "TOURNAMENT_CODE"].dropna().unique() if not tournaments.empty else []
@@ -3109,9 +3069,9 @@ def collect_summary_keys(dfs):
         groups_df = groups[groups["CONTEST_CODE"] == code] if not groups.empty else pd.DataFrame()
 
         if is_debug:
-            logging.info("[DEBUG GROUP] Найдено строк в GROUP для CONTEST_CODE {}: {}".format(code, len(groups_df)))
+            logging.info(f"[DEBUG GROUP] Найдено строк в GROUP для CONTEST_CODE {code}: {len(groups_df)}")
             if not groups_df.empty:
-                logging.info("[DEBUG GROUP] Строки GROUP:\n{}".format(groups_df[["GROUP_CODE", "GROUP_VALUE", "CONTEST_CODE"]].to_string()))
+                logging.info(f"[DEBUG GROUP] Строки GROUP:\n{groups_df[['GROUP_CODE', 'GROUP_VALUE', 'CONTEST_CODE']].to_string()}")
 
         # ИСПРАВЛЕНИЕ: GROUP_VALUE должен быть связан с конкретным GROUP_CODE
         # Вместо декартова произведения создаем пары (GROUP_CODE, GROUP_VALUE)
@@ -3127,12 +3087,12 @@ def collect_summary_keys(dfs):
                         group_code_value_pairs.append(pair)
 
         if is_debug:
-            logging.info("[DEBUG GROUP] Уникальные пары (GROUP_CODE, GROUP_VALUE) для CONTEST_CODE {}: {}".format(code, group_code_value_pairs))
+            logging.info(f"[DEBUG GROUP] Уникальные пары (GROUP_CODE, GROUP_VALUE) для CONTEST_CODE {code}: {group_code_value_pairs}")
             if not groups_df.empty:
                 unique_groups = groups_df["GROUP_CODE"].dropna().unique()
                 unique_values = groups_df["GROUP_VALUE"].dropna().unique()
-                logging.info("[DEBUG GROUP] Уникальные GROUP_CODE: {}".format(list(unique_groups)))
-                logging.info("[DEBUG GROUP] Уникальные GROUP_VALUE: {}".format(list(unique_values)))
+                logging.info(f"[DEBUG GROUP] Уникальные GROUP_CODE: {list(unique_groups)}")
+                logging.info(f"[DEBUG GROUP] Уникальные GROUP_VALUE: {list(unique_values)}")
 
         # Если нет пар, создаем одну с "-"
         if not group_code_value_pairs:
@@ -3150,13 +3110,10 @@ def collect_summary_keys(dfs):
         indicator_types_ = indicator_types_ if len(indicator_types_) else [""]
 
         if is_debug:
-            logging.info("[DEBUG GROUP] TOURNAMENT_CODE: {}".format(list(tourns)))
-            logging.info("[DEBUG GROUP] REWARD_CODE: {}".format(list(rewards_)))
-            logging.info("[DEBUG GROUP] INDICATOR_ADD_CALC_TYPE: {}".format(indicator_types_))
-            logging.info("[DEBUG GROUP] Будет создано комбинаций: {} x {} x {} x {} = {}".format(
-                len(tourns), len(rewards_), len(group_code_value_pairs), len(indicator_types_),
-                len(tourns) * len(rewards_) * len(group_code_value_pairs) * len(indicator_types_)
-            ))
+            logging.info(f"[DEBUG GROUP] TOURNAMENT_CODE: {list(tourns)}")
+            logging.info(f"[DEBUG GROUP] REWARD_CODE: {list(rewards_)}")
+            logging.info(f"[DEBUG GROUP] INDICATOR_ADD_CALC_TYPE: {indicator_types_}")
+            logging.info(f"[DEBUG GROUP] Будет создано комбинаций: {len(tourns)} x {len(rewards_)} x {len(group_code_value_pairs)} x {len(indicator_types_)} = {len(tourns) * len(rewards_) * len(group_code_value_pairs) * len(indicator_types_)}")
 
         for t in tourns:
             for r in rewards_:
@@ -3164,9 +3121,7 @@ def collect_summary_keys(dfs):
                     for ind_type in indicator_types_:
                         all_rows.append((str(code), str(t), str(r), str(g_code), str(g_value), str(ind_type)))
                         if is_debug:
-                            logging.debug("[DEBUG GROUP] Создана строка: CONTEST={}, TOURNAMENT={}, REWARD={}, GROUP_CODE={}, GROUP_VALUE={}, INDICATOR={}".format(
-                                code, t, r, g_code, g_value, ind_type
-                            ))
+                            logging.debug(f"[DEBUG GROUP] Создана строка: CONTEST={code}, TOURNAMENT={t}, REWARD={r}, GROUP_CODE={g_code}, GROUP_VALUE={g_value}, INDICATOR={ind_type}")
 
     # 2. Для каждого TOURNAMENT_CODE (даже если нет CONTEST_CODE)
     if not tournaments.empty:
@@ -3259,34 +3214,30 @@ def collect_summary_keys(dfs):
             is_debug = str(g_code) in DEBUG_CODES
 
             if is_debug:
-                logging.info("[DEBUG GROUP] === Обработка GROUP_CODE: {} ===".format(g_code))
+                logging.info(f"[DEBUG GROUP] === Обработка GROUP_CODE: {g_code} ===")
 
             # ИСПРАВЛЕНИЕ: Находим все CONTEST_CODE для данного GROUP_CODE и обрабатываем каждый отдельно
             group_contest_codes = groups[groups["GROUP_CODE"] == g_code]["CONTEST_CODE"].dropna().unique()
 
             if is_debug:
-                logging.info("[DEBUG GROUP] Найдено CONTEST_CODE для GROUP_CODE {}: {}".format(g_code, list(group_contest_codes)))
+                logging.info(f"[DEBUG GROUP] Найдено CONTEST_CODE для GROUP_CODE {g_code}: {list(group_contest_codes)}")
 
             # Обрабатываем каждый CONTEST_CODE отдельно
             for group_contest_code in group_contest_codes:
                 actual_code = str(group_contest_code)
 
                 if is_debug:
-                    logging.info("[DEBUG GROUP] Обработка GROUP_CODE {} для CONTEST_CODE: {}".format(g_code, actual_code))
+                    logging.info(f"[DEBUG GROUP] Обработка GROUP_CODE {g_code} для CONTEST_CODE: {actual_code}")
 
                 # Берем GROUP_VALUE только для конкретного CONTEST_CODE и GROUP_CODE
                 group_values_df = groups[(groups["GROUP_CODE"] == g_code) & (groups["CONTEST_CODE"] == actual_code)]
                 group_values_ = group_values_df["GROUP_VALUE"].dropna().unique() if not group_values_df.empty else []
 
                 if is_debug:
-                    logging.info("[DEBUG GROUP] Найдено строк в GROUP для GROUP_CODE {} и CONTEST_CODE {}: {}".format(
-                        g_code, actual_code, len(group_values_df)
-                    ))
+                    logging.info(f"[DEBUG GROUP] Найдено строк в GROUP для GROUP_CODE {g_code} и CONTEST_CODE {actual_code}: {len(group_values_df)}")
                     if not group_values_df.empty:
-                        logging.info("[DEBUG GROUP] Строки GROUP:\n{}".format(
-                            group_values_df[["GROUP_CODE", "GROUP_VALUE", "CONTEST_CODE"]].to_string()
-                        ))
-                    logging.info("[DEBUG GROUP] Уникальные GROUP_VALUE: {}".format(list(group_values_)))
+                        logging.info(f"[DEBUG GROUP] Строки GROUP:\n{group_values_df[['GROUP_CODE', 'GROUP_VALUE', 'CONTEST_CODE']].to_string()}")
+                    logging.info(f"[DEBUG GROUP] Уникальные GROUP_VALUE: {list(group_values_)}")
 
                 # Ищем связанные TOURNAMENT_CODE и REWARD_CODE для этого CONTEST_CODE
                 tourns = tournaments[tournaments["CONTEST_CODE"] == actual_code][
@@ -3307,10 +3258,7 @@ def collect_summary_keys(dfs):
                 indicator_types_ = indicator_types_ if len(indicator_types_) else [""]
 
                 if is_debug:
-                    logging.info("[DEBUG GROUP] Будет создано комбинаций: {} x {} x {} x {} = {}".format(
-                        len(tourns), len(rewards_), len(group_values_), len(indicator_types_),
-                        len(tourns) * len(rewards_) * len(group_values_) * len(indicator_types_)
-                    ))
+                    logging.info(f"[DEBUG GROUP] Будет создано комбинаций: {len(tourns)} x {len(rewards_)} x {len(group_values_)} x {len(indicator_types_)} = {len(tourns) * len(rewards_) * len(group_values_) * len(indicator_types_)}")
 
                 for t in tourns:
                     for r in rewards_:
@@ -3318,9 +3266,7 @@ def collect_summary_keys(dfs):
                             for ind_type in indicator_types_:
                                 all_rows.append((actual_code, str(t), str(r), str(g_code), str(gv), str(ind_type)))
                                 if is_debug:
-                                    logging.debug("[DEBUG GROUP] Создана строка: CONTEST={}, TOURNAMENT={}, REWARD={}, GROUP_CODE={}, GROUP_VALUE={}, INDICATOR={}".format(
-                                        actual_code, t, r, g_code, gv, ind_type
-                                    ))
+                                    logging.debug(f"[DEBUG GROUP] Создана строка: CONTEST={actual_code}, TOURNAMENT={t}, REWARD={r}, GROUP_CODE={g_code}, GROUP_VALUE={gv}, INDICATOR={ind_type}")
 
 # 5. Для каждого INDICATOR_ADD_CALC_TYPE (даже если нет CONTEST_CODE)
     if not indicators.empty:
@@ -3383,13 +3329,13 @@ def collect_summary_keys(dfs):
     for debug_code in DEBUG_CODES:
         debug_rows = summary_keys[summary_keys["CONTEST_CODE"] == debug_code]
         if not debug_rows.empty:
-            logging.info("[DEBUG GROUP] === ИТОГОВЫЕ СТРОКИ В SUMMARY для CONTEST_CODE: {} ===".format(debug_code))
-            logging.info("[DEBUG GROUP] Всего строк: {}".format(len(debug_rows)))
-            logging.info("[DEBUG GROUP] Уникальные GROUP_CODE: {}".format(debug_rows["GROUP_CODE"].unique().tolist()))
-            logging.info("[DEBUG GROUP] Уникальные GROUP_VALUE: {}".format(debug_rows["GROUP_VALUE"].unique().tolist()))
+            logging.info(f"[DEBUG GROUP] === ИТОГОВЫЕ СТРОКИ В SUMMARY для CONTEST_CODE: {debug_code} ===")
+            logging.info(f"[DEBUG GROUP] Всего строк: {len(debug_rows)}")
+            logging.info(f"[DEBUG GROUP] Уникальные GROUP_CODE: {debug_rows['GROUP_CODE'].unique().tolist()}")
+            logging.info(f"[DEBUG GROUP] Уникальные GROUP_VALUE: {debug_rows['GROUP_VALUE'].unique().tolist()}")
             logging.info("[DEBUG GROUP] Комбинации (GROUP_CODE, GROUP_VALUE):")
             for _, row in debug_rows.iterrows():
-                logging.info("[DEBUG GROUP]   GROUP_CODE={}, GROUP_VALUE={}".format(row["GROUP_CODE"], row["GROUP_VALUE"]))
+                logging.info(f"[DEBUG GROUP]   GROUP_CODE={row['GROUP_CODE']}, GROUP_VALUE={row['GROUP_VALUE']}")
 
 
     # ОПТИМИЗАЦИЯ v5.0: Финальная проверка - гарантируем возврат DataFrame
@@ -3418,9 +3364,7 @@ def collect_summary_keys_optimized(dfs):
     result = collect_summary_keys(dfs)
 
     func_time = time() - func_start
-    logging.info("[COLLECT SUMMARY KEYS OPTIMIZED] Завершено за {time:.3f}s, создано {rows} строк".format(
-        time=func_time, rows=len(result)
-    ))
+    logging.info(f"[COLLECT SUMMARY KEYS OPTIMIZED] Завершено за {func_time:.3f}s, создано {len(result)} строк")
 
     return result
 
@@ -3441,18 +3385,18 @@ def mark_duplicates(df, key_cols, sheet_name=None):
     col_name = "ДУБЛЬ: " + "_".join(key_cols)  # Имя колонки формируется из ключей
 
 
-    logging.info("[START] Проверка дублей: {sheet}, ключ: {keys}".format(sheet=sheet_name, keys=key_cols))
+    logging.info(f"[START] Проверка дублей: {sheet_name}, ключ: {key_cols}")
     try:
         dup_counts = df.groupby(key_cols)[key_cols[0]].transform('count')
         df[col_name] = dup_counts.map(lambda x: f"x{x}" if x > 1 else "")
         n_duplicates = (df[col_name] != "").sum()
         func_time = tmod.time() - func_start
-        logging.info("[INFO] Дублей найдено: {count} на листе {sheet} по ключу {keys}".format(count=n_duplicates, sheet=sheet_name, keys=key_cols))
-        logging.info("[END] Проверка дублей: {sheet}, время: {time:.3f}s".format(sheet=sheet_name, time=func_time))
+        logging.info(f"[INFO] Дублей найдено: {n_duplicates} на листе {sheet_name} по ключу {key_cols}")
+        logging.info(f"[END] Проверка дублей: {sheet_name}, время: {func_time:.3f}s")
     except Exception as ex:
         func_time = tmod.time() - func_start
-        logging.error("[ERROR] Ошибка при поиске дублей: {sheet}, ключ: {keys}: {error}".format(sheet=sheet_name, keys=key_cols, error=ex))
-        logging.info("[END] Проверка дублей: {sheet}, время: {time:.3f}s".format(sheet=sheet_name, time=func_time))
+        logging.error(f"[ERROR] Ошибка при поиске дублей: {sheet_name}, ключ: {key_cols}: {ex}")
+        logging.info(f"[END] Проверка дублей: {sheet_name}, время: {func_time:.3f}s")
     return df
 
 
@@ -3469,10 +3413,7 @@ def add_fields_to_sheet(df_base, df_ref, src_keys, dst_keys, columns, sheet_name
     Если нужной колонки нет — создаёт её с дефолтными значениями "-".
     """
     func_start = time()
-    logging.info("[START] {func} {params}".format(
-        func="add_fields_to_sheet",
-        params=f"(лист: {sheet_name}, поля: {columns}, ключ: {dst_keys}->{src_keys}, mode: {mode}, multiply: {multiply_rows})"
-    ))
+    logging.info(f"[START] add_fields_to_sheet (лист: {sheet_name}, поля: {columns}, ключ: {dst_keys}->{src_keys}, mode: {mode}, multiply: {multiply_rows})")
     if isinstance(columns, str):
         columns = [columns]
 
@@ -3489,11 +3430,7 @@ def add_fields_to_sheet(df_base, df_ref, src_keys, dst_keys, columns, sheet_name
                 new_col_name = f"{ref_sheet_name}=>{count_prefix}_{col}" if mode == "count" else f"{ref_sheet_name}=>{col}"
                 if new_col_name not in df_base.columns:
                     df_base[new_col_name] = "-"
-        logging.info("[END] {func} {params} (время: {time:.3f}s)".format(
-            func="add_fields_to_sheet",
-            params=f"(лист: {sheet_name}, поля: {columns}, ключ: {dst_keys}->{src_keys}, mode: {mode}, multiply: {multiply_rows})",
-            time=time() - func_start
-        ))
+        logging.info(f"[END] add_fields_to_sheet (лист: {sheet_name}, поля: {columns}, ключ: {dst_keys}->{src_keys}, mode: {mode}, multiply: {multiply_rows}) (время: {time() - func_start:.3f}s)")
 
         return df_base
 
@@ -3552,18 +3489,18 @@ def add_fields_to_sheet(df_base, df_ref, src_keys, dst_keys, columns, sheet_name
     # --- Добавлено: авто-дополнение отсутствующих колонок и ключей ---
     missing_cols = [col for col in columns if col not in df_ref.columns]
     for col in missing_cols:
-        logging.warning("[add_fields_to_sheet] Колонка {column} не найдена в {sheet}, создаём пустую.".format(column=col, sheet=ref_sheet_name))
+        logging.warning(f"[add_fields_to_sheet] Колонка {col} не найдена в {ref_sheet_name}, создаём пустую.")
         df_ref[col] = "-"
 
     missing_keys = [k for k in src_keys if k not in df_ref.columns]
     for k in missing_keys:
-        logging.warning("[add_fields_to_sheet] Ключевая колонка {key} не найдена в {sheet}, создаём пустую.".format(key=k, sheet=ref_sheet_name))
+        logging.warning(f"[add_fields_to_sheet] Ключевая колонка {k} не найдена в {ref_sheet_name}, создаём пустую.")
         df_ref[k] = "-"
 
     # ИСПРАВЛЕНИЕ: Проверка и создание отсутствующих ключевых колонок в df_base
     missing_dst_keys = [k for k in dst_keys if k not in df_base.columns]
     for k in missing_dst_keys:
-        logging.warning("[add_fields_to_sheet] Ключевая колонка {key} не найдена в {sheet}, создаём пустую.".format(key=k, sheet=sheet_name))
+        logging.warning(f"[add_fields_to_sheet] Ключевая колонка {k} не найдена в {sheet_name}, создаём пустую.")
         df_base[k] = "-"
 
 
@@ -3597,11 +3534,10 @@ def add_fields_to_sheet(df_base, df_ref, src_keys, dst_keys, columns, sheet_name
                     df_base[count_col_name] = new_keys_single.map(group_counts).fillna(0).astype(int)
                 else:
                     df_base[count_col_name] = new_keys.map(count_dict).fillna(0).astype(int)
-        logging.info("[END] {func} {params} (время: {time:.3f}s)".format(
-            func="add_fields_to_sheet",
-            params=f"(лист: {sheet_name}, mode: count, agg: {count_aggregation}, ключ: {dst_keys}->{src_keys})",
-            time=time() - func_start
-        ))
+        func_time = time() - func_start
+        logging.info(
+            f"[END] add_fields_to_sheet (лист: {sheet_name}, mode: count, agg: {count_aggregation}, ключ: {dst_keys}->{src_keys}) (время: {func_time:.3f}s)"
+        )
         return df_base
 
     # Создаем ключи для df_ref
@@ -3642,7 +3578,7 @@ def add_fields_to_sheet(df_base, df_ref, src_keys, dst_keys, columns, sheet_name
                         df_base = df_base.rename(columns={cand: COL_REWARD_LINK_CONTEST_CODE})
     else:
         # Новая логика: размножение строк при множественных совпадениях
-        logging.info("[MULTIPLY ROWS] {sheet}: начинаем размножение строк для поля {column}".format(sheet=sheet_name, column=columns))
+        logging.info(f"[MULTIPLY ROWS] {sheet_name}: начинаем размножение строк для поля {columns}")
         result_rows = []
         old_rows_count = len(df_base)
 
@@ -3671,9 +3607,9 @@ def add_fields_to_sheet(df_base, df_ref, src_keys, dst_keys, columns, sheet_name
         df_base = pd.DataFrame(result_rows).reset_index(drop=True)
         new_rows_count = len(df_base)
         multiply_factor = round(new_rows_count / old_rows_count, 2) if old_rows_count > 0 else 0
-        logging.info("[MULTIPLY ROWS] {sheet}: {old_rows} строк -> {new_rows} строк (размножение: {multiply_factor}x)".format(
-            sheet=sheet_name, old_rows=old_rows_count, new_rows=new_rows_count, multiply_factor=multiply_factor
-        ))
+        logging.info(
+            f"[MULTIPLY ROWS] {sheet_name}: {old_rows_count} строк -> {new_rows_count} строк (размножение: {multiply_factor}x)"
+        )
 
         # Обработка специального случая для REWARD_LINK
         for col in columns:
@@ -3685,11 +3621,10 @@ def add_fields_to_sheet(df_base, df_ref, src_keys, dst_keys, columns, sheet_name
                     if cand != COL_REWARD_LINK_CONTEST_CODE:
                         df_base = df_base.rename(columns={cand: COL_REWARD_LINK_CONTEST_CODE})
 
-    logging.info("[END] {func} {params} (время: {time:.3f}s)".format(
-        func="add_fields_to_sheet",
-        params=f"(лист: {sheet_name}, поля: {columns}, ключ: {dst_keys}->{src_keys}, mode: {mode}, multiply: {multiply_rows})",
-        time=time() - func_start
-    ))
+    func_time = time() - func_start
+    logging.info(
+        f"[END] add_fields_to_sheet (лист: {sheet_name}, поля: {columns}, ключ: {dst_keys}->{src_keys}, mode: {mode}, multiply: {multiply_rows}) (время: {func_time:.3f}s)"
+    )
 
     return df_base
 
@@ -3755,7 +3690,7 @@ def _vectorized_tuple_key(df, keys):
                         df_base = df_base.rename(columns={cand: COL_REWARD_LINK_CONTEST_CODE})
     else:
                 # ОПТИМИЗИРОВАННАЯ ВЕРСИЯ: Используем pd.merge вместо iterrows для ускорения
-        logging.info("[MULTIPLY ROWS] {sheet}: начинаем размножение строк для поля {column}".format(sheet=sheet_name, column=columns))
+        logging.info(f"[MULTIPLY ROWS] {sheet_name}: начинаем размножение строк для поля {columns}")
         old_rows_count = len(df_base)
 
         # Создаем ключи для обоих DataFrame
@@ -3796,9 +3731,9 @@ def _vectorized_tuple_key(df, keys):
         df_base = merged.reset_index(drop=True)
         new_rows_count = len(df_base)
         multiply_factor = round(new_rows_count / old_rows_count, 2) if old_rows_count > 0 else 0
-        logging.info("[MULTIPLY ROWS] {sheet}: {old_rows} строк -> {new_rows} строк (размножение: {multiply_factor}x)".format(
-            sheet=sheet_name, old_rows=old_rows_count, new_rows=new_rows_count, multiply_factor=multiply_factor
-        ))
+        logging.info(
+            f"[MULTIPLY ROWS] {sheet_name}: {old_rows_count} строк -> {new_rows_count} строк (размножение: {multiply_factor}x)"
+        )
 
         # Обработка специального случая для REWARD_LINK
         for col in columns:
@@ -3814,11 +3749,10 @@ def _vectorized_tuple_key(df, keys):
                     if cand != COL_REWARD_LINK_CONTEST_CODE:
                         df_base = df_base.rename(columns={cand: COL_REWARD_LINK_CONTEST_CODE})
 
-    logging.info("[END] {func} {params} (время: {time:.3f}s)".format(
-        func="add_fields_to_sheet",
-        params=f"(лист: {sheet_name}, поля: {columns}, ключ: {dst_keys}->{src_keys}, mode: {mode}, multiply: {multiply_rows})",
-        time=time() - func_start
-    ))
+    func_time = time() - func_start
+    logging.info(
+        f"[END] add_fields_to_sheet (лист: {sheet_name}, поля: {columns}, ключ: {dst_keys}->{src_keys}, mode: {mode}, multiply: {multiply_rows}) (время: {func_time:.3f}s)"
+    )
 
     return df_base
 
@@ -4266,13 +4200,9 @@ def apply_filters_to_dataframe(df, status_filters, custom_conditions, sheet_name
         for column, allowed_values in status_filters.items():
             if column in df_filtered.columns:
                 df_filtered = df_filtered[df_filtered[column].isin(allowed_values)]
-                logging.info("[FILTER] Применен фильтр по статусу: {column}={values}, осталось строк: {count}".format(
-                    column=column, values=allowed_values, count=len(df_filtered)
-                ))
+                logging.info(f"[FILTER] Применен фильтр по статусу: {column}={allowed_values}, осталось строк: {len(df_filtered)}")
             else:
-                logging.warning("[WARNING] Колонка для фильтрации по статусу не найдена: {column} в листе {sheet}".format(
-                    column=column, sheet=sheet_name
-                ))
+                logging.warning(f"[WARNING] Колонка для фильтрации по статусу не найдена: {column} в листе {sheet_name}")
 
     # Применяем пользовательские условия
     if custom_conditions:
@@ -4288,19 +4218,13 @@ def apply_filters_to_dataframe(df, status_filters, custom_conditions, sheet_name
                     # Точное совпадение
                     df_filtered = df_filtered[df_filtered[column] == condition]
 
-                logging.info("[FILTER] Применено пользовательское условие: {column}={condition}, осталось строк: {count}".format(
-                    column=column, condition=str(condition), count=len(df_filtered)
-                ))
+                logging.info(f"[FILTER] Применено пользовательское условие: {column}={condition}, осталось строк: {len(df_filtered)}")
             else:
-                logging.warning("[WARNING] Колонка для пользовательского условия не найдена: {column} в листе {sheet}".format(
-                    column=column, sheet=sheet_name
-                ))
+                logging.warning(f"[WARNING] Колонка для пользовательского условия не найдена: {column} в листе {sheet_name}")
 
     filtered_count = len(df_filtered)
     if original_count != filtered_count:
-        logging.info("[FILTER] Фильтрация завершена: {original} -> {filtered} строк в листе {sheet}".format(
-            original=original_count, filtered=filtered_count, sheet=sheet_name
-        ))
+        logging.info(f"[FILTER] Фильтрация завершена: {original_count} -> {filtered_count} строк в листе {sheet_name}")
 
     return df_filtered
 
@@ -4332,9 +4256,7 @@ def apply_grouping_and_aggregation(df, group_by, aggregate, sheet_name):
             # Проверяем наличие колонок для группировки
             missing_group_cols = [col for col in group_by if col not in df_grouped.columns]
             if missing_group_cols:
-                logging.warning("[WARNING] Колонки для группировки не найдены: {columns} в листе {sheet}".format(
-                    columns=missing_group_cols, sheet=sheet_name
-                ))
+                logging.warning(f"[WARNING] Колонки для группировки не найдены: {missing_group_cols} в листе {sheet_name}")
                 return df_grouped
 
             # Применяем группировку
@@ -4345,9 +4267,7 @@ def apply_grouping_and_aggregation(df, group_by, aggregate, sheet_name):
                     if col in df_grouped.columns:
                         agg_dict[col] = func
                     else:
-                        logging.warning("[WARNING] Колонка для агрегации не найдена: {column} в листе {sheet}".format(
-                            column=col, sheet=sheet_name
-                        ))
+                        logging.warning(f"[WARNING] Колонка для агрегации не найдена: {col} в листе {sheet_name}")
 
                 if agg_dict:
                     df_grouped = df_grouped.groupby(group_by).agg(agg_dict).reset_index()
@@ -4364,22 +4284,16 @@ def apply_grouping_and_aggregation(df, group_by, aggregate, sheet_name):
                 if col in df_grouped.columns:
                     agg_dict[col] = func
                 else:
-                    logging.warning("[WARNING] Колонка для агрегации не найдена: {column} в листе {sheet}".format(
-                        column=col, sheet=sheet_name
-                    ))
+                    logging.warning(f"[WARNING] Колонка для агрегации не найдена: {col} в листе {sheet_name}")
 
             if agg_dict:
                 df_grouped = df_grouped.agg(agg_dict).to_frame().T
 
         grouped_count = len(df_grouped)
-        logging.info("[GROUP] Группировка и агрегация завершены: {original} -> {grouped} строк в листе {sheet}".format(
-            original=original_count, grouped=grouped_count, sheet=sheet_name
-        ))
+        logging.info(f"[GROUP] Группировка и агрегация завершены: {original_count} -> {grouped_count} строк в листе {sheet_name}")
 
     except Exception as e:
-        logging.error("[ERROR] Ошибка при группировке в листе {sheet}: {error}".format(
-            sheet=sheet_name, error=str(e)
-        ))
+        logging.error(f"[ERROR] Ошибка при группировке в листе {sheet_name}: {e}")
         return df
 
     return df_grouped
@@ -4418,9 +4332,7 @@ def detect_gender_for_person(patronymic, first_name, surname, row_idx):
         GENDER_PATTERNS['patronymic_female']
     )
     if gender:
-        logging.debug("[DEBUG] Строка {row}: пол по отчеству '{patronymic}' -> {gender}".format(
-            row=row_idx, patronymic=patronymic, gender=gender
-        ))
+        logging.debug(f"[DEBUG] Строка {row_idx}: пол по отчеству '{patronymic}' -> {gender}")
         return gender
 
     # 2. Попытка определить по имени
@@ -4430,9 +4342,7 @@ def detect_gender_for_person(patronymic, first_name, surname, row_idx):
         GENDER_PATTERNS['name_female']
     )
     if gender:
-        logging.debug("[DEBUG] Строка {row}: пол по имени '{name}' -> {gender}".format(
-            row=row_idx, name=first_name, gender=gender
-        ))
+        logging.debug(f"[DEBUG] Строка {row_idx}: пол по имени '{first_name}' -> {gender}")
         return gender
 
     # 3. Попытка определить по фамилии
@@ -4442,15 +4352,11 @@ def detect_gender_for_person(patronymic, first_name, surname, row_idx):
         GENDER_PATTERNS['surname_female']
     )
     if gender:
-        logging.debug("[DEBUG] Строка {row}: пол по фамилии '{surname}' -> {gender}".format(
-            row=row_idx, surname=surname, gender=gender
-        ))
+        logging.debug(f"[DEBUG] Строка {row_idx}: пол по фамилии '{surname}' -> {gender}")
         return gender
 
     # Не удалось определить
-    logging.debug("[DEBUG] Строка {row}: пол не определен (отч:'{patronymic}', имя:'{name}', фам:'{surname}')".format(
-        row=row_idx, patronymic=patronymic, name=first_name, surname=surname
-    ))
+    logging.debug(f"[DEBUG] Строка {row_idx}: пол не определен (отч:'{patronymic}', имя:'{first_name}', фам:'{surname}')")
     return '-'
 
 
@@ -4463,12 +4369,12 @@ def add_auto_gender_column(df, sheet_name):
     missing_columns = [col for col in required_columns if col not in df.columns]
 
     if missing_columns:
-        logging.warning("[GENDER DETECTION] Пропущены колонки {columns} в листе {sheet}".format(columns=missing_columns, sheet=sheet_name))
+        logging.warning(f"[GENDER DETECTION] Пропущены колонки {missing_columns} в листе {sheet_name}")
         df['AUTO_GENDER'] = '-'
         return df
 
     total_rows = len(df)
-    logging.info("[GENDER DETECTION] Начинаем определение пола для листа {sheet}, строк: {rows}".format(sheet=sheet_name, rows=total_rows))
+    logging.info(f"[GENDER DETECTION] Начинаем определение пола для листа {sheet_name}, строк: {total_rows}")
 
     # Счетчики для статистики
     male_count = 0
@@ -4499,19 +4405,15 @@ def add_auto_gender_column(df, sheet_name):
         # Прогресс каждые GENDER_PROGRESS_STEP строк
         if (idx + 1) % GENDER_PROGRESS_STEP == 0:
             percent = ((idx + 1) / total_rows) * 100
-            logging.info("[GENDER DETECTION] Обработано {processed} из {total} строк ({percent:.1f}%)".format(
-                processed=idx + 1, total=total_rows, percent=percent
-            ))
+            logging.info(f"[GENDER DETECTION] Обработано {idx + 1} из {total_rows} строк ({percent:.1f}%)")
 
     # Добавляем колонку к DataFrame
     df['AUTO_GENDER'] = auto_gender
 
     # Логируем финальную статистику
     func_time = time() - func_start
-    logging.info("[GENDER DETECTION] Статистика: М={male}, Ж={female}, неопределено={unknown} (всего: {total})".format(
-        male=male_count, female=female_count, unknown=unknown_count, total=total_rows
-    ))
-    logging.info("[GENDER DETECTION] Завершено за {time:.3f}s для листа {sheet}".format(time=func_time, sheet=sheet_name))
+    logging.info(f"[GENDER DETECTION] Статистика: М={male_count}, Ж={female_count}, неопределено={unknown_count} (всего: {total_rows})")
+    logging.info(f"[GENDER DETECTION] Завершено за {func_time:.3f}s для листа {sheet_name}")
 
     return df
 
@@ -4536,12 +4438,12 @@ def add_auto_gender_column_vectorized(df, sheet_name):
     missing_columns = [col for col in required_columns if col not in df.columns]
 
     if missing_columns:
-        logging.warning("[GENDER DETECTION VECTORIZED] Пропущены колонки {columns} в листе {sheet}".format(columns=missing_columns, sheet=sheet_name))
+        logging.warning(f"[GENDER DETECTION VECTORIZED] Пропущены колонки {missing_columns} в листе {sheet_name}")
         df['AUTO_GENDER'] = '-'
         return df
 
     total_rows = len(df)
-    logging.info("[GENDER DETECTION VECTORIZED] Начинаем определение пола для листа {sheet}, строк: {rows}".format(sheet=sheet_name, rows=total_rows))
+    logging.info(f"[GENDER DETECTION VECTORIZED] Начинаем определение пола для листа {sheet_name}, строк: {total_rows}")
 
     # Инициализируем колонку с дефолтным значением
     gender = pd.Series('-', index=df.index)
@@ -4587,10 +4489,8 @@ def add_auto_gender_column_vectorized(df, sheet_name):
     unknown_count = (gender == '-').sum()
 
     func_time = time() - func_start
-    logging.info("[GENDER DETECTION VECTORIZED] Статистика: М={male}, Ж={female}, неопределено={unknown} (всего: {total})".format(
-        male=male_count, female=female_count, unknown=unknown_count, total=total_rows
-    ))
-    logging.info("[GENDER DETECTION VECTORIZED] Завершено за {time:.3f}s для листа {sheet}".format(time=func_time, sheet=sheet_name))
+    logging.info(f"[GENDER DETECTION VECTORIZED] Статистика: М={male_count}, Ж={female_count}, неопределено={unknown_count} (всего: {total_rows})")
+    logging.info(f"[GENDER DETECTION VECTORIZED] Завершено за {func_time:.3f}s для листа {sheet_name}")
 
     return df
 
@@ -4648,7 +4548,7 @@ def build_summary_sheet(dfs, params_summary, merge_fields):
 
     func_start = time()
     params_log = f"(лист: {params_summary['sheet']})"
-    logging.info("[START] {func} {params}".format(func="build_summary_sheet", params=params_log))
+    logging.info(f"[START] build_summary_sheet {params_log}")
 
     summary = collect_summary_keys(dfs)
     logging.debug(f"[DEBUG build_summary_sheet] После collect_summary_keys: summary shape={summary.shape if summary is not None and isinstance(summary, pd.DataFrame) else "None"}")
@@ -4670,28 +4570,28 @@ def build_summary_sheet(dfs, params_summary, merge_fields):
     for debug_code in DEBUG_CODES:
         debug_rows = summary[summary["CONTEST_CODE"] == debug_code]
         if not debug_rows.empty:
-            logging.info("[DEBUG SUMMARY] === После collect_summary_keys для CONTEST_CODE: {} ===".format(debug_code))
-            logging.info("[DEBUG SUMMARY] Всего строк: {}".format(len(debug_rows)))
-            logging.info("[DEBUG SUMMARY] Уникальные GROUP_CODE: {}".format(debug_rows["GROUP_CODE"].unique().tolist()))
-            logging.info("[DEBUG SUMMARY] Уникальные GROUP_VALUE: {}".format(debug_rows["GROUP_VALUE"].unique().tolist()))
+            logging.info(f"[DEBUG SUMMARY] === После collect_summary_keys для CONTEST_CODE: {debug_code} ===")
+            logging.info(f"[DEBUG SUMMARY] Всего строк: {len(debug_rows)}")
+            logging.info(f"[DEBUG SUMMARY] Уникальные GROUP_CODE: {debug_rows['GROUP_CODE'].unique().tolist()}")
+            logging.info(f"[DEBUG SUMMARY] Уникальные GROUP_VALUE: {debug_rows['GROUP_VALUE'].unique().tolist()}")
             logging.info("[DEBUG SUMMARY] Комбинации (GROUP_CODE, GROUP_VALUE):")
             for _, row in debug_rows.iterrows():
-                logging.info("[DEBUG SUMMARY]   CONTEST={}, GROUP_CODE={}, GROUP_VALUE={}".format(
-                    row.get("CONTEST_CODE", ""), row.get("GROUP_CODE", ""), row.get("GROUP_VALUE", "")
-                ))
+                logging.info(
+                    f"[DEBUG SUMMARY]   CONTEST={row.get('CONTEST_CODE', '')}, GROUP_CODE={row.get('GROUP_CODE', '')}, GROUP_VALUE={row.get('GROUP_VALUE', '')}"
+                )
 
             # Проверяем, что есть в таблице GROUP
             if "GROUP" in dfs and not dfs["GROUP"].empty:
                 group_rows = dfs["GROUP"][dfs["GROUP"]["CONTEST_CODE"] == debug_code]
                 if not group_rows.empty:
-                    logging.info("[DEBUG SUMMARY] === Данные в таблице GROUP для CONTEST_CODE: {} ===".format(debug_code))
-                    logging.info("[DEBUG SUMMARY] Всего строк в GROUP: {}".format(len(group_rows)))
-                    logging.info("[DEBUG SUMMARY] Строки GROUP:\n{}".format(
-                        group_rows[["CONTEST_CODE", "GROUP_CODE", "GROUP_VALUE"]].to_string()
-                    ))
+                    logging.info(f"[DEBUG SUMMARY] === Данные в таблице GROUP для CONTEST_CODE: {debug_code} ===")
+                    logging.info(f"[DEBUG SUMMARY] Всего строк в GROUP: {len(group_rows)}")
+                    logging.info(
+                        f"[DEBUG SUMMARY] Строки GROUP:\n{group_rows[['CONTEST_CODE', 'GROUP_CODE', 'GROUP_VALUE']].to_string()}"
+                    )
 
-    logging.info("Summary: {summary}".format(summary=f"Каркас: {len(summary)} строк (реальные комбинации ключей)"))
-    logging.debug("[DEBUG] {sheet}: первые строки после разворачивания:\n{head}".format(sheet=params_summary["sheet"], head=summary.head(5).to_string()))
+    logging.info(f"Summary: Каркас: {len(summary)} строк (реальные комбинации ключей)")
+    logging.debug(f"[DEBUG] {params_summary['sheet']}: первые строки после разворачивания:\n{summary.head(5).to_string()}")
 
     # Универсально добавляем все поля по merge_fields
     for field_idx, field in enumerate(merge_fields):
@@ -4703,7 +4603,7 @@ def build_summary_sheet(dfs, params_summary, merge_fields):
         dst_keys = field["dst_key"] if isinstance(field["dst_key"], list) else [field["dst_key"]]
         mode = field.get("mode", "value")
         params_str = f"(лист-источник: {sheet_src}, поля: {col_names}, ключ: {dst_keys}->{src_keys}, mode: {mode})"
-        logging.info("[START] {func} {params}".format(func="add_fields_to_sheet", params=params_str))
+        logging.info(f"[START] add_fields_to_sheet {params_str}")
 
         logging.debug(f"[DEBUG build_summary_sheet] === MERGE {field_idx+1}/{len(merge_fields)} ===")
         logging.debug(f"[DEBUG build_summary_sheet] Правило: sheet_src={sheet_src}, sheet_dst={params_summary["sheet"]}")
@@ -4717,10 +4617,10 @@ def build_summary_sheet(dfs, params_summary, merge_fields):
             for debug_code in DEBUG_CODES:
                 debug_rows_before = summary[summary["CONTEST_CODE"] == debug_code]
                 if not debug_rows_before.empty:
-                    logging.info("[DEBUG SUMMARY] === Перед merge_fields из GROUP для CONTEST_CODE: {} ===".format(debug_code))
-                    logging.info("[DEBUG SUMMARY] Строк в Summary: {}".format(len(debug_rows_before)))
-                    logging.info("[DEBUG SUMMARY] GROUP_CODE: {}".format(debug_rows_before["GROUP_CODE"].unique().tolist()))
-                    logging.info("[DEBUG SUMMARY] GROUP_VALUE: {}".format(debug_rows_before["GROUP_VALUE"].unique().tolist()))
+                    logging.info(f"[DEBUG SUMMARY] === Перед merge_fields из GROUP для CONTEST_CODE: {debug_code} ===")
+                    logging.info(f"[DEBUG SUMMARY] Строк в Summary: {len(debug_rows_before)}")
+                    logging.info(f"[DEBUG SUMMARY] GROUP_CODE: {debug_rows_before['GROUP_CODE'].unique().tolist()}")
+                    logging.info(f"[DEBUG SUMMARY] GROUP_VALUE: {debug_rows_before['GROUP_VALUE'].unique().tolist()}")
 
         ref_df = dfs.get(sheet_src)
         if ref_df is not None and isinstance(ref_df, pd.DataFrame):
@@ -4728,9 +4628,7 @@ def build_summary_sheet(dfs, params_summary, merge_fields):
         else:
             logging.warning(f"[DEBUG build_summary_sheet] ⚠️  ref_df ({sheet_src}) равен None!")
         if ref_df is None:
-            logging.warning("Колонка {column} не добавлена: нет листа {src_sheet} или ключей {src_key}".format(
-                column=col_names, src_sheet=sheet_src, src_key=src_keys
-            ))
+            logging.warning(f"Колонка {col_names} не добавлена: нет листа {sheet_src} или ключей {src_keys}")
             continue
 
         multiply_rows = field.get("multiply_rows", False)
@@ -4767,15 +4665,15 @@ def build_summary_sheet(dfs, params_summary, merge_fields):
             for debug_code in DEBUG_CODES:
                 debug_rows_after = summary[summary["CONTEST_CODE"] == debug_code]
                 if not debug_rows_after.empty:
-                    logging.info("[DEBUG SUMMARY] === После merge_fields из GROUP для CONTEST_CODE: {} ===".format(debug_code))
-                    logging.info("[DEBUG SUMMARY] Строк в Summary: {}".format(len(debug_rows_after)))
-                    logging.info("[DEBUG SUMMARY] GROUP_CODE: {}".format(debug_rows_after["GROUP_CODE"].unique().tolist()))
-                    logging.info("[DEBUG SUMMARY] GROUP_VALUE: {}".format(debug_rows_after["GROUP_VALUE"].unique().tolist()))
+                    logging.info(f"[DEBUG SUMMARY] === После merge_fields из GROUP для CONTEST_CODE: {debug_code} ===")
+                    logging.info(f"[DEBUG SUMMARY] Строк в Summary: {len(debug_rows_after)}")
+                    logging.info(f"[DEBUG SUMMARY] GROUP_CODE: {debug_rows_after['GROUP_CODE'].unique().tolist()}")
+                    logging.info(f"[DEBUG SUMMARY] GROUP_VALUE: {debug_rows_after['GROUP_VALUE'].unique().tolist()}")
                     logging.info("[DEBUG SUMMARY] Комбинации (GROUP_CODE, GROUP_VALUE):")
                     for _, row in debug_rows_after.iterrows():
-                        logging.info("[DEBUG SUMMARY]   CONTEST={}, GROUP_CODE={}, GROUP_VALUE={}".format(
-                            row.get("CONTEST_CODE", ""), row.get("GROUP_CODE", ""), row.get("GROUP_VALUE", "")
-                        ))
+                        logging.info(
+                            f"[DEBUG SUMMARY]   CONTEST={row.get('CONTEST_CODE', '')}, GROUP_CODE={row.get('GROUP_CODE', '')}, GROUP_VALUE={row.get('GROUP_VALUE', '')}"
+                        )
 
 
     return summary
@@ -4806,27 +4704,19 @@ def process_single_file(file_conf):
         if file_path is None and sheet_name == "LIST-TOURNAMENT" and file_conf["file"] == "gamification-tournamentList-2":
             file_path = find_file_case_insensitive(DIR_INPUT, "gamification-tournamentList", [".csv", ".CSV"])
             if file_path:
-                logging.info("LIST-TOURNAMENT: использован файл по альтернативному имени: {path}".format(path=file_path))
+                logging.info(f"LIST-TOURNAMENT: использован файл по альтернативному имени: {file_path}")
         # Проверяем, найден ли файл
         if file_path is None:
-            logging.error("Файл не найден: {file} в каталоге {directory} [поток: {thread}]".format(
-                file=file_conf["file"],
-                directory=DIR_INPUT,
-                thread=threading.current_thread().name
-            ))
+            th = threading.current_thread().name
+            logging.error(f"Файл не найден: {file_conf['file']} в каталоге {DIR_INPUT} [поток: {th}]")
             return None, sheet_name, None
 
-        logging.info("Загрузка файла: {file_path} [поток: {thread}]".format(
-            file_path=file_path,
-            thread=threading.current_thread().name
-        ))
+        th = threading.current_thread().name
+        logging.info(f"Загрузка файла: {file_path} [поток: {th}]")
 
         df = read_csv_file(file_path)
         if df is None:
-            logging.error("Ошибка чтения файла: {file_path} [поток: {thread}]".format(
-                file_path=file_path,
-                thread=threading.current_thread().name
-            ))
+            logging.error(f"Ошибка чтения файла: {file_path} [поток: {th}]")
             return None, sheet_name, None
 
         # Разворачиваем только нужные JSON-поля по строгому списку
@@ -4836,40 +4726,21 @@ def process_single_file(file_conf):
             prefix = json_conf.get("prefix", col)
             if col in df.columns:
                 df = flatten_json_column_recursive(df, col, prefix=prefix, sheet=sheet_name)
-                logging.info("[JSON FLATTEN] {sheet}: поле '{column}' развернуто с префиксом '{prefix}' [поток: {thread}]".format(
-                    sheet=sheet_name,
-                    column=col,
-                    prefix=prefix,
-                    thread=threading.current_thread().name
-                ))
+                logging.info(f"[JSON FLATTEN] {sheet_name}: поле '{col}' развернуто с префиксом '{prefix}' [поток: {th}]")
             else:
-                logging.warning("[JSON FLATTEN] {sheet}: поле '{column}' не найдено в колонках! [поток: {thread}]".format(
-                    sheet=sheet_name,
-                    column=col,
-                    thread=threading.current_thread().name
-                ))
+                logging.warning(f"[JSON FLATTEN] {sheet_name}: поле '{col}' не найдено в колонках! [поток: {th}]")
 
         # Для дебага: логируем итоговый список колонок после всех разворотов
-        logging.debug("[DEBUG] {sheet}: колонки после разворачивания: {columns} [поток: {thread}]".format(
-            sheet=sheet_name,
-            columns=', '.join(df.columns.tolist()),
-            thread=threading.current_thread().name
-        ))
+        logging.debug(f"[DEBUG] {sheet_name}: колонки после разворачивания: {', '.join(df.columns.tolist())} [поток: {th}]")
 
-        logging.info("Файл успешно обработан: {sheet_name}, строк: {rows} [поток: {thread}]".format(
-            sheet_name=sheet_name,
-            rows=len(df),
-            thread=threading.current_thread().name
-        ))
+        logging.info(f"Файл успешно обработан: {sheet_name}, строк: {len(df)} [поток: {th}]")
 
         return df, sheet_name, file_conf
 
     except Exception as e:
-        logging.error("Ошибка обработки файла {file}: {error} [поток: {thread}]".format(
-            file=file_conf.get("file", "unknown"),
-            error=str(e),
-            thread=threading.current_thread().name
-        ))
+        logging.error(
+            f"Ошибка обработки файла {file_conf.get('file', 'unknown')}: {e} [поток: {threading.current_thread().name}]"
+        )
         return None, sheet_name, None
 
 
@@ -4905,29 +4776,23 @@ def validate_single_sheet(sheet_name, sheets_data_item):
             result_column = FIELD_LENGTH_VALIDATIONS[sheet_name]["result_column"]
             comparison = compare_validate_results(df_old, df_validated, result_column)
             if not comparison.get("identical", False):
-                logging.warning("[VALIDATE COMPARISON] {sheet}: различия найдены - {diff} из {total}".format(
-                    sheet=sheet_name, diff=comparison.get("differences", 0), total=comparison.get("total", 0)
-                ))
+                logging.warning(
+                    f"[VALIDATE COMPARISON] {sheet_name}: различия найдены - {comparison.get('differences', 0)} из {comparison.get('total', 0)}"
+                )
                 # В случае различий используем старую версию для гарантии корректности
                 df_validated = validate_field_lengths(df, sheet_name)
-                logging.warning("[VALIDATE FALLBACK] {sheet}: использована оригинальная версия".format(sheet=sheet_name))
+                logging.warning(f"[VALIDATE FALLBACK] {sheet_name}: использована оригинальная версия")
             else:
-                logging.info("[VALIDATE COMPARISON] {sheet}: результаты идентичны ({match}%)".format(
-                    sheet=sheet_name, match=comparison.get("match_percent", 0)
-                ))
+                logging.info(f"[VALIDATE COMPARISON] {sheet_name}: результаты идентичны ({comparison.get('match_percent', 0)}%)")
         else:
             df_validated = df
-        logging.debug("Проверка длины полей завершена: {sheet} [поток: {thread}]".format(
-            sheet=sheet_name,
-            thread=threading.current_thread().name
-        ))
+        th = threading.current_thread().name
+        logging.debug(f"Проверка длины полей завершена: {sheet_name} [поток: {th}]")
         return sheet_name, (df_validated, conf)
     except Exception as e:
-        logging.error("Ошибка проверки длины полей для {sheet}: {error} [поток: {thread}]".format(
-            sheet=sheet_name,
-            error=str(e),
-            thread=threading.current_thread().name
-        ))
+        logging.error(
+            f"Ошибка проверки длины полей для {sheet_name}: {e} [поток: {threading.current_thread().name}]"
+        )
         # Возвращаем исходные данные при ошибке
         return sheet_name, sheets_data_item
 
@@ -4961,35 +4826,30 @@ def check_duplicates_single_sheet(sheet_name, sheets_data_item):
             df = mark_duplicates(df, check_cfg["key"], sheet_name=sheet_name)
 
         if check_configs:
-            logging.debug("Проверка дубликатов завершена: {sheet} [поток: {thread}]".format(
-                sheet=sheet_name,
-                thread=threading.current_thread().name
-            ))
+            logging.debug(f"Проверка дубликатов завершена: {sheet_name} [поток: {threading.current_thread().name}]")
 
         return sheet_name, (df, conf)
     except Exception as e:
-        logging.error("Ошибка проверки дубликатов для {sheet}: {error} [поток: {thread}]".format(
-            sheet=sheet_name,
-            error=str(e),
-            thread=threading.current_thread().name
-        ))
+        logging.error(
+            f"Ошибка проверки дубликатов для {sheet_name}: {e} [поток: {threading.current_thread().name}]"
+        )
         # Возвращаем исходные данные при ошибке
         return sheet_name, sheets_data_item
 
 def main():
     start_time = datetime.now()
     log_file = setup_logger()
-    logging.info("=== Старт работы программы: {time} ===".format(time=start_time.strftime("%Y-%m-%d %H:%M:%S")))
+    logging.info(f"=== Старт работы программы: {start_time.strftime('%Y-%m-%d %H:%M:%S')} ===")
 
     # Проверка наличия всех файлов из INPUT_FILES до начала обработки
     missing_files = check_input_files_exist()
     if missing_files:
         msg_lines = [
             "Программа не запущена: не найдены следующие файлы из INPUT_FILES:",
-            "  (ожидаемый каталог: {})".format(DIR_INPUT),
+            f"  (ожидаемый каталог: {DIR_INPUT})",
         ]
         for m in missing_files:
-            msg_lines.append("  - {} (лист: {})".format(m["file"], m["sheet"]))
+            msg_lines.append(f"  - {m['file']} (лист: {m['sheet']})")
         msg = "\n".join(msg_lines)
         logging.error(msg)
         print(msg, file=sys.stderr)
@@ -5000,8 +4860,8 @@ def main():
     rows_total = 0
     summary = []
 
-        # 1. Параллельное чтение всех CSV и разворот ВСЕХ JSON‑полей на каждом листе
-    logging.info("Начало параллельного чтения CSV файлов (потоков: {workers})".format(workers=MAX_WORKERS_IO))
+    # 1. Параллельное чтение всех CSV и разворот ВСЕХ JSON‑полей на каждом листе
+    logging.info(f"Начало параллельного чтения CSV файлов (потоков: {MAX_WORKERS_IO})")
 
     lock = threading.Lock()  # Для безопасного доступа к sheets_data
 
@@ -5023,7 +4883,7 @@ def main():
                 # Файл не найден или ошибка чтения
                 summary.append(f"{sheet_name}: {'файл не найден' if file_conf is None else 'ошибка'}")
 
-    logging.info("Параллельное чтение CSV файлов завершено. Обработано файлов: {files}".format(files=files_processed))
+    logging.info(f"Параллельное чтение CSV файлов завершено. Обработано файлов: {files_processed}")
     # 2. Добавление колонки AUTO_GENDER для листа EMPLOYEE
     if "EMPLOYEE" in sheets_data:
         df_employee, conf_employee = sheets_data["EMPLOYEE"]
@@ -5034,21 +4894,19 @@ def main():
         # Сравниваем результаты
         comparison = compare_gender_results(df_employee_old, df_employee)
         if not comparison.get("identical", False):
-            logging.warning("[GENDER COMPARISON] EMPLOYEE: различия найдены - {diff} из {total}".format(
-                diff=comparison.get("differences", 0), total=comparison.get("total", 0)
-            ))
+            logging.warning(
+                f"[GENDER COMPARISON] EMPLOYEE: различия найдены - {comparison.get('differences', 0)} из {comparison.get('total', 0)}"
+            )
             # В случае различий используем старую версию
             df_employee = add_auto_gender_column(df_employee_old, "EMPLOYEE")
             logging.warning("[GENDER FALLBACK] EMPLOYEE: использована оригинальная версия")
         else:
-            logging.info("[GENDER COMPARISON] EMPLOYEE: результаты идентичны ({match}%)".format(
-                match=comparison.get("match_percent", 0)
-            ))
+            logging.info(f"[GENDER COMPARISON] EMPLOYEE: результаты идентичны ({comparison.get('match_percent', 0)}%)")
         sheets_data["EMPLOYEE"] = (df_employee, conf_employee)
 
-        # 3. Параллельная проверка длины полей для всех листов согласно FIELD_LENGTH_VALIDATIONS
+    # 3. Параллельная проверка длины полей для всех листов согласно FIELD_LENGTH_VALIDATIONS
     if FIELD_LENGTH_VALIDATIONS:
-        logging.info("Начало параллельной проверки длины полей (потоков: {workers})".format(workers=MAX_WORKERS_CPU))
+        logging.info(f"Начало параллельной проверки длины полей (потоков: {MAX_WORKERS_CPU})")
         sheets_to_validate = {name: sheets_data[name] for name in FIELD_LENGTH_VALIDATIONS.keys()
                              if name in sheets_data}
 
@@ -5079,8 +4937,8 @@ def main():
         merge_name="MERGE_FIELDS_ADVANCED"
     )
 
-        # 6. Параллельная проверка на дубли
-    logging.info("Начало параллельной проверки на дубликаты (потоков: {workers})".format(workers=MAX_WORKERS_CPU))
+    # 6. Параллельная проверка на дубли
+    logging.info(f"Начало параллельной проверки на дубликаты (потоков: {MAX_WORKERS_CPU})")
     with ThreadPoolExecutor(max_workers=MAX_WORKERS_IO) as executor:
         futures = {executor.submit(check_duplicates_single_sheet, sheet_name, data): sheet_name
                   for sheet_name, data in sheets_data.items()}
@@ -5129,19 +4987,17 @@ def main():
 
     # 8. Запись в Excel
     output_excel = os.path.join(DIR_OUTPUT, get_output_filename())
-    logging.info("[START] {func} {params}".format(func="write_to_excel", params=f"({output_excel})"))
+    logging.info(f"[START] write_to_excel ({output_excel})")
     write_to_excel(sheets_data, output_excel)
-    logging.info("[END] {func} {params} (время: {time:.3f}s)".format(func="write_to_excel", params=f"({output_excel})", time=0))
+    logging.info(f"[END] write_to_excel ({output_excel}) (время: 0.000s)")
 
     time_elapsed = datetime.now() - start_time
-    logging.info("=== Завершение работы. Обработано файлов: {files}, строк всего: {rows_total}. Время выполнения: {time_elapsed} ===".format(
-        files=files_processed,
-        rows_total=rows_total,
-        time_elapsed=str(time_elapsed)
-    ))
-    logging.info("Summary: {summary}".format(summary="; ".join(summary)))
-    logging.info("Excel file: {path}".format(path=output_excel))
-    logging.info("Log file: {path}".format(path=log_file))
+    logging.info(
+        f"=== Завершение работы. Обработано файлов: {files_processed}, строк всего: {rows_total}. Время выполнения: {time_elapsed} ==="
+    )
+    logging.info(f"Summary: {'; '.join(summary)}")
+    logging.info(f"Excel file: {output_excel}")
+    logging.info(f"Log file: {log_file}")
 
 
 if __name__ == "__main__":
