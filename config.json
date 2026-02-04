@@ -1,0 +1,2156 @@
+{
+  "paths": {
+    "input": "SPOD",
+    "output": "OUT",
+    "logs": "LOGS"
+  },
+  "logging": {
+    "level": "INFO",
+    "base_name": "LOGS"
+  },
+  "performance": {
+    "max_workers_io": 16,
+    "max_workers_cpu": 8
+  },
+  "input_files": [
+    {
+      "file": "CONTEST (PROM) 02-02 v2.csv",
+      "sheet": "CONTEST-DATA",
+      "max_col_width": 120,
+      "freeze": "C2",
+      "col_width_mode": "AUTO",
+      "min_col_width": 12
+    },
+    {
+      "file": "GROUP (PROM) 02-02 v1.csv",
+      "sheet": "GROUP",
+      "max_col_width": 20,
+      "freeze": "C2",
+      "col_width_mode": "AUTO",
+      "min_col_width": 8
+    },
+    {
+      "file": "INDICATOR (PROM) 02-02 v1.csv",
+      "sheet": "INDICATOR",
+      "max_col_width": 100,
+      "freeze": "B2",
+      "col_width_mode": "AUTO",
+      "min_col_width": 8
+    },
+    {
+      "file": "REPORT (PROM) 02-02 v0.csv",
+      "sheet": "REPORT",
+      "max_col_width": 25,
+      "freeze": "D2",
+      "col_width_mode": "AUTO",
+      "min_col_width": 10
+    },
+    {
+      "file": "REWARD (PROM) 02-02 v1.csv",
+      "sheet": "REWARD",
+      "max_col_width": 200,
+      "freeze": "D2",
+      "col_width_mode": "AUTO",
+      "min_col_width": 10
+    },
+    {
+      "file": "REWARD-LINK (PROM) 02-02 v1.csv",
+      "sheet": "REWARD-LINK",
+      "max_col_width": 30,
+      "freeze": "A2",
+      "col_width_mode": "AUTO",
+      "min_col_width": 10
+    },
+    {
+      "file": "SCHEDULE (PROM) 02-02 v1.csv",
+      "sheet": "TOURNAMENT-SCHEDULE",
+      "max_col_width": 120,
+      "freeze": "B2",
+      "col_width_mode": "AUTO",
+      "min_col_width": 10
+    },
+    {
+      "file": "SVD_KB_DM_GAMIFICATION_ORG_UNIT_V20 - 2025.08.28.csv",
+      "sheet": "ORG_UNIT_V20",
+      "max_col_width": 60,
+      "freeze": "A2",
+      "col_width_mode": "AUTO",
+      "min_col_width": 10
+    },
+    {
+      "file": "USER_ROLE (PROM) 12-12 v0.csv",
+      "sheet": "USER_ROLE",
+      "max_col_width": 65,
+      "freeze": "D2",
+      "col_width_mode": "AUTO",
+      "min_col_width": 12
+    },
+    {
+      "file": "USER_ROLE_SB (PROM) 12-12 v0.csv",
+      "sheet": "USER_ROLE SB",
+      "max_col_width": 65,
+      "freeze": "D2",
+      "col_width_mode": "AUTO",
+      "min_col_width": 12
+    },
+    {
+      "file": "employee_PROM_final_5000_2025-07-26_00-09-03.csv",
+      "sheet": "EMPLOYEE",
+      "max_col_width": 80,
+      "freeze": "F2",
+      "col_width_mode": "AUTO",
+      "min_col_width": 15
+    },
+    {
+      "file": "gamification-employeeRewards.csv",
+      "sheet": "LIST-REWARDS",
+      "max_col_width": 40,
+      "freeze": "D2",
+      "col_width_mode": "AUTO",
+      "min_col_width": 12
+    },
+    {
+      "file": "gamification-statistics.csv",
+      "sheet": "STATISTICS",
+      "max_col_width": 25,
+      "freeze": "C2",
+      "col_width_mode": "AUTO",
+      "min_col_width": 10
+    },
+    {
+      "file": "gamification-tournamentList.csv",
+      "sheet": "LIST-TOURNAMENT",
+      "max_col_width": 80,
+      "freeze": "C2",
+      "col_width_mode": "AUTO",
+      "min_col_width": 12
+    }
+  ],
+  "summary_sheet": {
+    "sheet": "SUMMARY",
+    "max_col_width": 150,
+    "freeze": "G2",
+    "col_width_mode": "AUTO",
+    "min_col_width": 8
+  },
+  "summary_key_defs": [
+    {
+      "sheet": "CONTEST-DATA",
+      "cols": [
+        "CONTEST_CODE"
+      ]
+    },
+    {
+      "sheet": "TOURNAMENT-SCHEDULE",
+      "cols": [
+        "TOURNAMENT_CODE",
+        "CONTEST_CODE"
+      ]
+    },
+    {
+      "sheet": "REWARD-LINK",
+      "cols": [
+        "REWARD_CODE",
+        "CONTEST_CODE"
+      ]
+    },
+    {
+      "sheet": "GROUP",
+      "cols": [
+        "GROUP_CODE",
+        "CONTEST_CODE",
+        "GROUP_VALUE"
+      ]
+    },
+    {
+      "sheet": "REWARD",
+      "cols": [
+        "REWARD_CODE"
+      ]
+    },
+    {
+      "sheet": "INDICATOR",
+      "cols": [
+        "INDICATOR_ADD_CALC_TYPE",
+        "CONTEST_CODE"
+      ]
+    }
+  ],
+  "gender": {
+    "patterns": {
+      "patronymic_male": [
+        "ович",
+        "евич",
+        "ич",
+        "ыч",
+        "оглы",
+        "улы",
+        "уулу",
+        "заде"
+      ],
+      "patronymic_female": [
+        "овна",
+        "евна",
+        "инична",
+        "ична",
+        "на",
+        "кызы"
+      ],
+      "name_male": [
+        "ий",
+        "ей",
+        "ай",
+        "ой",
+        "ый",
+        "ев",
+        "ов",
+        "ин",
+        "ан",
+        "он",
+        "ен",
+        "ур",
+        "ич",
+        "ыч"
+      ],
+      "name_female": [
+        "а",
+        "я",
+        "ина",
+        "ана",
+        "ена",
+        "ия",
+        "ья",
+        "на",
+        "ла",
+        "ра",
+        "са",
+        "та",
+        "да",
+        "ка",
+        "га"
+      ],
+      "surname_male": [
+        "ов",
+        "ев",
+        "ин",
+        "ын",
+        "ский",
+        "цкий",
+        "ич",
+        "енко",
+        "ко",
+        "як",
+        "ук",
+        "юк",
+        "ич",
+        "ыч"
+      ],
+      "surname_female": [
+        "ова",
+        "ева",
+        "ина",
+        "ына",
+        "ская",
+        "цкая",
+        "енко",
+        "ко"
+      ]
+    },
+    "progress_step": 500
+  },
+  "field_length_validations": {
+    "ORG_UNIT_V20": {
+      "result_column": "FIELD_LENGTH_CHECK",
+      "fields": {
+        "TB_FULL_NAME": {
+          "limit": 100,
+          "operator": "<="
+        },
+        "GOSB_NAME": {
+          "limit": 100,
+          "operator": "<="
+        },
+        "GOSB_SHORT_NAME": {
+          "limit": 20,
+          "operator": "<="
+        }
+      }
+    },
+    "EMPLOYEE": {
+      "result_column": "FIELD_LENGTH_CHECK",
+      "fields": {
+        "PERSON_NUMBER": {
+          "limit": 20,
+          "operator": "="
+        },
+        "PERSON_NUMBER_ADD": {
+          "limit": 20,
+          "operator": "="
+        }
+      }
+    },
+    "REPORT": {
+      "result_column": "FIELD_LENGTH_CHECK",
+      "fields": {
+        "MANAGER_PERSON_NUMBER": {
+          "limit": 20,
+          "operator": "="
+        }
+      }
+    }
+  },
+  "merge_fields_advanced": [
+    {
+      "sheet_src": "CONTEST-DATA",
+      "sheet_dst": "REPORT",
+      "src_key": [
+        "CONTEST_CODE"
+      ],
+      "dst_key": [
+        "CONTEST_CODE"
+      ],
+      "column": [
+        "CONTEST_TYPE",
+        "FULL_NAME",
+        "BUSINESS_STATUS",
+        "BUSINESS_BLOCK",
+        "TARGET_TYPE",
+        "CONTEST_FEATURE => vid"
+      ],
+      "mode": "value",
+      "multiply_rows": false,
+      "col_max_width": 80,
+      "col_width_mode": "AUTO",
+      "col_min_width": 8,
+      "status_filters": {
+        "BUSINESS_STATUS": [
+          "АКТИВНЫЙ",
+          "ПОДВЕДЕНИЕ ИТОГОВ"
+        ]
+      },
+      "custom_conditions": null,
+      "group_by": null,
+      "aggregate": null
+    },
+    {
+      "sheet_src": "TOURNAMENT-SCHEDULE",
+      "sheet_dst": "REPORT",
+      "src_key": [
+        "TOURNAMENT_CODE"
+      ],
+      "dst_key": [
+        "TOURNAMENT_CODE"
+      ],
+      "column": [
+        "END_DT",
+        "RESULT_DT",
+        "TOURNAMENT_STATUS"
+      ],
+      "mode": "value",
+      "multiply_rows": false,
+      "col_max_width": 25,
+      "col_width_mode": "AUTO",
+      "col_min_width": 8,
+      "status_filters": null,
+      "custom_conditions": null,
+      "group_by": null,
+      "aggregate": null
+    },
+    {
+      "sheet_src": "EMPLOYEE",
+      "sheet_dst": "REPORT",
+      "src_key": [
+        "PERSON_NUMBER"
+      ],
+      "dst_key": [
+        "MANAGER_PERSON_NUMBER"
+      ],
+      "column": [
+        "MANAGER_FULL_NAME",
+        "POSITION_NAME",
+        "ROLE_CODE",
+        "UCH_CODE",
+        "BUSINESS_BLOCK"
+      ],
+      "mode": "value",
+      "multiply_rows": false,
+      "col_max_width": 25,
+      "col_width_mode": "AUTO",
+      "col_min_width": 8,
+      "status_filters": null,
+      "custom_conditions": null,
+      "group_by": null,
+      "aggregate": null
+    },
+    {
+      "sheet_src": "REWARD-LINK",
+      "sheet_dst": "REWARD",
+      "src_key": [
+        "REWARD_CODE"
+      ],
+      "dst_key": [
+        "REWARD_CODE"
+      ],
+      "column": [
+        "CONTEST_CODE"
+      ],
+      "mode": "value",
+      "multiply_rows": false,
+      "col_max_width": 30,
+      "col_width_mode": "AUTO",
+      "col_min_width": 8,
+      "status_filters": null,
+      "custom_conditions": null,
+      "group_by": null,
+      "aggregate": null
+    },
+    {
+      "sheet_src": "TOURNAMENT-SCHEDULE",
+      "sheet_dst": "REWARD",
+      "src_key": [
+        "CONTEST_CODE"
+      ],
+      "dst_key": [
+        "REWARD_LINK => CONTEST_CODE"
+      ],
+      "column": [
+        "TOURNAMENT_CODE"
+      ],
+      "mode": "count",
+      "multiply_rows": false,
+      "col_max_width": 11,
+      "col_width_mode": "AUTO",
+      "col_min_width": 8,
+      "status_filters": null,
+      "custom_conditions": null,
+      "group_by": null,
+      "aggregate": null,
+      "count_aggregation": "size",
+      "count_label": null
+    },
+    {
+      "sheet_src": "CONTEST-DATA",
+      "sheet_dst": "REWARD",
+      "src_key": [
+        "CONTEST_CODE"
+      ],
+      "dst_key": [
+        "REWARD_LINK => CONTEST_CODE"
+      ],
+      "column": [
+        "FULL_NAME",
+        "CONTEST_TYPE",
+        "CONTEST_DESCRIPTION",
+        "PRODUCT_GROUP",
+        "PRODUCT",
+        "TARGET_TYPE",
+        "CONTEST_FEATURE => businessBlock",
+        "CREATE_DT"
+      ],
+      "mode": "value",
+      "multiply_rows": false,
+      "col_max_width": 60,
+      "col_width_mode": "AUTO",
+      "col_min_width": 8,
+      "status_filters": null,
+      "custom_conditions": null,
+      "group_by": null,
+      "aggregate": null
+    },
+    {
+      "sheet_src": "ORG_UNIT_V20",
+      "sheet_dst": "EMPLOYEE",
+      "src_key": [
+        "TB_CODE",
+        "GOSB_CODE"
+      ],
+      "dst_key": [
+        "TB_CODE",
+        "GOSB_CODE"
+      ],
+      "column": [
+        "ORG_UNIT_CODE"
+      ],
+      "mode": "value",
+      "multiply_rows": false,
+      "col_max_width": 15,
+      "col_width_mode": "AUTO",
+      "col_min_width": 11,
+      "status_filters": null,
+      "custom_conditions": null,
+      "group_by": null,
+      "aggregate": null
+    },
+    {
+      "sheet_src": "ORG_UNIT_V20",
+      "sheet_dst": "EMPLOYEE",
+      "src_key": [
+        "ORG_UNIT_CODE"
+      ],
+      "dst_key": [
+        "ORG_UNIT_CODE"
+      ],
+      "column": [
+        "GOSB_CODE",
+        "GOSB_SHORT_NAME",
+        "GOSB_NAME",
+        "TB_CODE",
+        "TB_SHORT_NAME"
+      ],
+      "mode": "value",
+      "multiply_rows": false,
+      "col_max_width": 25,
+      "col_width_mode": "AUTO",
+      "col_min_width": 11,
+      "status_filters": null,
+      "custom_conditions": null,
+      "group_by": null,
+      "aggregate": null
+    },
+    {
+      "sheet_src": "CONTEST-DATA",
+      "sheet_dst": "TOURNAMENT-SCHEDULE",
+      "src_key": [
+        "CONTEST_CODE"
+      ],
+      "dst_key": [
+        "CONTEST_CODE"
+      ],
+      "column": [
+        "FULL_NAME",
+        "BUSINESS_BLOCK",
+        "CONTEST_TYPE",
+        "BUSINESS_STATUS",
+        "PRODUCT_GROUP",
+        "PRODUCT",
+        "TARGET_TYPE",
+        "CONTEST_FEATURE => vid"
+      ],
+      "mode": "value",
+      "multiply_rows": false,
+      "col_max_width": 70,
+      "col_width_mode": "AUTO",
+      "col_min_width": 35,
+      "status_filters": null,
+      "custom_conditions": null,
+      "group_by": null,
+      "aggregate": null
+    },
+    {
+      "sheet_src": "CONTEST-DATA",
+      "sheet_dst": "GROUP",
+      "src_key": [
+        "CONTEST_CODE"
+      ],
+      "dst_key": [
+        "CONTEST_CODE"
+      ],
+      "column": [
+        "FULL_NAME",
+        "CONTEST_TYPE",
+        "TARGET_TYPE"
+      ],
+      "mode": "value",
+      "multiply_rows": false,
+      "col_max_width": 70,
+      "col_width_mode": "AUTO",
+      "col_min_width": 35,
+      "status_filters": null,
+      "custom_conditions": null,
+      "group_by": null,
+      "aggregate": null
+    },
+    {
+      "sheet_src": "TOURNAMENT-SCHEDULE",
+      "sheet_dst": "GROUP",
+      "src_key": [
+        "CONTEST_CODE"
+      ],
+      "dst_key": [
+        "CONTEST_CODE"
+      ],
+      "column": [
+        "TOURNAMENT_STATUS",
+        "TARGET_TYPE"
+      ],
+      "mode": "value",
+      "multiply_rows": false,
+      "col_max_width": 30,
+      "col_width_mode": "AUTO",
+      "col_min_width": 8,
+      "status_filters": null,
+      "custom_conditions": null,
+      "group_by": null,
+      "aggregate": null
+    },
+    {
+      "sheet_src": "CONTEST-DATA",
+      "sheet_dst": "INDICATOR",
+      "src_key": [
+        "CONTEST_CODE"
+      ],
+      "dst_key": [
+        "CONTEST_CODE"
+      ],
+      "column": [
+        "FULL_NAME"
+      ],
+      "mode": "value",
+      "multiply_rows": false,
+      "col_max_width": 70,
+      "col_width_mode": "AUTO",
+      "col_min_width": 35,
+      "status_filters": null,
+      "custom_conditions": null,
+      "group_by": null,
+      "aggregate": null
+    },
+    {
+      "sheet_src": "CONTEST-DATA",
+      "sheet_dst": "REWARD-LINK",
+      "src_key": [
+        "CONTEST_CODE"
+      ],
+      "dst_key": [
+        "CONTEST_CODE"
+      ],
+      "column": [
+        "FULL_NAME",
+        "CONTEST_FEATURE"
+      ],
+      "mode": "value",
+      "multiply_rows": false,
+      "col_max_width": 70,
+      "col_width_mode": "AUTO",
+      "col_min_width": 35,
+      "status_filters": null,
+      "custom_conditions": null,
+      "group_by": null,
+      "aggregate": null
+    },
+    {
+      "sheet_src": "REWARD",
+      "sheet_dst": "REWARD-LINK",
+      "src_key": [
+        "REWARD_CODE"
+      ],
+      "dst_key": [
+        "REWARD_CODE"
+      ],
+      "column": [
+        "FULL_NAME"
+      ],
+      "mode": "value",
+      "multiply_rows": false,
+      "col_max_width": 70,
+      "col_width_mode": "AUTO",
+      "col_min_width": 35,
+      "status_filters": null,
+      "custom_conditions": null,
+      "group_by": null,
+      "aggregate": null
+    },
+    {
+      "sheet_src": "REPORT",
+      "sheet_dst": "TOURNAMENT-SCHEDULE",
+      "src_key": [
+        "CONTEST_CODE",
+        "TOURNAMENT_CODE"
+      ],
+      "dst_key": [
+        "CONTEST_CODE",
+        "TOURNAMENT_CODE"
+      ],
+      "column": [
+        "CONTEST_DATE"
+      ],
+      "mode": "value",
+      "multiply_rows": false,
+      "col_max_width": 25,
+      "col_width_mode": "AUTO",
+      "col_min_width": 8,
+      "status_filters": null,
+      "custom_conditions": null,
+      "group_by": null,
+      "aggregate": null
+    },
+    {
+      "sheet_src": "TOURNAMENT-SCHEDULE",
+      "sheet_dst": "CONTEST-DATA",
+      "src_key": [
+        "CONTEST_CODE"
+      ],
+      "dst_key": [
+        "CONTEST_CODE"
+      ],
+      "column": [
+        "TOURNAMENT_CODE"
+      ],
+      "mode": "count",
+      "multiply_rows": false,
+      "col_max_width": 11,
+      "col_width_mode": "AUTO",
+      "col_min_width": 8,
+      "status_filters": null,
+      "custom_conditions": null,
+      "group_by": null,
+      "aggregate": null,
+      "count_aggregation": "size",
+      "count_label": null
+    },
+    {
+      "sheet_src": "REPORT",
+      "sheet_dst": "TOURNAMENT-SCHEDULE",
+      "src_key": [
+        "CONTEST_CODE",
+        "TOURNAMENT_CODE"
+      ],
+      "dst_key": [
+        "CONTEST_CODE",
+        "TOURNAMENT_CODE"
+      ],
+      "column": [
+        "CONTEST_DATE"
+      ],
+      "mode": "count",
+      "multiply_rows": false,
+      "col_max_width": 20,
+      "col_width_mode": 15,
+      "col_min_width": 8,
+      "status_filters": null,
+      "custom_conditions": null,
+      "group_by": null,
+      "aggregate": null,
+      "count_aggregation": "size",
+      "count_label": null
+    },
+    {
+      "sheet_src": "CONTEST-DATA",
+      "sheet_dst": "SUMMARY",
+      "src_key": [
+        "CONTEST_CODE"
+      ],
+      "dst_key": [
+        "CONTEST_CODE"
+      ],
+      "column": [
+        "FULL_NAME",
+        "CONTEST_DESCRIPTION",
+        "CONTEST_FEATURE => feature",
+        "CONTEST_FEATURE => momentRewarding",
+        "TARGET_TYPE",
+        "CONTEST_FEATURE => vid",
+        "CONTEST_TYPE",
+        "PRODUCT_GROUP",
+        "PRODUCT",
+        "FACTOR_MATCH",
+        "FACTOR_MARK_TYPE",
+        "PLAN_METHOD_CODE",
+        "PLAN_MOD_METOD",
+        "PLAN_MOD_VALUE",
+        "BUSINESS_BLOCK",
+        "CONTEST_FEATURE => businessBlock",
+        "CONTEST_FEATURE => tournamentStartMailing",
+        "CONTEST_FEATURE => tournamentEndMailing",
+        "CONTEST_FEATURE => tournamentRewardingMailing",
+        "CONTEST_FEATURE => tournamentLikeMailing",
+        "CONTEST_FEATURE => tournamentListMailing",
+        "CONTEST_FEATURE => persomanNumberVisible",
+        "CONTEST_FEATURE => persomanNumberHidden",
+        "CONTEST_FEATURE => gosbVisible",
+        "CONTEST_FEATURE => gosbHidden",
+        "CONTEST_FEATURE => tbVisible",
+        "CONTEST_FEATURE => tbHidden",
+        "CREATE_DT",
+        "CLOSE_DT",
+        "BUSINESS_STATUS",
+        "SHOW_INDICATOR",
+        "CONTEST_SUBJECT",
+        "CONTEST_INDICATOR_METHOD",
+        "CONTEST_FACTOR_METHOD",
+        "CONTEST_PERIOD",
+        "SOURCE_UPD_FREQUENCY",
+        "CALC_TYPE",
+        "FACT_POST_PROCESSING",
+        "CONTEST_FEATURE => minNumber",
+        "CONTEST_FEATURE => capacity",
+        "CONTEST_FEATURE => accuracy",
+        "CONTEST_FEATURE => masking",
+        "CONTEST_FEATURE => typeRewarding",
+        "CONTEST_FEATURE => preferences",
+        "CONTEST_FEATURE => tournamentTeam",
+        "CONTEST_FEATURE => helpCode",
+        "CONTEST_FEATURE"
+      ],
+      "mode": "value",
+      "multiply_rows": false,
+      "col_max_width": 55,
+      "col_width_mode": "AUTO",
+      "col_min_width": 8,
+      "status_filters": null,
+      "custom_conditions": null,
+      "group_by": null,
+      "aggregate": null
+    },
+    {
+      "sheet_src": "GROUP",
+      "sheet_dst": "SUMMARY",
+      "src_key": [
+        "CONTEST_CODE",
+        "GROUP_CODE",
+        "GROUP_VALUE"
+      ],
+      "dst_key": [
+        "CONTEST_CODE",
+        "GROUP_CODE",
+        "GROUP_VALUE"
+      ],
+      "column": [
+        "GET_CALC_METHOD",
+        "GET_CALC_CRITERION",
+        "ADD_CALC_CRITERION",
+        "ADD_CALC_CRITERION_2",
+        "BASE_CALC_CODE"
+      ],
+      "mode": "value",
+      "multiply_rows": false,
+      "col_max_width": 40,
+      "col_width_mode": "AUTO",
+      "col_min_width": 8,
+      "status_filters": null,
+      "custom_conditions": null,
+      "group_by": null,
+      "aggregate": null
+    },
+    {
+      "sheet_src": "INDICATOR",
+      "sheet_dst": "SUMMARY",
+      "src_key": [
+        "CONTEST_CODE",
+        "INDICATOR_ADD_CALC_TYPE"
+      ],
+      "dst_key": [
+        "CONTEST_CODE",
+        "INDICATOR_ADD_CALC_TYPE"
+      ],
+      "column": [
+        "INDICATOR_CALC_TYPE",
+        "INDICATOR_ADD_CALC_TYPE",
+        "FULL_NAME",
+        "INDICATOR_CODE",
+        "INDICATOR_AGG_FUNCTION",
+        "INDICATOR_WEIGHT",
+        "INDICATOR_MARK_TYPE",
+        "INDICATOR_MATCH",
+        "INDICATOR_VALUE",
+        "INDICATOR_OBJECT",
+        "CONTEST_CRITERION",
+        "CONTESTANT_SELECTION",
+        "CALC_TYPE",
+        "N",
+        "INDICATOR_FILTER"
+      ],
+      "mode": "value",
+      "multiply_rows": false,
+      "col_max_width": 35,
+      "col_width_mode": "AUTO",
+      "col_min_width": 8,
+      "status_filters": null,
+      "custom_conditions": null,
+      "group_by": null,
+      "aggregate": null
+    },
+    {
+      "sheet_src": "TOURNAMENT-SCHEDULE",
+      "sheet_dst": "SUMMARY",
+      "src_key": [
+        "TOURNAMENT_CODE"
+      ],
+      "dst_key": [
+        "TOURNAMENT_CODE"
+      ],
+      "column": [
+        "START_DT",
+        "END_DT",
+        "RESULT_DT",
+        "TOURNAMENT_STATUS",
+        "TARGET_TYPE",
+        "PERIOD_TYPE",
+        "PLAN_PERIOD_START_DT",
+        "PLAN_PERIOD_END_DT",
+        "CRITERION_MARK_TYPE",
+        "CRITERION_MARK_VALUE",
+        "FILTER_PERIOD_ARR",
+        "CONTEST_CODE",
+        "CALC_TYPE",
+        "TRN_INDICATOR_FILTER"
+      ],
+      "mode": "value",
+      "multiply_rows": false,
+      "col_max_width": 30,
+      "col_width_mode": "AUTO",
+      "col_min_width": 8,
+      "status_filters": null,
+      "custom_conditions": null,
+      "group_by": null,
+      "aggregate": null
+    },
+    {
+      "sheet_src": "REWARD",
+      "sheet_dst": "SUMMARY",
+      "src_key": [
+        "REWARD_CODE"
+      ],
+      "dst_key": [
+        "REWARD_CODE"
+      ],
+      "column": [
+        "FULL_NAME",
+        "REWARD_DESCRIPTION",
+        "REWARD_TYPE",
+        "REWARD_CONDITION",
+        "REWARD_COST",
+        "ADD_DATA => feature",
+        "ADD_DATA => itemFeature",
+        "ADD_DATA => rewardRule",
+        "ADD_DATA => hidden",
+        "ADD_DATA => hiddenRewardList",
+        "ADD_DATA => nftFlg",
+        "ADD_DATA => newsType",
+        "ADD_DATA => winCriterion",
+        "ADD_DATA => rewardAgainGlobal",
+        "ADD_DATA => rewardAgainTournament",
+        "ADD_DATA => outstanding",
+        "ADD_DATA => teamNews",
+        "ADD_DATA => singleNews",
+        "ADD_DATA => fileName",
+        "ADD_DATA => refreshOldNews",
+        "ADD_DATA => businessBlock",
+        "ADD_DATA => recommendationLevel",
+        "ADD_DATA => priority",
+        "ADD_DATA => masterBadge",
+        "ADD_DATA => parentRewardCode",
+        "ADD_DATA => helpCode",
+        "ADD_DATA => seasonItem",
+        "ADD_DATA"
+      ],
+      "mode": "value",
+      "multiply_rows": false,
+      "col_max_width": 50,
+      "col_width_mode": "AUTO",
+      "col_min_width": 8,
+      "status_filters": null,
+      "custom_conditions": null,
+      "group_by": null,
+      "aggregate": null
+    },
+    {
+      "sheet_src": "REWARD-LINK",
+      "sheet_dst": "SUMMARY",
+      "src_key": [
+        "REWARD_CODE"
+      ],
+      "dst_key": [
+        "REWARD_CODE"
+      ],
+      "column": [
+        "CONTEST_CODE"
+      ],
+      "mode": "value",
+      "multiply_rows": false,
+      "col_max_width": 30,
+      "col_width_mode": "AUTO",
+      "col_min_width": 8,
+      "status_filters": null,
+      "custom_conditions": null,
+      "group_by": null,
+      "aggregate": null
+    },
+    {
+      "sheet_src": "LIST-TOURNAMENT",
+      "sheet_dst": "SUMMARY",
+      "src_key": [
+        "Код турнира"
+      ],
+      "dst_key": [
+        "TOURNAMENT_CODE"
+      ],
+      "column": [
+        "Бизнес-статус турнира"
+      ],
+      "mode": "value",
+      "multiply_rows": false,
+      "col_max_width": 30,
+      "col_width_mode": "AUTO",
+      "col_min_width": 8,
+      "status_filters": null,
+      "custom_conditions": null,
+      "group_by": null,
+      "aggregate": null
+    },
+    {
+      "sheet_src": "LIST-TOURNAMENT",
+      "sheet_dst": "TOURNAMENT-SCHEDULE",
+      "src_key": [
+        "Код турнира"
+      ],
+      "dst_key": [
+        "TOURNAMENT_CODE"
+      ],
+      "column": [
+        "Бизнес-статус турнира"
+      ],
+      "mode": "value",
+      "multiply_rows": false,
+      "col_max_width": 30,
+      "col_width_mode": "AUTO",
+      "col_min_width": 8,
+      "status_filters": null,
+      "custom_conditions": null,
+      "group_by": null,
+      "aggregate": null
+    },
+    {
+      "sheet_src": "REPORT",
+      "sheet_dst": "SUMMARY",
+      "src_key": [
+        "TOURNAMENT_CODE",
+        "CONTEST_CODE"
+      ],
+      "dst_key": [
+        "TOURNAMENT_CODE",
+        "CONTEST_CODE"
+      ],
+      "column": [
+        "CONTEST_DATE"
+      ],
+      "mode": "value",
+      "multiply_rows": false,
+      "col_max_width": 25,
+      "col_width_mode": "AUTO",
+      "col_min_width": 8,
+      "status_filters": null,
+      "custom_conditions": null,
+      "group_by": null,
+      "aggregate": null
+    },
+    {
+      "sheet_src": "REPORT",
+      "sheet_dst": "SUMMARY",
+      "src_key": [
+        "TOURNAMENT_CODE"
+      ],
+      "dst_key": [
+        "TOURNAMENT_CODE"
+      ],
+      "column": [
+        "CONTEST_DATE"
+      ],
+      "mode": "count",
+      "multiply_rows": false,
+      "col_max_width": 20,
+      "col_width_mode": 15,
+      "col_min_width": 8,
+      "status_filters": null,
+      "custom_conditions": null,
+      "group_by": null,
+      "aggregate": null,
+      "count_aggregation": "size",
+      "count_label": null
+    },
+    {
+      "sheet_src": "REWARD",
+      "sheet_dst": "SUMMARY",
+      "src_key": [
+        "REWARD_LINK => CONTEST_CODE"
+      ],
+      "dst_key": [
+        "CONTEST_CODE"
+      ],
+      "column": [
+        "REWARD_CODE"
+      ],
+      "mode": "count",
+      "multiply_rows": false,
+      "col_max_width": 20,
+      "col_width_mode": 15,
+      "col_min_width": 8,
+      "status_filters": null,
+      "custom_conditions": null,
+      "group_by": null,
+      "aggregate": null,
+      "count_aggregation": "size",
+      "count_label": null
+    },
+    {
+      "sheet_src": "LIST-REWARDS",
+      "sheet_dst": "SUMMARY",
+      "src_key": [
+        "Код награды"
+      ],
+      "dst_key": [
+        "REWARD_CODE"
+      ],
+      "column": [
+        "Код награды"
+      ],
+      "mode": "count",
+      "multiply_rows": false,
+      "col_max_width": 20,
+      "col_width_mode": 15,
+      "col_min_width": 8,
+      "status_filters": null,
+      "custom_conditions": null,
+      "group_by": null,
+      "aggregate": null,
+      "count_aggregation": "size",
+      "count_label": null
+    },
+    {
+      "sheet_src": "LIST-REWARDS",
+      "sheet_dst": "REWARD",
+      "src_key": [
+        "Код награды"
+      ],
+      "dst_key": [
+        "REWARD_CODE"
+      ],
+      "column": [
+        "Код награды"
+      ],
+      "mode": "count",
+      "multiply_rows": false,
+      "col_max_width": 20,
+      "col_width_mode": 15,
+      "col_min_width": 8,
+      "status_filters": null,
+      "custom_conditions": null,
+      "group_by": null,
+      "aggregate": null
+    },
+    {
+      "sheet_src": "CONTEST-DATA",
+      "sheet_dst": "SUMMARY",
+      "src_key": [
+        "CONTEST_CODE"
+      ],
+      "dst_key": [
+        "CONTEST_CODE"
+      ],
+      "column": [
+        "CONTEST_CODE"
+      ],
+      "mode": "count",
+      "multiply_rows": false,
+      "col_max_width": 20,
+      "col_width_mode": 15,
+      "col_min_width": 8,
+      "status_filters": null,
+      "custom_conditions": null,
+      "group_by": null,
+      "aggregate": null,
+      "count_aggregation": "size",
+      "count_label": null
+    },
+    {
+      "sheet_src": "TOURNAMENT-SCHEDULE",
+      "sheet_dst": "SUMMARY",
+      "src_key": [
+        "CONTEST_CODE"
+      ],
+      "dst_key": [
+        "CONTEST_CODE"
+      ],
+      "column": [
+        "CONTEST_CODE"
+      ],
+      "mode": "count",
+      "multiply_rows": false,
+      "col_max_width": 20,
+      "col_width_mode": 15,
+      "col_min_width": 8,
+      "status_filters": null,
+      "custom_conditions": null,
+      "group_by": null,
+      "aggregate": null,
+      "count_aggregation": "size",
+      "count_label": null
+    },
+    {
+      "sheet_src": "GROUP",
+      "sheet_dst": "SUMMARY",
+      "src_key": [
+        "CONTEST_CODE"
+      ],
+      "dst_key": [
+        "CONTEST_CODE"
+      ],
+      "column": [
+        "CONTEST_CODE"
+      ],
+      "mode": "count",
+      "multiply_rows": false,
+      "col_max_width": 20,
+      "col_width_mode": 15,
+      "col_min_width": 8,
+      "status_filters": null,
+      "custom_conditions": null,
+      "group_by": null,
+      "aggregate": null,
+      "count_aggregation": "size",
+      "count_label": null
+    },
+    {
+      "sheet_src": "INDICATOR",
+      "sheet_dst": "SUMMARY",
+      "src_key": [
+        "CONTEST_CODE"
+      ],
+      "dst_key": [
+        "CONTEST_CODE"
+      ],
+      "column": [
+        "INDICATOR_MARK_TYPE"
+      ],
+      "mode": "count",
+      "multiply_rows": false,
+      "col_max_width": 20,
+      "col_width_mode": 15,
+      "col_min_width": 8,
+      "status_filters": null,
+      "custom_conditions": null,
+      "group_by": null,
+      "aggregate": null,
+      "count_aggregation": "size",
+      "count_label": null
+    },
+    {
+      "sheet_src": "REWARD-LINK",
+      "sheet_dst": "SUMMARY",
+      "src_key": [
+        "CONTEST_CODE"
+      ],
+      "dst_key": [
+        "CONTEST_CODE"
+      ],
+      "column": [
+        "REWARD_CODE"
+      ],
+      "mode": "count",
+      "multiply_rows": false,
+      "col_max_width": 20,
+      "col_width_mode": 15,
+      "col_min_width": 8,
+      "status_filters": null,
+      "custom_conditions": null,
+      "group_by": null,
+      "aggregate": null,
+      "count_aggregation": "size",
+      "count_label": null
+    },
+    {
+      "sheet_src": "TOURNAMENT-SCHEDULE",
+      "sheet_dst": "CONTEST-DATA",
+      "src_key": [
+        "CONTEST_CODE"
+      ],
+      "dst_key": [
+        "CONTEST_CODE"
+      ],
+      "column": [
+        "TOURNAMENT_CODE"
+      ],
+      "mode": "count",
+      "multiply_rows": false,
+      "col_max_width": 15,
+      "col_width_mode": "AUTO",
+      "col_min_width": 8,
+      "count_aggregation": "nunique",
+      "count_label": "ACTIVE",
+      "status_filters": {
+        "TOURNAMENT_STATUS": [
+          "АКТИВНЫЙ"
+        ]
+      },
+      "custom_conditions": null,
+      "group_by": null,
+      "aggregate": null
+    },
+    {
+      "sheet_src": "TOURNAMENT-SCHEDULE",
+      "sheet_dst": "CONTEST-DATA",
+      "src_key": [
+        "CONTEST_CODE"
+      ],
+      "dst_key": [
+        "CONTEST_CODE"
+      ],
+      "column": [
+        "TOURNAMENT_CODE"
+      ],
+      "mode": "count",
+      "multiply_rows": false,
+      "col_max_width": 15,
+      "col_width_mode": "AUTO",
+      "col_min_width": 8,
+      "count_aggregation": "nunique",
+      "count_label": "COMPLETED",
+      "status_filters": {
+        "TOURNAMENT_STATUS": [
+          "ЗАВЕРШЕН"
+        ]
+      },
+      "custom_conditions": null,
+      "group_by": null,
+      "aggregate": null
+    },
+    {
+      "sheet_src": "TOURNAMENT-SCHEDULE",
+      "sheet_dst": "CONTEST-DATA",
+      "src_key": [
+        "CONTEST_CODE"
+      ],
+      "dst_key": [
+        "CONTEST_CODE"
+      ],
+      "column": [
+        "TOURNAMENT_CODE"
+      ],
+      "mode": "count",
+      "multiply_rows": false,
+      "col_max_width": 15,
+      "col_width_mode": "AUTO",
+      "col_min_width": 8,
+      "count_aggregation": "nunique",
+      "count_label": "CANCELLED",
+      "status_filters": {
+        "TOURNAMENT_STATUS": [
+          "ОТМЕНЕН"
+        ]
+      },
+      "custom_conditions": null,
+      "group_by": null,
+      "aggregate": null
+    },
+    {
+      "sheet_src": "TOURNAMENT-SCHEDULE",
+      "sheet_dst": "CONTEST-DATA",
+      "src_key": [
+        "CONTEST_CODE"
+      ],
+      "dst_key": [
+        "CONTEST_CODE"
+      ],
+      "column": [
+        "TOURNAMENT_CODE"
+      ],
+      "mode": "count",
+      "multiply_rows": false,
+      "col_max_width": 15,
+      "col_width_mode": "AUTO",
+      "col_min_width": 8,
+      "count_aggregation": "nunique",
+      "count_label": "SUMMING_UP",
+      "status_filters": {
+        "TOURNAMENT_STATUS": [
+          "ПОДВЕДЕНИЕ ИТОГОВ"
+        ]
+      },
+      "custom_conditions": null,
+      "group_by": null,
+      "aggregate": null
+    },
+    {
+      "sheet_src": "TOURNAMENT-SCHEDULE",
+      "sheet_dst": "CONTEST-DATA",
+      "src_key": [
+        "CONTEST_CODE"
+      ],
+      "dst_key": [
+        "CONTEST_CODE"
+      ],
+      "column": [
+        "TOURNAMENT_CODE"
+      ],
+      "mode": "count",
+      "multiply_rows": false,
+      "col_max_width": 15,
+      "col_width_mode": "AUTO",
+      "col_min_width": 8,
+      "count_aggregation": "nunique",
+      "count_label": "DELETED",
+      "status_filters": {
+        "TOURNAMENT_STATUS": [
+          "УДАЛЕН"
+        ]
+      },
+      "custom_conditions": null,
+      "group_by": null,
+      "aggregate": null
+    }
+  ],
+  "color_scheme": [
+    {
+      "group": "Исходные данные",
+      "header_bg": "E6F3FF",
+      "header_fg": "2C3E50",
+      "column_bg": null,
+      "column_fg": null,
+      "style_scope": "header",
+      "sheets": [
+        "CONTEST-DATA",
+        "GROUP",
+        "INDICATOR",
+        "REPORT",
+        "REWARD",
+        "REWARD-LINK",
+        "TOURNAMENT-SCHEDULE",
+        "ORG_UNIT_V20",
+        "USER_ROLE",
+        "USER_ROLE SB",
+        "EMPLOYEE"
+      ],
+      "columns": []
+    },
+    {
+      "group": "JSON source columns",
+      "header_bg": "FF8C42",
+      "header_fg": "FFFFFF",
+      "column_bg": null,
+      "column_fg": null,
+      "style_scope": "header",
+      "sheets": [
+        "CONTEST-DATA",
+        "REWARD"
+      ],
+      "columns": [
+        "CONTEST_FEATURE",
+        "REWARD_ADD_DATA"
+      ]
+    },
+    {
+      "group": "JSON expanded level 1",
+      "header_bg": "FFB366",
+      "header_fg": "2C3E50",
+      "column_bg": null,
+      "column_fg": null,
+      "style_scope": "header",
+      "sheets": [
+        "CONTEST-DATA",
+        "REWARD"
+      ],
+      "columns": [
+        "CONTEST_FEATURE => momentRewarding",
+        "CONTEST_FEATURE => tournamentStartMailing",
+        "CONTEST_FEATURE => tournamentEndMailing",
+        "CONTEST_FEATURE => tournamentRewardingMailing",
+        "CONTEST_FEATURE => tournamentLikeMailing",
+        "CONTEST_FEATURE => capacity",
+        "CONTEST_FEATURE => tournamentListMailing",
+        "CONTEST_FEATURE => vid",
+        "CONTEST_FEATURE => tbVisible",
+        "CONTEST_FEATURE => tbHidden",
+        "CONTEST_FEATURE => persomanNumberVisible",
+        "CONTEST_FEATURE => typeRewarding",
+        "CONTEST_FEATURE => masking",
+        "CONTEST_FEATURE => minNumber",
+        "CONTEST_FEATURE => businessBlock",
+        "CONTEST_FEATURE => accuracy",
+        "CONTEST_FEATURE => gosbHidden",
+        "CONTEST_FEATURE => preferences",
+        "CONTEST_FEATURE => persomanNumberHidden",
+        "CONTEST_FEATURE => gosbVisible",
+        "CONTEST_FEATURE => feature",
+        "ADD_DATA => refreshOldNews",
+        "ADD_DATA => fileName",
+        "ADD_DATA => rewardRule",
+        "ADD_DATA => bookingRequired",
+        "ADD_DATA => outstanding",
+        "ADD_DATA => teamNews",
+        "ADD_DATA => singleNews",
+        "ADD_DATA => rewardAgainGlobal",
+        "ADD_DATA => rewardAgainTournament",
+        "ADD_DATA => isGrouping",
+        "ADD_DATA => tagEndDT",
+        "ADD_DATA => itemAmount",
+        "ADD_DATA => isGroupingTitle",
+        "ADD_DATA => itemLimitCount",
+        "ADD_DATA => recommendationLevel",
+        "ADD_DATA => isGroupingName",
+        "ADD_DATA => ignoreConditions",
+        "ADD_DATA => masterBadge",
+        "ADD_DATA => priority",
+        "ADD_DATA => nftFlg",
+        "ADD_DATA => itemMinShow",
+        "ADD_DATA => itemFeature",
+        "ADD_DATA => itemLimitPeriod",
+        "ADD_DATA => businessBlock",
+        "ADD_DATA => parentRewardCode",
+        "ADD_DATA => deliveryRequired"
+      ]
+    },
+    {
+      "group": "JSON expanded level 2",
+      "header_bg": "E67E22",
+      "header_fg": "FFFFFF",
+      "column_bg": null,
+      "column_fg": null,
+      "style_scope": "header",
+      "sheets": [
+        "CONTEST-DATA",
+        "REWARD"
+      ],
+      "columns": [
+        "ADD_DATA => getCondition => nonRewards",
+        "ADD_DATA => getCondition => rewards",
+        "ADD_DATA => getCondition => employeeRating => minRatingTB",
+        "ADD_DATA => getCondition => employeeRating => minRatingGOSB",
+        "ADD_DATA => getCondition => employeeRating => minRatingBANK",
+        "ADD_DATA => getCondition => employeeRating => seasonCode",
+        "ADD_DATA => getCondition => employeeRating => minCrystalEarnedTotal"
+      ]
+    },
+    {
+      "group": "Process added fields",
+      "header_bg": "FFE6F2",
+      "header_fg": "2C3E50",
+      "column_bg": null,
+      "column_fg": null,
+      "style_scope": "header",
+      "sheets": [
+        "REWARD",
+        "REPORT",
+        "TOURNAMENT-SCHEDULE",
+        "EMPLOYEE",
+        "CONTEST-DATA",
+        "GROUP",
+        "INDICATOR",
+        "REWARD-LINK"
+      ],
+      "columns": [
+        "REWARD_LINK => CONTEST_CODE",
+        "CONTEST-DATA=>CONTEST_TYPE",
+        "CONTEST-DATA=>FULL_NAME",
+        "CONTEST-DATA=>BUSINESS_BLOCK",
+        "CONTEST-DATA=>BUSINESS_STATUS",
+        "TOURNAMENT-SCHEDULE=>END_DT",
+        "TOURNAMENT-SCHEDULE=>RESULT_DT",
+        "TOURNAMENT-SCHEDULE=>TOURNAMENT_STATUS",
+        "REPORT=>CONTEST_DATE",
+        "REPORT=>COUNT_CONTEST_DATE",
+        "AUTO_GENDER",
+        "CALC_TOURNAMENT_STATUS",
+        "FIELD_LENGTH_CHECK"
+      ]
+    },
+    {
+      "group": "SUMMARY KEYS",
+      "header_bg": "E6F3FF",
+      "header_fg": "2C3E50",
+      "column_bg": null,
+      "column_fg": null,
+      "style_scope": "header",
+      "sheets": [
+        "SUMMARY"
+      ],
+      "columns": [
+        "CONTEST_CODE",
+        "TOURNAMENT_CODE",
+        "REWARD_CODE",
+        "GROUP_CODE",
+        "GROUP_VALUE",
+        "INDICATOR_ADD_CALC_TYPE"
+      ]
+    },
+    {
+      "group": "SUMMARY FIELDS: CONTEST-DATA",
+      "header_bg": "CCE5FF",
+      "header_fg": "2C3E50",
+      "column_bg": null,
+      "column_fg": null,
+      "style_scope": "header",
+      "sheets": [
+        "SUMMARY"
+      ],
+      "columns": [
+        "CONTEST-DATA=>FULL_NAME",
+        "CONTEST-DATA=>CONTEST_FEATURE => momentRewarding",
+        "CONTEST-DATA=>FACTOR_MATCH",
+        "CONTEST-DATA=>PLAN_MOD_VALUE",
+        "CONTEST-DATA=>BUSINESS_BLOCK",
+        "CONTEST-DATA=>CONTEST_FEATURE => tournamentStartMailing",
+        "CONTEST-DATA=>CONTEST_FEATURE => tournamentEndMailing",
+        "CONTEST-DATA=>CONTEST_FEATURE => tournamentRewardingMailing",
+        "CONTEST-DATA=>CONTEST_FEATURE => tournamentLikeMailing"
+      ]
+    },
+    {
+      "group": "SUMMARY FIELDS: GROUP",
+      "header_bg": "E8F5E8",
+      "header_fg": "2C3E50",
+      "column_bg": null,
+      "column_fg": null,
+      "style_scope": "header",
+      "sheets": [
+        "SUMMARY"
+      ],
+      "columns": [
+        "GROUP=>GET_CALC_CRITERION",
+        "GROUP=>ADD_CALC_CRITERION",
+        "GROUP=>ADD_CALC_CRITERION_2"
+      ]
+    },
+    {
+      "group": "SUMMARY FIELDS: INDICATOR",
+      "header_bg": "FFF8E1",
+      "header_fg": "2C3E50",
+      "column_bg": null,
+      "column_fg": null,
+      "style_scope": "header",
+      "sheets": [
+        "SUMMARY"
+      ],
+      "columns": [
+        "INDICATOR=>INDICATOR_MARK_TYPE",
+        "INDICATOR=>INDICATOR_MATCH",
+        "INDICATOR=>INDICATOR_VALUE"
+      ]
+    },
+    {
+      "group": "SUMMARY FIELDS: TOURNAMENT-SCHEDULE",
+      "header_bg": "E1F5FE",
+      "header_fg": "2C3E50",
+      "column_bg": null,
+      "column_fg": null,
+      "style_scope": "header",
+      "sheets": [
+        "SUMMARY"
+      ],
+      "columns": [
+        "TOURNAMENT-SCHEDULE=>START_DT",
+        "TOURNAMENT-SCHEDULE=>END_DT",
+        "TOURNAMENT-SCHEDULE=>RESULT_DT",
+        "TOURNAMENT-SCHEDULE=>TOURNAMENT_STATUS",
+        "TOURNAMENT-SCHEDULE=>TARGET_TYPE"
+      ]
+    },
+    {
+      "group": "SUMMARY FIELDS: REPORT",
+      "header_bg": "E8F5E8",
+      "header_fg": "2C3E50",
+      "column_bg": null,
+      "column_fg": null,
+      "style_scope": "header",
+      "sheets": [
+        "SUMMARY"
+      ],
+      "columns": [
+        "REPORT=>CONTEST_DATE",
+        "REPORT=>COUNT_CONTEST_DATE"
+      ]
+    },
+    {
+      "group": "SUMMARY FIELDS: REWARD",
+      "header_bg": "FFE8CC",
+      "header_fg": "2C3E50",
+      "column_bg": null,
+      "column_fg": null,
+      "style_scope": "header",
+      "sheets": [
+        "SUMMARY"
+      ],
+      "columns": [
+        "REWARD=>ADD_DATA => rewardAgainGlobal",
+        "REWARD=>ADD_DATA => rewardAgainTournament",
+        "REWARD=>ADD_DATA => outstanding",
+        "REWARD=>ADD_DATA => teamNews",
+        "REWARD=>ADD_DATA => singleNews"
+      ]
+    },
+    {
+      "group": "SUMMARY DUPLICATES",
+      "header_bg": "FFE6F2",
+      "header_fg": "2C3E50",
+      "column_bg": null,
+      "column_fg": null,
+      "style_scope": "header",
+      "sheets": [
+        "SUMMARY"
+      ],
+      "columns": [
+        "ДУБЛЬ: CONTEST_CODE_TOURNAMENT_CODE_REWARD_CODE_GROUP_CODE"
+      ]
+    },
+    {
+      "group": "DUPLICATES",
+      "header_bg": "FFE6F2",
+      "header_fg": "2C3E50",
+      "column_bg": null,
+      "column_fg": null,
+      "style_scope": "header",
+      "sheets": [
+        "CONTEST-DATA"
+      ],
+      "columns": [
+        "ДУБЛЬ: CONTEST_CODE"
+      ]
+    },
+    {
+      "group": "DUPLICATES",
+      "header_bg": "FFE6F2",
+      "header_fg": "2C3E50",
+      "column_bg": null,
+      "column_fg": null,
+      "style_scope": "header",
+      "sheets": [
+        "GROUP"
+      ],
+      "columns": [
+        "ДУБЛЬ: CONTEST_CODE_GROUP_CODE_GROUP_VALUE"
+      ]
+    },
+    {
+      "group": "DUPLICATES",
+      "header_bg": "FFE6F2",
+      "header_fg": "2C3E50",
+      "column_bg": null,
+      "column_fg": null,
+      "style_scope": "header",
+      "sheets": [
+        "INDICATOR"
+      ],
+      "columns": [
+        "ДУБЛЬ: CONTEST_CODE_INDICATOR_ADD_CALC_TYPE"
+      ]
+    },
+    {
+      "group": "DUPLICATES",
+      "header_bg": "FFE6F2",
+      "header_fg": "2C3E50",
+      "column_bg": null,
+      "column_fg": null,
+      "style_scope": "header",
+      "sheets": [
+        "INDICATOR"
+      ],
+      "columns": [
+        "ДУБЛЬ: CONTEST_CODE_INDICATOR_ADD_CALC_TYPE_INDICATOR_CODE"
+      ]
+    },
+    {
+      "group": "DUPLICATES",
+      "header_bg": "FFE6F2",
+      "header_fg": "2C3E50",
+      "column_bg": null,
+      "column_fg": null,
+      "style_scope": "header",
+      "sheets": [
+        "INDICATOR"
+      ],
+      "columns": [
+        "ДУБЛЬ: N"
+      ]
+    },
+    {
+      "group": "DUPLICATES",
+      "header_bg": "FFE6F2",
+      "header_fg": "2C3E50",
+      "column_bg": null,
+      "column_fg": null,
+      "style_scope": "header",
+      "sheets": [
+        "REPORT"
+      ],
+      "columns": [
+        "ДУБЛЬ: MANAGER_PERSON_NUMBER_TOURNAMENT_CODE_CONTEST_CODE"
+      ]
+    },
+    {
+      "group": "DUPLICATES",
+      "header_bg": "FFE6F2",
+      "header_fg": "2C3E50",
+      "column_bg": null,
+      "column_fg": null,
+      "style_scope": "header",
+      "sheets": [
+        "REWARD"
+      ],
+      "columns": [
+        "ДУБЛЬ: REWARD_CODE"
+      ]
+    },
+    {
+      "group": "DUPLICATES",
+      "header_bg": "FFE6F2",
+      "header_fg": "2C3E50",
+      "column_bg": null,
+      "column_fg": null,
+      "style_scope": "header",
+      "sheets": [
+        "REWARD-LINK"
+      ],
+      "columns": [
+        "ДУБЛЬ: CONTEST_CODE_REWARD_CODE"
+      ]
+    },
+    {
+      "group": "DUPLICATES",
+      "header_bg": "FFE6F2",
+      "header_fg": "2C3E50",
+      "column_bg": null,
+      "column_fg": null,
+      "style_scope": "header",
+      "sheets": [
+        "REWARD-LINK"
+      ],
+      "columns": [
+        "ДУБЛЬ: REWARD_CODE"
+      ]
+    },
+    {
+      "group": "DUPLICATES",
+      "header_bg": "FFE6F2",
+      "header_fg": "2C3E50",
+      "column_bg": null,
+      "column_fg": null,
+      "style_scope": "header",
+      "sheets": [
+        "TOURNAMENT-SCHEDULE"
+      ],
+      "columns": [
+        "ДУБЛЬ: TOURNAMENT_CODE_CONTEST_CODE"
+      ]
+    },
+    {
+      "group": "DUPLICATES",
+      "header_bg": "FFE6F2",
+      "header_fg": "2C3E50",
+      "column_bg": null,
+      "column_fg": null,
+      "style_scope": "header",
+      "sheets": [
+        "TOURNAMENT-SCHEDULE"
+      ],
+      "columns": [
+        "ДУБЛЬ: TOURNAMENT_CODE"
+      ]
+    },
+    {
+      "group": "DUPLICATES",
+      "header_bg": "FFE6F2",
+      "header_fg": "2C3E50",
+      "column_bg": null,
+      "column_fg": null,
+      "style_scope": "header",
+      "sheets": [
+        "ORG_UNIT_V20"
+      ],
+      "columns": [
+        "ДУБЛЬ: ORG_UNIT_CODE"
+      ]
+    },
+    {
+      "group": "DUPLICATES",
+      "header_bg": "FFE6F2",
+      "header_fg": "2C3E50",
+      "column_bg": null,
+      "column_fg": null,
+      "style_scope": "header",
+      "sheets": [
+        "USER_ROLE"
+      ],
+      "columns": [
+        "ДУБЛЬ: RULE_NUM"
+      ]
+    },
+    {
+      "group": "DUPLICATES",
+      "header_bg": "FFE6F2",
+      "header_fg": "2C3E50",
+      "column_bg": null,
+      "column_fg": null,
+      "style_scope": "header",
+      "sheets": [
+        "USER_ROLE SB"
+      ],
+      "columns": [
+        "ДУБЛЬ: RULE_NUM"
+      ]
+    },
+    {
+      "group": "DUPLICATES",
+      "header_bg": "FFE6F2",
+      "header_fg": "2C3E50",
+      "column_bg": null,
+      "column_fg": null,
+      "style_scope": "header",
+      "sheets": [
+        "EMPLOYEE"
+      ],
+      "columns": [
+        "ДУБЛЬ: PERSON_NUMBER"
+      ]
+    },
+    {
+      "group": "DUPLICATES",
+      "header_bg": "FFE6F2",
+      "header_fg": "2C3E50",
+      "column_bg": null,
+      "column_fg": null,
+      "style_scope": "header",
+      "sheets": [
+        "EMPLOYEE"
+      ],
+      "columns": [
+        "ДУБЛЬ: PERSON_NUMBER_ADD"
+      ]
+    }
+  ],
+  "column_formats": [
+    {
+      "sheet": "INDICATOR",
+      "columns": [
+        "N",
+        "CALC_TYPE",
+        "INDICATOR_WEIGHT",
+        "INDICATOR_CALC_TYPE"
+      ],
+      "data_type": "number",
+      "decimal_places": 0,
+      "decimal_separator": ",",
+      "thousands_separator": false,
+      "date_format": "YYYY-MM-DD",
+      "horizontal": "center",
+      "vertical": "center",
+      "wrap_text": false
+    },
+    {
+      "sheet": "REWARD",
+      "columns": [
+        "REWARD_CONDITION",
+        "REWARD_COST"
+      ],
+      "data_type": "number",
+      "decimal_places": 0,
+      "decimal_separator": ",",
+      "thousands_separator": false,
+      "date_format": "YYYY-MM-DD",
+      "horizontal": "center",
+      "vertical": "center",
+      "wrap_text": false
+    },
+    {
+      "sheet": "EMPLOYEE",
+      "columns": [
+        "TB_CODE",
+        "GOSB_CODE",
+        "UCH_CODE",
+        "GENDER",
+        "PRIORITY_TYPE"
+      ],
+      "data_type": "number",
+      "decimal_places": 0,
+      "decimal_separator": ",",
+      "thousands_separator": false,
+      "date_format": "YYYY-MM-DD",
+      "horizontal": "center",
+      "vertical": "center",
+      "wrap_text": false
+    },
+    {
+      "sheet": "TOURNAMENT-SCHEDULE",
+      "columns": [
+        "START_DT",
+        "END_DT",
+        "RESULT_DT"
+      ],
+      "data_type": "date",
+      "decimal_places": 0,
+      "decimal_separator": ",",
+      "thousands_separator": false,
+      "date_format": "YYYY-MM-DD",
+      "horizontal": "center",
+      "vertical": "center",
+      "wrap_text": false
+    },
+    {
+      "sheet": "CONTEST-DATA",
+      "columns": [
+        "CREATE_DT",
+        "CLOSE_DT"
+      ],
+      "data_type": "date",
+      "decimal_places": 0,
+      "decimal_separator": ",",
+      "thousands_separator": false,
+      "date_format": "YYYY-MM-DD",
+      "horizontal": "center",
+      "vertical": "center",
+      "wrap_text": false
+    },
+    {
+      "sheet": "CONTEST-DATA",
+      "columns": [
+        "CALC_TYPE",
+        "SOURCE_UPD_FREQUENCY"
+      ],
+      "data_type": "number",
+      "decimal_places": 0,
+      "decimal_separator": ",",
+      "thousands_separator": false,
+      "date_format": "YYYY-MM-DD",
+      "horizontal": "center",
+      "vertical": "center",
+      "wrap_text": false
+    },
+    {
+      "sheet": "REPORT",
+      "columns": [
+        "CONTEST_DATE"
+      ],
+      "data_type": "date",
+      "decimal_places": 0,
+      "decimal_separator": ",",
+      "thousands_separator": false,
+      "date_format": "YYYY-MM-DD",
+      "horizontal": "center",
+      "vertical": "center",
+      "wrap_text": false
+    },
+    {
+      "sheet": "REPORT",
+      "columns": [
+        "priority_type"
+      ],
+      "data_type": "number",
+      "decimal_places": 0,
+      "decimal_separator": ",",
+      "thousands_separator": false,
+      "date_format": "YYYY-MM-DD",
+      "horizontal": "center",
+      "vertical": "center",
+      "wrap_text": false
+    }
+  ],
+  "check_duplicates": [
+    {
+      "sheet": "CONTEST-DATA",
+      "key": [
+        "CONTEST_CODE"
+      ]
+    },
+    {
+      "sheet": "GROUP",
+      "key": [
+        "CONTEST_CODE",
+        "GROUP_CODE",
+        "GROUP_VALUE"
+      ]
+    },
+    {
+      "sheet": "INDICATOR",
+      "key": [
+        "CONTEST_CODE",
+        "INDICATOR_ADD_CALC_TYPE"
+      ]
+    },
+    {
+      "sheet": "INDICATOR",
+      "key": [
+        "CONTEST_CODE",
+        "INDICATOR_ADD_CALC_TYPE",
+        "INDICATOR_CODE"
+      ]
+    },
+    {
+      "sheet": "INDICATOR",
+      "key": [
+        "N"
+      ]
+    },
+    {
+      "sheet": "REPORT",
+      "key": [
+        "MANAGER_PERSON_NUMBER",
+        "TOURNAMENT_CODE",
+        "CONTEST_CODE"
+      ]
+    },
+    {
+      "sheet": "REWARD",
+      "key": [
+        "REWARD_CODE"
+      ]
+    },
+    {
+      "sheet": "REWARD-LINK",
+      "key": [
+        "CONTEST_CODE",
+        "REWARD_CODE"
+      ]
+    },
+    {
+      "sheet": "REWARD-LINK",
+      "key": [
+        "REWARD_CODE"
+      ]
+    },
+    {
+      "sheet": "TOURNAMENT-SCHEDULE",
+      "key": [
+        "TOURNAMENT_CODE",
+        "CONTEST_CODE"
+      ]
+    },
+    {
+      "sheet": "TOURNAMENT-SCHEDULE",
+      "key": [
+        "TOURNAMENT_CODE"
+      ]
+    },
+    {
+      "sheet": "ORG_UNIT_V20",
+      "key": [
+        "ORG_UNIT_CODE"
+      ]
+    },
+    {
+      "sheet": "USER_ROLE",
+      "key": [
+        "RULE_NUM"
+      ]
+    },
+    {
+      "sheet": "USER_ROLE SB",
+      "key": [
+        "RULE_NUM"
+      ]
+    },
+    {
+      "sheet": "EMPLOYEE",
+      "key": [
+        "PERSON_NUMBER"
+      ]
+    },
+    {
+      "sheet": "EMPLOYEE",
+      "key": [
+        "PERSON_NUMBER_ADD"
+      ]
+    }
+  ],
+  "json_columns": {
+    "CONTEST-DATA": [
+      {
+        "column": "CONTEST_FEATURE",
+        "prefix": "CONTEST_FEATURE"
+      }
+    ],
+    "REWARD": [
+      {
+        "column": "REWARD_ADD_DATA",
+        "prefix": "ADD_DATA"
+      }
+    ]
+  }
+}
