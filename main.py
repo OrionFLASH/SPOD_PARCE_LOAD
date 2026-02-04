@@ -195,6 +195,13 @@ MAX_WORKERS_IO = _cfg["performance"]["max_workers_io"]
 MAX_WORKERS_CPU = _cfg["performance"]["max_workers_cpu"]
 MAX_WORKERS = MAX_WORKERS_CPU
 
+# Метки статусов турнира (порядок соответствует условиям в calculate_tournament_status: 0–6)
+_TOURNAMENT_STATUS_DEFAULT = [
+    "НЕОПРЕДЕЛЕН", "АКТИВНЫЙ", "ЗАПЛАНИРОВАН",
+    "ПОДВЕДЕНИЕ ИТОГОВ", "ПОДВЕДЕНИЕ ИТОГОВ", "ПОДВЕДЕНИЕ ИТОГОВ", "ЗАВЕРШЕН",
+]
+TOURNAMENT_STATUS_CHOICES = _cfg.get("tournament_status_choices") or _TOURNAMENT_STATUS_DEFAULT
+
 # === КОНЕЦ ЗАГРУЗКИ КОНФИГА (остальные константы удалены — см. config.json) ===
 
 # Выходной файл Excel
@@ -369,23 +376,19 @@ def calculate_tournament_status(df_tournament, df_report=None):
         (today > df['END_DT_parsed']) & (~pd.isna(df['RESULT_DT_parsed'])) & (today >= df['RESULT_DT_parsed']) & (~pd.isna(df['MAX_CONTEST_DATE'])) & (df['MAX_CONTEST_DATE'] >= df['RESULT_DT_parsed']),
     ]
 
-    choices = [
-        "НЕОПРЕДЕЛЕН",      # Условие 0
-        "АКТИВНЫЙ",         # Условие 1
-        "ЗАПЛАНИРОВАН",     # Условие 2
-        "ПОДВЕДЕНИЕ ИТОГОВ", # Условие 3
-        "ПОДВЕДЕНИЕ ИТОГОВ", # Условие 4
-        "ПОДВЕДЕНИЕ ИТОГОВ", # Условие 5
-        "ЗАВЕРШЕН",         # Условие 6
-    ]
+    # Метки статусов из config.json (tournament_status_choices); порядок соответствует conditions[0..6]
+    choices = TOURNAMENT_STATUS_CHOICES if len(TOURNAMENT_STATUS_CHOICES) >= len(conditions) else (
+        TOURNAMENT_STATUS_CHOICES + ["НЕОПРЕДЕЛЕН"] * (len(conditions) - len(TOURNAMENT_STATUS_CHOICES))
+    )[:len(conditions)]
+    default_label = TOURNAMENT_STATUS_CHOICES[0] if TOURNAMENT_STATUS_CHOICES else "НЕОПРЕДЕЛЕН"
 
     # Используем numpy.select для векторизованного выбора (быстрее чем apply)
     try:
         import numpy as np
-        df['CALC_TOURNAMENT_STATUS'] = np.select(conditions, choices, default="НЕОПРЕДЕЛЕН")
+        df['CALC_TOURNAMENT_STATUS'] = np.select(conditions, choices, default=default_label)
     except ImportError:
         # Fallback на pandas where если numpy недоступен (но он должен быть в Anaconda)
-        df['CALC_TOURNAMENT_STATUS'] = pd.Series("НЕОПРЕДЕЛЕН", index=df.index)
+        df['CALC_TOURNAMENT_STATUS'] = pd.Series(default_label, index=df.index)
         for i, (cond, choice) in enumerate(zip(conditions, choices)):
             df.loc[cond, 'CALC_TOURNAMENT_STATUS'] = choice
 
@@ -3370,6 +3373,160 @@ def check_duplicates_single_sheet(sheet_name, sheets_data_item):
         # Возвращаем исходные данные при ошибке
         return sheet_name, sheets_data_item
 
+
+def collect_duplicates_and_validation_report(sheets_data: Dict[str, Any]) -> tuple:
+    """
+    Собирает сводный отчёт по дубликатам и отклонениям длины полей (field_length_validations)
+    по всем листам. Не прерывает работу — только накапливает данные для финального вывода.
+
+    Returns:
+        tuple: (duplicates_report, validation_report)
+            - duplicates_report: список dict с ключами sheet, key_cols, col_name, n_duplicate_rows, duplicate_key_values
+            - validation_report: список dict с ключами sheet, result_column, n_violations, sample_values
+    """
+    duplicates_report: List[Dict[str, Any]] = []
+    validation_report: List[Dict[str, Any]] = []
+
+    # --- Дубликаты: ищем колонки "ДУБЛЬ: ..." и строки с непустым значением ---
+    for sheet_name, sheet_item in sheets_data.items():
+        if sheet_item is None:
+            continue
+        try:
+            df, _ = sheet_item
+            if df is None or not isinstance(df, pd.DataFrame):
+                continue
+        except (TypeError, ValueError):
+            continue
+
+        for col in df.columns:
+            if not (isinstance(col, str) and col.startswith("ДУБЛЬ: ")):
+                continue
+            # Найти конфиг проверки: ключ, по которому построена эта колонка
+            key_cols: Optional[List[str]] = None
+            for check_cfg in CHECK_DUPLICATES:
+                if check_cfg.get("sheet") != sheet_name:
+                    continue
+                k = check_cfg.get("key")
+                if isinstance(k, list) and "ДУБЛЬ: " + "_".join(k) == col:
+                    key_cols = k
+                    break
+            if not key_cols:
+                continue
+
+            dup_mask = df[col].astype(str).str.strip() != ""
+            n_duplicate_rows = int(dup_mask.sum())
+            if n_duplicate_rows == 0:
+                continue
+
+            # Проверить наличие ключевых колонок
+            missing = [c for c in key_cols if c not in df.columns]
+            if missing:
+                logging.debug(f"[collect_report] Лист {sheet_name}, колонка {col}: отсутствуют ключи {missing}")
+                continue
+
+            # Группируем дубликаты по значениям ключа: (tuple(key_vals)) -> count
+            dup_df = df.loc[dup_mask, key_cols + [col]].copy()
+            dup_df["_key_tuple"] = list(zip(*(dup_df[k].astype(str).values for k in key_cols)))
+            key_counts = dup_df.groupby("_key_tuple", dropna=False).size()
+
+            duplicate_key_values = []
+            for key_tuple, count in key_counts.items():
+                key_vals = dict(zip(key_cols, key_tuple))
+                duplicate_key_values.append({"key_values": key_vals, "count": int(count)})
+
+            duplicates_report.append({
+                "sheet": sheet_name,
+                "key_cols": key_cols,
+                "col_name": col,
+                "n_duplicate_rows": n_duplicate_rows,
+                "duplicate_key_values": duplicate_key_values,
+            })
+
+    # --- Отклонения по длине полей (field_length_validations) ---
+    for sheet_name in (FIELD_LENGTH_VALIDATIONS or {}):
+        if sheet_name not in sheets_data:
+            continue
+        sheet_item = sheets_data[sheet_name]
+        if sheet_item is None:
+            continue
+        try:
+            df, _ = sheet_item
+            if df is None or not isinstance(df, pd.DataFrame):
+                continue
+        except (TypeError, ValueError):
+            continue
+
+        config = FIELD_LENGTH_VALIDATIONS.get(sheet_name)
+        if not config:
+            continue
+        result_column = config.get("result_column")
+        if not result_column or result_column not in df.columns:
+            continue
+
+        violations_mask = (df[result_column].astype(str).str.strip() != "") & (df[result_column].astype(str).str.strip() != "-")
+        n_violations = int(violations_mask.sum())
+        if n_violations == 0:
+            continue
+
+        sample_values = df.loc[violations_mask, result_column].drop_duplicates().head(20).tolist()
+        validation_report.append({
+            "sheet": sheet_name,
+            "result_column": result_column,
+            "n_violations": n_violations,
+            "sample_values": sample_values,
+        })
+
+    return duplicates_report, validation_report
+
+
+def print_final_report(duplicates_report: List[Dict[str, Any]], validation_report: List[Dict[str, Any]]) -> None:
+    """
+    Выводит итоговый отчёт по дубликатам и отклонениям длины полей в лог и в консоль.
+    Вызывается в конце работы программы; не прерывает выполнение.
+    """
+    lines: List[str] = []
+    lines.append("")
+    lines.append("========== ИТОГОВАЯ СТАТИСТИКА: ДУБЛИКАТЫ И ОТКЛОНЕНИЯ ДЛИНЫ ПОЛЕЙ ==========")
+
+    if duplicates_report:
+        lines.append("")
+        lines.append("--- Дубликаты ---")
+        for r in duplicates_report:
+            lines.append(f"  Лист: {r['sheet']}")
+            lines.append(f"  Ключ (колонки): {r['key_cols']}")
+            lines.append(f"  Колонка проверки: {r['col_name']}")
+            lines.append(f"  Строк с дубликатами: {r['n_duplicate_rows']}")
+            for g in r["duplicate_key_values"]:
+                kv = g["key_values"]
+                cnt = g["count"]
+                lines.append(f"    Задублированное значение: {kv} (вхождений: {cnt})")
+            lines.append("")
+    else:
+        lines.append("")
+        lines.append("--- Дубликаты: не обнаружены ---")
+
+    if validation_report:
+        lines.append("--- Отклонения по длине полей (field_length_validations) ---")
+        for r in validation_report:
+            lines.append(f"  Лист: {r['sheet']}, колонка результата: {r['result_column']}")
+            lines.append(f"  Количество строк с отклонениями: {r['n_violations']}")
+            for i, sample in enumerate(r["sample_values"][:10], 1):
+                lines.append(f"    Пример {i}: {sample}")
+            if len(r["sample_values"]) > 10:
+                lines.append(f"    ... и ещё {len(r['sample_values']) - 10} вариантов")
+            lines.append("")
+    else:
+        lines.append("--- Отклонения по длине полей: не обнаружены ---")
+
+    lines.append("===============================================================================")
+    lines.append("")
+
+    report_text = "\n".join(lines)
+    for line in lines:
+        logging.info(line.strip() if line.strip() else "")
+    print(report_text)
+
+
 def main():
     start_time = datetime.now()
     log_file = setup_logger()
@@ -3524,6 +3681,10 @@ def main():
     logging.info(f"[START] write_to_excel ({output_excel})")
     write_to_excel(sheets_data, output_excel)
     logging.info(f"[END] write_to_excel ({output_excel}) (время: 0.000s)")
+
+    # Итоговая статистика по дубликатам и отклонениям длины полей (в лог и консоль)
+    duplicates_report, validation_report = collect_duplicates_and_validation_report(sheets_data)
+    print_final_report(duplicates_report, validation_report)
 
     time_elapsed = datetime.now() - start_time
     logging.info(

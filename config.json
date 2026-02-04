@@ -12,6 +12,15 @@
     "max_workers_io": 16,
     "max_workers_cpu": 8
   },
+  "tournament_status_choices": [
+    "НЕОПРЕДЕЛЕН",
+    "АКТИВНЫЙ",
+    "ЗАПЛАНИРОВАН",
+    "ПОДВЕДЕНИЕ ИТОГОВ",
+    "ПОДВЕДЕНИЕ ИТОГОВ",
+    "ПОДВЕДЕНИЕ ИТОГОВ",
+    "ЗАВЕРШЕН"
+  ],
   "input_files": [
     {
       "file": "CONTEST (PROM) 02-02 v2.csv",
