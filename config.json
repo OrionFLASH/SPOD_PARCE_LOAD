@@ -366,6 +366,28 @@
       "aggregate": null
     },
     {
+      "sheet_src": "LIST-TOURNAMENT",
+      "sheet_dst": "REPORT",
+      "src_key": [
+        "Код турнира"
+      ],
+      "dst_key": [
+        "TOURNAMENT_CODE"
+      ],
+      "column": [
+        "Бизнес-статус турнира"
+      ],
+      "mode": "value",
+      "multiply_rows": false,
+      "col_max_width": 30,
+      "col_width_mode": "AUTO",
+      "col_min_width": 8,
+      "status_filters": null,
+      "custom_conditions": null,
+      "group_by": null,
+      "aggregate": null
+    },
+    {
       "sheet_src": "EMPLOYEE",
       "sheet_dst": "REPORT",
       "src_key": [
@@ -1008,6 +1030,29 @@
       ],
       "column": [
         "Бизнес-статус турнира"
+      ],
+      "mode": "value",
+      "multiply_rows": false,
+      "col_max_width": 30,
+      "col_width_mode": "AUTO",
+      "col_min_width": 8,
+      "status_filters": null,
+      "custom_conditions": null,
+      "group_by": null,
+      "aggregate": null
+    },
+    {
+      "sheet_src": "TOURNAMENT-SCHEDULE",
+      "sheet_dst": "LIST-TOURNAMENT",
+      "src_key": [
+        "TOURNAMENT_CODE"
+      ],
+      "dst_key": [
+        "Код турнира"
+      ],
+      "column": [
+        "TOURNAMENT_STATUS",
+        "TARGET_TYPE"
       ],
       "mode": "value",
       "multiply_rows": false,
