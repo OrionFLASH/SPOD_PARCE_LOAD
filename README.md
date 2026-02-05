@@ -70,6 +70,7 @@ SPOD_PROM/
 | `tournament_status_choices` | Подписи статусов турнира (расчёт CALC_TOURNAMENT_STATUS). |
 | `input_files` | Список CSV-файлов и параметров листов Excel (имя файла, лист, ширина колонок, freeze). |
 | `summary_sheet` | Параметры сводного листа SUMMARY (ширина, закрепление). |
+| `sheet_order` | Порядок листов в выходном Excel (если задан). |
 | `summary_key_defs` | Ключевые колонки по листам для каркаса SUMMARY (порядок колонок). |
 | `gender` | Правила автоопределения пола (паттерны отчества/имени/фамилии). |
 | `field_length_validations` | Проверка длины полей по листам (result_column, fields с limit и operator). |
@@ -238,6 +239,23 @@ SPOD_PROM/
 | `min_col_width` | число  | Минимальная ширина. |
 
 **Логика:** сводный лист строится по правилам `merge_fields_advanced` (где `sheet_dst` = имя из `summary_sheet.sheet`), затем к нему применяются эти параметры форматирования.
+
+---
+
+### sheet_order
+
+**Назначение:** порядок листов в выходном Excel. Если параметр задан (непустой массив), листы выводятся в указанном порядке; листы, не перечисленные в списке, добавляются следом в алфавитном порядке. Если параметр отсутствует или пуст — используется порядок по умолчанию: SUMMARY первым, остальные по алфавиту.
+
+| Ключ | Тип | Описание |
+|------|-----|----------|
+| (массив) | строки | Имена листов в нужном порядке (например, `"SUMMARY"`, `"STAT_FILE"`, `"CONTEST-DATA"`, …). |
+
+**Пример:**
+```json
+"sheet_order": ["SUMMARY", "STAT_FILE", "CONTEST-DATA", "GROUP", "INDICATOR", "REPORT", "REWARD", "REWARD-LINK", "TOURNAMENT-SCHEDULE"]
+```
+
+**Логика:** при записи в Excel сначала выводятся листы из `sheet_order`, присутствующие в `sheets_data`; затем все оставшиеся листы в отсортированном по имени порядке.
 
 ---
 
@@ -616,6 +634,10 @@ def write_to_excel(sheets_data, output_path):
 
 Функции: `collect_duplicates_and_validation_report(sheets_data)` — сбор данных; `print_final_report(duplicates_report, validation_report)` — вывод в лог и консоль.
 
+#### 6. Лист STAT_FILE (статистика по файлам)
+
+После формирования SUMMARY программа создаёт лист **STAT_FILE** с общей статистикой по исходным CSV-файлам. Для каждого файла из `input_files` выводится: имя файла (`FILE_NAME`), имя листа (`SHEET_NAME`), дата изменения файла (`FILE_DATE`), дата обработки (`DATA_UPDATE_DATE`), количество записей (`ROW_COUNT`), количество колонок (`COL_COUNT`), размер файла в байтах (`FILE_SIZE_BYTES`), статус загрузки (`STATUS`: OK / не найден). Лист добавляется в `sheets_data` и выводится в Excel в порядке, заданном в `sheet_order` (по умолчанию — сразу после SUMMARY).
+
 ### Логирование
 
 Программа ведет два уровня логирования:
@@ -982,7 +1004,9 @@ python app.py
 
 **Основные изменения:**
 - Реализована основная программа обработки данных (`main.py`)
-- Вся конфигурация вынесена в **config.json** (пути, input_files, summary_key_defs, gender, field_length_validations, merge_fields_advanced, color_scheme, column_formats, check_duplicates, json_columns)
+- Вся конфигурация вынесена в **config.json** (пути, input_files, summary_sheet, sheet_order, summary_key_defs, gender, field_length_validations, merge_fields_advanced, color_scheme, column_formats, check_duplicates, json_columns)
+- **sheet_order** в config — задаётся порядок листов в выходном Excel; листы не из списка идут следом по алфавиту
+- Лист **STAT_FILE** — сводная статистика по исходным файлам (имя файла, лист, дата файла, дата обработки, строки, колонки, размер, статус)
 - Создана админ-панель для редактирования данных
 - Настроено логирование с двумя уровнями
 - Реализована проверка дубликатов по правилам из config
@@ -992,6 +1016,7 @@ python app.py
 - Документация собрана в корневом README.md и каталоге Docs/; копии main.py, README.md, config.json сохраняются в POST/ с суффиксом .txt
 
 **Исправленные проблемы:**
+- Исправлены отступы в main.py (basedpyright): find_file_case_insensitive, safe_json_loads, generate_dynamic_color_scheme_from_merge_fields, merge_fields_across_sheets
 - Исправлен порядок колонок в админ-панели
 - Добавлено детальное логирование ошибок
 - Исправлена обработка JSON полей
@@ -1011,4 +1036,4 @@ python app.py
 
 ---
 
-*Документация обновлена: 2026-01-31*
+*Документация обновлена: 2026-02-05*

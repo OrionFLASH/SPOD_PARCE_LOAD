@@ -142,6 +142,24 @@
     "col_width_mode": "AUTO",
     "min_col_width": 8
   },
+  "sheet_order": [
+    "SUMMARY",
+    "STAT_FILE",
+    "CONTEST-DATA",
+    "REWARD",
+    "TOURNAMENT-SCHEDULE",
+    "REWARD-LINK",
+    "GROUP",
+    "INDICATOR",
+    "REPORT", 
+    "ORG_UNIT_V20",
+    "USER_ROLE",
+    "EMPLOYEE",
+    "LIST-REWARDS",
+    "STATISTICS",
+    "LIST-TOURNAMENT",
+    "USER_ROLE SB"
+  ],
   "summary_key_defs": [
     {
       "sheet": "CONTEST-DATA",

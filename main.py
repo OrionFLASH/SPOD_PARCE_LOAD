@@ -18,59 +18,59 @@ from itertools import product
 import threading  # Для синхронизации потоков
 
 # === ОПТИМИЗАЦИИ ПРОИЗВОДИТЕЛЬНОСТИ ===
-#
+# 
 # Реализованные оптимизации (версия 4.0 - ФИНАЛЬНАЯ):
-#
+# 
 # 1. ВЕКТОРИЗАЦИЯ calculate_tournament_status:
 #    - Заменен df.apply(get_status, axis=1) на numpy.select с векторными условиями
 #    - Ускорение: 5-10x для больших DataFrame
 #    - Использует только стандартные библиотеки: pandas, numpy (входит в Anaconda)
-#
+# 
 # 2. РАСПАРАЛЛЕЛИВАНИЕ merge_fields_across_sheets:
 #    - Независимые правила обрабатываются параллельно через ThreadPoolExecutor
 #    - Группировка правил по зависимостям (sheet_dst)
 #    - Ускорение: 2-4x для множества независимых правил
 #    - Использует только стандартные библиотеки: concurrent.futures (встроено в Python)
-#
+# 
 # 3. ОПТИМИЗАЦИЯ write_to_excel:
 #    - Запись данных выполняется последовательно (ограничение ExcelWriter)
 #    - Форматирование листов выполняется последовательно (openpyxl не thread-safe)
 #    - ПРИМЕЧАНИЕ: Параллелизация форматирования Excel была откачена в v4.0
 #      из-за блокировок openpyxl, которые замедляли выполнение
 #    - Использует только стандартные библиотеки: openpyxl (входит в Anaconda)
-#
+# 
 # 4. ОПТИМИЗАЦИЯ _format_sheet:
 #    - Batch-операции для заголовков (вычисление всех ширин сразу)
 #    - Чанковая обработка больших листов (>1000 строк)
 #    - Ускорение: 1.3-2x для больших листов
 #    - Использует только стандартные библиотеки: openpyxl (входит в Anaconda)
-#
+# 
 # 5. ПАРАЛЛЕЛИЗАЦИЯ ПАРСИНГА JSON:
 #    - Параллелизация только для больших DataFrame (>5000 строк)
 #    - Использует ThreadPoolExecutor с оптимальным размером chunk
 #    - Ускорение: 2-3x для больших JSON колонок
 #    - Использует только стандартные библиотеки: concurrent.futures
-#
+# 
 # 6. ОПТИМИЗАЦИЯ КОНФИГУРАЦИИ ПОТОКОВ:
 #    - MAX_WORKERS_IO = 16 (для I/O операций: чтение файлов, парсинг JSON)
 #    - MAX_WORKERS_CPU = 8 (для CPU операций: вычисления, фильтрация)
 #    - Оптимизировано на основе тестирования производительности
-#
+# 
 # Все оптимизации используют только библиотеки, входящие в Python 3.10 или Anaconda 3.10.
-#
+# 
 # Дополнительные оптимизации (версия 5.0):
-#
+# 
 # 7. ВЕКТОРИЗАЦИЯ tuple_key:
 #    - Заменен df.apply(lambda row: tuple_key(row, keys), axis=1) на _vectorized_tuple_key
 #    - Использует прямое обращение к колонкам DataFrame вместо итерации по строкам
 #    - Ускорение: 3-5x для создания ключей в add_fields_to_sheet
 #    - Использует только стандартные библиотеки: pandas
-#
+# 
 # 8. ОПТИМИЗАЦИЯ _format_sheet (batch alignment):
 #    - Собираем все ячейки данных в список и применяем alignment одним проходом
 #    - Ускорение: 1.3-1.5x для больших листов
 #    - Использует только стандартные библиотеки: openpyxl
-#
+# 
 # 9. КЭШИРОВАНИЕ ЦВЕТОВЫХ СХЕМ:
 #    - Кэширование результата generate_dynamic_color_scheme_from_merge_fields()
 #    - Избегаем повторной генерации схем при каждом вызове apply_color_scheme
@@ -78,36 +78,36 @@ import threading  # Для синхронизации потоков
 #    - Использует только стандартные библиотеки: Python (встроенный механизм)
 
 # Дополнительные библиотеки не требуются.
-#
+# 
 # Все оптимизации используют только библиотеки, входящие в Python 3.10 или Anaconda 3.10.
 # Дополнительные библиотеки не требуются.
-#
+# 
 # В этом файле реализованы оптимизации для ускорения обработки данных:
-#
+# 
 # 1. ВЕКТОРИЗАЦИЯ ФУНКЦИЙ (ускорение 50-200x):
 #    - validate_field_lengths_vectorized: замена iterrows() на векторные операции pandas
 #    - add_auto_gender_column_vectorized: замена iterrows() на строковые операции pandas
 #    - collect_summary_keys_optimized: упрощенная версия с использованием merge
-#
+# 
 # 2. ПАРАЛЛЕЛЬНАЯ ОБРАБОТКА:
 #    - Параллельное чтение CSV файлов через ThreadPoolExecutor
 #    - Параллельная проверка длины полей
 #    - Параллельная проверка дубликатов
-#
+# 
 # 3. ОПТИМИЗАЦИЯ ПАМЯТИ:
 #    - Замена apply() на векторные операции где возможно
 #    - Использование pd.to_datetime вместо apply(safe_to_date)
-#
+# 
 # 4. УСТРАНЕНИЕ ДУБЛИРОВАНИЯ:
 #    - Удален дублирующийся блок кода в _format_sheet
 #    - Устранено тройное логирование в safe_json_loads
-#
+# 
 # ВАЖНО: Оптимизированные версии функций автоматически сравниваются с оригинальными
 #        для гарантии идентичности результатов. В случае различий используется оригинальная версия.
-#
+# 
 # Дата внедрения оптимизаций: 2025-01-20
 # Ожидаемое ускорение: 50-200x в зависимости от объема данных
-#
+# 
 
 
 
@@ -129,7 +129,7 @@ class CallerFormatter(logging.Formatter):
                     break
         except Exception:
             func_name = record.funcName
-
+        
         # Сохраняем оригинальное сообщение
         if hasattr(record, 'msg'):
             # Если msg это строка с плейсхолдерами, форматируем её
@@ -139,7 +139,7 @@ class CallerFormatter(logging.Formatter):
                 original_msg = str(record.msg)
         else:
             original_msg = str(record.getMessage())
-
+        
         # Добавляем имя функции к сообщению
         record.msg = f"{original_msg} [def: {func_name}]"
         record.args = ()  # Очищаем args чтобы избежать повторного форматирования
@@ -164,6 +164,10 @@ LOG_BASE_NAME = _cfg["logging"]["base_name"]
 # Входные файлы и сводный лист
 INPUT_FILES = _cfg["input_files"]
 SUMMARY_SHEET = _cfg["summary_sheet"]
+
+# Порядок листов в выходном Excel. Если задан — листы выводятся в этом порядке;
+# листы, не указанные в списке, идут следом в алфавитном порядке.
+SHEET_ORDER = _cfg.get("sheet_order") or []
 
 # Ключевые колонки сводного листа (определения и производный список)
 SUMMARY_KEY_DEFS = _cfg["summary_key_defs"]
@@ -208,7 +212,7 @@ TOURNAMENT_STATUS_CHOICES = _cfg.get("tournament_status_choices") or _TOURNAMENT
 def get_output_filename():
     """
     Генерирует имя выходного Excel файла с текущей датой и временем.
-
+    
     Returns:
         str: Имя файла в формате 'SPOD_ALL_IN_ONE_YYYY-MM-DD_HH-MM-SS.xlsx'
     """
@@ -219,7 +223,7 @@ def get_output_filename():
 def get_log_filename():
     """
     Генерирует имя лог-файла с учетом уровня логирования, текущей даты и времени.
-
+    
     Returns:
         str: Путь к лог-файлу в формате 'LOGS/LOGS_LEVEL_YYYYMMDD_HH_MM.log'
     """
@@ -233,11 +237,11 @@ def get_log_filename():
 def setup_logger():
     """
     Настраивает систему логирования для программы.
-
+    
     Создает логгер с двумя обработчиками:
     - Файловый: записывает логи в файл с кодировкой UTF-8 (включая DEBUG)
     - Консольный: выводит только INFO, WARNING, ERROR в стандартный вывод
-
+    
     Returns:
         str: Путь к созданному лог-файлу
     """
@@ -245,43 +249,43 @@ def setup_logger():
     # Если логгер уже инициализирован, не добавляем обработчики ещё раз
     if logging.getLogger().hasHandlers():
         return log_file
-
+    
     # Получаем корневой логгер
     logger = logging.getLogger()
     logger.setLevel(logging.DEBUG)  # Устанавливаем максимальный уровень для логгера
-
+    
     # Форматтер для файла (с именем функции)
     file_formatter = CallerFormatter(
         "%(asctime)s | %(levelname)s | %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S"
     )
-
+    
     # Форматтер для консоли (без имени функции)
     console_formatter = logging.Formatter(
         "%(asctime)s | %(levelname)s | %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S"
     )
-
+    
     # Файловый обработчик - принимает все уровни включая DEBUG
     file_handler = logging.FileHandler(log_file, encoding="utf-8", mode="a")
     file_handler.setLevel(logging.DEBUG)
     file_handler.setFormatter(file_formatter)
-
+    
     # Консольный обработчик - только INFO, WARNING, ERROR
     console_handler = logging.StreamHandler(sys.stdout)
     console_handler.setLevel(logging.INFO)  # INFO и выше (INFO, WARNING, ERROR)
     console_handler.setFormatter(console_formatter)
-
+    
     # Добавляем обработчики к логгеру
     logger.addHandler(file_handler)
     logger.addHandler(console_handler)
-
+    
     return log_file
 
 def calculate_tournament_status(df_tournament, df_report=None):
     """
     Вычисляет статус турнира на основе текущей даты и дат турнира.
-
+    
     Эта функция анализирует временные рамки турнира и определяет его текущее состояние.
     Статус зависит от соотношения текущей даты с датами начала, окончания и подведения итогов турнира.
 
@@ -296,7 +300,7 @@ def calculate_tournament_status(df_tournament, df_report=None):
     Args:
         df_tournament (pd.DataFrame): DataFrame с данными турниров, должен содержать колонки:
             - START_DT: дата начала турнира
-            - END_DT: дата окончания турнира
+            - END_DT: дата окончания турнира  
             - RESULT_DT: дата подведения итогов
         df_report (pd.DataFrame, optional): DataFrame с отчетами для анализа CONTEST_DATE.
             Должен содержать колонки TOURNAMENT_CODE и CONTEST_DATE.
@@ -316,10 +320,10 @@ def calculate_tournament_status(df_tournament, df_report=None):
     def safe_to_date(date_str):
         """
         Безопасно преобразует строку в дату, обрабатывая некорректные значения.
-
+        
         Args:
             date_str: Строка с датой или некорректное значение
-
+            
         Returns:
             datetime.date or None: Преобразованная дата или None при ошибке
         """
@@ -354,7 +358,7 @@ def calculate_tournament_status(df_tournament, df_report=None):
         df['MAX_CONTEST_DATE'] = df['TOURNAMENT_CODE'].map(max_contest_dates)
     else:
         df['MAX_CONTEST_DATE'] = None
-
+    
     # Векторизованное определение статуса с использованием numpy.select
     # Условия проверяются последовательно, первое совпадение определяет статус
     # ВАЖНО: Порядок условий критичен для корректной логики
@@ -375,13 +379,13 @@ def calculate_tournament_status(df_tournament, df_report=None):
         # Условие 6: today >= RESULT_DT и MAX_CONTEST_DATE >= RESULT_DT → ЗАВЕРШЕН
         (today > df['END_DT_parsed']) & (~pd.isna(df['RESULT_DT_parsed'])) & (today >= df['RESULT_DT_parsed']) & (~pd.isna(df['MAX_CONTEST_DATE'])) & (df['MAX_CONTEST_DATE'] >= df['RESULT_DT_parsed']),
     ]
-
+    
     # Метки статусов из config.json (tournament_status_choices); порядок соответствует conditions[0..6]
     choices = TOURNAMENT_STATUS_CHOICES if len(TOURNAMENT_STATUS_CHOICES) >= len(conditions) else (
         TOURNAMENT_STATUS_CHOICES + ["НЕОПРЕДЕЛЕН"] * (len(conditions) - len(TOURNAMENT_STATUS_CHOICES))
     )[:len(conditions)]
     default_label = TOURNAMENT_STATUS_CHOICES[0] if TOURNAMENT_STATUS_CHOICES else "НЕОПРЕДЕЛЕН"
-
+    
     # Используем numpy.select для векторизованного выбора (быстрее чем apply)
     try:
         import numpy as np
@@ -410,7 +414,7 @@ def validate_field_lengths(df, sheet_name):
     """
     Проверяет длину полей согласно конфигурации FIELD_LENGTH_VALIDATIONS.
     Добавляет колонку с результатом проверки для каждого листа.
-
+    
     Эта функция валидирует длину полей в DataFrame согласно заданным правилам.
     Результат проверки записывается в специальную колонку для последующего анализа.
 
@@ -453,12 +457,12 @@ def validate_field_lengths(df, sheet_name):
     def check_field_length(value, limit, operator):
         """
         Проверяет соответствие длины поля заданному ограничению.
-
+        
         Args:
             value: Значение поля для проверки
             limit (int): Ограничение длины
             operator (str): Оператор сравнения ("<=", "=", ">=", "<", ">")
-
+            
         Returns:
             bool: True если поле соответствует ограничению, False если нарушает
         """
@@ -484,11 +488,11 @@ def validate_field_lengths(df, sheet_name):
     def check_row(row, row_idx):
         """
         Проверяет одну строку и возвращает результат проверки.
-
+        
         Args:
             row: Строка DataFrame для проверки
             row_idx: Индекс строки для логирования
-
+            
         Returns:
             str: Результат проверки: "-" если все корректно, иначе описание нарушений
         """
@@ -542,10 +546,10 @@ def validate_field_lengths(df, sheet_name):
 def validate_field_lengths_vectorized(df, sheet_name):
     """
     ОПТИМИЗИРОВАННАЯ ВЕРСИЯ: Векторизованная проверка длины полей.
-
+    
     Обрабатывает все строки одновременно используя векторные операции pandas
     вместо iterrows(). Ожидаемое ускорение: 50-100x.
-
+    
     Args:
         df (pd.DataFrame): DataFrame для проверки
         sheet_name (str): Название листа
@@ -576,13 +580,13 @@ def validate_field_lengths_vectorized(df, sheet_name):
     for field_name, field_config in fields_config.items():
         limit = field_config["limit"]
         operator = field_config["operator"]
-
+        
         if field_name not in df.columns:
             continue
-
+        
         lengths = df[field_name].astype(str).str.len()
         empty_mask = df[field_name].isin(['', '-', 'None', 'null']) | df[field_name].isna()
-
+        
         if operator == "<=":
             mask = (lengths > limit) & ~empty_mask
         elif operator == "=":
@@ -595,13 +599,13 @@ def validate_field_lengths_vectorized(df, sheet_name):
             mask = (lengths <= limit) & ~empty_mask
         else:
             mask = pd.Series(False, index=df.index)
-
+        
         if mask.any():
             violations_dict[field_name] = pd.Series('', index=df.index, dtype=str)
             violations_dict[field_name].loc[mask] = df.loc[mask, field_name].apply(
                 lambda val: f"{field_name} = {len(str(val))} {operator} {limit}"
             )
-
+            
             for idx in df.index[mask]:
                 logging.debug(f"[DEBUG] Строка {idx}: поле '{field_name}' = {len(str(df.loc[idx, field_name]))} {operator} {limit} (нарушение)")
 
@@ -614,10 +618,10 @@ def validate_field_lengths_vectorized(df, sheet_name):
         df[result_column] = violations_series.replace('', '-')
     else:
         df[result_column] = '-'
-
+    
     correct_count = (df[result_column] == "-").sum()
     error_count = total_rows - correct_count
-
+    
     func_time = time() - func_start
     logging.info(f"[FIELD LENGTH VECTORIZED] Статистика: корректных={correct_count}, с ошибками={error_count} (всего: {total_rows})")
     logging.info(f"[FIELD LENGTH VECTORIZED] Завершено за {func_time:.3f}s для листа {sheet_name}")
@@ -628,25 +632,25 @@ def validate_field_lengths_vectorized(df, sheet_name):
 def compare_validate_results(df_old, df_new, result_column):
     """
     Сравнивает результаты работы старой и новой версии validate_field_lengths.
-
+    
     Args:
         df_old (pd.DataFrame): Результат старой версии
         df_new (pd.DataFrame): Результат новой версии
         result_column (str): Название колонки с результатами
-
+    
     Returns:
         dict: Словарь с результатами сравнения
     """
     if result_column not in df_old.columns or result_column not in df_new.columns:
         return {"error": "Колонка с результатами не найдена"}
-
+    
     old_results = df_old[result_column].fillna('-')
     new_results = df_new[result_column].fillna('-')
-
+    
     differences = (old_results != new_results).sum()
     total = len(df_old)
     matches = total - differences
-
+    
     diff_examples = []
     if differences > 0:
         diff_mask = old_results != new_results
@@ -657,7 +661,7 @@ def compare_validate_results(df_old, df_new, result_column):
                 "old": old_results.loc[idx],
                 "new": new_results.loc[idx]
             })
-
+    
     return {
         "total": total,
         "matches": matches,
@@ -674,19 +678,19 @@ def compare_validate_results(df_old, df_new, result_column):
 def find_file_case_insensitive(directory: str, base_name: str, extensions: List[str]) -> Optional[str]:
     """
     Ищет файл в каталоге без учета регистра имени файла и расширения.
-
+    
     Args:
         directory (str): Каталог для поиска
         base_name (str): Имя файла — либо полное с расширением (например, "file.csv"),
                          либо базовое без расширения
         extensions (list): Список возможных расширений (например, ['.csv', '.CSV'])
-
+    
     Returns:
         str or None: Полный путь к найденному файлу или None если файл не найден
     """
     if not os.path.exists(directory):
         return None
-
+    
     # Если передано полное имя с расширением — используем его для сравнения
     name_stem, name_ext = os.path.splitext(base_name)
     if name_ext and name_ext.lower() in [e.lower() for e in extensions]:
@@ -702,7 +706,7 @@ def find_file_case_insensitive(directory: str, base_name: str, extensions: List[
         files_in_dir = os.listdir(directory)
     except OSError:
         return None
-
+    
     for file_name in files_in_dir:
         name, ext = os.path.splitext(file_name)
         if match_full_name:
@@ -712,7 +716,7 @@ def find_file_case_insensitive(directory: str, base_name: str, extensions: List[
             if (name.lower() == match_stem and
                     ext.lower() in [e.lower() for e in extensions]):
                 return os.path.join(directory, file_name)
-
+    
     return None
 
 
@@ -720,7 +724,7 @@ def check_input_files_exist() -> List[Dict[str, str]]:
     """
     Проверяет наличие всех файлов из INPUT_FILES в каталоге DIR_INPUT.
     Использует ту же логику поиска, что и при загрузке (find_file_case_insensitive).
-
+    
     Returns:
         list: Список ненайденных файлов. Каждый элемент — dict с ключами "file", "sheet".
               Пустой список, если все файлы найдены.
@@ -738,54 +742,54 @@ def check_input_files_exist() -> List[Dict[str, str]]:
 def read_csv_file(file_path: str) -> Optional[pd.DataFrame]:
     """
     Читает CSV файл с заданными параметрами и логирует процесс.
-
+    
     Функция настроена для работы с CSV файлами, использующими точку с запятой как разделитель.
     Все данные читаются как строки для сохранения точности, особенно для JSON полей.
     Сохраняет тройные кавычки в неизменном виде.
-
+    
     Args:
         file_path (str): Путь к CSV файлу для чтения
-
+        
     Returns:
         pd.DataFrame or None: DataFrame с данными или None при ошибке
     """
     func_start = time()  # Засекаем время начала выполнения
     params = f"({file_path})"
     logging.info(f"[START] read_csv_file {params}")
-
+    
     try:
         rows = []
         headers = None
-
+        
         with open(file_path, 'r', encoding='utf-8', newline='') as file:
             # Используем csv.reader с настройками для сохранения кавычек
             csv_reader = csv.reader(file, delimiter=';', quoting=csv.QUOTE_NONE)
-
+            
             for i, row in enumerate(csv_reader):
                 if i == 0:
                     headers = row
                 else:
                     rows.append(row)
-
+        
         # Создаем DataFrame из прочитанных данных
         df = pd.DataFrame(rows, columns=headers)
-
+        
         # Убеждаемся, что все данные - строки
         for col in df.columns:
             df[col] = df[col].astype(str)
-
+        
         # Логируем образцы JSON полей для отладки
         for col in df.columns:
             if "FEATURE" in col or "ADD_DATA" in col:
                 logging.debug(f"[DEBUG] CSV {file_path} поле {col}: {df[col].dropna().head(2).to_list()}")
-
+        
         # Логируем успешное чтение файла
         logging.info(f"Файл успешно загружен: {file_path}, строк: {len(df)}, колонок: {len(df.columns)}")
-
+        
         # Засекаем время выполнения и логируем завершение
         func_time = time() - func_start
         return df
-
+        
     except Exception as e:
         # Логируем ошибку и возвращаем None
         func_time = time() - func_start
@@ -798,10 +802,10 @@ def read_csv_file(file_path: str) -> Optional[pd.DataFrame]:
 def write_to_excel(sheets_data: Dict[str, Any], output_path: str) -> None:
     """
     Записывает данные в Excel файл с форматированием и настройками.
-
+    
     Функция создает Excel файл с несколькими листами, применяет форматирование
     и делает SUMMARY лист активным по умолчанию.
-
+    
     Args:
         sheets_data (dict): Словарь с данными листов в формате {sheet_name: (df, params)}
         output_path (str): Путь к выходному Excel файлу
@@ -825,12 +829,17 @@ def write_to_excel(sheets_data: Dict[str, Any], output_path: str) -> None:
     func_start = time()  # Засекаем время начала выполнения
     params = f"({output_path})"
     logging.info(f"[START] write_to_excel {params}")
-
+    
     try:
-        # Определяем порядок листов: SUMMARY первый, затем уникальные листы, остальные по алфавиту
-        other_sheets = [s for s in sheets_data if s != "SUMMARY"]
-        ordered_sheets = ["SUMMARY"] + sorted(other_sheets)
-
+        # Определяем порядок листов: по SHEET_ORDER из config, затем остальные по алфавиту
+        if SHEET_ORDER:
+            ordered_sheets = [s for s in SHEET_ORDER if s in sheets_data]
+            remaining = sorted([s for s in sheets_data if s not in SHEET_ORDER])
+            ordered_sheets = ordered_sheets + remaining
+        else:
+            other_sheets = [s for s in sheets_data if s != "SUMMARY"]
+            ordered_sheets = ["SUMMARY"] + sorted(other_sheets)
+        
         # ОПТИМИЗАЦИЯ: Параллельная подготовка DataFrame с преобразованием типов по COLUMN_FORMATS
         def _prepare_sheet_for_write(sheet_name):
             if sheet_name not in sheets_data or sheets_data[sheet_name] is None:
@@ -868,7 +877,7 @@ def write_to_excel(sheets_data: Dict[str, Any], output_path: str) -> None:
                 if len(sheet_data) < 1 or sheet_data[0] is None:
                     logging.warning(f"[write_to_excel] Пропущен лист {sheet_name}: DataFrame равен None")
                     continue
-
+                
                 df_write, params_sheet = sheet_data
                 logging.debug(f"[DEBUG write_to_excel] Записываем лист {sheet_name}...")
                 logging.debug(f"[DEBUG write_to_excel] DataFrame shape: {df_write.shape}, колонок: {len(df_write.columns)}")
@@ -879,7 +888,7 @@ def write_to_excel(sheets_data: Dict[str, Any], output_path: str) -> None:
 
                 df_write.to_excel(writer, index=False, sheet_name=sheet_name)
                 logging.info(f"Лист Excel записан: {sheet_name} (строк: {len(df_write)}, колонок: {len(df_write.columns)})")
-
+            
             # ОПТИМИЗАЦИЯ: Форматируем листы последовательно (openpyxl не thread-safe для параллельной записи)
             # Примечание: Параллелизация форматирования Excel была откачена, т.к. openpyxl не thread-safe
             # и параллельная запись в один файл создает блокировки, замедляющие выполнение
@@ -888,25 +897,25 @@ def write_to_excel(sheets_data: Dict[str, Any], output_path: str) -> None:
                 if sheet_name not in sheets_data or sheets_data[sheet_name] is None:
                     logging.warning(f"[write_to_excel] Пропущен лист {sheet_name} при форматировании: данные отсутствуют или равны None")
                     continue
-
+                
                 sheet_data = sheets_data[sheet_name]
                 if len(sheet_data) < 1 or sheet_data[0] is None:
                     logging.warning(f"[write_to_excel] Пропущен лист {sheet_name} при форматировании: DataFrame равен None")
                     continue
-
+                
                 df, params_sheet = sheet_data
                 ws = writer.sheets[sheet_name]
                 _format_sheet(ws, df, params_sheet)  # Применяем форматирование
                 logging.info(f"Лист Excel сформирован: {sheet_name} (строк: {len(df)}, колонок: {len(df.columns)})")
-
+            
             # Делаем SUMMARY лист активным по умолчанию
             writer.book.active = writer.book.sheetnames.index("SUMMARY")
             writer.book.save(output_path)  # Сохраняем файл
-
+        
         # Логируем успешное завершение
         func_time = time() - func_start
         logging.info(f"[END] write_to_excel {params} (время: {func_time:.3f}s)")
-
+        
     except Exception as ex:
         # Логируем ошибку
         func_time = time() - func_start
@@ -1112,25 +1121,25 @@ def _format_sheet(ws, df, params):
     # ОПТИМИЗАЦИЯ: Batch-операции для заголовков - вычисляем все ширины сразу
     header_cells = list(ws[1])
     column_widths = {}
-
+    
     for col_num, cell in enumerate(header_cells, 1):
         cell.font = header_font
         cell.alignment = align_center
         col_letter = get_column_letter(col_num)
         col_name = cell.value
-
+        
         # Вычисляем ширину колонки
         width = calculate_column_width(col_name, ws, params, col_num)
         column_widths[col_letter] = width
-
+        
         # Определяем режим для логирования
         width_mode_info = params.get("col_width_mode", "AUTO")
         added_cols_width = params.get("added_columns_width", {})
         if col_name in added_cols_width:
             width_mode_info = added_cols_width[col_name].get("width_mode", "AUTO")
-
+        
         logging.debug(f"[COLUMN WIDTH] {ws.title}: колонка '{col_name}' -> ширина {width} (режим: {width_mode_info})")
-
+    
     # Применяем все ширины колонок сразу (batch-операция)
     for col_letter, width in column_widths.items():
         ws.column_dimensions[col_letter].width = width
@@ -1145,7 +1154,7 @@ def _format_sheet(ws, df, params):
         data_cells = []
         for row in ws.iter_rows(min_row=2, max_row=ws.max_row, max_col=ws.max_column):
             data_cells.extend(row)
-
+        
         # Применяем alignment ко всем ячейкам сразу (batch операция)
         for cell in data_cells:
             cell.alignment = align_data
@@ -1159,7 +1168,7 @@ def _format_sheet(ws, df, params):
 
     func_time = time() - func_start
     logging.debug(f"[END] _format_sheet {params_str} (время: {func_time:.3f}s)")
-
+    
     # Возвращаем имя листа для логирования в параллельном режиме
     return ws.title
 
@@ -1217,7 +1226,7 @@ def safe_json_loads_preserve_triple_quotes(s: str):
     s = s.strip()
     if not s or s in {'-', 'None', 'null'}:
         return None
-
+    
     # Сначала пробуем распарсить как есть
     try:
         return json.loads(s)
@@ -1234,18 +1243,18 @@ def flatten_json_column_recursive(df, column, prefix=None, sheet=None, sep="; ")
     n_errors = 0
     prefix = prefix if prefix is not None else column
     logging.info(f"[START] flatten_json_column_recursive (лист: {sheet}, колонка: {column})")
-
+    
     # Для CONTEST_FEATURE создаем копию с валидным JSON для парсинга
     # Сохраняем исходную колонку с тройными кавычками как есть
     original_column_data = None
     if column == "CONTEST_FEATURE" and column in df.columns:
         # Сохраняем исходные данные
         original_column_data = df[column].copy()
-
+        
         # Создаем временную колонку для парсинга с заменой тройных кавычек
         temp_column = f"{column}_TEMP_PARSED"
         df[temp_column] = df[column].apply(lambda x: x.replace('"""', '"') if isinstance(x, str) else x)
-
+        
         # Теперь будем парсить из временной колонки
         column_to_parse = temp_column
     else:
@@ -1258,7 +1267,7 @@ def flatten_json_column_recursive(df, column, prefix=None, sheet=None, sep="; ")
         if isinstance(obj, str):
             # Сначала пробуем распарсить JSON (для разворачивания)
             nested = safe_json_loads(obj)
-
+            
             if isinstance(nested, (dict, list)):
                 # keep original string (с тройными кавычками, если они были)
                 fields[current_prefix] = obj
@@ -1291,11 +1300,11 @@ def flatten_json_column_recursive(df, column, prefix=None, sheet=None, sep="; ")
 
             # ОПТИМИЗИРОВАННАЯ ВЕРСИЯ v2: Параллельный парсинг JSON с проверкой размера
     new_cols = {}
-
+    
     # ОПТИМИЗАЦИЯ: Параллелизация только для больших данных (>5000 строк)
     # Для небольших данных накладные расходы превышают выигрыш
     PARALLEL_JSON_THRESHOLD = 5000
-
+    
     if n_rows > PARALLEL_JSON_THRESHOLD:
         def parse_json_chunk(chunk_data):
             """Парсит chunk данных и возвращает словарь с результатами"""
@@ -1321,19 +1330,19 @@ def flatten_json_column_recursive(df, column, prefix=None, sheet=None, sep="; ")
                     logging.debug(f"Ошибка разбора JSON (строка {global_idx}): {ex}")
                     chunk_errors += 1
                     flat = {}
-
+                
                 for k, v in flat.items():
                     if k not in chunk_results:
                         chunk_results[k] = {}
                     chunk_results[k][global_idx] = v
             return chunk_results, chunk_errors
-
+        
         # Разбиваем на chunks для параллельной обработки
         # Оптимизированный размер chunk: минимум 2000 строк на chunk
         chunk_size = max(2000, n_rows // MAX_WORKERS_IO)
-        chunks = [(i * chunk_size, df[column_to_parse].iloc[i * chunk_size:(i + 1) * chunk_size].tolist())
+        chunks = [(i * chunk_size, df[column_to_parse].iloc[i * chunk_size:(i + 1) * chunk_size].tolist()) 
                   for i in range((n_rows + chunk_size - 1) // chunk_size)]
-
+        
         # Параллельная обработка chunks только если chunks > 1
         if len(chunks) > 1:
             from concurrent.futures import ThreadPoolExecutor as TPE
@@ -1341,7 +1350,7 @@ def flatten_json_column_recursive(df, column, prefix=None, sheet=None, sep="; ")
                 chunk_data_list = list(executor.map(parse_json_chunk, chunks))
                 chunk_results_list = [data[0] for data in chunk_data_list]
                 n_errors += sum(data[1] for data in chunk_data_list)
-
+            
             # Объединяем результаты
             for chunk_results in chunk_results_list:
                 for k, v_dict in chunk_results.items():
@@ -1386,16 +1395,16 @@ def flatten_json_column_recursive(df, column, prefix=None, sheet=None, sep="; ")
     for col_name, values in new_cols.items():
         if any(x is not None for x in values):
             df[col_name] = values
-
+    
     # Для CONTEST_FEATURE восстанавливаем исходную колонку с тройными кавычками
     if original_column_data is not None:
         # Восстанавливаем исходную колонку с тройными кавычками
         df[column] = original_column_data
-
+        
         # Удаляем временную колонку
         if temp_column in df.columns:
             df = df.drop(columns=[temp_column])
-
+        
         logging.info("[CONTEST_FEATURE] Исходная колонка восстановлена с тройными кавычками")
 
     logging.info(f"[INFO] {column} → новых колонок: {len(new_cols)}")
@@ -1555,7 +1564,7 @@ def collect_summary_keys(dfs):
     reward_data = dfs.get("REWARD", pd.DataFrame())
     contest_data = dfs.get("CONTEST-DATA", pd.DataFrame())
     indicators = dfs.get("INDICATOR", pd.DataFrame())
-
+    
     # Заменяем None на пустые DataFrame
     if rewards is None:
         rewards = pd.DataFrame()
@@ -1572,7 +1581,7 @@ def collect_summary_keys(dfs):
 
     # Коды для детального логирования
     DEBUG_CODES = []  # Отключено подробное логирование
-
+    
     all_contest_codes = set()
     all_tournament_codes = set()
     all_reward_codes = set()
@@ -1605,18 +1614,18 @@ def collect_summary_keys(dfs):
         is_debug = str(code) in DEBUG_CODES
         if is_debug:
             logging.info(f"[DEBUG GROUP] === Обработка CONTEST_CODE: {code} ===")
-
+        
         tourns = tournaments[tournaments["CONTEST_CODE"] == code][
             "TOURNAMENT_CODE"].dropna().unique() if not tournaments.empty else []
         rewards_ = rewards[rewards["CONTEST_CODE"] == code][
             "REWARD_CODE"].dropna().unique() if not rewards.empty else []
         groups_df = groups[groups["CONTEST_CODE"] == code] if not groups.empty else pd.DataFrame()
-
+        
         if is_debug:
             logging.info(f"[DEBUG GROUP] Найдено строк в GROUP для CONTEST_CODE {code}: {len(groups_df)}")
             if not groups_df.empty:
                 logging.info(f"[DEBUG GROUP] Строки GROUP:\n{groups_df[['GROUP_CODE', 'GROUP_VALUE', 'CONTEST_CODE']].to_string()}")
-
+        
         # ИСПРАВЛЕНИЕ: GROUP_VALUE должен быть связан с конкретным GROUP_CODE
         # Вместо декартова произведения создаем пары (GROUP_CODE, GROUP_VALUE)
         group_code_value_pairs = []
@@ -1629,7 +1638,7 @@ def collect_summary_keys(dfs):
                     pair = (str(g_code), str(g_value))
                     if pair not in group_code_value_pairs:
                         group_code_value_pairs.append(pair)
-
+        
         if is_debug:
             logging.info(f"[DEBUG GROUP] Уникальные пары (GROUP_CODE, GROUP_VALUE) для CONTEST_CODE {code}: {group_code_value_pairs}")
             if not groups_df.empty:
@@ -1637,22 +1646,22 @@ def collect_summary_keys(dfs):
                 unique_values = groups_df["GROUP_VALUE"].dropna().unique()
                 logging.info(f"[DEBUG GROUP] Уникальные GROUP_CODE: {list(unique_groups)}")
                 logging.info(f"[DEBUG GROUP] Уникальные GROUP_VALUE: {list(unique_values)}")
-
+        
         # Если нет пар, создаем одну с "-"
         if not group_code_value_pairs:
             group_code_value_pairs = [("-", "-")]
-
+        
         # Добавляем INDICATOR_ADD_CALC_TYPE для данного CONTEST_CODE
         indicator_types_ = []
         if not indicators.empty:
             indicator_df = indicators[indicators["CONTEST_CODE"] == code]
             if not indicator_df.empty:
                 indicator_types_ = indicator_df["INDICATOR_ADD_CALC_TYPE"].fillna("").unique().tolist()
-
+        
         tourns = tourns if len(tourns) else ["-"]
         rewards_ = rewards_ if len(rewards_) else ["-"]
         indicator_types_ = indicator_types_ if len(indicator_types_) else [""]
-
+        
         if is_debug:
             logging.info(f"[DEBUG GROUP] TOURNAMENT_CODE: {list(tourns)}")
             logging.info(f"[DEBUG GROUP] REWARD_CODE: {list(rewards_)}")
@@ -1673,11 +1682,11 @@ def collect_summary_keys(dfs):
             code = tournaments[tournaments["TOURNAMENT_CODE"] == t_code]["CONTEST_CODE"].dropna().unique()
             code = code[0] if len(code) else "-"
             is_debug = str(code) in DEBUG_CODES or str(t_code) in DEBUG_CODES
-
+            
             rewards_ = rewards[rewards["CONTEST_CODE"] == code][
                 "REWARD_CODE"].dropna().unique() if not rewards.empty else []
             groups_df = groups[groups["CONTEST_CODE"] == code] if not groups.empty else pd.DataFrame()
-
+            
             # ИСПРАВЛЕНИЕ: Используем пары (GROUP_CODE, GROUP_VALUE)
             group_code_value_pairs = []
             if not groups_df.empty:
@@ -1688,19 +1697,19 @@ def collect_summary_keys(dfs):
                         pair = (str(g_code), str(g_value))
                         if pair not in group_code_value_pairs:
                             group_code_value_pairs.append(pair)
-
+            
             if not group_code_value_pairs:
                 group_code_value_pairs = [("-", "-")]
-
+            
             indicator_types_ = []
             if code != "-" and not indicators.empty:
                 indicator_df = indicators[indicators["CONTEST_CODE"] == code]
                 if not indicator_df.empty:
                     indicator_types_ = indicator_df["INDICATOR_ADD_CALC_TYPE"].fillna("").unique().tolist()
-
+            
             rewards_ = rewards_ if len(rewards_) else ["-"]
             indicator_types_ = indicator_types_ if len(indicator_types_) else [""]
-
+            
             for r in rewards_:
                 for g_code, g_value in group_code_value_pairs:
                     for ind_type in indicator_types_:
@@ -1713,7 +1722,7 @@ def collect_summary_keys(dfs):
             code = code[0] if len(code) else "-"
         else:
             code = "-"
-
+        
         is_debug = str(code) in DEBUG_CODES or str(r_code) in DEBUG_CODES
 
         if code != "-" and not tournaments.empty:
@@ -1734,10 +1743,10 @@ def collect_summary_keys(dfs):
                         group_code_value_pairs.append(pair)
         else:
             group_code_value_pairs = []
-
+        
         if not group_code_value_pairs:
             group_code_value_pairs = [("-", "-")]
-
+        
         indicator_types_ = []
         if code != "-" and not indicators.empty:
             indicator_df = indicators[indicators["CONTEST_CODE"] == code]
@@ -1756,54 +1765,54 @@ def collect_summary_keys(dfs):
     if not groups.empty:
         for g_code in groups["GROUP_CODE"].dropna().unique():
             is_debug = str(g_code) in DEBUG_CODES
-
+            
             if is_debug:
                 logging.info(f"[DEBUG GROUP] === Обработка GROUP_CODE: {g_code} ===")
-
+            
             # ИСПРАВЛЕНИЕ: Находим все CONTEST_CODE для данного GROUP_CODE и обрабатываем каждый отдельно
             group_contest_codes = groups[groups["GROUP_CODE"] == g_code]["CONTEST_CODE"].dropna().unique()
-
+            
             if is_debug:
                 logging.info(f"[DEBUG GROUP] Найдено CONTEST_CODE для GROUP_CODE {g_code}: {list(group_contest_codes)}")
-
+            
             # Обрабатываем каждый CONTEST_CODE отдельно
             for group_contest_code in group_contest_codes:
                 actual_code = str(group_contest_code)
-
+                
                 if is_debug:
                     logging.info(f"[DEBUG GROUP] Обработка GROUP_CODE {g_code} для CONTEST_CODE: {actual_code}")
-
+                
                 # Берем GROUP_VALUE только для конкретного CONTEST_CODE и GROUP_CODE
                 group_values_df = groups[(groups["GROUP_CODE"] == g_code) & (groups["CONTEST_CODE"] == actual_code)]
                 group_values_ = group_values_df["GROUP_VALUE"].dropna().unique() if not group_values_df.empty else []
-
+                
                 if is_debug:
                     logging.info(f"[DEBUG GROUP] Найдено строк в GROUP для GROUP_CODE {g_code} и CONTEST_CODE {actual_code}: {len(group_values_df)}")
                     if not group_values_df.empty:
                         logging.info(f"[DEBUG GROUP] Строки GROUP:\n{group_values_df[['GROUP_CODE', 'GROUP_VALUE', 'CONTEST_CODE']].to_string()}")
                     logging.info(f"[DEBUG GROUP] Уникальные GROUP_VALUE: {list(group_values_)}")
-
+                
                 # Ищем связанные TOURNAMENT_CODE и REWARD_CODE для этого CONTEST_CODE
                 tourns = tournaments[tournaments["CONTEST_CODE"] == actual_code][
                     "TOURNAMENT_CODE"].dropna().unique() if not tournaments.empty else []
                 rewards_ = rewards[rewards["CONTEST_CODE"] == actual_code][
                     "REWARD_CODE"].dropna().unique() if not rewards.empty else []
-
+                
                 # Добавляем INDICATOR_ADD_CALC_TYPE
                 indicator_types_ = []
                 if not indicators.empty:
                     indicator_df = indicators[indicators["CONTEST_CODE"] == actual_code]
                     if not indicator_df.empty:
                         indicator_types_ = indicator_df["INDICATOR_ADD_CALC_TYPE"].fillna("").unique().tolist()
-
+                
                 tourns = tourns if len(tourns) else ["-"]
                 rewards_ = rewards_ if len(rewards_) else ["-"]
                 group_values_ = group_values_ if len(group_values_) else ["-"]
                 indicator_types_ = indicator_types_ if len(indicator_types_) else [""]
-
+                
                 if is_debug:
                     logging.info(f"[DEBUG GROUP] Будет создано комбинаций: {len(tourns)} x {len(rewards_)} x {len(group_values_)} x {len(indicator_types_)} = {len(tourns) * len(rewards_) * len(group_values_) * len(indicator_types_)}")
-
+                
                 for t in tourns:
                     for r in rewards_:
                         for gv in group_values_:
@@ -1821,7 +1830,7 @@ def collect_summary_keys(dfs):
                 code = "-"
             if pd.isna(ind_type):
                 ind_type = ""
-
+            
             code = str(code)
             ind_type = str(ind_type)
 
@@ -1829,12 +1838,12 @@ def collect_summary_keys(dfs):
                 tourns = tournaments[tournaments["CONTEST_CODE"] == code]["TOURNAMENT_CODE"].dropna().unique()
             else:
                 tourns = []
-
+            
             if code != "-" and not rewards.empty:
                 rewards_ = rewards[rewards["CONTEST_CODE"] == code]["REWARD_CODE"].dropna().unique()
             else:
                 rewards_ = []
-
+            
             if code != "-" and not groups.empty:
                 groups_df = groups[groups["CONTEST_CODE"] == code]
                 # ИСПРАВЛЕНИЕ: Используем пары (GROUP_CODE, GROUP_VALUE)
@@ -1848,27 +1857,27 @@ def collect_summary_keys(dfs):
                             group_code_value_pairs.append(pair)
             else:
                 group_code_value_pairs = []
-
+            
             if not group_code_value_pairs:
                 group_code_value_pairs = [("-", "-")]
-
+            
             tourns = tourns if len(tourns) else ["-"]
             rewards_ = rewards_ if len(rewards_) else ["-"]
-
+            
             for t in tourns:
                 for r in rewards_:
                     for g_code, g_value in group_code_value_pairs:
                         all_rows.append((code, str(t), str(r), str(g_code), str(g_value), ind_type))
 
     # Удалить дубли
-
+    
     # ОПТИМИЗАЦИЯ v5.0: Гарантируем, что всегда возвращаем DataFrame
     if len(all_rows) == 0:
         # Если нет данных, создаем пустой DataFrame с правильными колонками
         summary_keys = pd.DataFrame(columns=SUMMARY_KEY_COLUMNS)
     else:
         summary_keys = pd.DataFrame(all_rows, columns=SUMMARY_KEY_COLUMNS).drop_duplicates().reset_index(drop=True)
-
+    
     # Детальное логирование для отладки
     for debug_code in DEBUG_CODES:
         debug_rows = summary_keys[summary_keys["CONTEST_CODE"] == debug_code]
@@ -1880,36 +1889,36 @@ def collect_summary_keys(dfs):
             logging.info("[DEBUG GROUP] Комбинации (GROUP_CODE, GROUP_VALUE):")
             for _, row in debug_rows.iterrows():
                 logging.info(f"[DEBUG GROUP]   GROUP_CODE={row['GROUP_CODE']}, GROUP_VALUE={row['GROUP_VALUE']}")
-
-
+    
+    
     # ОПТИМИЗАЦИЯ v5.0: Финальная проверка - гарантируем возврат DataFrame
     if summary_keys is None or not isinstance(summary_keys, pd.DataFrame):
         logging.warning("[collect_summary_keys] summary_keys равен None или не DataFrame, создаем пустой DataFrame")
         summary_keys = pd.DataFrame(columns=SUMMARY_KEY_COLUMNS)
-
+    
     return summary_keys
 
 
 def collect_summary_keys_optimized(dfs):
     """
     ОПТИМИЗИРОВАННАЯ ВЕРСИЯ: Использует merge вместо вложенных циклов.
-
+    
     ВАЖНО: Эта версия упрощена и может не полностью воспроизводить логику оригинала
     из-за сложности исходной функции. Используется для тестирования производительности.
     Для продакшена рекомендуется использовать оригинальную версию или доработать эту.
-
+    
     Ожидаемое ускорение: 20-50x за счет использования pandas merge.
     """
     func_start = time()
     logging.info("[COLLECT SUMMARY KEYS OPTIMIZED] Начало оптимизированного сбора ключей")
-
+    
     # Используем оригинальную версию, но с логированием времени
     # TODO: Реализовать полную оптимизированную версию с merge
     result = collect_summary_keys(dfs)
-
+    
     func_time = time() - func_start
     logging.info(f"[COLLECT SUMMARY KEYS OPTIMIZED] Завершено за {func_time:.3f}s, создано {len(result)} строк")
-
+    
     return result
 
 
@@ -1927,7 +1936,7 @@ def mark_duplicates(df, key_cols, sheet_name=None):
     params = {"sheet": sheet_name, "keys": key_cols}
     func_start = tmod.time()
     col_name = "ДУБЛЬ: " + "_".join(key_cols)  # Имя колонки формируется из ключей
-
+    
 
     logging.info(f"[START] Проверка дублей: {sheet_name}, ключ: {key_cols}")
     try:
@@ -2059,9 +2068,9 @@ def add_fields_to_sheet(df_base, df_ref, src_keys, dst_keys, columns, sheet_name
                 group_counts = df_ref.groupby(src_keys).size()
         else:
             group_counts = df_ref.groupby(src_keys).size()
-
+        
         count_dict = {key_tuple: count for key_tuple, count in group_counts.items()}
-
+        
         if count_label is not None:
             # Одна колонка с именем COUNT_{count_aggregation}_{count_label}
             count_col_name = f"{ref_sheet_name}=>COUNT_{count_aggregation}_{count_label}"
@@ -2092,14 +2101,14 @@ def add_fields_to_sheet(df_base, df_ref, src_keys, dst_keys, columns, sheet_name
         # Старая логика: первое найденное значение
         # ОПТИМИЗАЦИЯ v5.0: Векторизованное создание ключей (3-5x быстрее)
         new_keys = _vectorized_tuple_key(df_base, dst_keys)
-
+        
         # Оптимизация: собираем все новые колонки в словарь и добавляем их одним вызовом
         new_columns_dict = {}
         for col in columns:
             ref_map = dict(zip(df_ref_keys, df_ref[col]))
             new_col_name = f"{ref_sheet_name}=>{col}"
             new_columns_dict[new_col_name] = new_keys.map(ref_map).fillna("-")
-
+        
         # Добавляем все колонки одним вызовом через pd.concat для избежания фрагментации
         if new_columns_dict:
             new_columns_df = pd.DataFrame(new_columns_dict, index=df_base.index)
@@ -2110,7 +2119,7 @@ def add_fields_to_sheet(df_base, df_ref, src_keys, dst_keys, columns, sheet_name
                     if new_col_name in df_base.columns:
                         filled = (df_base[new_col_name] != "-").sum()
                         logging.info(f"[MERGE] add_fields_to_sheet результат LIST-TOURNAMENT -> TOURNAMENT-SCHEDULE: колонка '{new_col_name}', заполнено строк: {filled} из {len(df_base)}")
-
+        
         # Специально для REWARD_LINK =>CONTEST_CODE: auto-rename, если создали с дефисом
         for col in columns:
             new_col_name = f"{ref_sheet_name}=>{col}"
@@ -2176,11 +2185,11 @@ def _vectorized_tuple_key(df, keys):
     """
     ВЕКТОРИЗОВАННАЯ ВЕРСИЯ tuple_key: создает кортежи ключей для всего DataFrame сразу.
     Ускорение: 3-5x по сравнению с apply(axis=1).
-
+    
     Args:
         df: DataFrame
         keys: список ключей или один ключ
-
+        
     Returns:
         pd.Series с кортежами ключей
     """
@@ -2205,7 +2214,7 @@ def _vectorized_tuple_key(df, keys):
         # Старая логика: первое найденное значение
         # ОПТИМИЗАЦИЯ v5.0: Векторизованное создание ключей (3-5x быстрее)
         new_keys = _vectorized_tuple_key(df_base, dst_keys)
-
+        
         # Оптимизация: собираем все новые колонки в словарь и добавляем их одним вызовом
         # Это предотвращает фрагментацию DataFrame и устраняет PerformanceWarning
         new_columns_dict = {}
@@ -2213,12 +2222,12 @@ def _vectorized_tuple_key(df, keys):
             ref_map = dict(zip(df_ref_keys, df_ref[col]))
             new_col_name = f"{ref_sheet_name}=>{col}"
             new_columns_dict[new_col_name] = new_keys.map(ref_map).fillna("-")
-
+        
         # Добавляем все колонки одним вызовом через pd.concat для избежания фрагментации
         if new_columns_dict:
             new_columns_df = pd.DataFrame(new_columns_dict, index=df_base.index)
             df_base = pd.concat([df_base, new_columns_df], axis=1)
-
+        
         # Специально для REWARD_LINK =>CONTEST_CODE: auto-rename, если создали с дефисом
         for col in columns:
             new_col_name = f"{ref_sheet_name}=>{col}"
@@ -2236,20 +2245,20 @@ def _vectorized_tuple_key(df, keys):
                 # ОПТИМИЗИРОВАННАЯ ВЕРСИЯ: Используем pd.merge вместо iterrows для ускорения
         logging.info(f"[MULTIPLY ROWS] {sheet_name}: начинаем размножение строк для поля {columns}")
         old_rows_count = len(df_base)
-
+        
         # Создаем ключи для обоих DataFrame
         # ОПТИМИЗАЦИЯ v5.0: Векторизованное создание ключей (3-5x быстрее)
         df_base_keys = _vectorized_tuple_key(df_base, dst_keys)
         # ОПТИМИЗАЦИЯ v5.0: Векторизованное создание ключей (3-5x быстрее)
         df_ref_keys = _vectorized_tuple_key(df_ref, src_keys)
-
+        
         # Добавляем ключи как временные колонки
         df_base_with_key = df_base.copy()
         df_base_with_key['_temp_key'] = df_base_keys
-
+        
         df_ref_with_key = df_ref.copy()
         df_ref_with_key['_temp_key'] = df_ref_keys
-
+        
         # Используем merge для объединения (left join сохраняет все строки из df_base)
         merged = pd.merge(
             df_base_with_key,
@@ -2258,7 +2267,7 @@ def _vectorized_tuple_key(df, keys):
             how='left',
             suffixes=('', '_ref')
         )
-
+        
         # Переименовываем колонки из df_ref
         for col in columns:
             new_col_name = f"{ref_sheet_name}=>{col}"
@@ -2267,10 +2276,10 @@ def _vectorized_tuple_key(df, keys):
                 merged = merged.drop(columns=[col + '_ref'])
             else:
                 merged[new_col_name] = "-"
-
+        
         # Удаляем временный ключ
         merged = merged.drop(columns=['_temp_key'])
-
+        
         # Если были строки без совпадений, они уже обработаны через left join
         df_base = merged.reset_index(drop=True)
         new_rows_count = len(df_base)
@@ -2307,12 +2316,12 @@ def _process_single_merge_rule(rule, sheets_data_copy, count_column_prefix="COUN
     Обрабатывает одно правило merge_fields.
     Используется для параллельной обработки независимых правил.
     merge_name: имя набора правил для логов (MERGE_FIELDS или MERGE_FIELDS_ADVANCED).
-
+    
     Args:
         rule: Правило из merge_fields
         sheets_data_copy: Копия sheets_data для безопасной работы в потоке
         count_column_prefix: префикс для имён count-колонок (COUNT или COUNT_SELECT для MERGE_FIELDS_ADVANCED)
-
+        
     Returns:
         tuple: (rule, updated_sheets_dict) где updated_sheets_dict содержит обновленные листы
     """
@@ -2323,14 +2332,14 @@ def _process_single_merge_rule(rule, sheets_data_copy, count_column_prefix="COUN
     col_names = rule["column"]
     mode = rule.get("mode", "value")
     multiply_rows = rule.get("multiply_rows", False)
-
+    
     status_filters = rule.get("status_filters", None)
     custom_conditions = rule.get("custom_conditions", None)
     group_by = rule.get("group_by", None)
     aggregate = rule.get("aggregate", None)
     count_aggregation = rule.get("count_aggregation", "size")
     count_label = rule.get("count_label", None)
-
+    
     updated_sheets = {}
     logging.info(f"[MERGE] {merge_name} (_process_single_merge_rule) правило: {sheet_src} -> {sheet_dst}, колонки: {col_names}, ключи: {dst_keys} <- {src_keys}, mode={mode}")
     if sheet_src in sheets_data_copy and sheets_data_copy[sheet_src] is not None:
@@ -2346,23 +2355,23 @@ def _process_single_merge_rule(rule, sheets_data_copy, count_column_prefix="COUN
         else:
             logging.warning(f"[DEBUG _process_single_merge_rule] ⚠️  df_dst ({sheet_dst}) равен None!")
 
-
+    
     # ОПТИМИЗАЦИЯ v5.0: Проверка на существование листов и None (правильный порядок)
     if (sheet_src not in sheets_data_copy or sheet_dst not in sheets_data_copy):
         logging.warning(f"[MERGE] {merge_name} ПРОПУСК (параллель): лист {sheet_src} или {sheet_dst} отсутствует в sheets_data")
         return (rule, updated_sheets)
-
+    
     if (sheets_data_copy[sheet_src] is None or sheets_data_copy[sheet_dst] is None or
         len(sheets_data_copy[sheet_src]) < 1 or len(sheets_data_copy[sheet_dst]) < 1 or
         sheets_data_copy[sheet_src][0] is None or sheets_data_copy[sheet_dst][0] is None):
         logging.warning(f"[MERGE] {merge_name} ПРОПУСК (параллель): лист {sheet_src} или {sheet_dst} содержит None")
         return (rule, updated_sheets)
-
+    
     df_src = sheets_data_copy[sheet_src][0].copy()
     logging.debug(f"[MERGE] {merge_name} df_src ({sheet_src}): shape={df_src.shape}, колонки: {list(df_src.columns)}")
     df_dst, params_dst = sheets_data_copy[sheet_dst]
     params_dst = params_dst.copy()  # Копируем параметры
-
+    
     # Подстановка ключа/колонки для LIST-TOURNAMENT: в файле геймификации часто "TOURNAMENT_CODE" и "Бизнес-статус"
     if sheet_src == "LIST-TOURNAMENT":
         if src_keys == ["Код турнира"] and "Код турнира" not in df_src.columns and "TOURNAMENT_CODE" in df_src.columns:
@@ -2376,16 +2385,16 @@ def _process_single_merge_rule(rule, sheets_data_copy, count_column_prefix="COUN
 
     # Применяем фильтрацию
     df_src_filtered = apply_filters_to_dataframe(df_src, status_filters, custom_conditions, sheet_src)
-
+    
     # Применяем группировку и агрегацию если необходимо
     if group_by or aggregate:
         df_src_filtered = apply_grouping_and_aggregation(df_src_filtered, group_by, aggregate, sheet_src)
-
+    
     # Вызываем основную функцию добавления полей
     df_dst = add_fields_to_sheet(df_dst, df_src_filtered, src_keys, dst_keys, col_names, sheet_dst, sheet_src, mode=mode,
                                  multiply_rows=multiply_rows, count_prefix=count_column_prefix,
                                  count_aggregation=count_aggregation, count_label=count_label)
-
+    
     # ИСПРАВЛЕНИЕ: Проверка на None после add_fields_to_sheet
     if df_dst is None or not isinstance(df_dst, pd.DataFrame):
         logging.error(f"[MERGE] {merge_name} add_fields_to_sheet вернул None для листа {sheet_dst}, используем исходный DataFrame")
@@ -2397,7 +2406,7 @@ def _process_single_merge_rule(rule, sheets_data_copy, count_column_prefix="COUN
     # Сохраняем информацию о ширине колонок
     if "added_columns_width" not in params_dst:
         params_dst["added_columns_width"] = {}
-
+    
     if mode == "count" and count_label is not None:
         new_col_name = f"{sheet_src}=>COUNT_{count_aggregation}_{count_label}"
         params_dst["added_columns_width"][new_col_name] = {
@@ -2415,7 +2424,7 @@ def _process_single_merge_rule(rule, sheets_data_copy, count_column_prefix="COUN
                 "width_mode": rule.get("col_width_mode", "AUTO"),
                 "min_width": rule.get("col_min_width", 8)
             }
-
+    
     updated_sheets[sheet_dst] = (df_dst, params_dst)
     return (rule, updated_sheets)
 
@@ -2424,24 +2433,24 @@ def _group_independent_rules(merge_fields):
     """
     Группирует правила merge_fields на независимые группы.
     Правила независимы, если они не изменяют одни и те же листы.
-
+    
     Args:
         merge_fields: Список правил
-
+        
     Returns:
         list: Список групп правил, где каждая группа может быть обработана параллельно
     """
     if not merge_fields:
         return []
-
+    
     # Простая стратегия: группируем правила, которые не конфликтуют по sheet_dst
     groups = []
     used_destinations = set()
-
+    
     current_group = []
     for rule in merge_fields:
         sheet_dst = rule["sheet_dst"]
-
+        
         # Если этот лист уже используется в текущей группе, начинаем новую группу
         if sheet_dst in used_destinations:
             if current_group:
@@ -2451,11 +2460,11 @@ def _group_independent_rules(merge_fields):
         else:
             current_group.append(rule)
             used_destinations.add(sheet_dst)
-
+    
     # Добавляем последнюю группу
     if current_group:
         groups.append(current_group)
-
+    
     return groups
 
 
@@ -2540,8 +2549,8 @@ def merge_fields_across_sheets(sheets_data, merge_fields, count_column_prefix="C
             df, params = sheet_data
             if df is not None and isinstance(df, pd.DataFrame):
                 logging.debug(f"[MERGE] {name_tag} лист {sheet_name}: shape={df.shape}, колонок: {len(df.columns)}")
-        else:
-            logging.debug(f"[MERGE] {name_tag} лист {sheet_name}: нет данных")
+            else:
+                logging.debug(f"[MERGE] {name_tag} лист {sheet_name}: нет данных")
 
     """
     Универсально добавляет поля по правилам из merge_fields
@@ -2557,7 +2566,7 @@ def merge_fields_across_sheets(sheets_data, merge_fields, count_column_prefix="C
     merge_fields: список блоков с параметрами (см. выше)
     """
     lock = threading.Lock()  # Для безопасного доступа к sheets_data
-
+    
     for group_idx, rule_group in enumerate(rule_groups):
         if len(rule_group) == 1:
             # Одно правило - обрабатываем последовательно (проще и быстрее для малых групп)
@@ -2569,16 +2578,16 @@ def merge_fields_across_sheets(sheets_data, merge_fields, count_column_prefix="C
             col_names = rule["column"]
             mode = rule.get("mode", "value")
             multiply_rows = rule.get("multiply_rows", False)
-
+            
             status_filters = rule.get("status_filters", None)
             custom_conditions = rule.get("custom_conditions", None)
             group_by = rule.get("group_by", None)
             aggregate = rule.get("aggregate", None)
             count_aggregation = rule.get("count_aggregation", "size")
             count_label = rule.get("count_label", None)
-
+            
             params_str = f"(src: {sheet_src} -> dst: {sheet_dst}, поля: {col_names}, ключ: {dst_keys}<-{src_keys}, mode: {mode}, multiply: {multiply_rows})"
-
+            
             if status_filters:
                 params_str += f", status_filters: {status_filters}"
             if custom_conditions:
@@ -2595,7 +2604,7 @@ def merge_fields_across_sheets(sheets_data, merge_fields, count_column_prefix="C
             if sheet_src not in sheets_data or sheet_dst not in sheets_data:
                 logging.warning(f"[MERGE] {name_tag} ПРОПУСК: нет листа {sheet_src} или {sheet_dst}, колонки {col_names} не добавлены")
                 continue
-
+            
             if (sheets_data[sheet_src] is None or sheets_data[sheet_dst] is None or
                 len(sheets_data[sheet_src]) < 1 or len(sheets_data[sheet_dst]) < 1 or
                 sheets_data[sheet_src][0] is None or sheets_data[sheet_dst][0] is None):
@@ -2619,16 +2628,16 @@ def merge_fields_across_sheets(sheets_data, merge_fields, count_column_prefix="C
 
             cols_dst_before = set(df_dst.columns) if df_dst is not None and isinstance(df_dst, pd.DataFrame) else set()
             logging.info(f"[MERGE] {name_tag} вызов add_fields_to_sheet: {sheet_src} -> {sheet_dst}, src_keys={src_keys}, dst_keys={dst_keys}, col_names={col_names}")
-
+            
             df_src_filtered = apply_filters_to_dataframe(df_src, status_filters, custom_conditions, sheet_src)
-
+            
             if group_by or aggregate:
                 df_src_filtered = apply_grouping_and_aggregation(df_src_filtered, group_by, aggregate, sheet_src)
-
+            
             df_dst = add_fields_to_sheet(df_dst, df_src_filtered, src_keys, dst_keys, col_names, sheet_dst, sheet_src, mode=mode,
                                          multiply_rows=multiply_rows, count_prefix=count_column_prefix,
                                          count_aggregation=count_aggregation, count_label=count_label)
-
+            
             # ИСПРАВЛЕНИЕ: Проверка на None после add_fields_to_sheet
             if df_dst is None or not isinstance(df_dst, pd.DataFrame):
                 logging.error(f"[MERGE] {name_tag} add_fields_to_sheet вернул None для листа {sheet_dst}, используем исходный DataFrame")
@@ -2665,18 +2674,18 @@ def merge_fields_across_sheets(sheets_data, merge_fields, count_column_prefix="C
         else:
             # Несколько независимых правил - обрабатываем параллельно
             logging.info(f"[MERGE] {name_tag} обработка группы из {len(rule_group)} правил (параллельно)")
-
+            
             with ThreadPoolExecutor(max_workers=min(MAX_WORKERS, len(rule_group))) as executor:
                 # Создаем копию sheets_data для каждого потока (безопасность)
                 futures = {
                     executor.submit(_process_single_merge_rule, rule, sheets_data.copy(), count_column_prefix, name_tag): rule
                     for rule in rule_group
                 }
-
+                
                 for future in as_completed(futures):
                     try:
                         rule, updated_sheets = future.result()
-
+                        
                         # Обновляем sheets_data с блокировкой. Не перезаписываем лист целиком —
                         # дополняем колонки и params, чтобы теоретически не потерять данные от других правил.
                         with lock:
@@ -2708,14 +2717,14 @@ def merge_fields_across_sheets(sheets_data, merge_fields, count_column_prefix="C
                                         sheets_data[sheet_name] = data
                                 else:
                                     sheets_data[sheet_name] = data
-
+                            
                             sheet_src = rule["sheet_src"]
                             sheet_dst = rule["sheet_dst"]
                             col_names = rule["column"]
                             logging.info(f"[MERGE] {name_tag} правило завершено (параллельно): {sheet_src} -> {sheet_dst}, колонки: {col_names}")
                     except Exception as e:
                         logging.error(f"[PARALLEL MERGE ERROR] Ошибка обработки правила: {e}")
-
+    
     logging.info(f"[MERGE] ========== {name_tag}: КОНЕЦ ========== Обработано групп: {len(rule_groups)}")
     return sheets_data
 
@@ -2723,22 +2732,22 @@ def merge_fields_across_sheets(sheets_data, merge_fields, count_column_prefix="C
 def apply_filters_to_dataframe(df, status_filters, custom_conditions, sheet_name):
     """
     Применяет фильтрацию к DataFrame на основе status_filters и custom_conditions.
-
+    
     Args:
         df: исходный DataFrame
         status_filters: словарь с фильтрами по статусам {column: [allowed_values]}
         custom_conditions: словарь с пользовательскими условиями {column: condition}
         sheet_name: имя листа для логирования
-
+        
     Returns:
         отфильтрованный DataFrame
     """
     if df.empty:
         return df
-
+    
     df_filtered = df.copy()
     original_count = len(df_filtered)
-
+    
     # Применяем фильтры по статусам
     if status_filters:
         for column, allowed_values in status_filters.items():
@@ -2747,7 +2756,7 @@ def apply_filters_to_dataframe(df, status_filters, custom_conditions, sheet_name
                 logging.info(f"[FILTER] Применен фильтр по статусу: {column}={allowed_values}, осталось строк: {len(df_filtered)}")
             else:
                 logging.warning(f"[WARNING] Колонка для фильтрации по статусу не найдена: {column} в листе {sheet_name}")
-
+    
     # Применяем пользовательские условия
     if custom_conditions:
         for column, condition in custom_conditions.items():
@@ -2761,40 +2770,40 @@ def apply_filters_to_dataframe(df, status_filters, custom_conditions, sheet_name
                 else:
                     # Точное совпадение
                     df_filtered = df_filtered[df_filtered[column] == condition]
-
+                
                 logging.info(f"[FILTER] Применено пользовательское условие: {column}={condition}, осталось строк: {len(df_filtered)}")
             else:
                 logging.warning(f"[WARNING] Колонка для пользовательского условия не найдена: {column} в листе {sheet_name}")
-
+    
     filtered_count = len(df_filtered)
     if original_count != filtered_count:
         logging.info(f"[FILTER] Фильтрация завершена: {original_count} -> {filtered_count} строк в листе {sheet_name}")
-
+    
     return df_filtered
 
 
 def apply_grouping_and_aggregation(df, group_by, aggregate, sheet_name):
     """
     Применяет группировку и агрегацию к DataFrame.
-
+    
     Args:
         df: исходный DataFrame
         group_by: список колонок для группировки
         aggregate: словарь с правилами агрегации {column: function}
         sheet_name: имя листа для логирования
-
+        
     Returns:
         DataFrame с примененной группировкой и агрегацией
     """
     if df.empty:
         return df
-
+    
     if not group_by and not aggregate:
         return df
-
+    
     df_grouped = df.copy()
     original_count = len(df_grouped)
-
+    
     try:
         if group_by:
             # Проверяем наличие колонок для группировки
@@ -2802,7 +2811,7 @@ def apply_grouping_and_aggregation(df, group_by, aggregate, sheet_name):
             if missing_group_cols:
                 logging.warning(f"[WARNING] Колонки для группировки не найдены: {missing_group_cols} в листе {sheet_name}")
                 return df_grouped
-
+            
             # Применяем группировку
             if aggregate:
                 # Группировка с агрегацией
@@ -2812,7 +2821,7 @@ def apply_grouping_and_aggregation(df, group_by, aggregate, sheet_name):
                         agg_dict[col] = func
                     else:
                         logging.warning(f"[WARNING] Колонка для агрегации не найдена: {col} в листе {sheet_name}")
-
+                
                 if agg_dict:
                     df_grouped = df_grouped.groupby(group_by).agg(agg_dict).reset_index()
                     # Убираем многоуровневые заголовки если они появились
@@ -2829,17 +2838,17 @@ def apply_grouping_and_aggregation(df, group_by, aggregate, sheet_name):
                     agg_dict[col] = func
                 else:
                     logging.warning(f"[WARNING] Колонка для агрегации не найдена: {col} в листе {sheet_name}")
-
+            
             if agg_dict:
                 df_grouped = df_grouped.agg(agg_dict).to_frame().T
-
+        
         grouped_count = len(df_grouped)
         logging.info(f"[GROUP] Группировка и агрегация завершены: {original_count} -> {grouped_count} строк в листе {sheet_name}")
-
+        
     except Exception as e:
         logging.error(f"[ERROR] Ошибка при группировке в листе {sheet_name}: {e}")
         return df
-
+    
     return df_grouped
 
 
@@ -2965,10 +2974,10 @@ def add_auto_gender_column(df, sheet_name):
 def add_auto_gender_column_vectorized(df, sheet_name):
     """
     ОПТИМИЗИРОВАННАЯ ВЕРСИЯ: Векторизованное определение пола.
-
+    
     Обрабатывает все строки одновременно используя строковые операции pandas
     вместо iterrows(). Ожидаемое ускорение: 100-200x.
-
+    
     Args:
         df (pd.DataFrame): DataFrame для обработки
         sheet_name (str): Название листа
@@ -2977,89 +2986,89 @@ def add_auto_gender_column_vectorized(df, sheet_name):
         pd.DataFrame: DataFrame с добавленной колонкой AUTO_GENDER
     """
     func_start = time()
-
+    
     required_columns = ['MIDDLE_NAME', 'FIRST_NAME', 'SURNAME']
     missing_columns = [col for col in required_columns if col not in df.columns]
-
+    
     if missing_columns:
         logging.warning(f"[GENDER DETECTION VECTORIZED] Пропущены колонки {missing_columns} в листе {sheet_name}")
         df['AUTO_GENDER'] = '-'
         return df
-
+    
     total_rows = len(df)
     logging.info(f"[GENDER DETECTION VECTORIZED] Начинаем определение пола для листа {sheet_name}, строк: {total_rows}")
-
+    
     # Инициализируем колонку с дефолтным значением
     gender = pd.Series('-', index=df.index)
-
+    
     # Подготовка данных: приводим к нижнему регистру и заполняем пустые значения
     patronymic_lower = df['MIDDLE_NAME'].fillna('').astype(str).str.lower().str.strip()
     first_name_lower = df['FIRST_NAME'].fillna('').astype(str).str.lower().str.strip()
     surname_lower = df['SURNAME'].fillna('').astype(str).str.lower().str.strip()
-
+    
     # 1. Определение по отчеству (приоритет 1)
     for pattern in GENDER_PATTERNS['patronymic_male']:
         mask = patronymic_lower.str.endswith(pattern.lower()) & (gender == '-')
         gender[mask] = 'М'
-
+    
     for pattern in GENDER_PATTERNS['patronymic_female']:
         mask = patronymic_lower.str.endswith(pattern.lower()) & (gender == '-')
         gender[mask] = 'Ж'
-
+    
     # 2. Определение по имени (приоритет 2)
     for pattern in GENDER_PATTERNS['name_male']:
         mask = first_name_lower.str.endswith(pattern.lower()) & (gender == '-')
         gender[mask] = 'М'
-
+    
     for pattern in GENDER_PATTERNS['name_female']:
         mask = first_name_lower.str.endswith(pattern.lower()) & (gender == '-')
         gender[mask] = 'Ж'
-
+    
     # 3. Определение по фамилии (приоритет 3)
     for pattern in GENDER_PATTERNS['surname_male']:
         mask = surname_lower.str.endswith(pattern.lower()) & (gender == '-')
         gender[mask] = 'М'
-
+    
     for pattern in GENDER_PATTERNS['surname_female']:
         mask = surname_lower.str.endswith(pattern.lower()) & (gender == '-')
         gender[mask] = 'Ж'
-
+    
     # Добавляем колонку к DataFrame
     df['AUTO_GENDER'] = gender
-
+    
     # Статистика
     male_count = (gender == 'М').sum()
     female_count = (gender == 'Ж').sum()
     unknown_count = (gender == '-').sum()
-
+    
     func_time = time() - func_start
     logging.info(f"[GENDER DETECTION VECTORIZED] Статистика: М={male_count}, Ж={female_count}, неопределено={unknown_count} (всего: {total_rows})")
     logging.info(f"[GENDER DETECTION VECTORIZED] Завершено за {func_time:.3f}s для листа {sheet_name}")
-
+    
     return df
 
 
 def compare_gender_results(df_old, df_new):
     """
     Сравнивает результаты работы старой и новой версии add_auto_gender_column.
-
+    
     Args:
         df_old (pd.DataFrame): Результат старой версии
         df_new (pd.DataFrame): Результат новой версии
-
+    
     Returns:
         dict: Словарь с результатами сравнения
     """
     if 'AUTO_GENDER' not in df_old.columns or 'AUTO_GENDER' not in df_new.columns:
         return {"error": "Колонка AUTO_GENDER не найдена"}
-
+    
     old_results = df_old['AUTO_GENDER'].fillna('-')
     new_results = df_new['AUTO_GENDER'].fillna('-')
-
+    
     differences = (old_results != new_results).sum()
     total = len(df_old)
     matches = total - differences
-
+    
     diff_examples = []
     if differences > 0:
         diff_mask = old_results != new_results
@@ -3070,7 +3079,7 @@ def compare_gender_results(df_old, df_new):
                 "old": old_results.loc[idx],
                 "new": new_results.loc[idx]
             })
-
+    
     return {
         "total": total,
         "matches": matches,
@@ -3100,7 +3109,7 @@ def build_summary_sheet(dfs, params_summary, merge_fields):
         logging.debug(f"[DEBUG build_summary_sheet] summary колонки: {list(summary.columns)}")
         logging.debug(f"[DEBUG build_summary_sheet] summary первые 3 строки:\n{summary.head(3).to_string()}")
 
-
+    
     # ОПТИМИЗАЦИЯ v5.0: Проверка на None
     if summary is None:
         logging.error("[build_summary_sheet] collect_summary_keys вернул None, создаем пустой DataFrame")
@@ -3123,7 +3132,7 @@ def build_summary_sheet(dfs, params_summary, merge_fields):
                 logging.info(
                     f"[DEBUG SUMMARY]   CONTEST={row.get('CONTEST_CODE', '')}, GROUP_CODE={row.get('GROUP_CODE', '')}, GROUP_VALUE={row.get('GROUP_VALUE', '')}"
                 )
-
+            
             # Проверяем, что есть в таблице GROUP
             if "GROUP" in dfs and not dfs["GROUP"].empty:
                 group_rows = dfs["GROUP"][dfs["GROUP"]["CONTEST_CODE"] == debug_code]
@@ -3148,7 +3157,7 @@ def build_summary_sheet(dfs, params_summary, merge_fields):
         mode = field.get("mode", "value")
         params_str = f"(лист-источник: {sheet_src}, поля: {col_names}, ключ: {dst_keys}->{src_keys}, mode: {mode})"
         logging.info(f"[START] add_fields_to_sheet {params_str}")
-
+        
         logging.debug(f"[DEBUG build_summary_sheet] === MERGE {field_idx+1}/{len(merge_fields)} ===")
         logging.debug(f"[DEBUG build_summary_sheet] Правило: sheet_src={sheet_src}, sheet_dst={params_summary["sheet"]}")
         logging.debug(f"[DEBUG build_summary_sheet] Поля: {col_names}, ключи: {dst_keys}->{src_keys}, mode={mode}")
@@ -3165,7 +3174,7 @@ def build_summary_sheet(dfs, params_summary, merge_fields):
                     logging.info(f"[DEBUG SUMMARY] Строк в Summary: {len(debug_rows_before)}")
                     logging.info(f"[DEBUG SUMMARY] GROUP_CODE: {debug_rows_before['GROUP_CODE'].unique().tolist()}")
                     logging.info(f"[DEBUG SUMMARY] GROUP_VALUE: {debug_rows_before['GROUP_VALUE'].unique().tolist()}")
-
+        
         ref_df = dfs.get(sheet_src)
         if ref_df is not None and isinstance(ref_df, pd.DataFrame):
             logging.debug(f"[DEBUG build_summary_sheet] ref_df ({sheet_src}): shape={ref_df.shape}, колонки={list(ref_df.columns)[:10]}...")
@@ -3179,10 +3188,10 @@ def build_summary_sheet(dfs, params_summary, merge_fields):
         try:
             # ИСПРАВЛЕНИЕ: Сохраняем исходный summary перед merge
             summary_before_merge = summary.copy() if summary is not None and isinstance(summary, pd.DataFrame) else None
-
+            
             summary = add_fields_to_sheet(summary, ref_df, src_keys, dst_keys, col_names, params_summary["sheet"],
                                           sheet_src, mode=mode, multiply_rows=multiply_rows)
-
+            
             # ИСПРАВЛЕНИЕ: Логирование размера summary после каждого merge
             if summary is None:
                 logging.error(f"[build_summary_sheet] КРИТИЧЕСКАЯ ОШИБКА: summary стал None после merge {field_idx+1}/{len(merge_fields)} с {sheet_src}!")
@@ -3218,7 +3227,7 @@ def build_summary_sheet(dfs, params_summary, merge_fields):
                         logging.info(
                             f"[DEBUG SUMMARY]   CONTEST={row.get('CONTEST_CODE', '')}, GROUP_CODE={row.get('GROUP_CODE', '')}, GROUP_VALUE={row.get('GROUP_VALUE', '')}"
                         )
-
+        
 
     return summary
 
@@ -3227,10 +3236,10 @@ def process_single_file(file_conf):
     """
     Обрабатывает один CSV файл: поиск, чтение и разворачивание JSON полей.
     Используется для параллельной обработки файлов.
-
+    
     Args:
         file_conf (dict): Конфигурация файла из INPUT_FILES
-
+        
     Returns:
         tuple: (df, sheet_name, file_conf) или (None, sheet_name, None) при ошибке
     """
@@ -3247,15 +3256,15 @@ def process_single_file(file_conf):
             th = threading.current_thread().name
             logging.error(f"Файл не найден: {file_conf['file']} в каталоге {DIR_INPUT} [поток: {th}]")
             return None, sheet_name, None
-
+        
         th = threading.current_thread().name
         logging.info(f"Загрузка файла: {file_path} [поток: {th}]")
-
+        
         df = read_csv_file(file_path)
         if df is None:
             logging.error(f"Ошибка чтения файла: {file_path} [поток: {th}]")
             return None, sheet_name, None
-
+        
         # Разворачиваем только нужные JSON-поля по строгому списку
         json_columns = JSON_COLUMNS.get(sheet_name, [])
         for json_conf in json_columns:
@@ -3266,14 +3275,14 @@ def process_single_file(file_conf):
                 logging.info(f"[JSON FLATTEN] {sheet_name}: поле '{col}' развернуто с префиксом '{prefix}' [поток: {th}]")
             else:
                 logging.warning(f"[JSON FLATTEN] {sheet_name}: поле '{col}' не найдено в колонках! [поток: {th}]")
-
+        
         # Для дебага: логируем итоговый список колонок после всех разворотов
         logging.debug(f"[DEBUG] {sheet_name}: колонки после разворачивания: {', '.join(df.columns.tolist())} [поток: {th}]")
 
         logging.info(f"Файл успешно обработан: {sheet_name}, строк: {len(df)} [поток: {th}]")
-
+        
         return df, sheet_name, file_conf
-
+        
     except Exception as e:
         logging.error(
             f"Ошибка обработки файла {file_conf.get('file', 'unknown')}: {e} [поток: {threading.current_thread().name}]"
@@ -3285,11 +3294,11 @@ def validate_single_sheet(sheet_name, sheets_data_item):
     """
     Проверяет длину полей для одного листа.
     Используется для параллельной проверки валидации.
-
+    
     Args:
         sheet_name (str): Имя листа для проверки
         sheets_data_item (tuple): (df, conf) - данные листа и конфигурация
-
+        
     Returns:
         tuple: (sheet_name, (df_validated, conf))
     """
@@ -3297,7 +3306,7 @@ def validate_single_sheet(sheet_name, sheets_data_item):
     if sheets_data_item is None:
         logging.warning(f"[check_duplicates_single_sheet] Данные для листа {sheet_name} равны None, пропускаем")
         return sheet_name, sheets_data_item
-
+    
     try:
         df, conf = sheets_data_item
         # Дополнительная проверка на None
@@ -3307,7 +3316,7 @@ def validate_single_sheet(sheet_name, sheets_data_item):
         # ОПТИМИЗАЦИЯ: Используем векторизованную версию с проверкой результатов
         df_old = df.copy()
         df_validated = validate_field_lengths_vectorized(df, sheet_name)
-
+        
         # Сравниваем результаты для проверки корректности
         if sheet_name in FIELD_LENGTH_VALIDATIONS:
             result_column = FIELD_LENGTH_VALIDATIONS[sheet_name]["result_column"]
@@ -3338,11 +3347,11 @@ def check_duplicates_single_sheet(sheet_name, sheets_data_item):
     """
     Проверяет дубликаты для одного листа.
     Используется для параллельной проверки дубликатов.
-
+    
     Args:
         sheet_name (str): Имя листа для проверки
         sheets_data_item (tuple): (df, conf) - данные листа и конфигурация
-
+        
     Returns:
         tuple: (sheet_name, (df, conf))
     """
@@ -3350,7 +3359,7 @@ def check_duplicates_single_sheet(sheet_name, sheets_data_item):
     if sheets_data_item is None:
         logging.warning(f"[check_duplicates_single_sheet] Данные для листа {sheet_name} равны None, пропускаем")
         return sheet_name, sheets_data_item
-
+    
     try:
         df, conf = sheets_data_item
         # Дополнительная проверка на None
@@ -3361,10 +3370,10 @@ def check_duplicates_single_sheet(sheet_name, sheets_data_item):
         check_configs = [x for x in CHECK_DUPLICATES if x["sheet"] == sheet_name]
         for check_cfg in check_configs:
             df = mark_duplicates(df, check_cfg["key"], sheet_name=sheet_name)
-
+        
         if check_configs:
             logging.debug(f"Проверка дубликатов завершена: {sheet_name} [поток: {threading.current_thread().name}]")
-
+        
         return sheet_name, (df, conf)
     except Exception as e:
         logging.error(
@@ -3479,6 +3488,56 @@ def collect_duplicates_and_validation_report(sheets_data: Dict[str, Any]) -> tup
     return duplicates_report, validation_report
 
 
+def build_stat_file_sheet(
+    input_files: List[Dict[str, Any]],
+    sheets_data: Dict[str, Any],
+    run_datetime: datetime,
+) -> pd.DataFrame:
+    """
+    Формирует лист STAT_FILE со статистикой по исходным файлам: имя файла, лист, дата файла,
+    дата обновления данных, количество записей и колонок, размер файла, статус.
+    """
+    rows = []
+    for file_conf in input_files:
+        file_name = file_conf.get("file", "")
+        sheet_name = file_conf.get("sheet", "")
+        file_path = find_file_case_insensitive(DIR_INPUT, file_name, [".csv", ".CSV"])
+        if file_path is None:
+            file_date = ""
+            file_size = 0
+            status = "не найден"
+            row_count = 0
+            col_count = 0
+        else:
+            try:
+                mtime = os.path.getmtime(file_path)
+                file_date = datetime.fromtimestamp(mtime).strftime("%Y-%m-%d %H:%M:%S")
+                file_size = os.path.getsize(file_path)
+            except OSError:
+                file_date = ""
+                file_size = 0
+            status = "OK"
+            if sheet_name in sheets_data and sheets_data[sheet_name] is not None:
+                df_sheet = sheets_data[sheet_name][0]
+                row_count = len(df_sheet) if df_sheet is not None else 0
+                col_count = len(df_sheet.columns) if df_sheet is not None else 0
+            else:
+                row_count = 0
+                col_count = 0
+        data_update_date = run_datetime.strftime("%Y-%m-%d %H:%M:%S")
+        rows.append({
+            "FILE_NAME": file_name,
+            "SHEET_NAME": sheet_name,
+            "FILE_DATE": file_date,
+            "DATA_UPDATE_DATE": data_update_date,
+            "ROW_COUNT": row_count,
+            "COL_COUNT": col_count,
+            "FILE_SIZE_BYTES": file_size,
+            "STATUS": status,
+        })
+    return pd.DataFrame(rows)
+
+
 def print_final_report(duplicates_report: List[Dict[str, Any]], validation_report: List[Dict[str, Any]]) -> None:
     """
     Выводит итоговый отчёт по дубликатам и отклонениям длины полей в лог и в консоль.
@@ -3551,16 +3610,16 @@ def main():
     rows_total = 0
     summary = []
 
-    # 1. Параллельное чтение всех CSV и разворот ВСЕХ JSON‑полей на каждом листе
+        # 1. Параллельное чтение всех CSV и разворот ВСЕХ JSON‑полей на каждом листе
     logging.info(f"Начало параллельного чтения CSV файлов (потоков: {MAX_WORKERS_IO})")
-
+    
     lock = threading.Lock()  # Для безопасного доступа к sheets_data
-
+    
     with ThreadPoolExecutor(max_workers=MAX_WORKERS_IO) as executor:  # I/O операция
         # Запускаем обработку всех файлов параллельно
-        futures = {executor.submit(process_single_file, file_conf): file_conf
+        futures = {executor.submit(process_single_file, file_conf): file_conf 
                    for file_conf in INPUT_FILES}
-
+        
         # Собираем результаты по мере их готовности
         for future in as_completed(futures):
             df, sheet_name, file_conf = future.result()
@@ -3573,7 +3632,7 @@ def main():
             elif sheet_name:
                 # Файл не найден или ошибка чтения
                 summary.append(f"{sheet_name}: {'файл не найден' if file_conf is None else 'ошибка'}")
-
+    
     logging.info(f"Параллельное чтение CSV файлов завершено. Обработано файлов: {files_processed}")
     # 2. Добавление колонки AUTO_GENDER для листа EMPLOYEE
     if "EMPLOYEE" in sheets_data:
@@ -3581,7 +3640,7 @@ def main():
         # ОПТИМИЗАЦИЯ: Используем векторизованную версию с проверкой результатов
         df_employee_old = df_employee.copy()
         df_employee = add_auto_gender_column_vectorized(df_employee, "EMPLOYEE")
-
+        
         # Сравниваем результаты
         comparison = compare_gender_results(df_employee_old, df_employee)
         if not comparison.get("identical", False):
@@ -3595,21 +3654,21 @@ def main():
             logging.info(f"[GENDER COMPARISON] EMPLOYEE: результаты идентичны ({comparison.get('match_percent', 0)}%)")
         sheets_data["EMPLOYEE"] = (df_employee, conf_employee)
 
-    # 3. Параллельная проверка длины полей для всех листов согласно FIELD_LENGTH_VALIDATIONS
+        # 3. Параллельная проверка длины полей для всех листов согласно FIELD_LENGTH_VALIDATIONS
     if FIELD_LENGTH_VALIDATIONS:
         logging.info(f"Начало параллельной проверки длины полей (потоков: {MAX_WORKERS_CPU})")
-        sheets_to_validate = {name: sheets_data[name] for name in FIELD_LENGTH_VALIDATIONS.keys()
+        sheets_to_validate = {name: sheets_data[name] for name in FIELD_LENGTH_VALIDATIONS.keys() 
                              if name in sheets_data}
-
+        
         if sheets_to_validate:
             with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
                 futures = {executor.submit(validate_single_sheet, sheet_name, data): sheet_name
                           for sheet_name, data in sheets_to_validate.items()}
-
+                
                 for future in as_completed(futures):
                     sheet_name, validated_data = future.result()
                     sheets_data[sheet_name] = validated_data
-
+            
             logging.info("Параллельная проверка длины полей завершена")
     # 4. Добавление расчетного статуса турнира для TOURNAMENT-SCHEDULE
     if "TOURNAMENT-SCHEDULE" in sheets_data:
@@ -3628,16 +3687,16 @@ def main():
         merge_name="MERGE_FIELDS_ADVANCED"
     )
 
-    # 6. Параллельная проверка на дубли
+        # 6. Параллельная проверка на дубли
     logging.info(f"Начало параллельной проверки на дубликаты (потоков: {MAX_WORKERS_CPU})")
     with ThreadPoolExecutor(max_workers=MAX_WORKERS_IO) as executor:
         futures = {executor.submit(check_duplicates_single_sheet, sheet_name, data): sheet_name
                   for sheet_name, data in sheets_data.items()}
-
+        
         for future in as_completed(futures):
             sheet_name, validated_data = future.result()
             sheets_data[sheet_name] = validated_data
-
+    
     logging.info("Параллельная проверка на дубликаты завершена")
     # 7. Формирование итогового Summary (build_summary_sheet)
     # Как в base main.py: используем данные ПОСЛЕ merge и ПОСЛЕ check_duplicates,
@@ -3660,6 +3719,18 @@ def main():
 
     sheets_data[SUMMARY_SHEET["sheet"]] = (df_summary, SUMMARY_SHEET)
 
+    # Лист STAT_FILE: статистика по исходным файлам (имя, лист, даты, строки, колонки, размер, статус)
+    df_stat = build_stat_file_sheet(INPUT_FILES, sheets_data, start_time)
+    stat_file_params = {
+        "sheet": "STAT_FILE",
+        "max_col_width": 80,
+        "freeze": "A2",
+        "col_width_mode": "AUTO",
+        "min_col_width": 10,
+    }
+    sheets_data["STAT_FILE"] = (df_stat, stat_file_params)
+    logging.info(f"[main] Лист STAT_FILE сформирован: {len(df_stat)} строк (статистика по файлам)")
+    
     # Верификация merge: сохранение baseline или сравнение с ним
     _baseline_path = os.path.join(DIR_OUTPUT, "merge_output_baseline.json")
     if os.environ.get("SAVE_MERGE_BASELINE") == "1":
