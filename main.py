@@ -2311,6 +2311,52 @@ def _vectorized_tuple_key(df, keys):
 
 
 
+def _transform_key_value(val: Any, spec: Dict[str, Any]) -> str:
+    """
+    Применяет одно преобразование к значению ключа (для src_key_transform).
+    Поддерживается type: "pad_left_zeros" с width: N — строка из N символов с лидирующими нулями.
+    """
+    if pd.isna(val) or val is None or val == "":
+        return ""
+    s = str(val).strip()
+    t = (spec or {}).get("type")
+    if t == "pad_left_zeros":
+        width = int(spec.get("width", 20))
+        if len(s) >= width:
+            return s[:width]
+        return s.zfill(width)
+    return s
+
+
+def _apply_src_key_transforms(
+    df_src: pd.DataFrame,
+    src_keys: List[str],
+    src_key_transform: Optional[Dict[str, Dict[str, Any]]],
+    sheet_src: str,
+) -> tuple:
+    """
+    Применяет преобразования к ключевым колонкам источника (src_key_transform в правиле merge).
+    Для каждой колонки из src_keys, указанной в src_key_transform, создаёт временную колонку
+    с преобразованным значением; возвращает df_src и список эффективных ключей (исходные или временные).
+    """
+    if not src_key_transform or not src_keys:
+        return df_src, src_keys
+    effective_keys = []
+    for k in src_keys:
+        if k not in df_src.columns:
+            effective_keys.append(k)
+            continue
+        spec = src_key_transform.get(k)
+        if not spec:
+            effective_keys.append(k)
+            continue
+        temp_col = f"_merge_key_{k}"
+        df_src[temp_col] = df_src[k].apply(lambda v: _transform_key_value(v, spec))
+        effective_keys.append(temp_col)
+        logging.debug(f"[MERGE] src_key_transform: лист {sheet_src}, колонка '{k}' -> '{temp_col}' (type={spec.get('type')})")
+    return df_src, effective_keys
+
+
 def _process_single_merge_rule(rule, sheets_data_copy, count_column_prefix="COUNT", merge_name="MERGE_FIELDS_ADVANCED"):
     """
     Обрабатывает одно правило merge_fields.
@@ -2382,6 +2428,10 @@ def _process_single_merge_rule(rule, sheets_data_copy, count_column_prefix="COUN
                 df_src["Бизнес-статус турнира"] = df_src["Бизнес-статус"]
                 logging.info(f"[MERGE] {merge_name} LIST-TOURNAMENT: подстановка колонки 'Бизнес-статус' для 'Бизнес-статус турнира'")
                 break
+
+    # Преобразование ключей источника (src_key_transform): например табельный к 20 знакам с лидирующими нулями
+    src_key_transform = rule.get("src_key_transform")
+    df_src, src_keys = _apply_src_key_transforms(df_src, src_keys, src_key_transform, sheet_src)
 
     # Применяем фильтрацию
     df_src_filtered = apply_filters_to_dataframe(df_src, status_filters, custom_conditions, sheet_src)
@@ -2625,6 +2675,10 @@ def merge_fields_across_sheets(sheets_data, merge_fields, count_column_prefix="C
                         df_src["Бизнес-статус турнира"] = df_src["Бизнес-статус"]
                         logging.info(f"[MERGE] {name_tag} LIST-TOURNAMENT: подстановка колонки 'Бизнес-статус' для 'Бизнес-статус турнира'")
                         break
+
+            # Преобразование ключей источника (src_key_transform)
+            src_key_transform = rule.get("src_key_transform")
+            df_src, src_keys = _apply_src_key_transforms(df_src, src_keys, src_key_transform, sheet_src)
 
             cols_dst_before = set(df_dst.columns) if df_dst is not None and isinstance(df_dst, pd.DataFrame) else set()
             logging.info(f"[MERGE] {name_tag} вызов add_fields_to_sheet: {sheet_src} -> {sheet_dst}, src_keys={src_keys}, dst_keys={dst_keys}, col_names={col_names}")

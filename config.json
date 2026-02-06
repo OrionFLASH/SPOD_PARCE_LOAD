@@ -23,7 +23,7 @@
   ],
   "input_files": [
     {
-      "file": "CONTEST (PROM) 02-02 v2.csv",
+      "file": "CONTEST (PROM) 04-02 v0.csv",
       "sheet": "CONTEST-DATA",
       "max_col_width": 120,
       "freeze": "C2",
@@ -31,7 +31,7 @@
       "min_col_width": 12
     },
     {
-      "file": "GROUP (PROM) 02-02 v1.csv",
+      "file": "GROUP (PROM) 04-02 v0.csv",
       "sheet": "GROUP",
       "max_col_width": 20,
       "freeze": "C2",
@@ -39,7 +39,7 @@
       "min_col_width": 8
     },
     {
-      "file": "INDICATOR (PROM) 02-02 v1.csv",
+      "file": "INDICATOR (PROM) 04-02 v0.csv",
       "sheet": "INDICATOR",
       "max_col_width": 100,
       "freeze": "B2",
@@ -47,7 +47,7 @@
       "min_col_width": 8
     },
     {
-      "file": "REPORT (PROM) 02-02 v0.csv",
+      "file": "REPORT (PROM) 06-02 v0.csv",
       "sheet": "REPORT",
       "max_col_width": 25,
       "freeze": "D2",
@@ -55,7 +55,7 @@
       "min_col_width": 10
     },
     {
-      "file": "REWARD (PROM) 02-02 v1.csv",
+      "file": "REWARD (PROM) 06-02 v0.csv",
       "sheet": "REWARD",
       "max_col_width": 200,
       "freeze": "D2",
@@ -63,7 +63,7 @@
       "min_col_width": 10
     },
     {
-      "file": "REWARD-LINK (PROM) 02-02 v1.csv",
+      "file": "REWARD-LINK (PROM) 04-02 v0.csv",
       "sheet": "REWARD-LINK",
       "max_col_width": 30,
       "freeze": "A2",
@@ -71,7 +71,7 @@
       "min_col_width": 10
     },
     {
-      "file": "SCHEDULE (PROM) 02-02 v1.csv",
+      "file": "SCHEDULE (PROM) 06-02 v0.csv",
       "sheet": "TOURNAMENT-SCHEDULE",
       "max_col_width": 120,
       "freeze": "B2",
@@ -144,7 +144,6 @@
   },
   "sheet_order": [
     "SUMMARY",
-    "STAT_FILE",
     "CONTEST-DATA",
     "REWARD",
     "TOURNAMENT-SCHEDULE",
@@ -155,6 +154,7 @@
     "ORG_UNIT_V20",
     "USER_ROLE",
     "EMPLOYEE",
+    "STAT_FILE",
     "LIST-REWARDS",
     "STATISTICS",
     "LIST-TOURNAMENT",
@@ -432,6 +432,62 @@
       "aggregate": null
     },
     {
+      "sheet_src": "LIST-REWARDS",
+      "sheet_dst": "REPORT",
+      "src_key": [
+        "Код турнира"
+      ],
+      "dst_key": [
+        "TOURNAMENT_CODE"
+      ],
+      "column": [
+        "Код турнира"
+      ],
+      "mode": "count",
+      "multiply_rows": false,
+      "col_max_width": 20,
+      "col_width_mode": 15,
+      "col_min_width": 8,
+      "status_filters": null,
+      "custom_conditions": null,
+      "group_by": null,
+      "aggregate": null,
+      "count_aggregation": "size",
+      "count_label": null
+    },
+    {
+      "sheet_src": "LIST-REWARDS",
+      "sheet_dst": "REPORT",
+      "src_key": [
+        "Код турнира",
+        "Табельный номер сотрудника"
+      ],
+      "dst_key": [
+        "TOURNAMENT_CODE",
+        "MANAGER_PERSON_NUMBER"
+      ],
+      "src_key_transform": {
+        "Табельный номер сотрудника": {
+          "type": "pad_left_zeros",
+          "width": 20
+        }
+      },
+      "column": [
+        "Код турнира"
+      ],
+      "mode": "count",
+      "multiply_rows": false,
+      "col_max_width": 20,
+      "col_width_mode": 15,
+      "col_min_width": 8,
+      "status_filters": null,
+      "custom_conditions": null,
+      "group_by": null,
+      "aggregate": null,
+      "count_aggregation": "size",
+      "count_label": "REWARDS"
+    },
+    {
       "sheet_src": "REWARD-LINK",
       "sheet_dst": "REWARD",
       "src_key": [
@@ -584,6 +640,30 @@
       "custom_conditions": null,
       "group_by": null,
       "aggregate": null
+    },
+    {
+      "sheet_src": "LIST-REWARDS",
+      "sheet_dst": "TOURNAMENT-SCHEDULE",
+      "src_key": [
+        "Код турнира"
+      ],
+      "dst_key": [
+        "TOURNAMENT_CODE"
+      ],
+      "column": [
+        "Код турнира"
+      ],
+      "mode": "count",
+      "multiply_rows": false,
+      "col_max_width": 20,
+      "col_width_mode": 15,
+      "col_min_width": 8,
+      "status_filters": null,
+      "custom_conditions": null,
+      "group_by": null,
+      "aggregate": null,
+      "count_aggregation": "size",
+      "count_label": null
     },
     {
       "sheet_src": "CONTEST-DATA",
@@ -1779,20 +1859,6 @@
       ],
       "columns": [
         "ДУБЛЬ: CONTEST_CODE_GROUP_CODE_GROUP_VALUE"
-      ]
-    },
-    {
-      "group": "DUPLICATES",
-      "header_bg": "FFE6F2",
-      "header_fg": "2C3E50",
-      "column_bg": null,
-      "column_fg": null,
-      "style_scope": "header",
-      "sheets": [
-        "INDICATOR"
-      ],
-      "columns": [
-        "ДУБЛЬ: CONTEST_CODE_INDICATOR_ADD_CALC_TYPE"
       ]
     },
     {
