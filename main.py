@@ -16,6 +16,7 @@ import inspect  # Для получения информации о вызыва
 from concurrent.futures import ThreadPoolExecutor, as_completed  # Для параллельной обработки
 from itertools import product
 import threading  # Для синхронизации потоков
+import warnings   # Для подавления UserWarning при парсинге дат без формата
 
 # === ОПТИМИЗАЦИИ ПРОИЗВОДИТЕЛЬНОСТИ ===
 # 
@@ -1007,6 +1008,21 @@ def _build_excel_date_format(rule):
     return "yyyy-mm-dd"
 
 
+def _config_date_format_to_pandas(fmt: Optional[str]) -> Optional[str]:
+    """
+    Преобразует строку формата даты из config (YYYY-MM-DD, DD/MM/YYYY и т.д.) в формат pandas.
+    Возвращает None, если fmt пустой или не распознан (тогда pd.to_datetime будет без format).
+    """
+    if not fmt or not isinstance(fmt, str):
+        return None
+    fmt = fmt.strip().upper()
+    # YYYY, DD, HH, SS — однозначны; MM в дате — месяц (%m), во времени (HH:MM:SS) — минуты (%M)
+    fmt = fmt.replace("YYYY", "%Y").replace("DD", "%d").replace("HH", "%H").replace("SS", "%S")
+    fmt = fmt.replace(":MM:", ":%M:")  # минуты во времени
+    fmt = fmt.replace("MM", "%m")       # оставшиеся MM — месяц
+    return fmt if "%" in fmt else None
+
+
 def apply_column_format_conversion(df: pd.DataFrame, sheet_name: str) -> None:
     """
     Преобразует типы колонок в DataFrame по правилам COLUMN_FORMATS перед записью в Excel.
@@ -1036,7 +1052,13 @@ def apply_column_format_conversion(df: pd.DataFrame, sheet_name: str) -> None:
                 else:
                     df[col] = ser
             elif dtype == "date":
-                df[col] = pd.to_datetime(df[col], errors="coerce")
+                pd_fmt = _config_date_format_to_pandas(rule.get("date_format"))
+                if pd_fmt:
+                    df[col] = pd.to_datetime(df[col], format=pd_fmt, errors="coerce")
+                else:
+                    with warnings.catch_warnings():
+                        warnings.simplefilter("ignore", UserWarning)
+                        df[col] = pd.to_datetime(df[col], errors="coerce")
             elif dtype == "text":
                 df[col] = df[col].astype(str)
 

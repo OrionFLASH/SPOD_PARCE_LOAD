@@ -2189,13 +2189,6 @@
       "sheet": "INDICATOR",
       "key": [
         "CONTEST_CODE",
-        "INDICATOR_ADD_CALC_TYPE"
-      ]
-    },
-    {
-      "sheet": "INDICATOR",
-      "key": [
-        "CONTEST_CODE",
         "INDICATOR_ADD_CALC_TYPE",
         "INDICATOR_CODE"
       ]
