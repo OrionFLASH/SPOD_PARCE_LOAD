@@ -69,5 +69,8 @@ fix_gender_patterns.py
 .cursor/
 .cursorignore
 
+# Копии программы и документации (архивные .txt)
+POST/
+
 # Исходники и версии (Source)
 Source/
