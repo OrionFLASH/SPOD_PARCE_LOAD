@@ -1007,9 +1007,24 @@ FILE_DEPENDENCIES = {
 
 ### Требования
 
-- Python 3.8+
-- pip
+- Python 3.8+ (рекомендуется 3.10)
+- pip (для базового Python) или conda (для Anaconda)
 - Виртуальное окружение (рекомендуется)
+
+### Зависимости main.py: базовый Python и Anaconda 3.10
+
+Код использует только стандартную библиотеку Python (os, sys, json, re, csv, logging, datetime, typing, concurrent.futures, threading, inspect и др.) плюс **внешние пакеты**:
+
+| Пакет     | Назначение                    | Базовый Python 3.10 | Anaconda 3.10      |
+|-----------|-------------------------------|----------------------|--------------------|
+| **pandas**| DataFrame, чтение/обработка CSV| ❌ ставить вручную   | ✅ входит в base   |
+| **openpyxl** | Запись Excel, стили, форматирование | ❌ ставить вручную | ✅ обычно в base   |
+| **numpy** | Векторизованный расчёт статуса турнира (`np.select`) | ❌ (ставится с pandas) | ✅ входит в base |
+
+- **Базовый Python 3.10** (с python.org): внешних библиотек **нет** в поставке. Нужна установка: `pip install -r requirements.txt` (или минимум `pip install pandas openpyxl`).
+- **Anaconda 3.10**: в базовое окружение уже входят numpy, pandas и, как правило, openpyxl. Код **работает без дополнительной установки**. Если чего-то не хватает: `conda install pandas openpyxl`.
+
+В `tournament.py` и `main_impl.py` при отсутствии numpy используется запасной вариант на чистом pandas (медленнее, но без numpy).
 
 ### Установка и запуск main.py
 
