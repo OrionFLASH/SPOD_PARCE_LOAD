@@ -4,14 +4,15 @@
 
 1. [Общее описание](#общее-описание)
 2. [Структура проекта](#структура-проекта)
-3. [Конфигурация config.json](#конфигурация-configjson)
-4. [Программа main.py - Обработка данных](#программа-mainpy---обработка-данных)
-5. [Админ-панель - Редактирование данных](#админ-панель---редактирование-данных)
-6. [Техническое задание](#техническое-задание)
-7. [Анализ входных данных](#анализ-входных-данных)
-8. [Установка и запуск](#установка-и-запуск)
-9. [Логирование](#логирование)
-10. [История версий](#история-версий)
+3. [Модули src/ (описание и назначение)](#модули-src-описание-и-назначение)
+4. [Конфигурация config.json](#конфигурация-configjson)
+5. [Программа main.py - Обработка данных](#программа-mainpy---обработка-данных)
+6. [Админ-панель - Редактирование данных](#админ-панель---редактирование-данных)
+7. [Техническое задание](#техническое-задание)
+8. [Анализ входных данных](#анализ-входных-данных)
+9. [Установка и запуск](#установка-и-запуск)
+10. [Логирование](#логирование)
+11. [История версий](#история-версий)
 
 ---
 
@@ -46,6 +47,7 @@ SPOD_PROM/
 │   ├── validation.py     # Валидация длины полей, проверка дубликатов
 │   ├── gender.py         # Определение пола (AUTO_GENDER)
 │   └── main_impl.py      # Полный пайплайн: загрузка, merge, summary, Excel, отчёты
+├── requirements.txt        # Зависимости (pandas, openpyxl и др.) для main.py
 ├── SPOD/                   # Исходные CSV файлы (paths.input)
 ├── OUT/                    # Результирующие Excel файлы (paths.output)
 ├── EDIT/                   # Копии файлов для редактирования (сессии админ-панели)
@@ -64,6 +66,26 @@ SPOD_PROM/
 │       └── json_editor.py
 └── venv/                  # Виртуальное окружение
 ```
+
+---
+
+## Модули src/ (описание и назначение)
+
+Исходный код обработки данных вынесен в каталог **src/**; корневой **main.py** только загружает конфигурацию и запускает пайплайн.
+
+| Модуль | Назначение | Основные сущности |
+|--------|------------|-------------------|
+| **config_loader.py** | Загрузка и хранение настроек из config.json | Класс `Config`: атрибуты `dir_input`, `dir_output`, `dir_logs`, `input_files`, `summary_sheet`, `sheet_order`, `summary_key_defs`, `summary_key_columns`, `gender_patterns`, `gender_progress_step`, `field_length_validations`, `merge_fields_advanced`, `color_scheme`, `column_formats`, `check_duplicates`, `json_columns`, `max_workers_io`, `max_workers_cpu`, `tournament_status_choices`; метод `get_output_filename()`. |
+| **config_holder.py** | Внедрение текущего конфига для кода, работающего с глобальными переменными | `set_current_config(config)`, `get_current_config()`. |
+| **logging_setup.py** | Настройка логирования | Класс `CallerFormatter` (добавляет имя функции в сообщение); функция `setup_logger(config)` — возвращает путь к лог-файлу, настраивает вывод в файл (DEBUG) и консоль (INFO). |
+| **json_utils.py** | Разбор и разворот JSON-полей в DataFrame | `safe_json_loads(s)` — парсинг строки в JSON с поправкой типичных ошибок; `safe_json_loads_preserve_triple_quotes(s)`; `flatten_json_column_recursive(df, column, prefix=..., sheet=..., sep=..., max_workers_io=...)` — рекурсивный разворот колонки в несколько колонок, при большом объёме — параллельно. |
+| **file_loader.py** | Поиск и загрузка CSV, разворот JSON по конфигу | Класс `FileLoader(config)`: `find_file_case_insensitive(directory, base_name, extensions)`, `check_input_files_exist()`, `read_csv_file(file_path)`, `process_single_file(file_conf)` — возвращает `(df, sheet_name, file_conf)` или `(None, sheet_name, None)`. |
+| **tournament.py** | Расчёт статуса турнира по датам | `calculate_tournament_status(config, df_tournament, df_report=None)` — добавляет колонку `CALC_TOURNAMENT_STATUS` по правилам из `config.tournament_status_choices`. |
+| **validation.py** | Валидация длины полей и проверка дубликатов | `validate_field_lengths(config, df, sheet_name)`, `validate_field_lengths_vectorized(config, df, sheet_name)`, `compare_validate_results(df_old, df_new, result_column)`, `mark_duplicates(df, key_cols, sheet_name=...)`, `validate_single_sheet(config, sheet_name, sheets_data_item)`, `check_duplicates_single_sheet(config, sheet_name, sheets_data_item)`. |
+| **gender.py** | Определение пола по отчеству, имени, фамилии | `add_auto_gender_column(config, df, sheet_name)`, `add_auto_gender_column_vectorized(config, df, sheet_name)`, `compare_gender_results(df_old, df_new)`. Внутри используются паттерны из `config.gender_patterns`. |
+| **main_impl.py** | Полный пайплайн обработки | При импорте вызывается `_load_config_globals()` (из config.json или из внедрённого Config). Функция `main()`: проверка наличия файлов → параллельная загрузка CSV и разворот JSON → добавление AUTO_GENDER (EMPLOYEE) → валидация длины полей → расчёт статуса турнира → merge (кроме SUMMARY) → проверка дубликатов → формирование SUMMARY → лист STAT_FILE → запись Excel → итоговый отчёт по дубликатам и валидации. Остальные функции (merge, summary, Excel, отчёты) реализованы в этом же модуле. |
+
+**Запуск:** из корня проекта выполняется `python main.py`. При этом создаётся `Config()` (путь к config.json — корень проекта), конфиг передаётся в `set_current_config(config)`, затем вызывается `main_impl.main()`. В начале `main_impl.main()` снова вызывается `_load_config_globals()`, поэтому все глобальные переменные в main_impl берутся из внедрённого конфига.
 
 ---
 
@@ -576,13 +598,10 @@ SPOD_PROM/
 
 ### Назначение
 
-Основная программа для обработки данных из CSV файлов системы SPOD. Программа:
-- Загружает параметры из **config.json** (пути, списки файлов, правила объединения, проверки и т.д.)
-- Читает CSV файлы из каталога, заданного в `paths.input` (по умолчанию `SPOD/`)
-- Обрабатывает данные согласно правилам объединения (`merge_fields_advanced`)
-- Проверяет дубликаты (`check_duplicates`)
-- Создаёт итоговый Excel файл с несколькими листами
-- Ведёт подробное логирование всех операций
+Основная программа для обработки данных из CSV файлов системы SPOD. Состоит из двух частей:
+
+1. **Корневой main.py** — точка входа: создаёт экземпляр `Config` (загрузка **config.json** из корня проекта), передаёт его в `config_holder`, затем вызывает `main_impl.main()`.
+2. **src/main_impl.py** — полный пайплайн: при запуске подхватывает внедрённый конфиг (или при прямом запуске загружает config.json из корня проекта), настраивает логирование, читает CSV из каталога `paths.input` (по умолчанию `SPOD/`), обрабатывает данные по правилам объединения (`merge_fields_advanced`), проверяет дубликаты (`check_duplicates`) и длину полей, формирует сводный лист SUMMARY и лист STAT_FILE, записывает итоговый Excel и выводит отчёт. Логирование ведётся в файл (уровень DEBUG) и в консоль (INFO).
 
 ### Входные данные
 
@@ -604,27 +623,24 @@ SPOD_PROM/
 
 #### 1. Инициализация и настройка
 
-При импорте модуля выполняется загрузка **config.json** (пути, `input_files`, `merge_fields_advanced`, `check_duplicates`, логирование, цветовая схема и др.). Далее:
+При запуске из корня (`python main.py`):
 
 ```python
-# Настройка логирования (использует logging.level и logging.base_name из config)
-setup_logger()  # Создаёт логгер: DEBUG в файл, INFO в консоль
-# Все параметры (INPUT_FILES, MERGE_FIELDS_ADVANCED, CHECK_DUPLICATES и т.д.) уже загружены из config.json
+# main.py (корень)
+config = Config()                    # Загрузка config.json из корня проекта
+set_current_config(config)           # Внедрение для main_impl
+main_impl.main()                     # Запуск пайплайна
 ```
+
+Внутри `main_impl.main()` сначала вызывается `_load_config_globals()` — глобальные переменные (DIR_INPUT, INPUT_FILES, MERGE_FIELDS_ADVANCED и т.д.) заполняются из внедрённого Config. Затем настраивается логирование (`setup_logger()` — использует `logging.level` и `logging.base_name` из конфига): DEBUG в файл, INFO в консоль.
 
 #### 2. Чтение CSV файлов
 
-```python
-def read_csv_file(file_path):
-    # Читает CSV с разделителем ";"
-    # Обрабатывает кодировку UTF-8
-    # Возвращает DataFrame
-```
+Чтение выполняется в **main_impl**: поиск файла без учёта регистра (`find_file_case_insensitive`), чтение CSV с разделителем `;`, кодировка UTF-8, все ячейки как строки. Аналогичная логика вынесена в класс **FileLoader** в `src/file_loader.py` (методы `read_csv_file`, `process_single_file` с разворотом JSON по `json_columns`).
 
 **Особенности:**
-- Автоматическое определение файла по дате в имени
-- Обработка различных форматов дат в именах файлов
-- Пропуск некорректных строк (`on_bad_lines='skip'`)
+- Поиск файла в каталоге `paths.input` по имени без учёта регистра (.csv / .CSV).
+- Для LIST-TOURNAMENT при отсутствии файла с суффиксом `-2` используется альтернативное имя без суффикса.
 
 #### 3. Обработка данных
 
@@ -995,21 +1011,25 @@ FILE_DEPENDENCIES = {
 - pip
 - Виртуальное окружение (рекомендуется)
 
-### Установка main.py
+### Установка и запуск main.py
+
+Запуск выполняется **из корня проекта** (каталог, где лежат `main.py` и `config.json`). Конфигурация читается из `config.json` в корне; входные CSV — из каталога, заданного в `paths.input` (по умолчанию `SPOD/`).
 
 ```bash
-# Создание виртуального окружения
+# Создание виртуального окружения (рекомендуется)
 python3 -m venv venv
-source venv/bin/activate  # Linux/Mac
-# или
-venv\Scripts\activate  # Windows
+source venv/bin/activate  # Linux/macOS
+# или: venv\Scripts\activate  # Windows
 
-# Установка зависимостей
-pip install pandas openpyxl
+# Установка зависимостей (из корня проекта)
+pip install -r requirements.txt
+# или вручную: pip install pandas openpyxl
 
-# Запуск
+# Запуск из корня проекта
 python main.py
 ```
+
+Выходной Excel создаётся в каталоге `paths.output` (по умолчанию `OUT/`), логи — в `paths.logs` (по умолчанию `LOGS/`).
 
 ### Установка админ-панели
 
@@ -1061,9 +1081,15 @@ python app.py
 
 ## История версий
 
-### Версия 1.1 — Модульная структура и классы
+### Версия 1.1 — Модульная структура и классы (обновление документации)
 
-**Изменения:**
+**Документация:**
+- В содержание добавлен раздел «Модули src/ (описание и назначение)» с таблицей модулей, их назначением и перечнем основных классов и функций.
+- Раздел «Программа main.py» обновлён: описание точки входа (корневой main.py → Config → main_impl.main()), инициализации и чтения CSV.
+- Раздел «Установка и запуск» уточнён: запуск из корня проекта, использование `requirements.txt`, каталоги OUT/ и LOGS/.
+- В структуру проекта добавлен файл `requirements.txt`.
+
+**Изменения кода (v1.1):**
 - **Точка входа**: корневой `main.py` только загружает конфигурацию (`Config`), внедряет её в контекст и запускает пайплайн из `src.main_impl`.
 - **Каталог src/**: весь рабочий код вынесен в модули:
   - `config_loader.py` — класс `Config` (загрузка config.json, атрибуты для путей, листов, правил merge, валидации и т.д.).
