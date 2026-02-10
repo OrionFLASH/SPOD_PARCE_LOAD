@@ -950,6 +950,10 @@ def write_to_excel(sheets_data: Dict[str, Any], output_path: str) -> None:
 def calculate_column_width(col_name, ws, params, col_num):
     """
     Вычисляет ширину колонки на основе параметров и содержимого.
+
+    - col_width_mode == "AUTO": ширина по содержимому в пределах [min_col_width, max_col_width].
+    - col_width_mode == число (или строка-число): фиксированная ширина, min/max не используются.
+    - Иначе: ширина по содержимому, ограниченная min/max.
     """
     # Получаем параметры для конкретной колонки (если добавлена через merge — MERGE_FIELDS_ADVANCED)
     added_cols_width = params.get("added_columns_width", {})
@@ -957,26 +961,34 @@ def calculate_column_width(col_name, ws, params, col_num):
         col_params = added_cols_width[col_name]
         max_width = col_params.get("max_width") or params.get("max_col_width", 30)
         width_mode = col_params.get("width_mode", "AUTO")
-        min_width = col_params.get("min_width", 8)
+        min_width = col_params.get("min_width") or params.get("min_col_width", 8)
     else:
-        # Общие параметры для листа
+        # Общие параметры для листа (из input_files, summary_sheet, stat_file_params и т.д.)
         max_width = params.get("max_col_width", 30)
         width_mode = params.get("col_width_mode", "AUTO")
         min_width = params.get("min_col_width", 8)
+
+    # Фиксированная ширина: число (в т.ч. если в JSON пришло строкой "50")
+    try:
+        if isinstance(width_mode, (int, float)):
+            return max(1, int(width_mode))
+        if isinstance(width_mode, str) and width_mode.strip() and width_mode.strip().upper() != "AUTO":
+            fixed = float(width_mode.strip())
+            if fixed > 0:
+                return max(1, int(fixed))
+    except (ValueError, TypeError):
+        pass
 
     # Вычисляем ширину на основе содержимого
     col_letter = get_column_letter(col_num)
     content_width = max([len(str(cell.value)) for cell in ws[col_letter] if cell.value] + [min_width])
 
-    if width_mode == "AUTO":
-        # Автоматическое растягивание по содержимому, но не более максимальной ширины
+    if width_mode == "AUTO" or (isinstance(width_mode, str) and str(width_mode).strip().upper() == "AUTO"):
+        # Автоматически: уместить между min и max
         final_width = min(content_width, max_width)
         final_width = max(final_width, min_width)
-    elif isinstance(width_mode, (int, float)):
-        # Фиксированная ширина
-        final_width = width_mode
     else:
-        # Без растягивания - просто не более максимальной
+        # Резерв: ограничить содержимое min/max
         final_width = min(content_width, max_width)
         final_width = max(final_width, min_width)
 
@@ -986,30 +998,30 @@ def calculate_column_width(col_name, ws, params, col_num):
 def _build_excel_number_format(rule):
     """
     Строит строку формата Excel для числовых ячеек по правилу COLUMN_FORMATS.
-    Для 0 знаков после запятой формат без дробной части, чтобы отображались целые (1, 4, а не 1,0).
+    В коде формата Excel точка (.) — всегда десятичный разделитель; запятая (,) — разделитель разрядов.
+    Строка "#.##0" даёт дробную часть (0 отображается как ",0"). Для целых без дробной части
+    используем только "#,##0" или "0" (без точки в коде формата).
 
     Args:
         rule (dict): Элемент из COLUMN_FORMATS с data_type="number"
 
     Returns:
-        str: Строка формата для cell.number_format (напр. "#,##0" или "#.##0,00")
+        str: Строка формата для cell.number_format (напр. "#,##0" для целых, "#,##0.00" для дробных)
     """
     decimal_places = int(rule.get("decimal_places", 0))
     decimal_sep = rule.get("decimal_separator", ",")
     thousands = rule.get("thousands_separator", True)
-    # Европейский стиль: запятая — дробная часть, точка — разряды
-    # Для 0 знаков после запятой — формат без дробной части; явно "0" или "#.##0" без десятичной части,
-    # иначе Excel в части локалей может показывать 1,0 вместо 1
+    # Целое число (0 знаков после запятой): в коде формата НЕ должно быть точки (.) — иначе Excel
+    # интерпретирует её как десятичный разделитель и показывает ",0". Стандарт: "#,##0" или "0".
     if decimal_places == 0:
-        if decimal_sep == ",":
-            return "#.##0" if thousands else "0"
         return "#,##0" if thousands else "0"
+    # Дробная часть: в Excel в коде формата десятичный разделитель — точка
     if decimal_sep == ",":
-        int_part = "#.##0" if thousands else "0"
-        dec_part = "," + "0" * decimal_places
-    else:
-        int_part = "#,##0" if thousands else "0"
+        # Отображение с запятой как десятичным разделителем задаётся локалью Excel; в коде оставляем точку
         dec_part = "." + "0" * decimal_places
+    else:
+        dec_part = "." + "0" * decimal_places
+    int_part = "#,##0" if thousands else "0"
     return int_part + dec_part
 
 

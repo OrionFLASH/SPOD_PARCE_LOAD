@@ -39,7 +39,7 @@
       "min_col_width": 8
     },
     {
-      "file": "INDICATOR (PROM) 04-02 v0.csv",
+      "file": "INDICATOR (PROM) 09-02 v2.csv",
       "sheet": "INDICATOR",
       "max_col_width": 100,
       "freeze": "B2",
@@ -47,7 +47,7 @@
       "min_col_width": 8
     },
     {
-      "file": "REPORT (PROM) 06-02 v0.csv",
+      "file": "REPORT (PROM) 10-02 v1.csv",
       "sheet": "REPORT",
       "max_col_width": 25,
       "freeze": "D2",
@@ -55,7 +55,7 @@
       "min_col_width": 10
     },
     {
-      "file": "REWARD (PROM) 06-02 v0.csv",
+      "file": "REWARD (PROM) 10-02 v2.csv",
       "sheet": "REWARD",
       "max_col_width": 200,
       "freeze": "D2",
@@ -63,7 +63,7 @@
       "min_col_width": 10
     },
     {
-      "file": "REWARD-LINK (PROM) 04-02 v0.csv",
+      "file": "REWARD-LINK (PROM) 10-02 v2.csv",
       "sheet": "REWARD-LINK",
       "max_col_width": 30,
       "freeze": "A2",
@@ -71,7 +71,7 @@
       "min_col_width": 10
     },
     {
-      "file": "SCHEDULE (PROM) 06-02 v0.csv",
+      "file": "SCHEDULE (PROM) 10-02 v1.csv",
       "sheet": "TOURNAMENT-SCHEDULE",
       "max_col_width": 120,
       "freeze": "B2",
@@ -121,8 +121,8 @@
     {
       "file": "gamification-statistics.csv",
       "sheet": "STATISTICS",
-      "max_col_width": 25,
-      "freeze": "C2",
+      "max_col_width": 40,
+      "freeze": "E2",
       "col_width_mode": "AUTO",
       "min_col_width": 10
     },
@@ -130,7 +130,23 @@
       "file": "gamification-tournamentList.csv",
       "sheet": "LIST-TOURNAMENT",
       "max_col_width": 80,
-      "freeze": "C2",
+      "freeze": "D2",
+      "col_width_mode": "AUTO",
+      "min_col_width": 12
+    },
+    {
+      "file": "gamification-ratingList 2KM.csv",
+      "sheet": "RATING_2025_2 (KMKKSB)",
+      "max_col_width": 80,
+      "freeze": "D2",
+      "col_width_mode": "AUTO",
+      "min_col_width": 12
+    },
+    {
+      "file": "gamification-ratingList 2MNS.csv",
+      "sheet": "RATING_2025_2 (MNS)",
+      "max_col_width": 80,
+      "freeze": "D2",
       "col_width_mode": "AUTO",
       "min_col_width": 12
     }
@@ -155,6 +171,8 @@
     "USER_ROLE",
     "EMPLOYEE",
     "STAT_FILE",
+    "RATING_2025_2 (KMKKSB)",
+    "RATING_2025_2 (MNS)",
     "LIST-REWARDS",
     "STATISTICS",
     "LIST-TOURNAMENT",
@@ -922,6 +940,91 @@
       "aggregate": null
     },
     {
+      "sheet_src": "REWARD",
+      "sheet_dst": "SUMMARY",
+      "src_key": [
+        "REWARD_CODE"
+      ],
+      "dst_key": [
+        "REWARD_CODE"
+      ],
+      "column": [
+        "FULL_NAME",
+        "REWARD_DESCRIPTION",
+        "REWARD_TYPE",
+        "REWARD_CONDITION",
+        "REWARD_COST",
+        "ADD_DATA => feature",
+        "ADD_DATA => itemFeature",
+        "ADD_DATA => rewardRule",
+        "ADD_DATA => hidden",
+        "ADD_DATA => hiddenRewardList",
+        "ADD_DATA => persomanNumberVisible",
+        "ADD_DATA => nftFlg",
+        "ADD_DATA => newsType",
+        "ADD_DATA => winCriterion",
+        "ADD_DATA => rewardAgainGlobal",
+        "ADD_DATA => rewardAgainTournament",
+        "ADD_DATA => outstanding",
+        "ADD_DATA => teamNews",
+        "ADD_DATA => singleNews",
+        "ADD_DATA => fileName",
+        "ADD_DATA => refreshOldNews",
+        "ADD_DATA => businessBlock",
+        "ADD_DATA => recommendationLevel",
+        "ADD_DATA => priority",
+        "ADD_DATA => masterBadge",
+        "ADD_DATA => parentRewardCode",
+        "ADD_DATA => helpCode",
+        "ADD_DATA => seasonItem",
+        "ADD_DATA"
+      ],
+      "mode": "value",
+      "multiply_rows": false,
+      "col_max_width": 50,
+      "col_width_mode": "AUTO",
+      "col_min_width": 8,
+      "status_filters": null,
+      "custom_conditions": null,
+      "group_by": null,
+      "aggregate": null
+    },
+    {
+      "sheet_src": "TOURNAMENT-SCHEDULE",
+      "sheet_dst": "SUMMARY",
+      "src_key": [
+        "TOURNAMENT_CODE"
+      ],
+      "dst_key": [
+        "TOURNAMENT_CODE"
+      ],
+      "column": [
+        "START_DT",
+        "END_DT",
+        "RESULT_DT",
+        "TOURNAMENT_STATUS",
+        "TARGET_TYPE",
+        "PERIOD_TYPE",
+        "PLAN_PERIOD_START_DT",
+        "PLAN_PERIOD_END_DT",
+        "CRITERION_MARK_TYPE",
+        "CRITERION_MARK_VALUE",
+        "FILTER_PERIOD_ARR",
+        "CONTEST_CODE",
+        "CALC_TYPE",
+        "TRN_INDICATOR_FILTER"
+      ],
+      "mode": "value",
+      "multiply_rows": false,
+      "col_max_width": 30,
+      "col_width_mode": "AUTO",
+      "col_min_width": 8,
+      "status_filters": null,
+      "custom_conditions": null,
+      "group_by": null,
+      "aggregate": null
+    },
+    {
       "sheet_src": "GROUP",
       "sheet_dst": "SUMMARY",
       "src_key": [
@@ -982,90 +1085,6 @@
       "mode": "value",
       "multiply_rows": false,
       "col_max_width": 35,
-      "col_width_mode": "AUTO",
-      "col_min_width": 8,
-      "status_filters": null,
-      "custom_conditions": null,
-      "group_by": null,
-      "aggregate": null
-    },
-    {
-      "sheet_src": "TOURNAMENT-SCHEDULE",
-      "sheet_dst": "SUMMARY",
-      "src_key": [
-        "TOURNAMENT_CODE"
-      ],
-      "dst_key": [
-        "TOURNAMENT_CODE"
-      ],
-      "column": [
-        "START_DT",
-        "END_DT",
-        "RESULT_DT",
-        "TOURNAMENT_STATUS",
-        "TARGET_TYPE",
-        "PERIOD_TYPE",
-        "PLAN_PERIOD_START_DT",
-        "PLAN_PERIOD_END_DT",
-        "CRITERION_MARK_TYPE",
-        "CRITERION_MARK_VALUE",
-        "FILTER_PERIOD_ARR",
-        "CONTEST_CODE",
-        "CALC_TYPE",
-        "TRN_INDICATOR_FILTER"
-      ],
-      "mode": "value",
-      "multiply_rows": false,
-      "col_max_width": 30,
-      "col_width_mode": "AUTO",
-      "col_min_width": 8,
-      "status_filters": null,
-      "custom_conditions": null,
-      "group_by": null,
-      "aggregate": null
-    },
-    {
-      "sheet_src": "REWARD",
-      "sheet_dst": "SUMMARY",
-      "src_key": [
-        "REWARD_CODE"
-      ],
-      "dst_key": [
-        "REWARD_CODE"
-      ],
-      "column": [
-        "FULL_NAME",
-        "REWARD_DESCRIPTION",
-        "REWARD_TYPE",
-        "REWARD_CONDITION",
-        "REWARD_COST",
-        "ADD_DATA => feature",
-        "ADD_DATA => itemFeature",
-        "ADD_DATA => rewardRule",
-        "ADD_DATA => hidden",
-        "ADD_DATA => hiddenRewardList",
-        "ADD_DATA => nftFlg",
-        "ADD_DATA => newsType",
-        "ADD_DATA => winCriterion",
-        "ADD_DATA => rewardAgainGlobal",
-        "ADD_DATA => rewardAgainTournament",
-        "ADD_DATA => outstanding",
-        "ADD_DATA => teamNews",
-        "ADD_DATA => singleNews",
-        "ADD_DATA => fileName",
-        "ADD_DATA => refreshOldNews",
-        "ADD_DATA => businessBlock",
-        "ADD_DATA => recommendationLevel",
-        "ADD_DATA => priority",
-        "ADD_DATA => masterBadge",
-        "ADD_DATA => parentRewardCode",
-        "ADD_DATA => helpCode",
-        "ADD_DATA => seasonItem",
-        "ADD_DATA"
-      ],
-      "mode": "value",
-      "multiply_rows": false,
-      "col_max_width": 50,
       "col_width_mode": "AUTO",
       "col_min_width": 8,
       "status_filters": null,
@@ -2164,6 +2183,40 @@
       "decimal_places": 0,
       "decimal_separator": ",",
       "thousands_separator": false,
+      "date_format": "YYYY-MM-DD",
+      "horizontal": "center",
+      "vertical": "center",
+      "wrap_text": false
+    },
+    {
+      "sheet": "RATING_2025_2 (KMKKSB)",
+      "columns": [
+        "Количество кристаллов",
+        "Место в рейтинге по стране",
+        "Место в рейтинге ТБ",
+        "Место в рейтинге ГОСБ"
+      ],
+      "data_type": "number",
+      "decimal_places": 0,
+      "decimal_separator": ",",
+      "thousands_separator": true,
+      "date_format": "YYYY-MM-DD",
+      "horizontal": "center",
+      "vertical": "center",
+      "wrap_text": false
+    },
+    {
+      "sheet": "RATING_2025_2 (MNS)",
+      "columns": [
+        "Количество кристаллов",
+        "Место в рейтинге по стране",
+        "Место в рейтинге ТБ",
+        "Место в рейтинге ГОСБ"
+      ],
+      "data_type": "number",
+      "decimal_places": 0,
+      "decimal_separator": ",",
+      "thousands_separator": true,
       "date_format": "YYYY-MM-DD",
       "horizontal": "center",
       "vertical": "center",
