@@ -1839,20 +1839,6 @@
       ]
     },
     {
-      "group": "SUMMARY DUPLICATES",
-      "header_bg": "FFE6F2",
-      "header_fg": "2C3E50",
-      "column_bg": null,
-      "column_fg": null,
-      "style_scope": "header",
-      "sheets": [
-        "SUMMARY"
-      ],
-      "columns": [
-        "ДУБЛЬ: CONTEST_CODE_TOURNAMENT_CODE_REWARD_CODE_GROUP_CODE"
-      ]
-    },
-    {
       "group": "DUPLICATES",
       "header_bg": "FFE6F2",
       "header_fg": "2C3E50",
@@ -1860,205 +1846,33 @@
       "column_fg": null,
       "style_scope": "header",
       "sheets": [
-        "CONTEST-DATA"
-      ],
-      "columns": [
-        "ДУБЛЬ: CONTEST_CODE"
-      ]
-    },
-    {
-      "group": "DUPLICATES",
-      "header_bg": "FFE6F2",
-      "header_fg": "2C3E50",
-      "column_bg": null,
-      "column_fg": null,
-      "style_scope": "header",
-      "sheets": [
-        "GROUP"
-      ],
-      "columns": [
-        "ДУБЛЬ: CONTEST_CODE_GROUP_CODE_GROUP_VALUE"
-      ]
-    },
-    {
-      "group": "DUPLICATES",
-      "header_bg": "FFE6F2",
-      "header_fg": "2C3E50",
-      "column_bg": null,
-      "column_fg": null,
-      "style_scope": "header",
-      "sheets": [
-        "INDICATOR"
-      ],
-      "columns": [
-        "ДУБЛЬ: CONTEST_CODE_INDICATOR_ADD_CALC_TYPE_INDICATOR_CODE"
-      ]
-    },
-    {
-      "group": "DUPLICATES",
-      "header_bg": "FFE6F2",
-      "header_fg": "2C3E50",
-      "column_bg": null,
-      "column_fg": null,
-      "style_scope": "header",
-      "sheets": [
-        "INDICATOR"
-      ],
-      "columns": [
-        "ДУБЛЬ: N"
-      ]
-    },
-    {
-      "group": "DUPLICATES",
-      "header_bg": "FFE6F2",
-      "header_fg": "2C3E50",
-      "column_bg": null,
-      "column_fg": null,
-      "style_scope": "header",
-      "sheets": [
-        "REPORT"
-      ],
-      "columns": [
-        "ДУБЛЬ: MANAGER_PERSON_NUMBER_TOURNAMENT_CODE_CONTEST_CODE"
-      ]
-    },
-    {
-      "group": "DUPLICATES",
-      "header_bg": "FFE6F2",
-      "header_fg": "2C3E50",
-      "column_bg": null,
-      "column_fg": null,
-      "style_scope": "header",
-      "sheets": [
-        "REWARD"
-      ],
-      "columns": [
-        "ДУБЛЬ: REWARD_CODE"
-      ]
-    },
-    {
-      "group": "DUPLICATES",
-      "header_bg": "FFE6F2",
-      "header_fg": "2C3E50",
-      "column_bg": null,
-      "column_fg": null,
-      "style_scope": "header",
-      "sheets": [
-        "REWARD-LINK"
-      ],
-      "columns": [
-        "ДУБЛЬ: CONTEST_CODE_REWARD_CODE"
-      ]
-    },
-    {
-      "group": "DUPLICATES",
-      "header_bg": "FFE6F2",
-      "header_fg": "2C3E50",
-      "column_bg": null,
-      "column_fg": null,
-      "style_scope": "header",
-      "sheets": [
-        "REWARD-LINK"
-      ],
-      "columns": [
-        "ДУБЛЬ: REWARD_CODE"
-      ]
-    },
-    {
-      "group": "DUPLICATES",
-      "header_bg": "FFE6F2",
-      "header_fg": "2C3E50",
-      "column_bg": null,
-      "column_fg": null,
-      "style_scope": "header",
-      "sheets": [
-        "TOURNAMENT-SCHEDULE"
-      ],
-      "columns": [
-        "ДУБЛЬ: TOURNAMENT_CODE_CONTEST_CODE"
-      ]
-    },
-    {
-      "group": "DUPLICATES",
-      "header_bg": "FFE6F2",
-      "header_fg": "2C3E50",
-      "column_bg": null,
-      "column_fg": null,
-      "style_scope": "header",
-      "sheets": [
-        "TOURNAMENT-SCHEDULE"
-      ],
-      "columns": [
-        "ДУБЛЬ: TOURNAMENT_CODE"
-      ]
-    },
-    {
-      "group": "DUPLICATES",
-      "header_bg": "FFE6F2",
-      "header_fg": "2C3E50",
-      "column_bg": null,
-      "column_fg": null,
-      "style_scope": "header",
-      "sheets": [
-        "ORG_UNIT_V20"
-      ],
-      "columns": [
-        "ДУБЛЬ: ORG_UNIT_CODE"
-      ]
-    },
-    {
-      "group": "DUPLICATES",
-      "header_bg": "FFE6F2",
-      "header_fg": "2C3E50",
-      "column_bg": null,
-      "column_fg": null,
-      "style_scope": "header",
-      "sheets": [
-        "USER_ROLE"
-      ],
-      "columns": [
-        "ДУБЛЬ: RULE_NUM"
-      ]
-    },
-    {
-      "group": "DUPLICATES",
-      "header_bg": "FFE6F2",
-      "header_fg": "2C3E50",
-      "column_bg": null,
-      "column_fg": null,
-      "style_scope": "header",
-      "sheets": [
-        "USER_ROLE SB"
-      ],
-      "columns": [
-        "ДУБЛЬ: RULE_NUM"
-      ]
-    },
-    {
-      "group": "DUPLICATES",
-      "header_bg": "FFE6F2",
-      "header_fg": "2C3E50",
-      "column_bg": null,
-      "column_fg": null,
-      "style_scope": "header",
-      "sheets": [
+        "SUMMARY",
+        "CONTEST-DATA",
+        "GROUP",
+        "INDICATOR",
+        "REPORT",
+        "REWARD",
+        "REWARD-LINK",
+        "TOURNAMENT-SCHEDULE",
+        "ORG_UNIT_V20",
+        "USER_ROLE",
+        "USER_ROLE SB",
         "EMPLOYEE"
       ],
       "columns": [
-        "ДУБЛЬ: PERSON_NUMBER"
-      ]
-    },
-    {
-      "group": "DUPLICATES",
-      "header_bg": "FFE6F2",
-      "header_fg": "2C3E50",
-      "column_bg": null,
-      "column_fg": null,
-      "style_scope": "header",
-      "sheets": [
-        "EMPLOYEE"
-      ],
-      "columns": [
+        "ДУБЛЬ: CONTEST_CODE_TOURNAMENT_CODE_REWARD_CODE_GROUP_CODE",
+        "ДУБЛЬ: CONTEST_CODE",
+        "ДУБЛЬ: CONTEST_CODE_GROUP_CODE_GROUP_VALUE",
+        "ДУБЛЬ: CONTEST_CODE_INDICATOR_ADD_CALC_TYPE_INDICATOR_CODE",
+        "ДУБЛЬ: N",
+        "ДУБЛЬ: MANAGER_PERSON_NUMBER_TOURNAMENT_CODE_CONTEST_CODE",
+        "ДУБЛЬ: REWARD_CODE",
+        "ДУБЛЬ: CONTEST_CODE_REWARD_CODE",
+        "ДУБЛЬ: TOURNAMENT_CODE_CONTEST_CODE",
+        "ДУБЛЬ: TOURNAMENT_CODE",
+        "ДУБЛЬ: ORG_UNIT_CODE",
+        "ДУБЛЬ: RULE_NUM",
+        "ДУБЛЬ: PERSON_NUMBER",
         "ДУБЛЬ: PERSON_NUMBER_ADD"
       ]
     }
