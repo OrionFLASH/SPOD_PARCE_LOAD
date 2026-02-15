@@ -1,7 +1,7 @@
 # === ИМПОРТЫ БИБЛИОТЕК ===
 import os          # Для работы с операционной системой и путями
 import sys         # Для системных функций и аргументов командной строки
-from typing import Optional, List, Dict, Any  # Для аннотаций типов
+from typing import Optional, List, Dict, Any, Tuple  # Для аннотаций типов
 import pandas as pd  # Для работы с данными в табличном формате
 import logging     # Для логирования процессов
 from datetime import datetime  # Для работы с датами и временем
@@ -762,19 +762,22 @@ def check_input_files_exist() -> List[Dict[str, str]]:
     return missing
 
 
-def read_csv_file(file_path: str) -> Optional[pd.DataFrame]:
+def read_csv_file(file_path: str) -> Optional[Tuple[pd.DataFrame, List[Dict[str, Any]]]]:
     """
     Читает CSV файл с заданными параметрами и логирует процесс.
     
     Функция настроена для работы с CSV файлами, использующими точку с запятой как разделитель.
     Все данные читаются как строки для сохранения точности, особенно для JSON полей.
     Сохраняет тройные кавычки в неизменном виде.
+    Строки с числом полей, отличным от заголовка, нормализуются (дополняются/обрезаются),
+    при этом фиксируются расхождения для итогового отчёта.
     
     Args:
         file_path (str): Путь к CSV файлу для чтения
         
     Returns:
-        pd.DataFrame or None: DataFrame с данными или None при ошибке
+        (pd.DataFrame, list) или None при ошибке. Список — записи о расхождениях по числу полей
+        в строке: [{"row_index", "expected_cols", "actual_cols", "direction": "больше"|"меньше"}, ...].
     """
     func_start = time()  # Засекаем время начала выполнения
     params = f"({file_path})"
@@ -783,38 +786,42 @@ def read_csv_file(file_path: str) -> Optional[pd.DataFrame]:
     try:
         rows = []
         headers = None
-        
+        issues: List[Dict[str, Any]] = []
+
         with open(file_path, 'r', encoding='utf-8', newline='') as file:
-            # Используем csv.reader с настройками для сохранения кавычек
             csv_reader = csv.reader(file, delimiter=';', quoting=csv.QUOTE_NONE)
-            
+
             for i, row in enumerate(csv_reader):
                 if i == 0:
                     headers = row
                 else:
+                    n = len(headers)
+                    actual = len(row)
+                    if actual < n:
+                        row = list(row) + [""] * (n - actual)
+                        issues.append({"row_index": i + 1, "expected_cols": n, "actual_cols": actual, "direction": "меньше"})
+                    elif actual > n:
+                        row = row[:n]
+                        issues.append({"row_index": i + 1, "expected_cols": n, "actual_cols": actual, "direction": "больше"})
                     rows.append(row)
-        
-        # Создаем DataFrame из прочитанных данных
+
         df = pd.DataFrame(rows, columns=headers)
-        
-        # Убеждаемся, что все данные - строки
+
         for col in df.columns:
             df[col] = df[col].astype(str)
-        
-        # Логируем образцы JSON полей для отладки
+
         for col in df.columns:
             if "FEATURE" in col or "ADD_DATA" in col:
                 logging.debug(f"[DEBUG] CSV {file_path} поле {col}: {df[col].dropna().head(2).to_list()}")
-        
-        # Логируем успешное чтение файла
+
+        if issues:
+            logging.warning(f"[CSV] Расхождение по числу полей: {file_path}, строк с расхождением: {len(issues)}")
         logging.info(f"Файл успешно загружен: {file_path}, строк: {len(df)}, колонок: {len(df.columns)}")
-        
-        # Засекаем время выполнения и логируем завершение
+
         func_time = time() - func_start
-        return df
-        
+        return (df, issues)
+
     except Exception as e:
-        # Логируем ошибку и возвращаем None
         func_time = time() - func_start
         logging.error(f"Ошибка загрузки файла: {file_path}. {e}")
         logging.error(f"[ERROR] read_csv_file {params} — {e}")
@@ -1472,6 +1479,10 @@ def flatten_json_column_recursive(df, column, prefix=None, sheet=None, sep="; ")
 # ОПТИМИЗАЦИЯ v5.0: Кэш для цветовых схем (избегаем повторной генерации)
 _color_scheme_cache = None
 _color_scheme_cache_key = None
+
+# Расхождения по числу полей в CSV (строка с большим/меньшим числом колонок, чем заголовок)
+_csv_column_mismatches: List[Dict[str, Any]] = []
+_csv_mismatches_lock = threading.Lock()
 
 def generate_dynamic_color_scheme_from_merge_fields():
     """
@@ -3370,11 +3381,20 @@ def process_single_file(file_conf):
         th = threading.current_thread().name
         logging.info(f"Загрузка файла: {file_path} [поток: {th}]")
         
-        df = read_csv_file(file_path)
-        if df is None:
+        result = read_csv_file(file_path)
+        if result is None:
             logging.error(f"Ошибка чтения файла: {file_path} [поток: {th}]")
             return None, sheet_name, None
-        
+        df, csv_issues = result
+        if csv_issues:
+            with _csv_mismatches_lock:
+                for rec in csv_issues:
+                    _csv_column_mismatches.append({
+                        **rec,
+                        "sheet": sheet_name,
+                        "file": file_conf.get("file", ""),
+                    })
+
         # Разворачиваем только нужные JSON-поля по строгому списку
         json_columns = JSON_COLUMNS.get(sheet_name, [])
         for json_conf in json_columns:
@@ -3495,13 +3515,14 @@ def check_duplicates_single_sheet(sheet_name, sheets_data_item):
 
 def collect_duplicates_and_validation_report(sheets_data: Dict[str, Any]) -> tuple:
     """
-    Собирает сводный отчёт по дубликатам и отклонениям длины полей (field_length_validations)
-    по всем листам. Не прерывает работу — только накапливает данные для финального вывода.
+    Собирает сводный отчёт по дубликатам, отклонениям длины полей и расхождениям по числу полей в CSV.
+    Не прерывает работу — только накапливает данные для финального вывода.
 
     Returns:
-        tuple: (duplicates_report, validation_report)
+        tuple: (duplicates_report, validation_report, csv_mismatch_report)
             - duplicates_report: список dict с ключами sheet, key_cols, col_name, n_duplicate_rows, duplicate_key_values
             - validation_report: список dict с ключами sheet, result_column, n_violations, sample_values
+            - csv_mismatch_report: список записей о строках CSV с числом полей != заголовку (file, sheet, row_index, expected_cols, actual_cols, direction)
     """
     duplicates_report: List[Dict[str, Any]] = []
     validation_report: List[Dict[str, Any]] = []
@@ -3595,7 +3616,8 @@ def collect_duplicates_and_validation_report(sheets_data: Dict[str, Any]) -> tup
             "sample_values": sample_values,
         })
 
-    return duplicates_report, validation_report
+    csv_mismatch_report = list(_csv_column_mismatches)
+    return duplicates_report, validation_report, csv_mismatch_report
 
 
 def build_stat_file_sheet(
@@ -3648,11 +3670,17 @@ def build_stat_file_sheet(
     return pd.DataFrame(rows)
 
 
-def print_final_report(duplicates_report: List[Dict[str, Any]], validation_report: List[Dict[str, Any]]) -> None:
+def print_final_report(
+    duplicates_report: List[Dict[str, Any]],
+    validation_report: List[Dict[str, Any]],
+    csv_mismatch_report: Optional[List[Dict[str, Any]]] = None,
+) -> None:
     """
-    Выводит итоговый отчёт по дубликатам и отклонениям длины полей в лог и в консоль.
+    Выводит итоговый отчёт по дубликатам, отклонениям длины полей и расхождениям по числу полей в CSV.
     Вызывается в конце работы программы; не прерывает выполнение.
     """
+    if csv_mismatch_report is None:
+        csv_mismatch_report = []
     lines: List[str] = []
     lines.append("")
     lines.append("========== ИТОГОВАЯ СТАТИСТИКА: ДУБЛИКАТЫ И ОТКЛОНЕНИЯ ДЛИНЫ ПОЛЕЙ ==========")
@@ -3687,6 +3715,18 @@ def print_final_report(duplicates_report: List[Dict[str, Any]], validation_repor
     else:
         lines.append("--- Отклонения по длине полей: не обнаружены ---")
 
+    if csv_mismatch_report:
+        lines.append("--- Расхождения по числу полей в CSV ---")
+        for r in csv_mismatch_report:
+            lines.append(
+                f"  Файл: {r.get('file', '')}, лист: {r.get('sheet', '')}, "
+                f"строка: {r.get('row_index', '')}, ожидалось полей: {r.get('expected_cols', '')}, "
+                f"фактически: {r.get('actual_cols', '')}, направление: {r.get('direction', '')}"
+            )
+        lines.append("")
+    else:
+        lines.append("--- Расхождения по числу полей в CSV: не обнаружены ---")
+
     lines.append("===============================================================================")
     lines.append("")
 
@@ -3699,6 +3739,8 @@ def print_final_report(duplicates_report: List[Dict[str, Any]], validation_repor
 def main():
     # Повторная загрузка глобалов при запуске (подхват внедрённого Config из config_holder)
     _load_config_globals()
+    global _csv_column_mismatches
+    _csv_column_mismatches.clear()
     start_time = datetime.now()
     log_file = setup_logger()
     logging.info(f"=== Старт работы программы: {start_time.strftime('%Y-%m-%d %H:%M:%S')} ===")
@@ -3865,9 +3907,9 @@ def main():
     write_to_excel(sheets_data, output_excel)
     logging.info(f"[END] write_to_excel ({output_excel}) (время: 0.000s)")
 
-    # Итоговая статистика по дубликатам и отклонениям длины полей (в лог и консоль)
-    duplicates_report, validation_report = collect_duplicates_and_validation_report(sheets_data)
-    print_final_report(duplicates_report, validation_report)
+    # Итоговая статистика по дубликатам, отклонениям длины полей и расхождениям по числу полей в CSV
+    duplicates_report, validation_report, csv_mismatch_report = collect_duplicates_and_validation_report(sheets_data)
+    print_final_report(duplicates_report, validation_report, csv_mismatch_report)
 
     time_elapsed = datetime.now() - start_time
     logging.info(
