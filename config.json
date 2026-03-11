@@ -5,12 +5,15 @@
     "logs": "LOGS"
   },
   "logging": {
-    "level": "INFO",
+    "level": "DEBUG",
     "base_name": "LOGS"
   },
   "performance": {
     "max_workers_io": 16,
     "max_workers_cpu": 8
+  },
+  "source_export": {
+    "sort_rules": []
   },
   "tournament_status_choices": [
     "НЕОПРЕДЕЛЕН",
@@ -23,60 +26,67 @@
   ],
   "input_files": [
     {
-      "file": "CONTEST (PROM) 04-02 v0.csv",
+      "file": "CONTEST (PROM) 11-03 v0.csv",
       "sheet": "CONTEST-DATA",
       "max_col_width": 120,
       "freeze": "C2",
       "col_width_mode": "AUTO",
-      "min_col_width": 12
+      "min_col_width": 12,
+      "include_in_source": true
     },
     {
-      "file": "GROUP (PROM) 04-02 v0.csv",
+      "file": "GROUP (PROM) 11-03 v0.csv",
       "sheet": "GROUP",
       "max_col_width": 20,
       "freeze": "C2",
       "col_width_mode": "AUTO",
-      "min_col_width": 8
+      "min_col_width": 8,
+      "include_in_source": true
     },
     {
-      "file": "INDICATOR (PROM) 09-02 v2.csv",
+      "file": "INDICATOR (PROM) 11-03 v0.csv",
       "sheet": "INDICATOR",
       "max_col_width": 100,
       "freeze": "B2",
       "col_width_mode": "AUTO",
-      "min_col_width": 8
+      "min_col_width": 8,
+      "include_in_source": true
     },
     {
-      "file": "REPORT (PROM) 10-02 v1.csv",
+      "file": "REPORT (PROM) 27-02 v2.csv",
       "sheet": "REPORT",
       "max_col_width": 25,
       "freeze": "D2",
       "col_width_mode": "AUTO",
-      "min_col_width": 10
+      "min_col_width": 10,
+      "include_in_source": true
     },
     {
-      "file": "REWARD (PROM) 10-02 v2.csv",
+      "file": "REWARD (PROM) 11-03 v0.csv",
       "sheet": "REWARD",
       "max_col_width": 200,
       "freeze": "D2",
       "col_width_mode": "AUTO",
-      "min_col_width": 10
+      "min_col_width": 10,
+      "include_in_source": true
     },
     {
-      "file": "REWARD-LINK (PROM) 10-02 v2.csv",
+      "file": "REWARD-LINK (PROM) 11-03 v0.csv",
       "sheet": "REWARD-LINK",
       "max_col_width": 30,
       "freeze": "A2",
       "col_width_mode": "AUTO",
-      "min_col_width": 10
+      "min_col_width": 10,
+      "include_in_source": true
     },
     {
-      "file": "SCHEDULE (PROM) 10-02 v1.csv",
+      "file": "SCHEDULE (PROM) 11-03 v0.csv",
       "sheet": "TOURNAMENT-SCHEDULE",
       "max_col_width": 120,
       "freeze": "B2",
       "col_width_mode": "AUTO",
-      "min_col_width": 10
+      "min_col_width": 10,
+      "include_in_source": true
     },
     {
       "file": "SVD_KB_DM_GAMIFICATION_ORG_UNIT_V20 - 2025.08.28.csv",
@@ -84,23 +94,26 @@
       "max_col_width": 60,
       "freeze": "A2",
       "col_width_mode": "AUTO",
-      "min_col_width": 10
+      "min_col_width": 10,
+      "include_in_source": true
     },
     {
-      "file": "USER_ROLE (PROM) 12-12 v0.csv",
+      "file": "USER_ROLE (PROM) 25-02 v0.csv",
       "sheet": "USER_ROLE",
       "max_col_width": 65,
       "freeze": "D2",
       "col_width_mode": "AUTO",
-      "min_col_width": 12
+      "min_col_width": 12,
+      "include_in_source": true
     },
     {
-      "file": "USER_ROLE_SB (PROM) 12-12 v0.csv",
+      "file": "USER_ROLE_SB (PROM) 25-02 v0.csv",
       "sheet": "USER_ROLE SB",
       "max_col_width": 65,
       "freeze": "D2",
       "col_width_mode": "AUTO",
-      "min_col_width": 12
+      "min_col_width": 12,
+      "include_in_source": true
     },
     {
       "file": "employee_PROM_final_5000_2025-07-26_00-09-03.csv",
@@ -108,7 +121,8 @@
       "max_col_width": 80,
       "freeze": "F2",
       "col_width_mode": "AUTO",
-      "min_col_width": 15
+      "min_col_width": 15,
+      "include_in_source": true
     },
     {
       "file": "gamification-employeeRewards.csv",
@@ -116,7 +130,8 @@
       "max_col_width": 40,
       "freeze": "D2",
       "col_width_mode": "AUTO",
-      "min_col_width": 12
+      "min_col_width": 12,
+      "include_in_source": false
     },
     {
       "file": "gamification-statistics.csv",
@@ -124,7 +139,8 @@
       "max_col_width": 40,
       "freeze": "E2",
       "col_width_mode": "AUTO",
-      "min_col_width": 10
+      "min_col_width": 10,
+      "include_in_source": false
     },
     {
       "file": "gamification-tournamentList.csv",
@@ -132,7 +148,8 @@
       "max_col_width": 80,
       "freeze": "D2",
       "col_width_mode": "AUTO",
-      "min_col_width": 12
+      "min_col_width": 12,
+      "include_in_source": false
     },
     {
       "file": "gamification-ratingList 2KM.csv",
@@ -140,7 +157,8 @@
       "max_col_width": 80,
       "freeze": "D2",
       "col_width_mode": "AUTO",
-      "min_col_width": 12
+      "min_col_width": 12,
+      "include_in_source": false
     },
     {
       "file": "gamification-ratingList 2MNS.csv",
@@ -148,7 +166,62 @@
       "max_col_width": 80,
       "freeze": "D2",
       "col_width_mode": "AUTO",
-      "min_col_width": 12
+      "min_col_width": 12,
+      "include_in_source": false
+    },
+    {
+      "file": "gamification-ratingList KM.csv",
+      "sheet": "RATING_2026_1 (KMKKSB)",
+      "max_col_width": 80,
+      "freeze": "D2",
+      "col_width_mode": "AUTO",
+      "min_col_width": 12,
+      "include_in_source": false
+    },
+    {
+      "file": "gamification-ratingList AllKM.csv",
+      "sheet": "RATING_ALLTIME (KMKKSB)",
+      "max_col_width": 80,
+      "freeze": "D2",
+      "col_width_mode": "AUTO",
+      "min_col_width": 12,
+      "include_in_source": false
+    },
+    {
+      "file": "gamification-ratingList AllMNS.csv",
+      "sheet": "RATING_ALLTIME (MNS)",
+      "max_col_width": 80,
+      "freeze": "D2",
+      "col_width_mode": "AUTO",
+      "min_col_width": 12,
+      "include_in_source": false
+    },
+    {
+      "file": "gamification-orderList 1MNS.csv",
+      "sheet": "ORDER_2025_1 (KMKKSB)",
+      "max_col_width": 80,
+      "freeze": "D2",
+      "col_width_mode": "AUTO",
+      "min_col_width": 12,
+      "include_in_source": false
+    },
+    {
+      "file": "gamification-orderList 1MNS.csv",
+      "sheet": "ORDER_2025_1 (MNS)",
+      "max_col_width": 80,
+      "freeze": "D2",
+      "col_width_mode": "AUTO",
+      "min_col_width": 12,
+      "include_in_source": false
+    },
+    {
+      "file": "gamification-yearResults.csv",
+      "sheet": "YEAR_STATA",
+      "max_col_width": 80,
+      "freeze": "E2",
+      "col_width_mode": "AUTO",
+      "min_col_width": 12,
+      "include_in_source": false
     }
   ],
   "summary_sheet": {
@@ -176,6 +249,12 @@
     "LIST-REWARDS",
     "STATISTICS",
     "LIST-TOURNAMENT",
+    "RATING_2026_1 (KMKKSB)",
+    "RATING_ALLTIME (KMKKSB)",
+    "RATING_ALLTIME (MNS)",
+    "ORDER_2025_1 (KMKKSB)",
+    "ORDER_2025_1 (MNS)",
+    "YEAR_STATA",
     "USER_ROLE SB"
   ],
   "summary_key_defs": [
@@ -2008,7 +2087,93 @@
         "Количество кристаллов",
         "Место в рейтинге по стране",
         "Место в рейтинге ТБ",
-        "Место в рейтинге ГОСБ"
+        "Место в рейтинге ГОСБ",
+        "ТБ",
+        "ГОСБ"
+      ],
+      "data_type": "number",
+      "decimal_places": 0,
+      "decimal_separator": ",",
+      "thousands_separator": true,
+      "date_format": "YYYY-MM-DD",
+      "horizontal": "center",
+      "vertical": "center",
+      "wrap_text": false
+    },
+    {
+      "sheet": "YEAR_STATA",
+      "columns": [
+        "Общее количество разыгранных наград (badgeAmount)",
+        "Количество разыгранных золотых наград (amountGold)",
+        "Количество разыгранных серебряных наград (amountSilver)",
+        "Количество разыгранных бронзовых наград (amountBronze)",
+        "Количество турниров, в которых участвовал сотрудник (amountTournament)",
+        "Количество полученных золотых наград (amountEarnedGold)",
+        "Количество полученных серебряных наград (amountEarnedSilver)",
+        "Количество полученных бронзовых наград (amountEarnedBronze)",
+        "Общее количество полученных турнирных наград",
+        "Процентиль полученных турнирных наград (amountEarnedBadgePercentile)",
+        "Максимальное количество золотых наград (maxAmountEarnedGold)",
+        "Версия записи",
+        "ТБ",
+        "ГОСБ"
+      ],
+      "data_type": "number",
+      "decimal_places": 0,
+      "decimal_separator": ",",
+      "thousands_separator": true,
+      "date_format": "YYYY-MM-DD",
+      "horizontal": "center",
+      "vertical": "center",
+      "wrap_text": false
+    },
+    {
+      "sheet": "RATING_2026_1 (KMKKSB)",
+      "columns": [
+        "Количество кристаллов",
+        "Место в рейтинге по стране",
+        "Место в рейтинге ТБ",
+        "Место в рейтинге ГОСБ",
+        "ТБ",
+        "ГОСБ"
+      ],
+      "data_type": "number",
+      "decimal_places": 0,
+      "decimal_separator": ",",
+      "thousands_separator": true,
+      "date_format": "YYYY-MM-DD",
+      "horizontal": "center",
+      "vertical": "center",
+      "wrap_text": false
+    },
+    {
+      "sheet": "RATING_ALLTIME (KMKKSB)",
+      "columns": [
+        "Количество кристаллов",
+        "Место в рейтинге по стране",
+        "Место в рейтинге ТБ",
+        "Место в рейтинге ГОСБ",
+        "ТБ",
+        "ГОСБ"
+      ],
+      "data_type": "number",
+      "decimal_places": 0,
+      "decimal_separator": ",",
+      "thousands_separator": true,
+      "date_format": "YYYY-MM-DD",
+      "horizontal": "center",
+      "vertical": "center",
+      "wrap_text": false
+    },
+    {
+      "sheet": "RATING_ALLTIME (MNS)",
+      "columns": [
+        "Количество кристаллов",
+        "Место в рейтинге по стране",
+        "Место в рейтинге ТБ",
+        "Место в рейтинге ГОСБ",
+        "ТБ",
+        "ГОСБ"
       ],
       "data_type": "number",
       "decimal_places": 0,
@@ -2025,7 +2190,9 @@
         "Количество кристаллов",
         "Место в рейтинге по стране",
         "Место в рейтинге ТБ",
-        "Место в рейтинге ГОСБ"
+        "Место в рейтинге ГОСБ",
+        "ТБ",
+        "ГОСБ"
       ],
       "data_type": "number",
       "decimal_places": 0,

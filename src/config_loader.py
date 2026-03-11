@@ -71,6 +71,10 @@ class Config:
         self.max_workers_cpu: int = self._cfg["performance"]["max_workers_cpu"]
         self.max_workers: int = self.max_workers_cpu
 
+        # Выгрузка сырых данных (source): сортировка листов при записи в SPOD_PROM source *.xlsx
+        _source = self._cfg.get("source_export") or {}
+        self.source_export_sort: List[Dict[str, Any]] = _source.get("sort_rules") or []
+
         # Статусы турнира
         _default_statuses = [
             "НЕОПРЕДЕЛЕН", "АКТИВНЫЙ", "ЗАПЛАНИРОВАН",

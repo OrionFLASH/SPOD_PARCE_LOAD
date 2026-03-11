@@ -75,7 +75,7 @@ SPOD_PROM/
 
 | Модуль | Назначение | Основные сущности |
 |--------|------------|-------------------|
-| **config_loader.py** | Загрузка и хранение настроек из config.json | Класс `Config`: атрибуты `dir_input`, `dir_output`, `dir_logs`, `input_files`, `summary_sheet`, `sheet_order`, `summary_key_defs`, `summary_key_columns`, `gender_patterns`, `gender_progress_step`, `field_length_validations`, `merge_fields_advanced`, `color_scheme`, `column_formats`, `check_duplicates`, `json_columns`, `max_workers_io`, `max_workers_cpu`, `tournament_status_choices`; метод `get_output_filename()`. |
+| **config_loader.py** | Загрузка и хранение настроек из config.json | Класс `Config`: атрибуты `dir_input`, `dir_output`, `dir_logs`, `input_files`, `summary_sheet`, `sheet_order`, `summary_key_defs`, `summary_key_columns`, `gender_patterns`, `gender_progress_step`, `field_length_validations`, `merge_fields_advanced`, `color_scheme`, `column_formats`, `check_duplicates`, `json_columns`, `source_export_sort`, `max_workers_io`, `max_workers_cpu`, `tournament_status_choices`; метод `get_output_filename()`. |
 | **config_holder.py** | Внедрение текущего конфига для кода, работающего с глобальными переменными | `set_current_config(config)`, `get_current_config()`. |
 | **logging_setup.py** | Настройка логирования | Класс `CallerFormatter` (добавляет имя функции в сообщение); функция `setup_logger(config)` — возвращает путь к лог-файлу, настраивает вывод в файл (DEBUG) и консоль (INFO). |
 | **json_utils.py** | Разбор и разворот JSON-полей в DataFrame | `safe_json_loads(s)` — парсинг строки в JSON с поправкой типичных ошибок; `safe_json_loads_preserve_triple_quotes(s)`; `flatten_json_column_recursive(df, column, prefix=..., sheet=..., sep=..., max_workers_io=...)` — рекурсивный разворот колонки в несколько колонок, при большом объёме — параллельно. |
@@ -83,7 +83,7 @@ SPOD_PROM/
 | **tournament.py** | Расчёт статуса турнира по датам | `calculate_tournament_status(config, df_tournament, df_report=None)` — добавляет колонку `CALC_TOURNAMENT_STATUS` по правилам из `config.tournament_status_choices`. |
 | **validation.py** | Валидация длины полей и проверка дубликатов | `validate_field_lengths(config, df, sheet_name)`, `validate_field_lengths_vectorized(config, df, sheet_name)`, `compare_validate_results(df_old, df_new, result_column)`, `mark_duplicates(df, key_cols, sheet_name=...)`, `validate_single_sheet(config, sheet_name, sheets_data_item)`, `check_duplicates_single_sheet(config, sheet_name, sheets_data_item)`. |
 | **gender.py** | Определение пола по отчеству, имени, фамилии | `add_auto_gender_column(config, df, sheet_name)`, `add_auto_gender_column_vectorized(config, df, sheet_name)`, `compare_gender_results(df_old, df_new)`. Внутри используются паттерны из `config.gender_patterns`. |
-| **main_impl.py** | Полный пайплайн обработки | При импорте вызывается `_load_config_globals()` (из config.json или из внедрённого Config). Функция `main()`: проверка наличия файлов → параллельная загрузка CSV и разворот JSON (с нормализацией длины строк и сбором расхождений по числу полей) → добавление AUTO_GENDER (EMPLOYEE) → валидация длины полей → расчёт статуса турнира → merge (кроме SUMMARY) → проверка дубликатов → формирование SUMMARY → лист STAT_FILE → запись Excel → итоговый отчёт по дубликатам, валидации и расхождениям по числу полей в CSV. Остальные функции (merge, summary, Excel, отчёты) реализованы в этом же модуле. |
+| **main_impl.py** | Полный пайплайн обработки | При импорте вызывается `_load_config_globals()` (из config.json или из внедрённого Config). Функция `main()`: параллельная загрузка CSV и разворот JSON (с нормализацией длины строк и сбором расхождений) → выгрузка сырых данных в «SPOD_PROM source …» (только листы с `include_in_source: true`, без разворота JSON) → проверка наличия файлов (при отсутствии — выход с ошибкой) → добавление AUTO_GENDER (EMPLOYEE) → валидация длины полей → расчёт статуса турнира → merge (кроме SUMMARY) → проверка дубликатов → формирование SUMMARY → лист STAT_FILE → запись основного Excel → итоговый отчёт по дубликатам, валидации и расхождениям по числу полей в CSV. Реализованы: `write_source_excel` (сырые данные, сортировка, параметры листов из input_files, автофильтр), `apply_column_format_conversion` / `apply_column_formats` (в т.ч. `except_columns` и обработка дат с сохранением нераспознанных как текст). Остальные функции (merge, summary, Excel, отчёты) — в этом же модуле. |
 
 **Запуск:** из корня проекта выполняется `python main.py`. При этом создаётся `Config()` (путь к config.json — корень проекта), конфиг передаётся в `set_current_config(config)`, затем вызывается `main_impl.main()`. В начале `main_impl.main()` снова вызывается `_load_config_globals()`, поэтому все глобальные переменные в main_impl берутся из внедрённого конфига.
 
@@ -101,7 +101,8 @@ SPOD_PROM/
 | `logging` | Уровень (INFO/DEBUG) и базовое имя файла логов. |
 | `performance` | Количество потоков: max_workers_io, max_workers_cpu. |
 | `tournament_status_choices` | Подписи статусов турнира (расчёт CALC_TOURNAMENT_STATUS). |
-| `input_files` | Список CSV-файлов и параметров листов Excel (имя файла, лист, ширина колонок, freeze). |
+| `input_files` | Список CSV-файлов и параметров листов Excel (имя файла, лист, ширина колонок, freeze, include_in_source). |
+| `source_export` | Параметры выгрузки сырых данных: сортировка листов (sort_rules) при записи в SPOD_PROM source *.xlsx. |
 | `summary_sheet` | Параметры сводного листа SUMMARY (ширина, закрепление). |
 | `sheet_order` | Порядок листов в выходном Excel (если задан). |
 | `summary_key_defs` | Ключевые колонки по листам для каркаса SUMMARY (порядок колонок). |
@@ -121,6 +122,7 @@ SPOD_PROM/
   "paths": { ... },
   "logging": { ... },
   "performance": { ... },
+  "source_export": { ... },
   "tournament_status_choices": [ ... ],
   "input_files": [ ... ],
   "summary_sheet": { ... },
@@ -203,6 +205,33 @@ SPOD_PROM/
 
 ---
 
+### source_export
+
+**Назначение:** параметры отдельной выгрузки сырых данных в файл «SPOD_PROM source YYYY-MM-DD_HH-MM-SS.xlsx» (только содержимое CSV, без разворота JSON и без доп. колонок).
+
+| Ключ         | Тип   | Описание |
+|--------------|--------|----------|
+| `sort_rules` | массив | Правила сортировки листов при записи в source-файл. Каждый элемент: `sheet` — имя листа, `columns` — список объектов `{"column": "ИмяКолонки", "order": "asc" \| "desc"}`. Сортировка применяется последовательно по указанным колонкам. |
+
+**Пример:**
+```json
+"source_export": {
+  "sort_rules": [
+    {
+      "sheet": "REPORT",
+      "columns": [
+        {"column": "TOURNAMENT_CODE", "order": "asc"},
+        {"column": "CONTEST_CODE", "order": "asc"}
+      ]
+    }
+  ]
+}
+```
+
+**Логика:** при формировании source-файла для каждого листа, для которого задано правило в `sort_rules`, данные сортируются по указанным колонкам перед записью. На всех листах source по умолчанию включён автофильтр; ширины колонок и закрепление берутся из `input_files` для соответствующего листа.
+
+---
+
 ### tournament_status_choices
 
 **Назначение:** подписи статусов турнира для расчётной колонки `CALC_TOURNAMENT_STATUS`. Порядок элементов строго соответствует условиям 0–6 в `calculate_tournament_status`.
@@ -236,14 +265,15 @@ SPOD_PROM/
 
 **Назначение:** список CSV-файлов и настроек листов Excel. Каждый элемент описывает один файл и один лист в итоговой книге.
 
-| Ключ            | Тип    | Описание |
-|-----------------|--------|----------|
-| `file`          | строка | Имя CSV (с расширением или без). Поиск в каталоге `paths.input` без учёта регистра (.csv / .CSV). |
-| `sheet`         | строка | Имя листа в выходном Excel, куда попадут данные этого файла. |
-| `max_col_width` | число  | Максимальная ширина колонки (символов) при авто-ширине. |
-| `freeze`        | строка | Закрепление областей, например `"C2"` — закрепить столбцы A–B и строку 1. |
-| `col_width_mode`| строка | Режим ширины: `"AUTO"` — по содержимому (ограничено max_col_width), либо число — фиксированная ширина. |
-| `min_col_width` | число  | Минимальная ширина колонки. |
+| Ключ               | Тип    | Описание |
+|--------------------|--------|----------|
+| `file`             | строка | Имя CSV (с расширением или без). Поиск в каталоге `paths.input` без учёта регистра (.csv / .CSV). |
+| `sheet`            | строка | Имя листа в выходном Excel, куда попадут данные этого файла. |
+| `max_col_width`    | число  | Максимальная ширина колонки (символов) при авто-ширине. |
+| `freeze`           | строка | Закрепление областей, например `"C2"` — закрепить столбцы A–B и строку 1. |
+| `col_width_mode`   | строка | Режим ширины: `"AUTO"` — по содержимому (ограничено max_col_width), либо число — фиксированная ширина. |
+| `min_col_width`    | число  | Минимальная ширина колонки. |
+| `include_in_source`| bool   | Включать ли лист в выгрузку сырых данных (файл «SPOD_PROM source …»). По умолчанию `true`. Если `false` — лист не попадает в source Excel; основная загрузка и основной Excel от этого не зависят. |
 
 **Пример:**
 ```json
@@ -253,11 +283,12 @@ SPOD_PROM/
   "max_col_width": 120,
   "freeze": "C2",
   "col_width_mode": "AUTO",
-  "min_col_width": 12
+  "min_col_width": 12,
+  "include_in_source": true
 }
 ```
 
-**Логика:** программа перебирает `input_files`, для каждого ищет файл в `SPOD/`, читает CSV, разворачивает JSON по правилам из `json_columns`, затем записывает лист с именем `sheet` и применяет к нему указанные ширины и закрепление.
+**Логика:** программа перебирает `input_files`, для каждого ищет файл в `SPOD/`, читает CSV, разворачивает JSON по правилам из `json_columns`, затем записывает лист с именем `sheet` и применяет к нему указанные ширины и закрепление. Параметр `include_in_source` влияет только на отдельный файл выгрузки сырых данных (см. раздел «Выгрузка сырых данных (source Excel)»).
 
 ---
 
@@ -510,14 +541,15 @@ SPOD_PROM/
 
 ### column_formats
 
-**Назначение:** формат ячеек Excel по листам и колонкам (число, дата, выравнивание, перенос).
+**Назначение:** формат ячеек Excel по листам и колонкам (число, дата, выравнивание, перенос). Можно задать либо список колонок для применения формата (`columns`), либо список исключений — тогда формат применяется ко всем колонкам листа кроме указанных (`except_columns`).
 
 Каждый элемент — объект:
 
 | Ключ                 | Тип    | Описание |
 |----------------------|--------|----------|
 | `sheet`              | строка | Имя листа. |
-| `columns`            | массив строк | Имена колонок (заголовков). |
+| `columns`            | массив строк | Имена колонок, к которым применяется формат. Не задавать, если используется `except_columns`. |
+| `except_columns`     | массив строк | Имена колонок-исключений: формат применяется ко всем колонкам листа, кроме перечисленных. Если задан непустой список — используется он вместо `columns`. |
 | `data_type`          | строка | `"number"`, `"date"` или `"text"`. |
 | `decimal_places`     | число  | Для числа — знаков после запятой (0 — целые). |
 | `decimal_separator`  | строка | Разделитель дробной части: `","` или `"."`. |
@@ -526,7 +558,7 @@ SPOD_PROM/
 | `horizontal`, `vertical` | строка | Выравнивание: `"left"`/`"center"`/`"right"`, `"top"`/`"center"`/`"bottom"`. |
 | `wrap_text`          | bool   | Перенос по словам. |
 
-**Пример:**
+**Пример (формат к указанным колонкам):**
 ```json
 {
   "sheet": "INDICATOR",
@@ -542,7 +574,17 @@ SPOD_PROM/
 }
 ```
 
-**Логика:** при записи в Excel данные в указанных колонках приводятся к числу или дате (в т.ч. замена запятой на точку при парсе); в книге задаётся числовой/датовый формат и выравнивание. Для `decimal_places: 0` в ячейку записываются целые числа без дробной части.
+**Пример (формат ко всем колонкам кроме указанных):**
+```json
+{
+  "sheet": "REPORT",
+  "except_columns": ["CONTEST_CODE", "FULL_NAME"],
+  "data_type": "number",
+  "decimal_places": 0
+}
+```
+
+**Логика:** при записи в Excel данные в выбранных колонках приводятся к числу или дате; в книге задаётся числовой/датовый формат и выравнивание. Для `decimal_places: 0` в ячейку записываются целые числа без дробной части. Для типа `date`: сначала выполняется разбор в указанном формате; для ячеек, которые не удалось распознать (NaT), выполняется повторная попытка без формата (в т.ч. даты вида 4000-01-01); значения, которые так и не удалось преобразовать в дату, остаются в виде исходной строки (текст в Excel). Таким образом любые распознаваемые даты преобразуются, нераспознанные — сохраняются как текст.
 
 ---
 
@@ -632,7 +674,7 @@ set_current_config(config)           # Внедрение для main_impl
 main_impl.main()                     # Запуск пайплайна
 ```
 
-Внутри `main_impl.main()` сначала вызывается `_load_config_globals()` — глобальные переменные (DIR_INPUT, INPUT_FILES, MERGE_FIELDS_ADVANCED и т.д.) заполняются из внедрённого Config. Затем настраивается логирование (`setup_logger()` — использует `logging.level` и `logging.base_name` из конфига): DEBUG в файл, INFO в консоль.
+Внутри `main_impl.main()` сначала вызывается `_load_config_globals()` — глобальные переменные (DIR_INPUT, INPUT_FILES, MERGE_FIELDS_ADVANCED, SOURCE_EXPORT_SORT и т.д.) заполняются из внедрённого Config. Затем настраивается логирование (`setup_logger()` — использует `logging.level` и `logging.base_name` из конфига): DEBUG в файл, INFO в консоль.
 
 #### 2. Чтение CSV файлов
 
@@ -642,6 +684,10 @@ main_impl.main()                     # Запуск пайплайна
 - Поиск файла в каталоге `paths.input` по имени без учёта регистра (.csv / .CSV).
 - Для LIST-TOURNAMENT при отсутствии файла с суффиксом `-2` используется альтернативное имя без суффикса.
 - Нормализация длины строк к длине заголовка предотвращает ошибку загрузки при разном числе полей в строках CSV; расхождения выводятся в итоговой статистике.
+
+#### 2.1. Выгрузка сырых данных (source Excel)
+
+Сразу после загрузки CSV (до разворота JSON, валидации, merge и доп. колонок) формируется отдельный файл **«SPOD_PROM source YYYY-MM-DD_HH-MM-SS.xlsx»** в каталоге `paths.output`. В него попадают только те листы, у которых в `input_files` указано `include_in_source: true` (по умолчанию). Данные записываются ровно в том виде, как в CSV (без разворота JSON и без любых добавленных полей). Для отсутствующих файлов с `include_in_source: true` создаётся пустой лист. Перед записью к листам можно применить сортировку по правилам из `source_export.sort_rules`. Для каждого листа применяются свои параметры из `input_files` (ширина колонок, закрепление); на всех листах source по умолчанию включён автофильтр. Проверка наличия обязательных файлов выполняется **после** этой выгрузки: при отсутствии файлов программа завершается с ошибкой, но source-файл уже создан.
 
 #### 3. Обработка данных
 
@@ -1098,6 +1144,29 @@ python app.py
 
 ## История версий
 
+### Версия 1.3 — Выгрузка source Excel, форматы колонок (except_columns), даты и include_in_source
+
+**Выгрузка сырых данных (source Excel):**
+- Отдельный файл «SPOD_PROM source YYYY-MM-DD_HH-MM-SS.xlsx» формируется сразу после загрузки CSV (до разворота JSON и любых доп. колонок). В него записываются только данные из CSV, без разворота JSON.
+- В `input_files` добавлен параметр `include_in_source` (по умолчанию `true`): при `false` лист не включается в source-выгрузку; основная загрузка и основной Excel не зависят от этого параметра.
+- Секция конфига `source_export.sort_rules`: задаётся сортировка листов при записи в source-файл (лист, колонки, порядок asc/desc).
+- Для каждого листа в source применяются свои параметры из `input_files` (max_col_width, freeze, col_width_mode, min_col_width). На всех листах source по умолчанию включён автофильтр.
+- Проверка наличия файлов выполняется после записи source-файла.
+
+**Форматы колонок (column_formats):**
+- Добавлен режим `except_columns`: можно задать список колонок-исключений — формат применяется ко всем колонкам листа кроме указанных. Если задан непустой `except_columns`, он используется вместо `columns`.
+
+**Обработка дат (data_type: date):**
+- Преобразуются любые распознаваемые даты (в т.ч. 4000-01-01): сначала разбор в указанном формате, затем для NaT — повторная попытка без формата. Значения, которые не удалось преобразовать в дату, остаются в виде исходной строки (текст в Excel).
+
+**Изменения в коде:**
+- `process_single_file` возвращает четвёртый элемент — копию DataFrame до разворота JSON (`df_raw_for_source`); в `main()` в source попадают только листы с `include_in_source: true`.
+- `write_source_excel`: дополнение пустыми листами только для листов с `include_in_source: true`, сортировка по `source_export.sort_rules`, применение параметров листов из конфига, автофильтр на каждом листе.
+- `apply_column_format_conversion` и `apply_column_formats`: поддержка `except_columns`; для дат — двухэтапный разбор и сохранение нераспознанных как текст.
+- `Config`: атрибут `source_export_sort` из `config.source_export.sort_rules`.
+
+---
+
 ### Версия 1.2 — Расхождения по числу полей в CSV в итоговой статистике
 
 **Функциональность:**
@@ -1172,4 +1241,4 @@ python app.py
 
 ---
 
-*Документация обновлена: 2026-01-31*
+*Документация обновлена: 2026-02-16*

@@ -7,6 +7,7 @@ import logging     # Для логирования процессов
 from datetime import datetime  # Для работы с датами и временем
 from openpyxl.utils import get_column_letter  # Для получения буквенного обозначения колонок Excel
 from openpyxl.styles import Alignment, Font, PatternFill  # Для стилизации ячеек Excel
+from openpyxl import load_workbook  # Для применения параметров листов к уже записанному файлу (source)
 from time import time  # Для измерения времени выполнения операций
 import json        # Для работы с JSON данными
 import re          # Для работы с регулярными выражениями
@@ -156,6 +157,7 @@ def _load_config_globals():
     global COL_REWARD_LINK_CONTEST_CODE, MERGE_FIELDS_ADVANCED, COLOR_SCHEME
     global COLUMN_FORMATS, CHECK_DUPLICATES, JSON_COLUMNS
     global MAX_WORKERS_IO, MAX_WORKERS_CPU, MAX_WORKERS, TOURNAMENT_STATUS_CHOICES
+    global SOURCE_EXPORT_SORT
 
     try:
         from src.config_holder import get_current_config
@@ -181,6 +183,7 @@ def _load_config_globals():
             COLUMN_FORMATS = _c.column_formats
             CHECK_DUPLICATES = _c.check_duplicates
             JSON_COLUMNS = _c.json_columns
+            SOURCE_EXPORT_SORT = getattr(_c, "source_export_sort", []) or []
             MAX_WORKERS_IO = _c.max_workers_io
             MAX_WORKERS_CPU = _c.max_workers_cpu
             MAX_WORKERS = _c.max_workers_cpu
@@ -218,6 +221,7 @@ def _load_config_globals():
     COLUMN_FORMATS = _cfg.get("column_formats") or []
     CHECK_DUPLICATES = _cfg.get("check_duplicates") or []
     JSON_COLUMNS = _cfg.get("json_columns") or {}
+    SOURCE_EXPORT_SORT = (_cfg.get("source_export") or {}).get("sort_rules") or []
     MAX_WORKERS_IO = _cfg["performance"]["max_workers_io"]
     MAX_WORKERS_CPU = _cfg["performance"]["max_workers_cpu"]
     MAX_WORKERS = MAX_WORKERS_CPU
@@ -829,6 +833,115 @@ def read_csv_file(file_path: str) -> Optional[Tuple[pd.DataFrame, List[Dict[str,
         return None
 
 
+def write_source_excel(
+    raw_sheets_data: Dict[str, Any],
+    output_dir: str,
+    sort_rules: Optional[List[Dict[str, Any]]] = None,
+) -> str:
+    """
+    Записывает отдельный Excel-файл с сырыми данными (без доп. колонок и проверок).
+    Имя файла: SPOD_PROM source YYYY-MM-DD_HH-MM-SS.xlsx.
+    Для отсутствующих файлов создаются пустые листы. Перед записью к листам можно применить
+    сортировку по правилам из конфига (source_export.sort_rules).
+
+    Args:
+        raw_sheets_data: словарь {sheet_name: (df, params)} — данные сразу после загрузки CSV
+        output_dir: каталог для сохранения файла
+        sort_rules: список правил сортировки [{"sheet": "...", "columns": [{"column": "A", "order": "asc"}, ...]}, ...]
+
+    Returns:
+        str: полный путь к записанному файлу
+    """
+    if sort_rules is None:
+        sort_rules = []
+    # Дополняем сырые данные пустыми листами только для тех, кого включаем в source (include_in_source != false)
+    for file_conf in INPUT_FILES:
+        if not file_conf.get("include_in_source", True):
+            continue
+        sheet_name = file_conf.get("sheet")
+        if not sheet_name:
+            continue
+        if sheet_name not in raw_sheets_data:
+            raw_sheets_data[sheet_name] = (pd.DataFrame(), file_conf)
+
+    # Сортировка по правилам: для каждого листа из sort_rules применяем sort_values
+    sort_by_sheet = {r["sheet"]: r.get("columns") or [] for r in sort_rules if r.get("sheet")}
+    for sheet_name, cols_conf in sort_by_sheet.items():
+        if sheet_name not in raw_sheets_data:
+            continue
+        df, params = raw_sheets_data[sheet_name]
+        if df is None or not isinstance(df, pd.DataFrame) or len(cols_conf) == 0:
+            continue
+        by_cols = []
+        ascending_list = []
+        for c in cols_conf:
+            col_name = c.get("column") if isinstance(c, dict) else c
+            order = (c.get("order", "asc") or "asc").lower() if isinstance(c, dict) else "asc"
+            if col_name and col_name in df.columns:
+                by_cols.append(col_name)
+                ascending_list.append(order != "desc")
+        if by_cols:
+            try:
+                df_sorted = df.sort_values(by=by_cols, ascending=ascending_list)
+                raw_sheets_data[sheet_name] = (df_sorted, params)
+            except Exception as e:
+                logging.warning(f"[source_export] Сортировка листа {sheet_name} пропущена: {e}")
+
+    # Порядок листов: по SHEET_ORDER, затем остальные по алфавиту
+    if SHEET_ORDER:
+        ordered_sheets = [s for s in SHEET_ORDER if s in raw_sheets_data]
+        remaining = sorted([s for s in raw_sheets_data if s not in SHEET_ORDER])
+        ordered_sheets = ordered_sheets + remaining
+    else:
+        ordered_sheets = sorted(raw_sheets_data.keys())
+
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    filename = f"SPOD_PROM source {timestamp}.xlsx"
+    output_path = os.path.join(output_dir, filename)
+    os.makedirs(output_dir, exist_ok=True)
+
+    with pd.ExcelWriter(output_path, engine="openpyxl") as writer:
+        for sheet_name in ordered_sheets:
+            df, _ = raw_sheets_data[sheet_name]
+            if df is None:
+                pd.DataFrame().to_excel(writer, index=False, sheet_name=sheet_name)
+            else:
+                df.to_excel(writer, index=False, sheet_name=sheet_name)
+
+    # Параметры отображения для каждого листа source-файла — свои из конфига (input_files для этого листа)
+    try:
+        wb = load_workbook(output_path)
+        for ws in wb.worksheets:
+            sheet_name = ws.title
+            params = {}
+            if sheet_name in raw_sheets_data and len(raw_sheets_data[sheet_name]) >= 2:
+                file_conf = raw_sheets_data[sheet_name][1]
+                if isinstance(file_conf, dict):
+                    params = {
+                        "max_col_width": file_conf.get("max_col_width", 60),
+                        "freeze": file_conf.get("freeze", "A2"),
+                        "col_width_mode": file_conf.get("col_width_mode", "AUTO"),
+                        "min_col_width": file_conf.get("min_col_width", 10),
+                    }
+            if not params:
+                params = {"max_col_width": 60, "freeze": "A2", "col_width_mode": "AUTO", "min_col_width": 10}
+            header_cells = list(ws[1])
+            for col_num, cell in enumerate(header_cells, 1):
+                col_letter = get_column_letter(col_num)
+                width = calculate_column_width(cell.value, ws, params, col_num)
+                ws.column_dimensions[col_letter].width = width
+            ws.freeze_panes = params.get("freeze", "A2")
+            # Автофильтр по умолчанию на всех листах source
+            if ws.dimensions:
+                ws.auto_filter.ref = ws.dimensions
+        wb.save(output_path)
+    except Exception as e:
+        logging.warning(f"[source_export] Не удалось применить параметры листов к {output_path}: {e}")
+
+    logging.info(f"Выгрузка сырых данных записана: {output_path}")
+    return output_path
+
+
 def write_to_excel(sheets_data: Dict[str, Any], output_path: str) -> None:
     """
     Записывает данные в Excel файл с форматированием и настройками.
@@ -1077,7 +1190,12 @@ def apply_column_format_conversion(df: pd.DataFrame, sheet_name: str) -> None:
     for rule in COLUMN_FORMATS:
         if rule.get("sheet") != sheet_name:
             continue
-        cols = rule.get("columns") or []
+        # Режим: либо список колонок для применения формата (columns), либо все кроме указанных (except_columns)
+        except_cols = rule.get("except_columns") or []
+        if except_cols:
+            cols = [c for c in df.columns if (c or "").strip() not in {(x or "").strip() for x in except_cols}]
+        else:
+            cols = rule.get("columns") or []
         dtype = (rule.get("data_type") or "general").lower()
         for col in cols:
             if col not in df.columns:
@@ -1093,13 +1211,25 @@ def apply_column_format_conversion(df: pd.DataFrame, sheet_name: str) -> None:
                 else:
                     df[col] = ser
             elif dtype == "date":
+                raw_ser = df[col].astype(str).str.strip()
                 pd_fmt = _config_date_format_to_pandas(rule.get("date_format"))
-                if pd_fmt:
-                    df[col] = pd.to_datetime(df[col], format=pd_fmt, errors="coerce")
-                else:
-                    with warnings.catch_warnings():
-                        warnings.simplefilter("ignore", UserWarning)
-                        df[col] = pd.to_datetime(df[col], errors="coerce")
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore", UserWarning)
+                    if pd_fmt:
+                        parsed = pd.to_datetime(df[col], format=pd_fmt, errors="coerce")
+                    else:
+                        parsed = pd.to_datetime(df[col], errors="coerce")
+                # Где не удалось распознать дату (NaT) — пробуем гибкий разбор без формата (в т.ч. 4000-01-01 и др.)
+                nat_mask = parsed.isna()
+                if nat_mask.any():
+                    second = pd.to_datetime(df[col].loc[nat_mask], errors="coerce")
+                    parsed = parsed.fillna(second)
+                # Всё ещё NaT — оставляем исходное значение как текст (формат по умолчанию для колонки)
+                still_nat = parsed.isna()
+                if still_nat.any():
+                    parsed = parsed.astype(object)
+                    parsed.loc[still_nat] = raw_ser.loc[still_nat].values
+                df[col] = parsed
             elif dtype == "text":
                 df[col] = df[col].astype(str)
 
@@ -1123,7 +1253,13 @@ def apply_column_formats(ws: Any, sheet_name: str) -> None:
         return
 
     for rule in rules_for_sheet:
-        cols = rule.get("columns") or []
+        # Режим: либо список колонок (columns), либо все колонки листа кроме указанных (except_columns)
+        except_cols = rule.get("except_columns") or []
+        if except_cols:
+            except_set = {(x or "").strip() for x in except_cols}
+            cols = [c for c in col_names_stripped if c not in except_set]
+        else:
+            cols = rule.get("columns") or []
         data_type = (rule.get("data_type") or "general").lower()
         # Строка формата Excel
         if data_type == "number":
@@ -3376,7 +3512,7 @@ def process_single_file(file_conf):
         if file_path is None:
             th = threading.current_thread().name
             logging.error(f"Файл не найден: {file_conf['file']} в каталоге {DIR_INPUT} [поток: {th}]")
-            return None, sheet_name, None
+            return None, sheet_name, None, None
         
         th = threading.current_thread().name
         logging.info(f"Загрузка файла: {file_path} [поток: {th}]")
@@ -3384,8 +3520,10 @@ def process_single_file(file_conf):
         result = read_csv_file(file_path)
         if result is None:
             logging.error(f"Ошибка чтения файла: {file_path} [поток: {th}]")
-            return None, sheet_name, None
+            return None, sheet_name, None, None
         df, csv_issues = result
+        # Копия ровно того, что в CSV (без разворота JSON и без доп. полей) — для выгрузки source
+        df_raw_for_source = df.copy()
         if csv_issues:
             with _csv_mismatches_lock:
                 for rec in csv_issues:
@@ -3411,13 +3549,13 @@ def process_single_file(file_conf):
 
         logging.info(f"Файл успешно обработан: {sheet_name}, строк: {len(df)} [поток: {th}]")
         
-        return df, sheet_name, file_conf
+        return df, sheet_name, file_conf, df_raw_for_source
         
     except Exception as e:
         logging.error(
             f"Ошибка обработки файла {file_conf.get('file', 'unknown')}: {e} [поток: {threading.current_thread().name}]"
         )
-        return None, sheet_name, None
+        return None, sheet_name, None, None
 
 
 def validate_single_sheet(sheet_name, sheets_data_item):
@@ -3745,20 +3883,6 @@ def main():
     log_file = setup_logger()
     logging.info(f"=== Старт работы программы: {start_time.strftime('%Y-%m-%d %H:%M:%S')} ===")
 
-    # Проверка наличия всех файлов из INPUT_FILES до начала обработки
-    missing_files = check_input_files_exist()
-    if missing_files:
-        msg_lines = [
-            "Программа не запущена: не найдены следующие файлы из INPUT_FILES:",
-            f"  (ожидаемый каталог: {DIR_INPUT})",
-        ]
-        for m in missing_files:
-            msg_lines.append(f"  - {m['file']} (лист: {m['sheet']})")
-        msg = "\n".join(msg_lines)
-        logging.error(msg)
-        print(msg, file=sys.stderr)
-        sys.exit(1)
-
     sheets_data = {}
     files_processed = 0
     rows_total = 0
@@ -3774,20 +3898,41 @@ def main():
         futures = {executor.submit(process_single_file, file_conf): file_conf 
                    for file_conf in INPUT_FILES}
         
-        # Собираем результаты по мере их готовности
+        # Собираем результаты по мере их готовности; сырые данные (до разворота JSON) — для source-выгрузки
+        raw_sheets = {}
         for future in as_completed(futures):
-            df, sheet_name, file_conf = future.result()
+            df, sheet_name, file_conf, df_raw = future.result()
             if df is not None and file_conf is not None:
                 with lock:
                     sheets_data[sheet_name] = (df, file_conf)
                     files_processed += 1
                     rows_total += len(df)
                     summary.append(f"{sheet_name}: {len(df)} строк")
+                    # В source Excel — только листы с include_in_source != false (по умолчанию да)
+                    if file_conf.get("include_in_source", True):
+                        raw_sheets[sheet_name] = (df_raw.copy() if df_raw is not None else pd.DataFrame(), file_conf)
             elif sheet_name:
                 # Файл не найден или ошибка чтения
                 summary.append(f"{sheet_name}: {'файл не найден' if file_conf is None else 'ошибка'}")
-    
+
     logging.info(f"Параллельное чтение CSV файлов завершено. Обработано файлов: {files_processed}")
+
+    # 1.1. Выгрузка сырых данных в отдельный Excel (ровно содержимое CSV, без доп. колонок); проверка файлов — после неё
+    write_source_excel(raw_sheets, DIR_OUTPUT, SOURCE_EXPORT_SORT)
+
+    missing_files = check_input_files_exist()
+    if missing_files:
+        msg_lines = [
+            "Не найдены следующие файлы из INPUT_FILES (выгрузка сырых данных уже выполнена):",
+            f"  (ожидаемый каталог: {DIR_INPUT})",
+        ]
+        for m in missing_files:
+            msg_lines.append(f"  - {m['file']} (лист: {m['sheet']})")
+        msg = "\n".join(msg_lines)
+        logging.error(msg)
+        print(msg, file=sys.stderr)
+        sys.exit(1)
+
     # 2. Добавление колонки AUTO_GENDER для листа EMPLOYEE
     if "EMPLOYEE" in sheets_data:
         df_employee, conf_employee = sheets_data["EMPLOYEE"]
