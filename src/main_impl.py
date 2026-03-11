@@ -17,6 +17,8 @@ import inspect  # Для получения информации о вызыва
 from concurrent.futures import ThreadPoolExecutor, as_completed  # Для параллельной обработки
 from itertools import product
 import threading  # Для синхронизации потоков
+
+from src.consistency_checks import run_consistency_checks_and_attach_summary  # Проверки консистентности (отдельный модуль)
 import warnings   # Для подавления UserWarning при парсинге дат без формата
 
 # === ОПТИМИЗАЦИИ ПРОИЗВОДИТЕЛЬНОСТИ ===
@@ -155,7 +157,7 @@ def _load_config_globals():
     global SUMMARY_SHEET, SHEET_ORDER, SUMMARY_KEY_DEFS, SUMMARY_KEY_COLUMNS
     global GENDER_PATTERNS, GENDER_PROGRESS_STEP, FIELD_LENGTH_VALIDATIONS
     global COL_REWARD_LINK_CONTEST_CODE, MERGE_FIELDS_ADVANCED, COLOR_SCHEME
-    global COLUMN_FORMATS, CHECK_DUPLICATES, JSON_COLUMNS
+    global COLUMN_FORMATS, CHECK_DUPLICATES, CONSISTENCY_CHECKS, JSON_COLUMNS
     global MAX_WORKERS_IO, MAX_WORKERS_CPU, MAX_WORKERS, TOURNAMENT_STATUS_CHOICES
     global SOURCE_EXPORT_SORT
 
@@ -182,6 +184,7 @@ def _load_config_globals():
             COLOR_SCHEME = _c.color_scheme
             COLUMN_FORMATS = _c.column_formats
             CHECK_DUPLICATES = _c.check_duplicates
+            CONSISTENCY_CHECKS = getattr(_c, "consistency_checks", None) or {"summary_sheet_name": "CONSISTENCY", "rules": []}
             JSON_COLUMNS = _c.json_columns
             SOURCE_EXPORT_SORT = getattr(_c, "source_export_sort", []) or []
             MAX_WORKERS_IO = _c.max_workers_io
@@ -220,6 +223,11 @@ def _load_config_globals():
     COLOR_SCHEME = _cfg.get("color_scheme") or []
     COLUMN_FORMATS = _cfg.get("column_formats") or []
     CHECK_DUPLICATES = _cfg.get("check_duplicates") or []
+    _cc = _cfg.get("consistency_checks") or {}
+    CONSISTENCY_CHECKS = {
+        "summary_sheet_name": _cc.get("summary_sheet_name", "CONSISTENCY"),
+        "rules": _cc.get("rules") or [],
+    }
     JSON_COLUMNS = _cfg.get("json_columns") or {}
     SOURCE_EXPORT_SORT = (_cfg.get("source_export") or {}).get("sort_rules") or []
     MAX_WORKERS_IO = _cfg["performance"]["max_workers_io"]
@@ -4029,6 +4037,12 @@ def main():
     }
     sheets_data["STAT_FILE"] = (df_stat, stat_file_params)
     logging.info(f"[main] Лист STAT_FILE сформирован: {len(df_stat)} строк (статистика по файлам)")
+
+    # Проверки консистентности (отдельный модуль): referential, referential_composite, сбор unique/field_length, свод CONSISTENCY, лог и консоль
+    if CONSISTENCY_CHECKS and (CONSISTENCY_CHECKS.get("rules")):
+        logging.info("[main] Запуск проверок консистентности")
+        run_consistency_checks_and_attach_summary(sheets_data, CONSISTENCY_CHECKS)
+        logging.info("[main] Проверки консистентности завершены")
     
     # Верификация merge: сохранение baseline или сравнение с ним
     _baseline_path = os.path.join(DIR_OUTPUT, "merge_output_baseline.json")

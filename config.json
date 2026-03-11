@@ -255,7 +255,8 @@
     "ORDER_2025_1 (KMKKSB)",
     "ORDER_2025_1 (MNS)",
     "YEAR_STATA",
-    "USER_ROLE SB"
+    "USER_ROLE SB",
+    "CONSISTENCY"
   ],
   "summary_key_defs": [
     {
@@ -2257,6 +2258,14 @@
     {
       "sheet": "REWARD-LINK",
       "key": [
+        "CONTEST_CODE",
+        "GROUP_CODE",
+        "REWARD_CODE"
+      ]
+    },
+    {
+      "sheet": "REWARD-LINK",
+      "key": [
         "REWARD_CODE"
       ]
     },
@@ -2304,6 +2313,258 @@
       ]
     }
   ],
+  "consistency_checks": {
+    "summary_sheet_name": "CONSISTENCY",
+    "rules": [
+      {
+        "id": "1.1",
+        "name": "CONTEST_CODE из GROUP в CONTEST-DATA",
+        "type": "referential",
+        "enabled": true,
+        "sheet_src": "GROUP",
+        "column_src": "CONTEST_CODE",
+        "sheet_ref": "CONTEST-DATA",
+        "column_ref": "CONTEST_CODE",
+        "output": {
+          "column_on_sheet": "ПРОВЕРКА: CONTEST_CODE в CONTEST-DATA",
+          "include_in_summary": true
+        }
+      },
+      {
+        "id": "1.2",
+        "name": "CONTEST_CODE из INDICATOR в CONTEST-DATA",
+        "type": "referential",
+        "enabled": true,
+        "sheet_src": "INDICATOR",
+        "column_src": "CONTEST_CODE",
+        "sheet_ref": "CONTEST-DATA",
+        "column_ref": "CONTEST_CODE",
+        "output": {
+          "column_on_sheet": "ПРОВЕРКА: CONTEST_CODE в CONTEST-DATA",
+          "include_in_summary": true
+        }
+      },
+      {
+        "id": "1.3",
+        "name": "CONTEST_CODE из REWARD-LINK в CONTEST-DATA",
+        "type": "referential",
+        "enabled": true,
+        "sheet_src": "REWARD-LINK",
+        "column_src": "CONTEST_CODE",
+        "sheet_ref": "CONTEST-DATA",
+        "column_ref": "CONTEST_CODE",
+        "output": {
+          "column_on_sheet": "ПРОВЕРКА: CONTEST_CODE в CONTEST-DATA",
+          "include_in_summary": true
+        }
+      },
+      {
+        "id": "2",
+        "name": "REWARD_CODE из REWARD-LINK в REWARD",
+        "type": "referential",
+        "enabled": true,
+        "sheet_src": "REWARD-LINK",
+        "column_src": "REWARD_CODE",
+        "sheet_ref": "REWARD",
+        "column_ref": "REWARD_CODE",
+        "output": {
+          "column_on_sheet": "ПРОВЕРКА: REWARD_CODE в REWARD",
+          "include_in_summary": true
+        }
+      },
+      {
+        "id": "3",
+        "name": "Уникальность CONTEST_CODE+GROUP_CODE+GROUP_VALUE в GROUP",
+        "type": "unique",
+        "enabled": true,
+        "sheet": "GROUP",
+        "key_columns": ["CONTEST_CODE", "GROUP_CODE", "GROUP_VALUE"],
+        "output": {
+          "column_on_sheet": "ДУБЛЬ: CONTEST_CODE_GROUP_CODE_GROUP_VALUE",
+          "include_in_summary": true
+        }
+      },
+      {
+        "id": "4",
+        "name": "Уникальность CONTEST_CODE+GROUP_CODE+REWARD_CODE в REWARD-LINK",
+        "type": "unique",
+        "enabled": true,
+        "sheet": "REWARD-LINK",
+        "key_columns": ["CONTEST_CODE", "GROUP_CODE", "REWARD_CODE"],
+        "output": {
+          "column_on_sheet": "ДУБЛЬ: CONTEST_CODE_GROUP_CODE_REWARD_CODE",
+          "include_in_summary": true
+        }
+      },
+      {
+        "id": "5",
+        "name": "Пара CONTEST_CODE+GROUP_CODE из REWARD-LINK есть в GROUP",
+        "type": "referential_composite",
+        "enabled": true,
+        "sheet_src": "REWARD-LINK",
+        "columns_src": ["CONTEST_CODE", "GROUP_CODE"],
+        "sheet_ref": "GROUP",
+        "columns_ref": ["CONTEST_CODE", "GROUP_CODE"],
+        "output": {
+          "column_on_sheet": "ПРОВЕРКА: пара в GROUP",
+          "include_in_summary": true
+        }
+      },
+      {
+        "id": "unique_contest_data",
+        "name": "Уникальность CONTEST_CODE в CONTEST-DATA",
+        "type": "unique",
+        "enabled": true,
+        "sheet": "CONTEST-DATA",
+        "key_columns": ["CONTEST_CODE"],
+        "output": { "column_on_sheet": "ДУБЛЬ: CONTEST_CODE", "include_in_summary": true }
+      },
+      {
+        "id": "unique_indicator_1",
+        "name": "Уникальность CONTEST_CODE+INDICATOR_ADD_CALC_TYPE+INDICATOR_CODE в INDICATOR",
+        "type": "unique",
+        "enabled": true,
+        "sheet": "INDICATOR",
+        "key_columns": ["CONTEST_CODE", "INDICATOR_ADD_CALC_TYPE", "INDICATOR_CODE"],
+        "output": { "column_on_sheet": "ДУБЛЬ: CONTEST_CODE_INDICATOR_ADD_CALC_TYPE_INDICATOR_CODE", "include_in_summary": true }
+      },
+      {
+        "id": "unique_indicator_n",
+        "name": "Уникальность N в INDICATOR",
+        "type": "unique",
+        "enabled": true,
+        "sheet": "INDICATOR",
+        "key_columns": ["N"],
+        "output": { "column_on_sheet": "ДУБЛЬ: N", "include_in_summary": true }
+      },
+      {
+        "id": "unique_report",
+        "name": "Уникальность MANAGER_PERSON_NUMBER+TOURNAMENT_CODE+CONTEST_CODE в REPORT",
+        "type": "unique",
+        "enabled": true,
+        "sheet": "REPORT",
+        "key_columns": ["MANAGER_PERSON_NUMBER", "TOURNAMENT_CODE", "CONTEST_CODE"],
+        "output": { "column_on_sheet": "ДУБЛЬ: MANAGER_PERSON_NUMBER_TOURNAMENT_CODE_CONTEST_CODE", "include_in_summary": true }
+      },
+      {
+        "id": "unique_reward",
+        "name": "Уникальность REWARD_CODE в REWARD",
+        "type": "unique",
+        "enabled": true,
+        "sheet": "REWARD",
+        "key_columns": ["REWARD_CODE"],
+        "output": { "column_on_sheet": "ДУБЛЬ: REWARD_CODE", "include_in_summary": true }
+      },
+      {
+        "id": "unique_reward_link_2",
+        "name": "Уникальность CONTEST_CODE+REWARD_CODE в REWARD-LINK",
+        "type": "unique",
+        "enabled": true,
+        "sheet": "REWARD-LINK",
+        "key_columns": ["CONTEST_CODE", "REWARD_CODE"],
+        "output": { "column_on_sheet": "ДУБЛЬ: CONTEST_CODE_REWARD_CODE", "include_in_summary": true }
+      },
+      {
+        "id": "unique_reward_link_reward",
+        "name": "Уникальность REWARD_CODE в REWARD-LINK",
+        "type": "unique",
+        "enabled": true,
+        "sheet": "REWARD-LINK",
+        "key_columns": ["REWARD_CODE"],
+        "output": { "column_on_sheet": "ДУБЛЬ: REWARD_CODE", "include_in_summary": true }
+      },
+      {
+        "id": "unique_schedule_2",
+        "name": "Уникальность TOURNAMENT_CODE+CONTEST_CODE в TOURNAMENT-SCHEDULE",
+        "type": "unique",
+        "enabled": true,
+        "sheet": "TOURNAMENT-SCHEDULE",
+        "key_columns": ["TOURNAMENT_CODE", "CONTEST_CODE"],
+        "output": { "column_on_sheet": "ДУБЛЬ: TOURNAMENT_CODE_CONTEST_CODE", "include_in_summary": true }
+      },
+      {
+        "id": "unique_schedule_1",
+        "name": "Уникальность TOURNAMENT_CODE в TOURNAMENT-SCHEDULE",
+        "type": "unique",
+        "enabled": true,
+        "sheet": "TOURNAMENT-SCHEDULE",
+        "key_columns": ["TOURNAMENT_CODE"],
+        "output": { "column_on_sheet": "ДУБЛЬ: TOURNAMENT_CODE", "include_in_summary": true }
+      },
+      {
+        "id": "unique_org_unit",
+        "name": "Уникальность ORG_UNIT_CODE в ORG_UNIT_V20",
+        "type": "unique",
+        "enabled": true,
+        "sheet": "ORG_UNIT_V20",
+        "key_columns": ["ORG_UNIT_CODE"],
+        "output": { "column_on_sheet": "ДУБЛЬ: ORG_UNIT_CODE", "include_in_summary": true }
+      },
+      {
+        "id": "unique_user_role",
+        "name": "Уникальность RULE_NUM в USER_ROLE",
+        "type": "unique",
+        "enabled": true,
+        "sheet": "USER_ROLE",
+        "key_columns": ["RULE_NUM"],
+        "output": { "column_on_sheet": "ДУБЛЬ: RULE_NUM", "include_in_summary": true }
+      },
+      {
+        "id": "unique_user_role_sb",
+        "name": "Уникальность RULE_NUM в USER_ROLE SB",
+        "type": "unique",
+        "enabled": true,
+        "sheet": "USER_ROLE SB",
+        "key_columns": ["RULE_NUM"],
+        "output": { "column_on_sheet": "ДУБЛЬ: RULE_NUM", "include_in_summary": true }
+      },
+      {
+        "id": "unique_employee_person",
+        "name": "Уникальность PERSON_NUMBER в EMPLOYEE",
+        "type": "unique",
+        "enabled": true,
+        "sheet": "EMPLOYEE",
+        "key_columns": ["PERSON_NUMBER"],
+        "output": { "column_on_sheet": "ДУБЛЬ: PERSON_NUMBER", "include_in_summary": true }
+      },
+      {
+        "id": "unique_employee_person_add",
+        "name": "Уникальность PERSON_NUMBER_ADD в EMPLOYEE",
+        "type": "unique",
+        "enabled": true,
+        "sheet": "EMPLOYEE",
+        "key_columns": ["PERSON_NUMBER_ADD"],
+        "output": { "column_on_sheet": "ДУБЛЬ: PERSON_NUMBER_ADD", "include_in_summary": true }
+      },
+      {
+        "id": "field_length_org_unit",
+        "name": "Длина полей в ORG_UNIT_V20",
+        "type": "field_length",
+        "enabled": true,
+        "sheet": "ORG_UNIT_V20",
+        "result_column": "FIELD_LENGTH_CHECK",
+        "output": { "column_on_sheet": "FIELD_LENGTH_CHECK", "include_in_summary": true }
+      },
+      {
+        "id": "field_length_employee",
+        "name": "Длина полей в EMPLOYEE",
+        "type": "field_length",
+        "enabled": true,
+        "sheet": "EMPLOYEE",
+        "result_column": "FIELD_LENGTH_CHECK",
+        "output": { "column_on_sheet": "FIELD_LENGTH_CHECK", "include_in_summary": true }
+      },
+      {
+        "id": "field_length_report",
+        "name": "Длина полей в REPORT",
+        "type": "field_length",
+        "enabled": true,
+        "sheet": "REPORT",
+        "result_column": "FIELD_LENGTH_CHECK",
+        "output": { "column_on_sheet": "FIELD_LENGTH_CHECK", "include_in_summary": true }
+      }
+    ]
+  },
   "json_columns": {
     "CONTEST-DATA": [
       {

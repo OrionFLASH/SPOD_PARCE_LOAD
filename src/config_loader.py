@@ -63,6 +63,12 @@ class Config:
         self.color_scheme: List[Dict[str, Any]] = self._cfg.get("color_scheme") or []
         self.column_formats: List[Dict[str, Any]] = self._cfg.get("column_formats") or []
         self.check_duplicates: List[Dict[str, Any]] = self._cfg.get("check_duplicates") or []
+        # Проверки консистентности: единый конфиг правил (referential, unique, field_length и т.д.)
+        _cc = self._cfg.get("consistency_checks") or {}
+        self.consistency_checks: Dict[str, Any] = {
+            "summary_sheet_name": _cc.get("summary_sheet_name", "CONSISTENCY"),
+            "rules": _cc.get("rules") or [],
+        }
         self.json_columns: Dict[str, List[Dict[str, Any]]] = self._cfg.get("json_columns") or {}
         self.derived_columns: List[Dict[str, Any]] = self._cfg.get("derived_columns") or []
 

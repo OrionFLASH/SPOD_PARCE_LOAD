@@ -52,7 +52,7 @@ SPOD_PROM/
 ├── OUT/                    # Результирующие Excel файлы (paths.output)
 ├── EDIT/                   # Копии файлов для редактирования (сессии админ-панели)
 ├── BACKUP/                 # Резервные копии
-├── POST/                   # Копии основных файлов (main.py.txt, README.md.txt, config.json.txt)
+├── POST/                   # Копии всех файлов программы с суффиксом .txt (код src/, main.py, config.json, README.md, requirements.txt) для переноса без репозитория
 ├── LOGS/                   # Файлы логов (paths.logs)
 ├── Docs/                   # Дополнительная документация (.md, .txt)
 ├── admin_panel/            # Админ-панель
@@ -75,15 +75,16 @@ SPOD_PROM/
 
 | Модуль | Назначение | Основные сущности |
 |--------|------------|-------------------|
-| **config_loader.py** | Загрузка и хранение настроек из config.json | Класс `Config`: атрибуты `dir_input`, `dir_output`, `dir_logs`, `input_files`, `summary_sheet`, `sheet_order`, `summary_key_defs`, `summary_key_columns`, `gender_patterns`, `gender_progress_step`, `field_length_validations`, `merge_fields_advanced`, `color_scheme`, `column_formats`, `check_duplicates`, `json_columns`, `source_export_sort`, `max_workers_io`, `max_workers_cpu`, `tournament_status_choices`; метод `get_output_filename()`. |
+| **config_loader.py** | Загрузка и хранение настроек из config.json | Класс `Config`: атрибуты `dir_input`, `dir_output`, `dir_logs`, `input_files`, `summary_sheet`, `sheet_order`, `summary_key_defs`, `summary_key_columns`, `gender_patterns`, `gender_progress_step`, `field_length_validations`, `merge_fields_advanced`, `color_scheme`, `column_formats`, `check_duplicates`, `consistency_checks`, `json_columns`, `source_export_sort`, `max_workers_io`, `max_workers_cpu`, `tournament_status_choices`; метод `get_output_filename()`. |
 | **config_holder.py** | Внедрение текущего конфига для кода, работающего с глобальными переменными | `set_current_config(config)`, `get_current_config()`. |
 | **logging_setup.py** | Настройка логирования | Класс `CallerFormatter` (добавляет имя функции в сообщение); функция `setup_logger(config)` — возвращает путь к лог-файлу, настраивает вывод в файл (DEBUG) и консоль (INFO). |
 | **json_utils.py** | Разбор и разворот JSON-полей в DataFrame | `safe_json_loads(s)` — парсинг строки в JSON с поправкой типичных ошибок; `safe_json_loads_preserve_triple_quotes(s)`; `flatten_json_column_recursive(df, column, prefix=..., sheet=..., sep=..., max_workers_io=...)` — рекурсивный разворот колонки в несколько колонок, при большом объёме — параллельно. |
 | **file_loader.py** | Поиск и загрузка CSV, разворот JSON по конфигу | Класс `FileLoader(config)`: `find_file_case_insensitive(directory, base_name, extensions)`, `check_input_files_exist()`, `read_csv_file(file_path)`, `process_single_file(file_conf)` — возвращает `(df, sheet_name, file_conf)` или `(None, sheet_name, None)`. |
 | **tournament.py** | Расчёт статуса турнира по датам | `calculate_tournament_status(config, df_tournament, df_report=None)` — добавляет колонку `CALC_TOURNAMENT_STATUS` по правилам из `config.tournament_status_choices`. |
 | **validation.py** | Валидация длины полей и проверка дубликатов | `validate_field_lengths(config, df, sheet_name)`, `validate_field_lengths_vectorized(config, df, sheet_name)`, `compare_validate_results(df_old, df_new, result_column)`, `mark_duplicates(df, key_cols, sheet_name=...)`, `validate_single_sheet(config, sheet_name, sheets_data_item)`, `check_duplicates_single_sheet(config, sheet_name, sheets_data_item)`. |
+| **consistency_checks.py** | Проверки консистентности (отдельный модуль) | Выполняет правила из `consistency_checks.rules`: типы `referential` (внешний ключ в одну колонку), `referential_composite` (несколько колонок), сбор результатов `unique` и `field_length` с уже заполненных колонок. Функции: `run_referential`, `run_referential_composite`, `collect_unique_result`, `collect_field_length_result`, `run_all_consistency_checks`, `build_consistency_summary_df`, `log_and_console_consistency_report`, `run_consistency_checks_and_attach_summary`. Результаты пишутся в колонки на листах, сводный лист CONSISTENCY, лог (INFO/DEBUG) и консоль. Реализации `check_duplicates` и `field_length_validations` не изменяются. |
 | **gender.py** | Определение пола по отчеству, имени, фамилии | `add_auto_gender_column(config, df, sheet_name)`, `add_auto_gender_column_vectorized(config, df, sheet_name)`, `compare_gender_results(df_old, df_new)`. Внутри используются паттерны из `config.gender_patterns`. |
-| **main_impl.py** | Полный пайплайн обработки | При импорте вызывается `_load_config_globals()` (из config.json или из внедрённого Config). Функция `main()`: параллельная загрузка CSV и разворот JSON (с нормализацией длины строк и сбором расхождений) → выгрузка сырых данных в «SPOD_PROM source …» (только листы с `include_in_source: true`, без разворота JSON) → проверка наличия файлов (при отсутствии — выход с ошибкой) → добавление AUTO_GENDER (EMPLOYEE) → валидация длины полей → расчёт статуса турнира → merge (кроме SUMMARY) → проверка дубликатов → формирование SUMMARY → лист STAT_FILE → запись основного Excel → итоговый отчёт по дубликатам, валидации и расхождениям по числу полей в CSV. Реализованы: `write_source_excel` (сырые данные, сортировка, параметры листов из input_files, автофильтр), `apply_column_format_conversion` / `apply_column_formats` (в т.ч. `except_columns` и обработка дат с сохранением нераспознанных как текст). Остальные функции (merge, summary, Excel, отчёты) — в этом же модуле. |
+| **main_impl.py** | Полный пайплайн обработки | При импорте вызывается `_load_config_globals()` (из config.json или из внедрённого Config). Функция `main()`: параллельная загрузка CSV и разворот JSON (с нормализацией длины строк и сбором расхождений) → выгрузка сырых данных в «SPOD_PROM source …» (только листы с `include_in_source: true`, без разворота JSON) → проверка наличия файлов (при отсутствии — выход с ошибкой) → добавление AUTO_GENDER (EMPLOYEE) → валидация длины полей → расчёт статуса турнира → merge (кроме SUMMARY) → проверка дубликатов → формирование SUMMARY → лист STAT_FILE → **проверки консистентности** (модуль `consistency_checks`: referential, referential_composite, сбор unique/field_length, сводный лист CONSISTENCY, вывод в лог и консоль) → запись основного Excel → итоговый отчёт по дубликатам, валидации и расхождениям по числу полей в CSV. Реализованы: `write_source_excel` (сырые данные, сортировка, параметры листов из input_files, автофильтр), `apply_column_format_conversion` / `apply_column_formats` (в т.ч. `except_columns` и обработка дат с сохранением нераспознанных как текст). Остальные функции (merge, summary, Excel, отчёты) — в этом же модуле. |
 
 **Запуск:** из корня проекта выполняется `python main.py`. При этом создаётся `Config()` (путь к config.json — корень проекта), конфиг передаётся в `set_current_config(config)`, затем вызывается `main_impl.main()`. В начале `main_impl.main()` снова вызывается `_load_config_globals()`, поэтому все глобальные переменные в main_impl берутся из внедрённого конфига.
 
@@ -112,7 +113,8 @@ SPOD_PROM/
 | `merge_fields_advanced` | Правила переноса/подсчёта полей между листами (источник, приёмник, ключи, column, mode, src_key_transforms, dst_key_transforms). |
 | `color_scheme` | Цвета заголовков и ячеек по листам и колонкам. |
 | `column_formats` | Формат ячеек: число, дата, выравнивание по листам и колонкам. |
-| `check_duplicates` | Правила поиска дубликатов по ключу (лист, key). |
+| `check_duplicates` | Правила поиска дубликатов по ключу (лист, key). Колонки «ДУБЛЬ: …» создаются пайплайном в main_impl. |
+| `consistency_checks` | Единый конфиг проверок консистентности: сводный лист (summary_sheet_name), массив правил (rules) с типами referential, referential_composite, unique, field_length. Используется модулем src/consistency_checks.py после STAT_FILE; результаты — колонки на листах, лист CONSISTENCY, лог и консоль. |
 | `json_columns` | Колонки с JSON для разворота по листам (column, prefix). |
 
 ### Общая структура файла
@@ -134,6 +136,7 @@ SPOD_PROM/
   "color_scheme": [ ... ],
   "column_formats": [ ... ],
   "check_duplicates": [ ... ],
+  "consistency_checks": { "summary_sheet_name": "CONSISTENCY", "rules": [ ... ] },
   "json_columns": { ... }
 }
 ```
@@ -605,7 +608,53 @@ SPOD_PROM/
 {"sheet": "EMPLOYEE", "key": ["PERSON_NUMBER_ADD"]}
 ```
 
-**Логика:** для листа по полям `key` считается количество повторений комбинации; если больше 1, в новой колонке «ДУБЛЬ: ...» ставится признак дубликата. Одна запись в конфиге — одна такая колонка (на одном листе может быть несколько правил с разными ключами). В конце работы программа выводит в лог и в консоль итоговую статистику: на каком листе найден дубликат, по какому ключу, задублированные значения и количество вхождений; работа при этом не прерывается.
+**Логика:** для листа по полям `key` считается количество повторений комбинации; если больше 1, в новой колонке «ДУБЛЬ: ...» ставится признак дубликата. Одна запись в конфиге — одна такая колонка (на одном листе может быть несколько правил с разными ключами). В конце работы программа выводит в лог и в консоль итоговую статистику: на каком листе найден дубликат, по какому ключу, задублированные значения и количество вхождений; работа при этом не прерывается. Для проверки уникальности по тройке CONTEST_CODE+GROUP_CODE+REWARD_CODE на REWARD-LINK в `check_duplicates` должно быть отдельное правило с `"key": ["CONTEST_CODE", "GROUP_CODE", "REWARD_CODE"]`, иначе колонка «ДУБЛЬ: CONTEST_CODE_GROUP_CODE_REWARD_CODE» не создаётся и свод консистентности покажет 0.
+
+---
+
+### consistency_checks
+
+**Назначение:** единый конфиг проверок консистентности данных. Параметры и перечень правил задаются здесь; выполнение — в отдельном модуле **src/consistency_checks.py** (после формирования STAT_FILE, до записи Excel). Исходные реализации `check_duplicates` и `field_length_validations` не изменяются: модуль либо выполняет новые проверки (referential, referential_composite), либо только собирает результаты с уже заполненных колонок (unique, field_length).
+
+| Ключ | Тип | Описание |
+|------|-----|----------|
+| `summary_sheet_name` | строка | Имя сводного листа (по умолчанию `"CONSISTENCY"`). |
+| `rules` | массив объектов | Список правил; у каждого: `id`, `name` (опционально), `type`, `enabled`, `output` (column_on_sheet, include_in_summary). Остальные поля зависят от типа. |
+
+**Типы правил:**
+
+- **referential** — внешний ключ в одну колонку: значения `column_src` на `sheet_src` должны присутствовать в `sheet_ref.column_ref`. Поля: `sheet_src`, `column_src`, `sheet_ref`, `column_ref`. Результат записывается в колонку на листе-источнике («OK» или «НЕТ в &lt;sheet_ref&gt;»).
+- **referential_composite** — внешний ключ из нескольких колонок: комбинация `columns_src` на `sheet_src` должна встречаться в `sheet_ref` по `columns_ref`. Поля: `sheet_src`, `columns_src`, `sheet_ref`, `columns_ref`.
+- **unique** — уникальность комбинации колонок. Модуль не выполняет проверку сам, а читает уже созданную колонку «ДУБЛЬ: …» (создаётся пайплайном по `check_duplicates`). Поля: `sheet`, `key_columns`; `output.column_on_sheet` должно совпадать с именем колонки из check_duplicates (например «ДУБЛЬ: CONTEST_CODE_GROUP_CODE_REWARD_CODE»). Чтобы проверка по тройке CONTEST_CODE+GROUP_CODE+REWARD_CODE на REWARD-LINK работала, в `check_duplicates` должно быть правило с этим ключом.
+- **field_length** — проверка длины полей. Модуль только собирает данные из колонки результата (заполняется по `field_length_validations`). Поля: `sheet`, `result_column`; `output.column_on_sheet` — имя колонки на листе.
+
+**Вывод:** для каждого правила с `include_in_summary: true` — строка в сводном листе CONSISTENCY (check_id, sheet, name, type, total_rows, violations, sample); в лог INFO — кратко «нарушений не найдено» или «найдено нарушений: &lt;id&gt; (&lt;лист&gt;) — N; …»; в DEBUG — подробности по проверкам с нарушениями. В консоль выводится тот же итог, что и в INFO.
+
+**Пример фрагмента rules (referential и unique):**
+```json
+{
+  "id": "1.1",
+  "name": "CONTEST_CODE из GROUP в CONTEST-DATA",
+  "type": "referential",
+  "enabled": true,
+  "sheet_src": "GROUP",
+  "column_src": "CONTEST_CODE",
+  "sheet_ref": "CONTEST-DATA",
+  "column_ref": "CONTEST_CODE",
+  "output": { "column_on_sheet": "ПРОВЕРКА: CONTEST_CODE в CONTEST-DATA", "include_in_summary": true }
+},
+{
+  "id": "4",
+  "name": "Уникальность CONTEST_CODE+GROUP_CODE+REWARD_CODE в REWARD-LINK",
+  "type": "unique",
+  "enabled": true,
+  "sheet": "REWARD-LINK",
+  "key_columns": ["CONTEST_CODE", "GROUP_CODE", "REWARD_CODE"],
+  "output": { "column_on_sheet": "ДУБЛЬ: CONTEST_CODE_GROUP_CODE_REWARD_CODE", "include_in_summary": true }
+}
+```
+
+Полное описание формата и соответствия пунктам ПРОВЕРКИ.txt — в **Docs/CONSISTENCY_CHECKS_FORMAT.md**.
 
 ---
 
@@ -643,7 +692,7 @@ SPOD_PROM/
 Основная программа для обработки данных из CSV файлов системы SPOD. Состоит из двух частей:
 
 1. **Корневой main.py** — точка входа: создаёт экземпляр `Config` (загрузка **config.json** из корня проекта), передаёт его в `config_holder`, затем вызывает `main_impl.main()`.
-2. **src/main_impl.py** — полный пайплайн: при запуске подхватывает внедрённый конфиг (или при прямом запуске загружает config.json из корня проекта), настраивает логирование, читает CSV из каталога `paths.input` (по умолчанию `SPOD/`), обрабатывает данные по правилам объединения (`merge_fields_advanced`), проверяет дубликаты (`check_duplicates`) и длину полей, формирует сводный лист SUMMARY и лист STAT_FILE, записывает итоговый Excel и выводит отчёт. Логирование ведётся в файл (уровень DEBUG) и в консоль (INFO).
+2. **src/main_impl.py** — полный пайплайн: при запуске подхватывает внедрённый конфиг (или при прямом запуске загружает config.json из корня проекта), настраивает логирование, читает CSV из каталога `paths.input` (по умолчанию `SPOD/`), обрабатывает данные по правилам объединения (`merge_fields_advanced`), проверяет дубликаты (`check_duplicates`) и длину полей, формирует сводный лист SUMMARY и лист STAT_FILE, затем запускает **проверки консистентности** (модуль `consistency_checks`: referential, referential_composite, сбор unique/field_length, сводный лист CONSISTENCY, вывод в лог и консоль), записывает итоговый Excel и выводит отчёт. Логирование ведётся в файл (уровень DEBUG) и в консоль (INFO).
 
 ### Входные данные
 
@@ -1241,4 +1290,18 @@ python app.py
 
 ---
 
-*Документация обновлена: 2026-02-16*
+*Документация обновлена: 2026-03-12*
+
+---
+
+### Версия 1.2 — Проверки консистентности и папка POST
+
+**Проверки консистентности:**
+- Добавлен модуль **src/consistency_checks.py**: выполнение правил из конфига `consistency_checks` (типы referential, referential_composite, сбор результатов unique и field_length с уже заполненных колонок). Реализации `check_duplicates` и `field_length_validations` не изменяются.
+- В **config.json** добавлена секция **consistency_checks** (summary_sheet_name, rules). Правила включают проверки по ПРОВЕРКИ.txt (1.1–1.3, 2, 3, 4, 5), все текущие unique из check_duplicates и field_length по листам ORG_UNIT_V20, EMPLOYEE, REPORT.
+- Результаты: колонки «ПРОВЕРКА: …» на листах (GROUP, INDICATOR, REWARD-LINK), сводный лист **CONSISTENCY** в книге, вывод в лог (INFO: найдено/не найдено и какие проверки; DEBUG: подробно) и в консоль.
+- В **check_duplicates** добавлено правило для REWARD-LINK с ключом CONTEST_CODE+GROUP_CODE+REWARD_CODE, чтобы проверка уникальности по этой тройке работала (колонка «ДУБЛЬ: CONTEST_CODE_GROUP_CODE_REWARD_CODE» создаётся пайплайном).
+- В **config_loader** добавлен атрибут `consistency_checks`; в **main_impl** — глобальная переменная CONSISTENCY_CHECKS и вызов `run_consistency_checks_and_attach_summary` после STAT_FILE. Лист CONSISTENCY добавлен в sheet_order.
+
+**Папка POST:**
+- В **POST/** складываются копии **всех файлов программы** с добавлением к расширению суффикса **.txt** (main.py → main.py.txt, config.json → config.json.txt, README.md → README.md.txt, requirements.txt → requirements.txt.txt, все файлы из src/ → src/имя_файла.py.txt) для переноса программы без репозитория. Существующие файлы в POST заменяются новыми версиями при обновлении.
