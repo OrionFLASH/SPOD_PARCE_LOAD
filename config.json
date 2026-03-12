@@ -26,7 +26,7 @@
   ],
   "input_files": [
     {
-      "file": "CONTEST (PROM) 11-03 v0.csv",
+      "file": "CONTEST (PROM) 12-03 v0.csv",
       "sheet": "CONTEST-DATA",
       "max_col_width": 120,
       "freeze": "C2",
@@ -53,7 +53,7 @@
       "include_in_source": true
     },
     {
-      "file": "REPORT (PROM) 27-02 v2.csv",
+      "file": "REPORT (PROM) 12-03 v0.csv",
       "sheet": "REPORT",
       "max_col_width": 25,
       "freeze": "D2",
@@ -62,7 +62,7 @@
       "include_in_source": true
     },
     {
-      "file": "REWARD (PROM) 11-03 v0.csv",
+      "file": "REWARD (PROM) 12-03 v0.csv",
       "sheet": "REWARD",
       "max_col_width": 200,
       "freeze": "D2",
@@ -80,7 +80,7 @@
       "include_in_source": true
     },
     {
-      "file": "SCHEDULE (PROM) 11-03 v0.csv",
+      "file": "SCHEDULE (PROM) 12-03 v0.csv",
       "sheet": "TOURNAMENT-SCHEDULE",
       "max_col_width": 120,
       "freeze": "B2",
@@ -116,7 +116,7 @@
       "include_in_source": true
     },
     {
-      "file": "employee_PROM_final_5000_2025-07-26_00-09-03.csv",
+      "file": "employee_PROM_final_5000_2025-07-26_00-09-03.CSV",
       "sheet": "EMPLOYEE",
       "max_col_width": 80,
       "freeze": "F2",
@@ -197,7 +197,7 @@
       "include_in_source": false
     },
     {
-      "file": "gamification-orderList 1MNS.csv",
+      "file": "gamification-orderList 1KM.csv",
       "sheet": "ORDER_2025_1 (KMKKSB)",
       "max_col_width": 80,
       "freeze": "D2",
@@ -233,6 +233,7 @@
   },
   "sheet_order": [
     "SUMMARY",
+    "CONSISTENCY",
     "CONTEST-DATA",
     "REWARD",
     "TOURNAMENT-SCHEDULE",
@@ -255,8 +256,7 @@
     "ORDER_2025_1 (KMKKSB)",
     "ORDER_2025_1 (MNS)",
     "YEAR_STATA",
-    "USER_ROLE SB",
-    "CONSISTENCY"
+    "USER_ROLE SB"
   ],
   "summary_key_defs": [
     {
@@ -382,47 +382,6 @@
       ]
     },
     "progress_step": 500
-  },
-  "field_length_validations": {
-    "ORG_UNIT_V20": {
-      "result_column": "FIELD_LENGTH_CHECK",
-      "fields": {
-        "TB_FULL_NAME": {
-          "limit": 100,
-          "operator": "<="
-        },
-        "GOSB_NAME": {
-          "limit": 100,
-          "operator": "<="
-        },
-        "GOSB_SHORT_NAME": {
-          "limit": 20,
-          "operator": "<="
-        }
-      }
-    },
-    "EMPLOYEE": {
-      "result_column": "FIELD_LENGTH_CHECK",
-      "fields": {
-        "PERSON_NUMBER": {
-          "limit": 20,
-          "operator": "="
-        },
-        "PERSON_NUMBER_ADD": {
-          "limit": 20,
-          "operator": "="
-        }
-      }
-    },
-    "REPORT": {
-      "result_column": "FIELD_LENGTH_CHECK",
-      "fields": {
-        "MANAGER_PERSON_NUMBER": {
-          "limit": 20,
-          "operator": "="
-        }
-      }
-    }
   },
   "merge_fields_advanced": [
     {
@@ -1006,7 +965,7 @@
         "CONTEST_FEATURE => typeRewarding",
         "CONTEST_FEATURE => preferences",
         "CONTEST_FEATURE => tournamentTeam",
-        "CONTEST_FEATURE => helpCode",
+        "CONTEST_FEATURE => helpCodeList",
         "CONTEST_FEATURE"
       ],
       "mode": "value",
@@ -1055,7 +1014,7 @@
         "ADD_DATA => priority",
         "ADD_DATA => masterBadge",
         "ADD_DATA => parentRewardCode",
-        "ADD_DATA => helpCode",
+        "ADD_DATA => helpCodeList",
         "ADD_DATA => seasonItem",
         "ADD_DATA"
       ],
@@ -1917,44 +1876,6 @@
         "REWARD=>ADD_DATA => teamNews",
         "REWARD=>ADD_DATA => singleNews"
       ]
-    },
-    {
-      "group": "DUPLICATES",
-      "header_bg": "FFE6F2",
-      "header_fg": "2C3E50",
-      "column_bg": null,
-      "column_fg": null,
-      "style_scope": "header",
-      "sheets": [
-        "SUMMARY",
-        "CONTEST-DATA",
-        "GROUP",
-        "INDICATOR",
-        "REPORT",
-        "REWARD",
-        "REWARD-LINK",
-        "TOURNAMENT-SCHEDULE",
-        "ORG_UNIT_V20",
-        "USER_ROLE",
-        "USER_ROLE SB",
-        "EMPLOYEE"
-      ],
-      "columns": [
-        "ДУБЛЬ: CONTEST_CODE_TOURNAMENT_CODE_REWARD_CODE_GROUP_CODE",
-        "ДУБЛЬ: CONTEST_CODE",
-        "ДУБЛЬ: CONTEST_CODE_GROUP_CODE_GROUP_VALUE",
-        "ДУБЛЬ: CONTEST_CODE_INDICATOR_ADD_CALC_TYPE_INDICATOR_CODE",
-        "ДУБЛЬ: N",
-        "ДУБЛЬ: MANAGER_PERSON_NUMBER_TOURNAMENT_CODE_CONTEST_CODE",
-        "ДУБЛЬ: REWARD_CODE",
-        "ДУБЛЬ: CONTEST_CODE_REWARD_CODE",
-        "ДУБЛЬ: TOURNAMENT_CODE_CONTEST_CODE",
-        "ДУБЛЬ: TOURNAMENT_CODE",
-        "ДУБЛЬ: ORG_UNIT_CODE",
-        "ДУБЛЬ: RULE_NUM",
-        "ДУБЛЬ: PERSON_NUMBER",
-        "ДУБЛЬ: PERSON_NUMBER_ADD"
-      ]
     }
   ],
   "column_formats": [
@@ -2205,120 +2126,12 @@
       "wrap_text": false
     }
   ],
-  "check_duplicates": [
-    {
-      "sheet": "CONTEST-DATA",
-      "key": [
-        "CONTEST_CODE"
-      ]
-    },
-    {
-      "sheet": "GROUP",
-      "key": [
-        "CONTEST_CODE",
-        "GROUP_CODE",
-        "GROUP_VALUE"
-      ]
-    },
-    {
-      "sheet": "INDICATOR",
-      "key": [
-        "CONTEST_CODE",
-        "INDICATOR_ADD_CALC_TYPE",
-        "INDICATOR_CODE"
-      ]
-    },
-    {
-      "sheet": "INDICATOR",
-      "key": [
-        "N"
-      ]
-    },
-    {
-      "sheet": "REPORT",
-      "key": [
-        "MANAGER_PERSON_NUMBER",
-        "TOURNAMENT_CODE",
-        "CONTEST_CODE"
-      ]
-    },
-    {
-      "sheet": "REWARD",
-      "key": [
-        "REWARD_CODE"
-      ]
-    },
-    {
-      "sheet": "REWARD-LINK",
-      "key": [
-        "CONTEST_CODE",
-        "REWARD_CODE"
-      ]
-    },
-    {
-      "sheet": "REWARD-LINK",
-      "key": [
-        "CONTEST_CODE",
-        "GROUP_CODE",
-        "REWARD_CODE"
-      ]
-    },
-    {
-      "sheet": "REWARD-LINK",
-      "key": [
-        "REWARD_CODE"
-      ]
-    },
-    {
-      "sheet": "TOURNAMENT-SCHEDULE",
-      "key": [
-        "TOURNAMENT_CODE",
-        "CONTEST_CODE"
-      ]
-    },
-    {
-      "sheet": "TOURNAMENT-SCHEDULE",
-      "key": [
-        "TOURNAMENT_CODE"
-      ]
-    },
-    {
-      "sheet": "ORG_UNIT_V20",
-      "key": [
-        "ORG_UNIT_CODE"
-      ]
-    },
-    {
-      "sheet": "USER_ROLE",
-      "key": [
-        "RULE_NUM"
-      ]
-    },
-    {
-      "sheet": "USER_ROLE SB",
-      "key": [
-        "RULE_NUM"
-      ]
-    },
-    {
-      "sheet": "EMPLOYEE",
-      "key": [
-        "PERSON_NUMBER"
-      ]
-    },
-    {
-      "sheet": "EMPLOYEE",
-      "key": [
-        "PERSON_NUMBER_ADD"
-      ]
-    }
-  ],
   "consistency_checks": {
     "summary_sheet_name": "CONSISTENCY",
     "rules": [
       {
         "id": "1.1",
-        "name": "CONTEST_CODE из GROUP в CONTEST-DATA",
+        "name": "Группа: код конкурса в справочнике конкурсов",
         "type": "referential",
         "enabled": true,
         "sheet_src": "GROUP",
@@ -2332,7 +2145,7 @@
       },
       {
         "id": "1.2",
-        "name": "CONTEST_CODE из INDICATOR в CONTEST-DATA",
+        "name": "Индикатор: код конкурса в справочнике конкурсов",
         "type": "referential",
         "enabled": true,
         "sheet_src": "INDICATOR",
@@ -2346,7 +2159,7 @@
       },
       {
         "id": "1.3",
-        "name": "CONTEST_CODE из REWARD-LINK в CONTEST-DATA",
+        "name": "Связь наград: код конкурса в справочнике конкурсов",
         "type": "referential",
         "enabled": true,
         "sheet_src": "REWARD-LINK",
@@ -2360,7 +2173,7 @@
       },
       {
         "id": "2",
-        "name": "REWARD_CODE из REWARD-LINK в REWARD",
+        "name": "Связь наград: код награды в справочнике наград",
         "type": "referential",
         "enabled": true,
         "sheet_src": "REWARD-LINK",
@@ -2374,7 +2187,7 @@
       },
       {
         "id": "3",
-        "name": "Уникальность CONTEST_CODE+GROUP_CODE+GROUP_VALUE в GROUP",
+        "name": "Группа: нет дублей по конкурс+группа+значение",
         "type": "unique",
         "enabled": true,
         "sheet": "GROUP",
@@ -2386,7 +2199,7 @@
       },
       {
         "id": "4",
-        "name": "Уникальность CONTEST_CODE+GROUP_CODE+REWARD_CODE в REWARD-LINK",
+        "name": "Связь наград: нет дублей по конкурс+группа+награда",
         "type": "unique",
         "enabled": true,
         "sheet": "REWARD-LINK",
@@ -2398,7 +2211,7 @@
       },
       {
         "id": "5",
-        "name": "Пара CONTEST_CODE+GROUP_CODE из REWARD-LINK есть в GROUP",
+        "name": "Связь наград: пара конкурс+группа есть в группах",
         "type": "referential_composite",
         "enabled": true,
         "sheet_src": "REWARD-LINK",
@@ -2411,8 +2224,50 @@
         }
       },
       {
+        "id": "scenario_1",
+        "name": "Расписание: код конкурса есть в справочнике конкурсов",
+        "type": "referential",
+        "enabled": true,
+        "sheet_src": "TOURNAMENT-SCHEDULE",
+        "column_src": "CONTEST_CODE",
+        "sheet_ref": "CONTEST-DATA",
+        "column_ref": "CONTEST_CODE",
+        "output": {
+          "column_on_sheet": "ПРОВЕРКА: CONTEST_CODE в CONTEST-DATA",
+          "include_in_summary": true
+        }
+      },
+      {
+        "id": "scenario_16",
+        "name": "Расписание: у конкурса описан индикатор",
+        "type": "referential",
+        "enabled": true,
+        "sheet_src": "TOURNAMENT-SCHEDULE",
+        "column_src": "CONTEST_CODE",
+        "sheet_ref": "INDICATOR",
+        "column_ref": "CONTEST_CODE",
+        "output": {
+          "column_on_sheet": "ПРОВЕРКА: CONTEST_CODE в INDICATOR",
+          "include_in_summary": true
+        }
+      },
+      {
+        "id": "scenario_20",
+        "name": "Расписание: у конкурса описаны группы (критерии победы)",
+        "type": "referential",
+        "enabled": true,
+        "sheet_src": "TOURNAMENT-SCHEDULE",
+        "column_src": "CONTEST_CODE",
+        "sheet_ref": "GROUP",
+        "column_ref": "CONTEST_CODE",
+        "output": {
+          "column_on_sheet": "ПРОВЕРКА: CONTEST_CODE в GROUP",
+          "include_in_summary": true
+        }
+      },
+      {
         "id": "unique_contest_data",
-        "name": "Уникальность CONTEST_CODE в CONTEST-DATA",
+        "name": "Справочник конкурсов: нет дублей по коду конкурса",
         "type": "unique",
         "enabled": true,
         "sheet": "CONTEST-DATA",
@@ -2421,7 +2276,7 @@
       },
       {
         "id": "unique_indicator_1",
-        "name": "Уникальность CONTEST_CODE+INDICATOR_ADD_CALC_TYPE+INDICATOR_CODE в INDICATOR",
+        "name": "Индикатор: нет дублей по конкурс+тип+код индикатора",
         "type": "unique",
         "enabled": true,
         "sheet": "INDICATOR",
@@ -2430,7 +2285,7 @@
       },
       {
         "id": "unique_indicator_n",
-        "name": "Уникальность N в INDICATOR",
+        "name": "Индикатор: нет дублей по полю N",
         "type": "unique",
         "enabled": true,
         "sheet": "INDICATOR",
@@ -2439,7 +2294,7 @@
       },
       {
         "id": "unique_report",
-        "name": "Уникальность MANAGER_PERSON_NUMBER+TOURNAMENT_CODE+CONTEST_CODE в REPORT",
+        "name": "Отчёт: нет дублей по ТН+турнир+конкурс",
         "type": "unique",
         "enabled": true,
         "sheet": "REPORT",
@@ -2448,7 +2303,7 @@
       },
       {
         "id": "unique_reward",
-        "name": "Уникальность REWARD_CODE в REWARD",
+        "name": "Справочник наград: нет дублей по коду награды",
         "type": "unique",
         "enabled": true,
         "sheet": "REWARD",
@@ -2457,7 +2312,7 @@
       },
       {
         "id": "unique_reward_link_2",
-        "name": "Уникальность CONTEST_CODE+REWARD_CODE в REWARD-LINK",
+        "name": "Связь наград: нет дублей по конкурс+награда",
         "type": "unique",
         "enabled": true,
         "sheet": "REWARD-LINK",
@@ -2466,7 +2321,7 @@
       },
       {
         "id": "unique_reward_link_reward",
-        "name": "Уникальность REWARD_CODE в REWARD-LINK",
+        "name": "Связь наград: нет дублей по коду награды",
         "type": "unique",
         "enabled": true,
         "sheet": "REWARD-LINK",
@@ -2475,7 +2330,7 @@
       },
       {
         "id": "unique_schedule_2",
-        "name": "Уникальность TOURNAMENT_CODE+CONTEST_CODE в TOURNAMENT-SCHEDULE",
+        "name": "Расписание: нет дублей по турнир+конкурс",
         "type": "unique",
         "enabled": true,
         "sheet": "TOURNAMENT-SCHEDULE",
@@ -2484,7 +2339,7 @@
       },
       {
         "id": "unique_schedule_1",
-        "name": "Уникальность TOURNAMENT_CODE в TOURNAMENT-SCHEDULE",
+        "name": "Расписание: нет дублей по коду турнира",
         "type": "unique",
         "enabled": true,
         "sheet": "TOURNAMENT-SCHEDULE",
@@ -2493,7 +2348,7 @@
       },
       {
         "id": "unique_org_unit",
-        "name": "Уникальность ORG_UNIT_CODE в ORG_UNIT_V20",
+        "name": "Орг.единицы: нет дублей по коду",
         "type": "unique",
         "enabled": true,
         "sheet": "ORG_UNIT_V20",
@@ -2502,7 +2357,7 @@
       },
       {
         "id": "unique_user_role",
-        "name": "Уникальность RULE_NUM в USER_ROLE",
+        "name": "Роли: нет дублей по номеру правила",
         "type": "unique",
         "enabled": true,
         "sheet": "USER_ROLE",
@@ -2511,7 +2366,7 @@
       },
       {
         "id": "unique_user_role_sb",
-        "name": "Уникальность RULE_NUM в USER_ROLE SB",
+        "name": "Роли СБ: нет дублей по номеру правила",
         "type": "unique",
         "enabled": true,
         "sheet": "USER_ROLE SB",
@@ -2520,7 +2375,7 @@
       },
       {
         "id": "unique_employee_person",
-        "name": "Уникальность PERSON_NUMBER в EMPLOYEE",
+        "name": "Сотрудники: нет дублей по табельному",
         "type": "unique",
         "enabled": true,
         "sheet": "EMPLOYEE",
@@ -2529,7 +2384,7 @@
       },
       {
         "id": "unique_employee_person_add",
-        "name": "Уникальность PERSON_NUMBER_ADD в EMPLOYEE",
+        "name": "Сотрудники: нет дублей по доп.табельному",
         "type": "unique",
         "enabled": true,
         "sheet": "EMPLOYEE",
@@ -2538,29 +2393,41 @@
       },
       {
         "id": "field_length_org_unit",
-        "name": "Длина полей в ORG_UNIT_V20",
+        "name": "Орг.единицы: длина полей в норме",
         "type": "field_length",
         "enabled": true,
         "sheet": "ORG_UNIT_V20",
         "result_column": "FIELD_LENGTH_CHECK",
+        "fields": {
+          "TB_FULL_NAME": { "limit": 100, "operator": "<=" },
+          "GOSB_NAME": { "limit": 100, "operator": "<=" },
+          "GOSB_SHORT_NAME": { "limit": 20, "operator": "<=" }
+        },
         "output": { "column_on_sheet": "FIELD_LENGTH_CHECK", "include_in_summary": true }
       },
       {
         "id": "field_length_employee",
-        "name": "Длина полей в EMPLOYEE",
+        "name": "Сотрудники: длина полей в норме",
         "type": "field_length",
         "enabled": true,
         "sheet": "EMPLOYEE",
         "result_column": "FIELD_LENGTH_CHECK",
+        "fields": {
+          "PERSON_NUMBER": { "limit": 20, "operator": "=" },
+          "PERSON_NUMBER_ADD": { "limit": 20, "operator": "=" }
+        },
         "output": { "column_on_sheet": "FIELD_LENGTH_CHECK", "include_in_summary": true }
       },
       {
         "id": "field_length_report",
-        "name": "Длина полей в REPORT",
+        "name": "Отчёт: длина полей в норме",
         "type": "field_length",
         "enabled": true,
         "sheet": "REPORT",
         "result_column": "FIELD_LENGTH_CHECK",
+        "fields": {
+          "MANAGER_PERSON_NUMBER": { "limit": 20, "operator": "=" }
+        },
         "output": { "column_on_sheet": "FIELD_LENGTH_CHECK", "include_in_summary": true }
       }
     ]

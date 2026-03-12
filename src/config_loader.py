@@ -55,13 +55,14 @@ class Config:
         self.gender_patterns: Dict[str, List[str]] = self._cfg["gender"]["patterns"]
         self.gender_progress_step: int = self._cfg["gender"].get("progress_step", 500)
 
-        # Валидация длины полей
+        # Устаревший параметр: проверки длины полей перенесены в consistency_checks (type: field_length). Оставлен пустой dict для совместимости.
         self.field_length_validations: Dict[str, Any] = self._cfg.get("field_length_validations") or {}
 
         # Merge, цвета, форматы, дубликаты, JSON
         self.merge_fields_advanced: List[Dict[str, Any]] = self._cfg["merge_fields_advanced"]
         self.color_scheme: List[Dict[str, Any]] = self._cfg.get("color_scheme") or []
         self.column_formats: List[Dict[str, Any]] = self._cfg.get("column_formats") or []
+        # Устаревший параметр: проверки дублей перенесены в consistency_checks (type: unique). Оставлен пустой список для совместимости с validation.check_duplicates_single_sheet.
         self.check_duplicates: List[Dict[str, Any]] = self._cfg.get("check_duplicates") or []
         # Проверки консистентности: единый конфиг правил (referential, unique, field_length и т.д.)
         _cc = self._cfg.get("consistency_checks") or {}

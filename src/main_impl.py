@@ -157,7 +157,7 @@ def _load_config_globals():
     global SUMMARY_SHEET, SHEET_ORDER, SUMMARY_KEY_DEFS, SUMMARY_KEY_COLUMNS
     global GENDER_PATTERNS, GENDER_PROGRESS_STEP, FIELD_LENGTH_VALIDATIONS
     global COL_REWARD_LINK_CONTEST_CODE, MERGE_FIELDS_ADVANCED, COLOR_SCHEME
-    global COLUMN_FORMATS, CHECK_DUPLICATES, CONSISTENCY_CHECKS, JSON_COLUMNS
+    global COLUMN_FORMATS, CONSISTENCY_CHECKS, JSON_COLUMNS
     global MAX_WORKERS_IO, MAX_WORKERS_CPU, MAX_WORKERS, TOURNAMENT_STATUS_CHOICES
     global SOURCE_EXPORT_SORT
 
@@ -183,7 +183,6 @@ def _load_config_globals():
             MERGE_FIELDS_ADVANCED = _c.merge_fields_advanced
             COLOR_SCHEME = _c.color_scheme
             COLUMN_FORMATS = _c.column_formats
-            CHECK_DUPLICATES = _c.check_duplicates
             CONSISTENCY_CHECKS = getattr(_c, "consistency_checks", None) or {"summary_sheet_name": "CONSISTENCY", "rules": []}
             JSON_COLUMNS = _c.json_columns
             SOURCE_EXPORT_SORT = getattr(_c, "source_export_sort", []) or []
@@ -222,7 +221,6 @@ def _load_config_globals():
     MERGE_FIELDS_ADVANCED = _cfg["merge_fields_advanced"]
     COLOR_SCHEME = _cfg.get("color_scheme") or []
     COLUMN_FORMATS = _cfg.get("column_formats") or []
-    CHECK_DUPLICATES = _cfg.get("check_duplicates") or []
     _cc = _cfg.get("consistency_checks") or {}
     CONSISTENCY_CHECKS = {
         "summary_sheet_name": _cc.get("summary_sheet_name", "CONSISTENCY"),
@@ -2134,36 +2132,6 @@ def collect_summary_keys_optimized(dfs):
 
 
 
-def mark_duplicates(df, key_cols, sheet_name=None):
-
-    # ОПТИМИЗАЦИЯ v5.0: Проверка на None
-    if df is None:
-        logging.warning(f"[mark_duplicates] DataFrame для листа {sheet_name} равен None, пропускаем проверку дублей")
-        return df
-    """
-    Добавляет колонку с пометкой о дублях по key_cols.
-    Если строк по ключу больше одной — пишем xN, иначе пусто.
-    """
-    params = {"sheet": sheet_name, "keys": key_cols}
-    func_start = tmod.time()
-    col_name = "ДУБЛЬ: " + "_".join(key_cols)  # Имя колонки формируется из ключей
-    
-
-    logging.info(f"[START] Проверка дублей: {sheet_name}, ключ: {key_cols}")
-    try:
-        dup_counts = df.groupby(key_cols)[key_cols[0]].transform('count')
-        df[col_name] = dup_counts.map(lambda x: f"x{x}" if x > 1 else "")
-        n_duplicates = (df[col_name] != "").sum()
-        func_time = tmod.time() - func_start
-        logging.info(f"[INFO] Дублей найдено: {n_duplicates} на листе {sheet_name} по ключу {key_cols}")
-        logging.info(f"[END] Проверка дублей: {sheet_name}, время: {func_time:.3f}s")
-    except Exception as ex:
-        func_time = tmod.time() - func_start
-        logging.error(f"[ERROR] Ошибка при поиске дублей: {sheet_name}, ключ: {key_cols}: {ex}")
-        logging.info(f"[END] Проверка дублей: {sheet_name}, время: {func_time:.3f}s")
-    return df
-
-
 def add_fields_to_sheet(df_base, df_ref, src_keys, dst_keys, columns, sheet_name, ref_sheet_name, mode="value",
                         multiply_rows=False, count_prefix="COUNT", count_aggregation="size", count_label=None):
     """
@@ -3580,14 +3548,14 @@ def validate_single_sheet(sheet_name, sheets_data_item):
     """
     # ОПТИМИЗАЦИЯ v5.0: Проверка на None
     if sheets_data_item is None:
-        logging.warning(f"[check_duplicates_single_sheet] Данные для листа {sheet_name} равны None, пропускаем")
+        logging.warning(f"[validate_single_sheet] Данные для листа {sheet_name} равны None, пропускаем")
         return sheet_name, sheets_data_item
     
     try:
         df, conf = sheets_data_item
         # Дополнительная проверка на None
         if df is None or conf is None:
-            logging.warning(f"[check_duplicates_single_sheet] DataFrame или конфигурация для листа {sheet_name} равны None, пропускаем")
+            logging.warning(f"[validate_single_sheet] DataFrame или конфигурация для листа {sheet_name} равны None, пропускаем")
             return sheet_name, sheets_data_item
         # ОПТИМИЗАЦИЯ: Используем векторизованную версию с проверкой результатов
         df_old = df.copy()
@@ -3619,118 +3587,25 @@ def validate_single_sheet(sheet_name, sheets_data_item):
         return sheet_name, sheets_data_item
 
 
-def check_duplicates_single_sheet(sheet_name, sheets_data_item):
-    """
-    Проверяет дубликаты для одного листа.
-    Используется для параллельной проверки дубликатов.
-    
-    Args:
-        sheet_name (str): Имя листа для проверки
-        sheets_data_item (tuple): (df, conf) - данные листа и конфигурация
-        
-    Returns:
-        tuple: (sheet_name, (df, conf))
-    """
-    # ОПТИМИЗАЦИЯ v5.0: Проверка на None
-    if sheets_data_item is None:
-        logging.warning(f"[check_duplicates_single_sheet] Данные для листа {sheet_name} равны None, пропускаем")
-        return sheet_name, sheets_data_item
-    
-    try:
-        df, conf = sheets_data_item
-        # Дополнительная проверка на None
-        if df is None or conf is None:
-            logging.warning(f"[check_duplicates_single_sheet] DataFrame или конфигурация для листа {sheet_name} равны None, пропускаем")
-            return sheet_name, sheets_data_item
-        # Находим ВСЕ записи для этого листа (не только первую)
-        check_configs = [x for x in CHECK_DUPLICATES if x["sheet"] == sheet_name]
-        for check_cfg in check_configs:
-            df = mark_duplicates(df, check_cfg["key"], sheet_name=sheet_name)
-        
-        if check_configs:
-            logging.debug(f"Проверка дубликатов завершена: {sheet_name} [поток: {threading.current_thread().name}]")
-        
-        return sheet_name, (df, conf)
-    except Exception as e:
-        logging.error(
-            f"Ошибка проверки дубликатов для {sheet_name}: {e} [поток: {threading.current_thread().name}]"
-        )
-        # Возвращаем исходные данные при ошибке
-        return sheet_name, sheets_data_item
-
-
 def collect_duplicates_and_validation_report(sheets_data: Dict[str, Any]) -> tuple:
     """
-    Собирает сводный отчёт по дубликатам, отклонениям длины полей и расхождениям по числу полей в CSV.
-    Не прерывает работу — только накапливает данные для финального вывода.
+    Собирает сводный отчёт по отклонениям длины полей (из правил consistency_checks) и расхождениям по числу полей в CSV.
 
     Returns:
-        tuple: (duplicates_report, validation_report, csv_mismatch_report)
-            - duplicates_report: список dict с ключами sheet, key_cols, col_name, n_duplicate_rows, duplicate_key_values
+        tuple: (validation_report, csv_mismatch_report)
             - validation_report: список dict с ключами sheet, result_column, n_violations, sample_values
-            - csv_mismatch_report: список записей о строках CSV с числом полей != заголовку (file, sheet, row_index, expected_cols, actual_cols, direction)
+            - csv_mismatch_report: список записей о строках CSV с числом полей != заголовку
     """
-    duplicates_report: List[Dict[str, Any]] = []
     validation_report: List[Dict[str, Any]] = []
 
-    # --- Дубликаты: ищем колонки "ДУБЛЬ: ..." и строки с непустым значением ---
-    for sheet_name, sheet_item in sheets_data.items():
-        if sheet_item is None:
+    # --- Отклонения по длине полей (из правил consistency_checks type=field_length) ---
+    _cc_rules = (CONSISTENCY_CHECKS or {}).get("rules") or []
+    for rule in _cc_rules:
+        if rule.get("type") != "field_length" or not rule.get("enabled", True):
             continue
-        try:
-            df, _ = sheet_item
-            if df is None or not isinstance(df, pd.DataFrame):
-                continue
-        except (TypeError, ValueError):
-            continue
-
-        for col in df.columns:
-            if not (isinstance(col, str) and col.startswith("ДУБЛЬ: ")):
-                continue
-            # Найти конфиг проверки: ключ, по которому построена эта колонка
-            key_cols: Optional[List[str]] = None
-            for check_cfg in CHECK_DUPLICATES:
-                if check_cfg.get("sheet") != sheet_name:
-                    continue
-                k = check_cfg.get("key")
-                if isinstance(k, list) and "ДУБЛЬ: " + "_".join(k) == col:
-                    key_cols = k
-                    break
-            if not key_cols:
-                continue
-
-            dup_mask = df[col].astype(str).str.strip() != ""
-            n_duplicate_rows = int(dup_mask.sum())
-            if n_duplicate_rows == 0:
-                continue
-
-            # Проверить наличие ключевых колонок
-            missing = [c for c in key_cols if c not in df.columns]
-            if missing:
-                logging.debug(f"[collect_report] Лист {sheet_name}, колонка {col}: отсутствуют ключи {missing}")
-                continue
-
-            # Группируем дубликаты по значениям ключа: (tuple(key_vals)) -> count
-            dup_df = df.loc[dup_mask, key_cols + [col]].copy()
-            dup_df["_key_tuple"] = list(zip(*(dup_df[k].astype(str).values for k in key_cols)))
-            key_counts = dup_df.groupby("_key_tuple", dropna=False).size()
-
-            duplicate_key_values = []
-            for key_tuple, count in key_counts.items():
-                key_vals = dict(zip(key_cols, key_tuple))
-                duplicate_key_values.append({"key_values": key_vals, "count": int(count)})
-
-            duplicates_report.append({
-                "sheet": sheet_name,
-                "key_cols": key_cols,
-                "col_name": col,
-                "n_duplicate_rows": n_duplicate_rows,
-                "duplicate_key_values": duplicate_key_values,
-            })
-
-    # --- Отклонения по длине полей (field_length_validations) ---
-    for sheet_name in (FIELD_LENGTH_VALIDATIONS or {}):
-        if sheet_name not in sheets_data:
+        sheet_name = rule.get("sheet")
+        result_column = rule.get("result_column") or "FIELD_LENGTH_CHECK"
+        if not sheet_name or sheet_name not in sheets_data:
             continue
         sheet_item = sheets_data[sheet_name]
         if sheet_item is None:
@@ -3741,19 +3616,12 @@ def collect_duplicates_and_validation_report(sheets_data: Dict[str, Any]) -> tup
                 continue
         except (TypeError, ValueError):
             continue
-
-        config = FIELD_LENGTH_VALIDATIONS.get(sheet_name)
-        if not config:
+        if result_column not in df.columns:
             continue
-        result_column = config.get("result_column")
-        if not result_column or result_column not in df.columns:
-            continue
-
         violations_mask = (df[result_column].astype(str).str.strip() != "") & (df[result_column].astype(str).str.strip() != "-")
         n_violations = int(violations_mask.sum())
         if n_violations == 0:
             continue
-
         sample_values = df.loc[violations_mask, result_column].drop_duplicates().head(20).tolist()
         validation_report.append({
             "sheet": sheet_name,
@@ -3763,7 +3631,7 @@ def collect_duplicates_and_validation_report(sheets_data: Dict[str, Any]) -> tup
         })
 
     csv_mismatch_report = list(_csv_column_mismatches)
-    return duplicates_report, validation_report, csv_mismatch_report
+    return validation_report, csv_mismatch_report
 
 
 def build_stat_file_sheet(
@@ -3817,39 +3685,21 @@ def build_stat_file_sheet(
 
 
 def print_final_report(
-    duplicates_report: List[Dict[str, Any]],
     validation_report: List[Dict[str, Any]],
     csv_mismatch_report: Optional[List[Dict[str, Any]]] = None,
 ) -> None:
     """
-    Выводит итоговый отчёт по дубликатам, отклонениям длины полей и расхождениям по числу полей в CSV.
-    Вызывается в конце работы программы; не прерывает выполнение.
+    Выводит итоговый отчёт по отклонениям длины полей и расхождениям по числу полей в CSV.
+    Дубликаты отображаются в сводке консистентности (лист CONSISTENCY) и в логе проверок.
     """
     if csv_mismatch_report is None:
         csv_mismatch_report = []
     lines: List[str] = []
     lines.append("")
-    lines.append("========== ИТОГОВАЯ СТАТИСТИКА: ДУБЛИКАТЫ И ОТКЛОНЕНИЯ ДЛИНЫ ПОЛЕЙ ==========")
-
-    if duplicates_report:
-        lines.append("")
-        lines.append("--- Дубликаты ---")
-        for r in duplicates_report:
-            lines.append(f"  Лист: {r['sheet']}")
-            lines.append(f"  Ключ (колонки): {r['key_cols']}")
-            lines.append(f"  Колонка проверки: {r['col_name']}")
-            lines.append(f"  Строк с дубликатами: {r['n_duplicate_rows']}")
-            for g in r["duplicate_key_values"]:
-                kv = g["key_values"]
-                cnt = g["count"]
-                lines.append(f"    Задублированное значение: {kv} (вхождений: {cnt})")
-            lines.append("")
-    else:
-        lines.append("")
-        lines.append("--- Дубликаты: не обнаружены ---")
+    lines.append("========== ИТОГОВАЯ СТАТИСТИКА: ОТКЛОНЕНИЯ ДЛИНЫ ПОЛЕЙ И РАСХОЖДЕНИЯ CSV ==========")
 
     if validation_report:
-        lines.append("--- Отклонения по длине полей (field_length_validations) ---")
+        lines.append("--- Отклонения по длине полей (проверки консистентности) ---")
         for r in validation_report:
             lines.append(f"  Лист: {r['sheet']}, колонка результата: {r['result_column']}")
             lines.append(f"  Количество строк с отклонениями: {r['n_violations']}")
@@ -3961,30 +3811,14 @@ def main():
             logging.info(f"[GENDER COMPARISON] EMPLOYEE: результаты идентичны ({comparison.get('match_percent', 0)}%)")
         sheets_data["EMPLOYEE"] = (df_employee, conf_employee)
 
-        # 3. Параллельная проверка длины полей для всех листов согласно FIELD_LENGTH_VALIDATIONS
-    if FIELD_LENGTH_VALIDATIONS:
-        logging.info(f"Начало параллельной проверки длины полей (потоков: {MAX_WORKERS_CPU})")
-        sheets_to_validate = {name: sheets_data[name] for name in FIELD_LENGTH_VALIDATIONS.keys() 
-                             if name in sheets_data}
-        
-        if sheets_to_validate:
-            with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
-                futures = {executor.submit(validate_single_sheet, sheet_name, data): sheet_name
-                          for sheet_name, data in sheets_to_validate.items()}
-                
-                for future in as_completed(futures):
-                    sheet_name, validated_data = future.result()
-                    sheets_data[sheet_name] = validated_data
-            
-            logging.info("Параллельная проверка длины полей завершена")
-    # 4. Добавление расчетного статуса турнира для TOURNAMENT-SCHEDULE
+        # 3. Добавление расчетного статуса турнира для TOURNAMENT-SCHEDULE
     if "TOURNAMENT-SCHEDULE" in sheets_data:
         df_tournament, conf_tournament = sheets_data["TOURNAMENT-SCHEDULE"]
         df_report = sheets_data.get("REPORT", (None, None))[0]
         df_tournament = calculate_tournament_status(df_tournament, df_report)
         sheets_data["TOURNAMENT-SCHEDULE"] = (df_tournament, conf_tournament)
 
-    # 5. Merge fields (только после полного разворота JSON)
+    # 4. Merge fields (только после полного разворота JSON)
     # Все правила в MERGE_FIELDS_ADVANCED: сначала бывшие MERGE_FIELDS (порядок сохранён), затем расширенные.
     # count_column_prefix="COUNT" — имена колонок в Excel не меняются (COUNT_* для count без count_label).
     merge_fields_across_sheets(
@@ -3994,20 +3828,13 @@ def main():
         merge_name="MERGE_FIELDS_ADVANCED"
     )
 
-        # 6. Параллельная проверка на дубли
-    logging.info(f"Начало параллельной проверки на дубликаты (потоков: {MAX_WORKERS_CPU})")
-    with ThreadPoolExecutor(max_workers=MAX_WORKERS_IO) as executor:
-        futures = {executor.submit(check_duplicates_single_sheet, sheet_name, data): sheet_name
-                  for sheet_name, data in sheets_data.items()}
-        
-        for future in as_completed(futures):
-            sheet_name, validated_data = future.result()
-            sheets_data[sheet_name] = validated_data
-    
-    logging.info("Параллельная проверка на дубликаты завершена")
-    # 7. Формирование итогового Summary (build_summary_sheet)
-    # Как в base main.py: используем данные ПОСЛЕ merge и ПОСЛЕ check_duplicates,
-    # чтобы колонки и содержимое SUMMARY (и всех листов) совпадали с верным файлом.
+    # 5. Проверки консистентности (колонки unique ДУБЛЬ:…, referential, свод CONSISTENCY) — до SUMMARY, чтобы колонки были на листах
+    if CONSISTENCY_CHECKS and (CONSISTENCY_CHECKS.get("rules")):
+        logging.info("[main] Запуск проверок консистентности")
+        run_consistency_checks_and_attach_summary(sheets_data, CONSISTENCY_CHECKS)
+        logging.info("[main] Проверки консистентности завершены")
+
+    # 6. Формирование итогового Summary (build_summary_sheet)
     dfs = {k: v[0] for k, v in sheets_data.items()}
     df_summary = build_summary_sheet(
         dfs,
@@ -4038,12 +3865,6 @@ def main():
     sheets_data["STAT_FILE"] = (df_stat, stat_file_params)
     logging.info(f"[main] Лист STAT_FILE сформирован: {len(df_stat)} строк (статистика по файлам)")
 
-    # Проверки консистентности (отдельный модуль): referential, referential_composite, сбор unique/field_length, свод CONSISTENCY, лог и консоль
-    if CONSISTENCY_CHECKS and (CONSISTENCY_CHECKS.get("rules")):
-        logging.info("[main] Запуск проверок консистентности")
-        run_consistency_checks_and_attach_summary(sheets_data, CONSISTENCY_CHECKS)
-        logging.info("[main] Проверки консистентности завершены")
-    
     # Верификация merge: сохранение baseline или сравнение с ним
     _baseline_path = os.path.join(DIR_OUTPUT, "merge_output_baseline.json")
     if os.environ.get("SAVE_MERGE_BASELINE") == "1":
@@ -4066,9 +3887,9 @@ def main():
     write_to_excel(sheets_data, output_excel)
     logging.info(f"[END] write_to_excel ({output_excel}) (время: 0.000s)")
 
-    # Итоговая статистика по дубликатам, отклонениям длины полей и расхождениям по числу полей в CSV
-    duplicates_report, validation_report, csv_mismatch_report = collect_duplicates_and_validation_report(sheets_data)
-    print_final_report(duplicates_report, validation_report, csv_mismatch_report)
+    # Итоговая статистика по отклонениям длины полей и расхождениям по числу полей в CSV (дубликаты — в сводке консистентности)
+    validation_report, csv_mismatch_report = collect_duplicates_and_validation_report(sheets_data)
+    print_final_report(validation_report, csv_mismatch_report)
 
     time_elapsed = datetime.now() - start_time
     logging.info(

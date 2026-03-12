@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """
 Модуль проверок консистентности данных.
-Выполняет правила из конфига consistency_checks: referential, referential_composite,
-а также собирает результаты unique и field_length (реализации не меняются — только сбор в свод).
+Выполняет правила из конфига consistency_checks: создаёт колонки unique (ДУБЛЬ: …) и field_length
+на листах, затем referential/referential_composite, собирает результаты в свод CONSISTENCY.
 Результаты выводятся в колонки на листах, сводный лист CONSISTENCY, консоль и лог.
 """
 
@@ -56,12 +56,12 @@ def run_referential(
     df_ref = _get_sheet_df(sheets_data, sheet_ref)
     if df_src is None:
         logging.debug(f"[consistency] referential {check_id}: лист {sheet_src} отсутствует, пропуск")
-        return {"check_id": check_id, "sheet": sheet_src, "type": "referential", "total_rows": 0, "violations": 0, "sample": []}
+        return {"check_id": check_id, "sheet": sheet_src, "name": rule.get("name", ""), "column_on_sheet": col_out, "type": "referential", "total_rows": 0, "violations": 0, "sample": [], "include_in_summary": True}
     if df_ref is None:
         logging.debug(f"[consistency] referential {check_id}: справочник {sheet_ref} отсутствует, помечаем все как нарушение")
     if column_src not in df_src.columns:
         logging.warning(f"[consistency] referential {check_id}: колонка {column_src} не найдена на {sheet_src}")
-        return {"check_id": check_id, "sheet": sheet_src, "type": "referential", "total_rows": len(df_src), "violations": len(df_src), "sample": []}
+        return {"check_id": check_id, "sheet": sheet_src, "name": rule.get("name", ""), "column_on_sheet": col_out, "type": "referential", "total_rows": len(df_src), "violations": len(df_src), "sample": [], "include_in_summary": True}
 
     ref_set = set()
     if df_ref is not None and column_ref in df_ref.columns:
@@ -94,6 +94,7 @@ def run_referential(
         "check_id": check_id,
         "sheet": sheet_src,
         "name": rule.get("name", ""),
+        "column_on_sheet": col_out,
         "type": "referential",
         "total_rows": total,
         "violations": n_violations,
@@ -121,11 +122,11 @@ def run_referential_composite(
     df_src = _get_sheet_df(sheets_data, sheet_src)
     df_ref = _get_sheet_df(sheets_data, sheet_ref)
     if df_src is None:
-        return {"check_id": check_id, "sheet": sheet_src, "type": "referential_composite", "total_rows": 0, "violations": 0, "sample": []}
+        return {"check_id": check_id, "sheet": sheet_src, "name": rule.get("name", ""), "column_on_sheet": col_out, "type": "referential_composite", "total_rows": 0, "violations": 0, "sample": [], "include_in_summary": True}
     missing_src = [c for c in columns_src if c not in df_src.columns]
     if missing_src:
         logging.warning(f"[consistency] referential_composite {check_id}: колонки {missing_src} не найдены на {sheet_src}")
-        return {"check_id": check_id, "sheet": sheet_src, "type": "referential_composite", "total_rows": len(df_src), "violations": 0, "sample": []}
+        return {"check_id": check_id, "sheet": sheet_src, "name": rule.get("name", ""), "column_on_sheet": col_out, "type": "referential_composite", "total_rows": len(df_src), "violations": 0, "sample": [], "include_in_summary": True}
 
     ref_set = set()
     if df_ref is not None:
@@ -159,6 +160,7 @@ def run_referential_composite(
         "check_id": check_id,
         "sheet": sheet_src,
         "name": rule.get("name", ""),
+        "column_on_sheet": col_out,
         "type": "referential_composite",
         "total_rows": total,
         "violations": n_violations,
@@ -167,13 +169,107 @@ def run_referential_composite(
     }
 
 
+def _run_unique_check(sheets_data: Dict[str, Any], rule: Dict[str, Any]) -> None:
+    """
+    Создаёт на листе колонку с пометкой дублей по key_columns (значение «xN» или пусто).
+    Обновляет sheets_data на месте. Вызывается до collect_unique_result, чтобы колонка существовала.
+    """
+    sheet_name = rule.get("sheet")
+    key_columns = rule.get("key_columns") or []
+    output = rule.get("output") or {}
+    col_name = output.get("column_on_sheet") or ("ДУБЛЬ: " + "_".join(key_columns))
+
+    item = _get_sheet_item(sheets_data, sheet_name)
+    if item is None:
+        return
+    df, conf = item
+    missing = [c for c in key_columns if c not in df.columns]
+    if missing:
+        logging.warning(f"[consistency] unique: лист {sheet_name}, отсутствуют колонки {missing}, пропуск")
+        return
+    try:
+        dup_counts = df.groupby(key_columns)[key_columns[0]].transform("count")
+        df = df.copy()
+        df[col_name] = dup_counts.map(lambda x: f"x{x}" if x > 1 else "")
+        sheets_data[sheet_name] = (df, conf)
+    except Exception as e:
+        logging.error(f"[consistency] Ошибка при создании колонки дублей {sheet_name} по {key_columns}: {e}")
+
+
+def _run_field_length_check(sheets_data: Dict[str, Any], rule: Dict[str, Any]) -> None:
+    """
+    Создаёт на листе колонку результата проверки длины полей (FIELD_LENGTH_CHECK и т.д.).
+    Правило должно содержать sheet, result_column, fields (имя_поля -> {limit, operator}).
+    Обновляет sheets_data на месте. Вызывается до collect_field_length_result.
+    """
+    sheet_name = rule.get("sheet")
+    result_column = rule.get("result_column") or "FIELD_LENGTH_CHECK"
+    fields_config = rule.get("fields") or {}
+
+    item = _get_sheet_item(sheets_data, sheet_name)
+    if item is None:
+        return
+    df, conf = item
+    missing = [f for f in fields_config if f not in df.columns]
+    if missing:
+        logging.warning(
+            f"[consistency] field_length: лист {sheet_name}, отсутствуют поля {missing}, пропуск"
+        )
+        return
+    if not fields_config:
+        return
+
+    violations_dict: Dict[str, Any] = {}
+    for field_name, field_cfg in fields_config.items():
+        if field_name not in df.columns:
+            continue
+        limit = field_cfg.get("limit", 0)
+        operator = field_cfg.get("operator", "<=")
+        lengths = df[field_name].astype(str).str.len()
+        empty_mask = (
+            df[field_name].isin(["", "-", "None", "null"]) | df[field_name].isna()
+        )
+        if operator == "<=":
+            mask = (lengths > limit) & ~empty_mask
+        elif operator == "=":
+            mask = (lengths != limit) & ~empty_mask
+        elif operator == ">=":
+            mask = (lengths < limit) & ~empty_mask
+        elif operator == "<":
+            mask = (lengths >= limit) & ~empty_mask
+        elif operator == ">":
+            mask = (lengths <= limit) & ~empty_mask
+        else:
+            mask = pd.Series(False, index=df.index)
+        if mask.any():
+            violations_dict[field_name] = pd.Series("", index=df.index, dtype=str)
+            violations_dict[field_name].loc[mask] = df.loc[mask, field_name].apply(
+                lambda val: f"{field_name} = {len(str(val))} {operator} {limit}"
+            )
+
+    df = df.copy()
+    if violations_dict:
+        violations_df = pd.DataFrame(violations_dict)
+        violations_series = violations_df.apply(
+            lambda row: "; ".join([str(v) for v in row if v and str(v).strip()]),
+            axis=1,
+        )
+        df[result_column] = violations_series.replace("", "-")
+    else:
+        df[result_column] = "-"
+    sheets_data[sheet_name] = (df, conf)
+    logging.debug(
+        f"[consistency] field_length: записана колонка {result_column} на {sheet_name}"
+    )
+
+
 def collect_unique_result(
     sheets_data: Dict[str, Any],
     rule: Dict[str, Any],
 ) -> Dict[str, Any]:
     """
-    Собирает результат проверки unique по уже заполненной колонке (ДУБЛЬ: ...).
-    Текущую реализацию check_duplicates не трогаем — только читаем колонку.
+    Собирает результат проверки unique по колонке (ДУБЛЬ: ...).
+    Колонка создаётся ранее в _run_unique_check.
     """
     sheet_name = rule.get("sheet")
     key_columns = rule.get("key_columns") or []
@@ -187,6 +283,7 @@ def collect_unique_result(
             "check_id": check_id,
             "sheet": sheet_name,
             "name": rule.get("name", ""),
+            "column_on_sheet": col_name,
             "type": "unique",
             "total_rows": 0,
             "violations": 0,
@@ -199,14 +296,32 @@ def collect_unique_result(
     n_violations = int(violations_mask.sum())
     total = len(df)
     sample = []
-    if n_violations > 0:
-        sample_vals = df.loc[violations_mask, col_name].drop_duplicates().head(20).tolist()
-        sample = [str(v) for v in sample_vals]
+    if n_violations > 0 and key_columns and all(c in df.columns for c in key_columns):
+        # Группируем строки с дублями по ключу, в sample — значения ключа и номера строк (как в Excel: строка 1 = заголовок)
+        dup_df = df.loc[violations_mask, key_columns + [col_name]].copy()
+        dup_df["_row"] = dup_df.index
+        grouped = dup_df.groupby(key_columns, dropna=False)
+        for key_vals, grp in grouped:
+            if len(grp) < 2:
+                continue
+            vals = key_vals if isinstance(key_vals, tuple) else (key_vals,)
+            key_parts = [f"{k}={v}" for k, v in zip(key_columns, vals)]
+            key_str = ", ".join(str(p) for p in key_parts)
+            excel_rows = sorted(grp["_row"].astype(int).tolist())
+            row_str = ", ".join(str(r + 2) for r in excel_rows)  # +2: Excel: строка 1 — заголовок
+            sample.append(f"({key_str}) — строки: {row_str} (дублей: {len(grp)})")
+            if len(sample) >= 20:
+                break
+    elif n_violations > 0:
+        # Запасной вариант: без ключей показываем хотя бы номера строк
+        dup_idx = df.index[violations_mask].tolist()[:20]
+        sample = [f"строка {i + 2}" for i in dup_idx]
 
     return {
         "check_id": check_id,
         "sheet": sheet_name,
         "name": rule.get("name", ""),
+        "column_on_sheet": col_name,
         "type": "unique",
         "total_rows": total,
         "violations": n_violations,
@@ -226,6 +341,7 @@ def collect_field_length_result(
     sheet_name = rule.get("sheet")
     result_column = rule.get("result_column") or "FIELD_LENGTH_CHECK"
     output = rule.get("output") or {}
+    col_out = output.get("column_on_sheet") or result_column
     check_id = rule.get("id", "")
 
     df = _get_sheet_df(sheets_data, sheet_name)
@@ -234,6 +350,7 @@ def collect_field_length_result(
             "check_id": check_id,
             "sheet": sheet_name,
             "name": rule.get("name", ""),
+            "column_on_sheet": col_out,
             "type": "field_length",
             "total_rows": 0,
             "violations": 0,
@@ -253,6 +370,7 @@ def collect_field_length_result(
         "check_id": check_id,
         "sheet": sheet_name,
         "name": rule.get("name", ""),
+        "column_on_sheet": col_out,
         "type": "field_length",
         "total_rows": total,
         "violations": n_violations,
@@ -267,12 +385,19 @@ def run_all_consistency_checks(
 ) -> List[Dict[str, Any]]:
     """
     Выполняет все включённые правила консистентности.
-    Для referential и referential_composite — выполняет проверку и пишет колонки.
-    Для unique и field_length — только собирает данные из уже заполненных колонок.
+    Сначала создаёт колонки unique (ДУБЛЬ: …) на листах, затем referential/referential_composite,
+    затем собирает результаты unique и field_length для сводки.
     Возвращает список записей для сводного листа (каждая запись — результат одной проверки).
     """
     rules = config.get("rules") or []
     enabled = [r for r in rules if r.get("enabled", True)]
+    # Фаза 1: создаём колонки unique и field_length на листах (замена check_duplicates и field_length_validations)
+    for rule in enabled:
+        if rule.get("type") == "unique":
+            _run_unique_check(sheets_data, rule)
+        elif rule.get("type") == "field_length":
+            _run_field_length_check(sheets_data, rule)
+    # Фаза 2: выполняем проверки и собираем результаты
     results: List[Dict[str, Any]] = []
 
     for rule in enabled:
@@ -293,10 +418,12 @@ def run_all_consistency_checks(
             results.append(res)
         except Exception as e:
             logging.error(f"[consistency] Ошибка при выполнении правила {check_id} ({rule_type}): {e}")
+            _out = rule.get("output") or {}
             results.append({
                 "check_id": check_id,
                 "sheet": rule.get("sheet_src") or rule.get("sheet", ""),
                 "name": rule.get("name", ""),
+                "column_on_sheet": _out.get("column_on_sheet", ""),
                 "type": rule_type,
                 "total_rows": 0,
                 "violations": 0,
@@ -312,7 +439,7 @@ def build_consistency_summary_df(results: List[Dict[str, Any]]) -> pd.DataFrame:
     """Формирует DataFrame для сводного листа CONSISTENCY."""
     if not results:
         return pd.DataFrame(columns=[
-            "check_id", "sheet", "name", "type", "total_rows", "violations", "sample"
+            "check_id", "sheet", "name", "имя_колонки", "type", "total_rows", "violations", "sample"
         ])
 
     rows = []
@@ -327,6 +454,7 @@ def build_consistency_summary_df(results: List[Dict[str, Any]]) -> pd.DataFrame:
             "check_id": r.get("check_id", ""),
             "sheet": r.get("sheet", ""),
             "name": r.get("name", ""),
+            "имя_колонки": r.get("column_on_sheet", ""),
             "type": r.get("type", ""),
             "total_rows": r.get("total_rows", 0),
             "violations": r.get("violations", 0),
