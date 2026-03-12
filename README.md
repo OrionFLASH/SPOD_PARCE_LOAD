@@ -82,9 +82,9 @@ SPOD_PROM/
 | **file_loader.py** | Поиск и загрузка CSV, разворот JSON по конфигу | Класс `FileLoader(config)`: `find_file_case_insensitive(directory, base_name, extensions)`, `check_input_files_exist()`, `read_csv_file(file_path)`, `process_single_file(file_conf)` — возвращает `(df, sheet_name, file_conf)` или `(None, sheet_name, None)`. |
 | **tournament.py** | Расчёт статуса турнира по датам | `calculate_tournament_status(config, df_tournament, df_report=None)` — добавляет колонку `CALC_TOURNAMENT_STATUS` по правилам из `config.tournament_status_choices`. |
 | **validation.py** | Валидация длины полей и проверка дубликатов (устаревшие пути) | `validate_field_lengths(config, df, sheet_name)`, `validate_field_lengths_vectorized(config, df, sheet_name)`, `compare_validate_results`, `mark_duplicates`, `validate_single_sheet`, `check_duplicates_single_sheet`. Основной пайплайн больше не использует отдельные шаги проверки дубликатов и длины полей — всё выполняется в **consistency_checks**. |
-| **consistency_checks.py** | Проверки консистентности (единая точка для unique и field_length) | Выполняет правила из `consistency_checks.rules`: **Фаза 1** — создаёт на листах колонки `unique` («ДУБЛЬ: …») и `field_length` (FIELD_LENGTH_CHECK и т.д.) по полям правил; **Фаза 2** — выполняет `referential`, `referential_composite` и собирает результаты unique/field_length в свод. Функции: `_run_unique_check`, `_run_field_length_check`, `run_referential`, `run_referential_composite`, `collect_unique_result`, `collect_field_length_result`, `run_all_consistency_checks`, `build_consistency_summary_df`, `log_and_console_consistency_report`, `run_consistency_checks_and_attach_summary`. Результаты — колонки на листах, сводный лист CONSISTENCY, лог и консоль. Секции config `check_duplicates` и `field_length_validations` удалены; все правила задаются в `consistency_checks.rules`. |
+| **consistency_checks.py** | Проверки консистентности (единая точка для unique и field_length) | Выполняет правила из `consistency_checks.rules` **с параллелизацией** (ThreadPoolExecutor, число потоков из `max_workers` при вызове). **Фаза 1** — создаёт на листах колонки `unique` («ДУБЛЬ: …») и `field_length`; **Фаза 2** — referential/referential_composite и сбор результатов; запись в один лист защищена блокировкой по листу. Функции: `_run_unique_check`, `_run_field_length_check`, `run_referential`, `run_referential_composite`, `collect_*`, `run_all_consistency_checks`, `run_consistency_checks_and_attach_summary`. Результаты — колонки на листах, свод CONSISTENCY, лог и консоль. |
 | **gender.py** | Определение пола по отчеству, имени, фамилии | `add_auto_gender_column(config, df, sheet_name)`, `add_auto_gender_column_vectorized(config, df, sheet_name)`, `compare_gender_results(df_old, df_new)`. Внутри используются паттерны из `config.gender_patterns`. |
-| **main_impl.py** | Полный пайплайн обработки | При импорте вызывается `_load_config_globals()`. Функция `main()`: параллельная загрузка CSV и разворот JSON → выгрузка сырых данных в «SPOD_PROM source …» → проверка наличия файлов → добавление AUTO_GENDER (EMPLOYEE) → расчёт статуса турнира → merge (кроме SUMMARY) → **проверки консистентности** (модуль `consistency_checks`: создание колонок unique и field_length, referential/referential_composite, свод CONSISTENCY) → формирование SUMMARY → лист STAT_FILE → запись основного Excel → итоговый отчёт по отклонениям длины полей (из правил consistency) и расхождениям по числу полей в CSV. Отдельных шагов «проверка дубликатов» и «валидация длины полей» нет — всё в рамках consistency_checks. |
+| **main_impl.py** | Полный пайплайн обработки | При импорте вызывается `_load_config_globals()`. Функция `main()`: параллельная загрузка CSV и разворот JSON → выгрузка сырых данных в «SPOD_PROM source …» → проверка наличия файлов → добавление AUTO_GENDER (EMPLOYEE) → расчёт статуса турнира → merge (кроме SUMMARY) → **проверки консистентности** (модуль `consistency_checks`, параллельно с `MAX_WORKERS`: создание колонок unique и field_length, referential/referential_composite, свод CONSISTENCY) → формирование SUMMARY → лист STAT_FILE → запись основного Excel → итоговый отчёт по отклонениям длины полей и расхождениям CSV. Отдельных шагов «проверка дубликатов» и «валидация длины полей» нет — всё в рамках consistency_checks. |
 
 **Запуск:** из корня проекта выполняется `python main.py`. При этом создаётся `Config()` (путь к config.json — корень проекта), конфиг передаётся в `set_current_config(config)`, затем вызывается `main_impl.main()`. В начале `main_impl.main()` снова вызывается `_load_config_globals()`, поэтому все глобальные переменные в main_impl берутся из внедрённого конфига.
 
@@ -200,7 +200,7 @@ SPOD_PROM/
 }
 ```
 
-**Логика:** чтение файлов и разворот JSON идут в пуле с `max_workers_io`. Проверки консистентности (в т.ч. unique и field_length) выполняются в основном потоке после merge. Слишком большие значения могут замедлить из-за накладных расходов.
+**Логика:** чтение файлов и разворот JSON идут в пуле с `max_workers_io`. Проверки консистентности выполняются **параллельно** в пуле с `max_workers_cpu` потоков (блокировка по листу при записи). Слишком большие значения могут замедлить из-за накладных расходов.
 
 ---
 
@@ -728,7 +728,7 @@ main_impl.main()                     # Запуск пайплайна
 
 ##### 3.2. Проверки консистентности (consistency_checks)
 
-После merge выполняется модуль **consistency_checks**: создаются колонки «ДУБЛЬ: …» (unique) и проверки длины полей (field_length) на листах, выполняются referential/referential_composite, результаты собираются в сводный лист CONSISTENCY и выводятся в лог и консоль. Правила задаются в **config.json** в секции `consistency_checks.rules` (типы `unique`, `field_length`, `referential`, `referential_composite`). Секции `check_duplicates` и `field_length_validations` в config больше не используются.
+После merge выполняется модуль **consistency_checks** (с параллелизацией: пул потоков, блокировка по листу при записи). Создаются колонки «ДУБЛЬ: …» (unique) и проверки длины полей (field_length) на листах, выполняются referential/referential_composite, результаты собираются в сводный лист CONSISTENCY и выводятся в лог и консоль. Число потоков задаётся из `performance.max_workers_cpu` (передаётся в вызов как `max_workers`). Правила задаются в **config.json** в секции `consistency_checks.rules` (типы `unique`, `field_length`, `referential`, `referential_composite`). Секции `check_duplicates` и `field_length_validations` в config больше не используются.
 
 ##### 3.3. Обработка JSON полей
 
@@ -1169,6 +1169,8 @@ python app.py
 - **config_loader.py**: атрибуты **`check_duplicates`** и **`field_length_validations`** оставлены для совместимости (пустой список и пустой dict при отсутствии в config), чтобы код в validation.py не падал при обращении к ним.
 
 **Итог:** один конфиг правил (`consistency_checks.rules`), один модуль выполнения (consistency_checks), один порядок шагов; дублирование конфигурации и логики убрано.
+
+**Параллелизация проверок консистентности (дополнение к v1.4):** фазы 1 и 2 в `run_all_consistency_checks` выполняются в **ThreadPoolExecutor** (число потоков из `max_workers`, по умолчанию из `performance.max_workers_cpu`). Запись в один и тот же лист защищена блокировкой по имени листа (`threading.Lock`), чтобы правила, пишущие в разные листы, шли параллельно без гонок. В лог (DEBUG) выводится сообщение о числе потоков и правил.
 
 ---
 

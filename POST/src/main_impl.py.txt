@@ -1,12 +1,13 @@
 # === ИМПОРТЫ БИБЛИОТЕК ===
 import os          # Для работы с операционной системой и путями
 import sys         # Для системных функций и аргументов командной строки
-from typing import Optional, List, Dict, Any  # Для аннотаций типов
+from typing import Optional, List, Dict, Any, Tuple  # Для аннотаций типов
 import pandas as pd  # Для работы с данными в табличном формате
 import logging     # Для логирования процессов
 from datetime import datetime  # Для работы с датами и временем
 from openpyxl.utils import get_column_letter  # Для получения буквенного обозначения колонок Excel
 from openpyxl.styles import Alignment, Font, PatternFill  # Для стилизации ячеек Excel
+from openpyxl import load_workbook  # Для применения параметров листов к уже записанному файлу (source)
 from time import time  # Для измерения времени выполнения операций
 import json        # Для работы с JSON данными
 import re          # Для работы с регулярными выражениями
@@ -16,6 +17,8 @@ import inspect  # Для получения информации о вызыва
 from concurrent.futures import ThreadPoolExecutor, as_completed  # Для параллельной обработки
 from itertools import product
 import threading  # Для синхронизации потоков
+
+from src.consistency_checks import run_consistency_checks_and_attach_summary  # Проверки консистентности (отдельный модуль)
 import warnings   # Для подавления UserWarning при парсинге дат без формата
 
 # === ОПТИМИЗАЦИИ ПРОИЗВОДИТЕЛЬНОСТИ ===
@@ -154,8 +157,9 @@ def _load_config_globals():
     global SUMMARY_SHEET, SHEET_ORDER, SUMMARY_KEY_DEFS, SUMMARY_KEY_COLUMNS
     global GENDER_PATTERNS, GENDER_PROGRESS_STEP, FIELD_LENGTH_VALIDATIONS
     global COL_REWARD_LINK_CONTEST_CODE, MERGE_FIELDS_ADVANCED, COLOR_SCHEME
-    global COLUMN_FORMATS, CHECK_DUPLICATES, JSON_COLUMNS
+    global COLUMN_FORMATS, CONSISTENCY_CHECKS, JSON_COLUMNS
     global MAX_WORKERS_IO, MAX_WORKERS_CPU, MAX_WORKERS, TOURNAMENT_STATUS_CHOICES
+    global SOURCE_EXPORT_SORT
 
     try:
         from src.config_holder import get_current_config
@@ -179,8 +183,9 @@ def _load_config_globals():
             MERGE_FIELDS_ADVANCED = _c.merge_fields_advanced
             COLOR_SCHEME = _c.color_scheme
             COLUMN_FORMATS = _c.column_formats
-            CHECK_DUPLICATES = _c.check_duplicates
+            CONSISTENCY_CHECKS = getattr(_c, "consistency_checks", None) or {"summary_sheet_name": "CONSISTENCY", "rules": []}
             JSON_COLUMNS = _c.json_columns
+            SOURCE_EXPORT_SORT = getattr(_c, "source_export_sort", []) or []
             MAX_WORKERS_IO = _c.max_workers_io
             MAX_WORKERS_CPU = _c.max_workers_cpu
             MAX_WORKERS = _c.max_workers_cpu
@@ -216,8 +221,13 @@ def _load_config_globals():
     MERGE_FIELDS_ADVANCED = _cfg["merge_fields_advanced"]
     COLOR_SCHEME = _cfg.get("color_scheme") or []
     COLUMN_FORMATS = _cfg.get("column_formats") or []
-    CHECK_DUPLICATES = _cfg.get("check_duplicates") or []
+    _cc = _cfg.get("consistency_checks") or {}
+    CONSISTENCY_CHECKS = {
+        "summary_sheet_name": _cc.get("summary_sheet_name", "CONSISTENCY"),
+        "rules": _cc.get("rules") or [],
+    }
     JSON_COLUMNS = _cfg.get("json_columns") or {}
+    SOURCE_EXPORT_SORT = (_cfg.get("source_export") or {}).get("sort_rules") or []
     MAX_WORKERS_IO = _cfg["performance"]["max_workers_io"]
     MAX_WORKERS_CPU = _cfg["performance"]["max_workers_cpu"]
     MAX_WORKERS = MAX_WORKERS_CPU
@@ -762,19 +772,22 @@ def check_input_files_exist() -> List[Dict[str, str]]:
     return missing
 
 
-def read_csv_file(file_path: str) -> Optional[pd.DataFrame]:
+def read_csv_file(file_path: str) -> Optional[Tuple[pd.DataFrame, List[Dict[str, Any]]]]:
     """
     Читает CSV файл с заданными параметрами и логирует процесс.
     
     Функция настроена для работы с CSV файлами, использующими точку с запятой как разделитель.
     Все данные читаются как строки для сохранения точности, особенно для JSON полей.
     Сохраняет тройные кавычки в неизменном виде.
+    Строки с числом полей, отличным от заголовка, нормализуются (дополняются/обрезаются),
+    при этом фиксируются расхождения для итогового отчёта.
     
     Args:
         file_path (str): Путь к CSV файлу для чтения
         
     Returns:
-        pd.DataFrame or None: DataFrame с данными или None при ошибке
+        (pd.DataFrame, list) или None при ошибке. Список — записи о расхождениях по числу полей
+        в строке: [{"row_index", "expected_cols", "actual_cols", "direction": "больше"|"меньше"}, ...].
     """
     func_start = time()  # Засекаем время начала выполнения
     params = f"({file_path})"
@@ -783,43 +796,156 @@ def read_csv_file(file_path: str) -> Optional[pd.DataFrame]:
     try:
         rows = []
         headers = None
-        
+        issues: List[Dict[str, Any]] = []
+
         with open(file_path, 'r', encoding='utf-8', newline='') as file:
-            # Используем csv.reader с настройками для сохранения кавычек
             csv_reader = csv.reader(file, delimiter=';', quoting=csv.QUOTE_NONE)
-            
+
             for i, row in enumerate(csv_reader):
                 if i == 0:
                     headers = row
                 else:
+                    n = len(headers)
+                    actual = len(row)
+                    if actual < n:
+                        row = list(row) + [""] * (n - actual)
+                        issues.append({"row_index": i + 1, "expected_cols": n, "actual_cols": actual, "direction": "меньше"})
+                    elif actual > n:
+                        row = row[:n]
+                        issues.append({"row_index": i + 1, "expected_cols": n, "actual_cols": actual, "direction": "больше"})
                     rows.append(row)
-        
-        # Создаем DataFrame из прочитанных данных
+
         df = pd.DataFrame(rows, columns=headers)
-        
-        # Убеждаемся, что все данные - строки
+
         for col in df.columns:
             df[col] = df[col].astype(str)
-        
-        # Логируем образцы JSON полей для отладки
+
         for col in df.columns:
             if "FEATURE" in col or "ADD_DATA" in col:
                 logging.debug(f"[DEBUG] CSV {file_path} поле {col}: {df[col].dropna().head(2).to_list()}")
-        
-        # Логируем успешное чтение файла
+
+        if issues:
+            logging.warning(f"[CSV] Расхождение по числу полей: {file_path}, строк с расхождением: {len(issues)}")
         logging.info(f"Файл успешно загружен: {file_path}, строк: {len(df)}, колонок: {len(df.columns)}")
-        
-        # Засекаем время выполнения и логируем завершение
+
         func_time = time() - func_start
-        return df
-        
+        return (df, issues)
+
     except Exception as e:
-        # Логируем ошибку и возвращаем None
         func_time = time() - func_start
         logging.error(f"Ошибка загрузки файла: {file_path}. {e}")
         logging.error(f"[ERROR] read_csv_file {params} — {e}")
         logging.info(f"[END] read_csv_file {params} (время: {func_time:.3f}s)")
         return None
+
+
+def write_source_excel(
+    raw_sheets_data: Dict[str, Any],
+    output_dir: str,
+    sort_rules: Optional[List[Dict[str, Any]]] = None,
+) -> str:
+    """
+    Записывает отдельный Excel-файл с сырыми данными (без доп. колонок и проверок).
+    Имя файла: SPOD_PROM source YYYY-MM-DD_HH-MM-SS.xlsx.
+    Для отсутствующих файлов создаются пустые листы. Перед записью к листам можно применить
+    сортировку по правилам из конфига (source_export.sort_rules).
+
+    Args:
+        raw_sheets_data: словарь {sheet_name: (df, params)} — данные сразу после загрузки CSV
+        output_dir: каталог для сохранения файла
+        sort_rules: список правил сортировки [{"sheet": "...", "columns": [{"column": "A", "order": "asc"}, ...]}, ...]
+
+    Returns:
+        str: полный путь к записанному файлу
+    """
+    if sort_rules is None:
+        sort_rules = []
+    # Дополняем сырые данные пустыми листами только для тех, кого включаем в source (include_in_source != false)
+    for file_conf in INPUT_FILES:
+        if not file_conf.get("include_in_source", True):
+            continue
+        sheet_name = file_conf.get("sheet")
+        if not sheet_name:
+            continue
+        if sheet_name not in raw_sheets_data:
+            raw_sheets_data[sheet_name] = (pd.DataFrame(), file_conf)
+
+    # Сортировка по правилам: для каждого листа из sort_rules применяем sort_values
+    sort_by_sheet = {r["sheet"]: r.get("columns") or [] for r in sort_rules if r.get("sheet")}
+    for sheet_name, cols_conf in sort_by_sheet.items():
+        if sheet_name not in raw_sheets_data:
+            continue
+        df, params = raw_sheets_data[sheet_name]
+        if df is None or not isinstance(df, pd.DataFrame) or len(cols_conf) == 0:
+            continue
+        by_cols = []
+        ascending_list = []
+        for c in cols_conf:
+            col_name = c.get("column") if isinstance(c, dict) else c
+            order = (c.get("order", "asc") or "asc").lower() if isinstance(c, dict) else "asc"
+            if col_name and col_name in df.columns:
+                by_cols.append(col_name)
+                ascending_list.append(order != "desc")
+        if by_cols:
+            try:
+                df_sorted = df.sort_values(by=by_cols, ascending=ascending_list)
+                raw_sheets_data[sheet_name] = (df_sorted, params)
+            except Exception as e:
+                logging.warning(f"[source_export] Сортировка листа {sheet_name} пропущена: {e}")
+
+    # Порядок листов: по SHEET_ORDER, затем остальные по алфавиту
+    if SHEET_ORDER:
+        ordered_sheets = [s for s in SHEET_ORDER if s in raw_sheets_data]
+        remaining = sorted([s for s in raw_sheets_data if s not in SHEET_ORDER])
+        ordered_sheets = ordered_sheets + remaining
+    else:
+        ordered_sheets = sorted(raw_sheets_data.keys())
+
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    filename = f"SPOD_PROM source {timestamp}.xlsx"
+    output_path = os.path.join(output_dir, filename)
+    os.makedirs(output_dir, exist_ok=True)
+
+    with pd.ExcelWriter(output_path, engine="openpyxl") as writer:
+        for sheet_name in ordered_sheets:
+            df, _ = raw_sheets_data[sheet_name]
+            if df is None:
+                pd.DataFrame().to_excel(writer, index=False, sheet_name=sheet_name)
+            else:
+                df.to_excel(writer, index=False, sheet_name=sheet_name)
+
+    # Параметры отображения для каждого листа source-файла — свои из конфига (input_files для этого листа)
+    try:
+        wb = load_workbook(output_path)
+        for ws in wb.worksheets:
+            sheet_name = ws.title
+            params = {}
+            if sheet_name in raw_sheets_data and len(raw_sheets_data[sheet_name]) >= 2:
+                file_conf = raw_sheets_data[sheet_name][1]
+                if isinstance(file_conf, dict):
+                    params = {
+                        "max_col_width": file_conf.get("max_col_width", 60),
+                        "freeze": file_conf.get("freeze", "A2"),
+                        "col_width_mode": file_conf.get("col_width_mode", "AUTO"),
+                        "min_col_width": file_conf.get("min_col_width", 10),
+                    }
+            if not params:
+                params = {"max_col_width": 60, "freeze": "A2", "col_width_mode": "AUTO", "min_col_width": 10}
+            header_cells = list(ws[1])
+            for col_num, cell in enumerate(header_cells, 1):
+                col_letter = get_column_letter(col_num)
+                width = calculate_column_width(cell.value, ws, params, col_num)
+                ws.column_dimensions[col_letter].width = width
+            ws.freeze_panes = params.get("freeze", "A2")
+            # Автофильтр по умолчанию на всех листах source
+            if ws.dimensions:
+                ws.auto_filter.ref = ws.dimensions
+        wb.save(output_path)
+    except Exception as e:
+        logging.warning(f"[source_export] Не удалось применить параметры листов к {output_path}: {e}")
+
+    logging.info(f"Выгрузка сырых данных записана: {output_path}")
+    return output_path
 
 
 def write_to_excel(sheets_data: Dict[str, Any], output_path: str) -> None:
@@ -950,6 +1076,10 @@ def write_to_excel(sheets_data: Dict[str, Any], output_path: str) -> None:
 def calculate_column_width(col_name, ws, params, col_num):
     """
     Вычисляет ширину колонки на основе параметров и содержимого.
+
+    - col_width_mode == "AUTO": ширина по содержимому в пределах [min_col_width, max_col_width].
+    - col_width_mode == число (или строка-число): фиксированная ширина, min/max не используются.
+    - Иначе: ширина по содержимому, ограниченная min/max.
     """
     # Получаем параметры для конкретной колонки (если добавлена через merge — MERGE_FIELDS_ADVANCED)
     added_cols_width = params.get("added_columns_width", {})
@@ -957,26 +1087,34 @@ def calculate_column_width(col_name, ws, params, col_num):
         col_params = added_cols_width[col_name]
         max_width = col_params.get("max_width") or params.get("max_col_width", 30)
         width_mode = col_params.get("width_mode", "AUTO")
-        min_width = col_params.get("min_width", 8)
+        min_width = col_params.get("min_width") or params.get("min_col_width", 8)
     else:
-        # Общие параметры для листа
+        # Общие параметры для листа (из input_files, summary_sheet, stat_file_params и т.д.)
         max_width = params.get("max_col_width", 30)
         width_mode = params.get("col_width_mode", "AUTO")
         min_width = params.get("min_col_width", 8)
+
+    # Фиксированная ширина: число (в т.ч. если в JSON пришло строкой "50")
+    try:
+        if isinstance(width_mode, (int, float)):
+            return max(1, int(width_mode))
+        if isinstance(width_mode, str) and width_mode.strip() and width_mode.strip().upper() != "AUTO":
+            fixed = float(width_mode.strip())
+            if fixed > 0:
+                return max(1, int(fixed))
+    except (ValueError, TypeError):
+        pass
 
     # Вычисляем ширину на основе содержимого
     col_letter = get_column_letter(col_num)
     content_width = max([len(str(cell.value)) for cell in ws[col_letter] if cell.value] + [min_width])
 
-    if width_mode == "AUTO":
-        # Автоматическое растягивание по содержимому, но не более максимальной ширины
+    if width_mode == "AUTO" or (isinstance(width_mode, str) and str(width_mode).strip().upper() == "AUTO"):
+        # Автоматически: уместить между min и max
         final_width = min(content_width, max_width)
         final_width = max(final_width, min_width)
-    elif isinstance(width_mode, (int, float)):
-        # Фиксированная ширина
-        final_width = width_mode
     else:
-        # Без растягивания - просто не более максимальной
+        # Резерв: ограничить содержимое min/max
         final_width = min(content_width, max_width)
         final_width = max(final_width, min_width)
 
@@ -986,30 +1124,30 @@ def calculate_column_width(col_name, ws, params, col_num):
 def _build_excel_number_format(rule):
     """
     Строит строку формата Excel для числовых ячеек по правилу COLUMN_FORMATS.
-    Для 0 знаков после запятой формат без дробной части, чтобы отображались целые (1, 4, а не 1,0).
+    В коде формата Excel точка (.) — всегда десятичный разделитель; запятая (,) — разделитель разрядов.
+    Строка "#.##0" даёт дробную часть (0 отображается как ",0"). Для целых без дробной части
+    используем только "#,##0" или "0" (без точки в коде формата).
 
     Args:
         rule (dict): Элемент из COLUMN_FORMATS с data_type="number"
 
     Returns:
-        str: Строка формата для cell.number_format (напр. "#,##0" или "#.##0,00")
+        str: Строка формата для cell.number_format (напр. "#,##0" для целых, "#,##0.00" для дробных)
     """
     decimal_places = int(rule.get("decimal_places", 0))
     decimal_sep = rule.get("decimal_separator", ",")
     thousands = rule.get("thousands_separator", True)
-    # Европейский стиль: запятая — дробная часть, точка — разряды
-    # Для 0 знаков после запятой — формат без дробной части; явно "0" или "#.##0" без десятичной части,
-    # иначе Excel в части локалей может показывать 1,0 вместо 1
+    # Целое число (0 знаков после запятой): в коде формата НЕ должно быть точки (.) — иначе Excel
+    # интерпретирует её как десятичный разделитель и показывает ",0". Стандарт: "#,##0" или "0".
     if decimal_places == 0:
-        if decimal_sep == ",":
-            return "#.##0" if thousands else "0"
         return "#,##0" if thousands else "0"
+    # Дробная часть: в Excel в коде формата десятичный разделитель — точка
     if decimal_sep == ",":
-        int_part = "#.##0" if thousands else "0"
-        dec_part = "," + "0" * decimal_places
-    else:
-        int_part = "#,##0" if thousands else "0"
+        # Отображение с запятой как десятичным разделителем задаётся локалью Excel; в коде оставляем точку
         dec_part = "." + "0" * decimal_places
+    else:
+        dec_part = "." + "0" * decimal_places
+    int_part = "#,##0" if thousands else "0"
     return int_part + dec_part
 
 
@@ -1058,7 +1196,12 @@ def apply_column_format_conversion(df: pd.DataFrame, sheet_name: str) -> None:
     for rule in COLUMN_FORMATS:
         if rule.get("sheet") != sheet_name:
             continue
-        cols = rule.get("columns") or []
+        # Режим: либо список колонок для применения формата (columns), либо все кроме указанных (except_columns)
+        except_cols = rule.get("except_columns") or []
+        if except_cols:
+            cols = [c for c in df.columns if (c or "").strip() not in {(x or "").strip() for x in except_cols}]
+        else:
+            cols = rule.get("columns") or []
         dtype = (rule.get("data_type") or "general").lower()
         for col in cols:
             if col not in df.columns:
@@ -1074,13 +1217,25 @@ def apply_column_format_conversion(df: pd.DataFrame, sheet_name: str) -> None:
                 else:
                     df[col] = ser
             elif dtype == "date":
+                raw_ser = df[col].astype(str).str.strip()
                 pd_fmt = _config_date_format_to_pandas(rule.get("date_format"))
-                if pd_fmt:
-                    df[col] = pd.to_datetime(df[col], format=pd_fmt, errors="coerce")
-                else:
-                    with warnings.catch_warnings():
-                        warnings.simplefilter("ignore", UserWarning)
-                        df[col] = pd.to_datetime(df[col], errors="coerce")
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore", UserWarning)
+                    if pd_fmt:
+                        parsed = pd.to_datetime(df[col], format=pd_fmt, errors="coerce")
+                    else:
+                        parsed = pd.to_datetime(df[col], errors="coerce")
+                # Где не удалось распознать дату (NaT) — пробуем гибкий разбор без формата (в т.ч. 4000-01-01 и др.)
+                nat_mask = parsed.isna()
+                if nat_mask.any():
+                    second = pd.to_datetime(df[col].loc[nat_mask], errors="coerce")
+                    parsed = parsed.fillna(second)
+                # Всё ещё NaT — оставляем исходное значение как текст (формат по умолчанию для колонки)
+                still_nat = parsed.isna()
+                if still_nat.any():
+                    parsed = parsed.astype(object)
+                    parsed.loc[still_nat] = raw_ser.loc[still_nat].values
+                df[col] = parsed
             elif dtype == "text":
                 df[col] = df[col].astype(str)
 
@@ -1104,7 +1259,13 @@ def apply_column_formats(ws: Any, sheet_name: str) -> None:
         return
 
     for rule in rules_for_sheet:
-        cols = rule.get("columns") or []
+        # Режим: либо список колонок (columns), либо все колонки листа кроме указанных (except_columns)
+        except_cols = rule.get("except_columns") or []
+        if except_cols:
+            except_set = {(x or "").strip() for x in except_cols}
+            cols = [c for c in col_names_stripped if c not in except_set]
+        else:
+            cols = rule.get("columns") or []
         data_type = (rule.get("data_type") or "general").lower()
         # Строка формата Excel
         if data_type == "number":
@@ -1460,6 +1621,10 @@ def flatten_json_column_recursive(df, column, prefix=None, sheet=None, sep="; ")
 # ОПТИМИЗАЦИЯ v5.0: Кэш для цветовых схем (избегаем повторной генерации)
 _color_scheme_cache = None
 _color_scheme_cache_key = None
+
+# Расхождения по числу полей в CSV (строка с большим/меньшим числом колонок, чем заголовок)
+_csv_column_mismatches: List[Dict[str, Any]] = []
+_csv_mismatches_lock = threading.Lock()
 
 def generate_dynamic_color_scheme_from_merge_fields():
     """
@@ -1965,36 +2130,6 @@ def collect_summary_keys_optimized(dfs):
     
     return result
 
-
-
-def mark_duplicates(df, key_cols, sheet_name=None):
-
-    # ОПТИМИЗАЦИЯ v5.0: Проверка на None
-    if df is None:
-        logging.warning(f"[mark_duplicates] DataFrame для листа {sheet_name} равен None, пропускаем проверку дублей")
-        return df
-    """
-    Добавляет колонку с пометкой о дублях по key_cols.
-    Если строк по ключу больше одной — пишем xN, иначе пусто.
-    """
-    params = {"sheet": sheet_name, "keys": key_cols}
-    func_start = tmod.time()
-    col_name = "ДУБЛЬ: " + "_".join(key_cols)  # Имя колонки формируется из ключей
-    
-
-    logging.info(f"[START] Проверка дублей: {sheet_name}, ключ: {key_cols}")
-    try:
-        dup_counts = df.groupby(key_cols)[key_cols[0]].transform('count')
-        df[col_name] = dup_counts.map(lambda x: f"x{x}" if x > 1 else "")
-        n_duplicates = (df[col_name] != "").sum()
-        func_time = tmod.time() - func_start
-        logging.info(f"[INFO] Дублей найдено: {n_duplicates} на листе {sheet_name} по ключу {key_cols}")
-        logging.info(f"[END] Проверка дублей: {sheet_name}, время: {func_time:.3f}s")
-    except Exception as ex:
-        func_time = tmod.time() - func_start
-        logging.error(f"[ERROR] Ошибка при поиске дублей: {sheet_name}, ключ: {key_cols}: {ex}")
-        logging.info(f"[END] Проверка дублей: {sheet_name}, время: {func_time:.3f}s")
-    return df
 
 
 def add_fields_to_sheet(df_base, df_ref, src_keys, dst_keys, columns, sheet_name, ref_sheet_name, mode="value",
@@ -3353,16 +3488,27 @@ def process_single_file(file_conf):
         if file_path is None:
             th = threading.current_thread().name
             logging.error(f"Файл не найден: {file_conf['file']} в каталоге {DIR_INPUT} [поток: {th}]")
-            return None, sheet_name, None
+            return None, sheet_name, None, None
         
         th = threading.current_thread().name
         logging.info(f"Загрузка файла: {file_path} [поток: {th}]")
         
-        df = read_csv_file(file_path)
-        if df is None:
+        result = read_csv_file(file_path)
+        if result is None:
             logging.error(f"Ошибка чтения файла: {file_path} [поток: {th}]")
-            return None, sheet_name, None
-        
+            return None, sheet_name, None, None
+        df, csv_issues = result
+        # Копия ровно того, что в CSV (без разворота JSON и без доп. полей) — для выгрузки source
+        df_raw_for_source = df.copy()
+        if csv_issues:
+            with _csv_mismatches_lock:
+                for rec in csv_issues:
+                    _csv_column_mismatches.append({
+                        **rec,
+                        "sheet": sheet_name,
+                        "file": file_conf.get("file", ""),
+                    })
+
         # Разворачиваем только нужные JSON-поля по строгому списку
         json_columns = JSON_COLUMNS.get(sheet_name, [])
         for json_conf in json_columns:
@@ -3379,13 +3525,13 @@ def process_single_file(file_conf):
 
         logging.info(f"Файл успешно обработан: {sheet_name}, строк: {len(df)} [поток: {th}]")
         
-        return df, sheet_name, file_conf
+        return df, sheet_name, file_conf, df_raw_for_source
         
     except Exception as e:
         logging.error(
             f"Ошибка обработки файла {file_conf.get('file', 'unknown')}: {e} [поток: {threading.current_thread().name}]"
         )
-        return None, sheet_name, None
+        return None, sheet_name, None, None
 
 
 def validate_single_sheet(sheet_name, sheets_data_item):
@@ -3402,14 +3548,14 @@ def validate_single_sheet(sheet_name, sheets_data_item):
     """
     # ОПТИМИЗАЦИЯ v5.0: Проверка на None
     if sheets_data_item is None:
-        logging.warning(f"[check_duplicates_single_sheet] Данные для листа {sheet_name} равны None, пропускаем")
+        logging.warning(f"[validate_single_sheet] Данные для листа {sheet_name} равны None, пропускаем")
         return sheet_name, sheets_data_item
     
     try:
         df, conf = sheets_data_item
         # Дополнительная проверка на None
         if df is None or conf is None:
-            logging.warning(f"[check_duplicates_single_sheet] DataFrame или конфигурация для листа {sheet_name} равны None, пропускаем")
+            logging.warning(f"[validate_single_sheet] DataFrame или конфигурация для листа {sheet_name} равны None, пропускаем")
             return sheet_name, sheets_data_item
         # ОПТИМИЗАЦИЯ: Используем векторизованную версию с проверкой результатов
         df_old = df.copy()
@@ -3441,117 +3587,25 @@ def validate_single_sheet(sheet_name, sheets_data_item):
         return sheet_name, sheets_data_item
 
 
-def check_duplicates_single_sheet(sheet_name, sheets_data_item):
-    """
-    Проверяет дубликаты для одного листа.
-    Используется для параллельной проверки дубликатов.
-    
-    Args:
-        sheet_name (str): Имя листа для проверки
-        sheets_data_item (tuple): (df, conf) - данные листа и конфигурация
-        
-    Returns:
-        tuple: (sheet_name, (df, conf))
-    """
-    # ОПТИМИЗАЦИЯ v5.0: Проверка на None
-    if sheets_data_item is None:
-        logging.warning(f"[check_duplicates_single_sheet] Данные для листа {sheet_name} равны None, пропускаем")
-        return sheet_name, sheets_data_item
-    
-    try:
-        df, conf = sheets_data_item
-        # Дополнительная проверка на None
-        if df is None or conf is None:
-            logging.warning(f"[check_duplicates_single_sheet] DataFrame или конфигурация для листа {sheet_name} равны None, пропускаем")
-            return sheet_name, sheets_data_item
-        # Находим ВСЕ записи для этого листа (не только первую)
-        check_configs = [x for x in CHECK_DUPLICATES if x["sheet"] == sheet_name]
-        for check_cfg in check_configs:
-            df = mark_duplicates(df, check_cfg["key"], sheet_name=sheet_name)
-        
-        if check_configs:
-            logging.debug(f"Проверка дубликатов завершена: {sheet_name} [поток: {threading.current_thread().name}]")
-        
-        return sheet_name, (df, conf)
-    except Exception as e:
-        logging.error(
-            f"Ошибка проверки дубликатов для {sheet_name}: {e} [поток: {threading.current_thread().name}]"
-        )
-        # Возвращаем исходные данные при ошибке
-        return sheet_name, sheets_data_item
-
-
 def collect_duplicates_and_validation_report(sheets_data: Dict[str, Any]) -> tuple:
     """
-    Собирает сводный отчёт по дубликатам и отклонениям длины полей (field_length_validations)
-    по всем листам. Не прерывает работу — только накапливает данные для финального вывода.
+    Собирает сводный отчёт по отклонениям длины полей (из правил consistency_checks) и расхождениям по числу полей в CSV.
 
     Returns:
-        tuple: (duplicates_report, validation_report)
-            - duplicates_report: список dict с ключами sheet, key_cols, col_name, n_duplicate_rows, duplicate_key_values
+        tuple: (validation_report, csv_mismatch_report)
             - validation_report: список dict с ключами sheet, result_column, n_violations, sample_values
+            - csv_mismatch_report: список записей о строках CSV с числом полей != заголовку
     """
-    duplicates_report: List[Dict[str, Any]] = []
     validation_report: List[Dict[str, Any]] = []
 
-    # --- Дубликаты: ищем колонки "ДУБЛЬ: ..." и строки с непустым значением ---
-    for sheet_name, sheet_item in sheets_data.items():
-        if sheet_item is None:
+    # --- Отклонения по длине полей (из правил consistency_checks type=field_length) ---
+    _cc_rules = (CONSISTENCY_CHECKS or {}).get("rules") or []
+    for rule in _cc_rules:
+        if rule.get("type") != "field_length" or not rule.get("enabled", True):
             continue
-        try:
-            df, _ = sheet_item
-            if df is None or not isinstance(df, pd.DataFrame):
-                continue
-        except (TypeError, ValueError):
-            continue
-
-        for col in df.columns:
-            if not (isinstance(col, str) and col.startswith("ДУБЛЬ: ")):
-                continue
-            # Найти конфиг проверки: ключ, по которому построена эта колонка
-            key_cols: Optional[List[str]] = None
-            for check_cfg in CHECK_DUPLICATES:
-                if check_cfg.get("sheet") != sheet_name:
-                    continue
-                k = check_cfg.get("key")
-                if isinstance(k, list) and "ДУБЛЬ: " + "_".join(k) == col:
-                    key_cols = k
-                    break
-            if not key_cols:
-                continue
-
-            dup_mask = df[col].astype(str).str.strip() != ""
-            n_duplicate_rows = int(dup_mask.sum())
-            if n_duplicate_rows == 0:
-                continue
-
-            # Проверить наличие ключевых колонок
-            missing = [c for c in key_cols if c not in df.columns]
-            if missing:
-                logging.debug(f"[collect_report] Лист {sheet_name}, колонка {col}: отсутствуют ключи {missing}")
-                continue
-
-            # Группируем дубликаты по значениям ключа: (tuple(key_vals)) -> count
-            dup_df = df.loc[dup_mask, key_cols + [col]].copy()
-            dup_df["_key_tuple"] = list(zip(*(dup_df[k].astype(str).values for k in key_cols)))
-            key_counts = dup_df.groupby("_key_tuple", dropna=False).size()
-
-            duplicate_key_values = []
-            for key_tuple, count in key_counts.items():
-                key_vals = dict(zip(key_cols, key_tuple))
-                duplicate_key_values.append({"key_values": key_vals, "count": int(count)})
-
-            duplicates_report.append({
-                "sheet": sheet_name,
-                "key_cols": key_cols,
-                "col_name": col,
-                "n_duplicate_rows": n_duplicate_rows,
-                "duplicate_key_values": duplicate_key_values,
-            })
-
-    # --- Отклонения по длине полей (field_length_validations) ---
-    for sheet_name in (FIELD_LENGTH_VALIDATIONS or {}):
-        if sheet_name not in sheets_data:
+        sheet_name = rule.get("sheet")
+        result_column = rule.get("result_column") or "FIELD_LENGTH_CHECK"
+        if not sheet_name or sheet_name not in sheets_data:
             continue
         sheet_item = sheets_data[sheet_name]
         if sheet_item is None:
@@ -3562,19 +3616,12 @@ def collect_duplicates_and_validation_report(sheets_data: Dict[str, Any]) -> tup
                 continue
         except (TypeError, ValueError):
             continue
-
-        config = FIELD_LENGTH_VALIDATIONS.get(sheet_name)
-        if not config:
+        if result_column not in df.columns:
             continue
-        result_column = config.get("result_column")
-        if not result_column or result_column not in df.columns:
-            continue
-
         violations_mask = (df[result_column].astype(str).str.strip() != "") & (df[result_column].astype(str).str.strip() != "-")
         n_violations = int(violations_mask.sum())
         if n_violations == 0:
             continue
-
         sample_values = df.loc[violations_mask, result_column].drop_duplicates().head(20).tolist()
         validation_report.append({
             "sheet": sheet_name,
@@ -3583,7 +3630,8 @@ def collect_duplicates_and_validation_report(sheets_data: Dict[str, Any]) -> tup
             "sample_values": sample_values,
         })
 
-    return duplicates_report, validation_report
+    csv_mismatch_report = list(_csv_column_mismatches)
+    return validation_report, csv_mismatch_report
 
 
 def build_stat_file_sheet(
@@ -3636,34 +3684,22 @@ def build_stat_file_sheet(
     return pd.DataFrame(rows)
 
 
-def print_final_report(duplicates_report: List[Dict[str, Any]], validation_report: List[Dict[str, Any]]) -> None:
+def print_final_report(
+    validation_report: List[Dict[str, Any]],
+    csv_mismatch_report: Optional[List[Dict[str, Any]]] = None,
+) -> None:
     """
-    Выводит итоговый отчёт по дубликатам и отклонениям длины полей в лог и в консоль.
-    Вызывается в конце работы программы; не прерывает выполнение.
+    Выводит итоговый отчёт по отклонениям длины полей и расхождениям по числу полей в CSV.
+    Дубликаты отображаются в сводке консистентности (лист CONSISTENCY) и в логе проверок.
     """
+    if csv_mismatch_report is None:
+        csv_mismatch_report = []
     lines: List[str] = []
     lines.append("")
-    lines.append("========== ИТОГОВАЯ СТАТИСТИКА: ДУБЛИКАТЫ И ОТКЛОНЕНИЯ ДЛИНЫ ПОЛЕЙ ==========")
-
-    if duplicates_report:
-        lines.append("")
-        lines.append("--- Дубликаты ---")
-        for r in duplicates_report:
-            lines.append(f"  Лист: {r['sheet']}")
-            lines.append(f"  Ключ (колонки): {r['key_cols']}")
-            lines.append(f"  Колонка проверки: {r['col_name']}")
-            lines.append(f"  Строк с дубликатами: {r['n_duplicate_rows']}")
-            for g in r["duplicate_key_values"]:
-                kv = g["key_values"]
-                cnt = g["count"]
-                lines.append(f"    Задублированное значение: {kv} (вхождений: {cnt})")
-            lines.append("")
-    else:
-        lines.append("")
-        lines.append("--- Дубликаты: не обнаружены ---")
+    lines.append("========== ИТОГОВАЯ СТАТИСТИКА: ОТКЛОНЕНИЯ ДЛИНЫ ПОЛЕЙ И РАСХОЖДЕНИЯ CSV ==========")
 
     if validation_report:
-        lines.append("--- Отклонения по длине полей (field_length_validations) ---")
+        lines.append("--- Отклонения по длине полей (проверки консистентности) ---")
         for r in validation_report:
             lines.append(f"  Лист: {r['sheet']}, колонка результата: {r['result_column']}")
             lines.append(f"  Количество строк с отклонениями: {r['n_violations']}")
@@ -3674,6 +3710,18 @@ def print_final_report(duplicates_report: List[Dict[str, Any]], validation_repor
             lines.append("")
     else:
         lines.append("--- Отклонения по длине полей: не обнаружены ---")
+
+    if csv_mismatch_report:
+        lines.append("--- Расхождения по числу полей в CSV ---")
+        for r in csv_mismatch_report:
+            lines.append(
+                f"  Файл: {r.get('file', '')}, лист: {r.get('sheet', '')}, "
+                f"строка: {r.get('row_index', '')}, ожидалось полей: {r.get('expected_cols', '')}, "
+                f"фактически: {r.get('actual_cols', '')}, направление: {r.get('direction', '')}"
+            )
+        lines.append("")
+    else:
+        lines.append("--- Расхождения по числу полей в CSV: не обнаружены ---")
 
     lines.append("===============================================================================")
     lines.append("")
@@ -3687,23 +3735,11 @@ def print_final_report(duplicates_report: List[Dict[str, Any]], validation_repor
 def main():
     # Повторная загрузка глобалов при запуске (подхват внедрённого Config из config_holder)
     _load_config_globals()
+    global _csv_column_mismatches
+    _csv_column_mismatches.clear()
     start_time = datetime.now()
     log_file = setup_logger()
     logging.info(f"=== Старт работы программы: {start_time.strftime('%Y-%m-%d %H:%M:%S')} ===")
-
-    # Проверка наличия всех файлов из INPUT_FILES до начала обработки
-    missing_files = check_input_files_exist()
-    if missing_files:
-        msg_lines = [
-            "Программа не запущена: не найдены следующие файлы из INPUT_FILES:",
-            f"  (ожидаемый каталог: {DIR_INPUT})",
-        ]
-        for m in missing_files:
-            msg_lines.append(f"  - {m['file']} (лист: {m['sheet']})")
-        msg = "\n".join(msg_lines)
-        logging.error(msg)
-        print(msg, file=sys.stderr)
-        sys.exit(1)
 
     sheets_data = {}
     files_processed = 0
@@ -3720,20 +3756,41 @@ def main():
         futures = {executor.submit(process_single_file, file_conf): file_conf 
                    for file_conf in INPUT_FILES}
         
-        # Собираем результаты по мере их готовности
+        # Собираем результаты по мере их готовности; сырые данные (до разворота JSON) — для source-выгрузки
+        raw_sheets = {}
         for future in as_completed(futures):
-            df, sheet_name, file_conf = future.result()
+            df, sheet_name, file_conf, df_raw = future.result()
             if df is not None and file_conf is not None:
                 with lock:
                     sheets_data[sheet_name] = (df, file_conf)
                     files_processed += 1
                     rows_total += len(df)
                     summary.append(f"{sheet_name}: {len(df)} строк")
+                    # В source Excel — только листы с include_in_source != false (по умолчанию да)
+                    if file_conf.get("include_in_source", True):
+                        raw_sheets[sheet_name] = (df_raw.copy() if df_raw is not None else pd.DataFrame(), file_conf)
             elif sheet_name:
                 # Файл не найден или ошибка чтения
                 summary.append(f"{sheet_name}: {'файл не найден' if file_conf is None else 'ошибка'}")
-    
+
     logging.info(f"Параллельное чтение CSV файлов завершено. Обработано файлов: {files_processed}")
+
+    # 1.1. Выгрузка сырых данных в отдельный Excel (ровно содержимое CSV, без доп. колонок); проверка файлов — после неё
+    write_source_excel(raw_sheets, DIR_OUTPUT, SOURCE_EXPORT_SORT)
+
+    missing_files = check_input_files_exist()
+    if missing_files:
+        msg_lines = [
+            "Не найдены следующие файлы из INPUT_FILES (выгрузка сырых данных уже выполнена):",
+            f"  (ожидаемый каталог: {DIR_INPUT})",
+        ]
+        for m in missing_files:
+            msg_lines.append(f"  - {m['file']} (лист: {m['sheet']})")
+        msg = "\n".join(msg_lines)
+        logging.error(msg)
+        print(msg, file=sys.stderr)
+        sys.exit(1)
+
     # 2. Добавление колонки AUTO_GENDER для листа EMPLOYEE
     if "EMPLOYEE" in sheets_data:
         df_employee, conf_employee = sheets_data["EMPLOYEE"]
@@ -3754,30 +3811,14 @@ def main():
             logging.info(f"[GENDER COMPARISON] EMPLOYEE: результаты идентичны ({comparison.get('match_percent', 0)}%)")
         sheets_data["EMPLOYEE"] = (df_employee, conf_employee)
 
-        # 3. Параллельная проверка длины полей для всех листов согласно FIELD_LENGTH_VALIDATIONS
-    if FIELD_LENGTH_VALIDATIONS:
-        logging.info(f"Начало параллельной проверки длины полей (потоков: {MAX_WORKERS_CPU})")
-        sheets_to_validate = {name: sheets_data[name] for name in FIELD_LENGTH_VALIDATIONS.keys() 
-                             if name in sheets_data}
-        
-        if sheets_to_validate:
-            with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
-                futures = {executor.submit(validate_single_sheet, sheet_name, data): sheet_name
-                          for sheet_name, data in sheets_to_validate.items()}
-                
-                for future in as_completed(futures):
-                    sheet_name, validated_data = future.result()
-                    sheets_data[sheet_name] = validated_data
-            
-            logging.info("Параллельная проверка длины полей завершена")
-    # 4. Добавление расчетного статуса турнира для TOURNAMENT-SCHEDULE
+        # 3. Добавление расчетного статуса турнира для TOURNAMENT-SCHEDULE
     if "TOURNAMENT-SCHEDULE" in sheets_data:
         df_tournament, conf_tournament = sheets_data["TOURNAMENT-SCHEDULE"]
         df_report = sheets_data.get("REPORT", (None, None))[0]
         df_tournament = calculate_tournament_status(df_tournament, df_report)
         sheets_data["TOURNAMENT-SCHEDULE"] = (df_tournament, conf_tournament)
 
-    # 5. Merge fields (только после полного разворота JSON)
+    # 4. Merge fields (только после полного разворота JSON)
     # Все правила в MERGE_FIELDS_ADVANCED: сначала бывшие MERGE_FIELDS (порядок сохранён), затем расширенные.
     # count_column_prefix="COUNT" — имена колонок в Excel не меняются (COUNT_* для count без count_label).
     merge_fields_across_sheets(
@@ -3787,20 +3828,13 @@ def main():
         merge_name="MERGE_FIELDS_ADVANCED"
     )
 
-        # 6. Параллельная проверка на дубли
-    logging.info(f"Начало параллельной проверки на дубликаты (потоков: {MAX_WORKERS_CPU})")
-    with ThreadPoolExecutor(max_workers=MAX_WORKERS_IO) as executor:
-        futures = {executor.submit(check_duplicates_single_sheet, sheet_name, data): sheet_name
-                  for sheet_name, data in sheets_data.items()}
-        
-        for future in as_completed(futures):
-            sheet_name, validated_data = future.result()
-            sheets_data[sheet_name] = validated_data
-    
-    logging.info("Параллельная проверка на дубликаты завершена")
-    # 7. Формирование итогового Summary (build_summary_sheet)
-    # Как в base main.py: используем данные ПОСЛЕ merge и ПОСЛЕ check_duplicates,
-    # чтобы колонки и содержимое SUMMARY (и всех листов) совпадали с верным файлом.
+    # 5. Проверки консистентности (колонки unique ДУБЛЬ:…, referential, свод CONSISTENCY) — до SUMMARY, чтобы колонки были на листах
+    if CONSISTENCY_CHECKS and (CONSISTENCY_CHECKS.get("rules")):
+        logging.info("[main] Запуск проверок консистентности")
+        run_consistency_checks_and_attach_summary(sheets_data, CONSISTENCY_CHECKS, max_workers=MAX_WORKERS)
+        logging.info("[main] Проверки консистентности завершены")
+
+    # 6. Формирование итогового Summary (build_summary_sheet)
     dfs = {k: v[0] for k, v in sheets_data.items()}
     df_summary = build_summary_sheet(
         dfs,
@@ -3830,7 +3864,7 @@ def main():
     }
     sheets_data["STAT_FILE"] = (df_stat, stat_file_params)
     logging.info(f"[main] Лист STAT_FILE сформирован: {len(df_stat)} строк (статистика по файлам)")
-    
+
     # Верификация merge: сохранение baseline или сравнение с ним
     _baseline_path = os.path.join(DIR_OUTPUT, "merge_output_baseline.json")
     if os.environ.get("SAVE_MERGE_BASELINE") == "1":
@@ -3853,9 +3887,9 @@ def main():
     write_to_excel(sheets_data, output_excel)
     logging.info(f"[END] write_to_excel ({output_excel}) (время: 0.000s)")
 
-    # Итоговая статистика по дубликатам и отклонениям длины полей (в лог и консоль)
-    duplicates_report, validation_report = collect_duplicates_and_validation_report(sheets_data)
-    print_final_report(duplicates_report, validation_report)
+    # Итоговая статистика по отклонениям длины полей и расхождениям по числу полей в CSV (дубликаты — в сводке консистентности)
+    validation_report, csv_mismatch_report = collect_duplicates_and_validation_report(sheets_data)
+    print_final_report(validation_report, csv_mismatch_report)
 
     time_elapsed = datetime.now() - start_time
     logging.info(

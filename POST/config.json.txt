@@ -5,12 +5,15 @@
     "logs": "LOGS"
   },
   "logging": {
-    "level": "INFO",
+    "level": "DEBUG",
     "base_name": "LOGS"
   },
   "performance": {
     "max_workers_io": 16,
     "max_workers_cpu": 8
+  },
+  "source_export": {
+    "sort_rules": []
   },
   "tournament_status_choices": [
     "НЕОПРЕДЕЛЕН",
@@ -23,60 +26,67 @@
   ],
   "input_files": [
     {
-      "file": "CONTEST (PROM) 04-02 v0.csv",
+      "file": "CONTEST (PROM) 12-03 v0.csv",
       "sheet": "CONTEST-DATA",
       "max_col_width": 120,
       "freeze": "C2",
       "col_width_mode": "AUTO",
-      "min_col_width": 12
+      "min_col_width": 12,
+      "include_in_source": true
     },
     {
-      "file": "GROUP (PROM) 04-02 v0.csv",
+      "file": "GROUP (PROM) 11-03 v0.csv",
       "sheet": "GROUP",
       "max_col_width": 20,
       "freeze": "C2",
       "col_width_mode": "AUTO",
-      "min_col_width": 8
+      "min_col_width": 8,
+      "include_in_source": true
     },
     {
-      "file": "INDICATOR (PROM) 04-02 v0.csv",
+      "file": "INDICATOR (PROM) 11-03 v0.csv",
       "sheet": "INDICATOR",
       "max_col_width": 100,
       "freeze": "B2",
       "col_width_mode": "AUTO",
-      "min_col_width": 8
+      "min_col_width": 8,
+      "include_in_source": true
     },
     {
-      "file": "REPORT (PROM) 06-02 v0.csv",
+      "file": "REPORT (PROM) 12-03 v0.csv",
       "sheet": "REPORT",
       "max_col_width": 25,
       "freeze": "D2",
       "col_width_mode": "AUTO",
-      "min_col_width": 10
+      "min_col_width": 10,
+      "include_in_source": true
     },
     {
-      "file": "REWARD (PROM) 06-02 v0.csv",
+      "file": "REWARD (PROM) 12-03 v0.csv",
       "sheet": "REWARD",
       "max_col_width": 200,
       "freeze": "D2",
       "col_width_mode": "AUTO",
-      "min_col_width": 10
+      "min_col_width": 10,
+      "include_in_source": true
     },
     {
-      "file": "REWARD-LINK (PROM) 04-02 v0.csv",
+      "file": "REWARD-LINK (PROM) 11-03 v0.csv",
       "sheet": "REWARD-LINK",
       "max_col_width": 30,
       "freeze": "A2",
       "col_width_mode": "AUTO",
-      "min_col_width": 10
+      "min_col_width": 10,
+      "include_in_source": true
     },
     {
-      "file": "SCHEDULE (PROM) 06-02 v0.csv",
+      "file": "SCHEDULE (PROM) 12-03 v0.csv",
       "sheet": "TOURNAMENT-SCHEDULE",
       "max_col_width": 120,
       "freeze": "B2",
       "col_width_mode": "AUTO",
-      "min_col_width": 10
+      "min_col_width": 10,
+      "include_in_source": true
     },
     {
       "file": "SVD_KB_DM_GAMIFICATION_ORG_UNIT_V20 - 2025.08.28.csv",
@@ -84,31 +94,35 @@
       "max_col_width": 60,
       "freeze": "A2",
       "col_width_mode": "AUTO",
-      "min_col_width": 10
+      "min_col_width": 10,
+      "include_in_source": true
     },
     {
-      "file": "USER_ROLE (PROM) 12-12 v0.csv",
+      "file": "USER_ROLE (PROM) 25-02 v0.csv",
       "sheet": "USER_ROLE",
       "max_col_width": 65,
       "freeze": "D2",
       "col_width_mode": "AUTO",
-      "min_col_width": 12
+      "min_col_width": 12,
+      "include_in_source": true
     },
     {
-      "file": "USER_ROLE_SB (PROM) 12-12 v0.csv",
+      "file": "USER_ROLE_SB (PROM) 25-02 v0.csv",
       "sheet": "USER_ROLE SB",
       "max_col_width": 65,
       "freeze": "D2",
       "col_width_mode": "AUTO",
-      "min_col_width": 12
+      "min_col_width": 12,
+      "include_in_source": true
     },
     {
-      "file": "employee_PROM_final_5000_2025-07-26_00-09-03.csv",
+      "file": "employee_PROM_final_5000_2025-07-26_00-09-03.CSV",
       "sheet": "EMPLOYEE",
       "max_col_width": 80,
       "freeze": "F2",
       "col_width_mode": "AUTO",
-      "min_col_width": 15
+      "min_col_width": 15,
+      "include_in_source": true
     },
     {
       "file": "gamification-employeeRewards.csv",
@@ -116,23 +130,98 @@
       "max_col_width": 40,
       "freeze": "D2",
       "col_width_mode": "AUTO",
-      "min_col_width": 12
+      "min_col_width": 12,
+      "include_in_source": false
     },
     {
       "file": "gamification-statistics.csv",
       "sheet": "STATISTICS",
-      "max_col_width": 25,
-      "freeze": "C2",
+      "max_col_width": 40,
+      "freeze": "E2",
       "col_width_mode": "AUTO",
-      "min_col_width": 10
+      "min_col_width": 10,
+      "include_in_source": false
     },
     {
       "file": "gamification-tournamentList.csv",
       "sheet": "LIST-TOURNAMENT",
       "max_col_width": 80,
-      "freeze": "C2",
+      "freeze": "D2",
       "col_width_mode": "AUTO",
-      "min_col_width": 12
+      "min_col_width": 12,
+      "include_in_source": false
+    },
+    {
+      "file": "gamification-ratingList 2KM.csv",
+      "sheet": "RATING_2025_2 (KMKKSB)",
+      "max_col_width": 80,
+      "freeze": "D2",
+      "col_width_mode": "AUTO",
+      "min_col_width": 12,
+      "include_in_source": false
+    },
+    {
+      "file": "gamification-ratingList 2MNS.csv",
+      "sheet": "RATING_2025_2 (MNS)",
+      "max_col_width": 80,
+      "freeze": "D2",
+      "col_width_mode": "AUTO",
+      "min_col_width": 12,
+      "include_in_source": false
+    },
+    {
+      "file": "gamification-ratingList KM.csv",
+      "sheet": "RATING_2026_1 (KMKKSB)",
+      "max_col_width": 80,
+      "freeze": "D2",
+      "col_width_mode": "AUTO",
+      "min_col_width": 12,
+      "include_in_source": false
+    },
+    {
+      "file": "gamification-ratingList AllKM.csv",
+      "sheet": "RATING_ALLTIME (KMKKSB)",
+      "max_col_width": 80,
+      "freeze": "D2",
+      "col_width_mode": "AUTO",
+      "min_col_width": 12,
+      "include_in_source": false
+    },
+    {
+      "file": "gamification-ratingList AllMNS.csv",
+      "sheet": "RATING_ALLTIME (MNS)",
+      "max_col_width": 80,
+      "freeze": "D2",
+      "col_width_mode": "AUTO",
+      "min_col_width": 12,
+      "include_in_source": false
+    },
+    {
+      "file": "gamification-orderList 1KM.csv",
+      "sheet": "ORDER_2025_1 (KMKKSB)",
+      "max_col_width": 80,
+      "freeze": "D2",
+      "col_width_mode": "AUTO",
+      "min_col_width": 12,
+      "include_in_source": false
+    },
+    {
+      "file": "gamification-orderList 1MNS.csv",
+      "sheet": "ORDER_2025_1 (MNS)",
+      "max_col_width": 80,
+      "freeze": "D2",
+      "col_width_mode": "AUTO",
+      "min_col_width": 12,
+      "include_in_source": false
+    },
+    {
+      "file": "gamification-yearResults.csv",
+      "sheet": "YEAR_STATA",
+      "max_col_width": 80,
+      "freeze": "E2",
+      "col_width_mode": "AUTO",
+      "min_col_width": 12,
+      "include_in_source": false
     }
   ],
   "summary_sheet": {
@@ -144,6 +233,7 @@
   },
   "sheet_order": [
     "SUMMARY",
+    "CONSISTENCY",
     "CONTEST-DATA",
     "REWARD",
     "TOURNAMENT-SCHEDULE",
@@ -155,9 +245,17 @@
     "USER_ROLE",
     "EMPLOYEE",
     "STAT_FILE",
+    "RATING_2025_2 (KMKKSB)",
+    "RATING_2025_2 (MNS)",
     "LIST-REWARDS",
     "STATISTICS",
     "LIST-TOURNAMENT",
+    "RATING_2026_1 (KMKKSB)",
+    "RATING_ALLTIME (KMKKSB)",
+    "RATING_ALLTIME (MNS)",
+    "ORDER_2025_1 (KMKKSB)",
+    "ORDER_2025_1 (MNS)",
+    "YEAR_STATA",
     "USER_ROLE SB"
   ],
   "summary_key_defs": [
@@ -284,47 +382,6 @@
       ]
     },
     "progress_step": 500
-  },
-  "field_length_validations": {
-    "ORG_UNIT_V20": {
-      "result_column": "FIELD_LENGTH_CHECK",
-      "fields": {
-        "TB_FULL_NAME": {
-          "limit": 100,
-          "operator": "<="
-        },
-        "GOSB_NAME": {
-          "limit": 100,
-          "operator": "<="
-        },
-        "GOSB_SHORT_NAME": {
-          "limit": 20,
-          "operator": "<="
-        }
-      }
-    },
-    "EMPLOYEE": {
-      "result_column": "FIELD_LENGTH_CHECK",
-      "fields": {
-        "PERSON_NUMBER": {
-          "limit": 20,
-          "operator": "="
-        },
-        "PERSON_NUMBER_ADD": {
-          "limit": 20,
-          "operator": "="
-        }
-      }
-    },
-    "REPORT": {
-      "result_column": "FIELD_LENGTH_CHECK",
-      "fields": {
-        "MANAGER_PERSON_NUMBER": {
-          "limit": 20,
-          "operator": "="
-        }
-      }
-    }
   },
   "merge_fields_advanced": [
     {
@@ -908,12 +965,97 @@
         "CONTEST_FEATURE => typeRewarding",
         "CONTEST_FEATURE => preferences",
         "CONTEST_FEATURE => tournamentTeam",
-        "CONTEST_FEATURE => helpCode",
+        "CONTEST_FEATURE => helpCodeList",
         "CONTEST_FEATURE"
       ],
       "mode": "value",
       "multiply_rows": false,
       "col_max_width": 55,
+      "col_width_mode": "AUTO",
+      "col_min_width": 8,
+      "status_filters": null,
+      "custom_conditions": null,
+      "group_by": null,
+      "aggregate": null
+    },
+    {
+      "sheet_src": "REWARD",
+      "sheet_dst": "SUMMARY",
+      "src_key": [
+        "REWARD_CODE"
+      ],
+      "dst_key": [
+        "REWARD_CODE"
+      ],
+      "column": [
+        "FULL_NAME",
+        "REWARD_DESCRIPTION",
+        "REWARD_TYPE",
+        "REWARD_CONDITION",
+        "REWARD_COST",
+        "ADD_DATA => feature",
+        "ADD_DATA => itemFeature",
+        "ADD_DATA => rewardRule",
+        "ADD_DATA => hidden",
+        "ADD_DATA => hiddenRewardList",
+        "ADD_DATA => persomanNumberVisible",
+        "ADD_DATA => nftFlg",
+        "ADD_DATA => newsType",
+        "ADD_DATA => winCriterion",
+        "ADD_DATA => rewardAgainGlobal",
+        "ADD_DATA => rewardAgainTournament",
+        "ADD_DATA => outstanding",
+        "ADD_DATA => teamNews",
+        "ADD_DATA => singleNews",
+        "ADD_DATA => fileName",
+        "ADD_DATA => refreshOldNews",
+        "ADD_DATA => businessBlock",
+        "ADD_DATA => recommendationLevel",
+        "ADD_DATA => priority",
+        "ADD_DATA => masterBadge",
+        "ADD_DATA => parentRewardCode",
+        "ADD_DATA => helpCodeList",
+        "ADD_DATA => seasonItem",
+        "ADD_DATA"
+      ],
+      "mode": "value",
+      "multiply_rows": false,
+      "col_max_width": 50,
+      "col_width_mode": "AUTO",
+      "col_min_width": 8,
+      "status_filters": null,
+      "custom_conditions": null,
+      "group_by": null,
+      "aggregate": null
+    },
+    {
+      "sheet_src": "TOURNAMENT-SCHEDULE",
+      "sheet_dst": "SUMMARY",
+      "src_key": [
+        "TOURNAMENT_CODE"
+      ],
+      "dst_key": [
+        "TOURNAMENT_CODE"
+      ],
+      "column": [
+        "START_DT",
+        "END_DT",
+        "RESULT_DT",
+        "TOURNAMENT_STATUS",
+        "TARGET_TYPE",
+        "PERIOD_TYPE",
+        "PLAN_PERIOD_START_DT",
+        "PLAN_PERIOD_END_DT",
+        "CRITERION_MARK_TYPE",
+        "CRITERION_MARK_VALUE",
+        "FILTER_PERIOD_ARR",
+        "CONTEST_CODE",
+        "CALC_TYPE",
+        "TRN_INDICATOR_FILTER"
+      ],
+      "mode": "value",
+      "multiply_rows": false,
+      "col_max_width": 30,
       "col_width_mode": "AUTO",
       "col_min_width": 8,
       "status_filters": null,
@@ -982,90 +1124,6 @@
       "mode": "value",
       "multiply_rows": false,
       "col_max_width": 35,
-      "col_width_mode": "AUTO",
-      "col_min_width": 8,
-      "status_filters": null,
-      "custom_conditions": null,
-      "group_by": null,
-      "aggregate": null
-    },
-    {
-      "sheet_src": "TOURNAMENT-SCHEDULE",
-      "sheet_dst": "SUMMARY",
-      "src_key": [
-        "TOURNAMENT_CODE"
-      ],
-      "dst_key": [
-        "TOURNAMENT_CODE"
-      ],
-      "column": [
-        "START_DT",
-        "END_DT",
-        "RESULT_DT",
-        "TOURNAMENT_STATUS",
-        "TARGET_TYPE",
-        "PERIOD_TYPE",
-        "PLAN_PERIOD_START_DT",
-        "PLAN_PERIOD_END_DT",
-        "CRITERION_MARK_TYPE",
-        "CRITERION_MARK_VALUE",
-        "FILTER_PERIOD_ARR",
-        "CONTEST_CODE",
-        "CALC_TYPE",
-        "TRN_INDICATOR_FILTER"
-      ],
-      "mode": "value",
-      "multiply_rows": false,
-      "col_max_width": 30,
-      "col_width_mode": "AUTO",
-      "col_min_width": 8,
-      "status_filters": null,
-      "custom_conditions": null,
-      "group_by": null,
-      "aggregate": null
-    },
-    {
-      "sheet_src": "REWARD",
-      "sheet_dst": "SUMMARY",
-      "src_key": [
-        "REWARD_CODE"
-      ],
-      "dst_key": [
-        "REWARD_CODE"
-      ],
-      "column": [
-        "FULL_NAME",
-        "REWARD_DESCRIPTION",
-        "REWARD_TYPE",
-        "REWARD_CONDITION",
-        "REWARD_COST",
-        "ADD_DATA => feature",
-        "ADD_DATA => itemFeature",
-        "ADD_DATA => rewardRule",
-        "ADD_DATA => hidden",
-        "ADD_DATA => hiddenRewardList",
-        "ADD_DATA => nftFlg",
-        "ADD_DATA => newsType",
-        "ADD_DATA => winCriterion",
-        "ADD_DATA => rewardAgainGlobal",
-        "ADD_DATA => rewardAgainTournament",
-        "ADD_DATA => outstanding",
-        "ADD_DATA => teamNews",
-        "ADD_DATA => singleNews",
-        "ADD_DATA => fileName",
-        "ADD_DATA => refreshOldNews",
-        "ADD_DATA => businessBlock",
-        "ADD_DATA => recommendationLevel",
-        "ADD_DATA => priority",
-        "ADD_DATA => masterBadge",
-        "ADD_DATA => parentRewardCode",
-        "ADD_DATA => helpCode",
-        "ADD_DATA => seasonItem",
-        "ADD_DATA"
-      ],
-      "mode": "value",
-      "multiply_rows": false,
-      "col_max_width": 50,
       "col_width_mode": "AUTO",
       "col_min_width": 8,
       "status_filters": null,
@@ -1818,230 +1876,6 @@
         "REWARD=>ADD_DATA => teamNews",
         "REWARD=>ADD_DATA => singleNews"
       ]
-    },
-    {
-      "group": "SUMMARY DUPLICATES",
-      "header_bg": "FFE6F2",
-      "header_fg": "2C3E50",
-      "column_bg": null,
-      "column_fg": null,
-      "style_scope": "header",
-      "sheets": [
-        "SUMMARY"
-      ],
-      "columns": [
-        "ДУБЛЬ: CONTEST_CODE_TOURNAMENT_CODE_REWARD_CODE_GROUP_CODE"
-      ]
-    },
-    {
-      "group": "DUPLICATES",
-      "header_bg": "FFE6F2",
-      "header_fg": "2C3E50",
-      "column_bg": null,
-      "column_fg": null,
-      "style_scope": "header",
-      "sheets": [
-        "CONTEST-DATA"
-      ],
-      "columns": [
-        "ДУБЛЬ: CONTEST_CODE"
-      ]
-    },
-    {
-      "group": "DUPLICATES",
-      "header_bg": "FFE6F2",
-      "header_fg": "2C3E50",
-      "column_bg": null,
-      "column_fg": null,
-      "style_scope": "header",
-      "sheets": [
-        "GROUP"
-      ],
-      "columns": [
-        "ДУБЛЬ: CONTEST_CODE_GROUP_CODE_GROUP_VALUE"
-      ]
-    },
-    {
-      "group": "DUPLICATES",
-      "header_bg": "FFE6F2",
-      "header_fg": "2C3E50",
-      "column_bg": null,
-      "column_fg": null,
-      "style_scope": "header",
-      "sheets": [
-        "INDICATOR"
-      ],
-      "columns": [
-        "ДУБЛЬ: CONTEST_CODE_INDICATOR_ADD_CALC_TYPE_INDICATOR_CODE"
-      ]
-    },
-    {
-      "group": "DUPLICATES",
-      "header_bg": "FFE6F2",
-      "header_fg": "2C3E50",
-      "column_bg": null,
-      "column_fg": null,
-      "style_scope": "header",
-      "sheets": [
-        "INDICATOR"
-      ],
-      "columns": [
-        "ДУБЛЬ: N"
-      ]
-    },
-    {
-      "group": "DUPLICATES",
-      "header_bg": "FFE6F2",
-      "header_fg": "2C3E50",
-      "column_bg": null,
-      "column_fg": null,
-      "style_scope": "header",
-      "sheets": [
-        "REPORT"
-      ],
-      "columns": [
-        "ДУБЛЬ: MANAGER_PERSON_NUMBER_TOURNAMENT_CODE_CONTEST_CODE"
-      ]
-    },
-    {
-      "group": "DUPLICATES",
-      "header_bg": "FFE6F2",
-      "header_fg": "2C3E50",
-      "column_bg": null,
-      "column_fg": null,
-      "style_scope": "header",
-      "sheets": [
-        "REWARD"
-      ],
-      "columns": [
-        "ДУБЛЬ: REWARD_CODE"
-      ]
-    },
-    {
-      "group": "DUPLICATES",
-      "header_bg": "FFE6F2",
-      "header_fg": "2C3E50",
-      "column_bg": null,
-      "column_fg": null,
-      "style_scope": "header",
-      "sheets": [
-        "REWARD-LINK"
-      ],
-      "columns": [
-        "ДУБЛЬ: CONTEST_CODE_REWARD_CODE"
-      ]
-    },
-    {
-      "group": "DUPLICATES",
-      "header_bg": "FFE6F2",
-      "header_fg": "2C3E50",
-      "column_bg": null,
-      "column_fg": null,
-      "style_scope": "header",
-      "sheets": [
-        "REWARD-LINK"
-      ],
-      "columns": [
-        "ДУБЛЬ: REWARD_CODE"
-      ]
-    },
-    {
-      "group": "DUPLICATES",
-      "header_bg": "FFE6F2",
-      "header_fg": "2C3E50",
-      "column_bg": null,
-      "column_fg": null,
-      "style_scope": "header",
-      "sheets": [
-        "TOURNAMENT-SCHEDULE"
-      ],
-      "columns": [
-        "ДУБЛЬ: TOURNAMENT_CODE_CONTEST_CODE"
-      ]
-    },
-    {
-      "group": "DUPLICATES",
-      "header_bg": "FFE6F2",
-      "header_fg": "2C3E50",
-      "column_bg": null,
-      "column_fg": null,
-      "style_scope": "header",
-      "sheets": [
-        "TOURNAMENT-SCHEDULE"
-      ],
-      "columns": [
-        "ДУБЛЬ: TOURNAMENT_CODE"
-      ]
-    },
-    {
-      "group": "DUPLICATES",
-      "header_bg": "FFE6F2",
-      "header_fg": "2C3E50",
-      "column_bg": null,
-      "column_fg": null,
-      "style_scope": "header",
-      "sheets": [
-        "ORG_UNIT_V20"
-      ],
-      "columns": [
-        "ДУБЛЬ: ORG_UNIT_CODE"
-      ]
-    },
-    {
-      "group": "DUPLICATES",
-      "header_bg": "FFE6F2",
-      "header_fg": "2C3E50",
-      "column_bg": null,
-      "column_fg": null,
-      "style_scope": "header",
-      "sheets": [
-        "USER_ROLE"
-      ],
-      "columns": [
-        "ДУБЛЬ: RULE_NUM"
-      ]
-    },
-    {
-      "group": "DUPLICATES",
-      "header_bg": "FFE6F2",
-      "header_fg": "2C3E50",
-      "column_bg": null,
-      "column_fg": null,
-      "style_scope": "header",
-      "sheets": [
-        "USER_ROLE SB"
-      ],
-      "columns": [
-        "ДУБЛЬ: RULE_NUM"
-      ]
-    },
-    {
-      "group": "DUPLICATES",
-      "header_bg": "FFE6F2",
-      "header_fg": "2C3E50",
-      "column_bg": null,
-      "column_fg": null,
-      "style_scope": "header",
-      "sheets": [
-        "EMPLOYEE"
-      ],
-      "columns": [
-        "ДУБЛЬ: PERSON_NUMBER"
-      ]
-    },
-    {
-      "group": "DUPLICATES",
-      "header_bg": "FFE6F2",
-      "header_fg": "2C3E50",
-      "column_bg": null,
-      "column_fg": null,
-      "style_scope": "header",
-      "sheets": [
-        "EMPLOYEE"
-      ],
-      "columns": [
-        "ДУБЛЬ: PERSON_NUMBER_ADD"
-      ]
     }
   ],
   "column_formats": [
@@ -2168,108 +2002,436 @@
       "horizontal": "center",
       "vertical": "center",
       "wrap_text": false
+    },
+    {
+      "sheet": "RATING_2025_2 (KMKKSB)",
+      "columns": [
+        "Количество кристаллов",
+        "Место в рейтинге по стране",
+        "Место в рейтинге ТБ",
+        "Место в рейтинге ГОСБ",
+        "ТБ",
+        "ГОСБ"
+      ],
+      "data_type": "number",
+      "decimal_places": 0,
+      "decimal_separator": ",",
+      "thousands_separator": true,
+      "date_format": "YYYY-MM-DD",
+      "horizontal": "center",
+      "vertical": "center",
+      "wrap_text": false
+    },
+    {
+      "sheet": "YEAR_STATA",
+      "columns": [
+        "Общее количество разыгранных наград (badgeAmount)",
+        "Количество разыгранных золотых наград (amountGold)",
+        "Количество разыгранных серебряных наград (amountSilver)",
+        "Количество разыгранных бронзовых наград (amountBronze)",
+        "Количество турниров, в которых участвовал сотрудник (amountTournament)",
+        "Количество полученных золотых наград (amountEarnedGold)",
+        "Количество полученных серебряных наград (amountEarnedSilver)",
+        "Количество полученных бронзовых наград (amountEarnedBronze)",
+        "Общее количество полученных турнирных наград",
+        "Процентиль полученных турнирных наград (amountEarnedBadgePercentile)",
+        "Максимальное количество золотых наград (maxAmountEarnedGold)",
+        "Версия записи",
+        "ТБ",
+        "ГОСБ"
+      ],
+      "data_type": "number",
+      "decimal_places": 0,
+      "decimal_separator": ",",
+      "thousands_separator": true,
+      "date_format": "YYYY-MM-DD",
+      "horizontal": "center",
+      "vertical": "center",
+      "wrap_text": false
+    },
+    {
+      "sheet": "RATING_2026_1 (KMKKSB)",
+      "columns": [
+        "Количество кристаллов",
+        "Место в рейтинге по стране",
+        "Место в рейтинге ТБ",
+        "Место в рейтинге ГОСБ",
+        "ТБ",
+        "ГОСБ"
+      ],
+      "data_type": "number",
+      "decimal_places": 0,
+      "decimal_separator": ",",
+      "thousands_separator": true,
+      "date_format": "YYYY-MM-DD",
+      "horizontal": "center",
+      "vertical": "center",
+      "wrap_text": false
+    },
+    {
+      "sheet": "RATING_ALLTIME (KMKKSB)",
+      "columns": [
+        "Количество кристаллов",
+        "Место в рейтинге по стране",
+        "Место в рейтинге ТБ",
+        "Место в рейтинге ГОСБ",
+        "ТБ",
+        "ГОСБ"
+      ],
+      "data_type": "number",
+      "decimal_places": 0,
+      "decimal_separator": ",",
+      "thousands_separator": true,
+      "date_format": "YYYY-MM-DD",
+      "horizontal": "center",
+      "vertical": "center",
+      "wrap_text": false
+    },
+    {
+      "sheet": "RATING_ALLTIME (MNS)",
+      "columns": [
+        "Количество кристаллов",
+        "Место в рейтинге по стране",
+        "Место в рейтинге ТБ",
+        "Место в рейтинге ГОСБ",
+        "ТБ",
+        "ГОСБ"
+      ],
+      "data_type": "number",
+      "decimal_places": 0,
+      "decimal_separator": ",",
+      "thousands_separator": true,
+      "date_format": "YYYY-MM-DD",
+      "horizontal": "center",
+      "vertical": "center",
+      "wrap_text": false
+    },
+    {
+      "sheet": "RATING_2025_2 (MNS)",
+      "columns": [
+        "Количество кристаллов",
+        "Место в рейтинге по стране",
+        "Место в рейтинге ТБ",
+        "Место в рейтинге ГОСБ",
+        "ТБ",
+        "ГОСБ"
+      ],
+      "data_type": "number",
+      "decimal_places": 0,
+      "decimal_separator": ",",
+      "thousands_separator": true,
+      "date_format": "YYYY-MM-DD",
+      "horizontal": "center",
+      "vertical": "center",
+      "wrap_text": false
     }
   ],
-  "check_duplicates": [
-    {
-      "sheet": "CONTEST-DATA",
-      "key": [
-        "CONTEST_CODE"
-      ]
-    },
-    {
-      "sheet": "GROUP",
-      "key": [
-        "CONTEST_CODE",
-        "GROUP_CODE",
-        "GROUP_VALUE"
-      ]
-    },
-    {
-      "sheet": "INDICATOR",
-      "key": [
-        "CONTEST_CODE",
-        "INDICATOR_ADD_CALC_TYPE",
-        "INDICATOR_CODE"
-      ]
-    },
-    {
-      "sheet": "INDICATOR",
-      "key": [
-        "N"
-      ]
-    },
-    {
-      "sheet": "REPORT",
-      "key": [
-        "MANAGER_PERSON_NUMBER",
-        "TOURNAMENT_CODE",
-        "CONTEST_CODE"
-      ]
-    },
-    {
-      "sheet": "REWARD",
-      "key": [
-        "REWARD_CODE"
-      ]
-    },
-    {
-      "sheet": "REWARD-LINK",
-      "key": [
-        "CONTEST_CODE",
-        "REWARD_CODE"
-      ]
-    },
-    {
-      "sheet": "REWARD-LINK",
-      "key": [
-        "REWARD_CODE"
-      ]
-    },
-    {
-      "sheet": "TOURNAMENT-SCHEDULE",
-      "key": [
-        "TOURNAMENT_CODE",
-        "CONTEST_CODE"
-      ]
-    },
-    {
-      "sheet": "TOURNAMENT-SCHEDULE",
-      "key": [
-        "TOURNAMENT_CODE"
-      ]
-    },
-    {
-      "sheet": "ORG_UNIT_V20",
-      "key": [
-        "ORG_UNIT_CODE"
-      ]
-    },
-    {
-      "sheet": "USER_ROLE",
-      "key": [
-        "RULE_NUM"
-      ]
-    },
-    {
-      "sheet": "USER_ROLE SB",
-      "key": [
-        "RULE_NUM"
-      ]
-    },
-    {
-      "sheet": "EMPLOYEE",
-      "key": [
-        "PERSON_NUMBER"
-      ]
-    },
-    {
-      "sheet": "EMPLOYEE",
-      "key": [
-        "PERSON_NUMBER_ADD"
-      ]
-    }
-  ],
+  "consistency_checks": {
+    "summary_sheet_name": "CONSISTENCY",
+    "rules": [
+      {
+        "id": "1.1",
+        "name": "Группа: код конкурса в справочнике конкурсов",
+        "type": "referential",
+        "enabled": true,
+        "sheet_src": "GROUP",
+        "column_src": "CONTEST_CODE",
+        "sheet_ref": "CONTEST-DATA",
+        "column_ref": "CONTEST_CODE",
+        "output": {
+          "column_on_sheet": "ПРОВЕРКА: CONTEST_CODE в CONTEST-DATA",
+          "include_in_summary": true
+        }
+      },
+      {
+        "id": "1.2",
+        "name": "Индикатор: код конкурса в справочнике конкурсов",
+        "type": "referential",
+        "enabled": true,
+        "sheet_src": "INDICATOR",
+        "column_src": "CONTEST_CODE",
+        "sheet_ref": "CONTEST-DATA",
+        "column_ref": "CONTEST_CODE",
+        "output": {
+          "column_on_sheet": "ПРОВЕРКА: CONTEST_CODE в CONTEST-DATA",
+          "include_in_summary": true
+        }
+      },
+      {
+        "id": "1.3",
+        "name": "Связь наград: код конкурса в справочнике конкурсов",
+        "type": "referential",
+        "enabled": true,
+        "sheet_src": "REWARD-LINK",
+        "column_src": "CONTEST_CODE",
+        "sheet_ref": "CONTEST-DATA",
+        "column_ref": "CONTEST_CODE",
+        "output": {
+          "column_on_sheet": "ПРОВЕРКА: CONTEST_CODE в CONTEST-DATA",
+          "include_in_summary": true
+        }
+      },
+      {
+        "id": "2",
+        "name": "Связь наград: код награды в справочнике наград",
+        "type": "referential",
+        "enabled": true,
+        "sheet_src": "REWARD-LINK",
+        "column_src": "REWARD_CODE",
+        "sheet_ref": "REWARD",
+        "column_ref": "REWARD_CODE",
+        "output": {
+          "column_on_sheet": "ПРОВЕРКА: REWARD_CODE в REWARD",
+          "include_in_summary": true
+        }
+      },
+      {
+        "id": "3",
+        "name": "Группа: нет дублей по конкурс+группа+значение",
+        "type": "unique",
+        "enabled": true,
+        "sheet": "GROUP",
+        "key_columns": ["CONTEST_CODE", "GROUP_CODE", "GROUP_VALUE"],
+        "output": {
+          "column_on_sheet": "ДУБЛЬ: CONTEST_CODE_GROUP_CODE_GROUP_VALUE",
+          "include_in_summary": true
+        }
+      },
+      {
+        "id": "4",
+        "name": "Связь наград: нет дублей по конкурс+группа+награда",
+        "type": "unique",
+        "enabled": true,
+        "sheet": "REWARD-LINK",
+        "key_columns": ["CONTEST_CODE", "GROUP_CODE", "REWARD_CODE"],
+        "output": {
+          "column_on_sheet": "ДУБЛЬ: CONTEST_CODE_GROUP_CODE_REWARD_CODE",
+          "include_in_summary": true
+        }
+      },
+      {
+        "id": "5",
+        "name": "Связь наград: пара конкурс+группа есть в группах",
+        "type": "referential_composite",
+        "enabled": true,
+        "sheet_src": "REWARD-LINK",
+        "columns_src": ["CONTEST_CODE", "GROUP_CODE"],
+        "sheet_ref": "GROUP",
+        "columns_ref": ["CONTEST_CODE", "GROUP_CODE"],
+        "output": {
+          "column_on_sheet": "ПРОВЕРКА: пара в GROUP",
+          "include_in_summary": true
+        }
+      },
+      {
+        "id": "scenario_1",
+        "name": "Расписание: код конкурса есть в справочнике конкурсов",
+        "type": "referential",
+        "enabled": true,
+        "sheet_src": "TOURNAMENT-SCHEDULE",
+        "column_src": "CONTEST_CODE",
+        "sheet_ref": "CONTEST-DATA",
+        "column_ref": "CONTEST_CODE",
+        "output": {
+          "column_on_sheet": "ПРОВЕРКА: CONTEST_CODE в CONTEST-DATA",
+          "include_in_summary": true
+        }
+      },
+      {
+        "id": "scenario_16",
+        "name": "Расписание: у конкурса описан индикатор",
+        "type": "referential",
+        "enabled": true,
+        "sheet_src": "TOURNAMENT-SCHEDULE",
+        "column_src": "CONTEST_CODE",
+        "sheet_ref": "INDICATOR",
+        "column_ref": "CONTEST_CODE",
+        "output": {
+          "column_on_sheet": "ПРОВЕРКА: CONTEST_CODE в INDICATOR",
+          "include_in_summary": true
+        }
+      },
+      {
+        "id": "scenario_20",
+        "name": "Расписание: у конкурса описаны группы (критерии победы)",
+        "type": "referential",
+        "enabled": true,
+        "sheet_src": "TOURNAMENT-SCHEDULE",
+        "column_src": "CONTEST_CODE",
+        "sheet_ref": "GROUP",
+        "column_ref": "CONTEST_CODE",
+        "output": {
+          "column_on_sheet": "ПРОВЕРКА: CONTEST_CODE в GROUP",
+          "include_in_summary": true
+        }
+      },
+      {
+        "id": "unique_contest_data",
+        "name": "Справочник конкурсов: нет дублей по коду конкурса",
+        "type": "unique",
+        "enabled": true,
+        "sheet": "CONTEST-DATA",
+        "key_columns": ["CONTEST_CODE"],
+        "output": { "column_on_sheet": "ДУБЛЬ: CONTEST_CODE", "include_in_summary": true }
+      },
+      {
+        "id": "unique_indicator_1",
+        "name": "Индикатор: нет дублей по конкурс+тип+код индикатора",
+        "type": "unique",
+        "enabled": true,
+        "sheet": "INDICATOR",
+        "key_columns": ["CONTEST_CODE", "INDICATOR_ADD_CALC_TYPE", "INDICATOR_CODE"],
+        "output": { "column_on_sheet": "ДУБЛЬ: CONTEST_CODE_INDICATOR_ADD_CALC_TYPE_INDICATOR_CODE", "include_in_summary": true }
+      },
+      {
+        "id": "unique_indicator_n",
+        "name": "Индикатор: нет дублей по полю N",
+        "type": "unique",
+        "enabled": true,
+        "sheet": "INDICATOR",
+        "key_columns": ["N"],
+        "output": { "column_on_sheet": "ДУБЛЬ: N", "include_in_summary": true }
+      },
+      {
+        "id": "unique_report",
+        "name": "Отчёт: нет дублей по ТН+турнир+конкурс",
+        "type": "unique",
+        "enabled": true,
+        "sheet": "REPORT",
+        "key_columns": ["MANAGER_PERSON_NUMBER", "TOURNAMENT_CODE", "CONTEST_CODE"],
+        "output": { "column_on_sheet": "ДУБЛЬ: MANAGER_PERSON_NUMBER_TOURNAMENT_CODE_CONTEST_CODE", "include_in_summary": true }
+      },
+      {
+        "id": "unique_reward",
+        "name": "Справочник наград: нет дублей по коду награды",
+        "type": "unique",
+        "enabled": true,
+        "sheet": "REWARD",
+        "key_columns": ["REWARD_CODE"],
+        "output": { "column_on_sheet": "ДУБЛЬ: REWARD_CODE", "include_in_summary": true }
+      },
+      {
+        "id": "unique_reward_link_2",
+        "name": "Связь наград: нет дублей по конкурс+награда",
+        "type": "unique",
+        "enabled": true,
+        "sheet": "REWARD-LINK",
+        "key_columns": ["CONTEST_CODE", "REWARD_CODE"],
+        "output": { "column_on_sheet": "ДУБЛЬ: CONTEST_CODE_REWARD_CODE", "include_in_summary": true }
+      },
+      {
+        "id": "unique_reward_link_reward",
+        "name": "Связь наград: нет дублей по коду награды",
+        "type": "unique",
+        "enabled": true,
+        "sheet": "REWARD-LINK",
+        "key_columns": ["REWARD_CODE"],
+        "output": { "column_on_sheet": "ДУБЛЬ: REWARD_CODE", "include_in_summary": true }
+      },
+      {
+        "id": "unique_schedule_2",
+        "name": "Расписание: нет дублей по турнир+конкурс",
+        "type": "unique",
+        "enabled": true,
+        "sheet": "TOURNAMENT-SCHEDULE",
+        "key_columns": ["TOURNAMENT_CODE", "CONTEST_CODE"],
+        "output": { "column_on_sheet": "ДУБЛЬ: TOURNAMENT_CODE_CONTEST_CODE", "include_in_summary": true }
+      },
+      {
+        "id": "unique_schedule_1",
+        "name": "Расписание: нет дублей по коду турнира",
+        "type": "unique",
+        "enabled": true,
+        "sheet": "TOURNAMENT-SCHEDULE",
+        "key_columns": ["TOURNAMENT_CODE"],
+        "output": { "column_on_sheet": "ДУБЛЬ: TOURNAMENT_CODE", "include_in_summary": true }
+      },
+      {
+        "id": "unique_org_unit",
+        "name": "Орг.единицы: нет дублей по коду",
+        "type": "unique",
+        "enabled": true,
+        "sheet": "ORG_UNIT_V20",
+        "key_columns": ["ORG_UNIT_CODE"],
+        "output": { "column_on_sheet": "ДУБЛЬ: ORG_UNIT_CODE", "include_in_summary": true }
+      },
+      {
+        "id": "unique_user_role",
+        "name": "Роли: нет дублей по номеру правила",
+        "type": "unique",
+        "enabled": true,
+        "sheet": "USER_ROLE",
+        "key_columns": ["RULE_NUM"],
+        "output": { "column_on_sheet": "ДУБЛЬ: RULE_NUM", "include_in_summary": true }
+      },
+      {
+        "id": "unique_user_role_sb",
+        "name": "Роли СБ: нет дублей по номеру правила",
+        "type": "unique",
+        "enabled": true,
+        "sheet": "USER_ROLE SB",
+        "key_columns": ["RULE_NUM"],
+        "output": { "column_on_sheet": "ДУБЛЬ: RULE_NUM", "include_in_summary": true }
+      },
+      {
+        "id": "unique_employee_person",
+        "name": "Сотрудники: нет дублей по табельному",
+        "type": "unique",
+        "enabled": true,
+        "sheet": "EMPLOYEE",
+        "key_columns": ["PERSON_NUMBER"],
+        "output": { "column_on_sheet": "ДУБЛЬ: PERSON_NUMBER", "include_in_summary": true }
+      },
+      {
+        "id": "unique_employee_person_add",
+        "name": "Сотрудники: нет дублей по доп.табельному",
+        "type": "unique",
+        "enabled": true,
+        "sheet": "EMPLOYEE",
+        "key_columns": ["PERSON_NUMBER_ADD"],
+        "output": { "column_on_sheet": "ДУБЛЬ: PERSON_NUMBER_ADD", "include_in_summary": true }
+      },
+      {
+        "id": "field_length_org_unit",
+        "name": "Орг.единицы: длина полей в норме",
+        "type": "field_length",
+        "enabled": true,
+        "sheet": "ORG_UNIT_V20",
+        "result_column": "FIELD_LENGTH_CHECK",
+        "fields": {
+          "TB_FULL_NAME": { "limit": 100, "operator": "<=" },
+          "GOSB_NAME": { "limit": 100, "operator": "<=" },
+          "GOSB_SHORT_NAME": { "limit": 20, "operator": "<=" }
+        },
+        "output": { "column_on_sheet": "FIELD_LENGTH_CHECK", "include_in_summary": true }
+      },
+      {
+        "id": "field_length_employee",
+        "name": "Сотрудники: длина полей в норме",
+        "type": "field_length",
+        "enabled": true,
+        "sheet": "EMPLOYEE",
+        "result_column": "FIELD_LENGTH_CHECK",
+        "fields": {
+          "PERSON_NUMBER": { "limit": 20, "operator": "=" },
+          "PERSON_NUMBER_ADD": { "limit": 20, "operator": "=" }
+        },
+        "output": { "column_on_sheet": "FIELD_LENGTH_CHECK", "include_in_summary": true }
+      },
+      {
+        "id": "field_length_report",
+        "name": "Отчёт: длина полей в норме",
+        "type": "field_length",
+        "enabled": true,
+        "sheet": "REPORT",
+        "result_column": "FIELD_LENGTH_CHECK",
+        "fields": {
+          "MANAGER_PERSON_NUMBER": { "limit": 20, "operator": "=" }
+        },
+        "output": { "column_on_sheet": "FIELD_LENGTH_CHECK", "include_in_summary": true }
+      }
+    ]
+  },
   "json_columns": {
     "CONTEST-DATA": [
       {

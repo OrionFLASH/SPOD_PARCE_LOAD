@@ -3831,7 +3831,7 @@ def main():
     # 5. Проверки консистентности (колонки unique ДУБЛЬ:…, referential, свод CONSISTENCY) — до SUMMARY, чтобы колонки были на листах
     if CONSISTENCY_CHECKS and (CONSISTENCY_CHECKS.get("rules")):
         logging.info("[main] Запуск проверок консистентности")
-        run_consistency_checks_and_attach_summary(sheets_data, CONSISTENCY_CHECKS)
+        run_consistency_checks_and_attach_summary(sheets_data, CONSISTENCY_CHECKS, max_workers=MAX_WORKERS)
         logging.info("[main] Проверки консистентности завершены")
 
     # 6. Формирование итогового Summary (build_summary_sheet)

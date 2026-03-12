@@ -85,6 +85,12 @@ class FileLoader:
                     if i == 0:
                         headers = row
                     else:
+                        # Нормализуем длину строки под число колонок заголовка (разное число полей в CSV)
+                        n = len(headers)
+                        if len(row) < n:
+                            row = list(row) + [""] * (n - len(row))
+                        elif len(row) > n:
+                            row = row[:n]
                         rows.append(row)
             if headers is None:
                 return None
