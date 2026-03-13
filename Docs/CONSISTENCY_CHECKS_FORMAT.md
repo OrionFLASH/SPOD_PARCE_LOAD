@@ -40,7 +40,7 @@
 
 - **id** — короткий идентификатор (для логов и сводки).
 - **name** — человекочитаемое название (по желанию).
-- **type** — тип: `"referential"` | `"unique"` | `"referential_composite"` | `"field_length"`.
+- **type** — тип: `"referential"` | `"unique"` | `"referential_composite"` | `"field_length"` | `"field_format"`.
 - **enabled** — выполнять ли проверку (true/false).
 - **output** — куда и как выводить результат (см. ниже).
 
@@ -182,6 +182,67 @@
 
 ---
 
+### 2.6. Тип `field_format` (проверка формата поля)
+
+Проверка формата значения в одном поле: дата, десятичное число с фиксированной дробной частью или строка из N цифр (с лидирующими нулями). Задаётся в правиле: **sheet**, **field**, **format** (объект с полем **type** и параметрами). Модуль создаёт колонку результата на листе в фазе 1; в ячейках: «OK» или текст ошибки.
+
+**format.type** и параметры:
+
+| type | Параметры | Описание |
+|------|-----------|----------|
+| **date** | date_format ("YYYY-MM-DD" → разбор %Y-%m-%d), allow_empty (bool), special_values (массив строк — допустимые значения, напр. ["4000-01-01"]) | Дата в заданном формате; пустое допустимо при allow_empty: true |
+| **decimal** | decimal_places (число знаков после точки, напр. 5), allow_empty | Число вида целая_часть.дробная_часть (дробная фиксированной длины); допускаются и строка "1.50000", и число 1.5 |
+| **fixed_length_digits** | length (число цифр, напр. 20), allow_empty | Строка из ровно N цифр (лидирующие нули допустимы); короткое число дополняется нулями слева при проверке |
+
+Примеры правил:
+
+```json
+{
+  "id": "format_report_contest_date",
+  "name": "Формат поля CONTEST_DATE в REPORT: YYYY-MM-DD",
+  "type": "field_format",
+  "enabled": true,
+  "sheet": "REPORT",
+  "field": "CONTEST_DATE",
+  "format": { "type": "date", "date_format": "YYYY-MM-DD", "allow_empty": false },
+  "output": { "column_on_sheet": "ПРОВЕРКА ФОРМАТ: CONTEST_DATE", "include_in_summary": true }
+},
+{
+  "id": "format_contest_data_close_dt",
+  "name": "Формат CLOSE_DT: YYYY-MM-DD (учесть 4000-01-01)",
+  "type": "field_format",
+  "enabled": true,
+  "sheet": "CONTEST-DATA",
+  "field": "CLOSE_DT",
+  "format": { "type": "date", "date_format": "YYYY-MM-DD", "allow_empty": false, "special_values": ["4000-01-01"] },
+  "output": { "column_on_sheet": "ПРОВЕРКА ФОРМАТ: CLOSE_DT", "include_in_summary": true }
+},
+{
+  "id": "format_report_plan_value",
+  "name": "Формат PLAN_VALUE: 0.00000",
+  "type": "field_format",
+  "enabled": true,
+  "sheet": "REPORT",
+  "field": "PLAN_VALUE",
+  "format": { "type": "decimal", "decimal_places": 5, "allow_empty": false },
+  "output": { "column_on_sheet": "ПРОВЕРКА ФОРМАТ: PLAN_VALUE", "include_in_summary": true }
+},
+{
+  "id": "format_employee_person_number",
+  "name": "Формат PERSON_NUMBER: 20 цифр с лидирующими нулями",
+  "type": "field_format",
+  "enabled": true,
+  "sheet": "EMPLOYEE",
+  "field": "PERSON_NUMBER",
+  "format": { "type": "fixed_length_digits", "length": 20, "allow_empty": false },
+  "output": { "column_on_sheet": "ПРОВЕРКА ФОРМАТ: PERSON_NUMBER", "include_in_summary": true }
+}
+```
+
+В сводке и в ячейках для **field_format**: «OK» или описание нарушения (например «Не дата формата %Y-%m-%d», «Ожидается 20 цифр, получено 5»).
+
+---
+
 ## 3. Куда выводить информацию
 
 ### 3.1. На загружаемых листах (основной Excel)
@@ -192,20 +253,21 @@
   - **referential**: «OK» или короткий текст ошибки (например «НЕТ в CONTEST-DATA»);
   - **referential_composite**: «OK» или «НЕТ в GROUP»;
   - **unique**: пусто или «xN»;
-  - **field_length**: «-» или строка с описанием нарушений.
+  - **field_length**: «-» или строка с описанием нарушений;
+  - **field_format**: «OK» или описание нарушения формата.
 - При необходимости для колонок проверок можно задать цвет/формат в **color_scheme** (как для «ДУБЛЬ: …»), чтобы нарушения были заметны.
 
 ### 3.2. Сводный лист по проверкам
 
 - Отдельный лист, например **CONSISTENCY** или **ПРОВЕРКИ_КОНСИСТЕНТНОСТИ**.
 - Создаётся только если в конфиге есть включённые проверки и у части из них **output.include_in_summary: true**.
-- Колонки (минимальный вариант):
-  - **check_id** (или «Проверка»),
-  - **sheet** (лист, к которому относится проверка),
-  - **total_rows** (всего строк на листе),
-  - **violations** (число нарушений),
-  - **sample** (пример нарушенных значений или ключей, до N штук).
-- Опционально: **name**, **type**, **last_run**.
+- Колонки формируются по образцу таблицы проверок (Проверки-Tаблица 1.csv). Сначала идут колонки-описания (заполняются из правил конфига):
+  - **ТИП ПРОВЕРКИ** (внешний ключ в одну колонку, уникальность, длина полей, формат поля и т.д.),
+  - **Описание** (поле name правила),
+  - **таблица источник**, **поле источник**, **таблица где проверяем**, **поле для проверки**, **параметр сравнения**, **комментарий**.
+- Затем колонки результата:
+  - **check_id**, **sheet**, **name**, **имя_колонки**, **type**, **total_rows**, **violations**, **sample**.
+- При вызове `run_consistency_checks_and_attach_summary` передаётся секция конфига (summary_sheet_name + rules); правила берутся из `config.get("rules")`, чтобы колонки-описания заполнялись.
 - Порядок листа в книге задаётся в **sheet_order** (например CONSISTENCY после STAT_FILE).
 
 ### 3.3. Лог и консоль

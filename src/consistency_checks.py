@@ -1,15 +1,17 @@
 # -*- coding: utf-8 -*-
 """
 Модуль проверок консистентности данных.
-Выполняет правила из конфига consistency_checks: создаёт колонки unique (ДУБЛЬ: …) и field_length
-на листах, затем referential/referential_composite, собирает результаты в свод CONSISTENCY.
+Выполняет правила из конфига consistency_checks: создаёт колонки unique (ДУБЛЬ: …), field_length
+и field_format на листах, затем referential/referential_composite, собирает результаты в свод CONSISTENCY.
 Результаты выводятся в колонки на листах, сводный лист CONSISTENCY, консоль и лог.
 """
 
 import logging
 import os
+import re
 import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
 
 import pandas as pd
@@ -266,6 +268,137 @@ def _run_field_length_check(sheets_data: Dict[str, Any], rule: Dict[str, Any]) -
     )
 
 
+def _validate_field_format(value: Any, format_spec: Dict[str, Any]) -> str:
+    """
+    Проверяет значение на соответствие формату. Возвращает "OK" или строку с описанием ошибки.
+    format_spec.type: "date" | "decimal" | "fixed_length_digits".
+    - date: date_format ("YYYY-MM-DD" → %Y-%m-%d), allow_empty, special_values (список допустимых строк).
+    - decimal: decimal_places (число знаков после точки), allow_empty.
+    - fixed_length_digits: length (длина строки из цифр), allow_empty.
+    """
+    if format_spec is None:
+        return "OK"
+    fmt_type = format_spec.get("type", "")
+    allow_empty = format_spec.get("allow_empty", False)
+    s = str(value).strip() if value is not None and pd.notna(value) else ""
+    if s == "" or (isinstance(value, float) and pd.isna(value)):
+        return "OK" if allow_empty else "Пустое значение"
+    if fmt_type == "date":
+        special = format_spec.get("special_values") or []
+        if s in special:
+            return "OK"
+        date_fmt = format_spec.get("date_format", "YYYY-MM-DD")
+        if date_fmt.upper() == "YYYY-MM-DD":
+            date_fmt = "%Y-%m-%d"
+        try:
+            datetime.strptime(s, date_fmt)
+            return "OK"
+        except (ValueError, TypeError):
+            return f"Не дата формата {date_fmt}"
+    if fmt_type == "decimal":
+        places = int(format_spec.get("decimal_places", 5))
+        pattern = re.compile(r"^-?\d+\.\d{" + str(places) + r"}$")
+        if pattern.match(s):
+            return "OK"
+        try:
+            num = float(s)
+            if not pd.isna(num):
+                formatted = f"{num:.{places}f}"
+                if re.match(r"^-?\d+\.\d+$", formatted) and len(formatted.split(".")[1]) == places:
+                    return "OK"
+            return f"Ожидается формат 0.{'0' * places} (дробная часть {places} знаков)"
+        except (ValueError, TypeError):
+            return "Не число"
+    if fmt_type == "fixed_length_digits":
+        length = int(format_spec.get("length", 20))
+        if not s.isdigit():
+            return "Ожидаются только цифры"
+        if len(s) == length:
+            return "OK"
+        if len(s) < length:
+            if s.zfill(length).isdigit():
+                return "OK"
+        return f"Ожидается {length} цифр, получено {len(s)}"
+    return "OK"
+
+
+def _run_field_format_check(sheets_data: Dict[str, Any], rule: Dict[str, Any]) -> None:
+    """
+    Создаёт на листе колонку результата проверки формата поля (field_format).
+    Правило: sheet, field, format (type, ...), output.column_on_sheet.
+    Обновляет sheets_data на месте.
+    """
+    sheet_name = rule.get("sheet")
+    field_name = rule.get("field")
+    format_spec = rule.get("format") or {}
+    output = rule.get("output") or {}
+    col_out = output.get("column_on_sheet") or f"ПРОВЕРКА ФОРМАТ: {field_name}"
+    check_id = rule.get("id", "")
+
+    item = _get_sheet_item(sheets_data, sheet_name)
+    if item is None:
+        logging.debug(f"[consistency] field_format {check_id}: лист {sheet_name} отсутствует")
+        return
+    df, conf = item
+    if field_name not in df.columns:
+        logging.warning(f"[consistency] field_format {check_id}: поле {field_name} не найдено на {sheet_name}")
+        return
+
+    results = df[field_name].apply(lambda val: _validate_field_format(val, format_spec))
+    df = df.copy()
+    df[col_out] = results.values
+    sheets_data[sheet_name] = (df, conf)
+    logging.debug(f"[consistency] field_format {check_id}: записана колонка {col_out} на {sheet_name}")
+
+
+def collect_field_format_result(
+    sheets_data: Dict[str, Any],
+    rule: Dict[str, Any],
+) -> Dict[str, Any]:
+    """
+    Собирает результат проверки field_format по уже заполненной колонке.
+    """
+    sheet_name = rule.get("sheet")
+    output = rule.get("output") or {}
+    field_name = rule.get("field", "")
+    col_out = output.get("column_on_sheet") or f"ПРОВЕРКА ФОРМАТ: {field_name}"
+    check_id = rule.get("id", "")
+
+    df = _get_sheet_df(sheets_data, sheet_name)
+    if df is None or col_out not in df.columns:
+        return {
+            "check_id": check_id,
+            "sheet": sheet_name,
+            "name": rule.get("name", ""),
+            "column_on_sheet": col_out,
+            "type": "field_format",
+            "total_rows": 0,
+            "violations": 0,
+            "sample": [],
+            "include_in_summary": output.get("include_in_summary", True),
+        }
+
+    col_series = df[col_out].astype(str).str.strip()
+    violations_mask = col_series != "OK"
+    n_violations = int(violations_mask.sum())
+    total = len(df)
+    sample = []
+    if n_violations > 0:
+        sample = col_series.loc[violations_mask].drop_duplicates().head(20).tolist()
+
+    return {
+        "check_id": check_id,
+        "sheet": sheet_name,
+        "name": rule.get("name", ""),
+        "column_on_sheet": col_out,
+        "type": "field_format",
+        "total_rows": total,
+        "violations": n_violations,
+        "sample": sample,
+        "include_in_summary": output.get("include_in_summary", True),
+    }
+
+
 def collect_unique_result(
     sheets_data: Dict[str, Any],
     rule: Dict[str, Any],
@@ -385,7 +518,7 @@ def collect_field_length_result(
 def _sheet_written_by_rule(rule: Dict[str, Any]) -> Optional[str]:
     """Лист, в который правило пишет результат (для блокировки)."""
     t = rule.get("type", "")
-    if t in ("unique", "field_length"):
+    if t in ("unique", "field_length", "field_format"):
         return rule.get("sheet")
     if t in ("referential", "referential_composite"):
         return rule.get("sheet_src")
@@ -430,9 +563,11 @@ def run_all_consistency_checks(
                 _run_unique_check(sheets_data, rule)
             elif rule.get("type") == "field_length":
                 _run_field_length_check(sheets_data, rule)
+            elif rule.get("type") == "field_format":
+                _run_field_format_check(sheets_data, rule)
 
-    # Фаза 1: создаём колонки unique и field_length на листах (параллельно по правилам, блокировка по листу)
-    phase1_rules = [(i, r) for i, r in enumerate(enabled) if r.get("type") in ("unique", "field_length")]
+    # Фаза 1: создаём колонки unique, field_length и field_format на листах (параллельно по правилам, блокировка по листу)
+    phase1_rules = [(i, r) for i, r in enumerate(enabled) if r.get("type") in ("unique", "field_length", "field_format")]
     if phase1_rules:
         with ThreadPoolExecutor(max_workers=n_workers) as executor:
             futures_ph1 = [executor.submit(_phase1_task, idx, rule) for idx, rule in phase1_rules]
@@ -462,6 +597,8 @@ def run_all_consistency_checks(
                 res = collect_unique_result(sheets_data, rule)
             elif rule_type == "field_length":
                 res = collect_field_length_result(sheets_data, rule)
+            elif rule_type == "field_format":
+                res = collect_field_format_result(sheets_data, rule)
             else:
                 logging.debug(f"[consistency] Неизвестный тип правила: {rule_type}, id={check_id}")
                 _out = rule.get("output") or {}
@@ -504,12 +641,107 @@ def run_all_consistency_checks(
     return results
 
 
-def build_consistency_summary_df(results: List[Dict[str, Any]]) -> pd.DataFrame:
-    """Формирует DataFrame для сводного листа CONSISTENCY."""
+def _rule_to_description_columns(rule: Dict[str, Any]) -> Dict[str, str]:
+    """
+    По правилу из конфига формирует колонки как в таблице проверок (Проверки-Tаблица 1.csv):
+    ТИП ПРОВЕРКИ, Описание, таблица источник, поле источник, таблица где проверяем, поле для проверки, параметр сравнения, комментарий.
+    """
+    t = rule.get("type", "")
+    name = rule.get("name", "")
+    type_ru = {
+        "referential": "внешний ключ в одну колонку",
+        "referential_composite": "внешний ключ из нескольких колонок",
+        "unique": "уникальность, отсутствие дублей по ключу",
+        "field_length": "длина полей",
+        "field_format": "формат поля",
+    }.get(t, t)
+    table_src = ""
+    field_src = ""
+    table_ref = ""
+    field_ref = ""
+    param = ""
+    comment = ""
+    if t == "referential":
+        table_src = rule.get("sheet_src", "")
+        field_src = rule.get("column_src", "")
+        table_ref = rule.get("sheet_ref", "")
+        field_ref = rule.get("column_ref", "")
+        param = "все из источника существуют во второй таблице"
+    elif t == "referential_composite":
+        table_src = rule.get("sheet_src", "")
+        field_src = ", ".join(rule.get("columns_src") or [])
+        table_ref = rule.get("sheet_ref", "")
+        field_ref = ", ".join(rule.get("columns_ref") or [])
+        param = "все из источника существуют во второй таблице"
+    elif t == "unique":
+        table_src = rule.get("sheet", "")
+        field_src = ", ".join(rule.get("key_columns") or [])
+        param = "нет дублей"
+    elif t == "field_length":
+        table_src = rule.get("sheet", "")
+        fields_cfg = rule.get("fields") or {}
+        parts = []
+        for fname, fcfg in fields_cfg.items():
+            op = fcfg.get("operator", "")
+            lim = fcfg.get("limit", "")
+            parts.append(f"{fname} {op}{lim}")
+        field_src = "; ".join(parts)
+        param = "длина в заданных границах"
+    elif t == "field_format":
+        table_src = rule.get("sheet", "")
+        field_src = rule.get("field", "")
+        fmt = rule.get("format") or {}
+        fmt_type = fmt.get("type", "")
+        if fmt_type == "date":
+            param = fmt.get("date_format", "YYYY-MM-DD")
+            if fmt.get("special_values"):
+                comment = "учесть вариант " + ", ".join(fmt["special_values"])
+            if fmt.get("allow_empty"):
+                comment = (comment + "; может быть пустым").lstrip("; ")
+        elif fmt_type == "decimal":
+            places = fmt.get("decimal_places", 5)
+            param = "0." + "0" * places
+        elif fmt_type == "fixed_length_digits":
+            param = f"{fmt.get('length', 20)} цифр с лидирующими нулями"
+        else:
+            param = str(fmt_type)
+    return {
+        "ТИП ПРОВЕРКИ": type_ru,
+        "Описание": name,
+        "таблица источник": table_src,
+        "поле источник": field_src,
+        "таблица где проверяем": table_ref,
+        "поле для проверки": field_ref,
+        "параметр сравнения": param,
+        "комментарий": comment,
+    }
+
+
+def build_consistency_summary_df(
+    results: List[Dict[str, Any]],
+    rules: Optional[List[Dict[str, Any]]] = None,
+) -> pd.DataFrame:
+    """
+    Формирует DataFrame для сводного листа CONSISTENCY.
+    Если передан rules (список правил из конфига), добавляются колонки по образцу таблицы проверок:
+    ТИП ПРОВЕРКИ, Описание, таблица источник, поле источник, таблица где проверяем, поле для проверки, параметр сравнения, комментарий.
+    """
+    base_columns = [
+        "check_id", "sheet", "name", "имя_колонки", "type", "total_rows", "violations", "sample"
+    ]
+    desc_columns = [
+        "ТИП ПРОВЕРКИ", "Описание", "таблица источник", "поле источник",
+        "таблица где проверяем", "поле для проверки", "параметр сравнения", "комментарий"
+    ]
     if not results:
-        return pd.DataFrame(columns=[
-            "check_id", "sheet", "name", "имя_колонки", "type", "total_rows", "violations", "sample"
-        ])
+        return pd.DataFrame(columns=desc_columns + base_columns if rules else base_columns)
+
+    rule_by_id: Dict[str, Dict[str, Any]] = {}
+    if rules:
+        for rule in rules:
+            rid = rule.get("id", "")
+            if rid:
+                rule_by_id[rid] = rule
 
     rows = []
     for r in results:
@@ -519,7 +751,7 @@ def build_consistency_summary_df(results: List[Dict[str, Any]]) -> pd.DataFrame:
         sample_str = "; ".join(str(x)[:80] for x in sample[:5])
         if len(sample) > 5:
             sample_str += " ..."
-        rows.append({
+        row = {
             "check_id": r.get("check_id", ""),
             "sheet": r.get("sheet", ""),
             "name": r.get("name", ""),
@@ -528,8 +760,13 @@ def build_consistency_summary_df(results: List[Dict[str, Any]]) -> pd.DataFrame:
             "total_rows": r.get("total_rows", 0),
             "violations": r.get("violations", 0),
             "sample": sample_str,
-        })
-    return pd.DataFrame(rows)
+        }
+        if rules:
+            desc = _rule_to_description_columns(rule_by_id.get(r.get("check_id", ""), {}))
+            row = {**desc, **row}
+        rows.append(row)
+    cols = (desc_columns + base_columns) if rules else base_columns
+    return pd.DataFrame(rows, columns=cols)
 
 
 def log_and_console_consistency_report(results: List[Dict[str, Any]]) -> None:
@@ -573,7 +810,9 @@ def run_consistency_checks_and_attach_summary(
     """
     summary_sheet_name = config.get("summary_sheet_name", "CONSISTENCY")
     results = run_all_consistency_checks(sheets_data, config, max_workers=max_workers)
-    df_summary = build_consistency_summary_df(results)
+    # config здесь — секция consistency_checks (summary_sheet_name + rules), а не весь config.json
+    rules = config.get("rules") or []
+    df_summary = build_consistency_summary_df(results, rules=rules)
     params = {"sheet": summary_sheet_name, "max_col_width": 80, "col_width_mode": "AUTO", "min_col_width": 10}
     sheets_data[summary_sheet_name] = (df_summary, params)
     log_and_console_consistency_report(results)
