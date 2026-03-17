@@ -186,7 +186,7 @@ def _load_config_globals():
             MERGE_FIELDS_ADVANCED = _c.merge_fields_advanced
             COLOR_SCHEME = _c.color_scheme
             COLUMN_FORMATS = _c.column_formats
-            CONSISTENCY_CHECKS = getattr(_c, "consistency_checks", None) or {"summary_sheet_name": "CONSISTENCY", "rules": []}
+            CONSISTENCY_CHECKS = getattr(_c, "consistency_checks", None) or {"summary_sheet_name": "CONSISTENCY", "rules": [], "csv_columns_count": {}}
             RUN_MODE = getattr(_c, "run_mode", 1)
             OUTPUT_FILENAME_MAIN = getattr(_c, "output_filename_main", "SPOD_ALL_IN_ONE")
             OUTPUT_FILENAME_SOURCE = getattr(_c, "output_filename_source", "SPOD_PROM source")
@@ -234,6 +234,7 @@ def _load_config_globals():
     CONSISTENCY_CHECKS = {
         "summary_sheet_name": _cc.get("summary_sheet_name", "CONSISTENCY"),
         "rules": _cc.get("rules") or [],
+        "csv_columns_count": _cc.get("csv_columns_count") or {},
     }
     # Текстовые метки: full, source_only, main_only, consistency_only (или числа 1–4)
     _raw_rm = _cfg.get("run_mode", 1)
@@ -862,7 +863,8 @@ def read_csv_file(
                         row = list(row) + [""] * (n - actual)
                         issues.append({"row_index": i + 1, "expected_cols": n, "actual_cols": actual, "direction": "меньше"})
                     elif actual > n:
-                        row = row[:n]
+                        # Последняя колонка может содержать JSON с точкой с запятой внутри — склеиваем хвост в одну ячейку
+                        row = list(row[: n - 1]) + [";".join(row[n - 1 :])]
                         issues.append({"row_index": i + 1, "expected_cols": n, "actual_cols": actual, "direction": "больше"})
                     rows.append(row)
 
@@ -3644,8 +3646,9 @@ def process_single_file(file_conf):
         
         th = threading.current_thread().name
         logging.info(f"Загрузка файла: {file_path} [поток: {th}]")
-        # expected_columns: 0 = АВТО (по заголовку), >0 = фиксированное ожидаемое число полей в CSV
-        expected_columns = int(file_conf.get("expected_columns", 0))
+        # expected_columns из consistency_checks.csv_columns_count.sheets[sheet], иначе из file_conf (обратная совместимость); 0 = АВТО
+        csv_cc = (CONSISTENCY_CHECKS or {}).get("csv_columns_count", {}).get("sheets", {})
+        expected_columns = int(csv_cc.get(sheet_name, {}).get("expected_columns", file_conf.get("expected_columns", 0)))
         result = read_csv_file(file_path, expected_columns=expected_columns)
         if result is None:
             logging.error(f"Ошибка чтения файла: {file_path} [поток: {th}]")
@@ -3787,18 +3790,60 @@ def collect_duplicates_and_validation_report(sheets_data: Dict[str, Any]) -> tup
     return validation_report, csv_mismatch_report
 
 
+def copy_consistency_results_from_raw_to_processed(
+    raw_sheets_data: Dict[str, Any],
+    sheets_data: Dict[str, Any],
+    summary_sheet_name: str,
+) -> None:
+    """
+    Копирует результаты проверок консистентности с сырых листов на обработанные:
+    колонки, добавленные проверками (ДУБЛЬ:…, ПРОВЕРКА:… и т.д.), и лист CONSISTENCY.
+    Сырые и обработанные листы имеют одинаковый порядок строк (индексы совпадают).
+    """
+    for sheet_name in list(sheets_data.keys()):
+        if sheet_name == summary_sheet_name:
+            continue
+        if sheet_name not in raw_sheets_data or raw_sheets_data[sheet_name] is None:
+            continue
+        raw_item = raw_sheets_data[sheet_name]
+        proc_item = sheets_data[sheet_name]
+        if not isinstance(raw_item, (list, tuple)) or len(raw_item) < 1 or not isinstance(proc_item, (list, tuple)) or len(proc_item) < 1:
+            continue
+        raw_df = raw_item[0]
+        proc_df = proc_item[0]
+        if not isinstance(raw_df, pd.DataFrame) or not isinstance(proc_df, pd.DataFrame):
+            continue
+        # Колонки, добавленные проверками на сырых данных (есть в raw, нет в processed)
+        added_cols = [c for c in raw_df.columns if c not in proc_df.columns]
+        for col in added_cols:
+            proc_df[col] = raw_df[col].values
+        logging.debug(f"[CONSISTENCY] Скопировано колонок проверок на лист {sheet_name}: {len(added_cols)}")
+    if summary_sheet_name in raw_sheets_data and raw_sheets_data[summary_sheet_name] is not None:
+        sheets_data[summary_sheet_name] = raw_sheets_data[summary_sheet_name]
+        logging.debug(f"[CONSISTENCY] Лист {summary_sheet_name} скопирован с сырых данных")
+
+
 def append_csv_mismatches_to_consistency(
     sheets_data: Dict[str, Any],
     csv_mismatch_report: List[Dict[str, Any]],
     summary_sheet_name: str = "CONSISTENCY",
-    input_files: Optional[List[Dict[str, Any]]] = None,
+    consistency_checks_config: Optional[Dict[str, Any]] = None,
+    raw_sheets_data: Optional[Dict[str, Any]] = None,
+    raw_counts: Optional[Dict[str, Dict[str, int]]] = None,
 ) -> None:
     """
-    Дополняет сводный лист CONSISTENCY записью о проверке числа полей в CSV для каждого
-    загруженного файла: ожидаемое число полей (или АВТО), результат проверки (OK или кол-во строк с расхождением).
-    Для листов с расхождениями в sample выводятся примеры строк.
+    Дополняет сводный лист CONSISTENCY записью о проверке числа полей в CSV.
+    Список листов, ожидаемое число полей (expected_columns: 0 = АВТО) и тексты для колонок
+    берутся из consistency_checks.csv_columns_count (sheets + _default).
+    Число колонок и строк должно браться из raw_counts (сырые данные до любых проверок);
+    если raw_counts не передан — из raw_sheets_data (но там уже могут быть колонки проверок).
     """
-    input_list = input_files if input_files is not None else INPUT_FILES
+    cc = consistency_checks_config if consistency_checks_config is not None else CONSISTENCY_CHECKS
+    csv_cc = (cc or {}).get("csv_columns_count", {})
+    sheets_cfg = csv_cc.get("sheets", {})
+    if not sheets_cfg:
+        return
+    default_desc = (csv_cc.get("_default") or {}).copy()
     base_columns = [
         "check_id", "sheet", "name", "имя_колонки", "type", "total_rows", "violations", "sample"
     ]
@@ -3812,8 +3857,7 @@ def append_csv_mismatches_to_consistency(
         by_sheet[key].append(r)
 
     new_rows = []
-    for file_conf in input_list:
-        sheet_name = file_conf.get("sheet", "")
+    for sheet_name, sheet_cfg in sheets_cfg.items():
         if not sheet_name or sheet_name not in sheets_data or sheets_data[sheet_name] is None:
             continue
         item = sheets_data[sheet_name]
@@ -3822,9 +3866,27 @@ def append_csv_mismatches_to_consistency(
         df = item[0]
         if not isinstance(df, pd.DataFrame):
             continue
-        total_rows = len(df)
-        expected_cols = file_conf.get("expected_columns", 0)
+        # Число строк и колонок — только из сырых данных ДО проверок (raw_counts); иначе raw_sheets_data уже с колонками проверок даст неверный подсчёт
+        if raw_counts and sheet_name in raw_counts:
+            total_rows = raw_counts[sheet_name].get("nrows", len(df))
+            actual_col_count = raw_counts[sheet_name].get("ncols", 0)
+        elif raw_sheets_data and sheet_name in raw_sheets_data:
+            raw_item = raw_sheets_data[sheet_name]
+            if isinstance(raw_item, (list, tuple)) and len(raw_item) >= 1 and isinstance(raw_item[0], pd.DataFrame):
+                raw_df = raw_item[0]
+                total_rows = len(raw_df)
+                actual_col_count = len(raw_df.columns)
+            else:
+                total_rows = len(df)
+                actual_col_count = len(df.columns) if hasattr(df, "columns") else 0
+        else:
+            total_rows = len(df)
+            actual_col_count = len(df.columns) if hasattr(df, "columns") else 0
+        expected_cols = int(sheet_cfg.get("expected_columns", 0))
         expected_label = "АВТО (по заголовку)" if expected_cols == 0 else str(expected_cols)
+        param_compare = expected_label
+        if expected_cols == 0 and actual_col_count:
+            param_compare = f"АВТО (по заголовку), колонок в файле: {actual_col_count}"
         recs = by_sheet.get(sheet_name, [])
         violations = len(recs)
         if violations == 0:
@@ -3843,7 +3905,24 @@ def append_csv_mismatches_to_consistency(
         name_text = (
             f"Проверка числа полей в CSV. Ожидалось: {expected_label} полей. Результат: {result_text}"
         )
+        # Тексты для колонок листа CONSISTENCY: из sheet_cfg с подстановкой _default
+        desc = {**default_desc, **{k: v for k, v in sheet_cfg.items() if k in desc_columns}}
+        desc.setdefault("ТИП ПРОВЕРКИ", "число полей в CSV")
+        desc.setdefault("Описание", "Проверка числа полей в CSV (ожидаемое из конфига или АВТО по заголовку)")
+        desc.setdefault("таблица источник", sheet_name)
+        desc.setdefault("поле источник", "все поля строки")
+        desc.setdefault("таблица где проверяем", "")
+        desc.setdefault("поле для проверки", "")
+        desc.setdefault("комментарий", "Строки с расхождением числа полей от ожидаемого фиксируются в sample.")
         row = {
+            "ТИП ПРОВЕРКИ": desc.get("ТИП ПРОВЕРКИ", ""),
+            "Описание": desc.get("Описание", ""),
+            "таблица источник": desc.get("таблица источник", sheet_name),
+            "поле источник": desc.get("поле источник", ""),
+            "таблица где проверяем": desc.get("таблица где проверяем", ""),
+            "поле для проверки": desc.get("поле для проверки", ""),
+            "параметр сравнения": param_compare,
+            "комментарий": desc.get("комментарий", ""),
             "check_id": "csv_columns_count",
             "sheet": sheet_name,
             "name": name_text,
@@ -3858,20 +3937,22 @@ def append_csv_mismatches_to_consistency(
     if not new_rows:
         return
     params = {"sheet": summary_sheet_name, "max_col_width": 80, "col_width_mode": "AUTO", "min_col_width": 10}
+    out_columns = desc_columns + base_columns
     if summary_sheet_name in sheets_data:
         item = sheets_data[summary_sheet_name]
         if item and isinstance(item, (list, tuple)) and len(item) >= 1:
             df_summary, params = item[0], item[1]
             if isinstance(df_summary, pd.DataFrame):
-                has_desc = all(c in df_summary.columns for c in desc_columns)
                 out_columns = df_summary.columns.tolist()
-                rows_for_df = [({c: "" for c in desc_columns} | row) if has_desc else row for row in new_rows]
+                # Строки new_rows уже содержат все колонки (описание + базовые)
+                rows_for_df = [row for row in new_rows]
                 extra_df = pd.DataFrame(rows_for_df, columns=out_columns)
                 combined = pd.concat([df_summary, extra_df], axis=0, ignore_index=True)
                 sheets_data[summary_sheet_name] = (combined, params)
                 logging.info(f"[CONSISTENCY] Добавлено записей проверки числа полей CSV: {len(new_rows)}")
                 return
-    extra_df = pd.DataFrame(new_rows, columns=base_columns)
+    # Новый лист: создаём с полным набором колонок (описание + базовые), таблица не пустая
+    extra_df = pd.DataFrame(new_rows, columns=out_columns)
     sheets_data[summary_sheet_name] = (extra_df, params)
     logging.info(f"[CONSISTENCY] Создан лист {summary_sheet_name} с записями проверки числа полей CSV: {len(new_rows)}")
 
@@ -4062,6 +4143,28 @@ def main():
         print(msg, file=sys.stderr)
         sys.exit(1)
 
+    # 5. Проверки консистентности на сырых данных (до EMPLOYEE, merge и т.д.); результаты потом попадут в конец листов
+    summary_sheet_name = (CONSISTENCY_CHECKS or {}).get("summary_sheet_name", "CONSISTENCY")
+    raw_sheets_data = {s: (raw_sheets[s][0], raw_sheets[s][1]) for s in raw_sheets}
+    # Число колонок и строк в сырых CSV — фиксируем до проверок (проверки добавляют колонки на листы)
+    raw_counts = {}
+    for s in raw_sheets_data:
+        item = raw_sheets_data[s]
+        if isinstance(item, (list, tuple)) and len(item) >= 1 and isinstance(item[0], pd.DataFrame):
+            raw_counts[s] = {"ncols": len(item[0].columns), "nrows": len(item[0])}
+    if CONSISTENCY_CHECKS and (CONSISTENCY_CHECKS.get("rules")):
+        logging.info("[main] Запуск проверок консистентности на сырых данных (до обработки)")
+        run_consistency_checks_and_attach_summary(raw_sheets_data, CONSISTENCY_CHECKS, max_workers=MAX_WORKERS)
+        copy_consistency_results_from_raw_to_processed(raw_sheets_data, sheets_data, summary_sheet_name)
+        logging.info("[main] Проверки консистентности завершены, результаты скопированы на обработанные листы")
+    append_csv_mismatches_to_consistency(
+        sheets_data, list(_csv_column_mismatches),
+        summary_sheet_name=summary_sheet_name,
+        consistency_checks_config=CONSISTENCY_CHECKS,
+        raw_sheets_data=raw_sheets_data,
+        raw_counts=raw_counts,
+    )
+
     # 2. Добавление колонки AUTO_GENDER для листа EMPLOYEE
     if "EMPLOYEE" in sheets_data:
         df_employee, conf_employee = sheets_data["EMPLOYEE"]
@@ -4098,15 +4201,6 @@ def main():
             count_column_prefix="COUNT",
             merge_name="MERGE_FIELDS_ADVANCED"
         )
-
-    # 5. Проверки консистентности (колонки unique ДУБЛЬ:…, referential, свод CONSISTENCY) — до SUMMARY, чтобы колонки были на листах
-    if CONSISTENCY_CHECKS and (CONSISTENCY_CHECKS.get("rules")):
-        logging.info("[main] Запуск проверок консистентности")
-        run_consistency_checks_and_attach_summary(sheets_data, CONSISTENCY_CHECKS, max_workers=MAX_WORKERS)
-        logging.info("[main] Проверки консистентности завершены")
-    # 5.1. Добавление в свод CONSISTENCY записей по расхождениям числа полей в CSV (expected_columns)
-    summary_sheet_name = (CONSISTENCY_CHECKS or {}).get("summary_sheet_name", "CONSISTENCY")
-    append_csv_mismatches_to_consistency(sheets_data, list(_csv_column_mismatches), summary_sheet_name=summary_sheet_name)
 
     # Режим 4: только файл консистентности — лист CONSISTENCY + листы с нарушениями, без color_scheme
     if run_mode == 4:

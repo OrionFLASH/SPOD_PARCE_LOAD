@@ -48,8 +48,8 @@ SPOD_PROM/
 │   ├── gender.py         # Определение пола (AUTO_GENDER)
 │   └── main_impl.py      # Полный пайплайн: загрузка, merge, summary, Excel, отчёты
 ├── requirements.txt        # Зависимости (pandas, openpyxl и др.) для main.py
-├── SPOD/                   # Исходные CSV файлы (paths.input)
-├── OUT/                    # Результирующие Excel файлы (paths.output)
+├── IN/                     # Корень входных данных (paths.input); внутри — subdir (SPOD, FILE и т.д.)
+├── OUT/                    # Базовый каталог вывода (paths.output); файлы по дате: OUT/YYYY/DD-MM/
 ├── EDIT/                   # Копии файлов для редактирования (сессии админ-панели)
 ├── BACKUP/                 # Резервные копии
 ├── POST/                   # Копии всех файлов программы с суффиксом .txt (код src/, main.py, config.json, README.md, requirements.txt) для переноса без репозитория
@@ -82,7 +82,7 @@ SPOD_PROM/
 | **file_loader.py** | Поиск и загрузка CSV, разворот JSON по конфигу | Класс `FileLoader(config)`: `find_file_case_insensitive(directory, base_name, extensions)`, `check_input_files_exist()`, `read_csv_file(file_path)`, `process_single_file(file_conf)` — возвращает `(df, sheet_name, file_conf)` или `(None, sheet_name, None)`. |
 | **tournament.py** | Расчёт статуса турнира по датам | `calculate_tournament_status(config, df_tournament, df_report=None)` — добавляет колонку `CALC_TOURNAMENT_STATUS` по правилам из `config.tournament_status_choices`. |
 | **validation.py** | Валидация длины полей и проверка дубликатов (устаревшие пути) | `validate_field_lengths(config, df, sheet_name)`, `validate_field_lengths_vectorized(config, df, sheet_name)`, `compare_validate_results`, `mark_duplicates`, `validate_single_sheet`, `check_duplicates_single_sheet`. Основной пайплайн больше не использует отдельные шаги проверки дубликатов и длины полей — всё выполняется в **consistency_checks**. |
-| **consistency_checks.py** | Проверки консистентности (единая точка для unique и field_length) | Выполняет правила из `consistency_checks.rules` **с параллелизацией** (ThreadPoolExecutor, число потоков из `max_workers` при вызове). **Фаза 1** — создаёт на листах колонки `unique` («ДУБЛЬ: …») и `field_length`; **Фаза 2** — referential/referential_composite и сбор результатов; запись в один лист защищена блокировкой по листу. Функции: `_run_unique_check`, `_run_field_length_check`, `run_referential`, `run_referential_composite`, `collect_*`, `run_all_consistency_checks`, `run_consistency_checks_and_attach_summary`. Результаты — колонки на листах, свод CONSISTENCY, лог и консоль. |
+| **consistency_checks.py** | Проверки консистентности (unique, field_length, field_format, referential, json_field_equals_column, json_field_in_column) | Выполняет правила из `consistency_checks.rules` **с параллелизацией** (ThreadPoolExecutor). **Фаза 1** — создаёт на листах колонки `unique` («ДУБЛЬ: …»), `field_length`, `field_format`; **Фаза 2** — referential/referential_composite, **json_field_equals_column**, **json_field_in_column** и сбор результатов. Парсинг JSON в ячейках (ADD_DATA и т.п.): **`_parse_add_data_cell(val)`** — замена `"""` на `"`, затем `json.loads`. Сводный лист CONSISTENCY формируется с колонками-описаниями (ТИП ПРОВЕРКИ, Описание, таблица источник, поле источник и т.д.); расхождения по числу полей CSV (csv_columns_count) также попадают в свод. Функции: `_run_unique_check`, `_run_field_length_check`, `_run_field_format_check`, `run_referential`, `run_referential_composite`, `_run_json_field_equals_column`, `_run_json_field_in_column`, `collect_*`, `run_all_consistency_checks`, `run_consistency_checks_and_attach_summary`, `build_consistency_summary_df(results, rules)`. |
 | **gender.py** | Определение пола по отчеству, имени, фамилии | `add_auto_gender_column(config, df, sheet_name)`, `add_auto_gender_column_vectorized(config, df, sheet_name)`, `compare_gender_results(df_old, df_new)`. Внутри используются паттерны из `config.gender_patterns`. |
 | **main_impl.py** | Полный пайплайн обработки | При импорте вызывается `_load_config_globals()`. Функция `main()`: параллельная загрузка CSV и разворот JSON → выгрузка сырых данных в «SPOD_PROM source …» → проверка наличия файлов → добавление AUTO_GENDER (EMPLOYEE) → расчёт статуса турнира → merge (кроме SUMMARY) → **проверки консистентности** (модуль `consistency_checks`, параллельно с `MAX_WORKERS`: создание колонок unique и field_length, referential/referential_composite, свод CONSISTENCY) → формирование SUMMARY → лист STAT_FILE → запись основного Excel → итоговый отчёт по отклонениям длины полей и расхождениям CSV. Отдельных шагов «проверка дубликатов» и «валидация длины полей» нет — всё в рамках consistency_checks. |
 
@@ -98,34 +98,42 @@ SPOD_PROM/
 
 | Секция | Назначение |
 |--------|------------|
-| `paths` | Каталоги: вход (SPOD), выход (OUT), логи (LOGS). |
+| `run_mode` | Режим запуска: `full`, `source_only`, `main_only`, `consistency_only` (или числа 1–4). |
+| `output_filenames` | Имена выходных файлов без расширения: main, source, consistency. |
+| `apply_sort_to_source` | Применять ли сортировку из `input_files.sort_columns` при записи source Excel. |
+| `apply_sort_to_main` | Применять ли сортировку из `input_files.sort_columns` при записи основного Excel. |
+| `paths` | Каталоги: вход (IN/SPOD), выход (OUT), логи (LOGS). Выходные файлы пишутся в подпапки по дате: OUT/YYYY/DD-MM. |
 | `logging` | Уровень (INFO/DEBUG) и базовое имя файла логов. |
 | `performance` | Количество потоков: max_workers_io, max_workers_cpu. |
 | `tournament_status_choices` | Подписи статусов турнира (расчёт CALC_TOURNAMENT_STATUS). |
-| `input_files` | Список CSV-файлов и параметров листов Excel (имя файла, лист, ширина колонок, freeze, include_in_source). |
-| `source_export` | Параметры выгрузки сырых данных: сортировка листов (sort_rules) при записи в SPOD_PROM source *.xlsx. |
+| `input_files` | Список CSV: file, sheet, expected_columns (0=АВТО), subdir, sort_columns, ширина, freeze, include_in_source. |
 | `summary_sheet` | Параметры сводного листа SUMMARY (ширина, закрепление). |
 | `sheet_order` | Порядок листов в выходном Excel (если задан). |
-| `summary_key_defs` | Ключевые колонки по листам для каркаса SUMMARY (порядок колонок). |
+| `summary_key_defs` | Ключевые колонки по листам для каркаса SUMMARY (в т.ч. INDICATOR: INDICATOR_CODE, INDICATOR_ADD_CALC_TYPE, CONTEST_CODE). |
 | `gender` | Правила автоопределения пола (паттерны отчества/имени/фамилии). |
-| `derived_columns` | Производные колонки: добавление на лист колонки с преобразованием (например, pad_left — табельный в 20 знаков с лидирующими нулями). |
-| `merge_fields_advanced` | Правила переноса/подсчёта полей между листами (источник, приёмник, ключи, column, mode, src_key_transforms, dst_key_transforms). |
+| `derived_columns` | Производные колонки (pad_left и т.д.). |
+| `merge_fields_advanced` | Правила переноса/подсчёта полей между листами. |
 | `color_scheme` | Цвета заголовков и ячеек по листам и колонкам. |
 | `column_formats` | Формат ячеек: число, дата, выравнивание по листам и колонкам. |
-| `consistency_checks` | **Единый конфиг всех проверок консистентности:** сводный лист (summary_sheet_name), массив правил (rules) с типами referential, referential_composite, **unique** (создание колонок «ДУБЛЬ: …» на листах), **field_length** (создание колонок проверки длины полей по полю `fields` в правиле). Модуль src/consistency_checks.py создаёт эти колонки и собирает результаты в лист CONSISTENCY, лог и консоль. Секции `check_duplicates` и `field_length_validations` в config.json **удалены** — все правила задаются здесь. |
+| `consistency_checks` | Единый конфиг проверок консистентности (summary_sheet_name, rules: referential, unique, field_length, field_format). |
 | `json_columns` | Колонки с JSON для разворота по листам (column, prefix). |
 
 ### Общая структура файла
 
 ```json
 {
-  "paths": { ... },
+  "run_mode": "full",
+  "_run_mode_options": ["full", "source_only", "main_only", "consistency_only"],
+  "apply_sort_to_source": true,
+  "apply_sort_to_main": false,
+  "output_filenames": { "main": "SPOD_ALL_IN_ONE", "source": "SPOD_PROM source", "consistency": "SPOD_PROM CONSISTENCY" },
+  "paths": { "input": "IN", "output": "OUT", "logs": "LOGS" },
   "logging": { ... },
   "performance": { ... },
-  "source_export": { ... },
   "tournament_status_choices": [ ... ],
   "input_files": [ ... ],
   "summary_sheet": { ... },
+  "sheet_order": [ ... ],
   "summary_key_defs": [ ... ],
   "gender": { ... },
   "derived_columns": [ ... ],
@@ -139,26 +147,87 @@ SPOD_PROM/
 
 ---
 
+### run_mode
+
+**Назначение:** режим запуска пайплайна. Задаётся строкой или числом.
+
+| Значение (строка)   | Число | Описание |
+|---------------------|-------|----------|
+| `"full"`            | 1     | Полный цикл: source Excel, основной Excel с merge, SUMMARY, STAT_FILE, проверки консистентности. |
+| `"source_only"`     | 2     | Только выгрузка сырых данных (source Excel) и выход. |
+| `"main_only"`       | 3     | Без выгрузки source; загрузка CSV, merge, консистентность, SUMMARY, основной Excel. |
+| `"consistency_only"`| 4     | Только проверки консистентности и запись файла с листом CONSISTENCY и листами с нарушениями (без SUMMARY в файле). |
+
+**Пример:**
+```json
+"run_mode": "full",
+"_run_mode_options": ["full", "source_only", "main_only", "consistency_only"]
+```
+
+**Логика:** при старте значение читается из конфига; если указана строка из списка — используется соответствующий код; если число 1–4 — режим по коду. Все выходные файлы (source, consistency, main) пишутся в подкаталог по дате (см. paths.output).
+
+---
+
+### output_filenames
+
+**Назначение:** имена выходных файлов без расширения. К имени добавляется метка времени и расширение .xlsx (кроме baseline).
+
+| Ключ           | Тип    | Описание |
+|----------------|--------|----------|
+| `main`         | строка | Имя основного Excel (например `SPOD_ALL_IN_ONE_2026-03-17_12-00-00.xlsx`). |
+| `source`       | строка | Имя файла сырых данных (например `SPOD_PROM source 2026-03-17_12-00-00.xlsx`). |
+| `consistency`  | строка | Имя файла консистентности в режиме 4 (например `SPOD_PROM CONSISTENCY 2026-03-17_12-00-00.xlsx`). |
+
+**Пример:**
+```json
+"output_filenames": {
+  "main": "SPOD_ALL_IN_ONE",
+  "source": "SPOD_PROM source",
+  "consistency": "SPOD_PROM CONSISTENCY"
+}
+```
+
+---
+
+### apply_sort_to_source, apply_sort_to_main
+
+**Назначение:** включать ли сортировку при записи в Excel. Правила сортировки задаются в каждом элементе `input_files` в поле `sort_columns`.
+
+| Ключ                    | Тип  | По умолчанию | Описание |
+|-------------------------|------|--------------|----------|
+| `apply_sort_to_source`  | bool | `true`       | Применять сортировку из `input_files[].sort_columns` при записи файла сырых данных (source). |
+| `apply_sort_to_main`    | bool | `false`      | Применять сортировку из `input_files[].sort_columns` при записи основного Excel. |
+
+**Пример:**
+```json
+"apply_sort_to_source": true,
+"apply_sort_to_main": false
+```
+
+**Логика:** для каждого листа берётся массив `sort_columns` из элемента `input_files` с соответствующим `sheet`. Колонки применяются последовательно (1 → 2 → 3). Если колонки нет на листе — она пропускается; если ни одной колонки нет — сортировка не выполняется.
+
+---
+
 ### paths
 
 **Назначение:** относительные имена каталогов для входных данных, выходного Excel и логов. Пути собираются программой как `(каталог_программы)/(значение)`.
 
 | Ключ     | Тип   | Описание |
 |----------|--------|----------|
-| `input`  | строка | Каталог с CSV-файлами (по умолчанию `"SPOD"`). |
-| `output` | строка | Каталог для сгенерированных xlsx (по умолчанию `"OUT"`). |
+| `input`  | строка | Корневой каталог с подкаталогами CSV (например `"IN"`). Файлы ищутся в `paths.input/subdir/` по элементу `input_files[].subdir`. |
+| `output` | строка | Базовый каталог для сгенерированных xlsx (по умолчанию `"OUT"`). **Файлы пишутся в подпапки по дате формирования:** `OUT/YYYY/DD-MM/`, где YYYY — год (4 цифры), DD — день (2 цифры), MM — месяц (2 цифры). Например: 16 марта 2026 → `OUT/2026/16-03/`, 1 января → `OUT/2026/01-01/`. Каталоги создаются автоматически. |
 | `logs`   | строка | Каталог для лог-файлов (по умолчанию `"LOGS"`). |
 
 **Пример:**
 ```json
 "paths": {
-  "input": "SPOD",
+  "input": "IN",
   "output": "OUT",
   "logs": "LOGS"
 }
 ```
 
-**Логика:** при старте программа формирует, например, `DIR_INPUT = os.path.join(BASE_DIR, paths.input)`. Файлы ищутся в `SPOD/`, результат пишется в `OUT/`, логи — в `LOGS/`.
+**Логика:** при старте формируются `DIR_INPUT`, `DIR_OUTPUT`, `DIR_LOGS`. При записи любого выходного файла используется `get_output_dir_for_run(DIR_OUTPUT)` → `OUT/2026/17-03/` (текущая дата). Source, consistency и main Excel пишутся в этот подкаталог.
 
 ---
 
@@ -204,30 +273,9 @@ SPOD_PROM/
 
 ---
 
-### source_export
+### Сортировка листов (source и main)
 
-**Назначение:** параметры отдельной выгрузки сырых данных в файл «SPOD_PROM source YYYY-MM-DD_HH-MM-SS.xlsx» (только содержимое CSV, без разворота JSON и без доп. колонок).
-
-| Ключ         | Тип   | Описание |
-|--------------|--------|----------|
-| `sort_rules` | массив | Правила сортировки листов при записи в source-файл. Каждый элемент: `sheet` — имя листа, `columns` — список объектов `{"column": "ИмяКолонки", "order": "asc" \| "desc"}`. Сортировка применяется последовательно по указанным колонкам. |
-
-**Пример:**
-```json
-"source_export": {
-  "sort_rules": [
-    {
-      "sheet": "REPORT",
-      "columns": [
-        {"column": "TOURNAMENT_CODE", "order": "asc"},
-        {"column": "CONTEST_CODE", "order": "asc"}
-      ]
-    }
-  ]
-}
-```
-
-**Логика:** при формировании source-файла для каждого листа, для которого задано правило в `sort_rules`, данные сортируются по указанным колонкам перед записью. На всех листах source по умолчанию включён автофильтр; ширины колонок и закрепление берутся из `input_files` для соответствующего листа.
+**Назначение:** правила сортировки задаются **в каждом элементе `input_files`** в поле **`sort_columns`** (см. выше). Отдельная секция `source_export.sort_rules` не используется. При формировании source-файла и основного Excel для каждого листа берутся колонки из `input_files[].sort_columns` для соответствующего `sheet`; применение управляется флагами `apply_sort_to_source` и `apply_sort_to_main`. На всех листах source по умолчанию включён автофильтр; ширины и закрепление — из `input_files`.
 
 ---
 
@@ -264,21 +312,27 @@ SPOD_PROM/
 
 **Назначение:** список CSV-файлов и настроек листов Excel. Каждый элемент описывает один файл и один лист в итоговой книге.
 
-| Ключ               | Тип    | Описание |
-|--------------------|--------|----------|
-| `file`             | строка | Имя CSV (с расширением или без). Поиск в каталоге `paths.input` без учёта регистра (.csv / .CSV). |
-| `sheet`            | строка | Имя листа в выходном Excel, куда попадут данные этого файла. |
-| `max_col_width`    | число  | Максимальная ширина колонки (символов) при авто-ширине. |
-| `freeze`           | строка | Закрепление областей, например `"C2"` — закрепить столбцы A–B и строку 1. |
-| `col_width_mode`   | строка | Режим ширины: `"AUTO"` — по содержимому (ограничено max_col_width), либо число — фиксированная ширина. |
-| `min_col_width`    | число  | Минимальная ширина колонки. |
-| `include_in_source`| bool   | Включать ли лист в выгрузку сырых данных (файл «SPOD_PROM source …»). По умолчанию `true`. Если `false` — лист не попадает в source Excel; основная загрузка и основной Excel от этого не зависят. |
+| Ключ                | Тип    | Описание |
+|---------------------|--------|----------|
+| `file`              | строка | Имя CSV (с расширением или без). Поиск в каталоге `paths.input/subdir` без учёта регистра (.csv / .CSV). |
+| `sheet`             | строка | Имя листа в выходном Excel, куда попадут данные этого файла. |
+| `expected_columns`  | число  | Ожидаемое число полей в CSV. **0** — АВТО (берётся из заголовка). Если в строке CSV число полей отличается — фиксируется в отчёте и листе CONSISTENCY. |
+| `subdir`            | строка | Подкаталог внутри `paths.input`, где искать файл (например `"SPOD"` или `"FILE"`). Итоговый путь: `paths.input/subdir/file`. |
+| `sort_columns`      | массив | Правила сортировки листа при записи в source/main Excel (если включено `apply_sort_to_source` или `apply_sort_to_main`). Каждый элемент: `{"column": "ИмяКолонки", "order": "asc" \| "desc"}`. Применяются последовательно. Если колонки нет на листе — пропускается; если ни одной нет — сортировка не выполняется. |
+| `max_col_width`     | число  | Максимальная ширина колонки (символов) при авто-ширине. |
+| `freeze`            | строка | Закрепление областей, например `"C2"` — закрепить столбцы A–B и строку 1. |
+| `col_width_mode`    | строка | Режим ширины: `"AUTO"` — по содержимому (ограничено max_col_width), либо число — фиксированная ширина. |
+| `min_col_width`     | число  | Минимальная ширина колонки. |
+| `include_in_source` | bool   | Включать ли лист в выгрузку сырых данных (файл «SPOD_PROM source …»). По умолчанию `true`. |
 
 **Пример:**
 ```json
 {
-  "file": "CONTEST (PROM) 02-02 v2.csv",
+  "file": "CONTEST (PROM) 16-03 v0.csv",
   "sheet": "CONTEST-DATA",
+  "expected_columns": 0,
+  "subdir": "SPOD",
+  "sort_columns": [{"column": "CONTEST_CODE", "order": "asc"}],
   "max_col_width": 120,
   "freeze": "C2",
   "col_width_mode": "AUTO",
@@ -287,7 +341,7 @@ SPOD_PROM/
 }
 ```
 
-**Логика:** программа перебирает `input_files`, для каждого ищет файл в `SPOD/`, читает CSV, разворачивает JSON по правилам из `json_columns`, затем записывает лист с именем `sheet` и применяет к нему указанные ширины и закрепление. Параметр `include_in_source` влияет только на отдельный файл выгрузки сырых данных (см. раздел «Выгрузка сырых данных (source Excel)»).
+**Логика:** программа перебирает `input_files`, для каждого ищет файл в `paths.input/subdir/` (например `IN/SPOD/`), читает CSV, проверяет число полей по `expected_columns` (0 = по заголовку), разворачивает JSON по `json_columns`, записывает лист с именем `sheet` и применяет ширины, закрепление и при необходимости сортировку из `sort_columns`. Результаты проверки числа полей CSV выводятся в лист CONSISTENCY.
 
 ---
 
@@ -592,8 +646,17 @@ SPOD_PROM/
 - **referential_composite** — внешний ключ из нескольких колонок: комбинация `columns_src` на `sheet_src` должна встречаться в `sheet_ref` по `columns_ref`. Поля: `sheet_src`, `columns_src`, `sheet_ref`, `columns_ref`.
 - **unique** — уникальность комбинации колонок. В фазе 1 модуль **создаёт** колонку «ДУБЛЬ: …» на листе по полям `sheet`, `key_columns`, `output.column_on_sheet` (например «ДУБЛЬ: CONTEST_CODE_GROUP_CODE_REWARD_CODE»). В ячейках: пусто или «xN». В фазе 2 результат собирается в свод.
 - **field_length** — проверка длины полей. В фазе 1 модуль **создаёт** колонку результата на листе по полям `sheet`, `result_column`, **`fields`** (объект: имя поля → `{ "limit": N, "operator": "=" | "<=" | ">=" }`), `output.column_on_sheet`. В ячейках: «-» или строка с описанием нарушений. В фазе 2 результат собирается в свод.
+- **field_format** — проверка формата поля (дата, десятичное число с фиксированной дробной частью, строка из N цифр). В фазе 1 создаётся колонка результата на листе по полям `sheet`, `field`, **`format`** (type: date/decimal/fixed_length_digits + параметры). В фазе 2 результат собирается в свод.
+- **json_field_equals_column** — значение ключа из JSON-колонки сравнивается с колонкой листа. Применяется к полям вроде REWARD_ADD_DATA (JSON с тройными кавычками). Поля: `sheet`, **`json_column`** (например REWARD_ADD_DATA), **`json_key`** (например parentRewardCode), **`column_compare`** (например REWARD_CODE). Опционально: **`filter_column`** + **`filter_value`** (только строки, где значение колонки совпадает, например REWARD_TYPE=BADGE), **`json_filter_key`** + **`json_filter_value`** (доп. условие по ключу в JSON, например masterBadge=Y). При **`must_not_equal`: true** требование инвертируется: значение из JSON **не должно** равняться колонке (для BADGE с masterBadge=N: parentRewardCode ≠ REWARD_CODE). Парсинг JSON: тройные кавычки `"""` заменяются на `"`, затем `json.loads`. В ячейке: OK / сообщение об ошибке / пусто для неприменимых строк.
+- **json_field_in_column** — все уникальные значения ключа из JSON-колонки должны присутствовать в указанной колонке того же листа. Поля: `sheet`, **`json_column`**, **`json_key`**, **`column_in_sheet`** (например REWARD_CODE). Используется для проверки: все parentRewardCode из ADD_DATA должны быть в REWARD_CODE.
 
-**Вывод:** для каждого правила с `include_in_summary: true` — строка в сводном листе CONSISTENCY (check_id, sheet, name, type, total_rows, violations, sample); в лог INFO — кратко «нарушений не найдено» или «найдено нарушений: &lt;id&gt; (&lt;лист&gt;) — N; …»; в DEBUG — подробности по проверкам с нарушениями. В консоль выводится тот же итог, что и в INFO.
+**Парсинг ADD_DATA (REWARD и др.):** в модуле **consistency_checks** функция **`_parse_add_data_cell(val)`** разбирает ячейку: `str(val).replace('"""', '"')`, затем `json.loads(normalized)`. Возвращает `dict` или `None` при ошибке. Так обрабатываются поля с тройными кавычками в CSV.
+
+**Проверки на сырых данных:** все правила консистентности (в т.ч. json_field_equals_column и json_field_in_column) выполняются по **сырым** данным до обработки (до merge, до разворота JSON и т.д.); результаты затем копируются на обработанные листы. Число полей в CSV для отчёта берётся до добавления колонок проверок (см. **csv_columns_count**).
+
+**csv_columns_count** (внутри `consistency_checks`): список листов и ожидаемое число полей в CSV (0 = АВТО по заголовку), плюс тексты для колонок листа CONSISTENCY (ТИП ПРОВЕРКИ, Описание, таблица источник, поле источник, параметр сравнения, комментарий). Секция **`_default`** задаёт подписи по умолчанию; **`sheets`** — объект «имя листа» → `{ "expected_columns": 0, опционально переопределение текстов }`. Записи по расхождениям числа полей добавляются в свод CONSISTENCY с заполненными колонками описания.
+
+**Вывод:** для каждого правила с `include_in_summary: true` — строка в сводном листе **CONSISTENCY**. На листе CONSISTENCY сначала идут колонки по образцу таблицы проверок: **ТИП ПРОВЕРКИ**, **Описание**, **таблица источник**, **поле источник**, **таблица где проверяем**, **поле для проверки**, **параметр сравнения**, **комментарий** (заполняются из правил конфига), затем колонки результата: check_id, sheet, name, имя_колонки, type, total_rows, violations, sample. В лог INFO — кратко «нарушений не найдено» или «найдено нарушений: …»; в консоль выводится тот же итог.
 
 **Пример фрагмента rules (referential и unique):**
 ```json
@@ -701,7 +764,7 @@ main_impl.main()                     # Запуск пайплайна
 
 #### 2.1. Выгрузка сырых данных (source Excel)
 
-Сразу после загрузки CSV (до разворота JSON, валидации, merge и доп. колонок) формируется отдельный файл **«SPOD_PROM source YYYY-MM-DD_HH-MM-SS.xlsx»** в каталоге `paths.output`. В него попадают только те листы, у которых в `input_files` указано `include_in_source: true` (по умолчанию). Данные записываются ровно в том виде, как в CSV (без разворота JSON и без любых добавленных полей). Для отсутствующих файлов с `include_in_source: true` создаётся пустой лист. Перед записью к листам можно применить сортировку по правилам из `source_export.sort_rules`. Для каждого листа применяются свои параметры из `input_files` (ширина колонок, закрепление); на всех листах source по умолчанию включён автофильтр. Проверка наличия обязательных файлов выполняется **после** этой выгрузки: при отсутствии файлов программа завершается с ошибкой, но source-файл уже создан.
+Сразу после загрузки CSV (до разворота JSON, валидации, merge и доп. колонок) формируется отдельный файл с именем из `output_filenames.source` и меткой времени (например **«SPOD_PROM source 2026-03-17_12-00-00.xlsx»**). Файл записывается в подкаталог по дате: **`paths.output/YYYY/DD-MM/`** (например `OUT/2026/17-03/`). В него попадают только листы с `include_in_source: true`. Данные записываются в виде CSV без разворота JSON. Перед записью к листам применяется сортировка по `input_files[].sort_columns`, если включено `apply_sort_to_source`. Ширина колонок и закрепление берутся из `input_files`; на всех листах source включён автофильтр. Проверка наличия обязательных файлов выполняется **после** выгрузки в режиме 2; в режимах 1 и 4 при отсутствии файлов программа завершается с ошибкой после записи source.
 
 #### 3. Обработка данных
 
@@ -728,7 +791,7 @@ main_impl.main()                     # Запуск пайплайна
 
 ##### 3.2. Проверки консистентности (consistency_checks)
 
-После merge выполняется модуль **consistency_checks** (с параллелизацией: пул потоков, блокировка по листу при записи). Создаются колонки «ДУБЛЬ: …» (unique) и проверки длины полей (field_length) на листах, выполняются referential/referential_composite, результаты собираются в сводный лист CONSISTENCY и выводятся в лог и консоль. Число потоков задаётся из `performance.max_workers_cpu` (передаётся в вызов как `max_workers`). Правила задаются в **config.json** в секции `consistency_checks.rules` (типы `unique`, `field_length`, `referential`, `referential_composite`). Секции `check_duplicates` и `field_length_validations` в config больше не используются.
+После merge выполняется модуль **consistency_checks** (с параллелизацией: пул потоков, блокировка по листу при записи). Создаются колонки «ДУБЛЬ: …» (unique), проверки длины полей (field_length) и формата полей (field_format) на листах, выполняются referential/referential_composite, результаты собираются в сводный лист **CONSISTENCY** и выводятся в лог и консоль. На листе CONSISTENCY выводятся колонки-описания проверок (ТИП ПРОВЕРКИ, Описание, таблица источник, поле источник, таблица где проверяем, поле для проверки, параметр сравнения, комментарий) и колонки результата (check_id, sheet, name, total_rows, violations, sample). Правила задаются в **config.json** в секции `consistency_checks.rules` (типы `unique`, `field_length`, `field_format`, `referential`, `referential_composite`). Секции `check_duplicates` и `field_length_validations` в config больше не используются.
 
 ##### 3.3. Обработка JSON полей
 
@@ -1154,6 +1217,57 @@ python app.py
 
 ## История версий
 
+### Версия 1.6 — Проверки по JSON (ADD_DATA), склейка полей CSV, правила REWARD
+
+**Новые типы правил консистентности:**
+- **json_field_equals_column** — сравнение значения ключа из JSON-колонки с колонкой листа. Поддержка фильтров: `filter_column`/`filter_value` (только строки с заданным значением колонки), `json_filter_key`/`json_filter_value` (условие по ключу в JSON). Параметр **`must_not_equal`: true** инвертирует проверку (значение из JSON не должно равняться колонке). Используется для REWARD: BADGE с masterBadge=Y — parentRewardCode должен равняться REWARD_CODE; BADGE с masterBadge=N — parentRewardCode не должен равняться REWARD_CODE; LABEL — parentRewardCode = REWARD_CODE.
+- **json_field_in_column** — все уникальные значения ключа из JSON-колонки должны присутствовать в указанной колонке того же листа. Используется для проверки: все parentRewardCode из ADD_DATA на листе REWARD должны быть в REWARD_CODE.
+
+**Парсинг ADD_DATA:** в **consistency_checks.py** добавлена **`_parse_add_data_cell(val)`**: замена `"""` на `"` в строке ячейки, затем `json.loads(normalized)`. Ошибки парсинга возвращают `None`; проверки обрабатывают только успешно разобранный JSON.
+
+**Правила в config.json (REWARD):**
+- **reward_add_data_badge** — REWARD_TYPE=BADGE, в ADD_DATA masterBadge=Y → parentRewardCode должен равняться REWARD_CODE.
+- **reward_add_data_label** — REWARD_TYPE=LABEL → parentRewardCode = REWARD_CODE.
+- **reward_add_data_badge_n** — REWARD_TYPE=BADGE, masterBadge=N → parentRewardCode не должен равняться REWARD_CODE (must_not_equal: true).
+- **reward_parent_in_reward_code** — тип json_field_in_column: все parentRewardCode из ADD_DATA должны быть в колонке REWARD_CODE.
+
+**Чтение CSV (main_impl):** при **фактическом числе полей в строке больше ожидаемого** («хвост» из-за точки с запятой внутри JSON) последние поля склеиваются в одну колонку: `";".join(row[n-1:])`, чтобы JSON в последнем поле не обрезался. Ожидаемое число берётся из `expected_columns` (0 = по заголовку).
+
+**csv_columns_count в consistency_checks:** секция в конфиге задаёт ожидаемое число полей по листам и тексты для колонок свода CONSISTENCY (ТИП ПРОВЕРКИ, Описание и т.д.). Записи о расхождениях числа полей в CSV добавляются в лист CONSISTENCY с заполненными описаниями.
+
+**Документация:** в README добавлено описание типов json_field_equals_column (включая must_not_equal) и json_field_in_column, парсинга ADD_DATA, csv_columns_count; обновлено описание модуля consistency_checks.py; в истории версий — запись 1.6.
+
+---
+
+### Версия 1.5 — Режимы запуска, выход по дате, ожидаемые колонки, сортировка в input_files, SUMMARY
+
+**Режимы запуска (run_mode):**
+- В конфиг добавлен **`run_mode`**: `"full"` (1), `"source_only"` (2), `"main_only"` (3), `"consistency_only"` (4). Режим задаётся строкой или числом.
+- **output_filenames**: имена выходных файлов (main, source, consistency) задаются в конфиге.
+- **apply_sort_to_source**, **apply_sort_to_main**: флаги применения сортировки при записи source и основного Excel.
+
+**Выходные файлы по дате:**
+- Все сгенерированные файлы (source, consistency, main) пишутся в подкаталоги по дате формирования: **`paths.output/YYYY/DD-MM/`** (например `OUT/2026/17-03/` для 17 марта 2026). День и месяц — всегда по 2 цифры (01-01 для 1 января). Каталоги создаются автоматически (`get_output_dir_for_run`).
+
+**input_files — новые поля:**
+- **expected_columns**: ожидаемое число полей в CSV; **0** — АВТО (по заголовку). При расхождении данные фиксируются и выводятся в лист CONSISTENCY.
+- **subdir**: подкаталог внутри `paths.input` для поиска файла (например `"SPOD"`, `"FILE"`). Итоговый путь: `paths.input/subdir/file`.
+- **sort_columns**: правила сортировки листа при записи (массив `{"column": "Имя", "order": "asc"|"desc"}`). Сортировка применяется последовательно; при отсутствии колонки на листе — пропуск; при отсутствии листа SUMMARY в режиме 4 активным делается первый лист.
+
+**Сортировка:**
+- Секция **source_export.sort_rules** не используется. Правила сортировки задаются в **input_files[].sort_columns** для каждого листа; применение управляется **apply_sort_to_source** и **apply_sort_to_main**.
+
+**SUMMARY и INDICATOR:**
+- В **summary_key_defs** для листа INDICATOR добавлен ключ **INDICATOR_CODE** (cols: INDICATOR_CODE, INDICATOR_ADD_CALC_TYPE, CONTEST_CODE). Свод ключей SUMMARY формируется с 7 колонками; в блоках 1–4 при формировании строк подставляется INDICATOR_CODE из листа INDICATOR (при однозначном совпадении по CONTEST_CODE и INDICATOR_ADD_CALC_TYPE), чтобы не появлялись строки с пустым INDICATOR_CODE и дубликаты. Строка-заглушка (все ключи "-" и пустые индикаторы) отфильтровывается перед построением DataFrame.
+
+**Исправления:**
+- В режиме **consistency_only** лист SUMMARY не записывается — при установке активного листа книги проверяется наличие "SUMMARY", иначе активным делается первый лист.
+- Документация обновлена: все поля конфигурации описаны с примерами; добавлены run_mode, output_filenames, apply_sort_to_source/main, paths (подпапки по дате), input_files (expected_columns, subdir, sort_columns).
+
+**Папка POST:** в POST складываются копии программы, документации и конфига с суффиксом **.txt** (main.py.txt, config.json.txt, README.md.txt, requirements.txt.txt, src/*.py.txt) для переноса без репозитория.
+
+---
+
 ### Версия 1.4 — Единая точка проверок консистентности (удаление check_duplicates и field_length_validations)
 
 **Цель:** все проверки уникальности (дубликаты) и длины полей выполняются только в модуле **consistency_checks**; отдельные секции конфига и отдельные шаги пайплайна удалены.
@@ -1171,6 +1285,10 @@ python app.py
 **Итог:** один конфиг правил (`consistency_checks.rules`), один модуль выполнения (consistency_checks), один порядок шагов; дублирование конфигурации и логики убрано.
 
 **Параллелизация проверок консистентности (дополнение к v1.4):** фазы 1 и 2 в `run_all_consistency_checks` выполняются в **ThreadPoolExecutor** (число потоков из `max_workers`, по умолчанию из `performance.max_workers_cpu`). Запись в один и тот же лист защищена блокировкой по имени листа (`threading.Lock`), чтобы правила, пишущие в разные листы, шли параллельно без гонок. В лог (DEBUG) выводится сообщение о числе потоков и правил.
+
+**Дополнение: новые правила консистентности (по таблице «Проверки-Tаблица 1.csv»):** в `consistency_checks.rules` добавлены 8 правил referential/referential_composite и 11 правил **field_format** (проверка формата даты, числа 0.00000, 20 цифр с лидирующими нулями). Итого правил: 46 (13 referential, 3 referential_composite, 16 unique, 3 field_length, 11 field_format). Лист **CONSISTENCY** формируется с колонками-описаниями (ТИП ПРОВЕРКИ, Описание, таблица источник, поле источник, таблица где проверяем, поле для проверки, параметр сравнения, комментарий) по образцу таблицы проверок; при формировании сводки в модуль передаётся секция конфига с ключом `rules`, чтобы эти колонки заполнялись.
+
+**Исправление отображения колонок на листе CONSISTENCY:** в `run_consistency_checks_and_attach_summary` в main передаётся секция конфига (summary_sheet_name + rules), а не весь config.json. Правила для заполнения колонок-описаний берутся из `config.get("rules")`, а не из `config.get("consistency_checks", {}).get("rules")`, чтобы на листе CONSISTENCY отображались колонки ТИП ПРОВЕРКИ, Описание, таблица источник и т.д.
 
 ---
 
@@ -1271,7 +1389,7 @@ python app.py
 
 ---
 
-*Документация обновлена: 2026-01-31*
+*Документация обновлена: 2026-03-17*
 
 ---
 

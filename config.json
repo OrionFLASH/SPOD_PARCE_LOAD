@@ -2,7 +2,7 @@
   "run_mode": "full",
   "_run_mode_options": ["full", "source_only", "main_only", "consistency_only"],
   "apply_sort_to_source": true,
-  "apply_sort_to_main": false,
+  "apply_sort_to_main": true,
   "output_filenames": {
     "main": "SPOD_ALL_IN_ONE",
     "source": "SPOD_PROM source",
@@ -14,7 +14,7 @@
     "logs": "LOGS"
   },
   "logging": {
-    "level": "DEBUG",
+    "level": "INFO",
     "base_name": "LOGS"
   },
   "performance": {
@@ -34,7 +34,6 @@
     {
       "file": "CONTEST (PROM) 16-03 v0.csv",
       "sheet": "CONTEST-DATA",
-      "expected_columns": 0,
       "subdir": "SPOD",
       "sort_columns": [{"column": "CONTEST_CODE", "order": "asc"}],
       "max_col_width": 120,
@@ -46,7 +45,6 @@
     {
       "file": "GROUP (PROM) 16-03 v0.csv",
       "sheet": "GROUP",
-      "expected_columns": 0,
       "subdir": "SPOD",
       "sort_columns": [{"column": "GROUP_VALUE", "order": "asc"}, {"column": "GROUP_CODE", "order": "asc"}, {"column": "CONTEST_CODE", "order": "asc"}],
       "max_col_width": 20,
@@ -58,7 +56,6 @@
     {
       "file": "INDICATOR (PROM) 16-03 v0.csv",
       "sheet": "INDICATOR",
-      "expected_columns": 0,
       "subdir": "SPOD",
       "sort_columns": [{"column": "INDICATOR_CODE", "order": "asc"}, {"column": "INDICATOR_ADD_CALC_TYPE", "order": "asc"}, {"column": "CONTEST_CODE", "order": "asc"}],
       "max_col_width": 100,
@@ -70,7 +67,6 @@
     {
       "file": "REPORT (PROM) 13-03 v0.csv",
       "sheet": "REPORT",
-      "expected_columns": 0,
       "subdir": "SPOD",
       "sort_columns": [{"column": "CONTEST_CODE", "order": "asc"}],
       "max_col_width": 25,
@@ -82,7 +78,6 @@
     {
       "file": "REWARD (PROM) 16-03 v0.csv",
       "sheet": "REWARD",
-      "expected_columns": 0,
       "subdir": "SPOD",
       "sort_columns": [{"column": "REWARD_CODE", "order": "asc"}],
       "max_col_width": 200,
@@ -94,7 +89,6 @@
     {
       "file": "REWARD-LINK (PROM) 16-03 v0.csv",
       "sheet": "REWARD-LINK",
-      "expected_columns": 0,
       "subdir": "SPOD",
       "sort_columns": [{"column": "GROUP_CODE", "order": "asc"}, {"column": "REWARD_CODE", "order": "asc"}],
       "max_col_width": 30,
@@ -106,7 +100,6 @@
     {
       "file": "SCHEDULE (PROM) 16-03 v0.csv",
       "sheet": "TOURNAMENT-SCHEDULE",
-      "expected_columns": 0,
       "subdir": "SPOD",
       "sort_columns": [{"column": "TOURNAMENT_CODE", "order": "asc"}, {"column": "CONTEST_CODE", "order": "asc"}],
       "max_col_width": 120,
@@ -118,7 +111,6 @@
     {
       "file": "SVD_KB_DM_GAMIFICATION_ORG_UNIT_V20 - 2025.08.28.csv",
       "sheet": "ORG_UNIT_V20",
-      "expected_columns": 0,
       "subdir": "SPOD",
       "sort_columns": [{"column": "ORG_UNIT_ID", "order": "asc"}],
       "max_col_width": 60,
@@ -130,7 +122,6 @@
     {
       "file": "USER_ROLE (PROM) 13-03 v0.csv",
       "sheet": "USER_ROLE",
-      "expected_columns": 0,
       "subdir": "SPOD",
       "sort_columns": [{"column": "USER_ID", "order": "asc"}],
       "max_col_width": 65,
@@ -142,7 +133,6 @@
     {
       "file": "USER_ROLE_SB (PROM) 13-03 v0.csv",
       "sheet": "USER_ROLE SB",
-      "expected_columns": 0,
       "subdir": "SPOD",
       "sort_columns": [{"column": "USER_ID", "order": "asc"}],
       "max_col_width": 65,
@@ -154,7 +144,6 @@
     {
       "file": "employee_PROM_final_5000_2025-07-26_00-09-03.CSV",
       "sheet": "EMPLOYEE",
-      "expected_columns": 0,
       "subdir": "SPOD",
       "sort_columns": [{"column": "PERSON_NUMBER", "order": "asc"}],
       "max_col_width": 80,
@@ -166,7 +155,6 @@
     {
       "file": "gamification-employeeRewards.csv",
       "sheet": "LIST-REWARDS",
-      "expected_columns": 0,
       "subdir": "FILE",
       "sort_columns": [],
       "max_col_width": 40,
@@ -178,7 +166,6 @@
     {
       "file": "gamification-statistics.csv",
       "sheet": "STATISTICS",
-      "expected_columns": 0,
       "subdir": "FILE",
       "sort_columns": [],
       "max_col_width": 40,
@@ -190,7 +177,6 @@
     {
       "file": "gamification-tournamentList.csv",
       "sheet": "LIST-TOURNAMENT",
-      "expected_columns": 0,
       "subdir": "FILE",
       "sort_columns": [],
       "max_col_width": 80,
@@ -202,7 +188,6 @@
     {
       "file": "gamification-ratingList 2KM.csv",
       "sheet": "RATING_2025_2 (KMKKSB)",
-      "expected_columns": 0,
       "subdir": "FILE",
       "sort_columns": [],
       "max_col_width": 80,
@@ -214,7 +199,6 @@
     {
       "file": "gamification-ratingList 2MNS.csv",
       "sheet": "RATING_2025_2 (MNS)",
-      "expected_columns": 0,
       "subdir": "FILE",
       "sort_columns": [],
       "max_col_width": 80,
@@ -226,7 +210,6 @@
     {
       "file": "gamification-ratingList KM.csv",
       "sheet": "RATING_2026_1 (KMKKSB)",
-      "expected_columns": 0,
       "subdir": "FILE",
       "sort_columns": [],
       "max_col_width": 80,
@@ -238,7 +221,6 @@
     {
       "file": "gamification-ratingList AllKM.csv",
       "sheet": "RATING_ALLTIME (KMKKSB)",
-      "expected_columns": 0,
       "subdir": "FILE",
       "sort_columns": [],
       "max_col_width": 80,
@@ -250,7 +232,6 @@
     {
       "file": "gamification-ratingList AllMNS.csv",
       "sheet": "RATING_ALLTIME (MNS)",
-      "expected_columns": 0,
       "subdir": "FILE",
       "sort_columns": [],
       "max_col_width": 80,
@@ -262,7 +243,6 @@
     {
       "file": "gamification-orderList 1KM.csv",
       "sheet": "ORDER_2025_1 (KMKKSB)",
-      "expected_columns": 0,
       "subdir": "FILE",
       "sort_columns": [],
       "max_col_width": 80,
@@ -274,7 +254,6 @@
     {
       "file": "gamification-orderList 1MNS.csv",
       "sheet": "ORDER_2025_1 (MNS)",
-      "expected_columns": 0,
       "subdir": "FILE",
       "sort_columns": [],
       "max_col_width": 80,
@@ -286,7 +265,6 @@
     {
       "file": "gamification-yearResults.csv",
       "sheet": "YEAR_STATA",
-      "expected_columns": 0,
       "subdir": "FILE",
       "sort_columns": [],
       "max_col_width": 80,
@@ -1970,6 +1948,25 @@
       "wrap_text": false
     },
     {
+      "sheet": "ORG_UNIT_V20",
+      "columns": [
+        "GOSB_CODE",
+        "TB_CODE",
+        "CLUSTER_CODE",
+        "GROUPING_CODE",
+        "GOSB_CNT",
+        "GROUPING_CNT"
+      ],
+      "data_type": "number",
+      "decimal_places": 0,
+      "decimal_separator": ",",
+      "thousands_separator": false,
+      "date_format": "YYYY-MM-DD",
+      "horizontal": "center",
+      "vertical": "center",
+      "wrap_text": false
+    },
+    {
       "sheet": "REWARD",
       "columns": [
         "REWARD_CONDITION",
@@ -2201,6 +2198,40 @@
   ],
   "consistency_checks": {
     "summary_sheet_name": "CONSISTENCY",
+    "csv_columns_count": {
+      "_default": {
+        "ТИП ПРОВЕРКИ": "число полей в CSV",
+        "Описание": "Проверка числа полей в CSV (ожидаемое из конфига или АВТО по заголовку)",
+        "поле источник": "все поля строки",
+        "таблица где проверяем": "",
+        "поле для проверки": "",
+        "комментарий": "Строки с расхождением числа полей от ожидаемого фиксируются в sample."
+      },
+      "sheets": {
+        "CONTEST-DATA": { "expected_columns": 0 },
+        "GROUP": { "expected_columns": 0 },
+        "INDICATOR": { "expected_columns": 0 },
+        "REPORT": { "expected_columns": 0 },
+        "REWARD": { "expected_columns": 0 },
+        "REWARD-LINK": { "expected_columns": 0 },
+        "TOURNAMENT-SCHEDULE": { "expected_columns": 0 },
+        "ORG_UNIT_V20": { "expected_columns": 0 },
+        "USER_ROLE": { "expected_columns": 0 },
+        "USER_ROLE SB": { "expected_columns": 0 },
+        "EMPLOYEE": { "expected_columns": 0 },
+        "LIST-REWARDS": { "expected_columns": 0 },
+        "STATISTICS": { "expected_columns": 0 },
+        "LIST-TOURNAMENT": { "expected_columns": 0 },
+        "RATING_2025_2 (KMKKSB)": { "expected_columns": 0 },
+        "RATING_2025_2 (MNS)": { "expected_columns": 0 },
+        "RATING_2026_1 (KMKKSB)": { "expected_columns": 0 },
+        "RATING_ALLTIME (KMKKSB)": { "expected_columns": 0 },
+        "RATING_ALLTIME (MNS)": { "expected_columns": 0 },
+        "ORDER_2025_1 (KMKKSB)": { "expected_columns": 0 },
+        "ORDER_2025_1 (MNS)": { "expected_columns": 0 },
+        "YEAR_STATA": { "expected_columns": 0 }
+      }
+    },
     "rules": [
       {
         "id": "1.1",
@@ -2255,6 +2286,73 @@
         "column_ref": "REWARD_CODE",
         "output": {
           "column_on_sheet": "ПРОВЕРКА: REWARD_CODE в REWARD",
+          "include_in_summary": true
+        }
+      },
+      {
+        "id": "reward_add_data_badge",
+        "name": "REWARD: для BADGE с masterBadge=Y в ADD_DATA значение parentRewardCode должно равняться REWARD_CODE",
+        "type": "json_field_equals_column",
+        "enabled": true,
+        "sheet": "REWARD",
+        "json_column": "REWARD_ADD_DATA",
+        "json_key": "parentRewardCode",
+        "column_compare": "REWARD_CODE",
+        "filter_column": "REWARD_TYPE",
+        "filter_value": "BADGE",
+        "json_filter_key": "masterBadge",
+        "json_filter_value": "Y",
+        "output": {
+          "column_on_sheet": "ПРОВЕРКА: parentRewardCode (ADD_DATA) = REWARD_CODE (BADGE masterBadge=Y)",
+          "include_in_summary": true
+        }
+      },
+      {
+        "id": "reward_add_data_label",
+        "name": "REWARD: для LABEL в ADD_DATA значение parentRewardCode должно равняться REWARD_CODE",
+        "type": "json_field_equals_column",
+        "enabled": true,
+        "sheet": "REWARD",
+        "json_column": "REWARD_ADD_DATA",
+        "json_key": "parentRewardCode",
+        "column_compare": "REWARD_CODE",
+        "filter_column": "REWARD_TYPE",
+        "filter_value": "LABEL",
+        "output": {
+          "column_on_sheet": "ПРОВЕРКА: parentRewardCode (ADD_DATA) = REWARD_CODE (LABEL)",
+          "include_in_summary": true
+        }
+      },
+      {
+        "id": "reward_add_data_badge_n",
+        "name": "REWARD: для BADGE с masterBadge=N в ADD_DATA parentRewardCode не должен равняться REWARD_CODE",
+        "type": "json_field_equals_column",
+        "enabled": true,
+        "sheet": "REWARD",
+        "json_column": "REWARD_ADD_DATA",
+        "json_key": "parentRewardCode",
+        "column_compare": "REWARD_CODE",
+        "filter_column": "REWARD_TYPE",
+        "filter_value": "BADGE",
+        "json_filter_key": "masterBadge",
+        "json_filter_value": "N",
+        "must_not_equal": true,
+        "output": {
+          "column_on_sheet": "ПРОВЕРКА: parentRewardCode ≠ REWARD_CODE (BADGE masterBadge=N)",
+          "include_in_summary": true
+        }
+      },
+      {
+        "id": "reward_parent_in_reward_code",
+        "name": "REWARD: все уникальные parentRewardCode из ADD_DATA должны присутствовать в REWARD_CODE",
+        "type": "json_field_in_column",
+        "enabled": true,
+        "sheet": "REWARD",
+        "json_column": "REWARD_ADD_DATA",
+        "json_key": "parentRewardCode",
+        "column_in_sheet": "REWARD_CODE",
+        "output": {
+          "column_on_sheet": "ПРОВЕРКА: parentRewardCode из ADD_DATA в REWARD_CODE",
           "include_in_summary": true
         }
       },

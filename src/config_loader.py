@@ -69,6 +69,7 @@ class Config:
         self.consistency_checks: Dict[str, Any] = {
             "summary_sheet_name": _cc.get("summary_sheet_name", "CONSISTENCY"),
             "rules": _cc.get("rules") or [],
+            "csv_columns_count": _cc.get("csv_columns_count") or {},
         }
         self.json_columns: Dict[str, List[Dict[str, Any]]] = self._cfg.get("json_columns") or {}
         self.derived_columns: List[Dict[str, Any]] = self._cfg.get("derived_columns") or []

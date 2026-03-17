@@ -82,7 +82,7 @@ SPOD_PROM/
 | **file_loader.py** | Поиск и загрузка CSV, разворот JSON по конфигу | Класс `FileLoader(config)`: `find_file_case_insensitive(directory, base_name, extensions)`, `check_input_files_exist()`, `read_csv_file(file_path)`, `process_single_file(file_conf)` — возвращает `(df, sheet_name, file_conf)` или `(None, sheet_name, None)`. |
 | **tournament.py** | Расчёт статуса турнира по датам | `calculate_tournament_status(config, df_tournament, df_report=None)` — добавляет колонку `CALC_TOURNAMENT_STATUS` по правилам из `config.tournament_status_choices`. |
 | **validation.py** | Валидация длины полей и проверка дубликатов (устаревшие пути) | `validate_field_lengths(config, df, sheet_name)`, `validate_field_lengths_vectorized(config, df, sheet_name)`, `compare_validate_results`, `mark_duplicates`, `validate_single_sheet`, `check_duplicates_single_sheet`. Основной пайплайн больше не использует отдельные шаги проверки дубликатов и длины полей — всё выполняется в **consistency_checks**. |
-| **consistency_checks.py** | Проверки консистентности (unique, field_length, field_format, referential) | Выполняет правила из `consistency_checks.rules` **с параллелизацией** (ThreadPoolExecutor). **Фаза 1** — создаёт на листах колонки `unique` («ДУБЛЬ: …»), `field_length` и `field_format`; **Фаза 2** — referential/referential_composite и сбор результатов. Сводный лист CONSISTENCY формируется с колонками-описаниями (ТИП ПРОВЕРКИ, Описание, таблица источник, поле источник и т.д.) по образцу таблицы проверок. Функции: `_run_unique_check`, `_run_field_length_check`, `_run_field_format_check`, `run_referential`, `run_referential_composite`, `collect_*`, `run_all_consistency_checks`, `run_consistency_checks_and_attach_summary`, `build_consistency_summary_df(results, rules)`. |
+| **consistency_checks.py** | Проверки консистентности (unique, field_length, field_format, referential, json_field_equals_column, json_field_in_column) | Выполняет правила из `consistency_checks.rules` **с параллелизацией** (ThreadPoolExecutor). **Фаза 1** — создаёт на листах колонки `unique` («ДУБЛЬ: …»), `field_length`, `field_format`; **Фаза 2** — referential/referential_composite, **json_field_equals_column**, **json_field_in_column** и сбор результатов. Парсинг JSON в ячейках (ADD_DATA и т.п.): **`_parse_add_data_cell(val)`** — замена `"""` на `"`, затем `json.loads`. Сводный лист CONSISTENCY формируется с колонками-описаниями (ТИП ПРОВЕРКИ, Описание, таблица источник, поле источник и т.д.); расхождения по числу полей CSV (csv_columns_count) также попадают в свод. Функции: `_run_unique_check`, `_run_field_length_check`, `_run_field_format_check`, `run_referential`, `run_referential_composite`, `_run_json_field_equals_column`, `_run_json_field_in_column`, `collect_*`, `run_all_consistency_checks`, `run_consistency_checks_and_attach_summary`, `build_consistency_summary_df(results, rules)`. |
 | **gender.py** | Определение пола по отчеству, имени, фамилии | `add_auto_gender_column(config, df, sheet_name)`, `add_auto_gender_column_vectorized(config, df, sheet_name)`, `compare_gender_results(df_old, df_new)`. Внутри используются паттерны из `config.gender_patterns`. |
 | **main_impl.py** | Полный пайплайн обработки | При импорте вызывается `_load_config_globals()`. Функция `main()`: параллельная загрузка CSV и разворот JSON → выгрузка сырых данных в «SPOD_PROM source …» → проверка наличия файлов → добавление AUTO_GENDER (EMPLOYEE) → расчёт статуса турнира → merge (кроме SUMMARY) → **проверки консистентности** (модуль `consistency_checks`, параллельно с `MAX_WORKERS`: создание колонок unique и field_length, referential/referential_composite, свод CONSISTENCY) → формирование SUMMARY → лист STAT_FILE → запись основного Excel → итоговый отчёт по отклонениям длины полей и расхождениям CSV. Отдельных шагов «проверка дубликатов» и «валидация длины полей» нет — всё в рамках consistency_checks. |
 
@@ -647,6 +647,14 @@ SPOD_PROM/
 - **unique** — уникальность комбинации колонок. В фазе 1 модуль **создаёт** колонку «ДУБЛЬ: …» на листе по полям `sheet`, `key_columns`, `output.column_on_sheet` (например «ДУБЛЬ: CONTEST_CODE_GROUP_CODE_REWARD_CODE»). В ячейках: пусто или «xN». В фазе 2 результат собирается в свод.
 - **field_length** — проверка длины полей. В фазе 1 модуль **создаёт** колонку результата на листе по полям `sheet`, `result_column`, **`fields`** (объект: имя поля → `{ "limit": N, "operator": "=" | "<=" | ">=" }`), `output.column_on_sheet`. В ячейках: «-» или строка с описанием нарушений. В фазе 2 результат собирается в свод.
 - **field_format** — проверка формата поля (дата, десятичное число с фиксированной дробной частью, строка из N цифр). В фазе 1 создаётся колонка результата на листе по полям `sheet`, `field`, **`format`** (type: date/decimal/fixed_length_digits + параметры). В фазе 2 результат собирается в свод.
+- **json_field_equals_column** — значение ключа из JSON-колонки сравнивается с колонкой листа. Применяется к полям вроде REWARD_ADD_DATA (JSON с тройными кавычками). Поля: `sheet`, **`json_column`** (например REWARD_ADD_DATA), **`json_key`** (например parentRewardCode), **`column_compare`** (например REWARD_CODE). Опционально: **`filter_column`** + **`filter_value`** (только строки, где значение колонки совпадает, например REWARD_TYPE=BADGE), **`json_filter_key`** + **`json_filter_value`** (доп. условие по ключу в JSON, например masterBadge=Y). При **`must_not_equal`: true** требование инвертируется: значение из JSON **не должно** равняться колонке (для BADGE с masterBadge=N: parentRewardCode ≠ REWARD_CODE). Парсинг JSON: тройные кавычки `"""` заменяются на `"`, затем `json.loads`. В ячейке: OK / сообщение об ошибке / пусто для неприменимых строк.
+- **json_field_in_column** — все уникальные значения ключа из JSON-колонки должны присутствовать в указанной колонке того же листа. Поля: `sheet`, **`json_column`**, **`json_key`**, **`column_in_sheet`** (например REWARD_CODE). Используется для проверки: все parentRewardCode из ADD_DATA должны быть в REWARD_CODE.
+
+**Парсинг ADD_DATA (REWARD и др.):** в модуле **consistency_checks** функция **`_parse_add_data_cell(val)`** разбирает ячейку: `str(val).replace('"""', '"')`, затем `json.loads(normalized)`. Возвращает `dict` или `None` при ошибке. Так обрабатываются поля с тройными кавычками в CSV.
+
+**Проверки на сырых данных:** все правила консистентности (в т.ч. json_field_equals_column и json_field_in_column) выполняются по **сырым** данным до обработки (до merge, до разворота JSON и т.д.); результаты затем копируются на обработанные листы. Число полей в CSV для отчёта берётся до добавления колонок проверок (см. **csv_columns_count**).
+
+**csv_columns_count** (внутри `consistency_checks`): список листов и ожидаемое число полей в CSV (0 = АВТО по заголовку), плюс тексты для колонок листа CONSISTENCY (ТИП ПРОВЕРКИ, Описание, таблица источник, поле источник, параметр сравнения, комментарий). Секция **`_default`** задаёт подписи по умолчанию; **`sheets`** — объект «имя листа» → `{ "expected_columns": 0, опционально переопределение текстов }`. Записи по расхождениям числа полей добавляются в свод CONSISTENCY с заполненными колонками описания.
 
 **Вывод:** для каждого правила с `include_in_summary: true` — строка в сводном листе **CONSISTENCY**. На листе CONSISTENCY сначала идут колонки по образцу таблицы проверок: **ТИП ПРОВЕРКИ**, **Описание**, **таблица источник**, **поле источник**, **таблица где проверяем**, **поле для проверки**, **параметр сравнения**, **комментарий** (заполняются из правил конфига), затем колонки результата: check_id, sheet, name, имя_колонки, type, total_rows, violations, sample. В лог INFO — кратко «нарушений не найдено» или «найдено нарушений: …»; в консоль выводится тот же итог.
 
@@ -1208,6 +1216,28 @@ python app.py
 ---
 
 ## История версий
+
+### Версия 1.6 — Проверки по JSON (ADD_DATA), склейка полей CSV, правила REWARD
+
+**Новые типы правил консистентности:**
+- **json_field_equals_column** — сравнение значения ключа из JSON-колонки с колонкой листа. Поддержка фильтров: `filter_column`/`filter_value` (только строки с заданным значением колонки), `json_filter_key`/`json_filter_value` (условие по ключу в JSON). Параметр **`must_not_equal`: true** инвертирует проверку (значение из JSON не должно равняться колонке). Используется для REWARD: BADGE с masterBadge=Y — parentRewardCode должен равняться REWARD_CODE; BADGE с masterBadge=N — parentRewardCode не должен равняться REWARD_CODE; LABEL — parentRewardCode = REWARD_CODE.
+- **json_field_in_column** — все уникальные значения ключа из JSON-колонки должны присутствовать в указанной колонке того же листа. Используется для проверки: все parentRewardCode из ADD_DATA на листе REWARD должны быть в REWARD_CODE.
+
+**Парсинг ADD_DATA:** в **consistency_checks.py** добавлена **`_parse_add_data_cell(val)`**: замена `"""` на `"` в строке ячейки, затем `json.loads(normalized)`. Ошибки парсинга возвращают `None`; проверки обрабатывают только успешно разобранный JSON.
+
+**Правила в config.json (REWARD):**
+- **reward_add_data_badge** — REWARD_TYPE=BADGE, в ADD_DATA masterBadge=Y → parentRewardCode должен равняться REWARD_CODE.
+- **reward_add_data_label** — REWARD_TYPE=LABEL → parentRewardCode = REWARD_CODE.
+- **reward_add_data_badge_n** — REWARD_TYPE=BADGE, masterBadge=N → parentRewardCode не должен равняться REWARD_CODE (must_not_equal: true).
+- **reward_parent_in_reward_code** — тип json_field_in_column: все parentRewardCode из ADD_DATA должны быть в колонке REWARD_CODE.
+
+**Чтение CSV (main_impl):** при **фактическом числе полей в строке больше ожидаемого** («хвост» из-за точки с запятой внутри JSON) последние поля склеиваются в одну колонку: `";".join(row[n-1:])`, чтобы JSON в последнем поле не обрезался. Ожидаемое число берётся из `expected_columns` (0 = по заголовку).
+
+**csv_columns_count в consistency_checks:** секция в конфиге задаёт ожидаемое число полей по листам и тексты для колонок свода CONSISTENCY (ТИП ПРОВЕРКИ, Описание и т.д.). Записи о расхождениях числа полей в CSV добавляются в лист CONSISTENCY с заполненными описаниями.
+
+**Документация:** в README добавлено описание типов json_field_equals_column (включая must_not_equal) и json_field_in_column, парсинга ADD_DATA, csv_columns_count; обновлено описание модуля consistency_checks.py; в истории версий — запись 1.6.
+
+---
 
 ### Версия 1.5 — Режимы запуска, выход по дате, ожидаемые колонки, сортировка в input_files, SUMMARY
 

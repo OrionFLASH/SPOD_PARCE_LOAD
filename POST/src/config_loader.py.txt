@@ -69,6 +69,7 @@ class Config:
         self.consistency_checks: Dict[str, Any] = {
             "summary_sheet_name": _cc.get("summary_sheet_name", "CONSISTENCY"),
             "rules": _cc.get("rules") or [],
+            "csv_columns_count": _cc.get("csv_columns_count") or {},
         }
         self.json_columns: Dict[str, List[Dict[str, Any]]] = self._cfg.get("json_columns") or {}
         self.derived_columns: List[Dict[str, Any]] = self._cfg.get("derived_columns") or []
@@ -91,12 +92,31 @@ class Config:
             self._cfg.get("tournament_status_choices") or _default_statuses
         )
 
+        # Режим запуска: текстовые метки full | source_only | main_only | consistency_only (или числа 1–4)
+        _raw = self._cfg.get("run_mode", 1)
+        _run_mode_map = {"full": 1, "source_only": 2, "main_only": 3, "consistency_only": 4}
+        if isinstance(_raw, str):
+            _mode_val = _run_mode_map.get(_raw.strip().lower(), 1)
+        else:
+            _mode_val = int(_raw)
+        self.run_mode: int = _mode_val
+
+        # Применять ли сортировку (sort_columns из input_files): к source — да по умолчанию, к main — нет по умолчанию
+        self.apply_sort_to_source: bool = self._cfg.get("apply_sort_to_source", True)
+        self.apply_sort_to_main: bool = self._cfg.get("apply_sort_to_main", False)
+
+        # Имена/шаблоны выходных файлов (без расширения и без timestamp; дата подставляется при записи)
+        _of = self._cfg.get("output_filenames") or {}
+        self.output_filename_main: str = _of.get("main", "SPOD_ALL_IN_ONE")
+        self.output_filename_source: str = _of.get("source", "SPOD_PROM source")
+        self.output_filename_consistency: str = _of.get("consistency", "SPOD_PROM CONSISTENCY")
+
     @property
     def base_dir(self) -> str:
         """Корень проекта (каталог с config.json)."""
         return self._base_dir
 
     def get_output_filename(self) -> str:
-        """Имя выходного Excel с датой и временем."""
+        """Имя выходного Excel с датой и временем (шаблон из output_filenames.main)."""
         from datetime import datetime
-        return f"SPOD_ALL_IN_ONE_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.xlsx"
+        return f"{self.output_filename_main}_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.xlsx"

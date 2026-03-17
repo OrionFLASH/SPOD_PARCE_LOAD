@@ -6,6 +6,7 @@
 Результаты выводятся в колонки на листах, сводный лист CONSISTENCY, консоль и лог.
 """
 
+import json
 import logging
 import os
 import re
@@ -515,10 +516,228 @@ def collect_field_length_result(
     }
 
 
+def _parse_add_data_cell(val: Any) -> Optional[Dict[str, Any]]:
+    """
+    Разбирает значение ADD_DATA: тройные кавычки заменяются на одинарные, затем JSON.
+    Возвращает dict или None при ошибке разбора.
+    """
+    if pd.isna(val) or val is None:
+        return None
+    s = str(val).strip()
+    if not s:
+        return None
+    try:
+        normalized = s.replace('"""', '"')
+        return json.loads(normalized)
+    except (json.JSONDecodeError, TypeError):
+        return None
+
+
+def _run_json_field_equals_column_check(sheets_data: Dict[str, Any], rule: Dict[str, Any]) -> None:
+    """
+    Проверка: значение ключа json_key в JSON-поле json_column должно равняться значению колонки column_compare.
+    Опционально: только для строк, где filter_column == filter_value и/или в JSON есть json_filter_key == json_filter_value.
+    ADD_DATA разбирается с заменой тройных кавычек на одинарные.
+    Записывает колонку результата на лист (OK / сообщение об ошибке / пусто для неприменимых строк).
+    """
+    sheet_name = rule.get("sheet")
+    json_column = rule.get("json_column")
+    json_key = rule.get("json_key")
+    column_compare = rule.get("column_compare")
+    filter_column = rule.get("filter_column")
+    filter_value = rule.get("filter_value")
+    json_filter_key = rule.get("json_filter_key")
+    json_filter_value = rule.get("json_filter_value")
+    must_not_equal = rule.get("must_not_equal", False)  # true: требовать parentRewardCode != REWARD_CODE
+    output = rule.get("output") or {}
+    col_out = output.get("column_on_sheet") or f"ПРОВЕРКА: {json_key} в {json_column} = {column_compare}"
+    check_id = rule.get("id", "")
+
+    item = _get_sheet_item(sheets_data, sheet_name)
+    if item is None:
+        logging.debug(f"[consistency] json_field_equals_column {check_id}: лист {sheet_name} отсутствует")
+        return
+    df, conf = item
+    for c in [json_column, column_compare]:
+        if c not in df.columns:
+            logging.warning(f"[consistency] json_field_equals_column {check_id}: колонка {c} не найдена на {sheet_name}")
+            return
+    if filter_column and filter_column not in df.columns:
+        logging.warning(f"[consistency] json_field_equals_column {check_id}: filter_column {filter_column} не найдена")
+        return
+
+    def _check_one(row: pd.Series) -> str:
+        if filter_column is not None and filter_value is not None:
+            if str(row.get(filter_column, "")).strip() != str(filter_value).strip():
+                return ""
+        add_data = _parse_add_data_cell(row.get(json_column))
+        if add_data is None:
+            return "Ошибка разбора ADD_DATA"
+        # Правило применяется только если в JSON значение json_filter_key равно json_filter_value (например masterBadge == "Y")
+        if json_filter_key is not None and json_filter_value is not None:
+            actual_filter = str(add_data.get(json_filter_key, "")).strip()
+            required_filter = str(json_filter_value).strip()
+            if actual_filter != required_filter:
+                return ""  # не применяется (например, для BADGE с masterBadge="N" — пустая ячейка)
+        from_json = str(add_data.get(json_key, "")).strip()
+        expected = str(row.get(column_compare, "")).strip()
+        if must_not_equal:
+            # Для masterBadge=N: parentRewardCode не должен равняться REWARD_CODE (должны отличаться)
+            if from_json == expected:
+                return f"не должно совпадать с REWARD_CODE: {expected}"
+            return "OK"
+        if from_json == expected:
+            return "OK"
+        return f"ожидалось {expected}, в ADD_DATA: {from_json}"
+
+    results = df.apply(_check_one, axis=1)
+    df = df.copy()
+    df[col_out] = results.values
+    sheets_data[sheet_name] = (df, conf)
+    logging.debug(f"[consistency] json_field_equals_column {check_id}: записана колонка {col_out} на {sheet_name}")
+
+
+def collect_json_field_equals_column_result(
+    sheets_data: Dict[str, Any],
+    rule: Dict[str, Any],
+) -> Dict[str, Any]:
+    """Собирает результат проверки json_field_equals_column по уже заполненной колонке."""
+    sheet_name = rule.get("sheet")
+    output = rule.get("output") or {}
+    json_key = rule.get("json_key", "")
+    json_column = rule.get("json_column", "")
+    column_compare = rule.get("column_compare", "")
+    col_out = output.get("column_on_sheet") or f"ПРОВЕРКА: {json_key} в {json_column} = {column_compare}"
+    check_id = rule.get("id", "")
+
+    df = _get_sheet_df(sheets_data, sheet_name)
+    if df is None or col_out not in df.columns:
+        return {
+            "check_id": check_id,
+            "sheet": sheet_name,
+            "name": rule.get("name", ""),
+            "column_on_sheet": col_out,
+            "type": "json_field_equals_column",
+            "total_rows": 0,
+            "violations": 0,
+            "sample": [],
+            "include_in_summary": output.get("include_in_summary", True),
+        }
+    col_series = df[col_out].astype(str).str.strip()
+    violations_mask = col_series.ne("") & col_series.ne("OK")
+    n_violations = int(violations_mask.sum())
+    total_applicable = int((col_series.ne("")).sum())
+    total = len(df)
+    sample = []
+    if n_violations > 0:
+        sample = col_series.loc[violations_mask].drop_duplicates().head(20).tolist()
+    return {
+        "check_id": check_id,
+        "sheet": sheet_name,
+        "name": rule.get("name", ""),
+        "column_on_sheet": col_out,
+        "type": "json_field_equals_column",
+        "total_rows": total_applicable,
+        "violations": n_violations,
+        "sample": sample,
+        "include_in_summary": output.get("include_in_summary", True),
+    }
+
+
+def _run_json_field_in_column_check(sheets_data: Dict[str, Any], rule: Dict[str, Any]) -> None:
+    """
+    Проверка: все уникальные значения ключа json_key в JSON-поле json_column должны присутствовать
+    в колонке column_in_sheet того же листа (например parentRewardCode из ADD_DATA — в REWARD_CODE).
+    Для каждой строки: извлечь json_key из JSON; если значение не пусто — проверить, что оно есть в колонке.
+    """
+    sheet_name = rule.get("sheet")
+    json_column = rule.get("json_column")
+    json_key = rule.get("json_key")
+    column_in_sheet = rule.get("column_in_sheet")
+    output = rule.get("output") or {}
+    col_out = output.get("column_on_sheet") or f"ПРОВЕРКА: {json_key} из {json_column} в {column_in_sheet}"
+    check_id = rule.get("id", "")
+
+    item = _get_sheet_item(sheets_data, sheet_name)
+    if item is None:
+        logging.debug(f"[consistency] json_field_in_column {check_id}: лист {sheet_name} отсутствует")
+        return
+    df, conf = item
+    for c in [json_column, column_in_sheet]:
+        if c not in df.columns:
+            logging.warning(f"[consistency] json_field_in_column {check_id}: колонка {c} не найдена на {sheet_name}")
+            return
+
+    allowed_set = set(df[column_in_sheet].astype(str).str.strip())
+
+    def _check_one(row: pd.Series) -> str:
+        add_data = _parse_add_data_cell(row.get(json_column))
+        if add_data is None:
+            return "Ошибка разбора ADD_DATA"
+        from_json = str(add_data.get(json_key, "")).strip()
+        if not from_json:
+            return ""
+        if from_json in allowed_set:
+            return "OK"
+        return f"НЕТ в {column_in_sheet}"
+
+    results = df.apply(_check_one, axis=1)
+    df = df.copy()
+    df[col_out] = results.values
+    sheets_data[sheet_name] = (df, conf)
+    logging.debug(f"[consistency] json_field_in_column {check_id}: записана колонка {col_out} на {sheet_name}")
+
+
+def collect_json_field_in_column_result(
+    sheets_data: Dict[str, Any],
+    rule: Dict[str, Any],
+) -> Dict[str, Any]:
+    """Собирает результат проверки json_field_in_column по уже заполненной колонке."""
+    sheet_name = rule.get("sheet")
+    output = rule.get("output") or {}
+    json_key = rule.get("json_key", "")
+    json_column = rule.get("json_column", "")
+    column_in_sheet = rule.get("column_in_sheet", "")
+    col_out = output.get("column_on_sheet") or f"ПРОВЕРКА: {json_key} из {json_column} в {column_in_sheet}"
+    check_id = rule.get("id", "")
+
+    df = _get_sheet_df(sheets_data, sheet_name)
+    if df is None or col_out not in df.columns:
+        return {
+            "check_id": check_id,
+            "sheet": sheet_name,
+            "name": rule.get("name", ""),
+            "column_on_sheet": col_out,
+            "type": "json_field_in_column",
+            "total_rows": 0,
+            "violations": 0,
+            "sample": [],
+            "include_in_summary": output.get("include_in_summary", True),
+        }
+    col_series = df[col_out].astype(str).str.strip()
+    violations_mask = col_series.ne("") & col_series.ne("OK")
+    n_violations = int(violations_mask.sum())
+    total_applicable = int((col_series.ne("")).sum())
+    sample = []
+    if n_violations > 0:
+        sample = col_series.loc[violations_mask].drop_duplicates().head(20).tolist()
+    return {
+        "check_id": check_id,
+        "sheet": sheet_name,
+        "name": rule.get("name", ""),
+        "column_on_sheet": col_out,
+        "type": "json_field_in_column",
+        "total_rows": total_applicable,
+        "violations": n_violations,
+        "sample": sample,
+        "include_in_summary": output.get("include_in_summary", True),
+    }
+
+
 def _sheet_written_by_rule(rule: Dict[str, Any]) -> Optional[str]:
     """Лист, в который правило пишет результат (для блокировки)."""
     t = rule.get("type", "")
-    if t in ("unique", "field_length", "field_format"):
+    if t in ("unique", "field_length", "field_format", "json_field_equals_column", "json_field_in_column"):
         return rule.get("sheet")
     if t in ("referential", "referential_composite"):
         return rule.get("sheet_src")
@@ -565,9 +784,13 @@ def run_all_consistency_checks(
                 _run_field_length_check(sheets_data, rule)
             elif rule.get("type") == "field_format":
                 _run_field_format_check(sheets_data, rule)
+            elif rule.get("type") == "json_field_equals_column":
+                _run_json_field_equals_column_check(sheets_data, rule)
+            elif rule.get("type") == "json_field_in_column":
+                _run_json_field_in_column_check(sheets_data, rule)
 
-    # Фаза 1: создаём колонки unique, field_length и field_format на листах (параллельно по правилам, блокировка по листу)
-    phase1_rules = [(i, r) for i, r in enumerate(enabled) if r.get("type") in ("unique", "field_length", "field_format")]
+    # Фаза 1: создаём колонки unique, field_length, field_format, json_field_equals_column, json_field_in_column на листах
+    phase1_rules = [(i, r) for i, r in enumerate(enabled) if r.get("type") in ("unique", "field_length", "field_format", "json_field_equals_column", "json_field_in_column")]
     if phase1_rules:
         with ThreadPoolExecutor(max_workers=n_workers) as executor:
             futures_ph1 = [executor.submit(_phase1_task, idx, rule) for idx, rule in phase1_rules]
@@ -599,6 +822,10 @@ def run_all_consistency_checks(
                 res = collect_field_length_result(sheets_data, rule)
             elif rule_type == "field_format":
                 res = collect_field_format_result(sheets_data, rule)
+            elif rule_type == "json_field_equals_column":
+                res = collect_json_field_equals_column_result(sheets_data, rule)
+            elif rule_type == "json_field_in_column":
+                res = collect_json_field_in_column_result(sheets_data, rule)
             else:
                 logging.debug(f"[consistency] Неизвестный тип правила: {rule_type}, id={check_id}")
                 _out = rule.get("output") or {}
@@ -654,6 +881,8 @@ def _rule_to_description_columns(rule: Dict[str, Any]) -> Dict[str, str]:
         "unique": "уникальность, отсутствие дублей по ключу",
         "field_length": "длина полей",
         "field_format": "формат поля",
+        "json_field_equals_column": "поле в JSON равно колонке",
+        "json_field_in_column": "поле в JSON должно быть в колонке листа",
     }.get(t, t)
     table_src = ""
     field_src = ""
@@ -705,6 +934,23 @@ def _rule_to_description_columns(rule: Dict[str, Any]) -> Dict[str, str]:
             param = f"{fmt.get('length', 20)} цифр с лидирующими нулями"
         else:
             param = str(fmt_type)
+    elif t == "json_field_equals_column":
+        table_src = rule.get("sheet", "")
+        field_src = rule.get("json_column", "")
+        field_ref = rule.get("column_compare", "")
+        param = f"{rule.get('json_key', '')} из JSON = {field_ref}" if not rule.get("must_not_equal") else f"{rule.get('json_key', '')} из JSON ≠ {field_ref}"
+        comment = ""
+        if rule.get("must_not_equal"):
+            comment = "значения должны отличаться"
+        if rule.get("filter_column") and rule.get("filter_value") is not None:
+            comment = (comment + f"; только где {rule['filter_column']}={rule['filter_value']}").lstrip("; ")
+        if rule.get("json_filter_key") and rule.get("json_filter_value") is not None:
+            comment = (comment + f"; в JSON {rule['json_filter_key']}={rule['json_filter_value']}").lstrip("; ")
+    elif t == "json_field_in_column":
+        table_src = rule.get("sheet", "")
+        field_src = rule.get("json_column", "")
+        field_ref = rule.get("column_in_sheet", "")
+        param = f"все значения {rule.get('json_key', '')} из JSON должны быть в колонке {field_ref}"
     return {
         "ТИП ПРОВЕРКИ": type_ru,
         "Описание": name,
