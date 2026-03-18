@@ -13,7 +13,7 @@ import re
 import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 import pandas as pd
 
@@ -40,6 +40,15 @@ def _get_sheet_item(sheets_data: Dict[str, Any], sheet_name: str) -> Optional[Tu
     if not isinstance(df, pd.DataFrame):
         return None
     return (df, conf)
+
+
+def _excel_row(idx: int) -> int:
+    """Номер строки в Excel: строка 1 — заголовок, первая строка данных = 2."""
+    return int(idx) + 2
+
+
+# Максимум записей в sample для свода CONSISTENCY (унифицированный формат)
+_MAX_SAMPLE = 20
 
 
 def run_referential(
@@ -83,10 +92,13 @@ def run_referential(
     total = len(df_src)
     violations_mask = results != "OK"
     n_violations = int(violations_mask.sum())
-    sample = []
+    sample: List[str] = []
     if n_violations > 0:
-        sample = df_src.loc[violations_mask, column_src].drop_duplicates().head(20).astype(str).tolist()
-
+        vio_idx = df_src.index[violations_mask].tolist()[: _MAX_SAMPLE]
+        for idx in vio_idx:
+            val = df_src.loc[idx, column_src]
+            v = "" if pd.isna(val) else str(val).strip()[:50]
+            sample.append(f"[{_excel_row(idx)}] {v}")
     # Записываем колонку на лист (модифицируем sheets_data)
     item = _get_sheet_item(sheets_data, sheet_src)
     if item is not None:
@@ -150,10 +162,13 @@ def run_referential_composite(
     total = len(df_src)
     violations_mask = results != "OK"
     n_violations = int(violations_mask.sum())
-    sample = []
+    sample: List[str] = []
     if n_violations > 0:
-        sample_df = df_src.loc[violations_mask, columns_src].drop_duplicates().head(10)
-        sample = [sample_df.iloc[i].to_dict() for i in range(len(sample_df))]
+        vio_idx = df_src.index[violations_mask].tolist()[: _MAX_SAMPLE]
+        for idx in vio_idx:
+            row = df_src.loc[idx, columns_src]
+            parts = [str(row[c]).strip()[:30] for c in columns_src]
+            sample.append(f"[{_excel_row(idx)}] {','.join(parts)}")
 
     item = _get_sheet_item(sheets_data, sheet_src)
     if item is not None:
@@ -311,16 +326,37 @@ def _validate_field_format(value: Any, format_spec: Dict[str, Any]) -> str:
         except (ValueError, TypeError):
             return "Не число"
     if fmt_type == "fixed_length_digits":
+        # Ровно length цифр (только 0-9), пусто не допускается (если не allow_empty).
         length = int(format_spec.get("length", 20))
         if not s.isdigit():
             return "Ожидаются только цифры"
         if len(s) == length:
             return "OK"
+        # Проверяем и меньше, и больше заданной длины (не принимаем короткие с лидирующими нулями как OK)
         if len(s) < length:
-            if s.zfill(length).isdigit():
-                return "OK"
-        return f"Ожидается {length} цифр, получено {len(s)}"
+            return f"{len(s)} < {length}"
+        return f"{len(s)} > {length}"
     return "OK"
+
+
+def _format_error_to_code(msg: str) -> str:
+    """Сокращённый код ошибки формата для единого стиля sample."""
+    if not msg or msg == "OK":
+        return "OK"
+    s = msg.strip()
+    if s == "Пустое значение":
+        return "пусто"
+    if s.startswith("Не дата формата"):
+        return "не_дата"
+    if "Ожидается формат 0." in s or "дробная часть" in s:
+        return "decimal_N"
+    if s == "Не число":
+        return "не_число"
+    if s == "Ожидаются только цифры":
+        return "не_цифры"
+    if "Ожидается " in s and " цифр, получено " in s:
+        return "длина≠L"
+    return "формат"
 
 
 def _run_field_format_check(sheets_data: Dict[str, Any], rule: Dict[str, Any]) -> None:
@@ -383,9 +419,27 @@ def collect_field_format_result(
     violations_mask = col_series != "OK"
     n_violations = int(violations_mask.sum())
     total = len(df)
-    sample = []
-    if n_violations > 0:
-        sample = col_series.loc[violations_mask].drop_duplicates().head(20).tolist()
+    sample: List[str] = []
+    field_name = rule.get("field", "")
+    if n_violations > 0 and field_name and field_name in df.columns:
+        vio_idx = df.index[violations_mask].tolist()[: _MAX_SAMPLE]
+        for idx in vio_idx:
+            raw_val = df.loc[idx, field_name]
+            raw_short = "" if pd.isna(raw_val) else str(raw_val).strip()
+            msg = col_series.loc[idx]
+            # Для формата «N < L» / «N > L» (fixed_length_digits): [N] значение = факт < ожид
+            if re.match(r"^\d+\s*[<>]\s*\d+$", msg.strip()):
+                val_display = raw_short[:50] if len(raw_short) > 50 else raw_short
+                sample.append(f"[{_excel_row(idx)}] {val_display} = {msg.strip()}")
+            else:
+                code = _format_error_to_code(msg)
+                sample.append(f"[{_excel_row(idx)}] {field_name}={raw_short[:25]} | {code}")
+    elif n_violations > 0:
+        vio_idx = df.index[violations_mask].tolist()[: _MAX_SAMPLE]
+        for idx in vio_idx:
+            msg = col_series.loc[idx]
+            code = _format_error_to_code(msg)
+            sample.append(f"[{_excel_row(idx)}] | {code}")
 
     return {
         "check_id": check_id,
@@ -434,7 +488,6 @@ def collect_unique_result(
     total = len(df)
     sample = []
     if n_violations > 0 and key_columns and all(c in df.columns for c in key_columns):
-        # Группируем строки с дублями по ключу, в sample — значения ключа и номера строк (как в Excel: строка 1 = заголовок)
         dup_df = df.loc[violations_mask, key_columns + [col_name]].copy()
         dup_df["_row"] = dup_df.index
         grouped = dup_df.groupby(key_columns, dropna=False)
@@ -442,17 +495,16 @@ def collect_unique_result(
             if len(grp) < 2:
                 continue
             vals = key_vals if isinstance(key_vals, tuple) else (key_vals,)
-            key_parts = [f"{k}={v}" for k, v in zip(key_columns, vals)]
-            key_str = ", ".join(str(p) for p in key_parts)
+            key_parts = [str(v)[:20] for v in vals]
+            key_str = ",".join(key_parts)
             excel_rows = sorted(grp["_row"].astype(int).tolist())
-            row_str = ", ".join(str(r + 2) for r in excel_rows)  # +2: Excel: строка 1 — заголовок
-            sample.append(f"({key_str}) — строки: {row_str} (дублей: {len(grp)})")
-            if len(sample) >= 20:
+            row_str = ", ".join(str(_excel_row(r)) for r in excel_rows)
+            sample.append(f"[{row_str}] {{{key_str}}} ×{len(grp)}")
+            if len(sample) >= _MAX_SAMPLE:
                 break
     elif n_violations > 0:
-        # Запасной вариант: без ключей показываем хотя бы номера строк
-        dup_idx = df.index[violations_mask].tolist()[:20]
-        sample = [f"строка {i + 2}" for i in dup_idx]
+        dup_idx = df.index[violations_mask].tolist()[: _MAX_SAMPLE]
+        sample = [f"[{_excel_row(i)}]" for i in dup_idx]
 
     return {
         "check_id": check_id,
@@ -465,6 +517,29 @@ def collect_unique_result(
         "sample": sample,
         "include_in_summary": output.get("include_in_summary", True),
     }
+
+
+def _compact_field_length_cell(cell_text: str) -> str:
+    """Сокращает текст ячейки field_length: 'FIELD = 25 <= 20' -> 'FIELD:25>20'."""
+    if not cell_text or cell_text.strip() in ("", "-"):
+        return ""
+    parts = []
+    for part in str(cell_text).split(";"):
+        part = part.strip()
+        if " = " not in part:
+            continue
+        field, rest = part.split(" = ", 1)
+        field = field.strip()
+        rest = rest.strip()
+        # "25 <= 20" -> "25>20", "3 = 5" -> "3≠5", "1 >= 2" -> "1<2"
+        for op, sym in [(" <= ", ">"), (" >= ", "<"), (" = ", "≠"), (" < ", "<"), (" > ", ">")]:
+            if op in rest:
+                a, b = rest.split(op, 1)
+                parts.append(f"{field}:{a.strip()}{sym}{b.strip()}")
+                break
+        else:
+            parts.append(f"{field}:{rest}")
+    return "; ".join(parts)
 
 
 def collect_field_length_result(
@@ -499,9 +574,14 @@ def collect_field_length_result(
     violations_mask = (col_series != "") & (col_series != "-")
     n_violations = int(violations_mask.sum())
     total = len(df)
-    sample = []
+    sample: List[str] = []
     if n_violations > 0:
-        sample = col_series.loc[violations_mask].drop_duplicates().head(20).tolist()
+        vio_idx = df.index[violations_mask].tolist()[: _MAX_SAMPLE]
+        for idx in vio_idx:
+            cell = col_series.loc[idx]
+            compact = _compact_field_length_cell(cell)
+            if compact:
+                sample.append(f"[{_excel_row(idx)}] | {compact}")
 
     return {
         "check_id": check_id,
@@ -521,16 +601,23 @@ def _parse_add_data_cell(val: Any) -> Optional[Dict[str, Any]]:
     Разбирает значение ADD_DATA: тройные кавычки заменяются на одинарные, затем JSON.
     Возвращает dict или None при ошибке разбора.
     """
-    if pd.isna(val) or val is None:
-        return None
-    s = str(val).strip()
-    if not s:
-        return None
+    parsed, _, _ = _parse_add_data_cell_with_normalized(val)
+    return parsed
+
+
+def _parse_add_data_cell_with_normalized(val: Any) -> Tuple[Optional[Dict[str, Any]], str, str]:
+    """
+    Разбирает значение ADD_DATA; возвращает (dict или None, исходная строка, строка после замены \"\"\" -> \").
+    Нужно для DEBUG-логирования при ошибках проверок json_field_equals_column и json_field_in_column.
+    """
+    raw_str = "" if pd.isna(val) or val is None else str(val).strip()
+    if not raw_str:
+        return None, raw_str, raw_str
+    normalized = raw_str.replace('"""', '"')
     try:
-        normalized = s.replace('"""', '"')
-        return json.loads(normalized)
+        return json.loads(normalized), raw_str, normalized
     except (json.JSONDecodeError, TypeError):
-        return None
+        return None, raw_str, normalized
 
 
 def _run_json_field_equals_column_check(sheets_data: Dict[str, Any], rule: Dict[str, Any]) -> None:
@@ -570,8 +657,13 @@ def _run_json_field_equals_column_check(sheets_data: Dict[str, Any], rule: Dict[
         if filter_column is not None and filter_value is not None:
             if str(row.get(filter_column, "")).strip() != str(filter_value).strip():
                 return ""
-        add_data = _parse_add_data_cell(row.get(json_column))
+        raw_val = row.get(json_column)
+        add_data, raw_str, normalized_str = _parse_add_data_cell_with_normalized(raw_val)
+        excel_row = (int(row.name) + 2) if row.name is not None else "?"
         if add_data is None:
+            logging.debug(f"[consistency] json_field_equals_column {check_id} строка {excel_row}: ошибка разбора ADD_DATA")
+            logging.debug(f"  Исходное значение колонки (целиком): {raw_str!r}")
+            logging.debug(f"  После преобразований (\"\"\"->\"): {normalized_str!r}")
             return "Ошибка разбора ADD_DATA"
         # Правило применяется только если в JSON значение json_filter_key равно json_filter_value (например masterBadge == "Y")
         if json_filter_key is not None and json_filter_value is not None:
@@ -582,12 +674,21 @@ def _run_json_field_equals_column_check(sheets_data: Dict[str, Any], rule: Dict[
         from_json = str(add_data.get(json_key, "")).strip()
         expected = str(row.get(column_compare, "")).strip()
         if must_not_equal:
-            # Для masterBadge=N: parentRewardCode не должен равняться REWARD_CODE (должны отличаться)
             if from_json == expected:
+                logging.debug(f"[consistency] json_field_equals_column {check_id} строка {excel_row}: не должно совпадать")
+                logging.debug(f"  Исходное значение колонки (целиком): {raw_str!r}")
+                logging.debug(f"  После преобразований: {normalized_str!r}")
+                logging.debug(f"  JSON (дерево структуры):\n{json.dumps(add_data, ensure_ascii=False, indent=2)}")
+                logging.debug(f"  Поле из JSON с ошибкой: {json_key!r} = {from_json!r} | значение для сравнения ({column_compare}): {expected!r}")
                 return f"не должно совпадать с REWARD_CODE: {expected}"
             return "OK"
         if from_json == expected:
             return "OK"
+        logging.debug(f"[consistency] json_field_equals_column {check_id} строка {excel_row}: несовпадение")
+        logging.debug(f"  Исходное значение колонки (целиком): {raw_str!r}")
+        logging.debug(f"  После преобразований: {normalized_str!r}")
+        logging.debug(f"  JSON (дерево структуры):\n{json.dumps(add_data, ensure_ascii=False, indent=2)}")
+        logging.debug(f"  Поле из JSON с ошибкой: {json_key!r} = {from_json!r} | значение, с которым сравниваем ({column_compare}): {expected!r}")
         return f"ожидалось {expected}, в ADD_DATA: {from_json}"
 
     results = df.apply(_check_one, axis=1)
@@ -630,7 +731,22 @@ def collect_json_field_equals_column_result(
     total = len(df)
     sample = []
     if n_violations > 0:
-        sample = col_series.loc[violations_mask].drop_duplicates().head(20).tolist()
+        vio_idx = df.index[violations_mask].tolist()[: _MAX_SAMPLE]
+        for idx in vio_idx:
+            msg = col_series.loc[idx]
+            if "Ошибка разбора" in msg:
+                sample.append(f"[{_excel_row(idx)}] | json_бит")
+            elif "не должно совпадать" in msg:
+                sample.append(f"[{_excel_row(idx)}] | =запрещено")
+            elif "ожидалось " in msg and " в ADD_DATA: " in msg:
+                try:
+                    _, rest = msg.split("ожидалось ", 1)
+                    exp, in_add = rest.split(", в ADD_DATA: ", 1)
+                    sample.append(f"[{_excel_row(idx)}] {in_add.strip()[:30]} ≠ {exp.strip()[:20]}")
+                except ValueError:
+                    sample.append(f"[{_excel_row(idx)}] | {msg[:50]}")
+            else:
+                sample.append(f"[{_excel_row(idx)}] | {msg[:50]}")
     return {
         "check_id": check_id,
         "sheet": sheet_name,
@@ -671,14 +787,25 @@ def _run_json_field_in_column_check(sheets_data: Dict[str, Any], rule: Dict[str,
     allowed_set = set(df[column_in_sheet].astype(str).str.strip())
 
     def _check_one(row: pd.Series) -> str:
-        add_data = _parse_add_data_cell(row.get(json_column))
+        raw_val = row.get(json_column)
+        add_data, raw_str, normalized_str = _parse_add_data_cell_with_normalized(raw_val)
+        excel_row = (int(row.name) + 2) if row.name is not None else "?"
         if add_data is None:
+            logging.debug(f"[consistency] json_field_in_column {check_id} строка {excel_row}: ошибка разбора ADD_DATA")
+            logging.debug(f"  Исходное значение колонки (целиком): {raw_str!r}")
+            logging.debug(f"  После преобразований (\"\"\"->\"): {normalized_str!r}")
             return "Ошибка разбора ADD_DATA"
         from_json = str(add_data.get(json_key, "")).strip()
         if not from_json:
             return ""
         if from_json in allowed_set:
             return "OK"
+        # Ошибка: значение из JSON не найдено в колонке листа
+        logging.debug(f"[consistency] json_field_in_column {check_id} строка {excel_row}: значение не в колонке")
+        logging.debug(f"  Исходное значение колонки (целиком): {raw_str!r}")
+        logging.debug(f"  После преобразований: {normalized_str!r}")
+        logging.debug(f"  JSON (дерево структуры):\n{json.dumps(add_data, ensure_ascii=False, indent=2)}")
+        logging.debug(f"  Поле из JSON с ошибкой: {json_key!r} = {from_json!r} (ожидается наличие в колонке {column_in_sheet!r})")
         return f"НЕТ в {column_in_sheet}"
 
     results = df.apply(_check_one, axis=1)
@@ -720,7 +847,17 @@ def collect_json_field_in_column_result(
     total_applicable = int((col_series.ne("")).sum())
     sample = []
     if n_violations > 0:
-        sample = col_series.loc[violations_mask].drop_duplicates().head(20).tolist()
+        vio_idx = df.index[violations_mask].tolist()[: _MAX_SAMPLE]
+        for idx in vio_idx:
+            msg = col_series.loc[idx]
+            if "Ошибка разбора" in msg:
+                sample.append(f"[{_excel_row(idx)}] | json_бит")
+            else:
+                add_data = _parse_add_data_cell(df.loc[idx, json_column])
+                val = ""
+                if add_data is not None:
+                    val = str(add_data.get(json_key, "")).strip()[:30]
+                sample.append(f"[{_excel_row(idx)}] {json_key}={val} | ∉{column_in_sheet}")
     return {
         "check_id": check_id,
         "sheet": sheet_name,
@@ -963,6 +1100,27 @@ def _rule_to_description_columns(rule: Dict[str, Any]) -> Dict[str, str]:
     }
 
 
+def _sample_rows_prefix(sample: List[Any]) -> str:
+    """
+    Из записей sample извлекает все номера строк (из ведущих [N] или [N, M, K])
+    и возвращает строку вида «[37], [47], [57]» для префикса при обрезке.
+    """
+    seen: Set[int] = set()
+    for item in sample:
+        s = str(item).strip()
+        m = re.match(r"\[([^\]]+)\]", s)
+        if m:
+            for part in m.group(1).split(","):
+                try:
+                    n = int(part.strip())
+                    seen.add(n)
+                except (ValueError, TypeError):
+                    pass
+    if not seen:
+        return ""
+    return ", ".join(f"[{n}]" for n in sorted(seen))
+
+
 def build_consistency_summary_df(
     results: List[Dict[str, Any]],
     rules: Optional[List[Dict[str, Any]]] = None,
@@ -971,6 +1129,7 @@ def build_consistency_summary_df(
     Формирует DataFrame для сводного листа CONSISTENCY.
     Если передан rules (список правил из конфига), добавляются колонки по образцу таблицы проверок:
     ТИП ПРОВЕРКИ, Описание, таблица источник, поле источник, таблица где проверяем, поле для проверки, параметр сравнения, комментарий.
+    При нескольких записях в sample в начало выводится список всех строк с ошибками, затем « => » и детали (чтобы при обрезке номера строк были видны).
     """
     base_columns = [
         "check_id", "sheet", "name", "имя_колонки", "type", "total_rows", "violations", "sample"
@@ -994,9 +1153,15 @@ def build_consistency_summary_df(
         if not r.get("include_in_summary", True):
             continue
         sample = r.get("sample") or []
-        sample_str = "; ".join(str(x)[:80] for x in sample[:5])
+        detail_parts = [str(x)[:80] for x in sample[:5]]
+        sample_str = "; ".join(detail_parts)
         if len(sample) > 5:
             sample_str += " ..."
+        # При нескольких записях: префикс «[37], [47], ... => » чтобы при обрезке были видны все строки с ошибками
+        if len(sample) > 1:
+            prefix = _sample_rows_prefix(sample)
+            if prefix:
+                sample_str = f"{prefix} => {sample_str}"
         row = {
             "check_id": r.get("check_id", ""),
             "sheet": r.get("sheet", ""),

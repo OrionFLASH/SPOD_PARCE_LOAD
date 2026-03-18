@@ -13,6 +13,23 @@ from typing import Any, Dict, List, Optional
 import pandas as pd
 
 
+def _log_json_parse_error(context: str, raw: str, ex_first: Exception, ex_after_fix: Exception) -> None:
+    """Пишет в DEBUG понятное объяснение, почему строка не разобралась как JSON."""
+    err1 = str(ex_first).strip()
+    err2 = str(ex_after_fix).strip()
+    if "Expecting value" in err1 and "column 1" in err1 and "char 0" in err1:
+        logging.debug(
+            f"[{context}] Строка не распознана как JSON: в начале ожидалось начало значения (число, кавычки, {{ или [), "
+            f"получено: {raw[:80]!r}{'...' if len(raw) > 80 else ''}. "
+            f"Возможно, в ячейке обычный текст, а не JSON. После попытки автоисправления: {err2}"
+        )
+    else:
+        logging.debug(
+            f"[{context}] Ошибка разбора JSON. Исходная строка: {raw[:200]!r}. "
+            f"Первый парсинг: {err1}. После исправления: {err2}"
+        )
+
+
 def safe_json_loads(s: str) -> Any:
     """
     Преобразует строку в объект JSON. Возвращает dict/list или None при ошибке.
@@ -39,9 +56,7 @@ def safe_json_loads(s: str) -> Any:
             fixed = re.sub(r'(\"[^"]+\")\s*:\s*', r'\1:', fixed)
             return json.loads(fixed)
         except Exception as ex2:
-            logging.debug(
-                f"[safe_json_loads] Ошибка: первый парсинг {ex}, после исправления {ex2} | Исходная строка: {repr(s)}"
-            )
+            _log_json_parse_error("safe_json_loads", s, ex, ex2)
             return None
 
 

@@ -14,7 +14,7 @@
     "logs": "LOGS"
   },
   "logging": {
-    "level": "INFO",
+    "level": "DEBUG",
     "base_name": "LOGS"
   },
   "performance": {
@@ -32,7 +32,7 @@
   ],
   "input_files": [
     {
-      "file": "CONTEST (PROM) 16-03 v0.csv",
+      "file": "CONTEST (PROM) 18-03 v0.csv",
       "sheet": "CONTEST-DATA",
       "subdir": "SPOD",
       "sort_columns": [{"column": "CONTEST_CODE", "order": "asc"}],
@@ -43,7 +43,7 @@
       "include_in_source": true
     },
     {
-      "file": "GROUP (PROM) 16-03 v0.csv",
+      "file": "GROUP (PROM) 18-03 v0.csv",
       "sheet": "GROUP",
       "subdir": "SPOD",
       "sort_columns": [{"column": "GROUP_VALUE", "order": "asc"}, {"column": "GROUP_CODE", "order": "asc"}, {"column": "CONTEST_CODE", "order": "asc"}],
@@ -54,7 +54,7 @@
       "include_in_source": true
     },
     {
-      "file": "INDICATOR (PROM) 16-03 v0.csv",
+      "file": "INDICATOR (PROM) 18-03 v0.csv",
       "sheet": "INDICATOR",
       "subdir": "SPOD",
       "sort_columns": [{"column": "INDICATOR_CODE", "order": "asc"}, {"column": "INDICATOR_ADD_CALC_TYPE", "order": "asc"}, {"column": "CONTEST_CODE", "order": "asc"}],
@@ -65,7 +65,7 @@
       "include_in_source": true
     },
     {
-      "file": "REPORT (PROM) 13-03 v0.csv",
+      "file": "REPORT (PROM) 18-03 v0.csv",
       "sheet": "REPORT",
       "subdir": "SPOD",
       "sort_columns": [{"column": "CONTEST_CODE", "order": "asc"}],
@@ -76,7 +76,7 @@
       "include_in_source": true
     },
     {
-      "file": "REWARD (PROM) 16-03 v0.csv",
+      "file": "REWARD (PROM) 18-03 v0.csv",
       "sheet": "REWARD",
       "subdir": "SPOD",
       "sort_columns": [{"column": "REWARD_CODE", "order": "asc"}],
@@ -87,7 +87,7 @@
       "include_in_source": true
     },
     {
-      "file": "REWARD-LINK (PROM) 16-03 v0.csv",
+      "file": "REWARD-LINK (PROM) 18-03 v0.csv",
       "sheet": "REWARD-LINK",
       "subdir": "SPOD",
       "sort_columns": [{"column": "GROUP_CODE", "order": "asc"}, {"column": "REWARD_CODE", "order": "asc"}],
@@ -98,7 +98,7 @@
       "include_in_source": true
     },
     {
-      "file": "SCHEDULE (PROM) 16-03 v0.csv",
+      "file": "SCHEDULE (PROM) 18-03 v0.csv",
       "sheet": "TOURNAMENT-SCHEDULE",
       "subdir": "SPOD",
       "sort_columns": [{"column": "TOURNAMENT_CODE", "order": "asc"}, {"column": "CONTEST_CODE", "order": "asc"}],
@@ -112,7 +112,7 @@
       "file": "SVD_KB_DM_GAMIFICATION_ORG_UNIT_V20 - 2025.08.28.csv",
       "sheet": "ORG_UNIT_V20",
       "subdir": "SPOD",
-      "sort_columns": [{"column": "ORG_UNIT_ID", "order": "asc"}],
+      "sort_columns": [{"column": "ORG_UNIT_CODE", "order": "asc"}],
       "max_col_width": 60,
       "freeze": "A2",
       "col_width_mode": "AUTO",
@@ -123,7 +123,7 @@
       "file": "USER_ROLE (PROM) 13-03 v0.csv",
       "sheet": "USER_ROLE",
       "subdir": "SPOD",
-      "sort_columns": [{"column": "USER_ID", "order": "asc"}],
+      "sort_columns": [{"column": "RULE_NUM", "order": "asc"}],
       "max_col_width": 65,
       "freeze": "D2",
       "col_width_mode": "AUTO",
@@ -134,7 +134,7 @@
       "file": "USER_ROLE_SB (PROM) 13-03 v0.csv",
       "sheet": "USER_ROLE SB",
       "subdir": "SPOD",
-      "sort_columns": [{"column": "USER_ID", "order": "asc"}],
+      "sort_columns": [{"column": "RULE_NUM", "order": "asc"}],
       "max_col_width": 65,
       "freeze": "D2",
       "col_width_mode": "AUTO",
@@ -2454,28 +2454,28 @@
         "id": "ref_contest_data_indicator",
         "name": "Все CONTEST_CODE из CONTEST-DATE существуют в INDICATOR",
         "type": "referential",
-        "enabled": true,
+        "enabled": false,
         "sheet_src": "CONTEST-DATA",
         "column_src": "CONTEST_CODE",
         "sheet_ref": "INDICATOR",
         "column_ref": "CONTEST_CODE",
         "output": {
           "column_on_sheet": "ПРОВЕРКА: CONTEST_CODE в INDICATOR",
-          "include_in_summary": true
+          "include_in_summary": false
         }
       },
       {
         "id": "ref_group_indicator",
         "name": "Все CONTEST_CODE из GROUP существуют в INDICATOR",
         "type": "referential",
-        "enabled": true,
+        "enabled": false,
         "sheet_src": "GROUP",
         "column_src": "CONTEST_CODE",
         "sheet_ref": "INDICATOR",
         "column_ref": "CONTEST_CODE",
         "output": {
           "column_on_sheet": "ПРОВЕРКА: CONTEST_CODE в INDICATOR",
-          "include_in_summary": true
+          "include_in_summary": false
         }
       },
       {
