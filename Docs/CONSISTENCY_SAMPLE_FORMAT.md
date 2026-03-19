@@ -157,7 +157,7 @@ CODE = 25 <= 20; NAME = 3 = 5
 
 ### Предложение
 
-- **`[N] <json_key>=<значение> | ∉<column_in_sheet>`**
+- **`[N] <значение> ∉<column_in_sheet>`**
 - Парсинг: **`[N] | json_бит`**.
 
 ---
@@ -193,7 +193,7 @@ CODE = 25 <= 20; NAME = 3 = 5
 | field_length              | уникальные сводки по полям                  | [N], поле:факт/лимит                                    |
 | unique                    | ключ + строки Excel + число дублей          | [N, M, K], ключ, дубль×n                                |
 | json_field_equals_column  | текст из ячейки проверки                    | [N], ключ JSON, сравнение/ json_бит                     |
-| json_field_in_column      | «НЕТ в COL» / ошибка JSON                   | [N], ключ=значение, ∉COL                                |
+| json_field_in_column      | «НЕТ в COL» / ошибка JSON                   | [N], значение, ∉COL                                     |
 | csv_columns_count         | стр., ожид/факт, больше/меньше              | [N], полей факт/ожид, +/−                               |
 
 ---

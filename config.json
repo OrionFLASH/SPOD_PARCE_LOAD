@@ -1,5 +1,5 @@
 {
-  "run_mode": "full",
+  "run_mode": "main_only",
   "_run_mode_options": ["full", "source_only", "main_only", "consistency_only"],
   "apply_sort_to_source": true,
   "apply_sort_to_main": true,
@@ -14,7 +14,7 @@
     "logs": "LOGS"
   },
   "logging": {
-    "level": "DEBUG",
+    "level": "INFO",
     "base_name": "LOGS"
   },
   "performance": {
@@ -76,7 +76,7 @@
       "include_in_source": true
     },
     {
-      "file": "REWARD (PROM) 18-03 v0.csv",
+      "file": "REWARD (PROM) 19-03 v1.csv",
       "sheet": "REWARD",
       "subdir": "SPOD",
       "sort_columns": [{"column": "REWARD_CODE", "order": "asc"}],
@@ -109,7 +109,7 @@
       "include_in_source": true
     },
     {
-      "file": "SVD_KB_DM_GAMIFICATION_ORG_UNIT_V20 - 2025.08.28.csv",
+      "file": "ORG_UNIT_V20 19-03 v0.csv",
       "sheet": "ORG_UNIT_V20",
       "subdir": "SPOD",
       "sort_columns": [{"column": "ORG_UNIT_CODE", "order": "asc"}],
@@ -142,7 +142,7 @@
       "include_in_source": true
     },
     {
-      "file": "employee_PROM_final_5000_2025-07-26_00-09-03.CSV",
+      "file": "employee (PROM) 13-03 v0.csv",
       "sheet": "EMPLOYEE",
       "subdir": "SPOD",
       "sort_columns": [{"column": "PERSON_NUMBER", "order": "asc"}],

@@ -3918,7 +3918,7 @@ def append_csv_mismatches_to_consistency(
         desc.setdefault("поле источник", "все поля строки")
         desc.setdefault("таблица где проверяем", "")
         desc.setdefault("поле для проверки", "")
-        desc.setdefault("комментарий", "Строки с расхождением числа полей от ожидаемого фиксируются в sample.")
+        desc.setdefault("комментарий", "")
         row = {
             "ТИП ПРОВЕРКИ": desc.get("ТИП ПРОВЕРКИ", ""),
             "Описание": desc.get("Описание", ""),

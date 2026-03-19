@@ -50,6 +50,7 @@ OUT/
 SPOD/
 EDIT/
 File/
+IN/
 
 # Temporary files
 *.tmp

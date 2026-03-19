@@ -857,7 +857,7 @@ def collect_json_field_in_column_result(
                 val = ""
                 if add_data is not None:
                     val = str(add_data.get(json_key, "")).strip()[:30]
-                sample.append(f"[{_excel_row(idx)}] {json_key}={val} | ∉{column_in_sheet}")
+                sample.append(f"[{_excel_row(idx)}] {val} ∉{column_in_sheet}")
     return {
         "check_id": check_id,
         "sheet": sheet_name,
