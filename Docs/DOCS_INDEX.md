@@ -15,6 +15,10 @@
 - `SUMMARY_GROUP_FIX_HISTORY.md` — история исправлений логики формирования `SUMMARY` и связки `GROUP_CODE`/`GROUP_VALUE`.
 - `ADMIN_PANEL_GUIDE.md` — объединенный набор материалов по админ-панели (ТЗ, краткий запуск, статус реализации).
 
+## Каталог CSV `IN/SPOD` (все листы)
+
+- **`SPOD_INPUT_DATA_CATALOG.md`** — единый документ: оглавление по файлам; для каждого CSV — назначение колонок, статистика значений; для **REWARD** и **CONTEST** — разбор JSON (`REWARD_TYPE` / `CONTEST_TYPE`) и встроенные пояснительные справочники полей. Пересборка: `python src/Tools/build_spod_input_catalog.py`. Тексты глоссариев хранятся в `src/Tools/catalog_glossary/`.
+
 ## Специализированные материалы
 
 - `EXCEL_FEATURES_EXAMPLES.md` — примеры работы с валидациями/формулами в Excel.
@@ -22,6 +26,7 @@
 
 ## Правила актуализации
 
+- После обновления CSV в `IN/SPOD/` пересобрать **`SPOD_INPUT_DATA_CATALOG.md`**: `python src/Tools/build_spod_input_catalog.py`; при смене схемы JSON править **`src/Tools/catalog_glossary/`**.
 - Новые изменения по консистентности вносить сначала в `README.md`, затем синхронно в `CONSISTENCY_CHECKS_FORMAT.md` и `CONSISTENCY_SAMPLE_FORMAT.md`.
 - Для крупных блоков изменений использовать консолидированные документы, а не создавать новые `*_V2`, `*_FINAL`, `*_FULL` файлы.
 - Исторические документы с пересекающимся содержимым объединять и удалять дубли.

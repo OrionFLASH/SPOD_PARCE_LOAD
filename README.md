@@ -55,7 +55,9 @@ SPOD_PROM/
 ├── BACKUP/                 # Резервные копии
 ├── POST/                   # Копии всех файлов программы с суффиксом .txt (код src/, main.py, config.json, README.md, requirements.txt) для переноса без репозитория
 ├── LOGS/                   # Файлы логов (paths.logs); по дате: LOGS/YYYY/DD-MM/
-├── Docs/                   # Дополнительная документация (.md, .txt)
+├── Docs/                   # Дополнительная документация (.md, .txt); единый каталог CSV — SPOD_INPUT_DATA_CATALOG.md
+├── src/Tools/              # Утилиты: build_spod_input_catalog.py — сборка каталога IN/SPOD
+│   └── catalog_glossary/   # Фрагменты пояснений к JSON для каталога
 ├── admin_panel/            # Админ-панель
 │   ├── app.py             # Flask приложение
 │   ├── config.py          # Конфигурация
@@ -85,6 +87,7 @@ SPOD_PROM/
 - `Docs/PERFORMANCE_AND_PARALLELIZATION_HISTORY.md` — консолидированная история оптимизации и распараллеливания.
 - `Docs/SUMMARY_GROUP_FIX_HISTORY.md` — история исправлений логики `SUMMARY` и связки `GROUP`.
 - `Docs/ADMIN_PANEL_GUIDE.md` — краткий гид по админ-панели.
+- `Docs/SPOD_INPUT_DATA_CATALOG.md` — **единый каталог** CSV из `IN/SPOD`: все колонки, варианты значений, JSON `REWARD_ADD_DATA` / `CONTEST_FEATURE` с пояснениями; пересборка: `python src/Tools/build_spod_input_catalog.py`.
 
 ---
 
@@ -1261,6 +1264,13 @@ python app.py
 **Режим full (1):** дополнительно к основному Excel создаётся **отдельный файл consistency** (лист CONSISTENCY + листы с нарушениями) в том же каталоге `OUT/YYYY/DD-MM/`, имя `{output_filenames.consistency} YYYY-MM-DD_HH-MM-SS.xlsx`.
 
 **Документация:** обновлён README (логи, sample, режимы); Docs/CONSISTENCY_SAMPLE_FORMAT.md — актуальные форматы и реализация.
+
+---
+
+### Документация — каталог входных CSV `IN/SPOD`
+
+- **`Docs/SPOD_INPUT_DATA_CATALOG.md`** — один файл: оглавление по листам выгрузки, назначение и статистика значений по всем колонкам, разбор JSON (`REWARD_ADD_DATA`, `CONTEST_FEATURE`) и глоссарии. Скрипт пересборки: **`src/Tools/build_spod_input_catalog.py`**; редактируемые пояснения к JSON: **`src/Tools/catalog_glossary/`**.
+- В **`Docs/INPUT_DATA_AND_CONFIG_FULL.md`** добавлена ссылка на этот каталог (раздел «Входные данные»).
 
 ---
 
