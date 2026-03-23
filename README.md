@@ -58,8 +58,8 @@ SPOD_PROM/
 ├── BACKUP/                 # Резервные копии
 ├── POST/                   # Копии всех файлов программы с суффиксом .txt (код src/, main.py, config.json, README.md, requirements.txt) для переноса без репозитория
 ├── LOGS/                   # Файлы логов (paths.logs); по дате: LOGS/YYYY/DD-MM/
-├── Docs/                   # Дополнительная документация (.md, .txt); единый каталог CSV — SPOD_INPUT_DATA_CATALOG.md
-├── src/Tools/              # Утилиты: build_spod_input_catalog.py — сборка каталога IN/SPOD
+├── Docs/                   # Дополнительная документация; каталог CSV/JSON — Docs/JSON/ (см. README внутри)
+├── src/Tools/              # Утилиты: build_spod_input_catalog.py — каталог в Docs/JSON/; export_spod_json_examples.py — примеры JSON в Docs/JSON/examples/
 │   └── catalog_glossary/   # Фрагменты пояснений к JSON для каталога
 ├── admin_panel/            # Админ-панель
 │   ├── app.py             # Flask приложение
@@ -90,7 +90,7 @@ SPOD_PROM/
 - `Docs/PERFORMANCE_AND_PARALLELIZATION_HISTORY.md` — консолидированная история оптимизации и распараллеливания.
 - `Docs/SUMMARY_GROUP_FIX_HISTORY.md` — история исправлений логики `SUMMARY` и связки `GROUP`.
 - `Docs/ADMIN_PANEL_GUIDE.md` — краткий гид по админ-панели.
-- `Docs/SPOD_INPUT_DATA_CATALOG.md` — **единый каталог** CSV из `IN/SPOD`: все колонки, варианты значений, JSON `REWARD_ADD_DATA` / `CONTEST_FEATURE` с пояснениями; пересборка: `python src/Tools/build_spod_input_catalog.py`.
+- `Docs/JSON/` — **каталог входных данных и примеров JSON:** `SPOD_INPUT_DATA_CATALOG.md`, папка `examples/` с реальными JSON из `IN/SPOD`; см. `Docs/JSON/README.md`. Пересборка каталога: `python src/Tools/build_spod_input_catalog.py`; примеры JSON: `python src/Tools/export_spod_json_examples.py`.
 
 ---
 
@@ -1163,6 +1163,8 @@ FILE_DEPENDENCIES = {
 5. **REWARD:**
    - `REWARD_ADD_DATA` - объект (структура зависит от `REWARD_TYPE`)
 
+**Каталог и примеры:** машинный разбор колонок и деревьев JSON — в **`Docs/JSON/SPOD_INPUT_DATA_CATALOG.md`**; JSON-выгрузка в соответствии с CSV (один файл CSV → один `.json`) — **`Docs/JSON/examples/`** (`python src/Tools/export_spod_json_examples.py`). Обзор — **`Docs/JSON/README.md`**.
+
 ### Зависимости между файлами
 
 - **GROUP** → **CONTEST-DATA** (по `CONTEST_CODE`)
@@ -1272,6 +1274,19 @@ python app.py
 
 ## История версий
 
+### Версия 1.7.3 — Полнота каталога JSON и CSV
+
+- **`SPOD_INPUT_DATA_CATALOG.md`:** для файлов `REWARD (PROM) 23-03 v3.csv` и `CONTEST (PROM) 23-03 v3.csv` включены таблицы «Краткое назначение колонок» (раньше подсказки были только у старых имён файлов).
+- Добавлен машинный разбор **JSON** для колонок **GROUP** (`GROUP_VALUE`), **SCHEDULE** (`TARGET_TYPE`, `FILTER_PERIOD_ARR`), **USER_ROLE** (массивы в `PERSON_NUMBER_ARR`, `STAGE_ETALONE_CODE_ARR`, `POST_ETALONE_CODE_ARR`, `DIV_CODE_ARR`, `EXCLUDE_DIV_CODE_ARR`) — в соответствии со структурой в **`Docs/JSON/examples`**.
+- Обновлены **`Docs/JSON/README.md`**, **`src/Tools/build_spod_input_catalog.py`**.
+
+### Версия 1.7.2 — Каталог входных данных в `Docs/JSON/`, примеры JSON
+
+- Файл **`SPOD_INPUT_DATA_CATALOG.md`** перенесён в **`Docs/JSON/`**; добавлены **`Docs/JSON/README.md`** и каталог **`Docs/JSON/examples/`**: **один CSV в `IN/SPOD` → один `.json`** с тем же именем; внутри один JSON с массивом `rows` (строки с разобранным `REWARD_ADD_DATA` / `CONTEST_FEATURE`).
+- Скрипт **`src/Tools/export_spod_json_examples.py`** — генерация примеров; **`build_spod_input_catalog.py`** пишет каталог в `Docs/JSON/`, в шапке — ссылка на примеры.
+- В **`build_spod_input_catalog.py`** имена CSV для REWARD/CONTEST приведены к актуальным выгрузкам (`* 23-03 v3.csv`).
+- Обновлены ссылки в **README**, **DOCS_INDEX**, **INPUT_DATA_AND_CONFIG_FULL**, **catalog_glossary/README**.
+
 ### Версия 1.7.1 — Синхронизация документации
 
 - В **README.md** обновлены: таблица секций `config.json` (добавлены `reward_getcondition_summary`, уточнён `column_formats`), пример JSON-структуры, описание пайплайна **main_impl** (порядок: консистентность на сырых данных, merge, сводка REWARD, SUMMARY, STAT_FILE).
@@ -1313,7 +1328,7 @@ python app.py
 
 ### Документация — каталог входных CSV `IN/SPOD`
 
-- **`Docs/SPOD_INPUT_DATA_CATALOG.md`** — один файл: оглавление по листам выгрузки, назначение и статистика значений по всем колонкам, разбор JSON (`REWARD_ADD_DATA`, `CONTEST_FEATURE`) и глоссарии. Скрипт пересборки: **`src/Tools/build_spod_input_catalog.py`**; редактируемые пояснения к JSON: **`src/Tools/catalog_glossary/`**.
+- **`Docs/JSON/`** — `SPOD_INPUT_DATA_CATALOG.md` (оглавление по CSV, разбор JSON), **`examples/`** (по одному JSON-файлу на каждый CSV выгрузок REWARD/CONTEST), **`README.md`**. Сборка каталога: **`src/Tools/build_spod_input_catalog.py`**; экспорт примеров: **`src/Tools/export_spod_json_examples.py`**; глоссарии JSON: **`src/Tools/catalog_glossary/`**.
 - В **`Docs/INPUT_DATA_AND_CONFIG_FULL.md`** добавлена ссылка на этот каталог (раздел «Входные данные»).
 
 ---

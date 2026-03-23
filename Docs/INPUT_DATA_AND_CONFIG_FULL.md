@@ -7,7 +7,7 @@
 - Источник: CSV-файлы из каталога входных данных (путь задается в конфигурации).
 - Файлы загружаются в листы Excel согласно сопоставлению `file -> sheet`.
 - Перед запуском проверяется наличие обязательных файлов.
-- **Детальный каталог полей и значений** по CSV в `IN/SPOD/` (все колонки, варианты, JSON `REWARD_ADD_DATA` / `CONTEST_FEATURE`): **`Docs/SPOD_INPUT_DATA_CATALOG.md`**. Пересборка после смены выгрузок: `python src/Tools/build_spod_input_catalog.py`. Пояснения к ключам JSON — `src/Tools/catalog_glossary/`.
+- **Детальный каталог полей и значений** по CSV в `IN/SPOD/` (все колонки, варианты, JSON `REWARD_ADD_DATA` / `CONTEST_FEATURE`): **`Docs/JSON/SPOD_INPUT_DATA_CATALOG.md`**, примеры JSON — **`Docs/JSON/examples/`** (см. **`Docs/JSON/README.md`**). Пересборка: `python src/Tools/build_spod_input_catalog.py`; обновление примеров: `python src/Tools/export_spod_json_examples.py`. Пояснения к ключам JSON — `src/Tools/catalog_glossary/`.
 
 ## 2. Базовые листы и связи
 

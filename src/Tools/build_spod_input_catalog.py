@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Сборка единого Markdown-каталога по CSV в IN/SPOD: колонки, варианты значений,
-вложенные разделы по JSON (REWARD_ADD_DATA, CONTEST_FEATURE).
+вложенные разделы по JSON (REWARD_ADD_DATA, CONTEST_FEATURE, GROUP_VALUE, SCHEDULE, USER_ROLE).
 Запуск из корня проекта: python src/Tools/build_spod_input_catalog.py
 """
 from __future__ import annotations
@@ -17,7 +17,7 @@ from typing import Any, Callable, Dict, List, Optional, Set, Tuple
 # --- пути относительно корня проекта ---
 ROOT = Path(__file__).resolve().parents[2]
 IN_SPOD = ROOT / "IN" / "SPOD"
-OUT_MD = ROOT / "Docs" / "SPOD_INPUT_DATA_CATALOG.md"
+OUT_MD = ROOT / "Docs" / "JSON" / "SPOD_INPUT_DATA_CATALOG.md"
 GLOSSARY_DIR = ROOT / "src" / "Tools" / "catalog_glossary"
 
 DELIM = ";"
@@ -236,7 +236,7 @@ COLUMN_HINTS: Dict[str, Dict[str, str]] = {
     "GROUP (PROM) 18-03 v0.csv": {
         "CONTEST_CODE": "Код конкурса.",
         "GROUP_CODE": "Код группы расчёта (BANK, TB, …).",
-        "GROUP_VALUE": "Значение группы (* — все, или код).",
+        "GROUP_VALUE": "Значение группы: `*`, код или JSON-массив (напр. `[38]`); см. разбор JSON ниже.",
         "GET_CALC_METHOD": "Метод получения расчёта (код).",
         "GET_CALC_CRITERION": "Критерий расчёта GET (код).",
         "ADD_CALC_CRITERION": "Доп. критерий расчёта.",
@@ -301,7 +301,7 @@ COLUMN_HINTS: Dict[str, Dict[str, str]] = {
         "FILTER_PERIOD_ARR": "JSON/массив фильтра периодов (если заполнено).",
         "TOURNAMENT_STATUS": "Статус турнира (АКТИВНЫЙ, УДАЛЕН, …).",
         "CONTEST_CODE": "Код родительского конкурса.",
-        "TARGET_TYPE": "Тип цели расчёта.",
+        "TARGET_TYPE": "Тип цели: часто JSON-объект (напр. `seasonCode`); см. разбор JSON ниже.",
         "CALC_TYPE": "Тип расчёта.",
         "TRN_INDICATOR_FILTER": "Фильтр индикаторов турнира.",
     },
@@ -321,6 +321,9 @@ COLUMN_HINTS: Dict[str, Dict[str, str]] = {
         "GOSB_CODE": "Код ГОСБ.",
     },
 }
+# Актуальные имена выгрузок в IN/SPOD — те же подсказки, что и у предыдущих версий файлов.
+COLUMN_HINTS["REWARD (PROM) 23-03 v3.csv"] = dict(COLUMN_HINTS["REWARD (PROM) 20-03 v0.csv"])
+COLUMN_HINTS["CONTEST (PROM) 23-03 v3.csv"] = dict(COLUMN_HINTS["CONTEST (PROM) 18-03 v0.csv"])
 
 
 def format_column_hints(fname: str, fieldnames: List[str]) -> List[str]:
@@ -604,6 +607,88 @@ def json_sections_contest(rows: List[Dict[str, str]]) -> List[str]:
     return lines
 
 
+def merge_path_stats_into(tgt: PathStats, st: PathStats) -> None:
+    """Слияние статистики путей при обходе нескольких JSON из одной колонки."""
+    for t, c in st.types.items():
+        tgt.types[t] = tgt.types.get(t, 0) + c
+    tgt.str_values.update(st.str_values)
+    tgt.str_max_len = max(tgt.str_max_len, st.str_max_len)
+    tgt.num_samples.update(st.num_samples)
+    tgt.bool_samples.update(st.bool_samples)
+    tgt.null_count += st.null_count
+    tgt.row_count += st.row_count
+    tgt.array_len_samples.extend(st.array_len_samples)
+
+
+def json_sections_generic_columns(rows: List[Dict[str, str]], columns: List[str]) -> List[str]:
+    """
+    Разбор JSON в отдельных колонках (объект или массив в корне), как в примерах
+    `Docs/JSON/examples` после `export_spod_json_examples.py`.
+    Скаляры (число в ячейке) не включаются — только dict/list.
+    """
+    lines: List[str] = []
+    for col in columns:
+        by_path: Dict[str, PathStats] = {}
+        key_occ: Dict[str, int] = defaultdict(int)
+        parse_n = 0
+        for row in rows:
+            raw = (row.get(col) or "").strip()
+            if not raw:
+                continue
+            try:
+                data = json.loads(normalize_json_cell(raw))
+            except json.JSONDecodeError:
+                continue
+            if not isinstance(data, (dict, list)):
+                continue
+            parse_n += 1
+            local: Dict[str, PathStats] = {}
+            walk(data, col, local)
+            for path, st in local.items():
+                tgt = by_path.setdefault(path, PathStats())
+                merge_path_stats_into(tgt, st)
+                key_occ[path] += 1
+        if parse_n == 0:
+            continue
+        lines.append(f"### JSON: колонка `{col}`")
+        lines.append("")
+        lines.append(
+            "Предобработка: тройные кавычки в CSV → обычные `\"`, затем `json.loads`. "
+            f"Учитываются только значения с корнем **object** или **array**; "
+            f"распарсено **{parse_n}** ячеек из {len(rows)} строк."
+        )
+        lines.append("")
+        paths = sorted(by_path.keys())
+        tree: Dict[str, Any] = {}
+
+        def add_to_tree(p: str) -> None:
+            cur = tree
+            for s in p.split("."):
+                if s not in cur:
+                    cur[s] = {}
+                cur = cur[s]
+
+        for p in paths:
+            add_to_tree(p)
+
+        def print_tree(node: Dict[str, Any], pref: str = "") -> None:
+            for k in sorted(node.keys()):
+                lines.append(f"{pref}- `{k}`")
+                if node[k]:
+                    print_tree(node[k], pref + "  ")
+
+        print_tree(tree)
+        lines.append("")
+        lines.append(f"##### Листья и узлы — `{col}`")
+        lines.append("")
+        for path in paths:
+            st = by_path[path]
+            occ = key_occ[path]
+            lines.append(f"- **`{path}`** — в {occ} JSON; {format_json_path_stats(st)}")
+        lines.append("")
+    return lines
+
+
 def read_csv_all(path: Path) -> Tuple[List[str], List[Dict[str, str]]]:
     with path.open("r", encoding=ENC, newline="") as f:
         reader = csv.DictReader(f, delimiter=DELIM)
@@ -648,16 +733,37 @@ def build_catalog() -> str:
     sections: List[str] = []
 
     files_config: List[Tuple[str, str, Optional[Callable[[List[Dict[str, str]]], List[str]]]]] = [
-        ("REWARD (PROM) 20-03 v0.csv", "REWARD (PROM) 20-03 v0.csv", json_sections_reward),
-        ("CONTEST (PROM) 18-03 v0.csv", "CONTEST (PROM) 18-03 v0.csv", json_sections_contest),
+        ("REWARD (PROM) 23-03 v3.csv", "REWARD (PROM) 23-03 v3.csv", json_sections_reward),
+        ("CONTEST (PROM) 23-03 v3.csv", "CONTEST (PROM) 23-03 v3.csv", json_sections_contest),
         ("employee (PROM) 13-03 v0.csv", "employee (PROM) 13-03 v0.csv", None),
-        ("GROUP (PROM) 18-03 v0.csv", "GROUP (PROM) 18-03 v0.csv", None),
+        (
+            "GROUP (PROM) 18-03 v0.csv",
+            "GROUP (PROM) 18-03 v0.csv",
+            lambda r: json_sections_generic_columns(r, ["GROUP_VALUE"]),
+        ),
         ("INDICATOR (PROM) 18-03 v0.csv", "INDICATOR (PROM) 18-03 v0.csv", None),
         ("ORG_UNIT_V20 20-03 v0.csv", "ORG_UNIT_V20 20-03 v0.csv", None),
         ("REPORT (PROM) 18-03 v0.csv", "REPORT (PROM) 18-03 v0.csv", None),
         ("REWARD-LINK (PROM) 18-03 v0.csv", "REWARD-LINK (PROM) 18-03 v0.csv", None),
-        ("SCHEDULE (PROM) 18-03 v0.csv", "SCHEDULE (PROM) 18-03 v0.csv", None),
-        ("USER_ROLE (PROM) 13-03 v0.csv", "USER_ROLE (PROM) 13-03 v0.csv", None),
+        (
+            "SCHEDULE (PROM) 18-03 v0.csv",
+            "SCHEDULE (PROM) 18-03 v0.csv",
+            lambda r: json_sections_generic_columns(r, ["TARGET_TYPE", "FILTER_PERIOD_ARR"]),
+        ),
+        (
+            "USER_ROLE (PROM) 13-03 v0.csv",
+            "USER_ROLE (PROM) 13-03 v0.csv",
+            lambda r: json_sections_generic_columns(
+                r,
+                [
+                    "PERSON_NUMBER_ARR",
+                    "STAGE_ETALONE_CODE_ARR",
+                    "POST_ETALONE_CODE_ARR",
+                    "DIV_CODE_ARR",
+                    "EXCLUDE_DIV_CODE_ARR",
+                ],
+            ),
+        ),
     ]
 
     for title, fname, extra in files_config:
@@ -672,9 +778,15 @@ def build_catalog() -> str:
         "Единый справочник по листам выгрузки: **все колонки**, краткое **назначение**, оценка типа данных, "
         "**варианты значений** (с ограничениями для длинных текстов и высокой кардинальности). "
         "Для **REWARD** (`REWARD_ADD_DATA`) и **CONTEST** (`CONTEST_FEATURE`) — машинный разбор JSON "
-        "(деревья, типы, варианты по `REWARD_TYPE` / `CONTEST_TYPE`) и **пояснительный справочник полей**.",
+        "(деревья, типы, варианты по `REWARD_TYPE` / `CONTEST_TYPE`) и **пояснительный справочник полей**. "
+        "Для **GROUP** (`GROUP_VALUE`), **SCHEDULE** (`TARGET_TYPE`, `FILTER_PERIOD_ARR`), **USER_ROLE** "
+        "(массивы кодов в колонках `*_ARR`) — дополнительно деревья путей для ячеек с JSON-объектом/массивом "
+        "(как в `Docs/JSON/examples`).",
         "",
         "**Пересборка документа:** `python src/Tools/build_spod_input_catalog.py`",
+        "",
+        "**Примеры JSON:** каталог **`Docs/JSON/examples/`** — один CSV выгрузки → один `.json` с тем же именем; см. **`Docs/JSON/README.md`**. "
+        "Команда: `python src/Tools/export_spod_json_examples.py`.",
         "",
         "## Оглавление",
         "",
@@ -689,6 +801,10 @@ def build_catalog() -> str:
     footer += f"- **Дата сборки каталога:** {date.today().isoformat()}\n"
     footer += "- **Источник данных:** файлы в `IN/SPOD/` на момент запуска `build_spod_input_catalog.py`.\n"
     footer += "- **Глоссарии JSON:** `src/Tools/catalog_glossary/` (правки вручную при необходимости).\n"
+    footer += (
+        "- **Примеры JSON:** `Docs/JSON/examples/` — по одному файлу на каждую выгрузку из "
+        "`export_spod_json_examples.py` (структура `columns` + `rows`; вложенный JSON в ячейках как в каталоге).\n"
+    )
     return "\n".join(header) + "\n".join(sections) + footer
 
 

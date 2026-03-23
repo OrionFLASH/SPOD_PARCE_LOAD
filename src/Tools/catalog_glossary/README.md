@@ -1,4 +1,4 @@
-# Фрагменты глоссария для `SPOD_INPUT_DATA_CATALOG.md`
+# Фрагменты глоссария для `Docs/JSON/SPOD_INPUT_DATA_CATALOG.md`
 
 Файлы в этой папке подключаются скриптом `src/Tools/build_spod_input_catalog.py` к разделам **REWARD** и **CONTEST** после машинного разбора JSON.
 
