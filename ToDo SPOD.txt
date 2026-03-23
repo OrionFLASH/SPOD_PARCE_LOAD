@@ -1,0 +1,20 @@
+1) except_columns + числовой формат Excel (лист STATISTICS и др.)
+   СТАТУС: исправлено в коде (main_impl.py):
+   - преобразование чисел для column_formats с устойчивостью к режиму except_columns;
+   - нормализация имён колонок (BOM, NFKC, пробелы) для сопоставления с except_columns / columns;
+   - нормализация строковых чисел: разряды (пробел, NBSP), запятая как десятичный разделитель;
+   - применение формата в Excel по индексу столбца в строке заголовка;
+   - проверка дублирующихся имён колонок; try/except вокруг apply_column_format_conversion в потоке подготовки листов.
+   В config.json: правило для листа STATISTICS с except_columns (текстовые/дата-колонки исключены из числового формата).
+   Документация: README.md (раздел column_formats), Docs/INPUT_DATA_AND_CONFIG_FULL.md.
+
+2) Лист REWARD — сводка по getCondition (аналог формулы СЦЕПИТЬ/ВПР)
+   СТАТУС: реализовано:
+   - модуль src/reward_getcondition_summary.py;
+   - после merge_fields_advanced на лист REWARD добавляется колонка (имя в config: reward_getcondition_summary.column_name);
+   - гибкое сопоставление путей nonRewards/rewards; колонка добавляется при enabled: true даже если полей не найдено (пустая сводка);
+   - для непустых кодов: FULL_NAME и seasonItem целевой награды по REWARD_CODE со всего листа REWARD.
+   Отключение: "reward_getcondition_summary": { "enabled": false } в config.json.
+   Документация: README.md (раздел reward_getcondition_summary).
+
+3) (зарезервировано)

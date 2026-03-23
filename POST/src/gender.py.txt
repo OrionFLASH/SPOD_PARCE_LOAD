@@ -47,7 +47,6 @@ def _detect_gender_for_person(
         patterns.get("patronymic_female", []),
     )
     if gender:
-        logging.debug(f"[DEBUG] Строка {row_idx}: пол по отчеству '{patronymic}' -> {gender}")
         return gender
     gender = _detect_gender_by_patterns(
         first_name,
@@ -55,7 +54,6 @@ def _detect_gender_for_person(
         patterns.get("name_female", []),
     )
     if gender:
-        logging.debug(f"[DEBUG] Строка {row_idx}: пол по имени '{first_name}' -> {gender}")
         return gender
     gender = _detect_gender_by_patterns(
         surname,
@@ -63,11 +61,7 @@ def _detect_gender_for_person(
         patterns.get("surname_female", []),
     )
     if gender:
-        logging.debug(f"[DEBUG] Строка {row_idx}: пол по фамилии '{surname}' -> {gender}")
         return gender
-    logging.debug(
-        f"[DEBUG] Строка {row_idx}: пол не определен (отч:'{patronymic}', имя:'{first_name}', фам:'{surname}')"
-    )
     return "-"
 
 
@@ -105,11 +99,6 @@ def add_auto_gender_column(config: Config, df: pd.DataFrame, sheet_name: str) ->
             female_count += 1
         else:
             unknown_count += 1
-        if (idx + 1) % step == 0:
-            percent = ((idx + 1) / total_rows) * 100
-            logging.info(
-                f"[GENDER DETECTION] Обработано {idx + 1} из {total_rows} строк ({percent:.1f}%)"
-            )
 
     df["AUTO_GENDER"] = auto_gender
     func_time = time.time() - func_start

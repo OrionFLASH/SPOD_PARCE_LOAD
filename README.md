@@ -15,6 +15,8 @@
 11. [Логирование](#логирование)
 12. [История версий](#история-версий)
 
+> **Актуальность:** описание пайплайна, `config.json` и ведение вспомогательных файлов в **`Docs/`** синхронизированы; индекс: **`Docs/DOCS_INDEX.md`**. Краткий справочник входных данных и конфигурации: **`Docs/INPUT_DATA_AND_CONFIG_FULL.md`**.
+
 ---
 
 ## Общее описание
@@ -43,6 +45,7 @@ SPOD_PROM/
 │   ├── config_holder.py    # Внедрение конфига для main_impl
 │   ├── logging_setup.py   # Форматтер логов, настройка логгера
 │   ├── json_utils.py      # Разбор и разворот JSON-полей
+│   ├── reward_getcondition_summary.py  # Сводная колонка по getCondition на листе REWARD
 │   ├── file_loader.py     # Класс FileLoader — поиск/чтение CSV, разворот JSON
 │   ├── tournament.py      # Расчёт статуса турнира (CALC_TOURNAMENT_STATUS)
 │   ├── validation.py     # Валидация длины полей, проверка дубликатов
@@ -97,16 +100,17 @@ SPOD_PROM/
 
 | Модуль | Назначение | Основные сущности |
 |--------|------------|-------------------|
-| **config_loader.py** | Загрузка и хранение настроек из config.json | Класс `Config`: атрибуты `dir_input`, `dir_output`, `dir_logs`, `input_files`, `summary_sheet`, `sheet_order`, `summary_key_defs`, `summary_key_columns`, `gender_patterns`, `gender_progress_step`, `field_length_validations` (устаревший, пустой dict), `merge_fields_advanced`, `color_scheme`, `column_formats`, `check_duplicates` (устаревший, пустой список), `consistency_checks`, `json_columns`, `source_export_sort`, `max_workers_io`, `max_workers_cpu`, `tournament_status_choices`; метод `get_output_filename()`. |
+| **config_loader.py** | Загрузка и хранение настроек из config.json | Класс `Config`: атрибуты `dir_input`, `dir_output`, `dir_logs`, `input_files`, `summary_sheet`, `sheet_order`, `summary_key_defs`, `summary_key_columns`, `gender_patterns`, `gender_progress_step`, `field_length_validations` (устаревший, пустой dict), `merge_fields_advanced`, `color_scheme`, `column_formats`, `check_duplicates` (устаревший, пустой список), `consistency_checks`, `json_columns`, `reward_getcondition_summary`, `source_export_sort`, `max_workers_io`, `max_workers_cpu`, `tournament_status_choices`; метод `get_output_filename()`. |
 | **config_holder.py** | Внедрение текущего конфига для кода, работающего с глобальными переменными | `set_current_config(config)`, `get_current_config()`. |
 | **logging_setup.py** | Настройка логирования | Класс `CallerFormatter` (добавляет имя функции в сообщение); функция `setup_logger(config)` — возвращает путь к лог-файлу, настраивает вывод в файл (DEBUG) и консоль (INFO). |
 | **json_utils.py** | Разбор и разворот JSON-полей в DataFrame | `safe_json_loads(s)` — парсинг строки в JSON с поправкой типичных ошибок; `safe_json_loads_preserve_triple_quotes(s)`; `flatten_json_column_recursive(df, column, prefix=..., sheet=..., sep=..., max_workers_io=...)` — рекурсивный разворот колонки в несколько колонок, при большом объёме — параллельно. |
+| **reward_getcondition_summary.py** | Сводный текст по кодам getCondition на листе REWARD | `add_reward_getcondition_summary_column(df_reward, prefix=..., column_name=...)` — после разворота JSON и merge; строки вида `[код] FULL_NAME {seasonItem}`. |
 | **file_loader.py** | Поиск и загрузка CSV, разворот JSON по конфигу | Класс `FileLoader(config)`: `find_file_case_insensitive(directory, base_name, extensions)`, `check_input_files_exist()`, `read_csv_file(file_path)`, `process_single_file(file_conf)` — возвращает `(df, sheet_name, file_conf)` или `(None, sheet_name, None)`. |
 | **tournament.py** | Расчёт статуса турнира по датам | `calculate_tournament_status(config, df_tournament, df_report=None)` — добавляет колонку `CALC_TOURNAMENT_STATUS` по правилам из `config.tournament_status_choices`. |
 | **validation.py** | Валидация длины полей и проверка дубликатов (устаревшие пути) | `validate_field_lengths(config, df, sheet_name)`, `validate_field_lengths_vectorized(config, df, sheet_name)`, `compare_validate_results`, `mark_duplicates`, `validate_single_sheet`, `check_duplicates_single_sheet`. Основной пайплайн больше не использует отдельные шаги проверки дубликатов и длины полей — всё выполняется в **consistency_checks**. |
 | **consistency_checks.py** | Проверки консистентности (unique, field_length, field_format, referential, json_field_equals_column, json_field_in_column) | Выполняет правила из `consistency_checks.rules` **с параллелизацией** (ThreadPoolExecutor). **Фаза 1** — создаёт на листах колонки `unique` («ДУБЛЬ: …»), `field_length`, `field_format`; **Фаза 2** — referential/referential_composite, **json_field_equals_column**, **json_field_in_column** и сбор результатов. Парсинг JSON в ячейках (ADD_DATA и т.п.): **`_parse_add_data_cell(val)`** — замена `"""` на `"`, затем `json.loads`. Сводный лист CONSISTENCY формируется с колонками-описаниями (ТИП ПРОВЕРКИ, Описание, таблица источник, поле источник и т.д.); расхождения по числу полей CSV (csv_columns_count) также попадают в свод. Функции: `_run_unique_check`, `_run_field_length_check`, `_run_field_format_check`, `run_referential`, `run_referential_composite`, `_run_json_field_equals_column`, `_run_json_field_in_column`, `collect_*`, `run_all_consistency_checks`, `run_consistency_checks_and_attach_summary`, `build_consistency_summary_df(results, rules)`. |
 | **gender.py** | Определение пола по отчеству, имени, фамилии | `add_auto_gender_column(config, df, sheet_name)`, `add_auto_gender_column_vectorized(config, df, sheet_name)`, `compare_gender_results(df_old, df_new)`. Внутри используются паттерны из `config.gender_patterns`. |
-| **main_impl.py** | Полный пайплайн обработки | При импорте вызывается `_load_config_globals()`. Функция `main()`: параллельная загрузка CSV и разворот JSON → выгрузка сырых данных в «SPOD_PROM source …» → проверка наличия файлов → добавление AUTO_GENDER (EMPLOYEE) → расчёт статуса турнира → merge (кроме SUMMARY) → **проверки консистентности** (модуль `consistency_checks`, параллельно с `MAX_WORKERS`: создание колонок unique и field_length, referential/referential_composite, свод CONSISTENCY) → формирование SUMMARY → лист STAT_FILE → запись основного Excel → итоговый отчёт по отклонениям длины полей и расхождениям CSV. Отдельных шагов «проверка дубликатов» и «валидация длины полей» нет — всё в рамках consistency_checks. |
+| **main_impl.py** | Полный пайплайн обработки | При импорте вызывается `_load_config_globals()`. Функция `main()`: параллельная загрузка CSV и разворот JSON → выгрузка сырых данных в «SPOD_PROM source …» (кроме `main_only`) → проверка наличия файлов → проверки консистентности на сырых данных и перенос на обработанные листы → добавление AUTO_GENDER (EMPLOYEE) → расчёт статуса турнира → merge (кроме SUMMARY) → **сводка getCondition на REWARD** (`reward_getcondition_summary`, если не `consistency_only`) → **проверки консистентности** (модуль `consistency_checks`) → формирование SUMMARY → лист STAT_FILE → запись основного Excel → итоговый отчёт по отклонениям длины полей и расхождениям CSV. Режим `consistency_only`: без merge, gender, турнира и основного Excel с полной обработкой — только файл консистентности. |
 
 **Запуск:** из корня проекта выполняется `python main.py`. При этом создаётся `Config()` (путь к config.json — корень проекта), конфиг передаётся в `set_current_config(config)`, затем вызывается `main_impl.main()`. В начале `main_impl.main()` снова вызывается `_load_config_globals()`, поэтому все глобальные переменные в main_impl берутся из внедрённого конфига.
 
@@ -136,9 +140,10 @@ SPOD_PROM/
 | `derived_columns` | Производные колонки (pad_left и т.д.). |
 | `merge_fields_advanced` | Правила переноса/подсчёта полей между листами. |
 | `color_scheme` | Цвета заголовков и ячеек по листам и колонкам. |
-| `column_formats` | Формат ячеек: число, дата, выравнивание по листам и колонкам. |
+| `column_formats` | Формат ячеек: число, дата, выравнивание по листам и колонкам; режимы `columns` и `except_columns` (см. раздел **column_formats**). |
 | `consistency_checks` | Единый конфиг проверок консистентности (summary_sheet_name, rules: referential, unique, field_length, field_format). |
 | `json_columns` | Колонки с JSON для разворота по листам (column, prefix). |
+| `reward_getcondition_summary` | Сводная колонка на листе REWARD по кодам `getCondition` (nonRewards/rewards); `enabled`, `column_name`. |
 
 ### Общая структура файла
 
@@ -163,9 +168,12 @@ SPOD_PROM/
   "color_scheme": [ ... ],
   "column_formats": [ ... ],
   "consistency_checks": { "summary_sheet_name": "CONSISTENCY", "rules": [ ... ] },
-  "json_columns": { ... }
+  "json_columns": { ... },
+  "reward_getcondition_summary": { "enabled": true, "column_name": "..." }
 }
 ```
+
+Дополнительные секции (при наличии в файле): `derived_columns`; опционально блок **`source_export`** с **`sort_rules`** для сортировки листов в source Excel — см. класс `Config` в **config_loader.py** и разделы ниже.
 
 ---
 
@@ -641,6 +649,29 @@ SPOD_PROM/
 
 **Логика:** при записи в Excel данные в выбранных колонках приводятся к числу или дате; в книге задаётся числовой/датовый формат и выравнивание. Для `decimal_places: 0` в ячейку записываются целые числа без дробной части. Для типа `date`: сначала выполняется разбор в указанном формате; для ячеек, которые не удалось распознать (NaT), выполняется повторная попытка без формата (в т.ч. даты вида 4000-01-01); значения, которые так и не удалось преобразовать в дату, остаются в виде исходной строки (текст в Excel). Таким образом любые распознаваемые даты преобразуются, нераспознанные — сохраняются как текст.
 
+**Сопоставление имён с `except_columns` / `columns`:** имена из CSV и из конфига приводятся к одному виду (нормализация NFKC, снятие BOM `\ufeff` с первого заголовка, схлопывание пробелов). Иначе колонка могла не попасть в исключения и остаться строкой, либо наоборот.
+
+**Числа из CSV:** после чтения все ячейки — строки; перед `to_numeric` удаляются разряды (обычный пробел, неразрывный пробел NBSP, узкий NBSP и др.), запятая в десятичной части заменяется на точку — иначе значения вида `1 234` или `1\u00a0234` не превращались бы в число и в Excel оставались бы с общим/текстовым видом.
+
+Режим **`except_columns`** (когда формат ко всем колонкам кроме перечисленных): при ошибке преобразования типа для отдельной колонки или листа запись Excel не прерывается — лист сохраняется без преобразования проблемных ячеек (см. лог).
+
+---
+
+### reward_getcondition_summary
+
+**Назначение:** после **merge_fields_advanced** на лист **REWARD** добавляется одна колонка со сводным текстом по всем `getCondition.nonRewards[i].nonRewardCode` и `getCondition.rewards[j].rewardCode` из развёрнутого JSON (префикс как в `json_columns`, обычно `ADD_DATA`). Для каждого непустого кода подставляются **FULL_NAME** и **seasonItem** той награды, у которой `REWARD_CODE` совпадает с кодом (справочник по всему листу REWARD; колонка `… => seasonItem` ищется с учётом пробелов вокруг `=>`). Строки в ячейке разделяются переводом строки `\\n`, формат как в Excel: `[код] наименование {сезон}`.
+
+**Имя в Excel:** в файле и в заголовках листа **REWARD** используется значение **`column_name`** из конфига (например «Сводка: nonRewards и rewards (getCondition)»). Отдельного столбца с именем `reward_getcondition_summary` нет — это только имя модуля в коде.
+
+**Поведение:** при `enabled: true` колонка **всегда** добавляется в конец набора столбцов. Если подходящие поля `getCondition` не распознаны (неверный префикс или нет разворота JSON), колонка будет пустой; в лог пишется предупреждение. Сопоставление имён полей допускает **гибкие пробелы** вокруг `=>` в заголовках.
+
+| Ключ | Тип | Описание |
+|------|-----|----------|
+| `enabled` | bool | `false` — не добавлять колонку. |
+| `column_name` | строка | Имя колонки в Excel (по умолчанию см. config.json). |
+
+Реализация: **src/reward_getcondition_summary.py**.
+
 ---
 
 ### check_duplicates (удалено из config.json)
@@ -732,6 +763,8 @@ SPOD_PROM/
 ```
 
 **Логика:** при загрузке листа каждая указанная колонка парсится как JSON; ключи верхнего уровня становятся колонками `prefix => key`; вложенные объекты/массивы разворачиваются рекурсивно с тем же префиксом. Исходная колонка сохраняется; при необходимости тройные кавычки в исходных данных обрабатываются отдельно (CONTEST_FEATURE).
+
+После разворота JSON и merge выполняется опциональная **сводка getCondition** (см. **reward_getcondition_summary**).
 
 ---
 
@@ -1239,6 +1272,13 @@ python app.py
 
 ## История версий
 
+### Версия 1.7.1 — Синхронизация документации
+
+- В **README.md** обновлены: таблица секций `config.json` (добавлены `reward_getcondition_summary`, уточнён `column_formats`), пример JSON-структуры, описание пайплайна **main_impl** (порядок: консистентность на сырых данных, merge, сводка REWARD, SUMMARY, STAT_FILE).
+- **`Docs/INPUT_DATA_AND_CONFIG_FULL.md`**: расширен §3 (блоки `column_formats`, `json_columns`, `reward_getcondition_summary`).
+- **`Docs/DOCS_INDEX.md`**: правила актуализации — приоритет README, согласование с INPUT_DATA_AND_CONFIG_FULL.
+- **`ToDo SPOD.txt`**: актуализированы статусы задач по `except_columns`/STATISTICS и сводке getCondition.
+
 ### Версия 1.7 — Логи по дате, формат sample, DEBUG по JSON, режимы, файл consistency в full
 
 **Логи:**
@@ -1264,6 +1304,10 @@ python app.py
 **Режим full (1):** дополнительно к основному Excel создаётся **отдельный файл consistency** (лист CONSISTENCY + листы с нарушениями) в том же каталоге `OUT/YYYY/DD-MM/`, имя `{output_filenames.consistency} YYYY-MM-DD_HH-MM-SS.xlsx`.
 
 **Документация:** обновлён README (логи, sample, режимы); Docs/CONSISTENCY_SAMPLE_FORMAT.md — актуальные форматы и реализация.
+
+**Сводка getCondition (лист REWARD):** сопоставление колонок `nonRewards` / `rewards` с учётом гибких пробелов вокруг `=>`; колонка из `reward_getcondition_summary.column_name` добавляется всегда при `enabled: true` (в т.ч. пустая, если поля не найдены), чтобы в Excel был виден заголовок.
+
+**column_formats / `except_columns` (в т.ч. лист STATISTICS):** нормализация имён заголовков (BOM, NFKC, пробелы); разбор чисел с разрядами (пробел/NBSP); обход столбцов по индексу при применении формата в Excel — чтобы числовой формат и тип ячейки совпадали с правилом «все колонки кроме перечисленных».
 
 ---
 

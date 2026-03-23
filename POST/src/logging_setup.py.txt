@@ -40,19 +40,30 @@ class CallerFormatter(logging.Formatter):
         return super().format(record)
 
 
+def _get_log_dir_for_run(dir_logs: str) -> str:
+    """
+    Подкаталог для логов по дате: dir_logs/YYYY/DD-MM (как для OUT).
+    Создаёт каталог при необходимости.
+    """
+    now = datetime.now()
+    path = os.path.join(dir_logs, now.strftime("%Y"), now.strftime("%d-%m"))
+    os.makedirs(path, exist_ok=True)
+    return path
+
+
 def setup_logger(config: Config) -> str:
     """
     Настраивает логирование: файл (DEBUG) и консоль (INFO).
+    Лог-файл кладётся в подкаталог по дате: LOGS/YYYY/DD-MM (как в OUT).
     Возвращает путь к лог-файлу.
     """
     level_suffix = f"_{config.log_level}" if config.log_level else ""
     date_suffix = f"_{datetime.now().strftime('%Y%m%d_%H_%M')}.log"
-    log_file = os.path.join(config.dir_logs, config.log_base_name + level_suffix + date_suffix)
+    log_subdir = _get_log_dir_for_run(config.dir_logs)
+    log_file = os.path.join(log_subdir, config.log_base_name + level_suffix + date_suffix)
 
     if logging.getLogger().hasHandlers():
         return log_file
-
-    os.makedirs(config.dir_logs, exist_ok=True)
     logger = logging.getLogger()
     logger.setLevel(logging.DEBUG)
 

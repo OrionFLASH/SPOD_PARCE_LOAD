@@ -295,18 +295,29 @@ def get_output_dir_for_run(base_dir: str) -> str:
     return path
 
 
+def get_log_dir_for_run() -> str:
+    """
+    Возвращает подкаталог для логов по дате: DIR_LOGS/YYYY/DD-MM (как для OUT).
+    Каталог создаётся при необходимости.
+    """
+    now = datetime.now()
+    year = now.strftime("%Y")
+    day_month = now.strftime("%d-%m")
+    path = os.path.join(DIR_LOGS, year, day_month)
+    os.makedirs(path, exist_ok=True)
+    return path
+
+
 # Лог-файл с учетом уровня
 def get_log_filename():
     """
-    Генерирует имя лог-файла с учетом уровня логирования, текущей даты и времени.
-    
-    Returns:
-        str: Путь к лог-файлу в формате 'LOGS/LOGS_LEVEL_YYYYMMDD_HH_MM.log'
+    Генерирует путь к лог-файлу: LOGS/YYYY/DD-MM/имя_уровень_дата_время.log
+    (подкаталоги по дате по тому же принципу, что и для OUT).
     """
-    # Имя лог-файла по дате с уровнем логирования, например: LOGS_INFO_20251113_14_30.log
     level_suffix = f"_{LOG_LEVEL}" if LOG_LEVEL else ""
     date_suffix = f"_{datetime.now().strftime('%Y%m%d_%H_%M')}.log"
-    return os.path.join(DIR_LOGS, LOG_BASE_NAME + level_suffix + date_suffix)
+    log_dir = get_log_dir_for_run()
+    return os.path.join(log_dir, LOG_BASE_NAME + level_suffix + date_suffix)
 
 
 # === Логирование ===
@@ -322,6 +333,7 @@ def setup_logger():
         str: Путь к созданному лог-файлу
     """
     log_file = get_log_filename()
+    # get_log_filename() уже создаёт каталог LOGS/YYYY/DD-MM через get_log_dir_for_run()
     # Если логгер уже инициализирован, не добавляем обработчики ещё раз
     if logging.getLogger().hasHandlers():
         return log_file
@@ -1538,9 +1550,8 @@ def safe_json_loads(s: str):
             # 9. Попытка повторного парсинга
             return json.loads(fixed)
         except Exception as ex2:
-            logging.debug(
-                f"[safe_json_loads] Ошибка: первый парсинг {ex}, после исправления {ex2} | Исходная строка: {repr(s)}"
-            )
+            from src.json_utils import _log_json_parse_error
+            _log_json_parse_error("safe_json_loads", s, ex, ex2)
             return None
 
 
@@ -3269,7 +3280,6 @@ def detect_gender_for_person(patronymic, first_name, surname, row_idx):
         GENDER_PATTERNS['patronymic_female']
     )
     if gender:
-        logging.debug(f"[DEBUG] Строка {row_idx}: пол по отчеству '{patronymic}' -> {gender}")
         return gender
 
     # 2. Попытка определить по имени
@@ -3279,7 +3289,6 @@ def detect_gender_for_person(patronymic, first_name, surname, row_idx):
         GENDER_PATTERNS['name_female']
     )
     if gender:
-        logging.debug(f"[DEBUG] Строка {row_idx}: пол по имени '{first_name}' -> {gender}")
         return gender
 
     # 3. Попытка определить по фамилии
@@ -3289,11 +3298,8 @@ def detect_gender_for_person(patronymic, first_name, surname, row_idx):
         GENDER_PATTERNS['surname_female']
     )
     if gender:
-        logging.debug(f"[DEBUG] Строка {row_idx}: пол по фамилии '{surname}' -> {gender}")
         return gender
 
-    # Не удалось определить
-    logging.debug(f"[DEBUG] Строка {row_idx}: пол не определен (отч:'{patronymic}', имя:'{first_name}', фам:'{surname}')")
     return '-'
 
 
@@ -3338,11 +3344,6 @@ def add_auto_gender_column(df, sheet_name):
             female_count += 1
         else:
             unknown_count += 1
-
-        # Прогресс каждые GENDER_PROGRESS_STEP строк
-        if (idx + 1) % GENDER_PROGRESS_STEP == 0:
-            percent = ((idx + 1) / total_rows) * 100
-            logging.info(f"[GENDER DETECTION] Обработано {idx + 1} из {total_rows} строк ({percent:.1f}%)")
 
     # Добавляем колонку к DataFrame
     df['AUTO_GENDER'] = auto_gender
@@ -3891,15 +3892,19 @@ def append_csv_mismatches_to_consistency(
         violations = len(recs)
         if violations == 0:
             result_text = "OK"
-            sample_str = "Проверка пройдена: все строки с ожидаемым числом полей."
+            # В sample заполняем только при наличии отклонений (строки с расхождением числа полей)
+            sample_str = ""
         else:
             result_text = f"{violations} строк с расхождением"
             sample_parts = []
-            for r in recs[:5]:
-                sample_parts.append(
-                    f"стр. {r.get('row_index', '')} (ожид. {r.get('expected_cols', '')}, факт {r.get('actual_cols', '')}, {r.get('direction', '')})"
-                )
-            if len(recs) > 5:
+            max_csv_sample = 5
+            for r in recs[:max_csv_sample]:
+                exp = r.get("expected_cols", "")
+                act = r.get("actual_cols", "")
+                direction = r.get("direction", "")
+                d_short = "+" if "больше" in str(direction) else "-" if "меньше" in str(direction) else ""
+                sample_parts.append(f"[{r.get('row_index', '')}] | полей {act}/{exp} | {d_short}")
+            if len(recs) > max_csv_sample:
                 sample_parts.append(" ...")
             sample_str = "; ".join(sample_parts)
         name_text = (
@@ -3913,7 +3918,7 @@ def append_csv_mismatches_to_consistency(
         desc.setdefault("поле источник", "все поля строки")
         desc.setdefault("таблица где проверяем", "")
         desc.setdefault("поле для проверки", "")
-        desc.setdefault("комментарий", "Строки с расхождением числа полей от ожидаемого фиксируются в sample.")
+        desc.setdefault("комментарий", "")
         row = {
             "ТИП ПРОВЕРКИ": desc.get("ТИП ПРОВЕРКИ", ""),
             "Описание": desc.get("Описание", ""),
@@ -4165,8 +4170,8 @@ def main():
         raw_counts=raw_counts,
     )
 
-    # 2. Добавление колонки AUTO_GENDER для листа EMPLOYEE
-    if "EMPLOYEE" in sheets_data:
+    # 2. Добавление колонки AUTO_GENDER для листа EMPLOYEE (пропускаем в режиме consistency_only)
+    if run_mode != 4 and "EMPLOYEE" in sheets_data:
         df_employee, conf_employee = sheets_data["EMPLOYEE"]
         # ОПТИМИЗАЦИЯ: Используем векторизованную версию с проверкой результатов
         df_employee_old = df_employee.copy()
@@ -4185,8 +4190,8 @@ def main():
             logging.info(f"[GENDER COMPARISON] EMPLOYEE: результаты идентичны ({comparison.get('match_percent', 0)}%)")
         sheets_data["EMPLOYEE"] = (df_employee, conf_employee)
 
-        # 3. Добавление расчетного статуса турнира для TOURNAMENT-SCHEDULE
-    if "TOURNAMENT-SCHEDULE" in sheets_data:
+        # 3. Добавление расчетного статуса турнира для TOURNAMENT-SCHEDULE (пропускаем в режиме consistency_only)
+    if run_mode != 4 and "TOURNAMENT-SCHEDULE" in sheets_data:
         df_tournament, conf_tournament = sheets_data["TOURNAMENT-SCHEDULE"]
         df_report = sheets_data.get("REPORT", (None, None))[0]
         df_tournament = calculate_tournament_status(df_tournament, df_report)
@@ -4273,6 +4278,25 @@ def main():
     logging.info(f"[START] write_to_excel ({output_excel})")
     write_to_excel(sheets_data, output_excel)
     logging.info(f"[END] write_to_excel ({output_excel}) (время: 0.000s)")
+
+    # 8.1. В режиме full — дополнительно создаём отдельный файл consistency (лист CONSISTENCY + листы с нарушениями)
+    if run_mode == 1:
+        sheets_with_violations = set()
+        if summary_sheet_name in sheets_data and sheets_data[summary_sheet_name] is not None:
+            _df, _ = sheets_data[summary_sheet_name]
+            if isinstance(_df, pd.DataFrame) and "violations" in _df.columns and "sheet" in _df.columns:
+                viol = _df[_df["violations"].astype(int) > 0]
+                sheets_with_violations = set(viol["sheet"].dropna().astype(str).unique().tolist())
+        out_sheets = {summary_sheet_name}
+        for s in sheets_with_violations:
+            if s in sheets_data and sheets_data[s] is not None:
+                out_sheets.add(s)
+        consistency_data = {k: v for k, v in sheets_data.items() if k in out_sheets}
+        ts = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        consistency_path = os.path.join(run_output_dir, f"{OUTPUT_FILENAME_CONSISTENCY} {ts}.xlsx")
+        logging.info(f"[START] write_to_excel (файл consistency, режим full) ({consistency_path})")
+        write_to_excel(consistency_data, consistency_path, use_color_scheme=False)
+        logging.info(f"[END] write_to_excel (файл consistency) ({consistency_path})")
 
     # Итоговая статистика по отклонениям длины полей и расхождениям по числу полей в CSV (дубликаты — в сводке консистентности)
     validation_report, csv_mismatch_report = collect_duplicates_and_validation_report(sheets_data)

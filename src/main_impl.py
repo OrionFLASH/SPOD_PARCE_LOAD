@@ -13,6 +13,7 @@ from time import time  # Для измерения времени выполне
 import json        # Для работы с JSON данными
 import re          # Для работы с регулярными выражениями
 import csv         # Для работы с CSV файлами
+import unicodedata  # Нормализация имён колонок для except_columns / columns в COLUMN_FORMATS
 import time as tmod  # Для измерения времени выполнения операций (альтернативное имя)
 import inspect  # Для получения информации о вызывающей функции
 from concurrent.futures import ThreadPoolExecutor, as_completed  # Для параллельной обработки
@@ -160,7 +161,7 @@ def _load_config_globals():
     global SUMMARY_SHEET, SHEET_ORDER, SUMMARY_KEY_DEFS, SUMMARY_KEY_COLUMNS
     global GENDER_PATTERNS, GENDER_PROGRESS_STEP, FIELD_LENGTH_VALIDATIONS
     global COL_REWARD_LINK_CONTEST_CODE, MERGE_FIELDS_ADVANCED, COLOR_SCHEME
-    global COLUMN_FORMATS, CONSISTENCY_CHECKS, JSON_COLUMNS
+    global COLUMN_FORMATS, CONSISTENCY_CHECKS, JSON_COLUMNS, REWARD_GETCONDITION_SUMMARY
     global MAX_WORKERS_IO, MAX_WORKERS_CPU, MAX_WORKERS, TOURNAMENT_STATUS_CHOICES
     global SOURCE_EXPORT_SORT
 
@@ -194,6 +195,7 @@ def _load_config_globals():
             APPLY_SORT_TO_SOURCE = getattr(_c, "apply_sort_to_source", True)
             APPLY_SORT_TO_MAIN = getattr(_c, "apply_sort_to_main", False)
             JSON_COLUMNS = _c.json_columns
+            REWARD_GETCONDITION_SUMMARY = getattr(_c, "reward_getcondition_summary", None) or {}
             SOURCE_EXPORT_SORT = getattr(_c, "source_export_sort", []) or []
             MAX_WORKERS_IO = _c.max_workers_io
             MAX_WORKERS_CPU = _c.max_workers_cpu
@@ -250,6 +252,7 @@ def _load_config_globals():
     APPLY_SORT_TO_SOURCE = _cfg.get("apply_sort_to_source", True)
     APPLY_SORT_TO_MAIN = _cfg.get("apply_sort_to_main", False)
     JSON_COLUMNS = _cfg.get("json_columns") or {}
+    REWARD_GETCONDITION_SUMMARY = _cfg.get("reward_getcondition_summary") or {}
     SOURCE_EXPORT_SORT = (_cfg.get("source_export") or {}).get("sort_rules") or []
     MAX_WORKERS_IO = _cfg["performance"]["max_workers_io"]
     MAX_WORKERS_CPU = _cfg["performance"]["max_workers_cpu"]
@@ -1127,7 +1130,14 @@ def write_to_excel(
                 return sheet_name, None
             df, params_sheet = sheet_data
             df_write = df.copy()
-            apply_column_format_conversion(df_write, sheet_name)
+            try:
+                apply_column_format_conversion(df_write, sheet_name)
+            except Exception as ex:
+                logging.exception(
+                    f"[COLUMN_FORMATS] Ошибка преобразования типов для листа «{sheet_name}»: {ex}. "
+                    "Используется копия без преобразования."
+                )
+                df_write = df.copy()
             return sheet_name, (df_write, params_sheet)
 
         sheets_to_prepare = [s for s in ordered_sheets if s in sheets_data and sheets_data[s] is not None]
@@ -1136,7 +1146,17 @@ def write_to_excel(
             with ThreadPoolExecutor(max_workers=min(MAX_WORKERS_IO, len(sheets_to_prepare))) as executor:
                 futures = {executor.submit(_prepare_sheet_for_write, sn): sn for sn in sheets_to_prepare}
                 for fut in as_completed(futures):
-                    sn, data = fut.result()
+                    sn = futures[fut]
+                    try:
+                        _sn, data = fut.result()
+                    except Exception as ex:
+                        logging.exception(
+                            f"[write_to_excel] Поток подготовки листа «{sn}» завершился с ошибкой: {ex}"
+                        )
+                        _sd = sheets_data.get(sn)
+                        if _sd is not None and len(_sd) >= 2 and _sd[0] is not None:
+                            prepared_sheets[sn] = (_sd[0].copy(), _sd[1])
+                        continue
                     if data is not None:
                         prepared_sheets[sn] = data
         # Листы без правил COLUMN_FORMATS или без параллельной подготовки — берём исходные данные
@@ -1315,6 +1335,34 @@ def _config_date_format_to_pandas(fmt: Optional[str]) -> Optional[str]:
     return fmt if "%" in fmt else None
 
 
+def _normalize_column_name_for_format_match(name: Optional[str]) -> str:
+    """
+    Имя колонки для сравнения с ``except_columns`` / ``columns`` в COLUMN_FORMATS:
+    NFKC, обрезка, схлопывание последовательностей пробелов (в т.ч. разные Unicode).
+    Устраняет рассинхрон из‑за BOM в первом заголовке, неразрывных пробелов и т.п.
+    """
+    s = (name or "").strip()
+    # UTF-8 BOM в первом заголовке CSV (\ufeffColumn) — strip() не всегда убирает BOM
+    s = s.lstrip("\ufeff")
+    s = unicodedata.normalize("NFKC", s)
+    return " ".join(s.split())
+
+
+def _normalize_string_for_numeric_cell(val: Any) -> str:
+    """
+    Подготовка значения ячейки (после чтения CSV всё приходит строкой) к ``pd.to_numeric``:
+    удаляются разряды — обычный пробел, NBSP, узкий NBSP и др.; запятая как десятичный разделитель.
+    """
+    if val is None or (isinstance(val, float) and pd.isna(val)):
+        return ""
+    s = str(val).strip()
+    if s in ("", "nan", "None", "-"):
+        return ""
+    for sep in ("\u00a0", "\u202f", "\u2009", "\u2007", " "):
+        s = s.replace(sep, "")
+    return s.replace(",", ".")
+
+
 def apply_column_format_conversion(df: pd.DataFrame, sheet_name: str) -> None:
     """
     Преобразует типы колонок в DataFrame по правилам COLUMN_FORMATS перед записью в Excel.
@@ -1330,48 +1378,66 @@ def apply_column_format_conversion(df: pd.DataFrame, sheet_name: str) -> None:
             continue
         # Режим: либо список колонок для применения формата (columns), либо все кроме указанных (except_columns)
         except_cols = rule.get("except_columns") or []
-        if except_cols:
-            cols = [c for c in df.columns if (c or "").strip() not in {(x or "").strip() for x in except_cols}]
-        else:
-            cols = rule.get("columns") or []
+        columns_list = rule.get("columns") or []
+        # Нельзя применять «все колонки», если не заданы ни except, ни columns
+        if not except_cols and not columns_list:
+            continue
+        except_norm = {_normalize_column_name_for_format_match(x) for x in except_cols} if except_cols else set()
+        columns_norm = {_normalize_column_name_for_format_match(x) for x in columns_list} if columns_list else set()
         dtype = (rule.get("data_type") or "general").lower()
-        for col in cols:
-            if col not in df.columns:
+        for col in df.columns:
+            if except_cols:
+                if _normalize_column_name_for_format_match(col) in except_norm:
+                    continue
+            else:
+                if _normalize_column_name_for_format_match(col) not in columns_norm:
+                    continue
+            col_data = df[col]
+            if isinstance(col_data, pd.DataFrame):
+                logging.warning(
+                    f"[COLUMN_FORMATS] Лист «{sheet_name}»: имя колонки «{col}» дублируется — пропуск преобразования"
+                )
                 continue
-            if dtype == "number":
-                # Строки вида "1,0" или "1.0" — приводим к числу (запятая как десятичный разделитель в исходных данных)
-                ser = df[col].astype(str).str.replace(",", ".", regex=False)
-                ser = pd.to_numeric(ser, errors="coerce")
-                decimal_places = int(rule.get("decimal_places", 0))
-                if decimal_places == 0:
-                    # Целые: Int64, чтобы в Excel были 1, 4, а не 1.0, 4.0
-                    df[col] = ser.dropna().astype("Int64").reindex(ser.index)
-                else:
-                    df[col] = ser
-            elif dtype == "date":
-                raw_ser = df[col].astype(str).str.strip()
-                pd_fmt = _config_date_format_to_pandas(rule.get("date_format"))
-                with warnings.catch_warnings():
-                    warnings.simplefilter("ignore", UserWarning)
-                    if pd_fmt:
-                        parsed = pd.to_datetime(df[col], format=pd_fmt, errors="coerce")
+            try:
+                if dtype == "number":
+                    # После read_csv_file значения строковые; убираем разряды (пробел/NBSP), запятую в десятичную точку
+                    ser = pd.to_numeric(
+                        col_data.map(_normalize_string_for_numeric_cell),
+                        errors="coerce",
+                    )
+                    decimal_places = int(rule.get("decimal_places", 0))
+                    if decimal_places == 0:
+                        df[col] = ser.astype("Int64")
                     else:
-                        parsed = pd.to_datetime(df[col], errors="coerce")
-                # Где не удалось распознать дату (NaT) — пробуем гибкий разбор без формата (в т.ч. 4000-01-01 и др.)
-                nat_mask = parsed.isna()
-                if nat_mask.any():
+                        df[col] = ser
+                elif dtype == "date":
+                    raw_ser = col_data.astype(str).str.strip()
+                    pd_fmt = _config_date_format_to_pandas(rule.get("date_format"))
                     with warnings.catch_warnings():
                         warnings.simplefilter("ignore", UserWarning)
-                        second = pd.to_datetime(df[col].loc[nat_mask], format=pd_fmt if pd_fmt else None, errors="coerce")
-                    parsed = parsed.fillna(second)
-                # Всё ещё NaT — оставляем исходное значение как текст (формат по умолчанию для колонки)
-                still_nat = parsed.isna()
-                if still_nat.any():
-                    parsed = parsed.astype(object)
-                    parsed.loc[still_nat] = raw_ser.loc[still_nat].values
-                df[col] = parsed
-            elif dtype == "text":
-                df[col] = df[col].astype(str)
+                        if pd_fmt:
+                            parsed = pd.to_datetime(col_data, format=pd_fmt, errors="coerce")
+                        else:
+                            parsed = pd.to_datetime(col_data, errors="coerce")
+                    nat_mask = parsed.isna()
+                    if nat_mask.any():
+                        with warnings.catch_warnings():
+                            warnings.simplefilter("ignore", UserWarning)
+                            second = pd.to_datetime(
+                                col_data.loc[nat_mask], format=pd_fmt if pd_fmt else None, errors="coerce"
+                            )
+                        parsed = parsed.fillna(second)
+                    still_nat = parsed.isna()
+                    if still_nat.any():
+                        parsed = parsed.astype(object)
+                        parsed.loc[still_nat] = raw_ser.loc[still_nat].values
+                    df[col] = parsed
+                elif dtype == "text":
+                    df[col] = col_data.astype(str)
+            except Exception as ex:
+                logging.warning(
+                    f"[COLUMN_FORMATS] Лист «{sheet_name}», колонка «{col}»: преобразование пропущено: {ex}"
+                )
 
 
 def apply_column_formats(ws: Any, sheet_name: str) -> None:
@@ -1387,7 +1453,6 @@ def apply_column_formats(ws: Any, sheet_name: str) -> None:
     """
     header_cells = list(ws[1])
     col_names = [c.value for c in header_cells]
-    col_names_stripped = [(n or "").strip() for n in col_names]
     rules_for_sheet = [r for r in COLUMN_FORMATS if r.get("sheet") == sheet_name]
     if not rules_for_sheet:
         return
@@ -1395,11 +1460,17 @@ def apply_column_formats(ws: Any, sheet_name: str) -> None:
     for rule in rules_for_sheet:
         # Режим: либо список колонок (columns), либо все колонки листа кроме указанных (except_columns)
         except_cols = rule.get("except_columns") or []
+        columns_list = rule.get("columns") or []
         if except_cols:
-            except_set = {(x or "").strip() for x in except_cols}
-            cols = [c for c in col_names_stripped if c not in except_set]
+            except_norm = {_normalize_column_name_for_format_match(x) for x in except_cols}
         else:
-            cols = rule.get("columns") or []
+            except_norm = None
+        if columns_list:
+            allowed_norm = {_normalize_column_name_for_format_match(x) for x in columns_list}
+        else:
+            allowed_norm = None
+        if except_norm is None and allowed_norm is None:
+            continue
         data_type = (rule.get("data_type") or "general").lower()
         # Строка формата Excel
         if data_type == "number":
@@ -1419,14 +1490,19 @@ def apply_column_formats(ws: Any, sheet_name: str) -> None:
             vertical=v_map.get(v, "center"),
             wrap_text=wrap,
         )
-        for col_name in cols:
-            name_stripped = (col_name or "").strip()
-            try:
-                col_idx = col_names_stripped.index(name_stripped) + 1
-            except ValueError:
-                logging.debug(f"[COLUMN_FORMATS] Колонка '{col_name}' не найдена на листе {sheet_name}")
+        # Обход по индексу столбца: совпадение с except/columns через нормализованные имена (BOM, NBSP в заголовке)
+        for col_idx, raw_header in enumerate(col_names, start=1):
+            header_norm = _normalize_column_name_for_format_match(
+                str(raw_header) if raw_header is not None else ""
+            )
+            if except_norm is not None:
+                if header_norm in except_norm:
+                    continue
+            elif allowed_norm is not None:
+                if header_norm not in allowed_norm:
+                    continue
+            else:
                 continue
-            col_letter = get_column_letter(col_idx)
             # Для числа с 0 знаков после запятой: записать в ячейку целое значение (1, 2), а не 1.0, 2.0,
             # иначе Excel в части локалей отображает "1,0"
             force_int = (data_type == "number" and int(rule.get("decimal_places", 0)) == 0)
@@ -1436,16 +1512,18 @@ def apply_column_formats(ws: Any, sheet_name: str) -> None:
                     cell.number_format = num_fmt
                 if force_int and cell.value is not None:
                     try:
-                        # Если в ячейке строка "1,0" (европейский формат), float("1,0") даёт ValueError —
-                        # нормализуем: запятая как десятичный разделитель → точка
-                        raw = str(cell.value).strip().replace(",", ".")
-                        v = float(raw)
-                        if v == int(v):
-                            cell.value = int(v)
+                        raw = _normalize_string_for_numeric_cell(cell.value)
+                        if raw != "":
+                            v = float(raw)
+                            if v == int(v):
+                                cell.value = int(v)
                     except (TypeError, ValueError):
                         pass
                 cell.alignment = alignment
-            logging.debug(f"[COLUMN_FORMATS] Применён формат к листу {sheet_name}, колонка {col_name} (тип: {data_type})")
+            logging.debug(
+                f"[COLUMN_FORMATS] Применён формат к листу {sheet_name}, колонка {col_idx} "
+                f"«{raw_header}» (тип: {data_type})"
+            )
     return
 
 
@@ -4206,6 +4284,22 @@ def main():
             count_column_prefix="COUNT",
             merge_name="MERGE_FIELDS_ADVANCED"
         )
+
+        # Сводка nonRewards/rewards по getCondition на листе REWARD (после merge и разворота JSON)
+        _rgs = REWARD_GETCONDITION_SUMMARY or {}
+        if _rgs.get("enabled", True) and "REWARD" in sheets_data:
+            from src.reward_getcondition_summary import add_reward_getcondition_summary_column
+
+            _prefix = "ADD_DATA"
+            _rc_list = JSON_COLUMNS.get("REWARD") or []
+            if _rc_list and isinstance(_rc_list[0], dict):
+                _prefix = (_rc_list[0].get("prefix") or "ADD_DATA").strip() or "ADD_DATA"
+            _col_name = _rgs.get("column_name") or "Сводка: nonRewards и rewards (getCondition)"
+            _df_r, _conf_r = sheets_data["REWARD"]
+            sheets_data["REWARD"] = (
+                add_reward_getcondition_summary_column(_df_r, prefix=_prefix, column_name=_col_name),
+                _conf_r,
+            )
 
     # Режим 4: только файл консистентности — лист CONSISTENCY + листы с нарушениями, без color_scheme
     if run_mode == 4:

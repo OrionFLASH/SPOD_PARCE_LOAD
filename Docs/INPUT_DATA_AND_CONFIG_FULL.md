@@ -25,7 +25,10 @@
 - `run_mode` — режим запуска (`full`, `source_only`, `main_only`, `consistency_only`).
 - `consistency_checks` — правила проверок консистентности и сводный лист.
 - `merge_fields_advanced` — правила переноса/объединения полей между листами.
-- `summary`/`summary_key_defs` — формирование листа `SUMMARY`.
+- `summary_sheet` / `summary_key_defs` — формирование листа `SUMMARY`.
+- `column_formats` — форматы ячеек Excel по листам: списки `columns` или режим **`except_columns`** (формат ко всем колонкам кроме перечисленных). Для чисел после чтения CSV применяются нормализация имён заголовков (BOM, NFKC) и разбор чисел с разрядами (пробел/NBSP). Подробно: **README.md**, раздел **column_formats**.
+- `json_columns` — какие колонки с JSON разворачивать в плоские поля по листам (`column`, `prefix`).
+- `reward_getcondition_summary` — опциональная сводная колонка на листе **REWARD** по кодам из `getCondition` (аналог СЦЕПИТЬ/ВПР); ключи `enabled`, `column_name`. Подробно: **README.md**, раздел **reward_getcondition_summary**.
 - `logging` — уровни, имя логов и формат.
 
 ## 4. JSON-поля

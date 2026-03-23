@@ -26,7 +26,9 @@
 
 ## Правила актуализации
 
+- **Источник истины по продукту:** корневой **`README.md`** (ТЗ, пайплайн, `config.json`, логирование, история версий). Разделы **`column_formats`** (в т.ч. `except_columns`, лист **STATISTICS**) и **`reward_getcondition_summary`** описывают актуальное поведение Excel и листа REWARD.
 - После обновления CSV в `IN/SPOD/` пересобрать **`SPOD_INPUT_DATA_CATALOG.md`**: `python src/Tools/build_spod_input_catalog.py`; при смене схемы JSON править **`src/Tools/catalog_glossary/`**.
+- Справочник **`INPUT_DATA_AND_CONFIG_FULL.md`** держать согласованным с `README.md` по ключевым блокам конфигурации (п. 3).
 - Новые изменения по консистентности вносить сначала в `README.md`, затем синхронно в `CONSISTENCY_CHECKS_FORMAT.md` и `CONSISTENCY_SAMPLE_FORMAT.md`.
 - Для крупных блоков изменений использовать консолидированные документы, а не создавать новые `*_V2`, `*_FINAL`, `*_FULL` файлы.
 - Исторические документы с пересекающимся содержимым объединять и удалять дубли.
