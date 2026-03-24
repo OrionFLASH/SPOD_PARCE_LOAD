@@ -56,7 +56,7 @@ SPOD_PROM/
 ├── OUT/                    # Базовый каталог вывода (paths.output); файлы по дате: OUT/YYYY/DD-MM/
 ├── EDIT/                   # Копии файлов для редактирования (сессии админ-панели)
 ├── BACKUP/                 # Резервные копии
-├── POST/                   # Снимок для переноса без Git: python src/Tools/sync_post_txt.py — копии main.py, config.json, README, requirements, всех src/**/*.py, всего Docs/ (имена с .txt); см. POST/КУДА_ПОЛОЖИТЬ_ФАЙЛЫ.txt, restore_names_from_txt.bat
+├── POST/                   # Снимок для переноса без Git: python src/Tools/sync_post_txt.py — main.py, requirements.txt, config.json, src/**/*.py кроме src/Tools и src/Tests; см. POST/КУДА_ПОЛОЖИТЬ_ФАЙЛЫ.txt
 ├── LOGS/                   # Файлы логов (paths.logs); по дате: LOGS/YYYY/DD-MM/
 ├── Docs/                   # Дополнительная документация; каталог CSV/JSON — Docs/JSON/ (см. README внутри)
 ├── src/Tools/              # Утилиты: build_spod_input_catalog.py, export_spod_json_examples.py, sync_post_txt.py (заполнение POST/)
@@ -1279,11 +1279,13 @@ python app.py
 - **`consistency_only`:** больше не создаётся файл **SPOD_PROM source** — только отчёт консистентности. Выгрузка **source** выполняется только в режиме **`full`** (и отдельно при **`source_only`** до выхода).
 - **`write_source_excel`:** для всех ячеек листов файла source включены **перенос по словам** и выравнивание по верху.
 
-### Версия 1.7.4 — Каталог POST: код, config, Docs, скрипт синхронизации
+### Версия 1.7.6 — POST: только программа и config.json
 
-- **`src/Tools/sync_post_txt.py`:** сборка **POST/** — копии `main.py`, `requirements.txt`, `config.json`, `README.md`, всех **`src/**/*.py`**, всего каталога **`Docs/`** (включая **Docs/JSON** и примеры `.json`); имена файлов с суффиксом **.txt**.
-- **`POST/restore_names_from_txt.bat(.txt)`:** снятие **.txt** без использования `findstr` / `if errorlevel` — проверка «есть точка в базовом имени» через сравнение с именем без символов «.» (совместимость с Windows 10).
-- **`POST/КУДА_ПОЛОЖИТЬ_ФАЙЛЫ.txt`:** обновлена инструкция по развёртыванию и дереву **Docs/**.
+- **`sync_post_txt.py`:** в **POST/** — **`main.py`**, **`requirements.txt`**, **`config.json`** и **`src/**/*.py`**, **исключая** **`src/Tools/`** и **`src/Tests/`**; суффикс **.txt** в имени. **Docs/** и **README.md** не копируются; перед синхронизацией POST очищается (кроме `КУДА_ПОЛОЖИТЬ_ФАЙЛЫ.txt` и `restore_names_from_txt.bat*`).
+
+### Версия 1.7.4 — Каталог POST (ранее с Docs/)
+
+- Введены **`sync_post_txt.py`**, bat для снятия **.txt** и расширенный состав POST; с **1.7.6** в POST только код и **config.json** (см. выше).
 
 ### Версия 1.7.3 — Полнота каталога JSON и CSV
 
@@ -1397,7 +1399,7 @@ python app.py
 - В режиме **consistency_only** лист SUMMARY не записывается — при установке активного листа книги проверяется наличие "SUMMARY", иначе активным делается первый лист.
 - Документация обновлена: все поля конфигурации описаны с примерами; добавлены run_mode, output_filenames, apply_sort_to_source/main, paths (подпапки по дате), input_files (expected_columns, subdir, sort_columns).
 
-**Папка POST:** в POST складываются копии программы, документации и конфига с суффиксом **.txt** (main.py.txt, config.json.txt, README.md.txt, requirements.txt.txt, src/*.py.txt) для переноса без репозитория.
+**Папка POST:** копии **основной программы и config.json** с суффиксом **.txt** (main.py, requirements.txt, config.json, `src/**/*.py` кроме **Tools** и **Tests**); документация в POST не кладётся.
 
 ---
 
@@ -1499,7 +1501,7 @@ python app.py
 - Добавлена поддержка JSON полей (разворот по json_columns)
 - Реализовано управление сессиями редактирования
 - **derived_columns** — производные колонки на листе (например, табельный в 20 знаков с лидирующими нулями на LIST-REWARDS); **src_key_transforms** / **dst_key_transforms** в merge — преобразование ключей при связке (pad_20 и т.д.)
-- Документация собрана в корневом README.md и каталоге Docs/; копии main.py, README.md, config.json сохраняются в POST/ с суффиксом .txt
+- Документация — в README.md и Docs/; в POST/ синхронизируются только код и config.json (см. `sync_post_txt.py`).
 
 **Исправленные проблемы:**
 - Исправлены отступы в main.py (basedpyright): find_file_case_insensitive, safe_json_loads, generate_dynamic_color_scheme_from_merge_fields, merge_fields_across_sheets
