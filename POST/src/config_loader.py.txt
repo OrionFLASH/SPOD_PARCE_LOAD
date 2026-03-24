@@ -73,6 +73,8 @@ class Config:
         }
         self.json_columns: Dict[str, List[Dict[str, Any]]] = self._cfg.get("json_columns") or {}
         self.derived_columns: List[Dict[str, Any]] = self._cfg.get("derived_columns") or []
+        # Сводная колонка по getCondition на листе REWARD (см. reward_getcondition_summary.py)
+        self.reward_getcondition_summary: Dict[str, Any] = self._cfg.get("reward_getcondition_summary") or {}
 
         # Параллелизм
         self.max_workers_io: int = self._cfg["performance"]["max_workers_io"]

@@ -916,6 +916,7 @@ def write_source_excel(
     Имя файла: SPOD_PROM source YYYY-MM-DD_HH-MM-SS.xlsx.
     Для отсутствующих файлов создаются пустые листы. Перед записью к листам применяется
     сортировка по настройке sort_columns в каждом элементе input_files (вложенная под файл/лист).
+    После записи для всех ячеек листов включается перенос по словам (wrap_text) и верхнее выравнивание.
 
     Args:
         raw_sheets_data: словарь {sheet_name: (df, params)} — данные сразу после загрузки CSV
@@ -1023,6 +1024,17 @@ def write_source_excel(
             # Автофильтр по умолчанию на всех листах source
             if ws.dimensions:
                 ws.auto_filter.ref = ws.dimensions
+            # Перенос по словам во всех ячейках листа source (по умолчанию)
+            _src_wrap = Alignment(wrap_text=True, vertical="top")
+            if ws.max_row is not None and ws.max_column is not None and ws.max_row >= 1:
+                for row in ws.iter_rows(
+                    min_row=1,
+                    max_row=ws.max_row,
+                    min_col=1,
+                    max_col=ws.max_column,
+                ):
+                    for cell in row:
+                        cell.alignment = _src_wrap
         wb.save(output_path)
     except Exception as e:
         logging.warning(f"[source_export] Не удалось применить параметры листов к {output_path}: {e}")
@@ -4209,8 +4221,9 @@ def main():
         logging.info(f"=== Режим 2 завершён. Выгружен только source. Время: {datetime.now() - start_time} ===")
         return
 
-    # 1.1. Выгрузка сырых данных в отдельный Excel (режимы 1 и 4; режим 3 — без source)
-    if run_mode != 3:
+    # 1.1. Выгрузка сырых данных в отдельный Excel — только в режиме full (1).
+    # Режим source_only (2) пишет source выше и выходит; main_only (3) и consistency_only (4) — без source.
+    if run_mode == 1:
         write_source_excel(raw_sheets, run_output_dir)
 
     missing_files = check_input_files_exist()

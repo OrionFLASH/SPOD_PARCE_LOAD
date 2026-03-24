@@ -56,10 +56,10 @@ SPOD_PROM/
 ├── OUT/                    # Базовый каталог вывода (paths.output); файлы по дате: OUT/YYYY/DD-MM/
 ├── EDIT/                   # Копии файлов для редактирования (сессии админ-панели)
 ├── BACKUP/                 # Резервные копии
-├── POST/                   # Копии всех файлов программы с суффиксом .txt (код src/, main.py, config.json, README.md, requirements.txt) для переноса без репозитория
+├── POST/                   # Снимок для переноса без Git: python src/Tools/sync_post_txt.py — копии main.py, config.json, README, requirements, всех src/**/*.py, всего Docs/ (имена с .txt); см. POST/КУДА_ПОЛОЖИТЬ_ФАЙЛЫ.txt, restore_names_from_txt.bat
 ├── LOGS/                   # Файлы логов (paths.logs); по дате: LOGS/YYYY/DD-MM/
 ├── Docs/                   # Дополнительная документация; каталог CSV/JSON — Docs/JSON/ (см. README внутри)
-├── src/Tools/              # Утилиты: build_spod_input_catalog.py — каталог в Docs/JSON/; export_spod_json_examples.py — примеры JSON в Docs/JSON/examples/
+├── src/Tools/              # Утилиты: build_spod_input_catalog.py, export_spod_json_examples.py, sync_post_txt.py (заполнение POST/)
 │   └── catalog_glossary/   # Фрагменты пояснений к JSON для каталога
 ├── admin_panel/            # Админ-панель
 │   ├── app.py             # Flask приложение
@@ -110,7 +110,7 @@ SPOD_PROM/
 | **validation.py** | Валидация длины полей и проверка дубликатов (устаревшие пути) | `validate_field_lengths(config, df, sheet_name)`, `validate_field_lengths_vectorized(config, df, sheet_name)`, `compare_validate_results`, `mark_duplicates`, `validate_single_sheet`, `check_duplicates_single_sheet`. Основной пайплайн больше не использует отдельные шаги проверки дубликатов и длины полей — всё выполняется в **consistency_checks**. |
 | **consistency_checks.py** | Проверки консистентности (unique, field_length, field_format, referential, json_field_equals_column, json_field_in_column) | Выполняет правила из `consistency_checks.rules` **с параллелизацией** (ThreadPoolExecutor). **Фаза 1** — создаёт на листах колонки `unique` («ДУБЛЬ: …»), `field_length`, `field_format`; **Фаза 2** — referential/referential_composite, **json_field_equals_column**, **json_field_in_column** и сбор результатов. Парсинг JSON в ячейках (ADD_DATA и т.п.): **`_parse_add_data_cell(val)`** — замена `"""` на `"`, затем `json.loads`. Сводный лист CONSISTENCY формируется с колонками-описаниями (ТИП ПРОВЕРКИ, Описание, таблица источник, поле источник и т.д.); расхождения по числу полей CSV (csv_columns_count) также попадают в свод. Функции: `_run_unique_check`, `_run_field_length_check`, `_run_field_format_check`, `run_referential`, `run_referential_composite`, `_run_json_field_equals_column`, `_run_json_field_in_column`, `collect_*`, `run_all_consistency_checks`, `run_consistency_checks_and_attach_summary`, `build_consistency_summary_df(results, rules)`. |
 | **gender.py** | Определение пола по отчеству, имени, фамилии | `add_auto_gender_column(config, df, sheet_name)`, `add_auto_gender_column_vectorized(config, df, sheet_name)`, `compare_gender_results(df_old, df_new)`. Внутри используются паттерны из `config.gender_patterns`. |
-| **main_impl.py** | Полный пайплайн обработки | При импорте вызывается `_load_config_globals()`. Функция `main()`: параллельная загрузка CSV и разворот JSON → выгрузка сырых данных в «SPOD_PROM source …» (кроме `main_only`) → проверка наличия файлов → проверки консистентности на сырых данных и перенос на обработанные листы → добавление AUTO_GENDER (EMPLOYEE) → расчёт статуса турнира → merge (кроме SUMMARY) → **сводка getCondition на REWARD** (`reward_getcondition_summary`, если не `consistency_only`) → **проверки консистентности** (модуль `consistency_checks`) → формирование SUMMARY → лист STAT_FILE → запись основного Excel → итоговый отчёт по отклонениям длины полей и расхождениям CSV. Режим `consistency_only`: без merge, gender, турнира и основного Excel с полной обработкой — только файл консистентности. |
+| **main_impl.py** | Полный пайплайн обработки | При импорте вызывается `_load_config_globals()`. Функция `main()`: параллельная загрузка CSV и разворот JSON → **выгрузка source** (`SPOD_PROM source …`) только в режимах **`full`** и отдельно в **`source_only`** (до выхода); в **`main_only`** и **`consistency_only`** source не создаётся → проверка наличия файлов → проверки консистентности на сырых данных и перенос на обработанные листы → добавление AUTO_GENDER (EMPLOYEE) → расчёт статуса турнира → merge (кроме SUMMARY) → **сводка getCondition на REWARD** (`reward_getcondition_summary`, если не `consistency_only`) → **проверки консистентности** (модуль `consistency_checks`) → формирование SUMMARY → лист STAT_FILE → запись основного Excel → итоговый отчёт по отклонениям длины полей и расхождениям CSV. Режим **`consistency_only`**: без merge, gender, турнира и основного Excel — только файл консистентности. Файл **source**: для всех ячеек включён перенос по словам (`write_source_excel`). |
 
 **Запуск:** из корня проекта выполняется `python main.py`. При этом создаётся `Config()` (путь к config.json — корень проекта), конфиг передаётся в `set_current_config(config)`, затем вызывается `main_impl.main()`. В начале `main_impl.main()` снова вызывается `_load_config_globals()`, поэтому все глобальные переменные в main_impl берутся из внедрённого конфига.
 
@@ -183,10 +183,10 @@ SPOD_PROM/
 
 | Значение (строка)   | Число | Описание |
 |---------------------|-------|----------|
-| `"full"`            | 1     | Полный цикл: source Excel, основной Excel с merge, SUMMARY, STAT_FILE, проверки консистентности; дополнительно создаётся отдельный файл consistency (CONSISTENCY + листы с нарушениями). |
-| `"source_only"`     | 2     | Только выгрузка сырых данных (source Excel) и выход. |
-| `"main_only"`       | 3     | Без выгрузки source; загрузка CSV, merge, консистентность, SUMMARY, основной Excel. |
-| `"consistency_only"`| 4     | Только проверки консистентности и запись файла с листом CONSISTENCY и листами с нарушениями (без SUMMARY в файле). |
+| `"full"`            | 1     | Source Excel + основной Excel (merge, SUMMARY, STAT_FILE) + отдельный файл consistency (CONSISTENCY + листы с нарушениями). |
+| `"source_only"`     | 2     | Только source Excel (сырые листы) и выход; остальной пайплайн не выполняется. |
+| `"main_only"`       | 3     | Только основной Excel (без source и без отдельного файла consistency). |
+| `"consistency_only"`| 4     | Только файл консистентности (CONSISTENCY + листы с нарушениями); **source не создаётся**. |
 
 **Пример:**
 ```json
@@ -194,7 +194,7 @@ SPOD_PROM/
 "_run_mode_options": ["full", "source_only", "main_only", "consistency_only"]
 ```
 
-**Логика:** при старте значение читается из конфига; если указана строка из списка — используется соответствующий код; если число 1–4 — режим по коду. Все выходные файлы (source, consistency, main) пишутся в подкаталог по дате (см. paths.output).
+**Логика:** при старте значение читается из конфига; если указана строка из списка — используется соответствующий код; если число 1–4 — режим по коду. Создаётся **ровно один целевой результат** для режимов `*_only` (быстрый прогон). Файлы пишутся в подкаталог по дате (см. `paths.output`). Для файла **source** во всех ячейках включён **перенос по словам** (openpyxl `wrap_text`).
 
 ---
 
@@ -1273,6 +1273,17 @@ python app.py
 ---
 
 ## История версий
+
+### Версия 1.7.5 — Режимы `*_only` и перенос текста в source
+
+- **`consistency_only`:** больше не создаётся файл **SPOD_PROM source** — только отчёт консистентности. Выгрузка **source** выполняется только в режиме **`full`** (и отдельно при **`source_only`** до выхода).
+- **`write_source_excel`:** для всех ячеек листов файла source включены **перенос по словам** и выравнивание по верху.
+
+### Версия 1.7.4 — Каталог POST: код, config, Docs, скрипт синхронизации
+
+- **`src/Tools/sync_post_txt.py`:** сборка **POST/** — копии `main.py`, `requirements.txt`, `config.json`, `README.md`, всех **`src/**/*.py`**, всего каталога **`Docs/`** (включая **Docs/JSON** и примеры `.json`); имена файлов с суффиксом **.txt**.
+- **`POST/restore_names_from_txt.bat(.txt)`:** снятие **.txt** без использования `findstr` / `if errorlevel` — проверка «есть точка в базовом имени» через сравнение с именем без символов «.» (совместимость с Windows 10).
+- **`POST/КУДА_ПОЛОЖИТЬ_ФАЙЛЫ.txt`:** обновлена инструкция по развёртыванию и дереву **Docs/**.
 
 ### Версия 1.7.3 — Полнота каталога JSON и CSV
 

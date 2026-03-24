@@ -22,7 +22,7 @@
 ## 3. Конфигурация (ключевые блоки)
 
 - `paths` — директории входа/выхода/логов.
-- `run_mode` — режим запуска (`full`, `source_only`, `main_only`, `consistency_only`).
+- `run_mode` — режим запуска (`full`, `source_only`, `main_only`, `consistency_only`). Режимы с суффиксом `_only` формируют **один** выходной файл нужного типа: **source_only** — только `output_filenames.source`; **main_only** — только основной (`output_filenames.main`); **consistency_only** — только `output_filenames.consistency` (**без** выгрузки source). В режиме **full** создаются source, основной Excel и отдельный файл consistency. Файл source: для всех ячеек листов задаётся перенос по словам (`write_source_excel`).
 - `consistency_checks` — правила проверок консистентности и сводный лист.
 - `merge_fields_advanced` — правила переноса/объединения полей между листами.
 - `summary_sheet` / `summary_key_defs` — формирование листа `SUMMARY`.

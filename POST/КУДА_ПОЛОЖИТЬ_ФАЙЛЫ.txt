@@ -7,6 +7,31 @@
 каждый файл по указанному ниже пути, УБРАВ суффикс .txt из имени файла
 (т.е. сохранить содержимое под именем без .txt).
 
+Обновление содержимого POST на машине разработки:
+  python src/Tools/sync_post_txt.py
+(из корня проекта; копируются main.py, config.json, README.md, requirements.txt,
+ все src/**/*.py, весь каталог Docs/).
+
+--------------------------------------------------------------------------------
+Снятие суффикса .txt на Windows
+--------------------------------------------------------------------------------
+
+1. Скопируйте папку POST на целевой ПК.
+2. Переименуйте restore_names_from_txt.bat.txt в restore_names_from_txt.bat
+   (или используйте готовый restore_names_from_txt.bat, если он уже без .txt).
+3. Запустите restore_names_from_txt.bat из этой папки (двойной щелчок или cmd).
+
+Скрипт переименовывает все *.txt, у которых в базовом имени есть точка
+(например main.py.txt → main.py). Файлы без точки в имени перед .txt
+(например КУДА_ПОЛОЖИТЬ_ФАЙЛЫ.txt) не трогаются — это справки.
+
+Проверка «есть ли точка в имени» сделана через сравнение имени с именем без
+символов «.» (не используется findstr и if errorlevel — совместимо с Windows 10).
+
+На Linux/macOS можно использовать:
+  find . -name "*.txt" -path "*.*.txt"  …
+или переименовать вручную по списку ниже.
+
 --------------------------------------------------------------------------------
 Структура каталогов на целевом ПК
 --------------------------------------------------------------------------------
@@ -15,68 +40,49 @@
 
   SPOD_PROM/
 
-Внутри неё должны быть файлы и подпапка src/ как указано ниже.
+Внутри неё — файлы из POST, сняв .txt, с сохранением подпапок:
+
+  POST/Docs/...     →  SPOD_PROM/Docs/...
+  POST/src/...      →  SPOD_PROM/src/...
 
 --------------------------------------------------------------------------------
-Список файлов: что куда положить
+Корень проекта (SPOD_PROM/)
 --------------------------------------------------------------------------------
 
-КОРЕНЬ ПРОЕКТА (каталог SPOD_PROM/):
-
-  Файл в POST              →  На целевом ПК сохранить как
-  ─────────────────────────────────────────────────────────────────────────
   main.py.txt              →  main.py
   config.json.txt          →  config.json
-  requirements.txt.txt    →  requirements.txt
-  README.md.txt           →  README.md   (документация, по желанию)
-
-
-ПОДКАТАЛОГ src/ (создайте папку src/ внутри SPOD_PROM/):
-
-  Файл в POST                    →  На целевом ПК сохранить как
-  ─────────────────────────────────────────────────────────────────────────
-  src/__init__.py.txt             →  src/__init__.py
-  src/config_loader.py.txt       →  src/config_loader.py
-  src/config_holder.py.txt       →  src/config_holder.py
-  src/file_loader.py.txt         →  src/file_loader.py
-  src/gender.py.txt              →  src/gender.py
-  src/json_utils.py.txt          →  src/json_utils.py
-  src/logging_setup.py.txt       →  src/logging_setup.py
-  src/main_impl.py.txt           →  src/main_impl.py
-  src/tournament.py.txt          →  src/tournament.py
-  src/validation.py.txt          →  src/validation.py
-
+  requirements.txt.txt     →  requirements.txt
+  README.md.txt            →  README.md
 
 --------------------------------------------------------------------------------
-Итоговая структура на целевом ПК
+Подкаталог src/ (все .py из POST/src)
 --------------------------------------------------------------------------------
 
-SPOD_PROM/
-├── main.py
-├── config.json
-├── requirements.txt
-├── README.md
-└── src/
-    ├── __init__.py
-    ├── config_loader.py
-    ├── config_holder.py
-    ├── file_loader.py
-    ├── gender.py
-    ├── json_utils.py
-    ├── logging_setup.py
-    ├── main_impl.py
-    ├── tournament.py
-    └── validation.py
+  src/Tools/sync_post_txt.py.txt
+  src/Tools/build_spod_input_catalog.py.txt
+  src/Tools/export_spod_json_examples.py.txt
+  src/main_impl.py.txt
+  … (остальные модули — см. дерево POST/src)
 
+--------------------------------------------------------------------------------
+Документация Docs/
+--------------------------------------------------------------------------------
+
+  POST/Docs/JSON/README.md.txt
+  POST/Docs/JSON/SPOD_INPUT_DATA_CATALOG.md.txt
+  POST/Docs/JSON/examples/*.json.txt   — примеры выгрузок в JSON
+  POST/Docs/DOCS_INDEX.md.txt
+  POST/Docs/INPUT_DATA_AND_CONFIG_FULL.md.txt
+  … (прочие файлы из Docs/ — см. дерево POST/Docs)
 
 --------------------------------------------------------------------------------
 Дополнительно на целевом ПК
 --------------------------------------------------------------------------------
 
 1. Создайте каталоги для работы (если их ещё нет):
-   - SPOD/   — для входных CSV (или укажите свой путь в config.json, секция paths.input)
-   - OUT/    — сюда будет записываться итоговый Excel (paths.output)
-   - LOGS/   — сюда пишутся логи (paths.logs)
+   - IN/SPOD/   — для входных CSV (или укажите путь в config.json, paths.input)
+   - OUT/       — выход Excel (paths.output)
+   - LOGS/      — логи (paths.logs)
 
 2. Установите зависимости (из каталога SPOD_PROM/):
    pip install -r requirements.txt
@@ -84,14 +90,13 @@ SPOD_PROM/
 3. Запуск:
    python main.py
 
-
 --------------------------------------------------------------------------------
 Важно
 --------------------------------------------------------------------------------
 
-- Запускать программу нужно из корня проекта (из каталога, где лежат main.py и config.json).
-- Файл config.json должен быть в том же каталоге, что и main.py (или путь к нему задаётся при создании Config в коде).
-- Суффикс .txt в папке POST добавлен только для удобства хранения/переноса; на целевом ПК файлы должны иметь обычные имена (.py, .json и т.д.).
+- Запускать программу нужно из корня проекта (где main.py и config.json).
+- Суффикс .txt в POST только для удобства переноса; на целевом ПК — обычные
+  расширения (.py, .json, .md и т.д.).
 
 ================================================================================
 Дата формирования инструкции: 2026

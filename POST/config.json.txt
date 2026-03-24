@@ -1,5 +1,5 @@
 {
-  "run_mode": "main_only",
+  "run_mode": "consistency_only",
   "_run_mode_options": ["full", "source_only", "main_only", "consistency_only"],
   "apply_sort_to_source": true,
   "apply_sort_to_main": true,
@@ -32,7 +32,7 @@
   ],
   "input_files": [
     {
-      "file": "CONTEST (PROM) 18-03 v0.csv",
+      "file": "CONTEST (PROM) 23-03 v3.csv",
       "sheet": "CONTEST-DATA",
       "subdir": "SPOD",
       "sort_columns": [{"column": "CONTEST_CODE", "order": "asc"}],
@@ -65,7 +65,7 @@
       "include_in_source": true
     },
     {
-      "file": "REPORT (PROM) 18-03 v0.csv",
+      "file": "REPORT (PROM) 24-03 v0.csv",
       "sheet": "REPORT",
       "subdir": "SPOD",
       "sort_columns": [{"column": "CONTEST_CODE", "order": "asc"}],
@@ -76,10 +76,10 @@
       "include_in_source": true
     },
     {
-      "file": "REWARD (PROM) 19-03 v1.csv",
+      "file": "REWARD (PROM) 23-03 v3.csv",
       "sheet": "REWARD",
       "subdir": "SPOD",
-      "sort_columns": [{"column": "REWARD_CODE", "order": "asc"}],
+      "sort_columns": [{"column": "REWARD_CODE", "order": "asc"}, {"column": "REWARD_TYPE", "order": "asc"}],
       "max_col_width": 200,
       "freeze": "D2",
       "col_width_mode": "AUTO",
@@ -109,10 +109,10 @@
       "include_in_source": true
     },
     {
-      "file": "ORG_UNIT_V20 19-03 v0.csv",
+      "file": "ORG_UNIT_V20 20-03 v0.csv",
       "sheet": "ORG_UNIT_V20",
       "subdir": "SPOD",
-      "sort_columns": [{"column": "ORG_UNIT_CODE", "order": "asc"}],
+      "sort_columns": [{"column": "GOSB_CODE", "order": "asc"}, {"column": "TB_CODE", "order": "asc"}],
       "max_col_width": 60,
       "freeze": "A2",
       "col_width_mode": "AUTO",
@@ -120,7 +120,7 @@
       "include_in_source": true
     },
     {
-      "file": "USER_ROLE (PROM) 13-03 v0.csv",
+      "file": "USER_ROLE (PROM) 24-03 v1.csv",
       "sheet": "USER_ROLE",
       "subdir": "SPOD",
       "sort_columns": [{"column": "RULE_NUM", "order": "asc"}],
@@ -131,7 +131,7 @@
       "include_in_source": true
     },
     {
-      "file": "USER_ROLE_SB (PROM) 13-03 v0.csv",
+      "file": "USER_ROLE_SB (PROM) 24-03 v1.csv",
       "sheet": "USER_ROLE SB",
       "subdir": "SPOD",
       "sort_columns": [{"column": "RULE_NUM", "order": "asc"}],
@@ -180,7 +180,7 @@
       "subdir": "FILE",
       "sort_columns": [],
       "max_col_width": 80,
-      "freeze": "D2",
+      "freeze": "C2",
       "col_width_mode": "AUTO",
       "min_col_width": 12,
       "include_in_source": false
@@ -246,7 +246,7 @@
       "subdir": "FILE",
       "sort_columns": [],
       "max_col_width": 80,
-      "freeze": "D2",
+      "freeze": "E2",
       "col_width_mode": "AUTO",
       "min_col_width": 12,
       "include_in_source": false
@@ -257,7 +257,29 @@
       "subdir": "FILE",
       "sort_columns": [],
       "max_col_width": 80,
-      "freeze": "D2",
+      "freeze": "E2",
+      "col_width_mode": "AUTO",
+      "min_col_width": 12,
+      "include_in_source": false
+    },
+    {
+      "file": "gamification-orderList 2KM.csv",
+      "sheet": "ORDER_2025_2 (KMKKSB)",
+      "subdir": "FILE",
+      "sort_columns": [],
+      "max_col_width": 80,
+      "freeze": "E2",
+      "col_width_mode": "AUTO",
+      "min_col_width": 12,
+      "include_in_source": false
+    },
+    {
+      "file": "gamification-orderList 2MNS.csv",
+      "sheet": "ORDER_2025_2 (MNS)",
+      "subdir": "FILE",
+      "sort_columns": [],
+      "max_col_width": 80,
+      "freeze": "E2",
       "col_width_mode": "AUTO",
       "min_col_width": 12,
       "include_in_source": false
@@ -295,6 +317,8 @@
     "USER_ROLE",
     "EMPLOYEE",
     "STAT_FILE",
+    "ORDER_2025_2 (KMKKSB)",
+    "ORDER_2025_2 (MNS)",
     "RATING_2025_2 (KMKKSB)",
     "RATING_2025_2 (MNS)",
     "LIST-REWARDS",
@@ -1970,7 +1994,9 @@
       "sheet": "REWARD",
       "columns": [
         "REWARD_CONDITION",
-        "REWARD_COST"
+        "REWARD_COST",
+        "REWARD_CONDITION",
+        "ADD_DATA => itemMinShow"
       ],
       "data_type": "number",
       "decimal_places": 0,
@@ -2194,6 +2220,32 @@
       "horizontal": "center",
       "vertical": "center",
       "wrap_text": false
+    },
+    {
+      "sheet": "STATISTICS",
+      "except_columns": [
+        "Табельный номер",
+        "Фамилия",
+        "Имя",
+        "Код роли",
+        "Наименование Роли",
+        "Текущая роль",
+        "Дата вступления в роль",
+        "Дата смены роли",
+        "Почта Альфа",
+        "Почта Сигма",
+        "Статус текущий",
+        "Статус предыдущий",
+        "Динамика статуса"
+      ],
+      "data_type": "number",
+      "decimal_places": 0,
+      "decimal_separator": ",",
+      "thousands_separator": true,
+      "date_format": "YYYY-MM-DD",
+      "horizontal": "center",
+      "vertical": "center",
+      "wrap_text": false
     }
   ],
   "consistency_checks": {
@@ -2229,6 +2281,8 @@
         "RATING_ALLTIME (MNS)": { "expected_columns": 0 },
         "ORDER_2025_1 (KMKKSB)": { "expected_columns": 0 },
         "ORDER_2025_1 (MNS)": { "expected_columns": 0 },
+        "ORDER_2025_2 (KMKKSB)": { "expected_columns": 0 },
+        "ORDER_2025_2 (MNS)": { "expected_columns": 0 },
         "YEAR_STATA": { "expected_columns": 0 }
       }
     },
@@ -2286,6 +2340,20 @@
         "column_ref": "REWARD_CODE",
         "output": {
           "column_on_sheet": "ПРОВЕРКА: REWARD_CODE в REWARD",
+          "include_in_summary": true
+        }
+      },
+      {
+        "id": "9",
+        "name": "Все ORG_UNIT_CODE из EMPLOYEE существуют в ORG_UNIT_V20",
+        "type": "referential",
+        "enabled": true,
+        "sheet_src": "EMPLOYEE",
+        "column_src": "ORG_UNIT_CODE",
+        "sheet_ref": "ORG_UNIT_V20",
+        "column_ref": "ORG_UNIT_CODE",
+        "output": {
+          "column_on_sheet": "ПРОВЕРКА: ORG_UNIT_CODE в ORG_UNIT_V20",
           "include_in_summary": true
         }
       },
@@ -2639,6 +2707,15 @@
         "output": { "column_on_sheet": "ДУБЛЬ: ORG_UNIT_CODE", "include_in_summary": true }
       },
       {
+        "id": "unique_tb_gosb",
+        "name": "В ORG_UNIT_V20 нет дублей по составному полю TB_CODE, GOSB_CODE",
+        "type": "unique",
+        "enabled": true,
+        "sheet": "ORG_UNIT_V20",
+        "key_columns": ["TB_CODE", "GOSB_CODE"],
+        "output": { "column_on_sheet": "ДУБЛЬ: TB_CODE-GOSB_CODE", "include_in_summary": true }
+      },
+      {
         "id": "unique_user_role",
         "name": "В USER_ROLE нет дублей по полю RULE_NUM",
         "type": "unique",
@@ -2824,6 +2901,10 @@
         "output": { "column_on_sheet": "ПРОВЕРКА ФОРМАТ: PERSON_NUMBER_ADD", "include_in_summary": true }
       }
     ]
+  },
+  "reward_getcondition_summary": {
+    "enabled": true,
+    "column_name": "Сводка: nonRewards и rewards (getCondition)"
   },
   "json_columns": {
     "CONTEST-DATA": [
