@@ -21,6 +21,12 @@ from itertools import product
 import threading  # Для синхронизации потоков
 
 from src.consistency_checks import run_consistency_checks_and_attach_summary  # Проверки консистентности (отдельный модуль)
+from src.debug_timing import (
+    debug_phase,
+    debug_timed,
+    reset_run_timing,
+    run_elapsed_sec,
+)  # Сквозной DEBUG-профайлинг и фазы пайплайна ([PERF] в логе)
 import warnings   # Для подавления UserWarning при парсинге дат без формата
 
 # === ОПТИМИЗАЦИИ ПРОИЗВОДИТЕЛЬНОСТИ ===
@@ -373,6 +379,7 @@ def setup_logger():
     
     return log_file
 
+@debug_timed()
 def calculate_tournament_status(df_tournament, df_report=None):
     """
     Вычисляет статус турнира на основе текущей даты и дат турнира.
@@ -833,6 +840,7 @@ def check_input_files_exist() -> List[Dict[str, str]]:
     return missing
 
 
+@debug_timed(log_args_len=True)
 def read_csv_file(
     file_path: str,
     expected_columns: int = 0,
@@ -907,6 +915,7 @@ def read_csv_file(
         return None
 
 
+@debug_timed()
 def write_source_excel(
     raw_sheets_data: Dict[str, Any],
     output_dir: str,
@@ -1021,9 +1030,12 @@ def write_source_excel(
                 width = calculate_column_width(cell.value, ws, params, col_num)
                 ws.column_dimensions[col_letter].width = width
             ws.freeze_panes = params.get("freeze", "A2")
-            # Автофильтр по умолчанию на всех листах source
-            if ws.dimensions:
-                ws.auto_filter.ref = ws.dimensions
+            # Автофильтр по умолчанию на всех листах source (только при валидных границах листа)
+            try:
+                if ws.max_row and ws.max_column and ws.dimensions:
+                    ws.auto_filter.ref = ws.dimensions
+            except Exception as ex:
+                logging.warning(f"[source_export] Лист «{sheet_name}»: автофильтр не применён: {ex}")
             # Перенос по словам во всех ячейках листа source (по умолчанию)
             _src_wrap = Alignment(wrap_text=True, vertical="top")
             if ws.max_row is not None and ws.max_column is not None and ws.max_row >= 1:
@@ -1043,6 +1055,7 @@ def write_source_excel(
     return output_path
 
 
+@debug_timed()
 def write_to_excel(
     sheets_data: Dict[str, Any],
     output_path: str,
@@ -1219,12 +1232,20 @@ def write_to_excel(
                 logging.info(f"Лист Excel сформирован: {sheet_name} (строк: {len(df)}, колонок: {len(df.columns)})")
             
             # Делаем SUMMARY лист активным по умолчанию (если он есть в файле)
-            if "SUMMARY" in writer.book.sheetnames:
-                writer.book.active = writer.book.sheetnames.index("SUMMARY")
-            else:
-                writer.book.active = 0
-            writer.book.save(output_path)  # Сохраняем файл
-        
+            try:
+                if "SUMMARY" in writer.book.sheetnames:
+                    writer.book.active = writer.book.sheetnames.index("SUMMARY")
+                else:
+                    writer.book.active = 0
+            except Exception as ex:
+                logging.warning(f"[write_to_excel] Не удалось выставить активный лист: {ex}")
+                try:
+                    writer.book.active = 0
+                except Exception:
+                    pass
+            # Не вызывать writer.book.save() здесь: контекстный менеджер ExcelWriter при выходе из ``with``
+            # сам сохраняет файл. Повторное сохранение на тот же путь часто даёт повреждённый ZIP (xlsx не открывается).
+
         # Логируем успешное завершение
         func_time = time() - func_start
         logging.info(f"[END] write_to_excel {params} (время: {func_time:.3f}s)")
@@ -1375,6 +1396,7 @@ def _normalize_string_for_numeric_cell(val: Any) -> str:
     return s.replace(",", ".")
 
 
+@debug_timed()
 def apply_column_format_conversion(df: pd.DataFrame, sheet_name: str) -> None:
     """
     Преобразует типы колонок в DataFrame по правилам COLUMN_FORMATS перед записью в Excel.
@@ -1539,6 +1561,7 @@ def apply_column_formats(ws: Any, sheet_name: str) -> None:
     return
 
 
+@debug_timed()
 def _format_sheet(ws, df, params, use_color_scheme: bool = True):
     func_start = time()
     params_str = f"({ws.title})"
@@ -1594,7 +1617,13 @@ def _format_sheet(ws, df, params, use_color_scheme: bool = True):
 
     # Закрепление строк и столбцов
     ws.freeze_panes = params.get("freeze", "A2")
-    ws.auto_filter.ref = ws.dimensions
+    # Автофильтр: при некорректном dimensions (пустой лист, сбой расчёта границ) openpyxl может выбросить
+    # исключение или записать невалидный диапазон — тогда файл xlsx становится нечитаемым.
+    try:
+        if ws.max_row and ws.max_column and ws.dimensions:
+            ws.auto_filter.ref = ws.dimensions
+    except Exception as ex:
+        logging.warning(f"[_format_sheet] Лист «{ws.title}»: автофильтр не применён: {ex}")
 
     func_time = time() - func_start
     logging.debug(f"[END] _format_sheet {params_str} (время: {func_time:.3f}s)")
@@ -1666,6 +1695,7 @@ def safe_json_loads_preserve_triple_quotes(s: str):
         return s  # Возвращаем исходную строку с тройными кавычками
 
 
+@debug_timed(hot=True)
 def flatten_json_column_recursive(df, column, prefix=None, sheet=None, sep="; "):
     func_start = tmod.time()
     n_rows = len(df)
@@ -2381,6 +2411,7 @@ def collect_summary_keys_optimized(dfs):
 
 
 
+@debug_timed(hot=True, log_args_len=True)
 def add_fields_to_sheet(df_base, df_ref, src_keys, dst_keys, columns, sheet_name, ref_sheet_name, mode="value",
                         multiply_rows=False, count_prefix="COUNT", count_aggregation="size", count_label=None):
     """
@@ -2785,6 +2816,7 @@ def _apply_src_key_transforms(
     return df_src, effective_keys
 
 
+@debug_timed(hot=True, log_args_len=True)
 def _process_single_merge_rule(rule, sheets_data_copy, count_column_prefix="COUNT", merge_name="MERGE_FIELDS_ADVANCED"):
     """
     Обрабатывает одно правило merge_fields.
@@ -3005,6 +3037,7 @@ def _compare_sheets_data_with_baseline(sheets_data, baseline_path: str, max_rows
     return (len(errors) == 0, errors)
 
 
+@debug_timed()
 def merge_fields_across_sheets(sheets_data, merge_fields, count_column_prefix="COUNT", merge_name=""):
     """
     count_column_prefix: для режима count имя колонки будет {sheet_src}=>{count_column_prefix}_{col}.
@@ -3393,6 +3426,7 @@ def detect_gender_for_person(patronymic, first_name, surname, row_idx):
     return '-'
 
 
+@debug_timed()
 def add_auto_gender_column(df, sheet_name):
     """Добавление колонки AUTO_GENDER к DataFrame с автоматическим определением пола"""
     func_start = time()
@@ -3446,6 +3480,7 @@ def add_auto_gender_column(df, sheet_name):
     return df
 
 
+@debug_timed()
 def add_auto_gender_column_vectorized(df, sheet_name):
     """
     ОПТИМИЗИРОВАННАЯ ВЕРСИЯ: Векторизованное определение пола.
@@ -3565,6 +3600,7 @@ def compare_gender_results(df_old, df_new):
     }
 
 
+@debug_timed()
 def build_summary_sheet(dfs, params_summary, merge_fields):
     logging.debug(f"[DEBUG build_summary_sheet] === НАЧАЛО === Доступные листы в dfs: {list(dfs.keys())}")
     for sheet_name, df in dfs.items():
@@ -3707,6 +3743,7 @@ def build_summary_sheet(dfs, params_summary, merge_fields):
     return summary
 
 
+@debug_timed(log_args_len=True)
 def process_single_file(file_conf):
     """
     Обрабатывает один CSV файл: поиск, чтение и разворачивание JSON полей.
@@ -3834,6 +3871,7 @@ def validate_single_sheet(sheet_name, sheets_data_item):
         return sheet_name, sheets_data_item
 
 
+@debug_timed()
 def collect_duplicates_and_validation_report(sheets_data: Dict[str, Any]) -> tuple:
     """
     Собирает сводный отчёт по отклонениям длины полей (из правил consistency_checks) и расхождениям по числу полей в CSV.
@@ -3881,6 +3919,7 @@ def collect_duplicates_and_validation_report(sheets_data: Dict[str, Any]) -> tup
     return validation_report, csv_mismatch_report
 
 
+@debug_timed()
 def copy_consistency_results_from_raw_to_processed(
     raw_sheets_data: Dict[str, Any],
     sheets_data: Dict[str, Any],
@@ -3914,6 +3953,7 @@ def copy_consistency_results_from_raw_to_processed(
         logging.debug(f"[CONSISTENCY] Лист {summary_sheet_name} скопирован с сырых данных")
 
 
+@debug_timed()
 def append_csv_mismatches_to_consistency(
     sheets_data: Dict[str, Any],
     csv_mismatch_report: List[Dict[str, Any]],
@@ -4052,6 +4092,7 @@ def append_csv_mismatches_to_consistency(
     logging.info(f"[CONSISTENCY] Создан лист {summary_sheet_name} с записями проверки числа полей CSV: {len(new_rows)}")
 
 
+@debug_timed()
 def build_stat_file_sheet(
     input_files: List[Dict[str, Any]],
     sheets_data: Dict[str, Any],
@@ -4159,39 +4200,43 @@ def main():
     _csv_column_mismatches.clear()
     start_time = datetime.now()
     log_file = setup_logger()
+    reset_run_timing()
     logging.info(f"=== Старт работы программы: {start_time.strftime('%Y-%m-%d %H:%M:%S')} ===")
+    logging.debug(
+        "[PERF] Логирование: файл — все уровни DEBUG (в т.ч. [PERF] вход/выход функций и фазы); "
+        "консоль — INFO и выше. Итоговая таблица времени пишется в файл при завершении процесса."
+    )
 
     sheets_data = {}
     files_processed = 0
     rows_total = 0
     summary = []
 
-        # 1. Параллельное чтение всех CSV и разворот ВСЕХ JSON‑полей на каждом листе
+    # 1. Параллельное чтение всех CSV и разворот ВСЕХ JSON‑полей на каждом листе
     logging.info(f"Начало параллельного чтения CSV файлов (потоков: {MAX_WORKERS_IO})")
-    
+
     lock = threading.Lock()  # Для безопасного доступа к sheets_data
-    
-    with ThreadPoolExecutor(max_workers=MAX_WORKERS_IO) as executor:  # I/O операция
-        # Запускаем обработку всех файлов параллельно
-        futures = {executor.submit(process_single_file, file_conf): file_conf 
-                   for file_conf in INPUT_FILES}
-        
-        # Собираем результаты по мере их готовности; сырые данные (до разворота JSON) — для source-выгрузки
-        raw_sheets = {}
-        for future in as_completed(futures):
-            df, sheet_name, file_conf, df_raw = future.result()
-            if df is not None and file_conf is not None:
-                with lock:
-                    sheets_data[sheet_name] = (df, file_conf)
-                    files_processed += 1
-                    rows_total += len(df)
-                    summary.append(f"{sheet_name}: {len(df)} строк")
-                    # В source Excel — только листы с include_in_source != false (по умолчанию да)
-                    if file_conf.get("include_in_source", True):
-                        raw_sheets[sheet_name] = (df_raw.copy() if df_raw is not None else pd.DataFrame(), file_conf)
-            elif sheet_name:
-                # Файл не найден или ошибка чтения
-                summary.append(f"{sheet_name}: {'файл не найден' if file_conf is None else 'ошибка'}")
+
+    with debug_phase("01_parallel_csv_read_and_json_flatten"):
+        with ThreadPoolExecutor(max_workers=MAX_WORKERS_IO) as executor:  # I/O операция
+            futures = {executor.submit(process_single_file, file_conf): file_conf for file_conf in INPUT_FILES}
+
+            raw_sheets = {}
+            for future in as_completed(futures):
+                df, sheet_name, file_conf, df_raw = future.result()
+                if df is not None and file_conf is not None:
+                    with lock:
+                        sheets_data[sheet_name] = (df, file_conf)
+                        files_processed += 1
+                        rows_total += len(df)
+                        summary.append(f"{sheet_name}: {len(df)} строк")
+                        if file_conf.get("include_in_source", True):
+                            raw_sheets[sheet_name] = (
+                                df_raw.copy() if df_raw is not None else pd.DataFrame(),
+                                file_conf,
+                            )
+                elif sheet_name:
+                    summary.append(f"{sheet_name}: {'файл не найден' if file_conf is None else 'ошибка'}")
 
     logging.info(f"Параллельное чтение CSV файлов завершено. Обработано файлов: {files_processed}")
 
@@ -4217,14 +4262,16 @@ def main():
             logging.error(msg)
             print(msg, file=sys.stderr)
             sys.exit(1)
-        write_source_excel(raw_sheets, run_output_dir)
+        with debug_phase("mode2_source_only_excel"):
+            write_source_excel(raw_sheets, run_output_dir)
         logging.info(f"=== Режим 2 завершён. Выгружен только source. Время: {datetime.now() - start_time} ===")
         return
 
     # 1.1. Выгрузка сырых данных в отдельный Excel — только в режиме full (1).
     # Режим source_only (2) пишет source выше и выходит; main_only (3) и consistency_only (4) — без source.
     if run_mode == 1:
-        write_source_excel(raw_sheets, run_output_dir)
+        with debug_phase("full_mode_source_excel"):
+            write_source_excel(raw_sheets, run_output_dir)
 
     missing_files = check_input_files_exist()
     if missing_files:
@@ -4248,71 +4295,68 @@ def main():
         item = raw_sheets_data[s]
         if isinstance(item, (list, tuple)) and len(item) >= 1 and isinstance(item[0], pd.DataFrame):
             raw_counts[s] = {"ncols": len(item[0].columns), "nrows": len(item[0])}
-    if CONSISTENCY_CHECKS and (CONSISTENCY_CHECKS.get("rules")):
-        logging.info("[main] Запуск проверок консистентности на сырых данных (до обработки)")
-        run_consistency_checks_and_attach_summary(raw_sheets_data, CONSISTENCY_CHECKS, max_workers=MAX_WORKERS)
-        copy_consistency_results_from_raw_to_processed(raw_sheets_data, sheets_data, summary_sheet_name)
-        logging.info("[main] Проверки консистентности завершены, результаты скопированы на обработанные листы")
-    append_csv_mismatches_to_consistency(
-        sheets_data, list(_csv_column_mismatches),
-        summary_sheet_name=summary_sheet_name,
-        consistency_checks_config=CONSISTENCY_CHECKS,
-        raw_sheets_data=raw_sheets_data,
-        raw_counts=raw_counts,
-    )
-
-    # 2. Добавление колонки AUTO_GENDER для листа EMPLOYEE (пропускаем в режиме consistency_only)
-    if run_mode != 4 and "EMPLOYEE" in sheets_data:
-        df_employee, conf_employee = sheets_data["EMPLOYEE"]
-        # ОПТИМИЗАЦИЯ: Используем векторизованную версию с проверкой результатов
-        df_employee_old = df_employee.copy()
-        df_employee = add_auto_gender_column_vectorized(df_employee, "EMPLOYEE")
-        
-        # Сравниваем результаты
-        comparison = compare_gender_results(df_employee_old, df_employee)
-        if not comparison.get("identical", False):
-            logging.warning(
-                f"[GENDER COMPARISON] EMPLOYEE: различия найдены - {comparison.get('differences', 0)} из {comparison.get('total', 0)}"
-            )
-            # В случае различий используем старую версию
-            df_employee = add_auto_gender_column(df_employee_old, "EMPLOYEE")
-            logging.warning("[GENDER FALLBACK] EMPLOYEE: использована оригинальная версия")
-        else:
-            logging.info(f"[GENDER COMPARISON] EMPLOYEE: результаты идентичны ({comparison.get('match_percent', 0)}%)")
-        sheets_data["EMPLOYEE"] = (df_employee, conf_employee)
-
-        # 3. Добавление расчетного статуса турнира для TOURNAMENT-SCHEDULE (пропускаем в режиме consistency_only)
-    if run_mode != 4 and "TOURNAMENT-SCHEDULE" in sheets_data:
-        df_tournament, conf_tournament = sheets_data["TOURNAMENT-SCHEDULE"]
-        df_report = sheets_data.get("REPORT", (None, None))[0]
-        df_tournament = calculate_tournament_status(df_tournament, df_report)
-        sheets_data["TOURNAMENT-SCHEDULE"] = (df_tournament, conf_tournament)
-
-    # 4. Merge fields (пропускаем в режиме 4 — только консистентность)
-    if run_mode != 4:
-        # Все правила в MERGE_FIELDS_ADVANCED: сначала бывшие MERGE_FIELDS (порядок сохранён), затем расширенные.
-        merge_fields_across_sheets(
-            sheets_data,
-            [f for f in MERGE_FIELDS_ADVANCED if f.get("sheet_dst") != "SUMMARY"],
-            count_column_prefix="COUNT",
-            merge_name="MERGE_FIELDS_ADVANCED"
+    with debug_phase("02_consistency_pipeline_raw_and_csv_mismatch"):
+        if CONSISTENCY_CHECKS and (CONSISTENCY_CHECKS.get("rules")):
+            logging.info("[main] Запуск проверок консистентности на сырых данных (до обработки)")
+            run_consistency_checks_and_attach_summary(raw_sheets_data, CONSISTENCY_CHECKS, max_workers=MAX_WORKERS)
+            copy_consistency_results_from_raw_to_processed(raw_sheets_data, sheets_data, summary_sheet_name)
+            logging.info("[main] Проверки консистентности завершены, результаты скопированы на обработанные листы")
+        append_csv_mismatches_to_consistency(
+            sheets_data, list(_csv_column_mismatches),
+            summary_sheet_name=summary_sheet_name,
+            consistency_checks_config=CONSISTENCY_CHECKS,
+            raw_sheets_data=raw_sheets_data,
+            raw_counts=raw_counts,
         )
 
-        # Сводка nonRewards/rewards по getCondition на листе REWARD (после merge и разворота JSON)
-        _rgs = REWARD_GETCONDITION_SUMMARY or {}
-        if _rgs.get("enabled", True) and "REWARD" in sheets_data:
-            from src.reward_getcondition_summary import add_reward_getcondition_summary_column
+    with debug_phase("03_gender_tournament_merge_reward_summary"):
+        # 2. Добавление колонки AUTO_GENDER для листа EMPLOYEE (пропускаем в режиме consistency_only)
+        if run_mode != 4 and "EMPLOYEE" in sheets_data:
+            df_employee, conf_employee = sheets_data["EMPLOYEE"]
+            df_employee_old = df_employee.copy()
+            df_employee = add_auto_gender_column_vectorized(df_employee, "EMPLOYEE")
 
-            _prefix = "ADD_DATA"
-            _rc_list = JSON_COLUMNS.get("REWARD") or []
-            if _rc_list and isinstance(_rc_list[0], dict):
-                _prefix = (_rc_list[0].get("prefix") or "ADD_DATA").strip() or "ADD_DATA"
-            _col_name = _rgs.get("column_name") or "Сводка: nonRewards и rewards (getCondition)"
-            _df_r, _conf_r = sheets_data["REWARD"]
-            sheets_data["REWARD"] = (
-                add_reward_getcondition_summary_column(_df_r, prefix=_prefix, column_name=_col_name),
-                _conf_r,
+            comparison = compare_gender_results(df_employee_old, df_employee)
+            if not comparison.get("identical", False):
+                logging.warning(
+                    f"[GENDER COMPARISON] EMPLOYEE: различия найдены - {comparison.get('differences', 0)} из {comparison.get('total', 0)}"
+                )
+                df_employee = add_auto_gender_column(df_employee_old, "EMPLOYEE")
+                logging.warning("[GENDER FALLBACK] EMPLOYEE: использована оригинальная версия")
+            else:
+                logging.info(f"[GENDER COMPARISON] EMPLOYEE: результаты идентичны ({comparison.get('match_percent', 0)}%)")
+            sheets_data["EMPLOYEE"] = (df_employee, conf_employee)
+
+        # 3. Расчётный статус турнира для TOURNAMENT-SCHEDULE
+        if run_mode != 4 and "TOURNAMENT-SCHEDULE" in sheets_data:
+            df_tournament, conf_tournament = sheets_data["TOURNAMENT-SCHEDULE"]
+            df_report = sheets_data.get("REPORT", (None, None))[0]
+            df_tournament = calculate_tournament_status(df_tournament, df_report)
+            sheets_data["TOURNAMENT-SCHEDULE"] = (df_tournament, conf_tournament)
+
+        # 4. Merge fields и сводка REWARD getCondition
+        if run_mode != 4:
+            merge_fields_across_sheets(
+                sheets_data,
+                [f for f in MERGE_FIELDS_ADVANCED if f.get("sheet_dst") != "SUMMARY"],
+                count_column_prefix="COUNT",
+                merge_name="MERGE_FIELDS_ADVANCED",
             )
+
+            _rgs = REWARD_GETCONDITION_SUMMARY or {}
+            if _rgs.get("enabled", True) and "REWARD" in sheets_data:
+                from src.reward_getcondition_summary import add_reward_getcondition_summary_column
+
+                _prefix = "ADD_DATA"
+                _rc_list = JSON_COLUMNS.get("REWARD") or []
+                if _rc_list and isinstance(_rc_list[0], dict):
+                    _prefix = (_rc_list[0].get("prefix") or "ADD_DATA").strip() or "ADD_DATA"
+                _col_name = _rgs.get("column_name") or "Сводка: nonRewards и rewards (getCondition)"
+                _df_r, _conf_r = sheets_data["REWARD"]
+                sheets_data["REWARD"] = (
+                    add_reward_getcondition_summary_column(_df_r, prefix=_prefix, column_name=_col_name),
+                    _conf_r,
+                )
 
     # Режим 4: только файл консистентности — лист CONSISTENCY + листы с нарушениями, без color_scheme
     if run_mode == 4:
@@ -4330,63 +4374,64 @@ def main():
         ts = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
         consistency_path = os.path.join(run_output_dir, f"{OUTPUT_FILENAME_CONSISTENCY} {ts}.xlsx")
         logging.info(f"[START] write_to_excel (режим 4) ({consistency_path})")
-        write_to_excel(consistency_data, consistency_path, use_color_scheme=False)
+        with debug_phase("04_consistency_only_write_excel"):
+            write_to_excel(consistency_data, consistency_path, use_color_scheme=False)
         logging.info(f"=== Режим 4 завершён. Файл консистентности: {consistency_path}. Время: {datetime.now() - start_time} ===")
         return
 
     # 6. Формирование итогового Summary (build_summary_sheet)
-    dfs = {k: v[0] for k, v in sheets_data.items()}
-    df_summary = build_summary_sheet(
-        dfs,
-        params_summary=SUMMARY_SHEET,
-        merge_fields=[f for f in MERGE_FIELDS_ADVANCED if f.get("sheet_dst") == "SUMMARY"]
-    )
-    # ОПТИМИЗАЦИЯ v5.0: Проверка df_summary на None
-    if df_summary is None or not isinstance(df_summary, pd.DataFrame):
-        logging.error("[main] КРИТИЧЕСКАЯ ОШИБКА: df_summary равен None или не DataFrame после build_summary_sheet!")
-        logging.error("[main] Создаем пустой DataFrame для SUMMARY")
-        df_summary = pd.DataFrame(columns=SUMMARY_KEY_COLUMNS)
-    elif len(df_summary) == 0:
-        logging.warning("[main] df_summary пустой после build_summary_sheet, но продолжаем работу")
-    else:
-        logging.info(f"[main] df_summary успешно создан: {len(df_summary)} строк, {len(df_summary.columns)} колонок")
-
-    sheets_data[SUMMARY_SHEET["sheet"]] = (df_summary, SUMMARY_SHEET)
-
-    # Лист STAT_FILE: статистика по исходным файлам (имя, лист, даты, строки, колонки, размер, статус)
-    df_stat = build_stat_file_sheet(INPUT_FILES, sheets_data, start_time)
-    stat_file_params = {
-        "sheet": "STAT_FILE",
-        "max_col_width": 80,
-        "freeze": "A2",
-        "col_width_mode": "AUTO",
-        "min_col_width": 10,
-    }
-    sheets_data["STAT_FILE"] = (df_stat, stat_file_params)
-    logging.info(f"[main] Лист STAT_FILE сформирован: {len(df_stat)} строк (статистика по файлам)")
-
-    # Верификация merge: сохранение baseline или сравнение с ним
-    _baseline_path = os.path.join(run_output_dir, "merge_output_baseline.json")
-    if os.environ.get("SAVE_MERGE_BASELINE") == "1":
-        snapshot = _dump_sheets_data_for_baseline(sheets_data, max_rows=3)
-        with open(_baseline_path, "w", encoding="utf-8") as f:
-            json.dump(snapshot, f, ensure_ascii=False, indent=2)
-        logging.info(f"[MERGE] Baseline сохранён: {_baseline_path} (колонки и по 3 строки на лист)")
-    elif os.path.isfile(_baseline_path):
-        ok, diff_errors = _compare_sheets_data_with_baseline(sheets_data, _baseline_path, max_rows=3)
-        if ok:
-            logging.info("[MERGE] Сравнение с baseline: колонки и сэмпл данных совпадают")
+    with debug_phase("05_summary_stat_baseline"):
+        dfs = {k: v[0] for k, v in sheets_data.items()}
+        df_summary = build_summary_sheet(
+            dfs,
+            params_summary=SUMMARY_SHEET,
+            merge_fields=[f for f in MERGE_FIELDS_ADVANCED if f.get("sheet_dst") == "SUMMARY"],
+        )
+        if df_summary is None or not isinstance(df_summary, pd.DataFrame):
+            logging.error("[main] КРИТИЧЕСКАЯ ОШИБКА: df_summary равен None или не DataFrame после build_summary_sheet!")
+            logging.error("[main] Создаем пустой DataFrame для SUMMARY")
+            df_summary = pd.DataFrame(columns=SUMMARY_KEY_COLUMNS)
+        elif len(df_summary) == 0:
+            logging.warning("[main] df_summary пустой после build_summary_sheet, но продолжаем работу")
         else:
-            for msg in diff_errors:
-                logging.warning(f"[MERGE] Baseline расхождение: {msg}")
+            logging.info(f"[main] df_summary успешно создан: {len(df_summary)} строк, {len(df_summary.columns)} колонок")
+
+        sheets_data[SUMMARY_SHEET["sheet"]] = (df_summary, SUMMARY_SHEET)
+
+        df_stat = build_stat_file_sheet(INPUT_FILES, sheets_data, start_time)
+        stat_file_params = {
+            "sheet": "STAT_FILE",
+            "max_col_width": 80,
+            "freeze": "A2",
+            "col_width_mode": "AUTO",
+            "min_col_width": 10,
+        }
+        sheets_data["STAT_FILE"] = (df_stat, stat_file_params)
+        logging.info(f"[main] Лист STAT_FILE сформирован: {len(df_stat)} строк (статистика по файлам)")
+
+        _baseline_path = os.path.join(run_output_dir, "merge_output_baseline.json")
+        if os.environ.get("SAVE_MERGE_BASELINE") == "1":
+            snapshot = _dump_sheets_data_for_baseline(sheets_data, max_rows=3)
+            with open(_baseline_path, "w", encoding="utf-8") as f:
+                json.dump(snapshot, f, ensure_ascii=False, indent=2)
+            logging.info(f"[MERGE] Baseline сохранён: {_baseline_path} (колонки и по 3 строки на лист)")
+        elif os.path.isfile(_baseline_path):
+            ok, diff_errors = _compare_sheets_data_with_baseline(sheets_data, _baseline_path, max_rows=3)
+            if ok:
+                logging.info("[MERGE] Сравнение с baseline: колонки и сэмпл данных совпадают")
+            else:
+                for msg in diff_errors:
+                    logging.warning(f"[MERGE] Baseline расхождение: {msg}")
 
     # 8. Запись в Excel
     output_excel = os.path.join(run_output_dir, get_output_filename())
     logging.info(f"[START] write_to_excel ({output_excel})")
-    write_to_excel(sheets_data, output_excel)
-    logging.info(f"[END] write_to_excel ({output_excel}) (время: 0.000s)")
+    with debug_phase("06_write_main_excel"):
+        write_to_excel(sheets_data, output_excel)
+    _wt_main_elapsed = run_elapsed_sec()
+    logging.info(f"[END] write_to_excel ({output_excel}) (от старта прогона ~{_wt_main_elapsed:.2f} s)")
 
-    # 8.1. В режиме full — дополнительно создаём отдельный файл consistency (лист CONSISTENCY + листы с нарушениями)
+    # 8.1. В режиме full — дополнительно создаём отдельный файл consistency
     if run_mode == 1:
         sheets_with_violations = set()
         if summary_sheet_name in sheets_data and sheets_data[summary_sheet_name] is not None:
@@ -4402,7 +4447,8 @@ def main():
         ts = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
         consistency_path = os.path.join(run_output_dir, f"{OUTPUT_FILENAME_CONSISTENCY} {ts}.xlsx")
         logging.info(f"[START] write_to_excel (файл consistency, режим full) ({consistency_path})")
-        write_to_excel(consistency_data, consistency_path, use_color_scheme=False)
+        with debug_phase("07_write_consistency_excel_full_mode"):
+            write_to_excel(consistency_data, consistency_path, use_color_scheme=False)
         logging.info(f"[END] write_to_excel (файл consistency) ({consistency_path})")
 
     # Итоговая статистика по отклонениям длины полей и расхождениям по числу полей в CSV (дубликаты — в сводке консистентности)

@@ -13,6 +13,8 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import pandas as pd
 
+from src.debug_timing import debug_timed
+
 
 def _cell_str(val: Any) -> str:
     if val is None or (isinstance(val, float) and pd.isna(val)):
@@ -84,6 +86,7 @@ def _collect_indexed_columns(
     return [(i, by_idx[i]) for i in sorted(by_idx.keys())]
 
 
+@debug_timed()
 def add_reward_getcondition_summary_column(
     df_reward: pd.DataFrame,
     *,

@@ -17,6 +17,8 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 
 import pandas as pd
 
+from src.debug_timing import debug_timed
+
 
 def _get_sheet_df(sheets_data: Dict[str, Any], sheet_name: str) -> Optional[pd.DataFrame]:
     """Возвращает DataFrame листа или None."""
@@ -1210,6 +1212,7 @@ def log_and_console_consistency_report(results: List[Dict[str, Any]]) -> None:
             logging.debug(f"[consistency]   ... и ещё {len(sample) - 10}")
 
 
+@debug_timed()
 def run_consistency_checks_and_attach_summary(
     sheets_data: Dict[str, Any],
     config: Dict[str, Any],
