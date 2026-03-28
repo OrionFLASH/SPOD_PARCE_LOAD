@@ -2,7 +2,7 @@
 import os          # Для работы с операционной системой и путями
 import sys         # Для системных функций и аргументов командной строки
 from collections import defaultdict
-from typing import Optional, List, Dict, Any, Tuple  # Для аннотаций типов
+from typing import Optional, List, Dict, Any, Tuple, Set  # Для аннотаций типов
 import pandas as pd  # Для работы с данными в табличном формате
 import logging     # Для логирования процессов
 from datetime import datetime  # Для работы с датами и временем
@@ -1259,11 +1259,17 @@ def write_to_excel(
 
 
 # === Форматирование листа ===
+# При AUTO-ширине не сканируем весь столбец (на крупных листах это десятки миллионов обращений к ячейкам):
+# заголовок + первые N строк данных. Фиксированная ширина (число в col_width_mode) не меняется.
+_AUTO_COLUMN_WIDTH_MAX_DATA_ROWS = 500
+
+
 def calculate_column_width(col_name, ws, params, col_num):
     """
     Вычисляет ширину колонки на основе параметров и содержимого.
 
-    - col_width_mode == "AUTO": ширина по содержимому в пределах [min_col_width, max_col_width].
+    - col_width_mode == "AUTO": ширина по содержимому в пределах [min_col_width, max_col_width]
+      (оценка по заголовку и первым N строкам данных, см. ``_AUTO_COLUMN_WIDTH_MAX_DATA_ROWS``).
     - col_width_mode == число (или строка-число): фиксированная ширина, min/max не используются.
     - Иначе: ширина по содержимому, ограниченная min/max.
     """
@@ -1291,9 +1297,17 @@ def calculate_column_width(col_name, ws, params, col_num):
     except (ValueError, TypeError):
         pass
 
-    # Вычисляем ширину на основе содержимого
-    col_letter = get_column_letter(col_num)
-    content_width = max([len(str(cell.value)) for cell in ws[col_letter] if cell.value] + [min_width])
+    # Вычисляем ширину на основе содержимого (выборка строк — ускорение; фиксированный режим выше уже обработан)
+    content_width = min_width
+    hval = ws.cell(row=1, column=col_num).value
+    if hval is not None:
+        content_width = max(content_width, len(str(hval)))
+    if ws.max_row >= 2:
+        last_scan = min(ws.max_row, 1 + _AUTO_COLUMN_WIDTH_MAX_DATA_ROWS)
+        for row_idx in range(2, last_scan + 1):
+            val = ws.cell(row=row_idx, column=col_num).value
+            if val is not None:
+                content_width = max(content_width, len(str(val)))
 
     if width_mode == "AUTO" or (isinstance(width_mode, str) and str(width_mode).strip().upper() == "AUTO"):
         # Автоматически: уместить между min и max
@@ -1475,6 +1489,44 @@ def apply_column_format_conversion(df: pd.DataFrame, sheet_name: str) -> None:
                 )
 
 
+def _column_indices_covered_by_column_formats(sheet_name: str, col_names: List[Any]) -> Set[int]:
+    """
+    Возвращает номера столбцов (1-based), к которым будут применены правила COLUMN_FORMATS на листе.
+    Нужно, чтобы не выставлять общий alignment второй раз тем же ячейкам в _format_sheet (перенос и пр. из правил сохраняются).
+    """
+    rules_for_sheet = [r for r in COLUMN_FORMATS if r.get("sheet") == sheet_name]
+    covered: Set[int] = set()
+    if not rules_for_sheet:
+        return covered
+    for rule in rules_for_sheet:
+        except_cols = rule.get("except_columns") or []
+        columns_list = rule.get("columns") or []
+        if except_cols:
+            except_norm = {_normalize_column_name_for_format_match(x) for x in except_cols}
+        else:
+            except_norm = None
+        if columns_list:
+            allowed_norm = {_normalize_column_name_for_format_match(x) for x in columns_list}
+        else:
+            allowed_norm = None
+        if except_norm is None and allowed_norm is None:
+            continue
+        for col_idx, raw_header in enumerate(col_names, start=1):
+            header_norm = _normalize_column_name_for_format_match(
+                str(raw_header) if raw_header is not None else ""
+            )
+            if except_norm is not None:
+                if header_norm in except_norm:
+                    continue
+            elif allowed_norm is not None:
+                if header_norm not in allowed_norm:
+                    continue
+            else:
+                continue
+            covered.add(col_idx)
+    return covered
+
+
 def apply_column_formats(ws: Any, sheet_name: str) -> None:
     """
     Применяет к ячейкам листа Excel формат числа/даты и выравнивание по правилам COLUMN_FORMATS.
@@ -1601,19 +1653,18 @@ def _format_sheet(ws, df, params, use_color_scheme: bool = True):
     if use_color_scheme:
         apply_color_scheme(ws, ws.title)
 
-    # ОПТИМИЗАЦИЯ v5.0: Batch-операции для выравнивания данных (1.3-1.5x быстрее)
-    # Собираем все ячейки данных в список и применяем alignment одним проходом
+    # Выравнивание и перенос для данных: столбцы из COLUMN_FORMATS обрабатывает только apply_column_formats
+    # (там wrap_text и т.д. как в конфиге), остальные — общий стиль с переносом по словам как раньше.
     if ws.max_row > 1:
-        # Собираем все ячейки данных (начиная со строки 2)
-        data_cells = []
+        col_names_header = [c.value for c in header_cells]
+        cols_covered_by_rules = _column_indices_covered_by_column_formats(ws.title, col_names_header)
         for row in ws.iter_rows(min_row=2, max_row=ws.max_row, max_col=ws.max_column):
-            data_cells.extend(row)
-        
-        # Применяем alignment ко всем ячейкам сразу (batch операция)
-        for cell in data_cells:
-            cell.alignment = align_data
+            for cell in row:
+                if cell.column in cols_covered_by_rules:
+                    continue
+                cell.alignment = align_data
 
-        # Применяем форматирование колонок по COLUMN_FORMATS (тип данных, выравнивание, перенос)
+        # Формат чисел/дат и выравнивание по правилам (включая wrap_text из конфига)
         apply_column_formats(ws, ws.title)
 
     # Закрепление строк и столбцов
