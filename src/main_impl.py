@@ -26,7 +26,8 @@ from src.debug_timing import (
     debug_timed,
     reset_run_timing,
     run_elapsed_sec,
-)  # Сквозной DEBUG-профайлинг и фазы пайплайна ([PERF] в логе)
+    write_performance_statistics_excel,
+)  # DEBUG [PERF] и отдельный Excel «STAT_FILE <таймштамп>.xlsx» со временем этапов и функций
 import warnings   # Для подавления UserWarning при парсинге дат без формата
 
 # === ОПТИМИЗАЦИИ ПРОИЗВОДИТЕЛЬНОСТИ ===
@@ -4242,7 +4243,8 @@ def main():
 
     run_mode = int(RUN_MODE) if RUN_MODE is not None else 1
     _run_mode_names = {1: "full", 2: "source_only", 3: "main_only", 4: "consistency_only"}
-    logging.info(f"[main] Режим запуска: {_run_mode_names.get(run_mode, run_mode)} (код {run_mode})")
+    _run_mode_label = f"{_run_mode_names.get(run_mode, run_mode)} (код {run_mode})"
+    logging.info(f"[main] Режим запуска: {_run_mode_label}")
 
     # Подкаталог вывода по дате: OUT/YYYY/DD-MM (файлы за одну дату в одной папке)
     run_output_dir = get_output_dir_for_run(DIR_OUTPUT)
@@ -4264,6 +4266,13 @@ def main():
             sys.exit(1)
         with debug_phase("mode2_source_only_excel"):
             write_source_excel(raw_sheets, run_output_dir)
+        _perf_xlsx = write_performance_statistics_excel(
+            run_output_dir,
+            program_started_at=start_time.strftime("%Y-%m-%d %H:%M:%S"),
+            run_mode_label=_run_mode_label,
+        )
+        if _perf_xlsx:
+            logging.info(f"[main] Статистика времени: {_perf_xlsx}")
         logging.info(f"=== Режим 2 завершён. Выгружен только source. Время: {datetime.now() - start_time} ===")
         return
 
@@ -4376,6 +4385,13 @@ def main():
         logging.info(f"[START] write_to_excel (режим 4) ({consistency_path})")
         with debug_phase("04_consistency_only_write_excel"):
             write_to_excel(consistency_data, consistency_path, use_color_scheme=False)
+        _perf_xlsx4 = write_performance_statistics_excel(
+            run_output_dir,
+            program_started_at=start_time.strftime("%Y-%m-%d %H:%M:%S"),
+            run_mode_label=_run_mode_label,
+        )
+        if _perf_xlsx4:
+            logging.info(f"[main] Статистика времени: {_perf_xlsx4}")
         logging.info(f"=== Режим 4 завершён. Файл консистентности: {consistency_path}. Время: {datetime.now() - start_time} ===")
         return
 
@@ -4450,6 +4466,14 @@ def main():
         with debug_phase("07_write_consistency_excel_full_mode"):
             write_to_excel(consistency_data, consistency_path, use_color_scheme=False)
         logging.info(f"[END] write_to_excel (файл consistency) ({consistency_path})")
+
+    _perf_xlsx_main = write_performance_statistics_excel(
+        run_output_dir,
+        program_started_at=start_time.strftime("%Y-%m-%d %H:%M:%S"),
+        run_mode_label=_run_mode_label,
+    )
+    if _perf_xlsx_main:
+        logging.info(f"[main] Статистика времени: {_perf_xlsx_main}")
 
     # Итоговая статистика по отклонениям длины полей и расхождениям по числу полей в CSV (дубликаты — в сводке консистентности)
     validation_report, csv_mismatch_report = collect_duplicates_and_validation_report(sheets_data)

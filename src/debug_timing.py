@@ -8,14 +8,17 @@
   - на функции: @debug_timed() или @debug_timed(hot=True) для «горячих» функций
     (агрегация без лога на каждый вызов; детали — в итоговой сводке)
   - крупные этапы: with debug_phase("имя"): ...
+  - отдельный файл Excel со сводкой: write_performance_statistics_excel (каталог OUT по дате).
 """
 from __future__ import annotations
 
 import atexit
 import functools
 import logging
+import os
 import threading
 import time
+from datetime import datetime
 from contextlib import contextmanager
 from typing import Any, Callable, Dict, List, Optional, TypeVar
 
@@ -24,6 +27,8 @@ _lock = threading.RLock()
 _run_start_perf: float = 0.0
 # ключ: "модуль.qualname" -> статистика
 _stats: Dict[str, Dict[str, Any]] = {}
+# Завершённые фазы (порядок = хронология окончания этапа) — для выгрузки в отдельный Excel
+_phase_records: List[Dict[str, Any]] = []
 _atexit_registered: bool = False
 # глубина вложенности фаз (для отступа в логе)
 _phase_depth = threading.local()
@@ -45,10 +50,11 @@ def _indent() -> str:
 
 def reset_run_timing() -> None:
     """Сброс статистики и фиксация момента старта прогона (вызывать один раз в начале main)."""
-    global _run_start_perf, _stats, _atexit_registered
+    global _run_start_perf, _stats, _phase_records, _atexit_registered
     with _lock:
         _run_start_perf = time.perf_counter()
         _stats = {}
+        _phase_records = []
         if not _atexit_registered:
             atexit.register(log_perf_summary)
             _atexit_registered = True
@@ -155,6 +161,15 @@ def debug_phase(label: str) -> Any:
         logging.debug(
             f"{_indent()}[PERF] ]] фаза «{label}» END за {dt*1000:.2f} ms (run+{run_ms_after:.1f} ms) [["
         )
+        with _lock:
+            _phase_records.append(
+                {
+                    "label": label,
+                    "duration_sec": dt,
+                    "run_ms_start": run_ms,
+                    "run_ms_end": run_ms_after,
+                }
+            )
         _phase_depth.value = max(0, d0)
 
 
@@ -219,3 +234,158 @@ def _log_perf_summary_impl() -> None:
             "[PERF] Функции с большим числом вызовов (>50), возможны узкие места или избыточные вызовы: "
             + ", ".join(f"{k}×{c}" for k, c in suspicious[:25])
         )
+
+
+def format_duration_ru(seconds: float) -> str:
+    """
+    Форматирует длительность для отчёта: «ХХ мин. YY сек ZZZ мс» (минуты без лидирующих нулей,
+    секунды — две цифры 00–59, миллисекунды — три цифры).
+    """
+    if seconds < 0:
+        seconds = 0.0
+    total_ms = int(round(seconds * 1000.0))
+    minutes = total_ms // 60000
+    rem = total_ms % 60000
+    secs = rem // 1000
+    ms = rem % 1000
+    return f"{minutes:02d} мин. {secs:02d} сек {ms:03d} мс"
+
+
+def write_performance_statistics_excel(
+    output_dir: str,
+    *,
+    program_started_at: Optional[str] = None,
+    run_mode_label: Optional[str] = None,
+) -> Optional[str]:
+    """
+    Создаёт файл ``STAT_FILE YYYY-MM-DD_HH-MM-SS.xlsx`` в указанном каталоге с листами:
+    «Сводка» (общие сведения и время прогона), «Этапы» (фазы ``debug_phase``),
+    «Функции» (агрегаты ``@debug_timed``). Время в человекочитаемом формате и дубли в секундах для сортировки.
+
+    Returns:
+        Полный путь к файлу или None, если таймер прогона не был запущен.
+    """
+    with _lock:
+        if _run_start_perf <= 0:
+            return None
+        total_run_sec = time.perf_counter() - _run_start_perf
+        phases = list(_phase_records)
+        stat_items = list(_stats.items())
+
+    try:
+        import pandas as pd
+    except ImportError:
+        logging.warning("[PERF] pandas не установлен — файл STAT_FILE *.xlsx не создан")
+        return None
+
+    os.makedirs(output_dir, exist_ok=True)
+    ts = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    out_path = os.path.join(output_dir, f"STAT_FILE {ts}.xlsx")
+
+    stat_items.sort(key=lambda x: x[1]["total_sec"], reverse=True)
+    finished_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    # --- лист «Сводка»: двухколоночная таблица параметр / значение ---
+    summary_rows: List[Dict[str, Any]] = [
+        {"Параметр": "Момент формирования файла (wall-clock)", "Значение": finished_at},
+        {
+            "Параметр": "Общее время прогона (perf_counter)",
+            "Значение": format_duration_ru(total_run_sec),
+        },
+        {
+            "Параметр": "Общее время прогона, сек",
+            "Значение": round(total_run_sec, 6),
+        },
+        {"Параметр": "Число зафиксированных этапов", "Значение": len(phases)},
+        {"Параметр": "Число учтённых функций (@debug_timed)", "Значение": len(stat_items)},
+    ]
+    if program_started_at:
+        summary_rows.insert(0, {"Параметр": "Старт программы (wall-clock)", "Значение": program_started_at})
+    if run_mode_label:
+        summary_rows.insert(1 if program_started_at else 0, {"Параметр": "Режим запуска", "Значение": run_mode_label})
+    df_summary = pd.DataFrame(summary_rows)
+
+    # --- лист «Этапы» ---
+    phase_rows: List[Dict[str, Any]] = []
+    for i, ph in enumerate(phases, start=1):
+        d_sec = float(ph["duration_sec"])
+        phase_rows.append(
+            {
+                "№": i,
+                "Этап": str(ph["label"]),
+                "Длительность": format_duration_ru(d_sec),
+                "Длительность_сек": round(d_sec, 6),
+                "До старта этапа от начала прогона": format_duration_ru(float(ph["run_ms_start"]) / 1000.0),
+                "До конца этапа от начала прогона": format_duration_ru(float(ph["run_ms_end"]) / 1000.0),
+                "До старта_сек": round(float(ph["run_ms_start"]) / 1000.0, 6),
+                "До конца_сек": round(float(ph["run_ms_end"]) / 1000.0, 6),
+            }
+        )
+    df_phases = pd.DataFrame(phase_rows) if phase_rows else pd.DataFrame(
+        columns=[
+            "№",
+            "Этап",
+            "Длительность",
+            "Длительность_сек",
+            "До старта этапа от начала прогона",
+            "До конца этапа от начала прогона",
+            "До старта_сек",
+            "До конца_сек",
+        ]
+    )
+
+    # --- лист «Функции» ---
+    denom = total_run_sec if total_run_sec > 1e-12 else 1e-12
+    func_rows: List[Dict[str, Any]] = []
+    for j, (key, s) in enumerate(stat_items, start=1):
+        cnt = int(s["count"])
+        tot = float(s["total_sec"])
+        mn = float(s["min_sec"]) if s["min_sec"] != float("inf") else 0.0
+        mx = float(s["max_sec"])
+        avg = tot / cnt if cnt else 0.0
+        share_pct = round((tot / denom) * 100.0, 3)
+        func_rows.append(
+            {
+                "№": j,
+                "Функция": key,
+                "Вызовов": cnt,
+                "Суммарное время": format_duration_ru(tot),
+                "Среднее за вызов": format_duration_ru(avg),
+                "Минимум за вызов": format_duration_ru(mn),
+                "Максимум за вызов": format_duration_ru(mx),
+                "Горячая (hot)": "да" if s.get("hot") else "нет",
+                "Доля от общего времени прогона, %": share_pct,
+                "Суммарно_сек": round(tot, 6),
+                "Среднее_сек": round(avg, 6),
+                "Min_сек": round(mn, 6),
+                "Max_сек": round(mx, 6),
+            }
+        )
+    df_funcs = pd.DataFrame(func_rows) if func_rows else pd.DataFrame(
+        columns=[
+            "№",
+            "Функция",
+            "Вызовов",
+            "Суммарное время",
+            "Среднее за вызов",
+            "Минимум за вызов",
+            "Максимум за вызов",
+            "Горячая (hot)",
+            "Доля от общего времени прогона, %",
+            "Суммарно_сек",
+            "Среднее_сек",
+            "Min_сек",
+            "Max_сек",
+        ]
+    )
+
+    try:
+        with pd.ExcelWriter(out_path, engine="openpyxl") as writer:
+            df_summary.to_excel(writer, index=False, sheet_name="Сводка")
+            df_phases.to_excel(writer, index=False, sheet_name="Этапы")
+            df_funcs.to_excel(writer, index=False, sheet_name="Функции")
+        logging.info(f"[PERF] Файл статистики времени: {out_path}")
+        return out_path
+    except Exception as ex:
+        logging.warning(f"[PERF] Не удалось записать {out_path}: {ex}")
+        return None
