@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
 """
 Модуль проверок консистентности данных.
-Выполняет правила из конфига consistency_checks: создаёт колонки unique (ДУБЛЬ: …), field_length
-и field_format на листах, затем referential/referential_composite, собирает результаты в свод CONSISTENCY.
+Выполняет правила из конфига consistency_checks: создаёт колонки unique (ДУБЛЬ: …), field_length,
+field_format и json-проверки на листах, затем referential/referential_composite, собирает результаты в свод CONSISTENCY.
 Результаты выводятся в колонки на листах, сводный лист CONSISTENCY, консоль и лог.
+Тип json_priority_unique_per_contest_link: уникальность ключа JSON (например priority) среди REWARD_CODE
+с одним CONTEST_CODE по REWARD-LINK; парсинг ADD_DATA через _parse_add_data_cell_with_normalized.
 """
 
 import json
@@ -13,6 +15,7 @@ import re
 import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
+from collections import defaultdict
 from typing import Any, Dict, List, Optional, Set, Tuple
 
 import pandas as pd
@@ -817,6 +820,220 @@ def _run_json_field_in_column_check(sheets_data: Dict[str, Any], rule: Dict[str,
     logging.debug(f"[consistency] json_field_in_column {check_id}: записана колонка {col_out} на {sheet_name}")
 
 
+def _run_json_priority_unique_per_contest_link_check(
+    sheets_data: Dict[str, Any],
+    rule: Dict[str, Any],
+) -> None:
+    """
+    Проверка: для каждого CONTEST_CODE на REWARD-LINK берутся уникальные REWARD_CODE (GROUP_CODE не учитывается).
+    У всех соответствующих строк на листе REWARD в json_column читается ключ json_key из JSON
+    (разбор через _parse_add_data_cell_with_normalized — как в json_field_equals_column).
+
+    Логика по группе одного CONTEST_CODE:
+    - у всех привязанных наград нет значения json_key (пусто) — не нарушение, ячейки результата не трогаем для этих строк;
+    - у всех значение задано — они должны быть попарно различны; иначе сообщение о дубле;
+    - смешанный случай (часть с полем, часть без) — нарушение для всех строк группы с единым текстом.
+
+    Строки REWARD, не попавшие ни в одну группу по REWARD-LINK, получают пустой результат.
+    Ошибка разбора JSON — только для соответствующей строки.
+    """
+    sheet_name = rule.get("sheet", "REWARD")
+    json_column = rule.get("json_column", "REWARD_ADD_DATA")
+    json_key = rule.get("json_key", "priority")
+    reward_code_column = rule.get("reward_code_column", "REWARD_CODE")
+    link_sheet = rule.get("link_sheet", "REWARD-LINK")
+    link_contest_column = rule.get("link_contest_column", "CONTEST_CODE")
+    link_reward_column = rule.get("link_reward_column", "REWARD_CODE")
+    output = rule.get("output") or {}
+    col_out = output.get("column_on_sheet") or f"ПРОВЕРКА: {json_key} уникален по CONTEST (REWARD-LINK)"
+    check_id = rule.get("id", "")
+
+    item_reward = _get_sheet_item(sheets_data, sheet_name)
+    if item_reward is None:
+        logging.debug(f"[consistency] json_priority_unique_per_contest_link {check_id}: лист {sheet_name} отсутствует")
+        return
+    df_reward, conf = item_reward
+    for c in (reward_code_column, json_column):
+        if c not in df_reward.columns:
+            logging.warning(
+                f"[consistency] json_priority_unique_per_contest_link {check_id}: колонка {c} не найдена на {sheet_name}"
+            )
+            return
+
+    df_link = _get_sheet_df(sheets_data, link_sheet)
+    if df_link is None:
+        logging.debug(f"[consistency] json_priority_unique_per_contest_link {check_id}: лист {link_sheet} отсутствует")
+        return
+    for c in (link_contest_column, link_reward_column):
+        if c not in df_link.columns:
+            logging.warning(
+                f"[consistency] json_priority_unique_per_contest_link {check_id}: колонка {c} не найдена на {link_sheet}"
+            )
+            return
+
+    # Первая строка на REWARD для каждого REWARD_CODE (при дубликатах кодов — первая по индексу)
+    idx_by_code: Dict[str, Any] = {}
+    for idx in df_reward.index:
+        raw_code = df_reward.loc[idx, reward_code_column]
+        code = str(raw_code).strip() if pd.notna(raw_code) else ""
+        if code and code not in idx_by_code:
+            idx_by_code[code] = idx
+
+    violations_by_idx: Dict[Any, List[str]] = defaultdict(list)
+    ok_idx: Set[Any] = set()
+
+    for contest_val, group in df_link.groupby(link_contest_column, dropna=False):
+        cstr = str(contest_val).strip() if pd.notna(contest_val) else ""
+        if not cstr:
+            continue
+        codes_series = group[link_reward_column].dropna().astype(str).str.strip()
+        codes = [c for c in codes_series.unique().tolist() if c]
+
+        entries: List[Dict[str, Any]] = []
+        for rc in codes:
+            if rc not in idx_by_code:
+                logging.warning(
+                    f"[consistency] json_priority_unique_per_contest_link {check_id}: "
+                    f"REWARD_CODE={rc!r} из {link_sheet} (CONTEST_CODE={cstr!r}) нет на {sheet_name}, пропуск кода"
+                )
+                continue
+            idx = idx_by_code[rc]
+            raw_val = df_reward.loc[idx, json_column]
+            add_data, raw_str, normalized_str = _parse_add_data_cell_with_normalized(raw_val)
+            excel_row = _excel_row(idx) if idx is not None else "?"
+            if add_data is None:
+                logging.debug(
+                    f"[consistency] json_priority_unique_per_contest_link {check_id} строка {excel_row}: "
+                    f"ошибка разбора ADD_DATA (CONTEST_CODE={cstr!r}, REWARD_CODE={rc!r})"
+                )
+                logging.debug(f"  Исходное значение колонки (целиком): {raw_str!r}")
+                logging.debug(f"  После преобразований (\"\"\"->\"): {normalized_str!r}")
+                entries.append({"idx": idx, "code": rc, "parse_ok": False})
+            else:
+                pv = str(add_data.get(json_key, "")).strip()
+                entries.append(
+                    {
+                        "idx": idx,
+                        "code": rc,
+                        "parse_ok": True,
+                        "priority_present": bool(pv),
+                        "priority": pv,
+                    }
+                )
+
+        if not entries:
+            continue
+
+        for e in entries:
+            if not e["parse_ok"]:
+                violations_by_idx[e["idx"]].append("Ошибка разбора ADD_DATA")
+
+        ok_entries = [e for e in entries if e["parse_ok"]]
+        if not ok_entries:
+            continue
+
+        with_priority = [e for e in ok_entries if e["priority_present"]]
+        if len(with_priority) == 0:
+            # Все без json_key — не ошибка
+            continue
+        if len(with_priority) < len(ok_entries):
+            msg = (
+                f"В CONTEST_CODE={cstr!r} поле {json_key} должно быть задано у всех "
+                f"привязанных REWARD_CODE или ни у одного ({link_sheet})"
+            )
+            for e in ok_entries:
+                violations_by_idx[e["idx"]].append(msg)
+            continue
+
+        by_pri: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
+        for e in ok_entries:
+            by_pri[e["priority"]].append(e)
+
+        dup_found = False
+        for pri_val, es in by_pri.items():
+            if len(es) > 1:
+                dup_found = True
+                codes_dup = ", ".join(sorted(x["code"] for x in es))
+                msg = (
+                    f"Неуникальный {json_key}={pri_val!r} в CONTEST_CODE={cstr!r} "
+                    f"(REWARD_CODE: {codes_dup})"
+                )
+                for e in es:
+                    violations_by_idx[e["idx"]].append(msg)
+
+        if not dup_found:
+            for e in ok_entries:
+                ok_idx.add(e["idx"])
+
+    result_series = pd.Series("", index=df_reward.index, dtype=object)
+    for idx in df_reward.index:
+        if idx in violations_by_idx:
+            uniq_msgs: List[str] = []
+            for m in violations_by_idx[idx]:
+                if m not in uniq_msgs:
+                    uniq_msgs.append(m)
+            result_series.loc[idx] = " | ".join(uniq_msgs)
+        elif idx in ok_idx:
+            result_series.loc[idx] = "OK"
+
+    df_out = df_reward.copy()
+    df_out[col_out] = result_series.values
+    sheets_data[sheet_name] = (df_out, conf)
+    logging.debug(
+        f"[consistency] json_priority_unique_per_contest_link {check_id}: записана колонка {col_out} на {sheet_name}"
+    )
+
+
+def collect_json_priority_unique_per_contest_link_result(
+    sheets_data: Dict[str, Any],
+    rule: Dict[str, Any],
+) -> Dict[str, Any]:
+    """Собирает результат проверки json_priority_unique_per_contest_link по уже заполненной колонке."""
+    sheet_name = rule.get("sheet", "REWARD")
+    output = rule.get("output") or {}
+    json_key = rule.get("json_key", "priority")
+    col_out = output.get("column_on_sheet") or f"ПРОВЕРКА: {json_key} уникален по CONTEST (REWARD-LINK)"
+    check_id = rule.get("id", "")
+
+    df = _get_sheet_df(sheets_data, sheet_name)
+    if df is None or col_out not in df.columns:
+        return {
+            "check_id": check_id,
+            "sheet": sheet_name,
+            "name": rule.get("name", ""),
+            "column_on_sheet": col_out,
+            "type": "json_priority_unique_per_contest_link",
+            "total_rows": 0,
+            "violations": 0,
+            "sample": [],
+            "include_in_summary": output.get("include_in_summary", True),
+        }
+    col_series = df[col_out].astype(str).str.strip()
+    violations_mask = col_series.ne("") & col_series.ne("OK")
+    n_violations = int(violations_mask.sum())
+    total_applicable = int((col_series.ne("")).sum())
+    sample: List[str] = []
+    if n_violations > 0:
+        vio_idx = df.index[violations_mask].tolist()[:_MAX_SAMPLE]
+        for idx in vio_idx:
+            msg = col_series.loc[idx]
+            if "Ошибка разбора" in msg:
+                sample.append(f"[{_excel_row(idx)}] | json_бит")
+            else:
+                sample.append(f"[{_excel_row(idx)}] | {msg[:80]}")
+    return {
+        "check_id": check_id,
+        "sheet": sheet_name,
+        "name": rule.get("name", ""),
+        "column_on_sheet": col_out,
+        "type": "json_priority_unique_per_contest_link",
+        "total_rows": total_applicable,
+        "violations": n_violations,
+        "sample": sample,
+        "include_in_summary": output.get("include_in_summary", True),
+    }
+
+
 def collect_json_field_in_column_result(
     sheets_data: Dict[str, Any],
     rule: Dict[str, Any],
@@ -876,7 +1093,14 @@ def collect_json_field_in_column_result(
 def _sheet_written_by_rule(rule: Dict[str, Any]) -> Optional[str]:
     """Лист, в который правило пишет результат (для блокировки)."""
     t = rule.get("type", "")
-    if t in ("unique", "field_length", "field_format", "json_field_equals_column", "json_field_in_column"):
+    if t in (
+        "unique",
+        "field_length",
+        "field_format",
+        "json_field_equals_column",
+        "json_field_in_column",
+        "json_priority_unique_per_contest_link",
+    ):
         return rule.get("sheet")
     if t in ("referential", "referential_composite"):
         return rule.get("sheet_src")
@@ -890,8 +1114,8 @@ def run_all_consistency_checks(
 ) -> List[Dict[str, Any]]:
     """
     Выполняет все включённые правила консистентности (с параллелизацией по правилам).
-    Сначала создаёт колонки unique (ДУБЛЬ: …) и field_length на листах; затем referential/referential_composite
-    и сбор результатов unique/field_length. Правила, пишущие в разные листы, выполняются параллельно;
+    Сначала создаёт колонки unique (ДУБЛЬ: …), field_length, json_* на листах; затем referential/referential_composite
+    и сбор результатов. Правила, пишущие в разные листы, выполняются параллельно;
     запись в один лист защищена блокировкой по листу.
     Возвращает список записей для сводного листа в порядке правил.
     """
@@ -927,9 +1151,23 @@ def run_all_consistency_checks(
                 _run_json_field_equals_column_check(sheets_data, rule)
             elif rule.get("type") == "json_field_in_column":
                 _run_json_field_in_column_check(sheets_data, rule)
+            elif rule.get("type") == "json_priority_unique_per_contest_link":
+                _run_json_priority_unique_per_contest_link_check(sheets_data, rule)
 
-    # Фаза 1: создаём колонки unique, field_length, field_format, json_field_equals_column, json_field_in_column на листах
-    phase1_rules = [(i, r) for i, r in enumerate(enabled) if r.get("type") in ("unique", "field_length", "field_format", "json_field_equals_column", "json_field_in_column")]
+    # Фаза 1: создаём колонки unique, field_length, field_format, json_* на листах
+    phase1_rules = [
+        (i, r)
+        for i, r in enumerate(enabled)
+        if r.get("type")
+        in (
+            "unique",
+            "field_length",
+            "field_format",
+            "json_field_equals_column",
+            "json_field_in_column",
+            "json_priority_unique_per_contest_link",
+        )
+    ]
     if phase1_rules:
         with ThreadPoolExecutor(max_workers=n_workers) as executor:
             futures_ph1 = [executor.submit(_phase1_task, idx, rule) for idx, rule in phase1_rules]
@@ -965,6 +1203,8 @@ def run_all_consistency_checks(
                 res = collect_json_field_equals_column_result(sheets_data, rule)
             elif rule_type == "json_field_in_column":
                 res = collect_json_field_in_column_result(sheets_data, rule)
+            elif rule_type == "json_priority_unique_per_contest_link":
+                res = collect_json_priority_unique_per_contest_link_result(sheets_data, rule)
             else:
                 logging.debug(f"[consistency] Неизвестный тип правила: {rule_type}, id={check_id}")
                 _out = rule.get("output") or {}
@@ -1022,6 +1262,7 @@ def _rule_to_description_columns(rule: Dict[str, Any]) -> Dict[str, str]:
         "field_format": "формат поля",
         "json_field_equals_column": "поле в JSON равно колонке",
         "json_field_in_column": "поле в JSON должно быть в колонке листа",
+        "json_priority_unique_per_contest_link": "уникальность поля JSON по CONTEST_CODE (REWARD-LINK)",
     }.get(t, t)
     table_src = ""
     field_src = ""
@@ -1090,6 +1331,16 @@ def _rule_to_description_columns(rule: Dict[str, Any]) -> Dict[str, str]:
         field_src = rule.get("json_column", "")
         field_ref = rule.get("column_in_sheet", "")
         param = f"все значения {rule.get('json_key', '')} из JSON должны быть в колонке {field_ref}"
+    elif t == "json_priority_unique_per_contest_link":
+        table_src = rule.get("link_sheet", "REWARD-LINK")
+        field_src = f"{rule.get('link_contest_column', 'CONTEST_CODE')}, {rule.get('link_reward_column', 'REWARD_CODE')}"
+        table_ref = rule.get("sheet", "REWARD")
+        field_ref = f"{rule.get('json_column', 'REWARD_ADD_DATA')} → ключ {rule.get('json_key', 'priority')}"
+        param = (
+            "по каждому CONTEST_CODE уникальные значения json_key среди привязанных REWARD_CODE; "
+            "либо поле отсутствует у всех, либо задано у всех с разными значениями"
+        )
+        comment = "GROUP_CODE не учитывается; парсинг ADD_DATA как в json_field_equals_column"
     return {
         "ТИП ПРОВЕРКИ": type_ru,
         "Описание": name,

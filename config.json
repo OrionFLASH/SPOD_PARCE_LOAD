@@ -2425,6 +2425,23 @@
         }
       },
       {
+        "id": "reward_priority_unique_per_contest",
+        "name": "REWARD: по REWARD-LINK для каждого CONTEST_CODE у привязанных REWARD_CODE поле priority в ADD_DATA либо отсутствует у всех, либо задано у всех с уникальными значениями",
+        "type": "json_priority_unique_per_contest_link",
+        "enabled": true,
+        "sheet": "REWARD",
+        "reward_code_column": "REWARD_CODE",
+        "json_column": "REWARD_ADD_DATA",
+        "json_key": "priority",
+        "link_sheet": "REWARD-LINK",
+        "link_contest_column": "CONTEST_CODE",
+        "link_reward_column": "REWARD_CODE",
+        "output": {
+          "column_on_sheet": "ПРОВЕРКА: priority уникален по CONTEST (REWARD-LINK)",
+          "include_in_summary": true
+        }
+      },
+      {
         "id": "3",
         "name": "В GROUP нет дублей по составному полю CONTEST_CODE, GROUP_CODE, GROUP_VALUE",
         "type": "unique",

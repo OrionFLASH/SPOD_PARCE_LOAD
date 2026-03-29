@@ -4,6 +4,8 @@
 
 **Актуально с версии 1.4:** колонки **unique** («ДУБЛЬ: …») и **field_length** (FIELD_LENGTH_CHECK и т.д.) **создаёт сам модуль consistency_checks** по правилам из `consistency_checks.rules`. Секции **check_duplicates** и **field_length_validations** в config.json **удалены** — все правила задаются только в `consistency_checks.rules` (типы `unique` и `field_length` с полем `fields` для ограничений по длине).
 
+**Версия 1.7.11:** в перечень типов правил добавлен **`json_priority_unique_per_contest_link`** (см. п. 2.7).
+
 ---
 
 ## 1. Разбор формулировок из ПРОВЕРКИ.txt (пункты 1.1–5)
@@ -40,7 +42,7 @@
 
 - **id** — короткий идентификатор (для логов и сводки).
 - **name** — человекочитаемое название (по желанию).
-- **type** — тип: `"referential"` | `"unique"` | `"referential_composite"` | `"field_length"` | `"field_format"`.
+- **type** — тип: `"referential"` | `"unique"` | `"referential_composite"` | `"field_length"` | `"field_format"` | `"json_field_equals_column"` | `"json_field_in_column"` | `"json_priority_unique_per_contest_link"`.
 - **enabled** — выполнять ли проверку (true/false).
 - **output** — куда и как выводить результат (см. ниже).
 
@@ -243,6 +245,56 @@
 
 ---
 
+### 2.7. Тип `json_priority_unique_per_contest_link` (уникальность поля JSON по конкурсу)
+
+Проверка на листе **REWARD**: для каждого **CONTEST_CODE** на листе **REWARD-LINK** собираются **уникальные REWARD_CODE** (колонка **GROUP_CODE** не участвует в группировке). В колонке **json_column** (например **REWARD_ADD_DATA**) разбирается JSON тем же способом, что и в **json_field_equals_column** (замена `"""` на `"`, затем `json.loads`).
+
+**Логика в рамках одного CONTEST_CODE:**
+
+- у **всех** привязанных наград ключ **json_key** (по умолчанию `priority`) **отсутствует или пуст** — нарушения нет (в колонке результата для этих строк — пусто);
+- у **всех** задан — значения должны быть **попарно различны**;
+- **смешанно** (часть с полем, часть без) — нарушение; сообщение выставляется **всем** строкам группы на REWARD;
+- ошибка разбора JSON — только для соответствующей строки («Ошибка разбора ADD_DATA»).
+
+**Поля правила:**
+
+| Поле | Описание |
+|------|-----------|
+| `sheet` | Лист с данными наград (**REWARD**), куда пишется колонка результата. |
+| `reward_code_column` | Колонка кода награды (обычно **REWARD_CODE**). |
+| `json_column` | Колонка с JSON (**REWARD_ADD_DATA**). |
+| `json_key` | Ключ в объекте JSON (по умолчанию **priority**). |
+| `link_sheet` | Лист связей (**REWARD-LINK**). |
+| `link_contest_column` | Колонка конкурса (**CONTEST_CODE**). |
+| `link_reward_column` | Колонка кода награды на листе связей (**REWARD_CODE**). |
+| `output.column_on_sheet` | Имя колонки на **sheet** (REWARD). |
+
+**Пример:**
+
+```json
+{
+  "id": "reward_priority_unique_per_contest",
+  "name": "REWARD: priority по REWARD-LINK уникален в рамках CONTEST_CODE",
+  "type": "json_priority_unique_per_contest_link",
+  "enabled": true,
+  "sheet": "REWARD",
+  "reward_code_column": "REWARD_CODE",
+  "json_column": "REWARD_ADD_DATA",
+  "json_key": "priority",
+  "link_sheet": "REWARD-LINK",
+  "link_contest_column": "CONTEST_CODE",
+  "link_reward_column": "REWARD_CODE",
+  "output": {
+    "column_on_sheet": "ПРОВЕРКА: priority уникален по CONTEST (REWARD-LINK)",
+    "include_in_summary": true
+  }
+}
+```
+
+Подробнее см. **README.md** (секция **consistency_checks**, тип **json_priority_unique_per_contest_link**, история версий **1.7.11**).
+
+---
+
 ## 3. Куда выводить информацию
 
 ### 3.1. На загружаемых листах (основной Excel)
@@ -254,7 +306,9 @@
   - **referential_composite**: «OK» или «НЕТ в GROUP»;
   - **unique**: пусто или «xN»;
   - **field_length**: «-» или строка с описанием нарушений;
-  - **field_format**: «OK» или описание нарушения формата.
+  - **field_format**: «OK» или описание нарушения формата;
+  - **json_field_equals_column** / **json_field_in_column**: «OK», пусто (не применимо) или текст ошибки;
+  - **json_priority_unique_per_contest_link**: «OK», пусто (не в группе по ссылке или в группе все без json_key) или текст нарушения / «Ошибка разбора ADD_DATA».
 - При необходимости для колонок проверок можно задать цвет/формат в **color_scheme** (как для «ДУБЛЬ: …»), чтобы нарушения были заметны.
 
 ### 3.2. Сводный лист по проверкам
@@ -341,7 +395,7 @@
 - Проверки выполняются после загрузки листов и merge, при необходимости после текущих проверок дубликатов и длины полей.
 - Перед финальной записью основного Excel:
   1. Загрузить правила из **consistency_checks.rules** (только **enabled: true**).
-  2. Для каждого правила по **type** вызвать соответствующую функцию (referential / referential_composite / unique / field_length).
+  2. Для каждого правила по **type** вызвать соответствующую функцию модуля **consistency_checks** (в т.ч. referential, referential_composite, unique, field_length, field_format, json_field_equals_column, json_field_in_column, json_priority_unique_per_contest_link).
   3. Записать в соответствующий лист колонку **output.column_on_sheet**.
   4. Собрать по правилам с **include_in_summary** статистику (лист, количество нарушений, примеры).
   5. Сформировать DataFrame для **summary_sheet_name** и добавить его в **sheets_data**.
