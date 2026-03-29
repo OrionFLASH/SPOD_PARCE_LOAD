@@ -45,6 +45,7 @@ SPOD_PROM/
 │   ├── config_holder.py    # Внедрение конфига для main_impl
 │   ├── logging_setup.py   # Форматтер логов, настройка логгера
 │   ├── debug_timing.py    # DEBUG [PERF]; отдельный xlsx STAT_FILE <таймштамп> (этапы и функции)
+│   ├── console_ui.py      # Краткий вывод в консоль: этапы, прогресс, сводки (stdlib)
 │   ├── json_utils.py      # Разбор и разворот JSON-полей
 │   ├── reward_getcondition_summary.py  # Сводная колонка по getCondition на листе REWARD
 │   ├── file_loader.py     # Класс FileLoader — поиск/чтение CSV, разворот JSON
@@ -103,7 +104,7 @@ SPOD_PROM/
 |--------|------------|-------------------|
 | **config_loader.py** | Загрузка и хранение настроек из config.json | Класс `Config`: атрибуты `dir_input`, `dir_output`, `dir_logs`, `input_files`, `summary_sheet`, `sheet_order`, `summary_key_defs`, `summary_key_columns`, `gender_patterns`, `gender_progress_step`, `field_length_validations` (устаревший, пустой dict), `merge_fields_advanced`, `color_scheme`, `column_formats`, `check_duplicates` (устаревший, пустой список), `consistency_checks`, `json_columns`, `reward_getcondition_summary`, `source_export_sort`, `max_workers_io`, `max_workers_cpu`, `tournament_status_choices`; метод `get_output_filename()`. |
 | **config_holder.py** | Внедрение текущего конфига для кода, работающего с глобальными переменными | `set_current_config(config)`, `get_current_config()`. |
-| **logging_setup.py** | Настройка логирования | Класс `CallerFormatter` (добавляет имя функции в сообщение); функция `setup_logger(config)` — возвращает путь к лог-файлу, настраивает вывод в файл (DEBUG) и консоль (INFO). |
+| **logging_setup.py** | Настройка логирования | Класс `CallerFormatter` (добавляет имя функции в сообщение); функция `setup_logger(config)` — путь к лог-файлу; уровень файла из конфига (обычно DEBUG). В **`main_impl`** после настройки консольный поток поднимается до **WARNING**, чтобы **INFO** шёл в файл; краткий ход — **`console_ui`**. |
 | **json_utils.py** | Разбор и разворот JSON-полей в DataFrame | `safe_json_loads(s)` — парсинг строки в JSON с поправкой типичных ошибок; `safe_json_loads_preserve_triple_quotes(s)`; `flatten_json_column_recursive(df, column, prefix=..., sheet=..., sep=..., max_workers_io=...)` — рекурсивный разворот колонки в несколько колонок, при большом объёме — параллельно. |
 | **reward_getcondition_summary.py** | Сводный текст по кодам getCondition на листе REWARD | `add_reward_getcondition_summary_column(df_reward, prefix=..., column_name=...)` — после разворота JSON и merge; строки вида `[код] FULL_NAME {seasonItem}`. |
 | **file_loader.py** | Поиск и загрузка CSV, разворот JSON по конфигу | Класс `FileLoader(config)`: `find_file_case_insensitive(directory, base_name, extensions)`, `check_input_files_exist()`, `read_csv_file(file_path)`, `process_single_file(file_conf)` — возвращает `(df, sheet_name, file_conf)` или `(None, sheet_name, None)`. |
@@ -111,7 +112,8 @@ SPOD_PROM/
 | **validation.py** | Валидация длины полей и проверка дубликатов (устаревшие пути) | `validate_field_lengths(config, df, sheet_name)`, `validate_field_lengths_vectorized(config, df, sheet_name)`, `compare_validate_results`, `mark_duplicates`, `validate_single_sheet`, `check_duplicates_single_sheet`. Основной пайплайн больше не использует отдельные шаги проверки дубликатов и длины полей — всё выполняется в **consistency_checks**. |
 | **consistency_checks.py** | Проверки консистентности (unique, field_length, field_format, referential, json_field_equals_column, json_field_in_column, json_priority_unique_per_contest_link) | Выполняет правила из `consistency_checks.rules` **с параллелизацией** (ThreadPoolExecutor). **Фаза 1** — создаёт на листах колонки `unique` («ДУБЛЬ: …»), `field_length`, `field_format`, json-проверки; **Фаза 2** — referential/referential_composite и сбор результатов. Парсинг JSON в ячейках (ADD_DATA и т.п.): **`_parse_add_data_cell`**, **`_parse_add_data_cell_with_normalized`** — замена `"""` на `"`, затем `json.loads`. Сводный лист CONSISTENCY формируется с колонками-описаниями (ТИП ПРОВЕРКИ, Описание, таблица источник, поле источник и т.д.); расхождения по числу полей CSV (csv_columns_count) также попадают в свод. Функции: `_run_unique_check` (область **`_unique_active_row_mask`**, **`_unique_scope_mask`**, **`_normalize_unique_scope_conditions`**), `_run_field_length_check`, `_run_field_format_check`, `run_referential`, `run_referential_composite`, `_run_json_field_equals_column_check`, `_run_json_field_in_column_check`, `_run_json_priority_unique_per_contest_link_check`, `collect_*`, `run_all_consistency_checks`, `run_consistency_checks_and_attach_summary`, `build_consistency_summary_df(results, rules)`. |
 | **gender.py** | Определение пола по отчеству, имени, фамилии | `add_auto_gender_column(config, df, sheet_name)`, `add_auto_gender_column_vectorized(config, df, sheet_name)`, `compare_gender_results(df_old, df_new)`. Внутри используются паттерны из `config.gender_patterns`. |
-| **main_impl.py** | Полный пайплайн обработки | При импорте вызывается `_load_config_globals()`. Функция `main()`: параллельная загрузка CSV и разворот JSON → **выгрузка source** (`SPOD_PROM source …`) только в режимах **`full`** и отдельно в **`source_only`** (до выхода); в **`main_only`** и **`consistency_only`** source не создаётся → проверка наличия файлов → проверки консистентности на сырых данных и перенос на обработанные листы → добавление AUTO_GENDER (EMPLOYEE) → расчёт статуса турнира → merge (кроме SUMMARY) → **сводка getCondition на REWARD** (`reward_getcondition_summary`, если не `consistency_only`) → **проверки консистентности** (модуль `consistency_checks`) → формирование SUMMARY → лист STAT_FILE → запись основного Excel → **файл статистики времени** `STAT_FILE <таймштамп>.xlsx` (`write_performance_statistics_excel` из `debug_timing`) → итоговый отчёт по отклонениям длины полей и расхождениям CSV. Режим **`consistency_only`**: без merge, gender, турнира и основного Excel — только файл консистентности. Файл **source**: для всех ячеек включён перенос по словам (`write_source_excel`). Запись основного Excel: **`write_to_excel`**, подготовка типов **`apply_column_format_conversion`**, пост-оформление листа **`_format_sheet`** (ширины **`calculate_column_width`** с выборкой **`_AUTO_COLUMN_WIDTH_MAX_DATA_ROWS`**, цвета **`apply_color_scheme`**, выравнивание и форматы **`apply_column_formats`**, вспомогательно **`_column_indices_covered_by_column_formats`**). |
+| **console_ui.py** | Краткий вывод в **stdout** при работе **main** | `print_banner`, `on_phase_start` / `on_phase_end` (хуки **`debug_phase`**), `expected_phases_for_run_mode`, `set_phase_progress_total`, `reset_phase_counter`, `render_progress_bar`, `print_consistency_summary`, `print_validation_and_csv_compact`, `print_data_processing_summary` (таблица **лист / строки** без усечения), `print_phases_table`, `print_top_functions`, `print_paths_and_total_time`, `stderr_message`. Только stdlib. |
+| **main_impl.py** | Полный пайплайн обработки | При импорте вызывается `_load_config_globals()`. Функция `main()`: хуки консоли и прогресс по этапам → параллельная загрузка CSV и разворот JSON → **выгрузка source** (`SPOD_PROM source …`) только в режимах **`full`** и отдельно в **`source_only`** (до выхода); в **`main_only`** и **`consistency_only`** source не создаётся → проверка наличия файлов → проверки консистентности на сырых данных и перенос на обработанные листы → добавление AUTO_GENDER (EMPLOYEE) → расчёт статуса турнира → merge (кроме SUMMARY) → **сводка getCondition на REWARD** (`reward_getcondition_summary`, если не `consistency_only`) → **проверки консистентности** (модуль `consistency_checks`) → формирование SUMMARY → лист STAT_FILE → запись основного Excel → **файл статистики времени** `STAT_FILE <таймштамп>.xlsx` (`write_performance_statistics_excel` из `debug_timing`) → итоговый отчёт по отклонениям длины полей и расхождениям CSV (**полный текст в лог**, в консоль — **`console_ui`**). Режим **`consistency_only`**: без merge, gender, турнира и основного Excel — только файл консистентности. Файл **source**: для всех ячеек включён перенос по словам (`write_source_excel`). Запись основного Excel: **`write_to_excel`**, подготовка типов **`apply_column_format_conversion`**, пост-оформление листа **`_format_sheet`** (ширины **`calculate_column_width`** с выборкой **`_AUTO_COLUMN_WIDTH_MAX_DATA_ROWS`**, цвета **`apply_color_scheme`**, выравнивание и форматы **`apply_column_formats`**, вспомогательно **`_column_indices_covered_by_column_formats`**). |
 
 **Запуск:** из корня проекта выполняется `python main.py`. При этом создаётся `Config()` (путь к config.json — корень проекта), конфиг передаётся в `set_current_config(config)`, затем вызывается `main_impl.main()`. В начале `main_impl.main()` снова вызывается `_load_config_globals()`, поэтому все глобальные переменные в main_impl берутся из внедрённого конфига.
 
@@ -737,7 +739,7 @@ SPOD_PROM/
 
 **csv_columns_count** (внутри `consistency_checks`): список листов и ожидаемое число полей в CSV (0 = АВТО по заголовку), плюс тексты для колонок листа CONSISTENCY (ТИП ПРОВЕРКИ, Описание, таблица источник, поле источник, параметр сравнения, комментарий). Секция **`_default`** задаёт подписи по умолчанию; **`sheets`** — объект «имя листа» → `{ "expected_columns": 0, опционально переопределение текстов }`. Записи по расхождениям числа полей добавляются в свод CONSISTENCY с заполненными колонками описания. Колонка **sample** на листе CONSISTENCY для этой проверки заполняется **только при наличии отклонений** (номера строк и ожид./факт. число полей); при отсутствии отклонений sample остаётся пустой.
 
-**Вывод:** для каждого правила с `include_in_summary: true` — строка в сводном листе **CONSISTENCY**. На листе CONSISTENCY сначала идут колонки по образцу таблицы проверок: **ТИП ПРОВЕРКИ**, **Описание**, **таблица источник**, **поле источник**, **таблица где проверяем**, **поле для проверки**, **параметр сравнения**, **комментарий** (заполняются из правил конфига), затем колонки результата: check_id, sheet, name, имя_колонки, type, total_rows, violations, sample. В лог INFO — кратко «нарушений не найдено» или «найдено нарушений: …»; в консоль выводится тот же итог.
+**Вывод:** для каждого правила с `include_in_summary: true` — строка в сводном листе **CONSISTENCY**. На листе CONSISTENCY сначала идут колонки по образцу таблицы проверок: **ТИП ПРОВЕРКИ**, **Описание**, **таблица источник**, **поле источник**, **таблица где проверяем**, **поле для проверки**, **параметр сравнения**, **комментарий** (заполняются из правил конфига), затем колонки результата: check_id, sheet, name, имя_колонки, type, total_rows, violations, sample. В **лог** — подробный отчёт; в **консоль** — краткая сводка **`console_ui.print_consistency_summary`** (типы, листы, число нарушений без длинных sample).
 
 **Пример фрагмента rules (referential и unique):**
 ```json
@@ -808,7 +810,7 @@ SPOD_PROM/
 Основная программа для обработки данных из CSV файлов системы SPOD. Состоит из двух частей:
 
 1. **Корневой main.py** — точка входа: создаёт экземпляр `Config` (загрузка **config.json** из корня проекта), передаёт его в `config_holder`, затем вызывает `main_impl.main()`.
-2. **src/main_impl.py** — полный пайплайн: при запуске подхватывает внедрённый конфиг (или при прямом запуске загружает config.json), настраивает логирование, читает CSV из `paths.input`, обрабатывает данные по правилам объединения (`merge_fields_advanced`), запускает **проверки консистентности** (модуль `consistency_checks`: создание колонок unique и field_length, referential/referential_composite, свод CONSISTENCY), формирует сводный лист SUMMARY и лист STAT_FILE, записывает итоговый Excel и выводит отчёт по отклонениям длины полей и расхождениям CSV. Отдельных шагов «проверка дубликатов» и «валидация длины полей» нет — всё в рамках consistency_checks. Логирование ведётся в файл (DEBUG) и в консоль (INFO).
+2. **src/main_impl.py** — полный пайплайн: при запуске подхватывает внедрённый конфиг (или при прямом запуске загружает config.json), настраивает логирование, читает CSV из `paths.input`, обрабатывает данные по правилам объединения (`merge_fields_advanced`), запускает **проверки консистентности** (модуль `consistency_checks`: создание колонок unique и field_length, referential/referential_composite, свод CONSISTENCY), формирует сводный лист SUMMARY и лист STAT_FILE, записывает итоговый Excel и формирует отчёт по отклонениям длины полей и расхождениям CSV. Отдельных шагов «проверка дубликатов» и «валидация длины полей» нет — всё в рамках consistency_checks. **Подробный** ход (**INFO/DEBUG**) — в **лог-файл**; в **консоль** — краткие этапы, сводки и таблицы через **`console_ui`** (см. раздел [Логирование](#логирование) и п. 8 ниже).
 
 ### Входные данные
 
@@ -839,7 +841,7 @@ set_current_config(config)           # Внедрение для main_impl
 main_impl.main()                     # Запуск пайплайна
 ```
 
-Внутри `main_impl.main()` сначала вызывается `_load_config_globals()` — глобальные переменные (DIR_INPUT, INPUT_FILES, MERGE_FIELDS_ADVANCED, SOURCE_EXPORT_SORT и т.д.) заполняются из внедрённого Config. Затем настраивается логирование (`setup_logger()` — использует `logging.level` и `logging.base_name` из конфига): DEBUG в файл, INFO в консоль.
+Внутри `main_impl.main()` сначала вызывается `_load_config_globals()` — глобальные переменные (DIR_INPUT, INPUT_FILES, MERGE_FIELDS_ADVANCED, SOURCE_EXPORT_SORT и т.д.) заполняются из внедрённого Config. Затем настраивается логирование (`setup_logger()` — использует `logging.level` и `logging.base_name` из конфига): в **файл** — уровень из конфига (как правило **DEBUG**); для **консоли** в **main_impl** уровень поднимается до **WARNING**, чтобы не дублировать длинный **INFO** в терминал — ход работы показывает **`console_ui`**.
 
 #### 2. Чтение CSV файлов
 
@@ -879,7 +881,7 @@ main_impl.main()                     # Запуск пайплайна
 
 ##### 3.2. Проверки консистентности (consistency_checks)
 
-После merge выполняется модуль **consistency_checks** (с параллелизацией: пул потоков, блокировка по листу при записи). Создаются колонки «ДУБЛЬ: …» (unique), проверки длины полей (field_length) и формата полей (field_format) на листах, выполняются referential/referential_composite, результаты собираются в сводный лист **CONSISTENCY** и выводятся в лог и консоль. На листе CONSISTENCY выводятся колонки-описания проверок (ТИП ПРОВЕРКИ, Описание, таблица источник, поле источник, таблица где проверяем, поле для проверки, параметр сравнения, комментарий) и колонки результата (check_id, sheet, name, total_rows, violations, sample). Правила задаются в **config.json** в секции `consistency_checks.rules` (типы `unique`, `field_length`, `field_format`, `referential`, `referential_composite`, `json_field_equals_column`, `json_field_in_column`, `json_priority_unique_per_contest_link`). Секции `check_duplicates` и `field_length_validations` в config больше не используются.
+После merge выполняется модуль **consistency_checks** (с параллелизацией: пул потоков, блокировка по листу при записи). Создаются колонки «ДУБЛЬ: …» (unique), проверки длины полей (field_length) и формата полей (field_format) на листах, выполняются referential/referential_composite, результаты собираются в сводный лист **CONSISTENCY**; **подробности** — в **лог**, **краткая сводка по типам и листам** — в **консоль** (`console_ui.print_consistency_summary`). На листе CONSISTENCY выводятся колонки-описания проверок (ТИП ПРОВЕРКИ, Описание, таблица источник, поле источник, таблица где проверяем, поле для проверки, параметр сравнения, комментарий) и колонки результата (check_id, sheet, name, total_rows, violations, sample). Правила задаются в **config.json** в секции `consistency_checks.rules` (типы `unique`, `field_length`, `field_format`, `referential`, `referential_composite`, `json_field_equals_column`, `json_field_in_column`, `json_priority_unique_per_contest_link`). Секции `check_duplicates` и `field_length_validations` в config больше не используются.
 
 ##### 3.3. Обработка JSON полей
 
@@ -912,14 +914,14 @@ def write_to_excel(sheets_data, output_path):
 
 #### 5. Итоговая статистика (отклонения длины полей, расхождения по числу полей в CSV)
 
-После записи в Excel программа формирует отчёт и выводит его **в лог и в консоль** (без прерывания работы):
+После записи в Excel программа формирует отчёт (без прерывания работы):
 
-- **Отклонения по длине полей** (по правилам `consistency_checks` с типом `field_length`): для каждого листа с нарушениями — имя листа, колонка результата, число строк с отклонениями, примеры текста нарушений (до 10).
-- **Расхождения по числу полей в CSV**: для каждой строки CSV, в которой число полей не совпадает с числом колонок в заголовке — файл, лист, номер строки в файле, ожидаемое и фактическое число полей, направление («больше» или «меньше»). Если таких строк нет — выводится «не обнаружены».
+- **В лог (INFO)** — полный многострочный блок: **отклонения по длине полей** (по правилам `consistency_checks` с типом `field_length`) — лист, колонка результата, число строк, примеры (до 10); **расхождения по числу полей в CSV** — файл, лист, номер строки, ожидаемое/фактическое число полей, направление.
+- **В консоль** — компактно через **`console_ui.print_validation_and_csv_compact`** (без длинных примеров).
 
 Дубликаты отображаются в сводном листе **CONSISTENCY** и в логе проверок консистентности (не в отдельном блоке итоговой статистики).
 
-Функции: `collect_duplicates_and_validation_report(sheets_data)` — возвращает `(validation_report, csv_mismatch_report)`; `print_final_report(validation_report, csv_mismatch_report)` — вывод обоих блоков в лог и консоль.
+Функции: `collect_duplicates_and_validation_report(sheets_data)` — возвращает `(validation_report, csv_mismatch_report)`; `print_final_report(...)` — **только в лог**; консоль дополняется **`console_ui`**.
 
 #### 6. Лист STAT_FILE (статистика по файлам)
 
@@ -929,20 +931,21 @@ def write_to_excel(sheets_data, output_path):
 
 В том же выходном каталоге по дате (`OUT/YYYY/DD-MM/`), что и основной Excel, создаётся **отдельная книга** с именем **`STAT_FILE <таймштамп>.xlsx`**: листы **«Сводка»** (режим, старт, общее время прогона `perf_counter`), **«Этапы»** (все блоки `debug_phase` с длительностью и смещением от начала прогона), **«Функции»** (агрегаты `@debug_timed`: вызовы, сумма/среднее/min/max, доля от общего времени, признак `hot`). Длительности в колонках для человека задаются в формате **`ХХ мин. YY сек ZZZ мс`**; рядом дублируются значения в секундах для сортировки и фильтров. Файл формируется в конце успешного прогона (в т.ч. в режимах **source_only** и **consistency_only**).
 
+#### 8. Краткий вывод в консоль (`src/console_ui.py`)
+
+Показывает, что программа **не зависла**: баннер старта; при входе/выходе из **`debug_phase`** — строки «… этап» и «`[NN] ✓` время краткое_имя»; опционально полоса **`[###-----] done/total`** (число шагов — **`expected_phases_for_run_mode(RUN_MODE)`**, задаётся до первой фазы чтения CSV). Сводка **консистентности** после проверок; компактно **длина полей и CSV**; в конце прогона — **таблица обработки данных**: строка «файлов / сумма строк», затем колонки **«Лист»** и **«Строки / примечание»** по **всем** листам из внутреннего `summary` **без усечения** текста (разбор строк вида `ИМЯ: 200 строк` — **`_split_sheet_summary_line`**); далее таблица **этапов по времени**, **топ функций** `@debug_timed`, пути к **Excel** и **логу**, **wall-clock**. Критические сообщения (нет файлов) — **`stderr_message`**. Реализация на стандартной библиотеке Python.
+
 ### Логирование
 
-Программа ведет два уровня логирования:
+Программа разделяет потоки вывода **main**:
 
-1. **DEBUG** (в файл):
-   - Все операции чтения/записи
-   - Детали обработки данных
-   - Ошибки с полным stack trace
-   - Формат: `дата время - [DEBUG] - сообщение [class: ClassName | def: function_name]`
+1. **Файл лога** (уровень из **config.json** → `logging.level`, обычно **DEBUG**):
+   - Полный ход: чтение/запись, этапы, **INFO**-итоги, **DEBUG**-детали (в т.ч. `[PERF]`, прогресс длины полей).
+   - Формат: `дата время - [DEBUG] - сообщение [class: ClassName | def: function_name]` (см. `logging_setup`).
 
-2. **INFO** (в консоль):
-   - Основные этапы выполнения
-   - Критические ошибки
-   - Итоговая статистика
+2. **Консоль (stdout)** для **main_impl**:
+   - Обработчик логгера — **WARNING** и выше (предупреждения и ошибки из `logging`).
+   - Обычный **INFO** в терминал **не** дублируется; вместо этого — модуль **`console_ui`** (см. п. 8).
 
 **Именование логов:**
 - Формат: `LOGS_DEBUG_YYYYMMDD_HH_MM.log`
@@ -1144,9 +1147,9 @@ FILE_DEPENDENCIES = {
    - Сохранение всех исходных данных
 
 4. **Логирование:**
-   - DEBUG уровень в файл
-   - INFO уровень в консоль
-   - Формат с указанием функции
+   - DEBUG/INFO в файл (уровень из конфига)
+   - Краткий ход в консоль через **console_ui**; сообщения **logging** в консоль — **WARNING** и выше
+   - Формат с указанием функции в файле
 
 ### Требования к админ-панели
 
@@ -1294,7 +1297,7 @@ python app.py
 2025-11-14 03:02:51,034 | DEBUG | __main__ | <module> | Запуск сервера админ-панели... [class: None | def: <module>]
 ```
 
-**INFO уровень (в консоль):**
+**INFO уровень (в консоль)** — для **админ-панели** и при необходимости других скриптов; для **`main.py` / main_impl** в терминал **INFO** не направляется (консольный handler — **WARNING+**, краткий ход — **`console_ui`**):
 ```
 2025-11-14 03:02:51,034 | INFO | __main__ | <module> | Запуск сервера админ-панели...
 ```
@@ -1310,11 +1313,23 @@ python app.py
 
 ### Профилирование в DEBUG (`[PERF]`)
 
-Модуль **`src/debug_timing.py`**: после старта пайплайна в лог-файл пишутся строки **`[PERF]`** — вход/выход отмеченных функций (время вызова, накопленная сумма по функции, номер вызова за прогон), крупные **фазы** пайплайна (`debug_phase`), при завершении процесса — **сводная таблица** по всем функциям (вызовы, сумма/среднее/min/max, пометка `hot` для частых вызовов). На консоль (INFO) выводится краткий **топ** по суммарному времени; полная таблица — только в файле (DEBUG). Дополнительно **`write_performance_statistics_excel`** записывает отдельный файл **`STAT_FILE <таймштамп>.xlsx`** (см. раздел 7 пайплайна).
+Модуль **`src/debug_timing.py`**: после старта пайплайна в лог-файл пишутся строки **`[PERF]`** — вход/выход отмеченных функций (время вызова, накопленная сумма по функции, номер вызова за прогон), крупные **фазы** пайплайна (`debug_phase`), при завершении процесса — **сводная таблица** по всем функциям (вызовы, сумма/среднее/min/max, пометка `hot` для частых вызовов). Краткий **топ** по времени и этапы дублируются в **консоли** через **`console_ui`** (итог прогона); на **stdout** обработчик логгера — только **WARNING** и выше, подробный **INFO/DEBUG** — в лог-файл. Дополнительно **`write_performance_statistics_excel`** записывает отдельный файл **`STAT_FILE <таймштамп>.xlsx`** (см. раздел 7 пайплайна).
 
 ---
 
 ## История версий
+
+### Версия 1.7.14 — Документация и таблица «лист / строки» в консоли
+
+- **`console_ui.print_data_processing_summary`**: сводка по листам — **двухколоночная таблица** («Лист» \| «Строки / примечание»), **все** записи из `summary`, **без усечения** текста; разбор строк — **`_split_sheet_summary_line`**.
+- **README**: в структуре проекта и таблице модулей добавлен **`console_ui.py`**; уточнены **логирование** (файл vs консоль **WARNING+**), п. **5** итоговой статистики (лог полный / консоль компактно), п. **3.2** консистентности, ТЗ и раздел **«Логирование»**; новый п. **8** — описание **`console_ui`**.
+
+### Версия 1.7.13 — Консоль: краткий ход работы и сводки
+
+- Модуль **`src/console_ui.py`**: баннер старта, строки **старт/завершение** этапов (`debug_phase` через хуки в **`debug_timing`**), **прогресс-бар по этапам** (`done/total`, ASCII `#`/`-`, stdlib) после каждого завершённого верхнего этапа; число шагов задаётся **`expected_phases_for_run_mode`** (синхронно с **`main_impl`**). Усечение длинных строк там, где по-прежнему одна строка (заголовки, пути); сводка **консистентности**, компактно **длина полей / CSV**, таблицы **этапов** и **топ функций**, пути к **Excel/лог** и **wall-clock**.
+- **`debug_timing`**: в хуки консоли передаётся **глубина** фазы (**`depth`**); вложенные фазы не дублируют строки прогресса.
+- **`main_impl`**: после **`setup_logger`** консольный **`StreamHandler`** — уровень **WARNING** (подробный ход — в файл); **`RUN_MODE`** и **`set_phase_progress_total`** до первой фазы **01**; итог прогона — **`_console_footer`**; многострочный **`print_final_report`** только в лог; прогресс **FIELD LENGTH** — в **DEBUG**.
+- **`run_consistency_checks_and_attach_summary`** возвращает список результатов для **`print_consistency_summary`**; при отсутствии правил в конфиге в консоль выводится краткая строка «правила не выполнялись».
 
 ### Версия 1.7.12 — Область и непустые колонки для правил `unique`
 

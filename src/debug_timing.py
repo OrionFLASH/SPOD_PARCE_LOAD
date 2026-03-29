@@ -20,7 +20,7 @@ import threading
 import time
 from datetime import datetime
 from contextlib import contextmanager
-from typing import Any, Callable, Dict, List, Optional, TypeVar
+from typing import Any, Callable, Dict, List, Optional, Tuple, TypeVar
 
 # --- глобальное состояние одного прогона ---
 _lock = threading.RLock()
@@ -32,6 +32,10 @@ _phase_records: List[Dict[str, Any]] = []
 _atexit_registered: bool = False
 # глубина вложенности фаз (для отступа в логе)
 _phase_depth = threading.local()
+# Опциональные хуки для краткого вывода этапов в консоль (stdlib, без tqdm).
+# Поддерживаются сигнатуры (label), (label, depth) и для end — (label, dt), (label, dt, depth).
+_phase_console_on_start: Optional[Callable[..., None]] = None
+_phase_console_on_end: Optional[Callable[..., None]] = None
 
 F = TypeVar("F", bound=Callable[..., Any])
 
@@ -46,6 +50,73 @@ def _ensure_depth() -> int:
 
 def _indent() -> str:
     return "  " * _ensure_depth()
+
+
+def _invoke_phase_hook_start(cb: Optional[Callable[..., None]], label: str, depth: int) -> None:
+    """Вызывает on_start(label) или on_start(label, depth) для обратной совместимости."""
+    if not cb:
+        return
+    try:
+        cb(label, depth)
+    except TypeError:
+        try:
+            cb(label)
+        except Exception:
+            pass
+    except Exception:
+        pass
+
+
+def _invoke_phase_hook_end(cb: Optional[Callable[..., None]], label: str, duration_sec: float, depth: int) -> None:
+    """Вызывает on_end(label, dt) или on_end(label, dt, depth)."""
+    if not cb:
+        return
+    try:
+        cb(label, duration_sec, depth)
+    except TypeError:
+        try:
+            cb(label, duration_sec)
+        except Exception:
+            pass
+    except Exception:
+        pass
+
+
+def set_debug_phase_console_hooks(
+    on_start: Optional[Callable[..., None]] = None,
+    on_end: Optional[Callable[..., None]] = None,
+) -> None:
+    """
+    Подключает вызовы при входе/выходе из debug_phase (краткий вывод в консоль).
+    depth — уровень вложенности (0 = верхний этап в main). Подробности фаз — в логе DEBUG.
+    """
+    global _phase_console_on_start, _phase_console_on_end
+    with _lock:
+        _phase_console_on_start = on_start
+        _phase_console_on_end = on_end
+
+
+def get_run_summary_for_console(max_top: int = 8) -> Dict[str, Any]:
+    """
+    Сводка для итоговой таблицы в консоли: общее время, этапы, топ функций по @debug_timed.
+    Без pandas; безопасно вызывать в конце main.
+    """
+    with _lock:
+        if _run_start_perf <= 0:
+            return {"total_sec": 0.0, "phases": [], "top_functions": []}
+        total_run = time.perf_counter() - _run_start_perf
+        phases_copy: List[Dict[str, Any]] = [
+            {"label": str(p["label"]), "duration_sec": float(p["duration_sec"])} for p in _phase_records
+        ]
+        stat_items: List[Tuple[str, Dict[str, Any]]] = list(_stats.items())
+    stat_items.sort(key=lambda x: x[1]["total_sec"], reverse=True)
+    top: List[Tuple[str, float, int]] = []
+    for k, s in stat_items[:max_top]:
+        short = k.split(".")[-1] if "." in k else k
+        if len(short) > 50:
+            short = short[:47] + "..."
+        top.append((short, float(s["total_sec"]), int(s["count"])))
+    return {"total_sec": float(total_run), "phases": phases_copy, "top_functions": top}
 
 
 def reset_run_timing() -> None:
@@ -153,6 +224,7 @@ def debug_phase(label: str) -> Any:
     t0 = time.perf_counter()
     run_ms = run_elapsed_sec() * 1000.0
     logging.debug(f"{_indent()}[PERF] [[ фаза «{label}» START (run+{run_ms:.1f} ms) ]]")
+    _invoke_phase_hook_start(_phase_console_on_start, label, d0)
     try:
         yield
     finally:
@@ -170,6 +242,7 @@ def debug_phase(label: str) -> Any:
                     "run_ms_end": run_ms_after,
                 }
             )
+        _invoke_phase_hook_end(_phase_console_on_end, label, dt, d0)
         _phase_depth.value = max(0, d0)
 
 
@@ -221,9 +294,9 @@ def _log_perf_summary_impl() -> None:
         logging.debug(line)
 
     if top_for_info:
-        logging.info(
-            "[PERF] Топ по суммарному времени (подробности в лог-файле DEBUG): "
-            + "; ".join(top_for_info)
+        # Полная строка топа только в файле DEBUG; консоль не засоряем (см. console_ui в конце main)
+        logging.debug(
+            "[PERF] Топ по суммарному времени: " + "; ".join(top_for_info)
         )
 
     # Дубликаты по числу вызовов: подсказка для анализа

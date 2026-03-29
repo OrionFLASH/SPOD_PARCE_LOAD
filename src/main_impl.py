@@ -20,12 +20,15 @@ from concurrent.futures import ThreadPoolExecutor, as_completed  # Для пар
 from itertools import product
 import threading  # Для синхронизации потоков
 
+from src import console_ui  # Краткий вывод этапов и сводок в консоль (stdlib)
 from src.consistency_checks import run_consistency_checks_and_attach_summary  # Проверки консистентности (отдельный модуль)
 from src.debug_timing import (
     debug_phase,
     debug_timed,
+    get_run_summary_for_console,
     reset_run_timing,
     run_elapsed_sec,
+    set_debug_phase_console_hooks,
     write_performance_statistics_excel,
 )  # DEBUG [PERF] и отдельный Excel «STAT_FILE <таймштамп>.xlsx» со временем этапов и функций
 import warnings   # Для подавления UserWarning при парсинге дат без формата
@@ -337,7 +340,7 @@ def setup_logger():
     
     Создает логгер с двумя обработчиками:
     - Файловый: записывает логи в файл с кодировкой UTF-8 (включая DEBUG)
-    - Консольный: выводит только INFO, WARNING, ERROR в стандартный вывод
+    - Консольный: WARNING, ERROR (подробный ход работы — в лог-файле DEBUG/INFO); краткий ход — console_ui
     
     Returns:
         str: Путь к созданному лог-файлу
@@ -369,9 +372,9 @@ def setup_logger():
     file_handler.setLevel(logging.DEBUG)
     file_handler.setFormatter(file_formatter)
     
-    # Консольный обработчик - только INFO, WARNING, ERROR
+    # Консольный обработчик: WARNING и ERROR (INFO — только в файл; консоль — console_ui)
     console_handler = logging.StreamHandler(sys.stdout)
-    console_handler.setLevel(logging.INFO)  # INFO и выше (INFO, WARNING, ERROR)
+    console_handler.setLevel(logging.WARNING)
     console_handler.setFormatter(console_formatter)
     
     # Добавляем обработчики к логгеру
@@ -629,7 +632,7 @@ def validate_field_lengths(df, sheet_name):
         # Показываем прогресс каждые GENDER_PROGRESS_STEP строк
         if (idx + 1) % GENDER_PROGRESS_STEP == 0:
             percent = ((idx + 1) / total_rows) * 100
-            logging.info(f"[FIELD LENGTH] Обработано {idx + 1} из {total_rows} строк ({percent:.1f}%)")
+            logging.debug(f"[FIELD LENGTH] Обработано {idx + 1} из {total_rows} строк ({percent:.1f}%)")
 
     # Добавляем колонку с результатами проверки к DataFrame
     df[result_column] = results
@@ -4239,10 +4242,28 @@ def print_final_report(
     lines.append("===============================================================================")
     lines.append("")
 
-    report_text = "\n".join(lines)
+    # Подробный многострочный отчёт — только в лог; консоль — print_validation_and_csv_compact
     for line in lines:
         logging.info(line.strip() if line.strip() else "")
-    print(report_text)
+
+
+def _console_footer(
+    log_file: str,
+    output_excel: Optional[str] = None,
+    banner: str = "Готово",
+    *,
+    files_processed: Optional[int] = None,
+    rows_total: Optional[int] = None,
+    summary_parts: Optional[List[str]] = None,
+) -> None:
+    """Итоговая сводка в консоль: обработка, этапы, топ функций, пути, время."""
+    summ = get_run_summary_for_console()
+    if files_processed is not None and rows_total is not None:
+        console_ui.print_data_processing_summary(files_processed, rows_total, summary_parts)
+    console_ui.print_phases_table(summ["phases"])
+    console_ui.print_top_functions(summ["top_functions"])
+    console_ui.print_paths_and_total_time(output_excel, log_file, summ["total_sec"])
+    console_ui.print_banner(banner)
 
 
 def main():
@@ -4253,16 +4274,23 @@ def main():
     start_time = datetime.now()
     log_file = setup_logger()
     reset_run_timing()
+    console_ui.reset_phase_counter()
+    set_debug_phase_console_hooks(console_ui.on_phase_start, console_ui.on_phase_end)
+    console_ui.print_banner("SPOD_PROM — старт")
+    # RUN_MODE нужен до первой фазы — для прогресс-бара по этапам (число шагов зависит от режима)
+    run_mode = int(RUN_MODE) if RUN_MODE is not None else 1
+    console_ui.set_phase_progress_total(console_ui.expected_phases_for_run_mode(run_mode))
     logging.info(f"=== Старт работы программы: {start_time.strftime('%Y-%m-%d %H:%M:%S')} ===")
     logging.debug(
-        "[PERF] Логирование: файл — все уровни DEBUG (в т.ч. [PERF] вход/выход функций и фазы); "
-        "консоль — INFO и выше. Итоговая таблица времени пишется в файл при завершении процесса."
+        "[PERF] Логирование: файл — DEBUG/INFO; консоль — WARNING+ и краткие этапы (console_ui). "
+        "Итоговая таблица [PERF] в лог-файле при завершении процесса."
     )
 
     sheets_data = {}
     files_processed = 0
     rows_total = 0
     summary = []
+    consistency_results: List[Dict[str, Any]] = []
 
     # 1. Параллельное чтение всех CSV и разворот ВСЕХ JSON‑полей на каждом листе
     logging.info(f"Начало параллельного чтения CSV файлов (потоков: {MAX_WORKERS_IO})")
@@ -4292,7 +4320,6 @@ def main():
 
     logging.info(f"Параллельное чтение CSV файлов завершено. Обработано файлов: {files_processed}")
 
-    run_mode = int(RUN_MODE) if RUN_MODE is not None else 1
     _run_mode_names = {1: "full", 2: "source_only", 3: "main_only", 4: "consistency_only"}
     _run_mode_label = f"{_run_mode_names.get(run_mode, run_mode)} (код {run_mode})"
     logging.info(f"[main] Режим запуска: {_run_mode_label}")
@@ -4313,7 +4340,7 @@ def main():
                 msg_lines.append(f"  - {m['file']} (лист: {m['sheet']})")
             msg = "\n".join(msg_lines)
             logging.error(msg)
-            print(msg, file=sys.stderr)
+            console_ui.stderr_message(msg_lines)
             sys.exit(1)
         with debug_phase("mode2_source_only_excel"):
             write_source_excel(raw_sheets, run_output_dir)
@@ -4325,6 +4352,7 @@ def main():
         if _perf_xlsx:
             logging.info(f"[main] Статистика времени: {_perf_xlsx}")
         logging.info(f"=== Режим 2 завершён. Выгружен только source. Время: {datetime.now() - start_time} ===")
+        _console_footer(log_file, banner="Режим 2: готово (только source)")
         return
 
     # 1.1. Выгрузка сырых данных в отдельный Excel — только в режиме full (1).
@@ -4343,7 +4371,7 @@ def main():
             msg_lines.append(f"  - {m['file']} (лист: {m['sheet']})")
         msg = "\n".join(msg_lines)
         logging.error(msg)
-        print(msg, file=sys.stderr)
+        console_ui.stderr_message(msg.split("\n"))
         sys.exit(1)
 
     # 5. Проверки консистентности на сырых данных (до EMPLOYEE, merge и т.д.); результаты потом попадут в конец листов
@@ -4358,9 +4386,15 @@ def main():
     with debug_phase("02_consistency_pipeline_raw_and_csv_mismatch"):
         if CONSISTENCY_CHECKS and (CONSISTENCY_CHECKS.get("rules")):
             logging.info("[main] Запуск проверок консистентности на сырых данных (до обработки)")
-            run_consistency_checks_and_attach_summary(raw_sheets_data, CONSISTENCY_CHECKS, max_workers=MAX_WORKERS)
+            consistency_results = run_consistency_checks_and_attach_summary(
+                raw_sheets_data, CONSISTENCY_CHECKS, max_workers=MAX_WORKERS
+            )
             copy_consistency_results_from_raw_to_processed(raw_sheets_data, sheets_data, summary_sheet_name)
             logging.info("[main] Проверки консистентности завершены, результаты скопированы на обработанные листы")
+            console_ui.print_consistency_summary(consistency_results)
+        else:
+            # В логе правила не запускались; в консоли — кратко, чтобы итог был предсказуемым
+            console_ui.print_consistency_summary(consistency_results)
         append_csv_mismatches_to_consistency(
             sheets_data, list(_csv_column_mismatches),
             summary_sheet_name=summary_sheet_name,
@@ -4444,6 +4478,14 @@ def main():
         if _perf_xlsx4:
             logging.info(f"[main] Статистика времени: {_perf_xlsx4}")
         logging.info(f"=== Режим 4 завершён. Файл консистентности: {consistency_path}. Время: {datetime.now() - start_time} ===")
+        _console_footer(
+            log_file,
+            output_excel=consistency_path,
+            banner="Режим 4: готово (консистентность)",
+            files_processed=files_processed,
+            rows_total=rows_total,
+            summary_parts=summary,
+        )
         return
 
     # 6. Формирование итогового Summary (build_summary_sheet)
@@ -4529,6 +4571,7 @@ def main():
     # Итоговая статистика по отклонениям длины полей и расхождениям по числу полей в CSV (дубликаты — в сводке консистентности)
     validation_report, csv_mismatch_report = collect_duplicates_and_validation_report(sheets_data)
     print_final_report(validation_report, csv_mismatch_report)
+    console_ui.print_validation_and_csv_compact(validation_report, csv_mismatch_report)
 
     time_elapsed = datetime.now() - start_time
     logging.info(
@@ -4537,6 +4580,15 @@ def main():
     logging.info(f"Summary: {'; '.join(summary)}")
     logging.info(f"Excel file: {output_excel}")
     logging.info(f"Log file: {log_file}")
+
+    _console_footer(
+        log_file,
+        output_excel=output_excel,
+        banner="Обработка завершена",
+        files_processed=files_processed,
+        rows_total=rows_total,
+        summary_parts=summary,
+    )
 
 
 if __name__ == "__main__":

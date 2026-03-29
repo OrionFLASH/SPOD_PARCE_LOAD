@@ -1593,20 +1593,23 @@ def build_consistency_summary_df(
 
 def log_and_console_consistency_report(results: List[Dict[str, Any]]) -> None:
     """
-    Выводит итог проверок консистентности: в INFO — найдено/не найдено и какие;
-    в DEBUG — подробности по каждой проверке.
+    Пишет итог проверок консистентности в лог (файл).
+    Краткая сводка для пользователя — в консоли через console_ui (консольный handler обычно WARNING+).
     """
     with_violations = [r for r in results if r.get("violations", 0) > 0]
     if not with_violations:
         logging.info("Проверки консистентности: нарушений не найдено.")
-        print("Проверки консистентности: нарушений не найдено.")
         return
 
-    # INFO: кратко — найдено и по каким проверкам
-    parts = [f"{r.get('check_id', '')} ({r.get('sheet', '')}) — {r.get('violations', 0)}" for r in with_violations]
-    msg = "Проверки консистентности: найдено нарушений: " + "; ".join(parts)
+    # Кратко в лог-файл INFO (на консоль не попадёт при уровне WARNING)
+    parts = [
+        f"{r.get('check_id', '')} ({r.get('sheet', '')}) — {r.get('violations', 0)}"
+        for r in with_violations
+    ]
+    msg = "Проверки консистентности: найдены нарушения: " + "; ".join(parts)
+    if len(msg) > 500:
+        msg = msg[:497] + "..."
     logging.info(msg)
-    print(msg)
 
     # DEBUG: подробно
     for r in with_violations:
@@ -1626,10 +1629,10 @@ def run_consistency_checks_and_attach_summary(
     sheets_data: Dict[str, Any],
     config: Dict[str, Any],
     max_workers: Optional[int] = None,
-) -> None:
+) -> List[Dict[str, Any]]:
     """
     Полный цикл: выполнить все проверки (с параллелизацией), добавить сводный лист в sheets_data,
-    вывести отчёт в лог и консоль.
+    записать отчёт в лог-файл. Возвращает список результатов правил (для краткой сводки в консоли).
     """
     summary_sheet_name = config.get("summary_sheet_name", "CONSISTENCY")
     results = run_all_consistency_checks(sheets_data, config, max_workers=max_workers)
@@ -1639,3 +1642,4 @@ def run_consistency_checks_and_attach_summary(
     params = {"sheet": summary_sheet_name, "max_col_width": 80, "col_width_mode": "AUTO", "min_col_width": 10}
     sheets_data[summary_sheet_name] = (df_summary, params)
     log_and_console_consistency_report(results)
+    return results
