@@ -6,6 +6,8 @@
 
 **Версия 1.7.11:** в перечень типов правил добавлен **`json_priority_unique_per_contest_link`** (см. п. 2.7).
 
+**Версия 1.7.12:** для типа **`unique`** — поля **`unique_scope_conditions`**, **`unique_scope_mode`**, **`unique_require_non_empty`** и устаревшая пара **`unique_scope_column`** / **`unique_scope_value`** (см. п. 2.4). В **config.json** проекта все правила **`unique`** содержат полный набор этих ключей (пустые значения = проверка по всем строкам листа); подробнее — в **README.md**, раздел **consistency_checks → Правило unique**.
+
 ---
 
 ## 1. Разбор формулировок из ПРОВЕРКИ.txt (пункты 1.1–5)
@@ -128,6 +130,7 @@
 | 13 | USER_ROLE SB | RULE_NUM | ДУБЛЬ: RULE_NUM |
 | 14 | EMPLOYEE | PERSON_NUMBER | ДУБЛЬ: PERSON_NUMBER |
 | 15 | EMPLOYEE | PERSON_NUMBER_ADD | ДУБЛЬ: PERSON_NUMBER_ADD |
+| 16 | EMPLOYEE | POSITION_NAME, KPK_CODE, ORG_UNIT_CODE (область: POSITION_NAME=КПК, непустой KPK_CODE) | ДУБЛЬ: POSITION_NAME_KPK_CODE_ORG_UNIT_CODE |
 
 Пример правила в едином формате `consistency_checks`:
 
@@ -139,6 +142,11 @@
   "enabled": true,
   "sheet": "GROUP",
   "key_columns": ["CONTEST_CODE", "GROUP_CODE", "GROUP_VALUE"],
+  "unique_scope_mode": "all",
+  "unique_scope_conditions": [],
+  "unique_scope_column": "",
+  "unique_scope_value": "",
+  "unique_require_non_empty": [],
   "output": {
     "column_on_sheet": "ДУБЛЬ: CONTEST_CODE_GROUP_CODE_GROUP_VALUE",
     "include_in_summary": true
@@ -146,9 +154,59 @@
 }
 ```
 
+Рекомендуется указывать пять опциональных полей **во всех** правилах `unique`: при пустых `conditions`, пустых строках legacy и пустом `unique_require_non_empty` проверка выполняется по **всем** строкам (как раньше).
+
 - **sheet** — лист, на котором проверяем.
 - **key_columns** — колонки, образующие ключ уникальности.
 - В **column_on_sheet** по строкам: пусто при уникальности, при дубле — «xN» (N — количество строк с этим ключом). Имя колонки может совпадать с текущим форматом «ДУБЛЬ: key1_key2_...» для совместимости.
+
+**Дополнительно (версия 1.7.12):**
+
+| Поле | Описание |
+|------|-----------|
+| **unique_scope_conditions** | Массив объектов `{ "column": "…", "value": "…" }`. Сравнение: `str(ячейки).strip() == str(value).strip()`, пустые/NaN дают пустую строку слева. |
+| **unique_scope_mode** | **`all`** (по умолчанию) — строка в проверке, только если **все** условия выполнены (**И**). **`any`**, **`or`** или **`или`** — достаточно **любого** условия (**ИЛИ**). |
+| **unique_scope_column** / **unique_scope_value** | Устаревший вариант одной пары; используется, если **unique_scope_conditions** не задан или пуст. |
+| **unique_require_non_empty** | Массив имён колонок. Строка **не участвует** в проверке уникальности, если хотя бы одна из них «пустая» (как в проверках длины: пропуск, `NaN`, строки `-`, `None`, `null`). |
+
+Строки вне области и с пустыми обязательными полями: в колонке «ДУБЛЬ: …» для этого правила — **пусто** (проверка не применялась). В своде CONSISTENCY поле **total_rows** для `unique` — число строк, попавших в проверку.
+
+#### Пошаговая логика (модуль `consistency_checks`)
+
+1. Строится маска **области**: если **`unique_scope_conditions`** пуст и устаревшие **`unique_scope_column`** / **`value`** не задают условия — область = **все строки**. Иначе для каждой пары вычисляется совпадение ячейки с ожидаемым значением; результаты объединяются по **`unique_scope_mode`** (**`all`** → логическое произведение масок, **`any`** / **`or`** / **`или`** — дизъюнкция).
+2. Строится маска **непустоты** по **`unique_require_non_empty`**: строка допускается только если **каждая** перечисленная колонка не считается пустой (см. таблицу выше). Пустой массив — маска «все true».
+3. **Активная строка** = область **И** непустота.
+4. **`groupby(key_columns)`** и подсчёт кратности ключа выполняются **только на подмножестве активных строк**; полученные метки «xN» или пусто записываются в колонку результата; для неактивных строк ячейка остаётся пустой.
+5. Отсутствующая на листе колонка из условия области даёт предупреждение в лог и для этой пары маска совпадений = false для всех строк; отсутствующая колонка из **`unique_require_non_empty`** — все строки становятся неактивными по этому правилу.
+
+Реализация: `src/consistency_checks.py` — функции **`_normalize_unique_scope_conditions`**, **`_unique_scope_mode`**, **`_unique_scope_mask`**, **`_unique_require_non_empty_mask`**, **`_unique_active_row_mask`**, **`_run_unique_check`**, **`collect_unique_result`**.
+
+#### Примеры режимов И и ИЛИ
+
+- **И (`unique_scope_mode`: `all`)** — две пары в **`unique_scope_conditions`**: строка проверяется только если **одновременно** `COL_A == "X"` **и** `COL_B == "Y"`.
+- **ИЛИ (`unique_scope_mode`: `any` или `or`)** — те же две пары: строка проверяется, если **хотя бы одно** условие выполнено (в том числе оба).
+
+#### Пример (EMPLOYEE: только КПК и непустой KPK_CODE)
+
+Полный шаблон с пустыми legacy-полями (как в проектном **config.json**):
+
+```json
+{
+  "id": "unique_employee_kpk_gosb",
+  "type": "unique",
+  "enabled": true,
+  "sheet": "EMPLOYEE",
+  "key_columns": ["POSITION_NAME", "KPK_CODE", "ORG_UNIT_CODE"],
+  "unique_scope_mode": "all",
+  "unique_scope_conditions": [
+    { "column": "POSITION_NAME", "value": "КПК" }
+  ],
+  "unique_scope_column": "",
+  "unique_scope_value": "",
+  "unique_require_non_empty": ["KPK_CODE"],
+  "output": { "column_on_sheet": "ДУБЛЬ: POSITION_NAME_KPK_CODE_ORG_UNIT_CODE", "include_in_summary": true }
+}
+```
 
 ---
 
@@ -304,7 +362,7 @@
 - В ячейках по строкам:
   - **referential**: «OK» или короткий текст ошибки (например «НЕТ в CONTEST-DATA»);
   - **referential_composite**: «OK» или «НЕТ в GROUP»;
-  - **unique**: пусто или «xN»;
+  - **unique**: пусто (уникально или проверка к строке не применялась — вне области / пустые обязательные колонки) или «xN»;
   - **field_length**: «-» или строка с описанием нарушений;
   - **field_format**: «OK» или описание нарушения формата;
   - **json_field_equals_column** / **json_field_in_column**: «OK», пусто (не применимо) или текст ошибки;

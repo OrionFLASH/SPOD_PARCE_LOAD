@@ -109,7 +109,7 @@ SPOD_PROM/
 | **file_loader.py** | Поиск и загрузка CSV, разворот JSON по конфигу | Класс `FileLoader(config)`: `find_file_case_insensitive(directory, base_name, extensions)`, `check_input_files_exist()`, `read_csv_file(file_path)`, `process_single_file(file_conf)` — возвращает `(df, sheet_name, file_conf)` или `(None, sheet_name, None)`. |
 | **tournament.py** | Расчёт статуса турнира по датам | `calculate_tournament_status(config, df_tournament, df_report=None)` — добавляет колонку `CALC_TOURNAMENT_STATUS` по правилам из `config.tournament_status_choices`. |
 | **validation.py** | Валидация длины полей и проверка дубликатов (устаревшие пути) | `validate_field_lengths(config, df, sheet_name)`, `validate_field_lengths_vectorized(config, df, sheet_name)`, `compare_validate_results`, `mark_duplicates`, `validate_single_sheet`, `check_duplicates_single_sheet`. Основной пайплайн больше не использует отдельные шаги проверки дубликатов и длины полей — всё выполняется в **consistency_checks**. |
-| **consistency_checks.py** | Проверки консистентности (unique, field_length, field_format, referential, json_field_equals_column, json_field_in_column, json_priority_unique_per_contest_link) | Выполняет правила из `consistency_checks.rules` **с параллелизацией** (ThreadPoolExecutor). **Фаза 1** — создаёт на листах колонки `unique` («ДУБЛЬ: …»), `field_length`, `field_format`, json-проверки; **Фаза 2** — referential/referential_composite и сбор результатов. Парсинг JSON в ячейках (ADD_DATA и т.п.): **`_parse_add_data_cell`**, **`_parse_add_data_cell_with_normalized`** — замена `"""` на `"`, затем `json.loads`. Сводный лист CONSISTENCY формируется с колонками-описаниями (ТИП ПРОВЕРКИ, Описание, таблица источник, поле источник и т.д.); расхождения по числу полей CSV (csv_columns_count) также попадают в свод. Функции: `_run_unique_check`, `_run_field_length_check`, `_run_field_format_check`, `run_referential`, `run_referential_composite`, `_run_json_field_equals_column_check`, `_run_json_field_in_column_check`, `_run_json_priority_unique_per_contest_link_check`, `collect_*`, `run_all_consistency_checks`, `run_consistency_checks_and_attach_summary`, `build_consistency_summary_df(results, rules)`. |
+| **consistency_checks.py** | Проверки консистентности (unique, field_length, field_format, referential, json_field_equals_column, json_field_in_column, json_priority_unique_per_contest_link) | Выполняет правила из `consistency_checks.rules` **с параллелизацией** (ThreadPoolExecutor). **Фаза 1** — создаёт на листах колонки `unique` («ДУБЛЬ: …»), `field_length`, `field_format`, json-проверки; **Фаза 2** — referential/referential_composite и сбор результатов. Парсинг JSON в ячейках (ADD_DATA и т.п.): **`_parse_add_data_cell`**, **`_parse_add_data_cell_with_normalized`** — замена `"""` на `"`, затем `json.loads`. Сводный лист CONSISTENCY формируется с колонками-описаниями (ТИП ПРОВЕРКИ, Описание, таблица источник, поле источник и т.д.); расхождения по числу полей CSV (csv_columns_count) также попадают в свод. Функции: `_run_unique_check` (область **`_unique_active_row_mask`**, **`_unique_scope_mask`**, **`_normalize_unique_scope_conditions`**), `_run_field_length_check`, `_run_field_format_check`, `run_referential`, `run_referential_composite`, `_run_json_field_equals_column_check`, `_run_json_field_in_column_check`, `_run_json_priority_unique_per_contest_link_check`, `collect_*`, `run_all_consistency_checks`, `run_consistency_checks_and_attach_summary`, `build_consistency_summary_df(results, rules)`. |
 | **gender.py** | Определение пола по отчеству, имени, фамилии | `add_auto_gender_column(config, df, sheet_name)`, `add_auto_gender_column_vectorized(config, df, sheet_name)`, `compare_gender_results(df_old, df_new)`. Внутри используются паттерны из `config.gender_patterns`. |
 | **main_impl.py** | Полный пайплайн обработки | При импорте вызывается `_load_config_globals()`. Функция `main()`: параллельная загрузка CSV и разворот JSON → **выгрузка source** (`SPOD_PROM source …`) только в режимах **`full`** и отдельно в **`source_only`** (до выхода); в **`main_only`** и **`consistency_only`** source не создаётся → проверка наличия файлов → проверки консистентности на сырых данных и перенос на обработанные листы → добавление AUTO_GENDER (EMPLOYEE) → расчёт статуса турнира → merge (кроме SUMMARY) → **сводка getCondition на REWARD** (`reward_getcondition_summary`, если не `consistency_only`) → **проверки консистентности** (модуль `consistency_checks`) → формирование SUMMARY → лист STAT_FILE → запись основного Excel → **файл статистики времени** `STAT_FILE <таймштамп>.xlsx` (`write_performance_statistics_excel` из `debug_timing`) → итоговый отчёт по отклонениям длины полей и расхождениям CSV. Режим **`consistency_only`**: без merge, gender, турнира и основного Excel — только файл консистентности. Файл **source**: для всех ячеек включён перенос по словам (`write_source_excel`). Запись основного Excel: **`write_to_excel`**, подготовка типов **`apply_column_format_conversion`**, пост-оформление листа **`_format_sheet`** (ширины **`calculate_column_width`** с выборкой **`_AUTO_COLUMN_WIDTH_MAX_DATA_ROWS`**, цвета **`apply_color_scheme`**, выравнивание и форматы **`apply_column_formats`**, вспомогательно **`_column_indices_covered_by_column_formats`**). |
 
@@ -700,12 +700,36 @@ SPOD_PROM/
 
 - **referential** — внешний ключ в одну колонку: значения `column_src` на `sheet_src` должны присутствовать в `sheet_ref.column_ref`. Поля: `sheet_src`, `column_src`, `sheet_ref`, `column_ref`. Результат записывается в колонку на листе-источнике («OK» или «НЕТ в &lt;sheet_ref&gt;»).
 - **referential_composite** — внешний ключ из нескольких колонок: комбинация `columns_src` на `sheet_src` должна встречаться в `sheet_ref` по `columns_ref`. Поля: `sheet_src`, `columns_src`, `sheet_ref`, `columns_ref`.
-- **unique** — уникальность комбинации колонок. В фазе 1 модуль **создаёт** колонку «ДУБЛЬ: …» на листе по полям `sheet`, `key_columns`, `output.column_on_sheet` (например «ДУБЛЬ: CONTEST_CODE_GROUP_CODE_REWARD_CODE»). В ячейках: пусто или «xN». В фазе 2 результат собирается в свод.
+- **unique** — уникальность комбинации колонок **`key_columns`** на листе **`sheet`**; колонка результата из **`output.column_on_sheet`** (значения **пусто** или **xN**). Поддерживаются **область строк** и **обязательная непустота** части колонок; подробный сценарий и шаблон конфига — в подразделе **«Правило unique»** ниже. В фазе 2 результат собирается в свод.
 - **field_length** — проверка длины полей. В фазе 1 модуль **создаёт** колонку результата на листе по полям `sheet`, `result_column`, **`fields`** (объект: имя поля → `{ "limit": N, "operator": "=" | "<=" | ">=" }`), `output.column_on_sheet`. В ячейках: «-» или строка с описанием нарушений. В фазе 2 результат собирается в свод.
 - **field_format** — проверка формата поля (дата, десятичное число с фиксированной дробной частью, строка из N цифр). В фазе 1 создаётся колонка результата на листе по полям `sheet`, `field`, **`format`** (type: date/decimal/fixed_length_digits + параметры). В фазе 2 результат собирается в свод.
 - **json_field_equals_column** — значение ключа из JSON-колонки сравнивается с колонкой листа. Применяется к полям вроде REWARD_ADD_DATA (JSON с тройными кавычками). Поля: `sheet`, **`json_column`** (например REWARD_ADD_DATA), **`json_key`** (например parentRewardCode), **`column_compare`** (например REWARD_CODE). Опционально: **`filter_column`** + **`filter_value`** (только строки, где значение колонки совпадает, например REWARD_TYPE=BADGE), **`json_filter_key`** + **`json_filter_value`** (доп. условие по ключу в JSON, например masterBadge=Y). При **`must_not_equal`: true** требование инвертируется: значение из JSON **не должно** равняться колонке (для BADGE с masterBadge=N: parentRewardCode ≠ REWARD_CODE). Парсинг JSON: тройные кавычки `"""` заменяются на `"`, затем `json.loads`. В ячейке: OK / сообщение об ошибке / пусто для неприменимых строк.
 - **json_field_in_column** — все уникальные значения ключа из JSON-колонки должны присутствовать в указанной колонке того же листа. Поля: `sheet`, **`json_column`**, **`json_key`**, **`column_in_sheet`** (например REWARD_CODE). Используется для проверки: все parentRewardCode из ADD_DATA должны быть в REWARD_CODE.
 - **json_priority_unique_per_contest_link** — для каждого **`CONTEST_CODE`** на листе **`link_sheet`** (по умолчанию REWARD-LINK) берутся **уникальные `REWARD_CODE`** (**`GROUP_CODE` не учитывается**). На листе **`sheet`** (REWARD) в колонке **`json_column`** (REWARD_ADD_DATA) из JSON читается ключ **`json_key`** (по умолчанию `priority`); разбор тот же, что у **json_field_*** — через **`_parse_add_data_cell_with_normalized`**. В рамках одного конкурса: если у **всех** привязанных наград поле отсутствует — **не нарушение**; если у **всех** задано — значения должны быть **попарно различны**; если **часть с полем, часть без** — **нарушение** для всех строк этой группы. Результат пишется в колонку на **REWARD**. Поля: `sheet`, `reward_code_column`, `json_column`, `json_key`, `link_sheet`, `link_contest_column`, `link_reward_column`, `output`.
+
+### Правило `unique`: область строк, непустота и единый шаблон в config.json
+
+**Обязательные поля правила:** `sheet`, `key_columns`, `output` (в т.ч. `column_on_sheet`).
+
+**Рекомендуемый единый набор полей** (присутствует **во всех** правилах `unique` в проектном **config.json**): сразу после `key_columns` задаются:
+
+| Поле | Назначение |
+|------|------------|
+| **`unique_scope_mode`** | **`all`** — условия области объединяются по **И**. Значения **`any`**, **`or`**, **`или`** — по **ИЛИ** (достаточно совпадения одной пары column/value). |
+| **`unique_scope_conditions`** | Массив объектов **`{ "column": "…", "value": "…" }`**. Сравнение: нормализованная строка ячейки (`strip`) с **`str(value).strip()`**; для `NaN`/пустой ячейки слева получается пустая строка. **Пустой массив `[]`** — **нет фильтра по области**, участвуют все строки (с учётом `unique_require_non_empty`). |
+| **`unique_scope_column`**, **`unique_scope_value`** | Устаревшая **одна** пара; учитывается только если **`unique_scope_conditions`** пуст или отсутствует (эквивалент одного элемента в массиве, режим **И**). В шаблоне проекта для новых правил обычно **`""`** / **`""`**. |
+| **`unique_require_non_empty`** | Список имён колонок. Строка **исключается** из проверки, если **хотя бы одна** из перечисленных колонок считается пустой: `NaN`, пустая строка после `strip`, литералы **`"-"`**, **`"None"`**, **`"null"`** (как при отборе «пустых» в духе проверок длины). **Пустой массив `[]`** — ограничение не действует. |
+
+**Как формируется результат по строкам (фаза 1, `consistency_checks`):**
+
+1. Вычисляется маска **активных** строк: выполнена **область** (`unique_scope_*`) **и** для всех колонок из **`unique_require_non_empty`** значения непустые.
+2. Для **неактивных** строк в колонке «ДУБЛЬ: …» остаётся **пусто** — это не «ошибка» и не дубль: правило к строке **не применялось**.
+3. Только для **активных** строк выполняется **`groupby(key_columns)`** и подсчёт числа строк с одинаковым ключом; при числе **> 1** в ячейку пишется **`xN`**.
+4. В сводном листе **CONSISTENCY** для этого правила поле **`total_rows`** — количество **активных** строк (а не всех строк листа).
+
+**Пример смысловой:** правило **`unique_employee_kpk_gosb`** — уникальность тройки **POSITION_NAME, KPK_CODE, ORG_UNIT_CODE** только среди строк, где **POSITION_NAME** = **КПК**, и при **непустом** **KPK_CODE**; остальные строки EMPLOYEE в этой колонке проверки пустые.
+
+**Реализация в коде** (`src/consistency_checks.py`): **`_normalize_unique_scope_conditions`**, **`_unique_scope_mode`**, **`_unique_scope_mask`**, **`_unique_require_non_empty_mask`**, **`_unique_active_row_mask`**, **`_unique_cell_is_empty`**, логика в **`_run_unique_check`** и **`collect_unique_result`**.
 
 **Парсинг ADD_DATA (REWARD и др.):** в модуле **consistency_checks** функция **`_parse_add_data_cell(val)`** разбирает ячейку: `str(val).replace('"""', '"')`, затем `json.loads(normalized)`. Возвращает `dict` или `None` при ошибке. Так обрабатываются поля с тройными кавычками в CSV. Проверки **json_field_equals_column**, **json_field_in_column** и **json_priority_unique_per_contest_link** используют тот же разбор (**`_parse_add_data_cell_with_normalized`** / **`_parse_add_data_cell`**), дублирования логики парсинга нет.
 
@@ -735,6 +759,11 @@ SPOD_PROM/
   "enabled": true,
   "sheet": "REWARD-LINK",
   "key_columns": ["CONTEST_CODE", "GROUP_CODE", "REWARD_CODE"],
+  "unique_scope_mode": "all",
+  "unique_scope_conditions": [],
+  "unique_scope_column": "",
+  "unique_scope_value": "",
+  "unique_require_non_empty": [],
   "output": { "column_on_sheet": "ДУБЛЬ: CONTEST_CODE_GROUP_CODE_REWARD_CODE", "include_in_summary": true }
 }
 ```
@@ -1286,6 +1315,16 @@ python app.py
 ---
 
 ## История версий
+
+### Версия 1.7.12 — Область и непустые колонки для правил `unique`
+
+- **Логика:** проверка уникальности **`key_columns`** выполняется только среди **активных** строк. Активность = попадание в **область** (`unique_scope_*`) и **непустота** всех колонок из **`unique_require_non_empty`**. Для остальных строк колонка «ДУБЛЬ» пустая; в своде **CONSISTENCY** **`total_rows`** считается по активным строкам.
+- **`unique_scope_conditions`**: массив пар **`column` / `value`**; режим **`unique_scope_mode`**: **`all`** (логическое **И** по всем парам) или **`any`** / **`or`** / **`или`** (**ИЛИ** — достаточно одной пары). Пустой массив условий — без ограничения по области (все строки листа, если не отсеяны по непустоте).
+- **Устаревшая пара** **`unique_scope_column`** / **`unique_scope_value`**: одно условие, если массив **`unique_scope_conditions`** не используется.
+- **`unique_require_non_empty`**: строка не участвует, если любая из перечисленных колонок пуста (в т.ч. `NaN`, `""`, `"-"`, `"None"`, `"null"` после нормализации, в духе проверок длины).
+- **`config.json`:** у **каждого** из **18** правил **`type`: `unique`** явно заданы **`unique_scope_mode`**, **`unique_scope_conditions`**, **`unique_scope_column`**, **`unique_scope_value`**, **`unique_require_non_empty`**; для «глобальной» уникальности по листу — **`[]`**, **`""`**, **`""`**, **`[]`**.
+- **Пример выборочной проверки:** **`unique_employee_kpk_gosb`** — только **POSITION_NAME = КПК** и непустой **KPK_CODE**.
+- **Документация:** в **README** добавлен подраздел **«Правило unique»** (таблица полей, алгоритм, ссылка на функции в **`consistency_checks.py`**); в **Docs/CONSISTENCY_CHECKS_FORMAT.md** расширен п. **2.4** (пошаговая логика, примеры **И/ИЛИ**, строка в таблице листов для EMPLOYEE КПК); обновлён пример JSON в README.
 
 ### Версия 1.7.11 — Проверка priority по CONTEST_CODE (REWARD-LINK)
 

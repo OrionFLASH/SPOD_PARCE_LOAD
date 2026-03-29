@@ -2448,6 +2448,11 @@
         "enabled": true,
         "sheet": "GROUP",
         "key_columns": ["CONTEST_CODE", "GROUP_CODE", "GROUP_VALUE"],
+        "unique_scope_mode": "all",
+        "unique_scope_conditions": [],
+        "unique_scope_column": "",
+        "unique_scope_value": "",
+        "unique_require_non_empty": [],
         "output": {
           "column_on_sheet": "ДУБЛЬ: CONTEST_CODE_GROUP_CODE_GROUP_VALUE",
           "include_in_summary": true
@@ -2460,6 +2465,11 @@
         "enabled": true,
         "sheet": "REWARD-LINK",
         "key_columns": ["CONTEST_CODE", "GROUP_CODE", "REWARD_CODE"],
+        "unique_scope_mode": "all",
+        "unique_scope_conditions": [],
+        "unique_scope_column": "",
+        "unique_scope_value": "",
+        "unique_require_non_empty": [],
         "output": {
           "column_on_sheet": "ДУБЛЬ: CONTEST_CODE_GROUP_CODE_REWARD_CODE",
           "include_in_summary": true
@@ -2640,6 +2650,11 @@
         "enabled": true,
         "sheet": "CONTEST-DATA",
         "key_columns": ["CONTEST_CODE"],
+        "unique_scope_mode": "all",
+        "unique_scope_conditions": [],
+        "unique_scope_column": "",
+        "unique_scope_value": "",
+        "unique_require_non_empty": [],
         "output": { "column_on_sheet": "ДУБЛЬ: CONTEST_CODE", "include_in_summary": true }
       },
       {
@@ -2649,6 +2664,11 @@
         "enabled": true,
         "sheet": "INDICATOR",
         "key_columns": ["CONTEST_CODE", "INDICATOR_ADD_CALC_TYPE", "INDICATOR_CODE"],
+        "unique_scope_mode": "all",
+        "unique_scope_conditions": [],
+        "unique_scope_column": "",
+        "unique_scope_value": "",
+        "unique_require_non_empty": [],
         "output": { "column_on_sheet": "ДУБЛЬ: CONTEST_CODE_INDICATOR_ADD_CALC_TYPE_INDICATOR_CODE", "include_in_summary": true }
       },
       {
@@ -2658,6 +2678,11 @@
         "enabled": true,
         "sheet": "INDICATOR",
         "key_columns": ["N"],
+        "unique_scope_mode": "all",
+        "unique_scope_conditions": [],
+        "unique_scope_column": "",
+        "unique_scope_value": "",
+        "unique_require_non_empty": [],
         "output": { "column_on_sheet": "ДУБЛЬ: N", "include_in_summary": true }
       },
       {
@@ -2667,6 +2692,11 @@
         "enabled": true,
         "sheet": "REPORT",
         "key_columns": ["MANAGER_PERSON_NUMBER", "TOURNAMENT_CODE", "CONTEST_CODE"],
+        "unique_scope_mode": "all",
+        "unique_scope_conditions": [],
+        "unique_scope_column": "",
+        "unique_scope_value": "",
+        "unique_require_non_empty": [],
         "output": { "column_on_sheet": "ДУБЛЬ: MANAGER_PERSON_NUMBER_TOURNAMENT_CODE_CONTEST_CODE", "include_in_summary": true }
       },
       {
@@ -2676,6 +2706,11 @@
         "enabled": true,
         "sheet": "REWARD",
         "key_columns": ["REWARD_CODE"],
+        "unique_scope_mode": "all",
+        "unique_scope_conditions": [],
+        "unique_scope_column": "",
+        "unique_scope_value": "",
+        "unique_require_non_empty": [],
         "output": { "column_on_sheet": "ДУБЛЬ: REWARD_CODE", "include_in_summary": true }
       },
       {
@@ -2685,6 +2720,11 @@
         "enabled": true,
         "sheet": "REWARD-LINK",
         "key_columns": ["CONTEST_CODE", "REWARD_CODE"],
+        "unique_scope_mode": "all",
+        "unique_scope_conditions": [],
+        "unique_scope_column": "",
+        "unique_scope_value": "",
+        "unique_require_non_empty": [],
         "output": { "column_on_sheet": "ДУБЛЬ: CONTEST_CODE_REWARD_CODE", "include_in_summary": true }
       },
       {
@@ -2694,6 +2734,11 @@
         "enabled": true,
         "sheet": "REWARD-LINK",
         "key_columns": ["REWARD_CODE"],
+        "unique_scope_mode": "all",
+        "unique_scope_conditions": [],
+        "unique_scope_column": "",
+        "unique_scope_value": "",
+        "unique_require_non_empty": [],
         "output": { "column_on_sheet": "ДУБЛЬ: REWARD_CODE", "include_in_summary": true }
       },
       {
@@ -2703,15 +2748,27 @@
         "enabled": true,
         "sheet": "TOURNAMENT-SCHEDULE",
         "key_columns": ["TOURNAMENT_CODE", "CONTEST_CODE"],
+        "unique_scope_mode": "all",
+        "unique_scope_conditions": [],
+        "unique_scope_column": "",
+        "unique_scope_value": "",
+        "unique_require_non_empty": [],
         "output": { "column_on_sheet": "ДУБЛЬ: TOURNAMENT_CODE_CONTEST_CODE", "include_in_summary": true }
       },
       {
         "id": "unique_employee_kpk_gosb",
-        "name": "В EMPLOYEE нет дублей по составному полю POSITION_NAME, KPK_CODE, ORG_UNIT_CODE",
+        "name": "В EMPLOYEE нет дублей по POSITION_NAME, KPK_CODE, ORG_UNIT_CODE среди строк с POSITION_NAME=КПК и непустым KPK_CODE",
         "type": "unique",
         "enabled": true,
         "sheet": "EMPLOYEE",
         "key_columns": ["POSITION_NAME", "KPK_CODE", "ORG_UNIT_CODE"],
+        "unique_scope_mode": "all",
+        "unique_scope_conditions": [
+          { "column": "POSITION_NAME", "value": "КПК" }
+        ],
+        "unique_scope_column": "",
+        "unique_scope_value": "",
+        "unique_require_non_empty": ["KPK_CODE"],
         "output": { "column_on_sheet": "ДУБЛЬ: POSITION_NAME_KPK_CODE_ORG_UNIT_CODE", "include_in_summary": true }
       },
       {
@@ -2721,6 +2778,11 @@
         "enabled": true,
         "sheet": "TOURNAMENT-SCHEDULE",
         "key_columns": ["TOURNAMENT_CODE"],
+        "unique_scope_mode": "all",
+        "unique_scope_conditions": [],
+        "unique_scope_column": "",
+        "unique_scope_value": "",
+        "unique_require_non_empty": [],
         "output": { "column_on_sheet": "ДУБЛЬ: TOURNAMENT_CODE", "include_in_summary": true }
       },
       {
@@ -2730,6 +2792,11 @@
         "enabled": true,
         "sheet": "ORG_UNIT_V20",
         "key_columns": ["ORG_UNIT_CODE"],
+        "unique_scope_mode": "all",
+        "unique_scope_conditions": [],
+        "unique_scope_column": "",
+        "unique_scope_value": "",
+        "unique_require_non_empty": [],
         "output": { "column_on_sheet": "ДУБЛЬ: ORG_UNIT_CODE", "include_in_summary": true }
       },
       {
@@ -2739,6 +2806,11 @@
         "enabled": true,
         "sheet": "ORG_UNIT_V20",
         "key_columns": ["TB_CODE", "GOSB_CODE"],
+        "unique_scope_mode": "all",
+        "unique_scope_conditions": [],
+        "unique_scope_column": "",
+        "unique_scope_value": "",
+        "unique_require_non_empty": [],
         "output": { "column_on_sheet": "ДУБЛЬ: TB_CODE-GOSB_CODE", "include_in_summary": true }
       },
       {
@@ -2748,6 +2820,11 @@
         "enabled": true,
         "sheet": "USER_ROLE",
         "key_columns": ["RULE_NUM"],
+        "unique_scope_mode": "all",
+        "unique_scope_conditions": [],
+        "unique_scope_column": "",
+        "unique_scope_value": "",
+        "unique_require_non_empty": [],
         "output": { "column_on_sheet": "ДУБЛЬ: RULE_NUM", "include_in_summary": true }
       },
       {
@@ -2757,6 +2834,11 @@
         "enabled": true,
         "sheet": "USER_ROLE SB",
         "key_columns": ["RULE_NUM"],
+        "unique_scope_mode": "all",
+        "unique_scope_conditions": [],
+        "unique_scope_column": "",
+        "unique_scope_value": "",
+        "unique_require_non_empty": [],
         "output": { "column_on_sheet": "ДУБЛЬ: RULE_NUM", "include_in_summary": true }
       },
       {
@@ -2766,6 +2848,11 @@
         "enabled": true,
         "sheet": "EMPLOYEE",
         "key_columns": ["PERSON_NUMBER"],
+        "unique_scope_mode": "all",
+        "unique_scope_conditions": [],
+        "unique_scope_column": "",
+        "unique_scope_value": "",
+        "unique_require_non_empty": [],
         "output": { "column_on_sheet": "ДУБЛЬ: PERSON_NUMBER", "include_in_summary": true }
       },
       {
@@ -2775,6 +2862,11 @@
         "enabled": true,
         "sheet": "EMPLOYEE",
         "key_columns": ["PERSON_NUMBER_ADD"],
+        "unique_scope_mode": "all",
+        "unique_scope_conditions": [],
+        "unique_scope_column": "",
+        "unique_scope_value": "",
+        "unique_require_non_empty": [],
         "output": { "column_on_sheet": "ДУБЛЬ: PERSON_NUMBER_ADD", "include_in_summary": true }
       },
       {

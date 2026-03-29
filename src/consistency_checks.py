@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 """
 Модуль проверок консистентности данных.
-Выполняет правила из конфига consistency_checks: создаёт колонки unique (ДУБЛЬ: …), field_length,
-field_format и json-проверки на листах, затем referential/referential_composite, собирает результаты в свод CONSISTENCY.
+Выполняет правила из конфига consistency_checks: создаёт колонки unique (ДУБЛЬ: …, опционально область unique_scope_*
+и unique_require_non_empty), field_length, field_format и json-проверки на листах, затем referential/referential_composite,
+собирает результаты в свод CONSISTENCY.
 Результаты выводятся в колонки на листах, сводный лист CONSISTENCY, консоль и лог.
 Тип json_priority_unique_per_contest_link: уникальность ключа JSON (например priority) среди REWARD_CODE
 с одним CONTEST_CODE по REWARD-LINK; парсинг ADD_DATA через _parse_add_data_cell_with_normalized.
@@ -54,6 +55,136 @@ def _excel_row(idx: int) -> int:
 
 # Максимум записей в sample для свода CONSISTENCY (унифицированный формат)
 _MAX_SAMPLE = 20
+
+
+def _unique_cell_is_empty(val: Any) -> bool:
+    """
+    True, если ячейку для правила unique_require_non_empty считаем пустой
+    (строка не участвует в проверке уникальности).
+    Согласовано с field_length: пусто, прочерк, None/null как строка.
+    """
+    if val is None:
+        return True
+    if isinstance(val, float) and pd.isna(val):
+        return True
+    s = str(val).strip()
+    if s == "" or s in ("-", "None", "null"):
+        return True
+    return False
+
+
+def _unique_cell_compare_str(val: Any) -> str:
+    """Строка для сравнения в условиях области unique_scope (после нормализации)."""
+    if val is None:
+        return ""
+    if isinstance(val, float) and pd.isna(val):
+        return ""
+    return str(val).strip()
+
+
+def _normalize_unique_scope_conditions(rule: Dict[str, Any]) -> List[Tuple[str, str]]:
+    """
+    Собирает список пар (колонка, ожидаемое значение) для ограничения области проверки unique.
+    Сначала unique_scope_conditions (массив объектов с ключами column/value),
+    иначе устаревшая пара unique_scope_column + unique_scope_value.
+    """
+    out: List[Tuple[str, str]] = []
+    raw = rule.get("unique_scope_conditions")
+    if isinstance(raw, list):
+        for item in raw:
+            if not isinstance(item, dict):
+                continue
+            col = item.get("column") or item.get("col") or ""
+            val = item.get("value")
+            col = str(col).strip()
+            if not col:
+                continue
+            out.append((col, "" if val is None else str(val)))
+    if not out:
+        leg_col = rule.get("unique_scope_column")
+        if leg_col is not None and str(leg_col).strip():
+            leg_val = rule.get("unique_scope_value")
+            out.append(
+                (str(leg_col).strip(), "" if leg_val is None else str(leg_val))
+            )
+    return out
+
+
+def _unique_scope_mode(rule: Dict[str, Any]) -> str:
+    """Режим объединения условий области: all (И) или any (ИЛИ)."""
+    m = str(rule.get("unique_scope_mode", "all")).strip().lower()
+    if m in ("any", "or", "или"):
+        return "any"
+    return "all"
+
+
+def _unique_scope_mask(
+    df: pd.DataFrame,
+    conditions: List[Tuple[str, str]],
+    mode: str,
+    sheet_hint: str = "",
+) -> pd.Series:
+    """
+    Маска строк, попадающих в область по условиям column==value.
+    Пустой список conditions — все строки (True).
+    """
+    if not conditions:
+        return pd.Series(True, index=df.index)
+    masks: List[pd.Series] = []
+    for col, expected in conditions:
+        exp = str(expected).strip() if expected is not None else ""
+        if col not in df.columns:
+            logging.warning(
+                f"[consistency] unique: колонка области «{col}» отсутствует на листе {sheet_hint or '?'}"
+            )
+            masks.append(pd.Series(False, index=df.index))
+            continue
+        eq = df[col].map(_unique_cell_compare_str) == exp
+        masks.append(eq)
+    if not masks:
+        return pd.Series(True, index=df.index)
+    if mode == "any":
+        combined = masks[0].copy()
+        for m in masks[1:]:
+            combined = combined | m
+        return combined
+    combined = masks[0].copy()
+    for m in masks[1:]:
+        combined = combined & m
+    return combined
+
+
+def _unique_require_non_empty_mask(df: pd.DataFrame, rule: Dict[str, Any], sheet_hint: str = "") -> pd.Series:
+    """
+    Маска строк, у которых все колонки из unique_require_non_empty непустые.
+    Пустой список в правиле — все строки участвуют (True).
+    """
+    cols = rule.get("unique_require_non_empty") or []
+    if not cols:
+        return pd.Series(True, index=df.index)
+    combined = pd.Series(True, index=df.index)
+    for col in cols:
+        if col not in df.columns:
+            logging.warning(
+                f"[consistency] unique: unique_require_non_empty, колонка «{col}» отсутствует на {sheet_hint or '?'}"
+            )
+            combined = pd.Series(False, index=df.index)
+            break
+        combined = combined & ~df[col].map(_unique_cell_is_empty)
+    return combined
+
+
+def _unique_active_row_mask(df: pd.DataFrame, rule: Dict[str, Any]) -> pd.Series:
+    """
+    Строки листа, для которых выполняется проверка уникальности:
+    область unique_scope (И/ИЛИ) и непустота колонок unique_require_non_empty.
+    """
+    sheet_hint = str(rule.get("sheet", ""))
+    conds = _normalize_unique_scope_conditions(rule)
+    mode = _unique_scope_mode(rule)
+    scope_m = _unique_scope_mask(df, conds, mode, sheet_hint=sheet_hint)
+    nonempty_m = _unique_require_non_empty_mask(df, rule, sheet_hint=sheet_hint)
+    return scope_m & nonempty_m
 
 
 def run_referential(
@@ -198,6 +329,9 @@ def run_referential_composite(
 def _run_unique_check(sheets_data: Dict[str, Any], rule: Dict[str, Any]) -> None:
     """
     Создаёт на листе колонку с пометкой дублей по key_columns (значение «xN» или пусто).
+    Опционально: unique_scope_conditions + unique_scope_mode (all/any) — только строки, где выполнены
+    условия column==value (И или ИЛИ); unique_require_non_empty — строки с пустыми указанными колонками
+    в проверку не входят. Устаревшие unique_scope_column / unique_scope_value — одна пара, режим И.
     Обновляет sheets_data на месте. Вызывается до collect_unique_result, чтобы колонка существовала.
     """
     sheet_name = rule.get("sheet")
@@ -214,10 +348,23 @@ def _run_unique_check(sheets_data: Dict[str, Any], rule: Dict[str, Any]) -> None
         logging.warning(f"[consistency] unique: лист {sheet_name}, отсутствуют колонки {missing}, пропуск")
         return
     try:
-        dup_counts = df.groupby(key_columns)[key_columns[0]].transform("count")
+        active = _unique_active_row_mask(df, rule)
+        result_col = pd.Series("", index=df.index, dtype=object)
+        if active.any():
+            sub = df.loc[active]
+            dup_counts = sub.groupby(key_columns, dropna=False)[key_columns[0]].transform("count")
+
+            def _dup_label(n: Any) -> str:
+                k = int(n) if not pd.isna(n) else 0
+                return f"x{k}" if k > 1 else ""
+
+            result_col.loc[active] = dup_counts.map(_dup_label).values
         df = df.copy()
-        df[col_name] = dup_counts.map(lambda x: f"x{x}" if x > 1 else "")
+        df[col_name] = result_col.values
         sheets_data[sheet_name] = (df, conf)
+        logging.debug(
+            f"[consistency] unique: лист {sheet_name}, колонка {col_name}, активных строк: {int(active.sum())}"
+        )
     except Exception as e:
         logging.error(f"[consistency] Ошибка при создании колонки дублей {sheet_name} по {key_columns}: {e}")
 
@@ -490,7 +637,9 @@ def collect_unique_result(
     col_series = df[col_name].astype(str).str.strip()
     violations_mask = col_series != ""
     n_violations = int(violations_mask.sum())
-    total = len(df)
+    # Число строк, для которых правило реально применялось (область + непустые обязательные колонки)
+    active = _unique_active_row_mask(df, rule)
+    total = int(active.sum())
     sample = []
     if n_violations > 0 and key_columns and all(c in df.columns for c in key_columns):
         dup_df = df.loc[violations_mask, key_columns + [col_name]].copy()
@@ -1286,6 +1435,15 @@ def _rule_to_description_columns(rule: Dict[str, Any]) -> Dict[str, str]:
         table_src = rule.get("sheet", "")
         field_src = ", ".join(rule.get("key_columns") or [])
         param = "нет дублей"
+        conds = _normalize_unique_scope_conditions(rule)
+        if conds:
+            mode_ru = "И" if _unique_scope_mode(rule) == "all" else "ИЛИ"
+            pairs = "; ".join(f"{c}={v!r}" for c, v in conds)
+            comment = f"область ({mode_ru}): {pairs}"
+        req = rule.get("unique_require_non_empty") or []
+        if req:
+            extra = f"только при непустых: {', '.join(req)}"
+            comment = f"{comment}; {extra}" if comment else extra
     elif t == "field_length":
         table_src = rule.get("sheet", "")
         fields_cfg = rule.get("fields") or {}
