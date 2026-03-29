@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import shutil
 import sys
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Set
 
 # Счётчик завершённых верхнеуровневых фаз (depth==0) для «[N] ✓» и прогресс-бара
 _phase_done_count: List[int] = [0]
@@ -117,49 +117,102 @@ def on_phase_end(label: str, duration_sec: float, depth: int = 0) -> None:
 
 def print_consistency_summary(results: List[Dict[str, Any]]) -> None:
     """
-    Сводка проверок консистентности: по типам правил, листам, числу нарушений.
+    Сводка проверок консистентности: обзор (правила, листы, сумма нарушений),
+    таблица по типам; при нарушениях — краткая детализация по правилам.
     Длинные sample не выводятся — только в лог.
     """
     w = terminal_width()
-    print(_truncate("— Консистентность —", w), flush=True)
+    print(_truncate("— Консистентность (сводка) —", w), flush=True)
     if not results:
-        print("  (правила не выполнялись)", flush=True)
-        return
-    included = [r for r in results if r.get("include_in_summary", True)]
-    with_v = [r for r in included if int(r.get("violations") or 0) > 0]
-    if not with_v:
-        # Кратко по типам: всё чисто
-        by_type: Dict[str, int] = {}
-        for r in included:
-            t = str(r.get("type", "?"))
-            by_type[t] = by_type.get(t, 0) + 1
-        parts = [f"{t}:{n}" for t, n in sorted(by_type.items(), key=lambda x: x[0])]
-        msg = "  Нарушений нет. Проверок: " + ", ".join(parts)
-        print(_truncate(msg, w), flush=True)
+        print("  Проверки не выполнялись (в конфиге нет правил или блок пропущен).", flush=True)
         return
 
-    print(f"  Найдены нарушения: {len(with_v)} правил(а)", flush=True)
-    # Группировка по типу
+    included = [r for r in results if r.get("include_in_summary", True)]
+    if not included:
+        print("  Нет результатов для свода (все правила с include_in_summary: false).", flush=True)
+        return
+
+    # Уникальные листы, на которых сработали проверки (поле sheet у результата)
+    sheets_set: Set[str] = set()
+    for r in included:
+        sh = str(r.get("sheet") or "").strip()
+        if sh:
+            sheets_set.add(sh)
+
+    n_rules = len(included)
+    n_sheets = len(sheets_set)
+    total_violations = sum(int(r.get("violations") or 0) for r in included)
+    with_v = [r for r in included if int(r.get("violations") or 0) > 0]
+    n_rules_with_violations = len(with_v)
+
+    # Итоговая строка: было проверено N правил, затронуто M листов
+    print(
+        f"  Оценка: правил в отчёте — {n_rules}; листов с колонками проверок — {n_sheets}.",
+        flush=True,
+    )
+    if total_violations == 0:
+        print(
+            "  Проблем с консистентностью не обнаружено: суммарно нарушений по счётчикам правил — 0.",
+            flush=True,
+        )
+    else:
+        print(
+            f"  Выявлено нарушений (сумма по правилам): {total_violations}; "
+            f"правил с нарушениями — {n_rules_with_violations}.",
+            flush=True,
+        )
+
+    # Таблица по типам проверки: сколько правил, сколько листов, сколько нарушений
     by_type: Dict[str, List[Dict[str, Any]]] = {}
-    for r in with_v:
+    for r in included:
         t = str(r.get("type", "?"))
         by_type.setdefault(t, []).append(r)
-    for t in sorted(by_type.keys()):
-        rows = by_type[t]
-        total_v = sum(int(x.get("violations") or 0) for x in rows)
-        sheets = sorted({str(x.get("sheet", "")) for x in rows if x.get("sheet")})
-        sh = _truncate(", ".join(sheets), min(60, w - 20))
-        print(f"    · {t}: нарушений {total_v}; листы: {sh}", flush=True)
+
+    type_keys = sorted(by_type.keys())
+    w_type = max(len("Тип проверки"), max((len(k) for k in type_keys), default=0))
+    hdr = f"  {'Тип проверки':<{w_type}}  {'Правил':>7}  {'Листов':>7}  {'Нарушений':>11}  Примечание"
+    print(hdr, flush=True)
+    print(f"  {'-' * w_type}  -------  -------  -----------  ----------", flush=True)
+    for t in type_keys:
+        lst = by_type[t]
+        st_local: Set[str] = set()
+        for x in lst:
+            s = str(x.get("sheet") or "").strip()
+            if s:
+                st_local.add(s)
+        nv_t = sum(int(x.get("violations") or 0) for x in lst)
+        note = "OK" if nv_t == 0 else f"есть ({nv_t})"
+        print(
+            f"  {t:<{w_type}}  {len(lst):>7}  {len(st_local):>7}  {nv_t:>11}  {note}",
+            flush=True,
+        )
+
+    if not with_v:
+        print("  Примеры строк и полный разбор — в лог-файле (DEBUG).", flush=True)
+        return
+
+    # Детализация: только правила с нарушениями, по типам
+    print(_truncate("  — По правилам с нарушениями —", w), flush=True)
+    by_type_v: Dict[str, List[Dict[str, Any]]] = {}
+    for r in with_v:
+        tp = str(r.get("type", "?"))
+        by_type_v.setdefault(tp, []).append(r)
+    for t in sorted(by_type_v.keys()):
+        rows = by_type_v[t]
+        total_t = sum(int(x.get("violations") or 0) for x in rows)
+        sheets_t = sorted({str(x.get("sheet", "")) for x in rows if x.get("sheet")})
+        sh_line = ", ".join(sheets_t)
+        print(f"    · {t}: нарушений {total_t}; листы: {sh_line}", flush=True)
         for r in rows[:8]:
-            cid = _truncate(str(r.get("check_id", "")), 16)
-            sh_one = _truncate(str(r.get("sheet", "")), 20)
-            col = _truncate(str(r.get("column_on_sheet", "")), 24)
+            cid = str(r.get("check_id", ""))
+            sh_one = str(r.get("sheet", ""))
+            col = str(r.get("column_on_sheet", ""))
             nv = int(r.get("violations") or 0)
             line = f"      {cid} | {sh_one} | {col} | ×{nv}"
             print(_truncate(line, w), flush=True)
         if len(rows) > 8:
-            print(f"      … ещё правил с нарушениями: {len(rows) - 8}", flush=True)
-    print("  (детали и примеры строк — в лог-файле, уровень DEBUG)", flush=True)
+            print(f"      … ещё правил с нарушениями по типу «{t}»: {len(rows) - 8}", flush=True)
+    print("  Детали и примеры значений — в лог-файле (DEBUG).", flush=True)
 
 
 def print_phases_table(phases: List[Dict[str, Any]]) -> None:
