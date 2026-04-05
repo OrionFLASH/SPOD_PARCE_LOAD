@@ -384,3 +384,65 @@ def stderr_message(lines: List[str]) -> None:
     """Критические сообщения пользователю в stderr."""
     for ln in lines:
         print(ln, file=sys.stderr, flush=True)
+
+
+def print_input_archive_sqlite_report(
+    console_mode: str,
+    db_display: str,
+    stats: Dict[str, Any],
+    events: List[Dict[str, Any]],
+) -> None:
+    """
+    Сводка по записи сырых CSV в архивную SQLite (после run_input_archive_sqlite).
+
+    console_mode (config input_archive_sqlite.reporting.console):
+      off — ничего; summary — только заголовок и счётчики;
+      normal — плюс таблица по каждому обработанному листу;
+      verbose — плюс размер файла, префикс SHA, пояснения.
+    """
+    mode = str(console_mode or "normal").lower().strip()
+    if mode in ("0", "off", "none", "no", "false"):
+        return
+
+    w = terminal_width()
+    print(_truncate("— Архив входных CSV (SQLite) —", w), flush=True)
+    print(f"  Файл БД: {_truncate(str(db_display), w - 12)}", flush=True)
+    print(
+        f"  Итог: новых снимков {int(stats.get('ingested', 0))}; "
+        f"без изменений {int(stats.get('unchanged', 0))}; "
+        f"реактивация {int(stats.get('reactivated', 0))}; "
+        f"дозапись SHA {int(stats.get('sha_backfill', 0))}; "
+        f"пропуск (только первый снимок) {int(stats.get('skipped_first', 0))}; "
+        f"ошибок доступа {int(stats.get('errors', 0))}; "
+        f"вне архива по конфигу {int(stats.get('not_requested', 0))}; "
+        f"нет данных {int(stats.get('no_payload', 0))}.",
+        flush=True,
+    )
+    if mode in ("1", "summary", "brief", "short"):
+        return
+
+    verbose = mode in ("3", "verbose", "debug", "detail", "full")
+    if not events:
+        print("  Нет строк отчёта по листам.", flush=True)
+        return
+
+    print("  — По листам —", flush=True)
+    for e in events:
+        sh = str(e.get("sheet", "") or "")
+        lbl = str(e.get("label", "") or "")
+        rows = e.get("rows")
+        rows_s = "—" if rows is None else str(int(rows))
+        line1 = f"    · {_truncate(sh, 24):<24}  строк={rows_s:<8}  {_truncate(lbl, w - 44)}"
+        print(_truncate(line1, w), flush=True)
+        if verbose:
+            sz = e.get("size")
+            sz_s = "—" if sz is None else str(int(sz))
+            sha16 = e.get("sha16") or ""
+            sha_s = (str(sha16) + "…") if sha16 else "—"
+            snap = e.get("snapshot_id")
+            snap_s = "—" if snap is None else str(int(snap))
+            extra = str(e.get("extra") or "").strip()
+            line2 = f"      size={sz_s}  snapshot={snap_s}  sha16={sha_s}"
+            if extra:
+                line2 += f"  |  {extra}"
+            print(_truncate(line2, w), flush=True)

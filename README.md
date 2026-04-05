@@ -39,6 +39,8 @@ SPOD_PROM/
 │   ├── debug_timing.py    # DEBUG [PERF]; отдельный xlsx STAT_FILE <таймштамп> (этапы и функции)
 │   ├── console_ui.py      # Краткий вывод в консоль: этапы, прогресс, сводки (stdlib)
 │   ├── json_utils.py      # Разбор и разворот JSON-полей
+│   ├── archive_json_columns.py  # Архив SQLite: колонки JSON_* из CONTEST_FEATURE / REWARD_ADD_DATA
+│   ├── input_archive_sqlite.py   # Архив сырых CSV в SQLite (снимки, дедуп, JSON_* для CONTEST/REWARD)
 │   ├── reward_getcondition_summary.py  # Сводная колонка по getCondition на листе REWARD
 │   ├── file_loader.py     # Класс FileLoader — поиск/чтение CSV, разворот JSON
 │   ├── tournament.py      # Расчёт статуса турнира (CALC_TOURNAMENT_STATUS)
@@ -72,7 +74,7 @@ SPOD_PROM/
 - `Docs/SPOD_CONSISTENCY_CHECKS_SQL_MIRROR.sql` — SQL-зеркало правил `referential` / `referential_composite` / `unique` / `field_length` для СУБД (сводка **passed** 1/0 и детали нарушений); правила **`field_format`** в SQL не дублируются (только Python). CTE **`dim_*`** / **`base_schedule_ref`** снижают повторные сканы таблиц; в файле — глоссарий SQL и пояснения к коду на русском, соответствие **`consistency_checks.rules[].id`** / **`name`**, связь с **`consistency_checks.py`**.
 - `Docs/SPOD_CONSISTENCY_CHECKS_SQL_MIRROR.md` — подробная документация по SQL-зеркалу: одна команда `WITH`…`SELECT`, все CTE и проверки, таблицы и поля витрины, что заменять под реальную БД, формат результата SUMMARY/DETAIL.
 - `Docs/CONSISTENCY_SAMPLE_FORMAT.md` — формат заполнения колонки `sample`.
-- `Docs/INPUT_ARCHIVE_SQLITE_DESIGN.md` — архив входных CSV в SQLite (без отдельного сервера); секция **`input_archive_sqlite`** в `config.json`, код **`src/input_archive_sqlite.py`**.
+- `Docs/INPUT_ARCHIVE_SQLITE_DESIGN.md` — архив входных CSV в SQLite (без отдельного сервера); секция **`input_archive_sqlite`** в `config.json`, код **`src/input_archive_sqlite.py`**, разворот **`CONTEST_FEATURE`** / **`REWARD_ADD_DATA`** в колонки **`JSON_*`** — **`src/archive_json_columns.py`**.
 - `Docs/АНАЛИЗ_ПРОВЕРОК_КОНСИСТЕНТНОСТИ.md` — аналитика покрытия и предложения по новым правилам.
 - `Docs/PERFORMANCE_AND_PARALLELIZATION_HISTORY.md` — консолидированная история оптимизации и распараллеливания.
 - `Docs/SUMMARY_GROUP_FIX_HISTORY.md` — история исправлений логики `SUMMARY` и связки `GROUP`.
@@ -1081,6 +1083,29 @@ python main.py
 ---
 
 ## История версий
+
+### Версия 1.7.28 — Архив SQLite: колонки JSON_* при пропуске ingest
+
+- Если новый снимок в **`arch_*`** **не** создаётся (тот же CSV по SHA, дозапись хеша в inventory, синхронизация **`latest`**, реактивация historical по **`reuse_matching_historical_snapshot`**), недостающие колонки **`JSON_*`** всё равно добавляются (**`ALTER TABLE`**), а значения для строк актуального снимка обновляются **`UPDATE`** по **`__snapshot_id`** и **`__row_ix`** (данные из текущего чтения CSV). Так **`JSON_*`** заполняются и после обновления кода разворота без повторной смены входных файлов.
+- **`src/archive_json_columns.py`**: **`update_json_flat_for_snapshot_rows`**; **`src/input_archive_sqlite.py`**: подготовка схемы и вызов синхронизации на соответствующих ветках. Подробно: **`Docs/INPUT_ARCHIVE_SQLITE_DESIGN.md`** (версия документа **1.5**).
+
+### Версия 1.7.27 — Архив SQLite: разворот CONTEST_FEATURE и REWARD_ADD_DATA в колонки JSON_*
+
+- Для листов **CONTEST-DATA** и **REWARD** в таблицы **`arch_*`** в **конец** добавляются колонки **`JSON_…`** с листьями разобранного JSON (нормализация тройных кавычек и внешних кавычек, затем **`safe_json_loads`**). Исходные поля **`CONTEST_FEATURE`** / **`REWARD_ADD_DATA`** сохраняются без удаления.
+- Модуль **`src/archive_json_columns.py`**; описание и смысл полей — **`Docs/JSON/SPOD_INPUT_DATA_CATALOG.md`**, **`Docs/INPUT_ARCHIVE_SQLITE_DESIGN.md`**.
+
+### Версия 1.7.26 — Архив SQLite: без дублей при возврате к старому содержимому файла
+
+- **`reuse_matching_historical_snapshot`** (по умолчанию **true**): при совпадении SHA-256 с **любым** прошлым снимком не создаётся новый набор строк в `arch_*`, а релевантный снимок снова становится **`latest`** (прежний `latest` — в **`historical`**). Иначе откат файла к прежнему содержимому после правки давал бы лишний полный снимок.
+
+### Версия 1.7.25 — Архив SQLite: отчёт в консоль и лог по уровням
+
+- **`input_archive_sqlite.reporting`**: **`console`** (`off` / `summary` / `normal` / `verbose`) и **`log`** (`minimal` / `normal` / `verbose`) — отдельно задают подробность вывода в stdout и в лог-файл. Итог архивации всегда одной строкой **INFO** в лог; построчные решения (новый снимок / без изменений / дозапись SHA / пропуски / ошибки) — по выбранному режиму **`log`**.
+- **`src/input_archive_sqlite.py`**: сбор событий и вызов **`console_ui.print_input_archive_sqlite_report`**.
+
+### Версия 1.7.24 — Архив SQLite: явный признак архива у каждого входного файла
+
+- В **`config.json`**: у **каждой** записи **`input_files`** задано **`archive_to_db`: true** (после **`subdir`**); **`input_archive_sqlite.default_archive_to_db`**: **`false`** — новые файлы без ключа в архив **не** попадут, пока не добавят **`archive_to_db`**. При **`input_archive_sqlite.enabled`**: **`true`** реплики пишутся в **`OUT/DB/*.sqlite`** для всех файлов с **`archive_to_db`: true**.
 
 ### Версия 1.7.23 — Архив SQLite: файл БД в OUT/DB/
 
