@@ -6,7 +6,87 @@
 
 import json
 import os
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Set, Tuple
+
+# Допустимые элементы массива run_outputs в config.json (какие выходные файлы формировать)
+_RUN_OUTPUT_TOKENS: Set[str] = frozenset({"source_only", "main_only", "consistency_only"})
+
+
+def parse_run_outputs_config(cfg: Dict[str, Any]) -> Tuple[List[str], bool, bool, bool, bool, bool, int]:
+    """
+    Разбор режима запуска: приоритет у run_outputs (массив строк).
+    Возвращает:
+      run_outputs_sorted — нормализованный список для логов;
+      source_only_exit — только source и выход (в массиве ровно source_only);
+      write_source — создавать файл source Excel;
+      write_main — полный main Excel (SUMMARY, merge, …);
+      write_consistency_file — отдельная книга консистентности;
+      consistency_early — ранний выход с одной книгой консистентности (без main), бывший режим 4;
+      run_mode_compat — число 1–4 для обратной совместимости и логов.
+    """
+    ro_raw = cfg.get("run_outputs")
+    tokens: Set[str] = set()
+
+    if isinstance(ro_raw, list) and len(ro_raw) > 0:
+        for item in ro_raw:
+            if not isinstance(item, str):
+                continue
+            t = item.strip().lower().replace("-", "_")
+            if t in _RUN_OUTPUT_TOKENS:
+                tokens.add(t)
+        if not tokens:
+            raise ValueError(
+                "run_outputs: укажите хотя бы одно из значений: "
+                "source_only, main_only, consistency_only"
+            )
+    else:
+        # Обратная совместимость: run_mode full | source_only | main_only | consistency_only | 1–4
+        _raw = cfg.get("run_mode", 1)
+        _run_mode_map = {"full": 1, "source_only": 2, "main_only": 3, "consistency_only": 4}
+        if isinstance(_raw, str):
+            _mode_val = _run_mode_map.get(_raw.strip().lower(), 1)
+        else:
+            _mode_val = int(_raw)
+        if _mode_val == 1:
+            tokens = {"source_only", "main_only", "consistency_only"}
+        elif _mode_val == 2:
+            tokens = {"source_only"}
+        elif _mode_val == 3:
+            tokens = {"main_only"}
+        elif _mode_val == 4:
+            tokens = {"consistency_only"}
+        else:
+            tokens = {"source_only", "main_only", "consistency_only"}
+
+    source_only_exit = tokens == {"source_only"}
+    write_source = "source_only" in tokens
+    write_main = "main_only" in tokens
+    write_consistency_file = "consistency_only" in tokens
+    # Ранний «только консистентность» без основной книги — как старый режим 4
+    consistency_early = write_consistency_file and not write_main
+
+    # Число 1–4 для логов и совместимости со старым кодом
+    if source_only_exit:
+        run_mode_compat = 2
+    elif consistency_early:
+        run_mode_compat = 4
+    elif write_main and not write_source and not write_consistency_file:
+        run_mode_compat = 3
+    elif write_main and write_source and write_consistency_file:
+        run_mode_compat = 1
+    else:
+        run_mode_compat = 1  # гибриды (например source+main без отдельного файла консистентности)
+
+    run_outputs_sorted = sorted(tokens)
+    return (
+        run_outputs_sorted,
+        source_only_exit,
+        write_source,
+        write_main,
+        write_consistency_file,
+        consistency_early,
+        run_mode_compat,
+    )
 
 
 class Config:
@@ -94,14 +174,16 @@ class Config:
             self._cfg.get("tournament_status_choices") or _default_statuses
         )
 
-        # Режим запуска: текстовые метки full | source_only | main_only | consistency_only (или числа 1–4)
-        _raw = self._cfg.get("run_mode", 1)
-        _run_mode_map = {"full": 1, "source_only": 2, "main_only": 3, "consistency_only": 4}
-        if isinstance(_raw, str):
-            _mode_val = _run_mode_map.get(_raw.strip().lower(), 1)
-        else:
-            _mode_val = int(_raw)
-        self.run_mode: int = _mode_val
+        # Режим запуска: массив run_outputs или устаревший run_mode (см. parse_run_outputs_config)
+        (
+            self.run_outputs,
+            self.run_source_only_exit,
+            self.run_write_source,
+            self.run_write_main,
+            self.run_write_consistency_file,
+            self.run_consistency_early,
+            self.run_mode,
+        ) = parse_run_outputs_config(self._cfg)
 
         # Применять ли сортировку (sort_columns из input_files): к source — да по умолчанию, к main — нет по умолчанию
         self.apply_sort_to_source: bool = self._cfg.get("apply_sort_to_source", True)

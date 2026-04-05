@@ -21,6 +21,7 @@ from itertools import product
 import threading  # Для синхронизации потоков
 
 from src import console_ui  # Краткий вывод этапов и сводок в консоль (stdlib)
+from src.config_loader import parse_run_outputs_config  # Разбор run_outputs / run_mode
 from src.consistency_checks import run_consistency_checks_and_attach_summary  # Проверки консистентности (отдельный модуль)
 from src.debug_timing import (
     debug_phase,
@@ -166,6 +167,8 @@ class CallerFormatter(logging.Formatter):
 def _load_config_globals():
     """Устанавливает глобальные переменные из Config (внедрённый) или из config.json."""
     global DIR_INPUT, DIR_OUTPUT, DIR_LOGS, LOG_LEVEL, LOG_BASE_NAME, INPUT_FILES, RUN_MODE
+    global RUN_OUTPUTS, RUN_SOURCE_ONLY_EXIT, RUN_WRITE_SOURCE, RUN_WRITE_MAIN
+    global RUN_WRITE_CONSISTENCY_FILE, RUN_CONSISTENCY_EARLY
     global OUTPUT_FILENAME_MAIN, OUTPUT_FILENAME_SOURCE, OUTPUT_FILENAME_CONSISTENCY
     global APPLY_SORT_TO_SOURCE, APPLY_SORT_TO_MAIN
     global SUMMARY_SHEET, SHEET_ORDER, SUMMARY_KEY_DEFS, SUMMARY_KEY_COLUMNS
@@ -199,6 +202,23 @@ def _load_config_globals():
             COLUMN_FORMATS = _c.column_formats
             CONSISTENCY_CHECKS = getattr(_c, "consistency_checks", None) or {"summary_sheet_name": "CONSISTENCY", "rules": [], "csv_columns_count": {}}
             RUN_MODE = getattr(_c, "run_mode", 1)
+            # Экземпляр Config после добавления run_outputs; иначе — только legacy run_mode
+            if hasattr(_c, "run_write_main"):
+                RUN_OUTPUTS = list(getattr(_c, "run_outputs", []))
+                RUN_SOURCE_ONLY_EXIT = bool(_c.run_source_only_exit)
+                RUN_WRITE_SOURCE = bool(_c.run_write_source)
+                RUN_WRITE_MAIN = bool(_c.run_write_main)
+                RUN_WRITE_CONSISTENCY_FILE = bool(_c.run_write_consistency_file)
+                RUN_CONSISTENCY_EARLY = bool(_c.run_consistency_early)
+            else:
+                _ro = parse_run_outputs_config({"run_mode": RUN_MODE})
+                RUN_OUTPUTS = list(_ro[0])
+                RUN_SOURCE_ONLY_EXIT = _ro[1]
+                RUN_WRITE_SOURCE = _ro[2]
+                RUN_WRITE_MAIN = _ro[3]
+                RUN_WRITE_CONSISTENCY_FILE = _ro[4]
+                RUN_CONSISTENCY_EARLY = _ro[5]
+                RUN_MODE = _ro[6]
             OUTPUT_FILENAME_MAIN = getattr(_c, "output_filename_main", "SPOD_ALL_IN_ONE")
             OUTPUT_FILENAME_SOURCE = getattr(_c, "output_filename_source", "SPOD_PROM source")
             OUTPUT_FILENAME_CONSISTENCY = getattr(_c, "output_filename_consistency", "SPOD_PROM CONSISTENCY")
@@ -248,13 +268,14 @@ def _load_config_globals():
         "rules": _cc.get("rules") or [],
         "csv_columns_count": _cc.get("csv_columns_count") or {},
     }
-    # Текстовые метки: full, source_only, main_only, consistency_only (или числа 1–4)
-    _raw_rm = _cfg.get("run_mode", 1)
-    _run_mode_map = {"full": 1, "source_only": 2, "main_only": 3, "consistency_only": 4}
-    if isinstance(_raw_rm, str):
-        RUN_MODE = _run_mode_map.get(_raw_rm.strip().lower(), 1)
-    else:
-        RUN_MODE = int(_raw_rm)
+    _ro = parse_run_outputs_config(_cfg)
+    RUN_OUTPUTS = list(_ro[0])
+    RUN_SOURCE_ONLY_EXIT = _ro[1]
+    RUN_WRITE_SOURCE = _ro[2]
+    RUN_WRITE_MAIN = _ro[3]
+    RUN_WRITE_CONSISTENCY_FILE = _ro[4]
+    RUN_CONSISTENCY_EARLY = _ro[5]
+    RUN_MODE = _ro[6]
     _of = _cfg.get("output_filenames") or {}
     OUTPUT_FILENAME_MAIN = _of.get("main", "SPOD_ALL_IN_ONE")
     OUTPUT_FILENAME_SOURCE = _of.get("source", "SPOD_PROM source")
@@ -4000,8 +4021,10 @@ def copy_consistency_results_from_raw_to_processed(
             continue
         # Колонки, добавленные проверками на сырых данных (есть в raw, нет в processed)
         added_cols = [c for c in raw_df.columns if c not in proc_df.columns]
-        for col in added_cols:
-            proc_df[col] = raw_df[col].values
+        if added_cols:
+            # pd.concat вместо поочерёдного присваивания — избегаем PerformanceWarning «fragmented DataFrame»
+            proc_df_new = pd.concat([proc_df, raw_df[added_cols].copy()], axis=1)
+            sheets_data[sheet_name] = (proc_df_new, proc_item[1])
         logging.debug(f"[CONSISTENCY] Скопировано колонок проверок на лист {sheet_name}: {len(added_cols)}")
     if summary_sheet_name in raw_sheets_data and raw_sheets_data[summary_sheet_name] is not None:
         sheets_data[summary_sheet_name] = raw_sheets_data[summary_sheet_name]
@@ -4277,9 +4300,16 @@ def main():
     console_ui.reset_phase_counter()
     set_debug_phase_console_hooks(console_ui.on_phase_start, console_ui.on_phase_end)
     console_ui.print_banner("SPOD_PROM — старт")
-    # RUN_MODE нужен до первой фазы — для прогресс-бара по этапам (число шагов зависит от режима)
-    run_mode = int(RUN_MODE) if RUN_MODE is not None else 1
-    console_ui.set_phase_progress_total(console_ui.expected_phases_for_run_mode(run_mode))
+    # До первой фазы — число шагов прогресс-бара от набора run_outputs (или устаревшего run_mode)
+    console_ui.set_phase_progress_total(
+        console_ui.expected_phases_for_run_flags(
+            RUN_SOURCE_ONLY_EXIT,
+            RUN_WRITE_SOURCE,
+            RUN_WRITE_MAIN,
+            RUN_WRITE_CONSISTENCY_FILE,
+            RUN_CONSISTENCY_EARLY,
+        )
+    )
     logging.info(f"=== Старт работы программы: {start_time.strftime('%Y-%m-%d %H:%M:%S')} ===")
     logging.debug(
         "[PERF] Логирование: файл — DEBUG/INFO; консоль — WARNING+ и краткие этапы (console_ui). "
@@ -4320,16 +4350,16 @@ def main():
 
     logging.info(f"Параллельное чтение CSV файлов завершено. Обработано файлов: {files_processed}")
 
-    _run_mode_names = {1: "full", 2: "source_only", 3: "main_only", 4: "consistency_only"}
-    _run_mode_label = f"{_run_mode_names.get(run_mode, run_mode)} (код {run_mode})"
+    run_mode = int(RUN_MODE) if RUN_MODE is not None else 1
+    _run_mode_label = f"run_outputs={RUN_OUTPUTS} (compat_mode={run_mode})"
     logging.info(f"[main] Режим запуска: {_run_mode_label}")
 
     # Подкаталог вывода по дате: OUT/YYYY/DD-MM (файлы за одну дату в одной папке)
     run_output_dir = get_output_dir_for_run(DIR_OUTPUT)
     logging.info(f"[main] Выходной каталог по дате: {run_output_dir}")
 
-    # Режим 2: только выгрузка source — проверка файлов, запись source, выход
-    if run_mode == 2:
+    # Только source (в массиве ровно source_only) — проверка файлов, запись source, выход
+    if RUN_SOURCE_ONLY_EXIT:
         missing_files = check_input_files_exist()
         if missing_files:
             msg_lines = [
@@ -4355,9 +4385,9 @@ def main():
         _console_footer(log_file, banner="Режим 2: готово (только source)")
         return
 
-    # 1.1. Выгрузка сырых данных в отдельный Excel — только в режиме full (1).
-    # Режим source_only (2) пишет source выше и выходит; main_only (3) и consistency_only (4) — без source.
-    if run_mode == 1:
+    # 1.1. Выгрузка source Excel — если в run_outputs указан source_only (и это не «только source» с выходом выше).
+    # Без source_only в массиве — как бывший main_only: без файла source.
+    if RUN_WRITE_SOURCE:
         with debug_phase("full_mode_source_excel"):
             write_source_excel(raw_sheets, run_output_dir)
 
@@ -4405,7 +4435,7 @@ def main():
 
     with debug_phase("03_gender_tournament_merge_reward_summary"):
         # 2. Добавление колонки AUTO_GENDER для листа EMPLOYEE (пропускаем в режиме consistency_only)
-        if run_mode != 4 and "EMPLOYEE" in sheets_data:
+        if not RUN_CONSISTENCY_EARLY and "EMPLOYEE" in sheets_data:
             df_employee, conf_employee = sheets_data["EMPLOYEE"]
             df_employee_old = df_employee.copy()
             df_employee = add_auto_gender_column_vectorized(df_employee, "EMPLOYEE")
@@ -4422,14 +4452,14 @@ def main():
             sheets_data["EMPLOYEE"] = (df_employee, conf_employee)
 
         # 3. Расчётный статус турнира для TOURNAMENT-SCHEDULE
-        if run_mode != 4 and "TOURNAMENT-SCHEDULE" in sheets_data:
+        if not RUN_CONSISTENCY_EARLY and "TOURNAMENT-SCHEDULE" in sheets_data:
             df_tournament, conf_tournament = sheets_data["TOURNAMENT-SCHEDULE"]
             df_report = sheets_data.get("REPORT", (None, None))[0]
             df_tournament = calculate_tournament_status(df_tournament, df_report)
             sheets_data["TOURNAMENT-SCHEDULE"] = (df_tournament, conf_tournament)
 
         # 4. Merge fields и сводка REWARD getCondition
-        if run_mode != 4:
+        if not RUN_CONSISTENCY_EARLY:
             merge_fields_across_sheets(
                 sheets_data,
                 [f for f in MERGE_FIELDS_ADVANCED if f.get("sheet_dst") != "SUMMARY"],
@@ -4452,8 +4482,8 @@ def main():
                     _conf_r,
                 )
 
-    # Режим 4: только файл консистентности — лист CONSISTENCY + листы с нарушениями, без color_scheme
-    if run_mode == 4:
+    # Только отдельная книга консистентности без main (в массиве есть consistency_only, нет main_only)
+    if RUN_CONSISTENCY_EARLY:
         sheets_with_violations = set()
         if summary_sheet_name in sheets_data and sheets_data[summary_sheet_name] is not None:
             _df, _ = sheets_data[summary_sheet_name]
@@ -4540,8 +4570,8 @@ def main():
     _wt_main_elapsed = run_elapsed_sec()
     logging.info(f"[END] write_to_excel ({output_excel}) (от старта прогона ~{_wt_main_elapsed:.2f} s)")
 
-    # 8.1. В режиме full — дополнительно создаём отдельный файл consistency
-    if run_mode == 1:
+    # 8.1. Отдельный файл consistency — если в run_outputs указаны и main_only, и consistency_only
+    if RUN_WRITE_MAIN and RUN_WRITE_CONSISTENCY_FILE:
         sheets_with_violations = set()
         if summary_sheet_name in sheets_data and sheets_data[summary_sheet_name] is not None:
             _df, _ = sheets_data[summary_sheet_name]

@@ -12,6 +12,8 @@ from typing import Any, Dict, List, Optional
 
 import pandas as pd
 
+from src.debug_timing import debug_timed
+
 
 def _log_json_parse_error(context: str, raw: str, ex_first: Exception, ex_after_fix: Exception) -> None:
     """Пишет в DEBUG понятное объяснение, почему строка не разобралась как JSON."""
@@ -79,6 +81,7 @@ def safe_json_loads_preserve_triple_quotes(s: str) -> Any:
         return s
 
 
+@debug_timed(hot=True)
 def flatten_json_column_recursive(
     df: pd.DataFrame,
     column: str,

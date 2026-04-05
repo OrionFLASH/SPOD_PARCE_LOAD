@@ -3,10 +3,10 @@
 Сборка каталога POST/: копии файлов программы с суффиксом .txt в имени (для переноса без Git).
 
 Копируются только:
-  - корень: main.py, requirements.txt, config.json;
+  - корень: main.py, requirements.txt, config.json, README.md (в POST — с суффиксом .txt);
   - модули основной программы: src/*.py и src/**/*.py, кроме каталогов src/Tools/ и src/Tests/.
 
-Документация Docs/ и README.md в POST не входят. Перед копированием из POST удаляется всё,
+Каталог Docs/ в POST не входит. Перед копированием из POST удаляется всё,
 кроме служебных файлов: КУДА_ПОЛОЖИТЬ_ФАЙЛЫ.txt, restore_names_from_txt.bat,
 restore_names_from_txt.bat.txt.
 
@@ -29,7 +29,7 @@ KEEP_IN_POST_ROOT: Set[str] = {
     "restore_names_from_txt.bat.txt",
 }
 
-ROOT_FILES: List[str] = ["main.py", "requirements.txt", "config.json"]
+ROOT_FILES: List[str] = ["main.py", "requirements.txt", "config.json", "README.md"]
 
 
 def iter_py_files(src: Path) -> Iterable[Path]:

@@ -22,7 +22,7 @@
 ## 3. Конфигурация (ключевые блоки)
 
 - `paths` — директории входа/выхода/логов.
-- `run_mode` — режим запуска (`full`, `source_only`, `main_only`, `consistency_only`). Режимы с суффиксом `_only` формируют **один** выходной файл нужного типа: **source_only** — только `output_filenames.source`; **main_only** — только основной (`output_filenames.main`); **consistency_only** — только `output_filenames.consistency` (**без** выгрузки source). В режиме **full** создаются source, основной Excel и отдельный файл consistency. Файл source: для всех ячеек листов задаётся перенос по словам (`write_source_excel`).
+- **`run_outputs`** — массив строк: `source_only`, `main_only`, `consistency_only`. Перечисляются **какие выходные файлы** создавать (можно сочетать). Эквивалент бывшего **full**: все три значения в массиве. Если в массиве **только** `source_only` — выгрузка source и выход без основного пайплайна. **Только** `main_only` — основной Excel без source и без отдельного файла consistency. **Только** `consistency_only` — отдельная книга консистентности без merge (как старый режим 4). Сочетание `main_only` + `consistency_only` — основной Excel и затем отдельный файл consistency. При отсутствии **`run_outputs`** читается устаревший **`run_mode`** (`full` / `source_only` / … или число 1–4); разбор — **`config_loader.parse_run_outputs_config`**. Файл source: перенос по словам (`write_source_excel`).
 - `consistency_checks` — правила проверок консистентности и сводный лист.
 - `merge_fields_advanced` — правила переноса/объединения полей между листами.
 - `summary_sheet` / `summary_key_defs` — формирование листа `SUMMARY`.

@@ -58,7 +58,7 @@ SPOD_PROM/
 ├── OUT/                    # Базовый каталог вывода (paths.output); файлы по дате: OUT/YYYY/DD-MM/
 ├── EDIT/                   # Копии файлов для редактирования (сессии админ-панели)
 ├── BACKUP/                 # Резервные копии
-├── POST/                   # Снимок для переноса без Git: python src/Tools/sync_post_txt.py — main.py, requirements.txt, config.json, src/**/*.py кроме src/Tools и src/Tests; см. POST/КУДА_ПОЛОЖИТЬ_ФАЙЛЫ.txt
+├── POST/                   # Снимок для переноса без Git: python src/Tools/sync_post_txt.py — main.py, requirements.txt, config.json, README.md, src/**/*.py кроме src/Tools и src/Tests; см. POST/КУДА_ПОЛОЖИТЬ_ФАЙЛЫ.txt
 ├── LOGS/                   # Файлы логов (paths.logs); по дате: LOGS/YYYY/DD-MM/
 ├── Docs/                   # Дополнительная документация; каталог CSV/JSON — Docs/JSON/ (см. README внутри)
 ├── src/Tools/              # Утилиты: build_spod_input_catalog.py, export_spod_json_examples.py, sync_post_txt.py (заполнение POST/)
@@ -102,7 +102,7 @@ SPOD_PROM/
 
 | Модуль | Назначение | Основные сущности |
 |--------|------------|-------------------|
-| **config_loader.py** | Загрузка и хранение настроек из config.json | Класс `Config`: атрибуты `dir_input`, `dir_output`, `dir_logs`, `input_files`, `summary_sheet`, `sheet_order`, `summary_key_defs`, `summary_key_columns`, `gender_patterns`, `gender_progress_step`, `field_length_validations` (устаревший, пустой dict), `merge_fields_advanced`, `color_scheme`, `column_formats`, `check_duplicates` (устаревший, пустой список), `consistency_checks`, `json_columns`, `reward_getcondition_summary`, `source_export_sort`, `max_workers_io`, `max_workers_cpu`, `tournament_status_choices`; метод `get_output_filename()`. |
+| **config_loader.py** | Загрузка и хранение настроек из config.json | Класс `Config`: атрибуты `dir_input`, `dir_output`, `dir_logs`, `input_files`, `run_outputs`, `run_source_only_exit`, `run_write_source`, `run_write_main`, `run_write_consistency_file`, `run_consistency_early`, `run_mode` (число 1–4 для логов), **`parse_run_outputs_config`**, остальные поля как прежде; метод `get_output_filename()`. |
 | **config_holder.py** | Внедрение текущего конфига для кода, работающего с глобальными переменными | `set_current_config(config)`, `get_current_config()`. |
 | **logging_setup.py** | Настройка логирования | Класс `CallerFormatter` (добавляет имя функции в сообщение); функция `setup_logger(config)` — путь к лог-файлу; уровень файла из конфига (обычно DEBUG). В **`main_impl`** после настройки консольный поток поднимается до **WARNING**, чтобы **INFO** шёл в файл; краткий ход — **`console_ui`**. |
 | **json_utils.py** | Разбор и разворот JSON-полей в DataFrame | `safe_json_loads(s)` — парсинг строки в JSON с поправкой типичных ошибок; `safe_json_loads_preserve_triple_quotes(s)`; `flatten_json_column_recursive(df, column, prefix=..., sheet=..., sep=..., max_workers_io=...)` — рекурсивный разворот колонки в несколько колонок, при большом объёме — параллельно. |
@@ -112,7 +112,7 @@ SPOD_PROM/
 | **validation.py** | Валидация длины полей и проверка дубликатов (устаревшие пути) | `validate_field_lengths(config, df, sheet_name)`, `validate_field_lengths_vectorized(config, df, sheet_name)`, `compare_validate_results`, `mark_duplicates`, `validate_single_sheet`, `check_duplicates_single_sheet`. Основной пайплайн больше не использует отдельные шаги проверки дубликатов и длины полей — всё выполняется в **consistency_checks**. |
 | **consistency_checks.py** | Проверки консистентности (unique, field_length, field_format, referential, json_field_equals_column, json_field_in_column, json_priority_unique_per_contest_link) | Выполняет правила из `consistency_checks.rules` **с параллелизацией** (ThreadPoolExecutor). **Фаза 1** — создаёт на листах колонки `unique` («ДУБЛЬ: …»), `field_length`, `field_format`, json-проверки; **Фаза 2** — referential/referential_composite и сбор результатов. Парсинг JSON в ячейках (ADD_DATA и т.п.): **`_parse_add_data_cell`**, **`_parse_add_data_cell_with_normalized`** — замена `"""` на `"`, затем `json.loads`. Сводный лист CONSISTENCY формируется с колонками-описаниями (ТИП ПРОВЕРКИ, Описание, таблица источник, поле источник и т.д.); расхождения по числу полей CSV (csv_columns_count) также попадают в свод. Функции: `_run_unique_check` (область **`_unique_active_row_mask`**, **`_unique_scope_mask`**, **`_normalize_unique_scope_conditions`**), `_run_field_length_check`, `_run_field_format_check`, `run_referential`, `run_referential_composite`, `_run_json_field_equals_column_check`, `_run_json_field_in_column_check`, `_run_json_priority_unique_per_contest_link_check`, `collect_*`, `run_all_consistency_checks`, `run_consistency_checks_and_attach_summary`, `build_consistency_summary_df(results, rules)`. |
 | **gender.py** | Определение пола по отчеству, имени, фамилии | `add_auto_gender_column(config, df, sheet_name)`, `add_auto_gender_column_vectorized(config, df, sheet_name)`, `compare_gender_results(df_old, df_new)`. Внутри используются паттерны из `config.gender_patterns`. |
-| **console_ui.py** | Краткий вывод в **stdout** при работе **main** | `print_banner`, `on_phase_start` / `on_phase_end` (хуки **`debug_phase`**), `expected_phases_for_run_mode`, `set_phase_progress_total`, `reset_phase_counter`, `render_progress_bar`, `print_consistency_summary` (обзор + таблица по **типам**: правила, листы, нарушения), `print_validation_and_csv_compact`, `print_data_processing_summary` (таблица **лист / строки** без усечения), `print_phases_table`, `print_top_functions`, `print_paths_and_total_time`, `stderr_message`. Только stdlib. |
+| **console_ui.py** | Краткий вывод в **stdout** при работе **main** | `print_banner`, `on_phase_start` / `on_phase_end`, `expected_phases_for_run_flags`, `expected_phases_for_run_mode`, `print_wrapped`, `set_phase_progress_total`, `reset_phase_counter`, `render_progress_bar`, `print_consistency_summary`, `print_validation_and_csv_compact`, `print_data_processing_summary`, `print_phases_table`, `print_top_functions`, `print_paths_and_total_time`, `stderr_message`. Только stdlib. |
 | **main_impl.py** | Полный пайплайн обработки | При импорте вызывается `_load_config_globals()`. Функция `main()`: хуки консоли и прогресс по этапам → параллельная загрузка CSV и разворот JSON → **выгрузка source** (`SPOD_PROM source …`) только в режимах **`full`** и отдельно в **`source_only`** (до выхода); в **`main_only`** и **`consistency_only`** source не создаётся → проверка наличия файлов → проверки консистентности на сырых данных и перенос на обработанные листы → добавление AUTO_GENDER (EMPLOYEE) → расчёт статуса турнира → merge (кроме SUMMARY) → **сводка getCondition на REWARD** (`reward_getcondition_summary`, если не `consistency_only`) → **проверки консистентности** (модуль `consistency_checks`) → формирование SUMMARY → лист STAT_FILE → запись основного Excel → **файл статистики времени** `STAT_FILE <таймштамп>.xlsx` (`write_performance_statistics_excel` из `debug_timing`) → итоговый отчёт по отклонениям длины полей и расхождениям CSV (**полный текст в лог**, в консоль — **`console_ui`**). Режим **`consistency_only`**: без merge, gender, турнира и основного Excel — только файл консистентности. Файл **source**: для всех ячеек включён перенос по словам (`write_source_excel`). Запись основного Excel: **`write_to_excel`**, подготовка типов **`apply_column_format_conversion`**, пост-оформление листа **`_format_sheet`** (ширины **`calculate_column_width`** с выборкой **`_AUTO_COLUMN_WIDTH_MAX_DATA_ROWS`**, цвета **`apply_color_scheme`**, выравнивание и форматы **`apply_column_formats`**, вспомогательно **`_column_indices_covered_by_column_formats`**). |
 
 **Запуск:** из корня проекта выполняется `python main.py`. При этом создаётся `Config()` (путь к config.json — корень проекта), конфиг передаётся в `set_current_config(config)`, затем вызывается `main_impl.main()`. В начале `main_impl.main()` снова вызывается `_load_config_globals()`, поэтому все глобальные переменные в main_impl берутся из внедрённого конфига.
@@ -127,7 +127,7 @@ SPOD_PROM/
 
 | Секция | Назначение |
 |--------|------------|
-| `run_mode` | Режим запуска: `full`, `source_only`, `main_only`, `consistency_only` (или числа 1–4). |
+| `run_outputs` | Массив строк: `source_only`, `main_only`, `consistency_only` — какие выходные файлы создавать (можно несколько). Эквивалент старого `full`: все три. Устаревшее поле **`run_mode`** (строка или 1–4) читается, если **`run_outputs`** отсутствует. |
 | `output_filenames` | Имена выходных файлов без расширения: main, source, consistency. |
 | `apply_sort_to_source` | Применять ли сортировку из `input_files.sort_columns` при записи source Excel. |
 | `apply_sort_to_main` | Применять ли сортировку из `input_files.sort_columns` при записи основного Excel. |
@@ -152,8 +152,8 @@ SPOD_PROM/
 
 ```json
 {
-  "run_mode": "full",
-  "_run_mode_options": ["full", "source_only", "main_only", "consistency_only"],
+  "run_outputs": ["source_only", "main_only", "consistency_only"],
+  "_run_outputs_allowed": ["source_only", "main_only", "consistency_only"],
   "apply_sort_to_source": true,
   "apply_sort_to_main": false,
   "output_filenames": { "main": "SPOD_ALL_IN_ONE", "source": "SPOD_PROM source", "consistency": "SPOD_PROM CONSISTENCY" },
@@ -180,24 +180,25 @@ SPOD_PROM/
 
 ---
 
-### run_mode
+### run_outputs
 
-**Назначение:** режим запуска пайплайна. Задаётся строкой или числом.
+**Назначение:** список выходных артефактов. Значения (строки, регистр не важен):
 
-| Значение (строка)   | Число | Описание |
-|---------------------|-------|----------|
-| `"full"`            | 1     | Source Excel + основной Excel (merge, SUMMARY, STAT_FILE) + отдельный файл consistency (CONSISTENCY + листы с нарушениями). |
-| `"source_only"`     | 2     | Только source Excel (сырые листы) и выход; остальной пайплайн не выполняется. |
-| `"main_only"`       | 3     | Только основной Excel (без source и без отдельного файла consistency). |
-| `"consistency_only"`| 4     | Только файл консистентности (CONSISTENCY + листы с нарушениями); **source не создаётся**. |
+| Токен в массиве | Что создаётся |
+|-----------------|---------------|
+| `source_only` | Файл **source** Excel (если в массиве **только** этот элемент — запись source и **выход** без merge/main). |
+| `main_only` | **Основной** Excel (SUMMARY, merge, STAT_FILE и т.д.). |
+| `consistency_only` | Отдельная книга **консистентности**. Если **нет** `main_only`, но есть `consistency_only` — выполняется бывший режим «только консистентность» (без merge/gender). Если **есть** и `main_only`, и `consistency_only` — после основной книги дополнительно пишется файл consistency (как в старом `full`). |
 
-**Пример:**
+**Примеры:**
 ```json
-"run_mode": "full",
-"_run_mode_options": ["full", "source_only", "main_only", "consistency_only"]
+"run_outputs": ["main_only"]
+```
+```json
+"run_outputs": ["source_only", "main_only", "consistency_only"]
 ```
 
-**Логика:** при старте значение читается из конфига; если указана строка из списка — используется соответствующий код; если число 1–4 — режим по коду. Создаётся **ровно один целевой результат** для режимов `*_only` (быстрый прогон). Файлы пишутся в подкаталог по дате (см. `paths.output`). Для файла **source** во всех ячейках включён **перенос по словам** (openpyxl `wrap_text`).
+**Обратная совместимость:** при отсутствии **`run_outputs`** используется **`run_mode`**: `full` → все три токена; `source_only` / `main_only` / `consistency_only` — один токен. Разбор в **`config_loader.parse_run_outputs_config`**. Файлы пишутся в подкаталог по дате. Для **source** включён перенос по словам.
 
 ---
 
@@ -933,7 +934,7 @@ def write_to_excel(sheets_data, output_path):
 
 #### 8. Краткий вывод в консоль (`src/console_ui.py`)
 
-Показывает, что программа **не зависла**: баннер старта; при входе/выходе из **`debug_phase`** — строки «… этап» и «`[NN] ✓` время краткое_имя»; опционально полоса **`[###-----] done/total`** (число шагов — **`expected_phases_for_run_mode(RUN_MODE)`**, задаётся до первой фазы чтения CSV). Сводка **консистентности** (**`print_consistency_summary`**): оценка «правил в отчёте» и «листов с колонками проверок», явное сообщение **есть/нет проблем**, **таблица по типам** (тип, число правил, число листов, сумма нарушений, примечание OK/есть); при нарушениях — блок по правилам с нарушениями; компактно **длина полей и CSV**; в конце прогона — **таблица обработки данных**: строка «файлов / сумма строк», затем колонки **«Лист»** и **«Строки / примечание»** по **всем** листам из внутреннего `summary` **без усечения** текста (разбор строк вида `ИМЯ: 200 строк` — **`_split_sheet_summary_line`**); далее таблица **этапов по времени**, **топ функций** `@debug_timed`, пути к **Excel** и **логу**, **wall-clock**. Критические сообщения (нет файлов) — **`stderr_message`**. Реализация на стандартной библиотеке Python.
+Показывает, что программа **не зависла**: баннер старта; при входе/выходе из **`debug_phase`** — строки «… этап» и «`[NN] ✓` время краткое_имя»; опционально полоса **`[###-----] done/total`** (число шагов — **`expected_phases_for_run_flags`**, задаётся до первой фазы чтения CSV). Сводка **консистентности** (**`print_consistency_summary`**): оценка «правил в отчёте» и «листов с колонками проверок», явное сообщение **есть/нет проблем**, **таблица по типам** (тип, число правил, число листов, сумма нарушений, примечание OK/есть); при нарушениях — блок по правилам с нарушениями; компактно **длина полей и CSV**; в конце прогона — **таблица обработки данных**: строка «файлов / сумма строк», затем колонки **«Лист»** и **«Строки / примечание»** по **всем** листам из внутреннего `summary` **без усечения** текста (разбор строк вида `ИМЯ: 200 строк` — **`_split_sheet_summary_line`**); далее таблица **этапов по времени**, **топ функций** `@debug_timed`, пути к **Excel** и **логу**, **wall-clock**. Критические сообщения (нет файлов) — **`stderr_message`**. Реализация на стандартной библиотеке Python.
 
 ### Логирование
 
@@ -1319,6 +1320,13 @@ python app.py
 
 ## История версий
 
+### Версия 1.7.16 — run_outputs, pandas concat, переносы в консоли
+
+- **`config.json`**: вместо одного **`run_mode`/`full`** — массив **`run_outputs`**: `source_only`, `main_only`, `consistency_only` (несколько значений = какие файлы создавать). Старый **`run_mode`** читается, если **`run_outputs`** нет.
+- **`copy_consistency_results_from_raw_to_processed`**: копирование колонок проверок через **`pd.concat`**, без предупреждения **PerformanceWarning** о фрагментированном DataFrame.
+- **`console_ui`**: **`print_wrapped`** + **textwrap** для сводки консистентности (без усечения «…»); **`expected_phases_for_run_flags`** для прогресс-бара.
+- **Документация**: **`Docs/INPUT_DATA_AND_CONFIG_FULL.md`**, **`Docs/DOCS_INDEX.md`** — описание **`run_outputs`**; **POST** и **`sync_post_txt`** при необходимости синхронизировать командой `python src/Tools/sync_post_txt.py`.
+
 ### Версия 1.7.15 — Сводка консистентности в консоли: обзор и таблица по типам
 
 - **`console_ui.print_consistency_summary`**: явные строки «правил в отчёте / листов», «проблем не обнаружено» или «выявлено нарушений …»; **таблица** по каждому **типу проверки** (число правил, уникальных листов, сумма нарушений, примечание); при нарушениях сохранена **детализация** по правилам.
@@ -1374,11 +1382,11 @@ python app.py
 
 ### Версия 1.7.6 — POST: только программа и config.json
 
-- **`sync_post_txt.py`:** в **POST/** — **`main.py`**, **`requirements.txt`**, **`config.json`** и **`src/**/*.py`**, **исключая** **`src/Tools/`** и **`src/Tests/`**; суффикс **.txt** в имени. **Docs/** и **README.md** не копируются; перед синхронизацией POST очищается (кроме `КУДА_ПОЛОЖИТЬ_ФАЙЛЫ.txt` и `restore_names_from_txt.bat*`).
+- **`sync_post_txt.py`:** в **POST/** — **`main.py`**, **`requirements.txt`**, **`config.json`**, **`README.md`** и **`src/**/*.py`**, **исключая** **`src/Tools/`** и **`src/Tests/`**; суффикс **.txt** в имени. **Docs/** не копируется; перед синхронизацией POST очищается (кроме `КУДА_ПОЛОЖИТЬ_ФАЙЛЫ.txt` и `restore_names_from_txt.bat*`).
 
 ### Версия 1.7.4 — Каталог POST (ранее с Docs/)
 
-- Введены **`sync_post_txt.py`**, bat для снятия **.txt** и расширенный состав POST; с **1.7.6** в POST только код и **config.json** (см. выше).
+- Введены **`sync_post_txt.py`**, bat для снятия **.txt** и расширенный состав POST; с **1.7.6** в POST код и **config.json**; **README.md** добавлен в состав POST позже (см. актуальный список в **`sync_post_txt.py`** и **POST/КУДА_ПОЛОЖИТЬ_ФАЙЛЫ.txt**).
 
 ### Версия 1.7.3 — Полнота каталога JSON и CSV
 
@@ -1594,7 +1602,7 @@ python app.py
 - Добавлена поддержка JSON полей (разворот по json_columns)
 - Реализовано управление сессиями редактирования
 - **derived_columns** — производные колонки на листе (например, табельный в 20 знаков с лидирующими нулями на LIST-REWARDS); **src_key_transforms** / **dst_key_transforms** в merge — преобразование ключей при связке (pad_20 и т.д.)
-- Документация — в README.md и Docs/; в POST/ синхронизируются только код и config.json (см. `sync_post_txt.py`).
+- Документация — README.md и Docs/; в POST/ синхронизируются код, config.json и копия README.md с суффиксом .txt (см. `sync_post_txt.py`).
 
 **Исправленные проблемы:**
 - Исправлены отступы в main.py (basedpyright): find_file_case_insensitive, safe_json_loads, generate_dynamic_color_scheme_from_merge_fields, merge_fields_across_sheets

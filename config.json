@@ -1,6 +1,7 @@
 {
-  "run_mode": "main_only",
-  "_run_mode_options": ["full", "source_only", "main_only", "consistency_only"],
+  "run_outputs": ["main_only"],
+  "_run_outputs_allowed": ["source_only", "main_only", "consistency_only"],
+  "_run_outputs_note": "Перечислите нужные выходы. Полный набор как раньше full: [\"source_only\",\"main_only\",\"consistency_only\"]. Устаревшее поле run_mode всё ещё читается, если run_outputs отсутствует.",
   "apply_sort_to_source": true,
   "apply_sort_to_main": true,
   "output_filenames": {
@@ -32,7 +33,7 @@
   ],
   "input_files": [
     {
-      "file": "CONTEST (PROM) 27-03 v0.csv",
+      "file": "CONTEST (PROM) 31-03 v0.csv",
       "sheet": "CONTEST-DATA",
       "subdir": "SPOD",
       "sort_columns": [{"column": "CONTEST_CODE", "order": "asc"}],
@@ -65,7 +66,7 @@
       "include_in_source": true
     },
     {
-      "file": "REPORT (PROM) 27-03 v0.csv",
+      "file": "REPORT (PROM) 31-03 v0.csv",
       "sheet": "REPORT",
       "subdir": "SPOD",
       "sort_columns": [{"column": "CONTEST_CODE", "order": "asc"}],
@@ -76,7 +77,7 @@
       "include_in_source": true
     },
     {
-      "file": "REWARD (PROM) 27-03 v0.csv",
+      "file": "REWARD (PROM) 30-03 v0.csv",
       "sheet": "REWARD",
       "subdir": "SPOD",
       "sort_columns": [{"column": "REWARD_CODE", "order": "asc"}, {"column": "REWARD_TYPE", "order": "asc"}],
@@ -98,7 +99,7 @@
       "include_in_source": true
     },
     {
-      "file": "SCHEDULE (PROM) 27-03 v0.csv",
+      "file": "SCHEDULE (PROM) 30-03 v0.csv",
       "sheet": "TOURNAMENT-SCHEDULE",
       "subdir": "SPOD",
       "sort_columns": [{"column": "TOURNAMENT_CODE", "order": "asc"}, {"column": "CONTEST_CODE", "order": "asc"}],
@@ -120,7 +121,7 @@
       "include_in_source": true
     },
     {
-      "file": "USER_ROLE (PROM) 25-03 v0.csv",
+      "file": "USER_ROLE (PROM) 01-04 v2.csv",
       "sheet": "USER_ROLE",
       "subdir": "SPOD",
       "sort_columns": [{"column": "RULE_NUM", "order": "asc"}],
@@ -131,7 +132,7 @@
       "include_in_source": true
     },
     {
-      "file": "USER_ROLE_SB (PROM) 25-03 v0.csv",
+      "file": "USER_ROLE_SB (PROM) 01-04 v2.csv",
       "sheet": "USER_ROLE SB",
       "subdir": "SPOD",
       "sort_columns": [{"column": "RULE_NUM", "order": "asc"}],
@@ -142,7 +143,7 @@
       "include_in_source": true
     },
     {
-      "file": "EMPLOYEE (PROM) 25-03 v0.csv",
+      "file": "EMPLOYEE (PROM) 01-04 v0.csv",
       "sheet": "EMPLOYEE",
       "subdir": "SPOD",
       "sort_columns": [{"column": "PERSON_NUMBER", "order": "asc"}],
@@ -552,6 +553,54 @@
         "ROLE_CODE",
         "UCH_CODE",
         "BUSINESS_BLOCK"
+      ],
+      "mode": "value",
+      "multiply_rows": false,
+      "col_max_width": 25,
+      "col_width_mode": "AUTO",
+      "col_min_width": 8,
+      "status_filters": null,
+      "custom_conditions": null,
+      "group_by": null,
+      "aggregate": null
+    },
+    {
+      "sheet_src": "REWARD",
+      "sheet_dst": "LIST-REWARDS",
+      "src_key": [
+        "REWARD_CODE"
+      ],
+      "dst_key": [
+        "Код награды"
+      ],
+      "column": [
+        "FULL_NAME"
+      ],
+      "mode": "value",
+      "multiply_rows": false,
+      "col_max_width": 40,
+      "col_width_mode": "AUTO",
+      "col_min_width": 8,
+      "status_filters": null,
+      "custom_conditions": null,
+      "group_by": null,
+      "aggregate": null
+    },
+    {
+      "sheet_src": "TOURNAMENT-SCHEDULE",
+      "sheet_dst": "LIST-REWARDS",
+      "src_key": [
+        "TOURNAMENT_CODE"
+      ],
+      "dst_key": [
+        "Код турнира"
+      ],
+      "column": [
+        "START_DT",
+        "END_DT",
+        "PERIOD_TYPE",
+        "TOURNAMENT_STATUS",
+        "TARGET_TYPE"
       ],
       "mode": "value",
       "multiply_rows": false,
@@ -1284,6 +1333,29 @@
       "column": [
         "TOURNAMENT_STATUS",
         "TARGET_TYPE"
+      ],
+      "mode": "value",
+      "multiply_rows": false,
+      "col_max_width": 30,
+      "col_width_mode": "AUTO",
+      "col_min_width": 8,
+      "status_filters": null,
+      "custom_conditions": null,
+      "group_by": null,
+      "aggregate": null
+    },
+    {
+      "sheet_src": "CONTEST-DATA",
+      "sheet_dst": "LIST-TOURNAMENT",
+      "src_key": [
+        "CONTEST_CODE"
+      ],
+      "dst_key": [
+        "\uFEFFКод конкурса"
+      ],
+      "column": [
+        "FULL_NAME",
+        "BUSINESS_STATUS"
       ],
       "mode": "value",
       "multiply_rows": false,

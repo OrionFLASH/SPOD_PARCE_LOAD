@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import shutil
 import sys
+import textwrap
 from typing import Any, Dict, List, Optional, Set
 
 # Счётчик завершённых верхнеуровневых фаз (depth==0) для «[N] ✓» и прогресс-бара
@@ -17,19 +18,44 @@ _phase_done_count: List[int] = [0]
 _phase_total_expected: List[Optional[int]] = [None]
 
 
-def expected_phases_for_run_mode(run_mode: int) -> int:
+def expected_phases_for_run_flags(
+    source_only_exit: bool,
+    write_source: bool,
+    write_main: bool,
+    write_consistency_file: bool,
+    consistency_early: bool,
+) -> int:
     """
     Число верхнеуровневых debug_phase в main_impl для полосы прогресса.
-    Должно совпадать с фактической последовательностью в main (при изменении main — обновить).
+    Синхронизировано с ветвлениями run_outputs в main.
     """
+    if source_only_exit:
+        return 2  # 01 + source write
+    n = 1  # 01
+    if write_source:
+        n += 1
+    n += 1  # 02
+    n += 1  # 03
+    if consistency_early:
+        n += 1  # 04
+        return n
+    if write_main:
+        n += 2  # 05, 06
+        if write_consistency_file:
+            n += 1  # 07
+    return n
+
+
+def expected_phases_for_run_mode(run_mode: int) -> int:
+    """Устаревший вариант по числовому коду 1–4 (если вызывается из стороннего кода)."""
     if run_mode == 2:
-        return 2  # 01 + mode2
+        return 2
     if run_mode == 4:
-        return 4  # 01, 02, 03, 04
+        return 4
     if run_mode == 3:
-        return 5  # 01, 02, 03, 05, 06 (без source и без отдельного consistency-файла)
+        return 5
     if run_mode == 1:
-        return 7  # 01, full source, 02, 03, 05, 06, 07
+        return 7
     return 5
 
 
@@ -57,6 +83,23 @@ def terminal_width(fallback: int = 80) -> int:
         return max(40, min(w, 200))
     except OSError:
         return fallback
+
+
+def print_wrapped(text: str, width: Optional[int] = None, indent: str = "  ", sub_indent: str = "    ") -> None:
+    """
+    Вывод многострочного текста с переносами по ширине терминала (без усечения «…»).
+    """
+    w = width if width is not None else terminal_width()
+    w = max(40, w)
+    s = " ".join(str(text).split())
+    if not s:
+        return
+    lines = textwrap.wrap(s, width=w, break_long_words=True, break_on_hyphens=False)
+    if not lines:
+        return
+    print(f"{indent}{lines[0]}", flush=True)
+    for ln in lines[1:]:
+        print(f"{sub_indent}{ln}", flush=True)
 
 
 def _truncate(text: str, max_len: int) -> str:
@@ -122,7 +165,7 @@ def print_consistency_summary(results: List[Dict[str, Any]]) -> None:
     Длинные sample не выводятся — только в лог.
     """
     w = terminal_width()
-    print(_truncate("— Консистентность (сводка) —", w), flush=True)
+    print("— Консистентность (сводка) —", flush=True)
     if not results:
         print("  Проверки не выполнялись (в конфиге нет правил или блок пропущен).", flush=True)
         return
@@ -145,21 +188,20 @@ def print_consistency_summary(results: List[Dict[str, Any]]) -> None:
     with_v = [r for r in included if int(r.get("violations") or 0) > 0]
     n_rules_with_violations = len(with_v)
 
-    # Итоговая строка: было проверено N правил, затронуто M листов
-    print(
-        f"  Оценка: правил в отчёте — {n_rules}; листов с колонками проверок — {n_sheets}.",
-        flush=True,
+    print_wrapped(
+        f"Оценка: правил в отчёте — {n_rules}; листов с колонками проверок — {n_sheets}.",
+        width=w,
     )
     if total_violations == 0:
-        print(
-            "  Проблем с консистентностью не обнаружено: суммарно нарушений по счётчикам правил — 0.",
-            flush=True,
+        print_wrapped(
+            "Проблем с консистентностью не обнаружено: суммарно нарушений по счётчикам правил — 0.",
+            width=w,
         )
     else:
-        print(
-            f"  Выявлено нарушений (сумма по правилам): {total_violations}; "
+        print_wrapped(
+            f"Выявлено нарушений (сумма по правилам): {total_violations}; "
             f"правил с нарушениями — {n_rules_with_violations}.",
-            flush=True,
+            width=w,
         )
 
     # Таблица по типам проверки: сколько правил, сколько листов, сколько нарушений
@@ -188,11 +230,11 @@ def print_consistency_summary(results: List[Dict[str, Any]]) -> None:
         )
 
     if not with_v:
-        print("  Примеры строк и полный разбор — в лог-файле (DEBUG).", flush=True)
+        print_wrapped("Примеры строк и полный разбор — в лог-файле (DEBUG).", width=w)
         return
 
-    # Детализация: только правила с нарушениями, по типам
-    print(_truncate("  — По правилам с нарушениями —", w), flush=True)
+    # Детализация: только правила с нарушениями, по типам (длинные строки переносим)
+    print("  — По правилам с нарушениями —", flush=True)
     by_type_v: Dict[str, List[Dict[str, Any]]] = {}
     for r in with_v:
         tp = str(r.get("type", "?"))
@@ -202,17 +244,17 @@ def print_consistency_summary(results: List[Dict[str, Any]]) -> None:
         total_t = sum(int(x.get("violations") or 0) for x in rows)
         sheets_t = sorted({str(x.get("sheet", "")) for x in rows if x.get("sheet")})
         sh_line = ", ".join(sheets_t)
-        print(f"    · {t}: нарушений {total_t}; листы: {sh_line}", flush=True)
+        print_wrapped(f"· {t}: нарушений {total_t}; листы: {sh_line}", width=w, indent="    ", sub_indent="      ")
         for r in rows[:8]:
             cid = str(r.get("check_id", ""))
             sh_one = str(r.get("sheet", ""))
             col = str(r.get("column_on_sheet", ""))
             nv = int(r.get("violations") or 0)
-            line = f"      {cid} | {sh_one} | {col} | ×{nv}"
-            print(_truncate(line, w), flush=True)
+            line = f"{cid} | {sh_one} | {col} | ×{nv}"
+            print_wrapped(line, width=w, indent="      ", sub_indent="        ")
         if len(rows) > 8:
             print(f"      … ещё правил с нарушениями по типу «{t}»: {len(rows) - 8}", flush=True)
-    print("  Детали и примеры значений — в лог-файле (DEBUG).", flush=True)
+    print_wrapped("Детали и примеры значений — в лог-файле (DEBUG).", width=w)
 
 
 def print_phases_table(phases: List[Dict[str, Any]]) -> None:
