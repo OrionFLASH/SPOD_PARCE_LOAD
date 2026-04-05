@@ -87,7 +87,7 @@ SPOD_PROM/
 
 - `Docs/INPUT_DATA_AND_CONFIG_FULL.md` — структура входных данных и конфигурация.
 - `Docs/CONSISTENCY_CHECKS_FORMAT.md` — формат правил `consistency_checks`.
-- `Docs/SPOD_CONSISTENCY_CHECKS_SQL_MIRROR.sql` — SQL-зеркало правил `referential` / `referential_composite` / `unique` / `field_length` / `field_format` для СУБД (сводка **passed** 1/0 и детали нарушений); в комментариях — соответствие **`consistency_checks.rules[].id`** и **`name`**, реализация в **`consistency_checks.py`**.
+- `Docs/SPOD_CONSISTENCY_CHECKS_SQL_MIRROR.sql` — SQL-зеркало правил `referential` / `referential_composite` / `unique` / `field_length` / `field_format` для СУБД (сводка **passed** 1/0 и детали нарушений); CTE **`dim_*`** / **`base_schedule_ref`** снижают повторные сканы таблиц; в файле — глоссарий SQL и пояснения к коду на русском, соответствие **`consistency_checks.rules[].id`** / **`name`**, связь с **`consistency_checks.py`**.
 - `Docs/CONSISTENCY_SAMPLE_FORMAT.md` — формат заполнения колонки `sample`.
 - `Docs/АНАЛИЗ_ПРОВЕРОК_КОНСИСТЕНТНОСТИ.md` — аналитика покрытия и предложения по новым правилам.
 - `Docs/PERFORMANCE_AND_PARALLELIZATION_HISTORY.md` — консолидированная история оптимизации и распараллеливания.
@@ -1320,6 +1320,11 @@ python app.py
 ---
 
 ## История версий
+
+### Версия 1.7.18 — SQL-зеркало: оптимизация и комментарии в коде
+
+- **`Docs/SPOD_CONSISTENCY_CHECKS_SQL_MIRROR.sql`**: CTE **`dim_*`**, **`base_schedule_ref`** для переиспользования справочников и одного прохода по расписанию для **scenario_1/16/20**; расширенные комментарии на русском (глоссарий SQL, пояснения к типовым **`SELECT` / `LEFT JOIN` / `WHERE`**, разделы unique / field_length / field_format и итоговый **SELECT**).
+- **`Docs/DOCS_INDEX.md`**, **README**: уточнено описание SQL-файла (оптимизация и документирование внутри скрипта).
 
 ### Версия 1.7.17 — Документация SQL-зеркала проверок консистентности
 
