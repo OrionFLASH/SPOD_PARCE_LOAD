@@ -44,6 +44,9 @@ LOGS/
 *.xls
 OUT/
 
+# Локальная SQLite-архивная БД (по умолчанию OUT/DB/*.sqlite) входит в игнорируемый OUT/
+archive/
+
 # Data files
 *.csv
 *.CSV

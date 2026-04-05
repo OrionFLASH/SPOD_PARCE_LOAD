@@ -177,6 +177,7 @@ def _load_config_globals():
     global COLUMN_FORMATS, CONSISTENCY_CHECKS, JSON_COLUMNS, REWARD_GETCONDITION_SUMMARY
     global MAX_WORKERS_IO, MAX_WORKERS_CPU, MAX_WORKERS, TOURNAMENT_STATUS_CHOICES
     global SOURCE_EXPORT_SORT
+    global INPUT_ARCHIVE_SQLITE, PROJECT_BASE_DIR
 
     try:
         from src.config_holder import get_current_config
@@ -231,12 +232,15 @@ def _load_config_globals():
             MAX_WORKERS_CPU = _c.max_workers_cpu
             MAX_WORKERS = _c.max_workers_cpu
             TOURNAMENT_STATUS_CHOICES = _c.tournament_status_choices
+            PROJECT_BASE_DIR = _c.base_dir
+            INPUT_ARCHIVE_SQLITE = getattr(_c, "input_archive_sqlite", None) or {"enabled": False}
             return
     except Exception:
         pass
 
     # Загрузка из config.json (корень проекта = родитель каталога src)
     _BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    PROJECT_BASE_DIR = _BASE_DIR
     _CONFIG_PATH = os.path.join(_BASE_DIR, "config.json")
     with open(_CONFIG_PATH, "r", encoding="utf-8") as _f:
         _cfg = json.load(_f)
@@ -293,6 +297,9 @@ def _load_config_globals():
         "ПОДВЕДЕНИЕ ИТОГОВ", "ПОДВЕДЕНИЕ ИТОГОВ", "ПОДВЕДЕНИЕ ИТОГОВ", "ЗАВЕРШЕН",
     ]
     TOURNAMENT_STATUS_CHOICES = _cfg.get("tournament_status_choices") or _TOURNAMENT_STATUS_DEFAULT
+    from src.input_archive_sqlite import merge_archive_config
+
+    INPUT_ARCHIVE_SQLITE = merge_archive_config(_cfg.get("input_archive_sqlite"))
 
 
 _load_config_globals()
@@ -3829,7 +3836,7 @@ def process_single_file(file_conf):
         file_conf (dict): Конфигурация файла из INPUT_FILES
         
     Returns:
-        tuple: (df, sheet_name, file_conf) или (None, sheet_name, None) при ошибке
+        tuple: (df, sheet_name, file_conf, df_raw, file_path) или (None, sheet_name, None, None, None) при ошибке
     """
     sheet_name = file_conf["sheet"]
     try:
@@ -3846,7 +3853,7 @@ def process_single_file(file_conf):
         if file_path is None:
             th = threading.current_thread().name
             logging.error(f"Файл не найден: {file_conf['file']} в каталоге {DIR_INPUT} [поток: {th}]")
-            return None, sheet_name, None, None
+            return None, sheet_name, None, None, None
         
         th = threading.current_thread().name
         logging.info(f"Загрузка файла: {file_path} [поток: {th}]")
@@ -3856,7 +3863,7 @@ def process_single_file(file_conf):
         result = read_csv_file(file_path, expected_columns=expected_columns)
         if result is None:
             logging.error(f"Ошибка чтения файла: {file_path} [поток: {th}]")
-            return None, sheet_name, None, None
+            return None, sheet_name, None, None, None
         df, csv_issues = result
         # Копия ровно того, что в CSV (без разворота JSON и без доп. полей) — для выгрузки source
         df_raw_for_source = df.copy()
@@ -3885,13 +3892,13 @@ def process_single_file(file_conf):
 
         logging.info(f"Файл успешно обработан: {sheet_name}, строк: {len(df)} [поток: {th}]")
         
-        return df, sheet_name, file_conf, df_raw_for_source
+        return df, sheet_name, file_conf, df_raw_for_source, file_path
         
     except Exception as e:
         logging.error(
             f"Ошибка обработки файла {file_conf.get('file', 'unknown')}: {e} [поток: {threading.current_thread().name}]"
         )
-        return None, sheet_name, None, None
+        return None, sheet_name, None, None, None
 
 
 def validate_single_sheet(sheet_name, sheets_data_item):
@@ -4317,6 +4324,7 @@ def main():
     )
 
     sheets_data = {}
+    archive_payload: Dict[str, Any] = {}
     files_processed = 0
     rows_total = 0
     summary = []
@@ -4333,7 +4341,7 @@ def main():
 
             raw_sheets = {}
             for future in as_completed(futures):
-                df, sheet_name, file_conf, df_raw = future.result()
+                df, sheet_name, file_conf, df_raw, resolved_path = future.result()
                 if df is not None and file_conf is not None:
                     with lock:
                         sheets_data[sheet_name] = (df, file_conf)
@@ -4345,10 +4353,24 @@ def main():
                                 df_raw.copy() if df_raw is not None else pd.DataFrame(),
                                 file_conf,
                             )
+                        archive_payload[sheet_name] = {
+                            "df_raw": df_raw.copy() if df_raw is not None else None,
+                            "file_conf": file_conf,
+                            "file_path": resolved_path,
+                        }
                 elif sheet_name:
                     summary.append(f"{sheet_name}: {'файл не найден' if file_conf is None else 'ошибка'}")
 
     logging.info(f"Параллельное чтение CSV файлов завершено. Обработано файлов: {files_processed}")
+
+    # Архив сырых CSV в SQLite (опционально, config input_archive_sqlite.enabled)
+    if INPUT_ARCHIVE_SQLITE.get("enabled"):
+        try:
+            from src.input_archive_sqlite import run_input_archive_sqlite
+
+            run_input_archive_sqlite(PROJECT_BASE_DIR, INPUT_ARCHIVE_SQLITE, archive_payload)
+        except Exception:
+            logging.exception("[archive_sqlite] Ошибка записи архива во входной SQLite (продолжаем пайплайн)")
 
     run_mode = int(RUN_MODE) if RUN_MODE is not None else 1
     _run_mode_label = f"run_outputs={RUN_OUTPUTS} (compat_mode={run_mode})"

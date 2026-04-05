@@ -195,6 +195,13 @@ class Config:
         self.output_filename_source: str = _of.get("source", "SPOD_PROM source")
         self.output_filename_consistency: str = _of.get("consistency", "SPOD_PROM CONSISTENCY")
 
+        # Архив входных CSV в SQLite (см. src/input_archive_sqlite.py, Docs/INPUT_ARCHIVE_SQLITE_DESIGN.md)
+        from src.input_archive_sqlite import merge_archive_config
+
+        self.input_archive_sqlite: Dict[str, Any] = merge_archive_config(
+            self._cfg.get("input_archive_sqlite")
+        )
+
     @property
     def base_dir(self) -> str:
         """Корень проекта (каталог с config.json)."""

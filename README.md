@@ -47,7 +47,7 @@ SPOD_PROM/
 │   └── main_impl.py      # Полный пайплайн: загрузка, merge, summary, Excel, отчёты
 ├── requirements.txt        # Зависимости (pandas, openpyxl и др.) для main.py
 ├── IN/                     # Корень входных данных (paths.input); внутри — subdir (SPOD, FILE и т.д.)
-├── OUT/                    # Базовый каталог вывода (paths.output); файлы по дате: OUT/YYYY/DD-MM/
+├── OUT/                    # Базовый каталог вывода (paths.output); файлы по дате: OUT/YYYY/DD-MM/; опционально OUT/DB/*.sqlite — архив входных CSV (input_archive_sqlite.db_path)
 ├── BACKUP/                 # Резервные копии
 ├── POST/                   # Снимок для переноса без Git: python src/Tools/sync_post_txt.py — main.py, requirements.txt, config.json, README.md, src/**/*.py кроме src/Tools и src/Tests; см. POST/КУДА_ПОЛОЖИТЬ_ФАЙЛЫ.txt
 ├── LOGS/                   # Файлы логов (paths.logs); по дате: LOGS/YYYY/DD-MM/
@@ -72,6 +72,7 @@ SPOD_PROM/
 - `Docs/SPOD_CONSISTENCY_CHECKS_SQL_MIRROR.sql` — SQL-зеркало правил `referential` / `referential_composite` / `unique` / `field_length` для СУБД (сводка **passed** 1/0 и детали нарушений); правила **`field_format`** в SQL не дублируются (только Python). CTE **`dim_*`** / **`base_schedule_ref`** снижают повторные сканы таблиц; в файле — глоссарий SQL и пояснения к коду на русском, соответствие **`consistency_checks.rules[].id`** / **`name`**, связь с **`consistency_checks.py`**.
 - `Docs/SPOD_CONSISTENCY_CHECKS_SQL_MIRROR.md` — подробная документация по SQL-зеркалу: одна команда `WITH`…`SELECT`, все CTE и проверки, таблицы и поля витрины, что заменять под реальную БД, формат результата SUMMARY/DETAIL.
 - `Docs/CONSISTENCY_SAMPLE_FORMAT.md` — формат заполнения колонки `sample`.
+- `Docs/INPUT_ARCHIVE_SQLITE_DESIGN.md` — архив входных CSV в SQLite (без отдельного сервера); секция **`input_archive_sqlite`** в `config.json`, код **`src/input_archive_sqlite.py`**.
 - `Docs/АНАЛИЗ_ПРОВЕРОК_КОНСИСТЕНТНОСТИ.md` — аналитика покрытия и предложения по новым правилам.
 - `Docs/PERFORMANCE_AND_PARALLELIZATION_HISTORY.md` — консолидированная история оптимизации и распараллеливания.
 - `Docs/SUMMARY_GROUP_FIX_HISTORY.md` — история исправлений логики `SUMMARY` и связки `GROUP`.
@@ -1080,6 +1081,25 @@ python main.py
 ---
 
 ## История версий
+
+### Версия 1.7.23 — Архив SQLite: файл БД в OUT/DB/
+
+- Дефолтный **`input_archive_sqlite.db_path`**: **`OUT/DB/spod_input_archive.sqlite`** (рядом с выходными артефактами; каталог **`OUT/`** уже в **`.gitignore`**). Ранее по умолчанию использовался **`archive/spod_input_archive.sqlite`**.
+- **`config.json`**, **`src/input_archive_sqlite.py`** (дефолты и запасной путь), **`Docs/INPUT_ARCHIVE_SQLITE_DESIGN.md`**, **`.gitignore`** (комментарий): согласованы с новым расположением.
+
+### Версия 1.7.22 — Архив SQLite: сводная таблица и дедуп по SHA-256
+
+- **`archive_file_inventory`**: служебная сводка по каждому логическому входному файлу (размер, строки, колонки, mtime, SHA-256, даты проверки/загрузки, счётчики пропусков и ingest).
+- **`use_sha256_for_identity`** (по умолчанию true): при неизменных размере/числе строк и колонок сравнение с **`last_content_sha256`** — без повторной записи строк при тех же CSV (в т.ч. после смены только кода программы). Хеш не считается заранее, если метаданные уже отличаются.
+- Миграция: колонка **`source_col_count`** в `archive_file_snapshot`; обратная заливка inventory из существующих `latest`-снимков.
+
+### Версия 1.7.21 — Опциональный архив входных CSV в SQLite
+
+- **`config.json` → `input_archive_sqlite`**: путь к файлу БД, включение записи, дефолты для листов, опционально SHA-256 и имена системных колонок.
+- **`input_files[].archive_to_db`**: признак «грузить этот файл в архив» (при отсутствии ключа — `default_archive_to_db`).
+- **`src/input_archive_sqlite.py`**: мета-таблица снимков (`latest` / `historical`), таблица данных на лист; сравнение mtime, размера, числа строк; без FK между листами.
+- **`src/main_impl.py`**: после параллельного чтения CSV — вызов архива; в результат `process_single_file` добавлен путь к найденному файлу.
+- **`Docs/INPUT_ARCHIVE_SQLITE_DESIGN.md`**, **`Docs/DOCS_INDEX.md`**, **`.gitignore`**: локальная БД вне репозитория (изначально каталог **`archive/`** для файла БД; с **1.7.23** — **`OUT/DB/`**, см. выше).
 
 ### Версия 1.7.20 — Удаление веб-админ-панели из репозитория
 

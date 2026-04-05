@@ -14,6 +14,19 @@
     "output": "OUT",
     "logs": "LOGS"
   },
+  "input_archive_sqlite": {
+    "enabled": false,
+    "db_path": "OUT/DB/spod_input_archive.sqlite",
+    "use_sha256_for_identity": true,
+    "compute_sha256": true,
+    "default_archive_to_db": false,
+    "append_on_content_change": true,
+    "system_columns": {
+      "snapshot_id": "__snapshot_id",
+      "row_index": "__row_ix",
+      "loaded_at": "__loaded_at"
+    }
+  },
   "logging": {
     "level": "DEBUG",
     "base_name": "LOGS"
