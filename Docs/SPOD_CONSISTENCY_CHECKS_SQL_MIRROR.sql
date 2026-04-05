@@ -1,6 +1,7 @@
 -- =============================================================================
 -- SPOD_PROM: зеркало проверок консистентности в SQL (referential, composite,
---            unique с простым scope, field_length, field_format).
+--            unique с простым scope, field_length).
+-- Правила type=field_format в СУБД не дублируются — остаются в Python (consistency_checks.py).
 --
 -- Назначение: отдельный файл, не подключается к Python-пайплайну. Сверка с
 --   правилами из config.json → consistency_checks.rules (типы без JSON).
@@ -23,8 +24,8 @@
 --   Чтобы взять только детали: WHERE report_section = 'DETAIL'.
 --
 -- Ограничения (в SQL намеренно НЕ переносятся — остаются в программе):
---   json_field_equals_column, json_field_in_column, json_priority_unique_per_contest_link,
---   csv_columns_count по сырому CSV.
+--   field_format (все правила format_*), json_field_equals_column, json_field_in_column,
+--   json_priority_unique_per_contest_link, csv_columns_count по сырому CSV.
 --
 -- -----------------------------------------------------------------------------
 -- Как устроена работа скрипта (один запрос от ключевого слова WITH до «;» в конце)
@@ -68,7 +69,7 @@
 --   — run_all_consistency_checks() читает rules и по type вызывает проверки;
 --   — referential / referential_composite — ссылочная целостность по листам;
 --   — unique — _run_unique_check; field_length — _run_field_length_check;
---   — field_format — _run_field_format_check;
+--   — field_format — _run_field_format_check (в этом SQL-файле не зеркалируется);
 --   — типы json_field_*, json_priority_* в SQL не отражены (нужен разбор JSON в СУБД).
 -- Сводный лист CONSISTENCY и колонки на листах строятся из тех же id/name (build_consistency_summary_df).
 --
@@ -781,159 +782,6 @@ v_fl_rep AS (
 ),
 
 -- ---------------------------------------------------------------------------
--- E. FIELD_FORMAT — соответствие строки шаблону (RLIKE в Hive/Spark)
--- ---------------------------------------------------------------------------
--- Проверяются только непустые значения (после TRIM). Даты — упрощённый шаблон
--- YYYY-MM-DD без проверки календарной корректности; при необходимости замените на to_date().
--- Остальные v_ff_*: та же схема — FROM таблица, WHERE поле не NULL и не пустое,
--- AND NOT (… RLIKE 'шаблон') для отбора строк с неверным форматом.
-
--- id "format_report_contest_date" | name «Формат поля CONTEST_DATE в REPORT должен быть: YYYY-MM-DD» | type field_format (_run_field_format_check)
-v_ff_rep_contest_date AS (
-    SELECT
-        'format_report_contest_date' AS check_id,
-        'field_format' AS check_type,
-        CONCAT('CONTEST_DATE=', CAST(CONTEST_DATE AS STRING)) AS detail_key,
-        'Неверный формат даты YYYY-MM-DD' AS detail_message
-    FROM spod_dq.t_report
-    WHERE CONTEST_DATE IS NOT NULL
-      AND TRIM(CAST(CONTEST_DATE AS STRING)) <> ''                       -- пустые не проверяем
-      AND NOT (CAST(CONTEST_DATE AS STRING) RLIKE '^[0-9]{4}-[0-9]{2}-[0-9]{2}$')  -- нет совпадения с шаблоном даты
-),
-
--- id "format_contest_data_create_dt" | name «Формат поля CREATE_DT в CONTEST-DATE должен быть: YYYY-MM-DD» | type field_format
-v_ff_cd_create AS (
-    SELECT
-        'format_contest_data_create_dt' AS check_id,
-        'field_format' AS check_type,
-        CONCAT('CREATE_DT=', CAST(CREATE_DT AS STRING)) AS detail_key,
-        'Неверный формат даты YYYY-MM-DD' AS detail_message
-    FROM spod_dq.t_contest_data
-    WHERE CREATE_DT IS NOT NULL
-      AND TRIM(CAST(CREATE_DT AS STRING)) <> ''
-      AND NOT (CAST(CREATE_DT AS STRING) RLIKE '^[0-9]{4}-[0-9]{2}-[0-9]{2}$')  -- см. v_ff_rep_contest_date
-),
-
--- id "format_contest_data_close_dt" | name «Формат поля CLOSE_DT в CONTEST-DATE должен быть: YYYY-MM-DD (учесть вариант 4000-01-01)» | type field_format
-v_ff_cd_close AS (
-    SELECT
-        'format_contest_data_close_dt' AS check_id,
-        'field_format' AS check_type,
-        CONCAT('CLOSE_DT=', CAST(CLOSE_DT AS STRING)) AS detail_key,
-        'Неверный формат даты YYYY-MM-DD (или не спец. 4000-01-01)' AS detail_message
-    FROM spod_dq.t_contest_data
-    WHERE CLOSE_DT IS NOT NULL
-      AND TRIM(CAST(CLOSE_DT AS STRING)) <> ''
-      AND TRIM(CAST(CLOSE_DT AS STRING)) <> '4000-01-01'                 -- спец. «бесконечность» из config — не ошибка
-      AND NOT (CAST(CLOSE_DT AS STRING) RLIKE '^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
-),
-
--- id "format_schedule_start_dt" | name «Формат поля START_DT в TOURNAMENT-SCHEDULE должен быть: YYYY-MM-DD» | type field_format
-v_ff_sch_start AS (
-    SELECT
-        'format_schedule_start_dt' AS check_id,
-        'field_format' AS check_type,
-        CONCAT('START_DT=', CAST(START_DT AS STRING)) AS detail_key,
-        'Неверный формат даты YYYY-MM-DD' AS detail_message
-    FROM spod_dq.t_tournament_schedule
-    WHERE START_DT IS NOT NULL
-      AND TRIM(CAST(START_DT AS STRING)) <> ''
-      AND NOT (CAST(START_DT AS STRING) RLIKE '^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
-),
-
--- id "format_schedule_end_dt" | name «Формат поля END_DT в TOURNAMENT-SCHEDULE должен быть: YYYY-MM-DD (учесть вариант 4000-01-01)» | type field_format
-v_ff_sch_end AS (
-    SELECT
-        'format_schedule_end_dt' AS check_id,
-        'field_format' AS check_type,
-        CONCAT('END_DT=', CAST(END_DT AS STRING)) AS detail_key,
-        'Неверный формат даты YYYY-MM-DD (или не спец. 4000-01-01)' AS detail_message
-    FROM spod_dq.t_tournament_schedule
-    WHERE END_DT IS NOT NULL
-      AND TRIM(CAST(END_DT AS STRING)) <> ''
-      AND TRIM(CAST(END_DT AS STRING)) <> '4000-01-01'                  -- как CLOSE_DT: спец. дата допустима
-      AND NOT (CAST(END_DT AS STRING) RLIKE '^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
-),
-
--- id "format_schedule_result_dt" | name «Формат поля RESULT_DT в TOURNAMENT-SCHEDULE должен быть: YYYY-MM-DD если присутствует» | type field_format
-v_ff_sch_result AS (
-    SELECT
-        'format_schedule_result_dt' AS check_id,
-        'field_format' AS check_type,
-        CONCAT('RESULT_DT=', CAST(RESULT_DT AS STRING)) AS detail_key,
-        'Неверный формат даты YYYY-MM-DD' AS detail_message
-    FROM spod_dq.t_tournament_schedule
-    WHERE RESULT_DT IS NOT NULL
-      AND TRIM(CAST(RESULT_DT AS STRING)) <> ''
-      AND NOT (CAST(RESULT_DT AS STRING) RLIKE '^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
-),
-
--- id "format_report_plan_value" | name «Формат поля PLAN_VALUE в REPORT должен быть: 0.00000 (...)» | type field_format
-v_ff_rep_plan AS (
-    SELECT
-        'format_report_plan_value' AS check_id,
-        'field_format' AS check_type,
-        CONCAT('PLAN_VALUE=', CAST(PLAN_VALUE AS STRING)) AS detail_key,
-        'Ожидается decimal с 5 знаками после точки' AS detail_message
-    FROM spod_dq.t_report
-    WHERE PLAN_VALUE IS NOT NULL
-      AND TRIM(CAST(PLAN_VALUE AS STRING)) <> ''
-      AND NOT (CAST(PLAN_VALUE AS STRING) RLIKE '^-?[0-9]+\\.[0-9]{5}$')  -- опциональный минус, дробная часть ровно 5 цифр
-),
-
--- id "format_report_fact_value" | name «Формат поля FACT_VALUE в REPORT должен быть: 0.00000 (...)» | type field_format
-v_ff_rep_fact AS (
-    SELECT
-        'format_report_fact_value' AS check_id,
-        'field_format' AS check_type,
-        CONCAT('FACT_VALUE=', CAST(FACT_VALUE AS STRING)) AS detail_key,
-        'Ожидается decimal с 5 знаками после точки' AS detail_message
-    FROM spod_dq.t_report
-    WHERE FACT_VALUE IS NOT NULL
-      AND TRIM(CAST(FACT_VALUE AS STRING)) <> ''
-      AND NOT (CAST(FACT_VALUE AS STRING) RLIKE '^-?[0-9]+\\.[0-9]{5}$')
-),
-
--- id "format_report_manager_person_number" | name «Формат поля MANAGER_PERSON_NUMBER в REPORT должен быть: 20 цифр с лидирующими нулями» | type field_format
-v_ff_rep_mgr_pn AS (
-    SELECT
-        'format_report_manager_person_number' AS check_id,
-        'field_format' AS check_type,
-        CAST(MANAGER_PERSON_NUMBER AS STRING) AS detail_key,
-        'MANAGER_PERSON_NUMBER: ожидается ровно 20 цифр' AS detail_message
-    FROM spod_dq.t_report
-    WHERE MANAGER_PERSON_NUMBER IS NOT NULL
-      AND TRIM(CAST(MANAGER_PERSON_NUMBER AS STRING)) <> ''
-      AND NOT (CAST(MANAGER_PERSON_NUMBER AS STRING) RLIKE '^[0-9]{20}$')  -- ровно 20 цифр, без других символов
-),
-
--- id "format_employee_person_number" | name «Формат поля PERSON_NUMBER в EMPLOYEE должен быть: 20 цифр с лидирующими нулями» | type field_format
-v_ff_emp_pn AS (
-    SELECT
-        'format_employee_person_number' AS check_id,
-        'field_format' AS check_type,
-        CAST(PERSON_NUMBER AS STRING) AS detail_key,
-        'PERSON_NUMBER: ожидается ровно 20 цифр' AS detail_message
-    FROM spod_dq.t_employee
-    WHERE PERSON_NUMBER IS NOT NULL
-      AND TRIM(CAST(PERSON_NUMBER AS STRING)) <> ''
-      AND NOT (CAST(PERSON_NUMBER AS STRING) RLIKE '^[0-9]{20}$')
-),
-
--- id "format_employee_person_number_add" | name «Формат поля PERSON_NUMBER_ADD в EMPLOYEE должен быть: 20 цифр с лидирующими нулями» | type field_format
-v_ff_emp_pna AS (
-    SELECT
-        'format_employee_person_number_add' AS check_id,
-        'field_format' AS check_type,
-        CAST(PERSON_NUMBER_ADD AS STRING) AS detail_key,
-        'PERSON_NUMBER_ADD: ожидается ровно 20 цифр' AS detail_message
-    FROM spod_dq.t_employee
-    WHERE PERSON_NUMBER_ADD IS NOT NULL
-      AND TRIM(CAST(PERSON_NUMBER_ADD AS STRING)) <> ''
-      AND NOT (CAST(PERSON_NUMBER_ADD AS STRING) RLIKE '^[0-9]{20}$')
-),
-
--- ---------------------------------------------------------------------------
 -- chk_summary — сводная таблица по всем проверкам
 -- ---------------------------------------------------------------------------
 -- Условия «что считать нарушением» заданы один раз в CTE v_*; здесь для каждой проверки
@@ -980,17 +828,6 @@ chk_summary AS (
     UNION ALL SELECT 'field_length_org_unit', 'field_length', (SELECT COUNT(*) FROM v_fl_org)
     UNION ALL SELECT 'field_length_employee', 'field_length', (SELECT COUNT(*) FROM v_fl_emp)
     UNION ALL SELECT 'field_length_report', 'field_length', (SELECT COUNT(*) FROM v_fl_rep)
-    UNION ALL SELECT 'format_report_contest_date', 'field_format', (SELECT COUNT(*) FROM v_ff_rep_contest_date)
-    UNION ALL SELECT 'format_contest_data_create_dt', 'field_format', (SELECT COUNT(*) FROM v_ff_cd_create)
-    UNION ALL SELECT 'format_contest_data_close_dt', 'field_format', (SELECT COUNT(*) FROM v_ff_cd_close)
-    UNION ALL SELECT 'format_schedule_start_dt', 'field_format', (SELECT COUNT(*) FROM v_ff_sch_start)
-    UNION ALL SELECT 'format_schedule_end_dt', 'field_format', (SELECT COUNT(*) FROM v_ff_sch_end)
-    UNION ALL SELECT 'format_schedule_result_dt', 'field_format', (SELECT COUNT(*) FROM v_ff_sch_result)
-    UNION ALL SELECT 'format_report_plan_value', 'field_format', (SELECT COUNT(*) FROM v_ff_rep_plan)
-    UNION ALL SELECT 'format_report_fact_value', 'field_format', (SELECT COUNT(*) FROM v_ff_rep_fact)
-    UNION ALL SELECT 'format_report_manager_person_number', 'field_format', (SELECT COUNT(*) FROM v_ff_rep_mgr_pn)
-    UNION ALL SELECT 'format_employee_person_number', 'field_format', (SELECT COUNT(*) FROM v_ff_emp_pn)
-    UNION ALL SELECT 'format_employee_person_number_add', 'field_format', (SELECT COUNT(*) FROM v_ff_emp_pna)
 ),
 
 -- ---------------------------------------------------------------------------
@@ -1036,17 +873,6 @@ chk_detail AS (
     UNION ALL SELECT check_id, check_type, detail_key, detail_message FROM v_fl_org
     UNION ALL SELECT check_id, check_type, detail_key, detail_message FROM v_fl_emp
     UNION ALL SELECT check_id, check_type, detail_key, detail_message FROM v_fl_rep
-    UNION ALL SELECT check_id, check_type, detail_key, detail_message FROM v_ff_rep_contest_date
-    UNION ALL SELECT check_id, check_type, detail_key, detail_message FROM v_ff_cd_create
-    UNION ALL SELECT check_id, check_type, detail_key, detail_message FROM v_ff_cd_close
-    UNION ALL SELECT check_id, check_type, detail_key, detail_message FROM v_ff_sch_start
-    UNION ALL SELECT check_id, check_type, detail_key, detail_message FROM v_ff_sch_end
-    UNION ALL SELECT check_id, check_type, detail_key, detail_message FROM v_ff_sch_result
-    UNION ALL SELECT check_id, check_type, detail_key, detail_message FROM v_ff_rep_plan
-    UNION ALL SELECT check_id, check_type, detail_key, detail_message FROM v_ff_rep_fact
-    UNION ALL SELECT check_id, check_type, detail_key, detail_message FROM v_ff_rep_mgr_pn
-    UNION ALL SELECT check_id, check_type, detail_key, detail_message FROM v_ff_emp_pn
-    UNION ALL SELECT check_id, check_type, detail_key, detail_message FROM v_ff_emp_pna
 )
 
 -- ---------------------------------------------------------------------------
@@ -1095,5 +921,6 @@ ORDER BY result_order, check_id, detail_key
 --     json_priority_unique_per_contest_link (id: reward_add_data_badge, reward_add_data_label,
 --     reward_add_data_badge_n, reward_parent_in_reward_code, reward_priority_unique_per_contest) —
 --     нужен разбор JSON в СУБД или отдельный слой, см. consistency_checks.py.
+--   Не перенесён тип field_format (все id format_*): проверка форматов полей выполняется только в Python.
 --   Проверка csv_columns_count задаётся отдельно в конфиге, не дублируется в этом SQL.
 -- =============================================================================

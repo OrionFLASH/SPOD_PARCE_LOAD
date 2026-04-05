@@ -87,7 +87,8 @@ SPOD_PROM/
 
 - `Docs/INPUT_DATA_AND_CONFIG_FULL.md` — структура входных данных и конфигурация.
 - `Docs/CONSISTENCY_CHECKS_FORMAT.md` — формат правил `consistency_checks`.
-- `Docs/SPOD_CONSISTENCY_CHECKS_SQL_MIRROR.sql` — SQL-зеркало правил `referential` / `referential_composite` / `unique` / `field_length` / `field_format` для СУБД (сводка **passed** 1/0 и детали нарушений); CTE **`dim_*`** / **`base_schedule_ref`** снижают повторные сканы таблиц; в файле — глоссарий SQL и пояснения к коду на русском, соответствие **`consistency_checks.rules[].id`** / **`name`**, связь с **`consistency_checks.py`**.
+- `Docs/SPOD_CONSISTENCY_CHECKS_SQL_MIRROR.sql` — SQL-зеркало правил `referential` / `referential_composite` / `unique` / `field_length` для СУБД (сводка **passed** 1/0 и детали нарушений); правила **`field_format`** в SQL не дублируются (только Python). CTE **`dim_*`** / **`base_schedule_ref`** снижают повторные сканы таблиц; в файле — глоссарий SQL и пояснения к коду на русском, соответствие **`consistency_checks.rules[].id`** / **`name`**, связь с **`consistency_checks.py`**.
+- `Docs/SPOD_CONSISTENCY_CHECKS_SQL_MIRROR.md` — подробная документация по SQL-зеркалу: одна команда `WITH`…`SELECT`, все CTE и проверки, таблицы и поля витрины, что заменять под реальную БД, формат результата SUMMARY/DETAIL.
 - `Docs/CONSISTENCY_SAMPLE_FORMAT.md` — формат заполнения колонки `sample`.
 - `Docs/АНАЛИЗ_ПРОВЕРОК_КОНСИСТЕНТНОСТИ.md` — аналитика покрытия и предложения по новым правилам.
 - `Docs/PERFORMANCE_AND_PARALLELIZATION_HISTORY.md` — консолидированная история оптимизации и распараллеливания.
@@ -1321,9 +1322,14 @@ python app.py
 
 ## История версий
 
+### Версия 1.7.19 — Документация SQL-зеркала отдельным файлом
+
+- **`Docs/SPOD_CONSISTENCY_CHECKS_SQL_MIRROR.md`**: подробное описание единого запроса (`WITH` → `dim_*` / `base_schedule_ref` → `v_*` → `chk_summary` / `chk_detail` → итоговый `SELECT`); перечень всех проверок по типам; таблицы и поля витрины; замена схемы и имён таблиц; формат результата SUMMARY/DETAIL; исключения (field_format, json, csv_columns_count); диалект Hive/Spark и замечания по переносу.
+- **`Docs/DOCS_INDEX.md`**, **README**: ссылка на новый документ в каталоге документации и в списке ключевых документов.
+
 ### Версия 1.7.18 — SQL-зеркало: оптимизация и комментарии в коде
 
-- **`Docs/SPOD_CONSISTENCY_CHECKS_SQL_MIRROR.sql`**: CTE **`dim_*`**, **`base_schedule_ref`** для переиспользования справочников и одного прохода по расписанию для **scenario_1/16/20**; расширенные комментарии на русском (глоссарий SQL, пояснения к типовым **`SELECT` / `LEFT JOIN` / `WHERE`**, разделы unique / field_length / field_format и итоговый **SELECT**).
+- **`Docs/SPOD_CONSISTENCY_CHECKS_SQL_MIRROR.sql`**: CTE **`dim_*`**, **`base_schedule_ref`** для переиспользования справочников и одного прохода по расписанию для **scenario_1/16/20**; расширенные комментарии на русском (глоссарий SQL, пояснения к типовым **`SELECT` / `LEFT JOIN` / `WHERE`**, разделы unique / field_length и итоговый **SELECT**); без зеркалирования **field_format**.
 - **`Docs/DOCS_INDEX.md`**, **README**: уточнено описание SQL-файла (оптимизация и документирование внутри скрипта).
 
 ### Версия 1.7.17 — Документация SQL-зеркала проверок консистентности
