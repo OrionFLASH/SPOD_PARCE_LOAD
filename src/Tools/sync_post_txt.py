@@ -4,9 +4,11 @@
 
 Копируются только:
   - корень: main.py, requirements.txt, config.json, README.md (в POST — с суффиксом .txt);
-  - модули основной программы: src/*.py и src/**/*.py, кроме каталогов src/Tools/ и src/Tests/.
+  - модули основной программы: src/*.py и src/**/*.py, кроме каталогов src/Tools/ и src/Tests/;
+  - вся документация под Docs/: каждый файл копируется с именем «как в проекте + .txt»
+    (например Docs/JSON/README.md → POST/Docs/JSON/README.md.txt).
 
-Каталог Docs/ в POST не входит. Перед копированием из POST удаляется всё,
+Перед копированием из POST удаляется всё,
 кроме служебных файлов: КУДА_ПОЛОЖИТЬ_ФАЙЛЫ.txt, restore_names_from_txt.bat,
 restore_names_from_txt.bat.txt.
 
@@ -40,6 +42,18 @@ def iter_py_files(src: Path) -> Iterable[Path]:
             continue
         rel_parts = p.relative_to(src).parts
         if rel_parts and rel_parts[0] in skip_dirs:
+            continue
+        yield p
+
+
+def iter_docs_files(docs_root: Path) -> Iterable[Path]:
+    """Все обычные файлы под Docs/ (без каталогов и служебного .DS_Store)."""
+    if not docs_root.is_dir():
+        return
+    for p in docs_root.rglob("*"):
+        if not p.is_file():
+            continue
+        if p.name == ".DS_Store":
             continue
         yield p
 
@@ -87,6 +101,13 @@ def main() -> None:
 
     src_root = ROOT / "src"
     for p in iter_py_files(src_root):
+        rel = p.relative_to(ROOT)
+        copy_one(p, rel)
+        n += 1
+
+    # Документация: сохраняется структура каталогов Docs/, к имени каждого файла добавляется .txt
+    docs_root = ROOT / "Docs"
+    for p in iter_docs_files(docs_root):
         rel = p.relative_to(ROOT)
         copy_one(p, rel)
         n += 1
