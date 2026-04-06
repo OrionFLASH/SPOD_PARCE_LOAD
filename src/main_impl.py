@@ -4455,6 +4455,8 @@ def main():
     consistency_results: List[Dict[str, Any]] = []
     # Метаданные матрицы RATING×ITEM (подсветка после записи основного Excel)
     _rating_matrix_meta: Optional[Dict[str, Any]] = None
+    # Ранняя запись книги консистентности (main + consistency_only), до merge/Summary
+    consistency_written_early = False
     # 1. Параллельное чтение всех CSV и разворот ВСЕХ JSON‑полей на каждом листе
     logging.info(f"Начало параллельного чтения CSV файлов (потоков: {MAX_WORKERS_IO})")
 
@@ -4582,6 +4584,27 @@ def main():
             raw_sheets_data=raw_sheets_data,
             raw_counts=raw_counts,
         )
+
+        if RUN_WRITE_MAIN and RUN_WRITE_CONSISTENCY_FILE and not RUN_CONSISTENCY_EARLY:
+            sheets_with_violations_e: Set[str] = set()
+            if summary_sheet_name in sheets_data and sheets_data[summary_sheet_name] is not None:
+                _df_e, _ = sheets_data[summary_sheet_name]
+                if isinstance(_df_e, pd.DataFrame) and "violations" in _df_e.columns and "sheet" in _df_e.columns:
+                    viol_e = _df_e[_df_e["violations"].astype(int) > 0]
+                    sheets_with_violations_e = set(viol_e["sheet"].dropna().astype(str).unique().tolist())
+            out_early = {summary_sheet_name}
+            for s in sheets_with_violations_e:
+                if s in sheets_data and sheets_data[s] is not None:
+                    out_early.add(s)
+            consistency_early_data = {k: v for k, v in sheets_data.items() if k in out_early}
+            ts_e = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+            consistency_early_path = os.path.join(
+                run_output_dir, f"{OUTPUT_FILENAME_CONSISTENCY} {ts_e}.xlsx"
+            )
+            logging.info(f"[START] write_to_excel (консистентность, ранняя запись) ({consistency_early_path})")
+            write_to_excel(consistency_early_data, consistency_early_path, use_color_scheme=False)
+            logging.info(f"[END] Ранняя книга консистентности записана: {consistency_early_path}")
+            consistency_written_early = True
 
     with debug_phase("03_gender_tournament_merge_reward_summary"):
         # 2. Добавление колонки AUTO_GENDER для листа EMPLOYEE (пропускаем в режиме consistency_only)
@@ -4752,7 +4775,7 @@ def main():
         apply_rating_item_matrix_colors(output_excel, _rating_matrix_meta, RATING_ITEM_MATRIX)
 
     # 8.1. Отдельный файл consistency — если в run_outputs указаны и main_only, и consistency_only
-    if RUN_WRITE_MAIN and RUN_WRITE_CONSISTENCY_FILE:
+    if RUN_WRITE_MAIN and RUN_WRITE_CONSISTENCY_FILE and not consistency_written_early:
         sheets_with_violations = set()
         if summary_sheet_name in sheets_data and sheets_data[summary_sheet_name] is not None:
             _df, _ = sheets_data[summary_sheet_name]
