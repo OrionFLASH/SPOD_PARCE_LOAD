@@ -267,10 +267,15 @@ def apply_rating_item_matrix_enrichment(
         )
         return None
 
-    if country_c is None or tb_c is None or gosb_c is None:
+    if not any((country_c, tb_c, gosb_c)):
         logging.warning(
-            f"[rating_item_matrix] Не найдены столбцы мест в рейтинге (страна/ТБ/ГОСБ) — "
-            f"country={country_c!r}, tb={tb_c!r}, gosb={gosb_c!r}. Матрица ITEM будет добавлена, подсветка пропущена."
+            f"[rating_item_matrix] Нет ни одного столбца места в рейтинге — "
+            f"country={country_c!r}, tb={tb_c!r}, gosb={gosb_c!r}. Матрица ITEM будет без подсветки."
+        )
+    elif not (country_c and tb_c and gosb_c):
+        logging.info(
+            f"[rating_item_matrix] Часть столбцов рейтинга не найдена (country={country_c!r}, tb={tb_c!r}, gosb={gosb_c!r}) — "
+            "подсветка только по доступным измерениям."
         )
 
     specs = _collect_item_reward_specs(reward_t[0], rating_df, cfg)
@@ -320,7 +325,8 @@ def apply_rating_item_matrix_enrichment(
         "fill_country": cfg.get("fill_country_ok") or "C6EFCE",
         "fill_tb": cfg.get("fill_tb_ok") or "FFEB9C",
         "fill_gosb": cfg.get("fill_gosb_ok") or "BDD7EE",
-        "skip_colors": not (country_c and tb_c and gosb_c),
+        # Подсветка возможна, если есть хотя бы одно место в рейтинге (страна / ТБ / ГОСБ)
+        "skip_colors": not any((country_c, tb_c, gosb_c)),
     }
 
 
@@ -343,7 +349,7 @@ def apply_rating_item_matrix_colors(
     if not cfg or not bool(cfg.get("enabled")):
         return
     if meta.get("skip_colors"):
-        logging.info("[rating_item_matrix] Подсветка отключена (нет столбцов рейтинга на листе RATING)")
+        logging.info("[rating_item_matrix] Подсветка отключена (на листе RATING нет столбцов мест в рейтинге)")
         return
     try:
         wb = load_workbook(xlsx_path)
@@ -361,11 +367,16 @@ def apply_rating_item_matrix_colors(
     def col_for(name: str) -> Optional[int]:
         return hmap.get(str(name).strip())
 
-    c_country = col_for(meta["country_rank_col"])
-    c_tb = col_for(meta["tb_rank_col"])
-    c_gosb = col_for(meta["gosb_rank_col"])
-    if not c_country or not c_tb or not c_gosb:
-        logging.warning("[rating_item_matrix] Подсветка: не найдены колонки рейтинга в файле")
+    def _col_idx(name: Optional[str]) -> Optional[int]:
+        if not name:
+            return None
+        return col_for(name)
+
+    c_country = _col_idx(meta.get("country_rank_col"))
+    c_tb = _col_idx(meta.get("tb_rank_col"))
+    c_gosb = _col_idx(meta.get("gosb_rank_col"))
+    if c_country is None and c_tb is None and c_gosb is None:
+        logging.warning("[rating_item_matrix] Подсветка: в файле не найдены заголовки столбцов рейтинга")
         wb.close()
         return
 
@@ -389,36 +400,35 @@ def apply_rating_item_matrix_colors(
     added = meta.get("added_columns") or []
 
     for r in range(2, ws.max_row + 1):
-        v_country = _as_float(ws.cell(row=r, column=c_country).value)
-        v_tb = _as_float(ws.cell(row=r, column=c_tb).value)
-        v_gosb = _as_float(ws.cell(row=r, column=c_gosb).value)
+        v_country = (
+            _as_float(ws.cell(row=r, column=c_country).value) if c_country is not None else None
+        )
+        v_tb = _as_float(ws.cell(row=r, column=c_tb).value) if c_tb is not None else None
+        v_gosb = _as_float(ws.cell(row=r, column=c_gosb).value) if c_gosb is not None else None
 
         for ac in added:
             ci = col_for(ac)
             if ci is None:
                 continue
             cell = ws.cell(row=r, column=ci)
-            raw_v = cell.value
-            if raw_v is None or raw_v == "":
-                continue
-            if isinstance(raw_v, (int, float)) and float(raw_v) == 0:
-                continue
-
             tinfo = thr_all.get(ac) or {}
             t_b = tinfo.get("bank")
             t_t = tinfo.get("tb")
             t_g = tinfo.get("gosb")
 
-            chosen: Optional[PatternFill] = None
-            if t_b is not None and v_country is not None and v_country <= t_b:
-                chosen = fill_country
-            elif t_t is not None and v_tb is not None and v_tb <= t_t:
-                chosen = fill_tb
-            elif t_g is not None and v_gosb is not None and v_gosb <= t_g:
-                chosen = fill_gosb
+            # Кандидаты: (порог minRating*, приоритет при равных порогах, заливка).
+            # При равных порогах выше «страна», затем ТБ, затем ГОСБ (см. ToDo SPOD).
+            cands: List[Tuple[float, int, PatternFill]] = []
+            if c_country is not None and t_b is not None and v_country is not None and v_country <= t_b:
+                cands.append((float(t_b), 2, fill_country))
+            if c_tb is not None and t_t is not None and v_tb is not None and v_tb <= t_t:
+                cands.append((float(t_t), 1, fill_tb))
+            if c_gosb is not None and t_g is not None and v_gosb is not None and v_gosb <= t_g:
+                cands.append((float(t_g), 0, fill_gosb))
 
-            if chosen is not None:
-                cell.fill = chosen
+            if cands:
+                _thr, _prio, chosen_fill = max(cands, key=lambda x: (x[0], x[1]))
+                cell.fill = chosen_fill
 
     wb.save(xlsx_path)
     wb.close()
