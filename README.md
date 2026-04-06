@@ -121,7 +121,7 @@ SPOD_PROM/
 | `logging` | Уровень (INFO/DEBUG) и базовое имя файла логов. |
 | `performance` | Количество потоков: max_workers_io, max_workers_cpu. |
 | `tournament_status_choices` | Подписи статусов турнира (расчёт CALC_TOURNAMENT_STATUS). |
-| `input_files` | Список CSV: file, sheet, expected_columns (0=АВТО), subdir, **`aggregate_into_sheet`** (опц., общий лист-склейка), sort_columns, ширина, freeze, include_in_source. |
+| `input_files` | Список CSV: file, sheet, expected_columns (0=АВТО), subdir, **`aggregate_into_sheet`** (опц.), **`archive_db_path`** (опц., отдельный файл архива SQLite), **`archive_to_db`**, sort_columns, ширина, freeze, include_in_source. |
 | `summary_sheet` | Параметры сводного листа SUMMARY (ширина, закрепление). |
 | `sheet_order` | Порядок листов в выходном Excel (если задан). |
 | `summary_key_defs` | Ключевые колонки по листам для каркаса SUMMARY (в т.ч. INDICATOR: INDICATOR_CODE, INDICATOR_ADD_CALC_TYPE, CONTEST_CODE). |
@@ -1083,6 +1083,11 @@ python main.py
 ---
 
 ## История версий
+
+### Версия 1.7.33 — Архив SQLite: несколько файлов БД (`archive_db_path`)
+
+- В **`input_files`** опционально **`archive_db_path`**: отдельный файл SQLite для выбранных CSV (иначе используется **`input_archive_sqlite.db_path`**). В одном програмном запуске архив пишется **последовательно** в каждую задействованную БД с той же схемой и логикой снимков/SHA.
+- В **`config.json`**: для основных PROM-входов задан путь **`OUT/DB/spod_input_archive.sqlite`**; для файлов **`gamification-*.csv`** — **`OUT/DB/spod_gamification_archive.sqlite`** и **`archive_to_db`: true**.
 
 ### Версия 1.7.32 — Ранняя запись файла консистентности при `main_only` + `consistency_only`
 

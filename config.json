@@ -72,7 +72,8 @@
       "freeze": "C2",
       "col_width_mode": "AUTO",
       "min_col_width": 12,
-      "include_in_source": true
+      "include_in_source": true,
+      "archive_db_path": "OUT/DB/spod_input_archive.sqlite"
     },
     {
       "file": "GROUP (PROM) 06-04 v0.csv",
@@ -97,7 +98,8 @@
       "freeze": "C2",
       "col_width_mode": "AUTO",
       "min_col_width": 8,
-      "include_in_source": true
+      "include_in_source": true,
+      "archive_db_path": "OUT/DB/spod_input_archive.sqlite"
     },
     {
       "file": "INDICATOR (PROM) 18-03 v0.csv",
@@ -122,7 +124,8 @@
       "freeze": "B2",
       "col_width_mode": "AUTO",
       "min_col_width": 8,
-      "include_in_source": true
+      "include_in_source": true,
+      "archive_db_path": "OUT/DB/spod_input_archive.sqlite"
     },
     {
       "file": "REPORT (PROM) 06-04 v0.csv",
@@ -139,7 +142,8 @@
       "freeze": "D2",
       "col_width_mode": "AUTO",
       "min_col_width": 10,
-      "include_in_source": true
+      "include_in_source": true,
+      "archive_db_path": "OUT/DB/spod_input_archive.sqlite"
     },
     {
       "file": "REWARD (PROM) 30-03 v0.csv",
@@ -160,7 +164,8 @@
       "freeze": "D2",
       "col_width_mode": "AUTO",
       "min_col_width": 10,
-      "include_in_source": true
+      "include_in_source": true,
+      "archive_db_path": "OUT/DB/spod_input_archive.sqlite"
     },
     {
       "file": "REWARD-LINK (PROM) 18-03 v0.csv",
@@ -181,7 +186,8 @@
       "freeze": "A2",
       "col_width_mode": "AUTO",
       "min_col_width": 10,
-      "include_in_source": true
+      "include_in_source": true,
+      "archive_db_path": "OUT/DB/spod_input_archive.sqlite"
     },
     {
       "file": "SCHEDULE (PROM) 30-03 v0.csv",
@@ -202,7 +208,8 @@
       "freeze": "B2",
       "col_width_mode": "AUTO",
       "min_col_width": 10,
-      "include_in_source": true
+      "include_in_source": true,
+      "archive_db_path": "OUT/DB/spod_input_archive.sqlite"
     },
     {
       "file": "ORG_UNIT_V20 20-03 v0.csv",
@@ -223,7 +230,8 @@
       "freeze": "A2",
       "col_width_mode": "AUTO",
       "min_col_width": 10,
-      "include_in_source": true
+      "include_in_source": true,
+      "archive_db_path": "OUT/DB/spod_input_archive.sqlite"
     },
     {
       "file": "USER_ROLE (PROM) 06-04 v1.csv",
@@ -240,7 +248,8 @@
       "freeze": "D2",
       "col_width_mode": "AUTO",
       "min_col_width": 12,
-      "include_in_source": true
+      "include_in_source": true,
+      "archive_db_path": "OUT/DB/spod_input_archive.sqlite"
     },
     {
       "file": "USER_ROLE_SB (PROM) 06-04 v1.csv",
@@ -257,7 +266,8 @@
       "freeze": "D2",
       "col_width_mode": "AUTO",
       "min_col_width": 12,
-      "include_in_source": true
+      "include_in_source": true,
+      "archive_db_path": "OUT/DB/spod_input_archive.sqlite"
     },
     {
       "file": "EMPLOYEE (PROM) 06-04 v1.csv",
@@ -274,198 +284,214 @@
       "freeze": "F2",
       "col_width_mode": "AUTO",
       "min_col_width": 15,
-      "include_in_source": true
+      "include_in_source": true,
+      "archive_db_path": "OUT/DB/spod_input_archive.sqlite"
     },
     {
       "file": "gamification-employeeRewards.csv",
       "sheet": "LIST-REWARDS",
       "subdir": "FILE",
-      "archive_to_db": false,
+      "archive_to_db": true,
       "sort_columns": [],
       "max_col_width": 40,
       "freeze": "D2",
       "col_width_mode": "AUTO",
       "min_col_width": 12,
-      "include_in_source": false
+      "include_in_source": false,
+      "archive_db_path": "OUT/DB/spod_gamification_archive.sqlite"
     },
     {
       "file": "gamification-statistics.csv",
       "sheet": "STATISTICS",
       "subdir": "FILE",
-      "archive_to_db": false,
+      "archive_to_db": true,
       "sort_columns": [],
       "max_col_width": 40,
       "freeze": "E2",
       "col_width_mode": "AUTO",
       "min_col_width": 10,
-      "include_in_source": false
+      "include_in_source": false,
+      "archive_db_path": "OUT/DB/spod_gamification_archive.sqlite"
     },
     {
       "file": "gamification-tournamentList.csv",
       "sheet": "LIST-TOURNAMENT",
       "subdir": "FILE",
-      "archive_to_db": false,
+      "archive_to_db": true,
       "sort_columns": [],
       "max_col_width": 80,
       "freeze": "C2",
       "col_width_mode": "AUTO",
       "min_col_width": 12,
-      "include_in_source": false
+      "include_in_source": false,
+      "archive_db_path": "OUT/DB/spod_gamification_archive.sqlite"
     },
     {
       "file": "gamification-ratingList 2KM.csv",
       "sheet": "RATING_2025_2 (KMKKSB)",
       "subdir": "FILE",
       "aggregate_into_sheet": "RATING",
-      "archive_to_db": false,
+      "archive_to_db": true,
       "sort_columns": [],
       "max_col_width": 80,
       "freeze": "D2",
       "col_width_mode": "AUTO",
       "min_col_width": 12,
-      "include_in_source": false
+      "include_in_source": false,
+      "archive_db_path": "OUT/DB/spod_gamification_archive.sqlite"
     },
     {
       "file": "gamification-ratingList 2MNS.csv",
       "sheet": "RATING_2025_2 (MNS)",
       "subdir": "FILE",
       "aggregate_into_sheet": "RATING",
-      "archive_to_db": false,
+      "archive_to_db": true,
       "sort_columns": [],
       "max_col_width": 80,
       "freeze": "D2",
       "col_width_mode": "AUTO",
       "min_col_width": 12,
-      "include_in_source": false
+      "include_in_source": false,
+      "archive_db_path": "OUT/DB/spod_gamification_archive.sqlite"
     },
     {
       "file": "gamification-ratingList KM.csv",
       "sheet": "RATING_2026_1 (KMKKSB)",
       "subdir": "FILE",
       "aggregate_into_sheet": "RATING",
-      "archive_to_db": false,
+      "archive_to_db": true,
       "sort_columns": [],
       "max_col_width": 80,
       "freeze": "D2",
       "col_width_mode": "AUTO",
       "min_col_width": 12,
-      "include_in_source": false
+      "include_in_source": false,
+      "archive_db_path": "OUT/DB/spod_gamification_archive.sqlite"
     },
     {
       "file": "gamification-ratingList AllKM.csv",
       "sheet": "RATING_ALLTIME (KMKKSB)",
       "subdir": "FILE",
       "aggregate_into_sheet": "RATING",
-      "archive_to_db": false,
+      "archive_to_db": true,
       "sort_columns": [],
       "max_col_width": 80,
       "freeze": "D2",
       "col_width_mode": "AUTO",
       "min_col_width": 12,
-      "include_in_source": false
+      "include_in_source": false,
+      "archive_db_path": "OUT/DB/spod_gamification_archive.sqlite"
     },
     {
       "file": "gamification-ratingList AllMNS.csv",
       "sheet": "RATING_ALLTIME (MNS)",
       "subdir": "FILE",
       "aggregate_into_sheet": "RATING",
-      "archive_to_db": false,
+      "archive_to_db": true,
       "sort_columns": [],
       "max_col_width": 80,
       "freeze": "D2",
       "col_width_mode": "AUTO",
       "min_col_width": 12,
-      "include_in_source": false
+      "include_in_source": false,
+      "archive_db_path": "OUT/DB/spod_gamification_archive.sqlite"
     },
     {
       "file": "gamification-orderList 1KM.csv",
       "sheet": "ORDER_2025_1 (KMKKSB)",
       "subdir": "FILE",
       "aggregate_into_sheet": "ORDER",
-      "archive_to_db": false,
+      "archive_to_db": true,
       "sort_columns": [],
       "max_col_width": 80,
       "freeze": "E2",
       "col_width_mode": "AUTO",
       "min_col_width": 12,
-      "include_in_source": false
+      "include_in_source": false,
+      "archive_db_path": "OUT/DB/spod_gamification_archive.sqlite"
     },
     {
       "file": "gamification-orderList 1MNS.csv",
       "sheet": "ORDER_2025_1 (MNS)",
       "subdir": "FILE",
       "aggregate_into_sheet": "ORDER",
-      "archive_to_db": false,
+      "archive_to_db": true,
       "sort_columns": [],
       "max_col_width": 80,
       "freeze": "E2",
       "col_width_mode": "AUTO",
       "min_col_width": 12,
-      "include_in_source": false
+      "include_in_source": false,
+      "archive_db_path": "OUT/DB/spod_gamification_archive.sqlite"
     },
     {
       "file": "gamification-orderList 2024КМ.csv",
       "sheet": "ORDER_2024 (KMKKSB)",
       "subdir": "FILE",
       "aggregate_into_sheet": "ORDER",
-      "archive_to_db": false,
+      "archive_to_db": true,
       "sort_columns": [],
       "max_col_width": 80,
       "freeze": "E2",
       "col_width_mode": "AUTO",
       "min_col_width": 12,
-      "include_in_source": false
+      "include_in_source": false,
+      "archive_db_path": "OUT/DB/spod_gamification_archive.sqlite"
     },
     {
       "file": "gamification-orderList 2024MNS.csv",
       "sheet": "ORDER_2024 (MNS)",
       "subdir": "FILE",
       "aggregate_into_sheet": "ORDER",
-      "archive_to_db": false,
+      "archive_to_db": true,
       "sort_columns": [],
       "max_col_width": 80,
       "freeze": "E2",
       "col_width_mode": "AUTO",
       "min_col_width": 12,
-      "include_in_source": false
+      "include_in_source": false,
+      "archive_db_path": "OUT/DB/spod_gamification_archive.sqlite"
     },
     {
       "file": "gamification-orderList 2KM.csv",
       "sheet": "ORDER_2025_2 (KMKKSB)",
       "subdir": "FILE",
       "aggregate_into_sheet": "ORDER",
-      "archive_to_db": false,
+      "archive_to_db": true,
       "sort_columns": [],
       "max_col_width": 80,
       "freeze": "E2",
       "col_width_mode": "AUTO",
       "min_col_width": 12,
-      "include_in_source": false
+      "include_in_source": false,
+      "archive_db_path": "OUT/DB/spod_gamification_archive.sqlite"
     },
     {
       "file": "gamification-orderList 2MNS.csv",
       "sheet": "ORDER_2025_2 (MNS)",
       "subdir": "FILE",
       "aggregate_into_sheet": "ORDER",
-      "archive_to_db": false,
+      "archive_to_db": true,
       "sort_columns": [],
       "max_col_width": 80,
       "freeze": "E2",
       "col_width_mode": "AUTO",
       "min_col_width": 12,
-      "include_in_source": false
+      "include_in_source": false,
+      "archive_db_path": "OUT/DB/spod_gamification_archive.sqlite"
     },
     {
       "file": "gamification-yearResults.csv",
       "sheet": "YEAR_STATA",
       "subdir": "FILE",
-      "archive_to_db": false,
+      "archive_to_db": true,
       "sort_columns": [],
       "max_col_width": 80,
       "freeze": "E2",
       "col_width_mode": "AUTO",
       "min_col_width": 12,
-      "include_in_source": false
+      "include_in_source": false,
+      "archive_db_path": "OUT/DB/spod_gamification_archive.sqlite"
     }
   ],
   "summary_sheet": {

@@ -15,6 +15,7 @@ from __future__ import annotations
 import hashlib
 import logging
 import os
+from collections import defaultdict
 import re
 import sqlite3
 from datetime import datetime, timezone
@@ -544,6 +545,31 @@ def run_input_archive_sqlite(
     cfg = merge_archive_config(archive_cfg)
     if not cfg.get("enabled"):
         return
+    if not payloads:
+        return
+
+    # Несколько файлов SQLite: у каждой записи input_files может быть свой archive_db_path (иначе db_path из конфига)
+    default_rel = str(cfg.get("db_path") or "OUT/DB/spod_input_archive.sqlite")
+    by_db: Dict[str, Dict[str, Dict[str, Any]]] = defaultdict(dict)
+    for sn, pack in payloads.items():
+        fc = pack.get("file_conf") or {}
+        rel = (fc.get("archive_db_path") or "").strip() or default_rel
+        by_db[rel][sn] = pack
+    if len(by_db) > 1:
+        logging.info(
+            "[archive_sqlite] Запись в %s отдельных файлов БД (поле archive_db_path в input_files)",
+            len(by_db),
+        )
+        for rel, sub in by_db.items():
+            sub_cfg = dict(archive_cfg)
+            sub_cfg["db_path"] = rel
+            run_input_archive_sqlite(project_base_dir, sub_cfg, sub)
+        return
+    if len(by_db) == 1:
+        only_rel = next(iter(by_db.keys()))
+        payloads = by_db[only_rel]
+        archive_cfg = {**archive_cfg, "db_path": only_rel}
+        cfg = merge_archive_config(archive_cfg)
 
     use_sha256 = bool(cfg.get("use_sha256_for_identity", cfg.get("compute_sha256", True)))
 
