@@ -178,7 +178,7 @@ def _load_config_globals():
     global COLUMN_FORMATS, CONSISTENCY_CHECKS, JSON_COLUMNS, REWARD_GETCONDITION_SUMMARY
     global MAX_WORKERS_IO, MAX_WORKERS_CPU, MAX_WORKERS, TOURNAMENT_STATUS_CHOICES
     global SOURCE_EXPORT_SORT
-    global INPUT_ARCHIVE_SQLITE, PROJECT_BASE_DIR
+    global INPUT_ARCHIVE_SQLITE, PROJECT_BASE_DIR, RATING_ITEM_MATRIX
 
     try:
         from src.config_holder import get_current_config
@@ -235,6 +235,7 @@ def _load_config_globals():
             TOURNAMENT_STATUS_CHOICES = _c.tournament_status_choices
             PROJECT_BASE_DIR = _c.base_dir
             INPUT_ARCHIVE_SQLITE = getattr(_c, "input_archive_sqlite", None) or {"enabled": False}
+            RATING_ITEM_MATRIX = getattr(_c, "rating_item_matrix", None) or {}
             return
     except Exception:
         pass
@@ -301,6 +302,7 @@ def _load_config_globals():
     from src.input_archive_sqlite import merge_archive_config
 
     INPUT_ARCHIVE_SQLITE = merge_archive_config(_cfg.get("input_archive_sqlite"))
+    RATING_ITEM_MATRIX = _cfg.get("rating_item_matrix") or {}
 
 
 _load_config_globals()
@@ -4451,7 +4453,8 @@ def main():
     rows_total = 0
     summary = []
     consistency_results: List[Dict[str, Any]] = []
-
+    # Метаданные матрицы RATING×ITEM (подсветка после записи основного Excel)
+    _rating_matrix_meta: Optional[Dict[str, Any]] = None
     # 1. Параллельное чтение всех CSV и разворот ВСЕХ JSON‑полей на каждом листе
     logging.info(f"Начало параллельного чтения CSV файлов (потоков: {MAX_WORKERS_IO})")
 
@@ -4649,6 +4652,12 @@ def main():
                     _conf_r,
                 )
 
+            # Матрица наград ITEM на листе RATING (после merge и сводки REWARD)
+            if RATING_ITEM_MATRIX.get("enabled"):
+                from src.rating_item_matrix import apply_rating_item_matrix_enrichment
+
+                _rating_matrix_meta = apply_rating_item_matrix_enrichment(sheets_data, RATING_ITEM_MATRIX)
+
     # Только отдельная книга консистентности без main (в массиве есть consistency_only, нет main_only)
     if RUN_CONSISTENCY_EARLY:
         sheets_with_violations = set()
@@ -4736,6 +4745,11 @@ def main():
         write_to_excel(sheets_data, output_excel)
     _wt_main_elapsed = run_elapsed_sec()
     logging.info(f"[END] write_to_excel ({output_excel}) (от старта прогона ~{_wt_main_elapsed:.2f} s)")
+
+    if _rating_matrix_meta:
+        from src.rating_item_matrix import apply_rating_item_matrix_colors
+
+        apply_rating_item_matrix_colors(output_excel, _rating_matrix_meta, RATING_ITEM_MATRIX)
 
     # 8.1. Отдельный файл consistency — если в run_outputs указаны и main_only, и consistency_only
     if RUN_WRITE_MAIN and RUN_WRITE_CONSISTENCY_FILE:

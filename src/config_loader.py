@@ -155,6 +155,8 @@ class Config:
         self.derived_columns: List[Dict[str, Any]] = self._cfg.get("derived_columns") or []
         # Сводная колонка по getCondition на листе REWARD (см. reward_getcondition_summary.py)
         self.reward_getcondition_summary: Dict[str, Any] = self._cfg.get("reward_getcondition_summary") or {}
+        # Матрица ITEM на листе RATING (счётчики по ORDER, подсветка; см. rating_item_matrix.py)
+        self.rating_item_matrix: Dict[str, Any] = self._cfg.get("rating_item_matrix") or {}
 
         # Параллелизм
         self.max_workers_io: int = self._cfg["performance"]["max_workers_io"]

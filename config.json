@@ -3555,6 +3555,27 @@
     "enabled": true,
     "column_name": "Сводка: nonRewards и rewards (getCondition)"
   },
+  "rating_item_matrix": {
+    "enabled": true,
+    "sheet_rating": "RATING",
+    "sheet_order": "ORDER",
+    "sheet_reward": "REWARD",
+    "order_employee_col": "Табельный номер",
+    "order_product_col": "Код товара",
+    "rating_employee_col": "Табельный номер",
+    "country_rank_col": "Место в рейтинге по стране",
+    "tb_rank_col": "Место в рейтинге ТБ",
+    "gosb_rank_col": "Место в рейтинге ГОСБ",
+    "reward_type_col": "REWARD_TYPE",
+    "reward_code_col": "REWARD_CODE",
+    "col_season_code": "ADD_DATA => getCondition => employeeRating => seasonCode",
+    "col_min_rating_bank": "ADD_DATA => getCondition => employeeRating => minRatingBANK",
+    "col_min_rating_tb": "ADD_DATA => getCondition => employeeRating => minRatingTB",
+    "col_min_rating_gosb": "ADD_DATA => getCondition => employeeRating => minRatingGOSB",
+    "fill_country_ok": "C6EFCE",
+    "fill_tb_ok": "FFEB9C",
+    "fill_gosb_ok": "BDD7EE"
+  },
   "json_columns": {
     "CONTEST-DATA": [
       {
