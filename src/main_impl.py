@@ -4459,18 +4459,38 @@ def main():
         # 2. Добавление колонки AUTO_GENDER для листа EMPLOYEE (пропускаем в режиме consistency_only)
         if not RUN_CONSISTENCY_EARLY and "EMPLOYEE" in sheets_data:
             df_employee, conf_employee = sheets_data["EMPLOYEE"]
-            df_employee_old = df_employee.copy()
-            df_employee = add_auto_gender_column_vectorized(df_employee, "EMPLOYEE")
+            # База без AUTO_GENDER: оба алгоритма считают колонку с нуля; иначе сравнение «старый/новый»
+            # давало ложное «различие» (в первом кадре нет AUTO_GENDER) и всегда включался fallback.
+            df_base = df_employee.drop(columns=["AUTO_GENDER"], errors="ignore").copy()
+            df_ref = add_auto_gender_column(df_base.copy(), "EMPLOYEE")
+            df_vec = add_auto_gender_column_vectorized(df_base.copy(), "EMPLOYEE")
+            comparison = compare_gender_results(df_ref, df_vec)
 
-            comparison = compare_gender_results(df_employee_old, df_employee)
-            if not comparison.get("identical", False):
+            if comparison.get("error"):
                 logging.warning(
-                    f"[GENDER COMPARISON] EMPLOYEE: различия найдены - {comparison.get('differences', 0)} из {comparison.get('total', 0)}"
+                    f"[GENDER COMPARISON] EMPLOYEE: сравнение невозможно — {comparison.get('error')}; "
+                    "использована построчная версия."
                 )
-                df_employee = add_auto_gender_column(df_employee_old, "EMPLOYEE")
-                logging.warning("[GENDER FALLBACK] EMPLOYEE: использована оригинальная версия")
+                df_employee = df_ref
+            elif comparison.get("identical", False):
+                # Совпадение векторизованной и построчной версий — оставляем быстрый путь; в лог не шумим (только DEBUG).
+                logging.debug(
+                    f"[GENDER COMPARISON] EMPLOYEE: векторизованная и построчная версии совпали "
+                    f"({comparison.get('match_percent', 0):.2f}%)."
+                )
+                df_employee = df_vec
             else:
-                logging.info(f"[GENDER COMPARISON] EMPLOYEE: результаты идентичны ({comparison.get('match_percent', 0)}%)")
+                diff_n = int(comparison.get("differences", 0))
+                total_n = int(comparison.get("total", 0))
+                logging.warning(
+                    f"[GENDER COMPARISON] EMPLOYEE: расхождения AUTO_GENDER — {diff_n} из {total_n} строк "
+                    "(векторизованная ≠ построчная)."
+                )
+                df_employee = df_ref
+                logging.warning(
+                    "[GENDER FALLBACK] EMPLOYEE: для выгрузки взят результат построчного алгоритма "
+                    "(не векторизованная версия)."
+                )
             sheets_data["EMPLOYEE"] = (df_employee, conf_employee)
 
         # 3. Расчётный статус турнира для TOURNAMENT-SCHEDULE
