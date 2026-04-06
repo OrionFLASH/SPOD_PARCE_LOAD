@@ -121,7 +121,7 @@ SPOD_PROM/
 | `logging` | Уровень (INFO/DEBUG) и базовое имя файла логов. |
 | `performance` | Количество потоков: max_workers_io, max_workers_cpu. |
 | `tournament_status_choices` | Подписи статусов турнира (расчёт CALC_TOURNAMENT_STATUS). |
-| `input_files` | Список CSV: file, sheet, expected_columns (0=АВТО), subdir, sort_columns, ширина, freeze, include_in_source. |
+| `input_files` | Список CSV: file, sheet, expected_columns (0=АВТО), subdir, **`aggregate_into_sheet`** (опц., общий лист-склейка), sort_columns, ширина, freeze, include_in_source. |
 | `summary_sheet` | Параметры сводного листа SUMMARY (ширина, закрепление). |
 | `sheet_order` | Порядок листов в выходном Excel (если задан). |
 | `summary_key_defs` | Ключевые колонки по листам для каркаса SUMMARY (в т.ч. INDICATOR: INDICATOR_CODE, INDICATOR_ADD_CALC_TYPE, CONTEST_CODE). |
@@ -1083,6 +1083,12 @@ python main.py
 ---
 
 ## История версий
+
+### Версия 1.7.30 — Агрегированные листы ORDER / RATING (`aggregate_into_sheet`)
+
+- В **`input_files`** необязательный ключ **`aggregate_into_sheet`**: непустое значение — имя дополнительного листа, куда вертикально склеиваются данные всех записей с тем же значением (порядок блоков по **`sheet_order`**, затем по порядку в **`input_files`**). Исходные листы сохраняются; объединённый лист **дополняет** набор.
+- Пустая строка или отсутствие ключа — склейка для этого файла не выполняется.
+- В **`config.json`**: gamification-файлы заказов/рейтингов с **`aggregate_into_sheet`**: **`ORDER`** / **`RATING`**; в **`sheet_order`** после **`STAT_FILE`** добавлены листы **`ORDER`** и **`RATING`**.
 
 ### Версия 1.7.29 — EMPLOYEE: корректное сравнение AUTO_GENDER и логи
 

@@ -1,6 +1,7 @@
 {
   "run_outputs": [
-    "main_only"
+    "main_only",
+    "consistency_only"
   ],
   "_run_outputs_allowed": [
     "source_only",
@@ -9,7 +10,7 @@
   ],
   "_run_outputs_note": "Перечислите нужные выходы. Полный набор как раньше full: [\"source_only\",\"main_only\",\"consistency_only\"]. Устаревшее поле run_mode всё ещё читается, если run_outputs отсутствует.",
   "apply_sort_to_source": true,
-  "apply_sort_to_main": true,
+  "apply_sort_to_main": false,
   "output_filenames": {
     "main": "SPOD_ALL_IN_ONE",
     "source": "SPOD_PROM source",
@@ -74,7 +75,7 @@
       "include_in_source": true
     },
     {
-      "file": "GROUP (PROM) 18-03 v0.csv",
+      "file": "GROUP (PROM) 06-04 v0.csv",
       "sheet": "GROUP",
       "subdir": "SPOD",
       "archive_to_db": true,
@@ -124,7 +125,7 @@
       "include_in_source": true
     },
     {
-      "file": "REPORT (PROM) 31-03 v0.csv",
+      "file": "REPORT (PROM) 06-04 v0.csv",
       "sheet": "REPORT",
       "subdir": "SPOD",
       "archive_to_db": true,
@@ -225,7 +226,7 @@
       "include_in_source": true
     },
     {
-      "file": "USER_ROLE (PROM) 01-04 v2.csv",
+      "file": "USER_ROLE (PROM) 06-04 v1.csv",
       "sheet": "USER_ROLE",
       "subdir": "SPOD",
       "archive_to_db": true,
@@ -242,7 +243,7 @@
       "include_in_source": true
     },
     {
-      "file": "USER_ROLE_SB (PROM) 01-04 v2.csv",
+      "file": "USER_ROLE_SB (PROM) 06-04 v1.csv",
       "sheet": "USER_ROLE SB",
       "subdir": "SPOD",
       "archive_to_db": true,
@@ -259,7 +260,7 @@
       "include_in_source": true
     },
     {
-      "file": "EMPLOYEE (PROM) 01-04 v0.csv",
+      "file": "EMPLOYEE (PROM) 06-04 v1.csv",
       "sheet": "EMPLOYEE",
       "subdir": "SPOD",
       "archive_to_db": true,
@@ -315,6 +316,7 @@
       "file": "gamification-ratingList 2KM.csv",
       "sheet": "RATING_2025_2 (KMKKSB)",
       "subdir": "FILE",
+      "aggregate_into_sheet": "RATING",
       "archive_to_db": false,
       "sort_columns": [],
       "max_col_width": 80,
@@ -327,6 +329,7 @@
       "file": "gamification-ratingList 2MNS.csv",
       "sheet": "RATING_2025_2 (MNS)",
       "subdir": "FILE",
+      "aggregate_into_sheet": "RATING",
       "archive_to_db": false,
       "sort_columns": [],
       "max_col_width": 80,
@@ -339,6 +342,7 @@
       "file": "gamification-ratingList KM.csv",
       "sheet": "RATING_2026_1 (KMKKSB)",
       "subdir": "FILE",
+      "aggregate_into_sheet": "RATING",
       "archive_to_db": false,
       "sort_columns": [],
       "max_col_width": 80,
@@ -351,6 +355,7 @@
       "file": "gamification-ratingList AllKM.csv",
       "sheet": "RATING_ALLTIME (KMKKSB)",
       "subdir": "FILE",
+      "aggregate_into_sheet": "RATING",
       "archive_to_db": false,
       "sort_columns": [],
       "max_col_width": 80,
@@ -363,6 +368,7 @@
       "file": "gamification-ratingList AllMNS.csv",
       "sheet": "RATING_ALLTIME (MNS)",
       "subdir": "FILE",
+      "aggregate_into_sheet": "RATING",
       "archive_to_db": false,
       "sort_columns": [],
       "max_col_width": 80,
@@ -375,6 +381,7 @@
       "file": "gamification-orderList 1KM.csv",
       "sheet": "ORDER_2025_1 (KMKKSB)",
       "subdir": "FILE",
+      "aggregate_into_sheet": "ORDER",
       "archive_to_db": false,
       "sort_columns": [],
       "max_col_width": 80,
@@ -387,6 +394,33 @@
       "file": "gamification-orderList 1MNS.csv",
       "sheet": "ORDER_2025_1 (MNS)",
       "subdir": "FILE",
+      "aggregate_into_sheet": "ORDER",
+      "archive_to_db": false,
+      "sort_columns": [],
+      "max_col_width": 80,
+      "freeze": "E2",
+      "col_width_mode": "AUTO",
+      "min_col_width": 12,
+      "include_in_source": false
+    },
+    {
+      "file": "gamification-orderList 2024КМ.csv",
+      "sheet": "ORDER_2024 (KMKKSB)",
+      "subdir": "FILE",
+      "aggregate_into_sheet": "ORDER",
+      "archive_to_db": false,
+      "sort_columns": [],
+      "max_col_width": 80,
+      "freeze": "E2",
+      "col_width_mode": "AUTO",
+      "min_col_width": 12,
+      "include_in_source": false
+    },
+    {
+      "file": "gamification-orderList 2024MNS.csv",
+      "sheet": "ORDER_2024 (MNS)",
+      "subdir": "FILE",
+      "aggregate_into_sheet": "ORDER",
       "archive_to_db": false,
       "sort_columns": [],
       "max_col_width": 80,
@@ -399,6 +433,7 @@
       "file": "gamification-orderList 2KM.csv",
       "sheet": "ORDER_2025_2 (KMKKSB)",
       "subdir": "FILE",
+      "aggregate_into_sheet": "ORDER",
       "archive_to_db": false,
       "sort_columns": [],
       "max_col_width": 80,
@@ -411,6 +446,7 @@
       "file": "gamification-orderList 2MNS.csv",
       "sheet": "ORDER_2025_2 (MNS)",
       "subdir": "FILE",
+      "aggregate_into_sheet": "ORDER",
       "archive_to_db": false,
       "sort_columns": [],
       "max_col_width": 80,
@@ -453,6 +489,8 @@
     "USER_ROLE",
     "EMPLOYEE",
     "STAT_FILE",
+    "ORDER",
+    "RATING",
     "ORDER_2025_2 (KMKKSB)",
     "ORDER_2025_2 (MNS)",
     "RATING_2025_2 (KMKKSB)",
@@ -465,6 +503,8 @@
     "RATING_ALLTIME (MNS)",
     "ORDER_2025_1 (KMKKSB)",
     "ORDER_2025_1 (MNS)",
+    "ORDER_2024 (MNS)",
+    "ORDER_2024 (KMKKSB)",
     "YEAR_STATA",
     "USER_ROLE SB"
   ],
@@ -2534,6 +2574,12 @@
           "expected_columns": 0
         },
         "ORDER_2025_2 (MNS)": {
+          "expected_columns": 0
+        },
+        "ORDER_2024 (KMKKSB)": {
+          "expected_columns": 0
+        },
+        "ORDER_2024 (MNS)": {
           "expected_columns": 0
         },
         "YEAR_STATA": {

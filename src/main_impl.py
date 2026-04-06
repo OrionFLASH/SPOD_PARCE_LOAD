@@ -19,6 +19,7 @@ import inspect  # Для получения информации о вызыва
 from concurrent.futures import ThreadPoolExecutor, as_completed  # Для параллельной обработки
 from itertools import product
 import threading  # Для синхронизации потоков
+import copy  # Копия конфигов листов для синтетических агрегированных листов
 
 from src import console_ui  # Краткий вывод этапов и сводок в консоль (stdlib)
 from src.config_loader import parse_run_outputs_config  # Разбор run_outputs / run_mode
@@ -4177,6 +4178,127 @@ def append_csv_mismatches_to_consistency(
     logging.info(f"[CONSISTENCY] Создан лист {summary_sheet_name} с записями проверки числа полей CSV: {len(new_rows)}")
 
 
+def _union_columns_ordered(dfs: List[pd.DataFrame]) -> List[str]:
+    """Объединение имён колонок с сохранением порядка первого появления (как concat по строкам)."""
+    out: List[str] = []
+    seen: Set[str] = set()
+    for df in dfs:
+        for c in df.columns:
+            if c not in seen:
+                seen.add(c)
+                out.append(c)
+    return out
+
+
+def _sort_source_sheets_for_aggregate(
+    source_sheets: List[str],
+    sheet_order: List[str],
+    input_files: List[Dict[str, Any]],
+) -> List[str]:
+    """Порядок склейки: сначала индекс в sheet_order, иначе порядок в input_files."""
+    pos_in_input: Dict[str, int] = {}
+    for i, fc in enumerate(input_files):
+        sn = fc.get("sheet")
+        if isinstance(sn, str) and sn not in pos_in_input:
+            pos_in_input[sn] = i
+    order_index: Dict[str, int] = {}
+    for i, name in enumerate(sheet_order):
+        order_index[name] = i
+
+    def key(sn: str) -> Tuple[int, int]:
+        return (order_index.get(sn, 10**9), pos_in_input.get(sn, 10**9))
+
+    return sorted(source_sheets, key=key)
+
+
+def apply_aggregate_sheets(
+    sheets_data: Dict[str, Any],
+    raw_sheets: Dict[str, Any],
+    input_files: List[Dict[str, Any]],
+    sheet_order: List[str],
+    summary: List[str],
+) -> None:
+    """
+    Дополняет sheets_data (и при наличии — raw_sheets) объединёнными листами.
+
+    В записи input_files необязательный ключ aggregate_into_sheet: непустое имя целевого листа.
+    Все файлы с одним и тем же значением дают вертикальное объединение строк (один заголовок,
+    порядок блоков — по sheet_order / порядку в input_files). Исходные листы не удаляются.
+    """
+    groups: Dict[str, List[str]] = defaultdict(list)
+    for fc in input_files:
+        target = (fc.get("aggregate_into_sheet") or "").strip()
+        if not target:
+            continue
+        sn = fc.get("sheet")
+        if not isinstance(sn, str) or not sn:
+            continue
+        if sn == target:
+            logging.warning(
+                f"[aggregate_into_sheet] Пропуск: лист «{sn}» совпадает с целевым именем агрегата"
+            )
+            continue
+        if sn not in groups[target]:
+            groups[target].append(sn)
+
+    for target, sources in groups.items():
+        ordered = _sort_source_sheets_for_aggregate(sources, sheet_order, input_files)
+        present = [s for s in ordered if s in sheets_data and sheets_data[s] is not None]
+        if not present:
+            logging.warning(f"[aggregate_into_sheet] Цель «{target}»: нет загруженных исходных листов")
+            continue
+        dfs: List[pd.DataFrame] = []
+        first_conf: Optional[Dict[str, Any]] = None
+        for s in present:
+            pair = sheets_data[s]
+            df_part = pair[0]
+            if df_part is None or not isinstance(df_part, pd.DataFrame):
+                continue
+            dfs.append(df_part)
+            if first_conf is None:
+                first_conf = pair[1] if isinstance(pair[1], dict) else {}
+        if not dfs:
+            continue
+        cols = _union_columns_ordered(dfs)
+        aligned = [df.reindex(columns=cols) for df in dfs]
+        merged = pd.concat(aligned, ignore_index=True)
+        synth = copy.deepcopy(first_conf) if first_conf else {}
+        synth["sheet"] = target
+        synth["aggregate_into_sheet"] = ""
+        synth["_aggregate_sources"] = present
+        if target in sheets_data and sheets_data[target] is not None:
+            logging.warning(
+                f"[aggregate_into_sheet] Лист «{target}» уже существует — перезапись объединёнными данными"
+            )
+        sheets_data[target] = (merged, synth)
+        summary.append(f"{target}: {len(merged)} строк (агрегат из {len(present)} листов)")
+        logging.info(
+            f"[aggregate_into_sheet] Лист «{target}»: {len(merged)} строк, источники: {', '.join(present)}"
+        )
+
+        raw_parts: List[pd.DataFrame] = []
+        raw_first_conf: Optional[Dict[str, Any]] = None
+        for s in present:
+            if s not in raw_sheets:
+                continue
+            raw_pair = raw_sheets[s]
+            rdf = raw_pair[0]
+            if rdf is None or not isinstance(rdf, pd.DataFrame):
+                continue
+            raw_parts.append(rdf)
+            if raw_first_conf is None and isinstance(raw_pair[1], dict):
+                raw_first_conf = raw_pair[1]
+        if raw_parts:
+            rcols = _union_columns_ordered(raw_parts)
+            raligned = [df.reindex(columns=rcols) for df in raw_parts]
+            rmerged = pd.concat(raligned, ignore_index=True)
+            rsynth = copy.deepcopy(raw_first_conf) if raw_first_conf else copy.deepcopy(synth)
+            rsynth["sheet"] = target
+            rsynth["aggregate_into_sheet"] = ""
+            rsynth["_aggregate_sources"] = present
+            raw_sheets[target] = (rmerged, rsynth)
+
+
 @debug_timed()
 def build_stat_file_sheet(
     input_files: List[Dict[str, Any]],
@@ -4362,6 +4484,9 @@ def main():
                     summary.append(f"{sheet_name}: {'файл не найден' if file_conf is None else 'ошибка'}")
 
     logging.info(f"Параллельное чтение CSV файлов завершено. Обработано файлов: {files_processed}")
+
+    # Объединённые листы (aggregate_into_sheet в input_files): дополняют данные, исходные листы сохраняются
+    apply_aggregate_sheets(sheets_data, raw_sheets, INPUT_FILES, SHEET_ORDER, summary)
 
     # Архив сырых CSV в SQLite (опционально, config input_archive_sqlite.enabled)
     if INPUT_ARCHIVE_SQLITE.get("enabled"):
