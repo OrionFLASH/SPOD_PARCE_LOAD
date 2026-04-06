@@ -9,12 +9,19 @@ from __future__ import annotations
 
 import logging
 import unicodedata
-from typing import Any, Dict, List, Optional, Union
+from collections import defaultdict
+from typing import Any, Dict, List, Optional, Set, Union
 
 import numpy as np
 import pandas as pd
 from openpyxl import load_workbook
 from openpyxl.styles import PatternFill
+
+from src.reward_item_catalog import (
+    build_item_catalog_from_reward_df,
+    item_accessible_for_manager,
+    rules_for_matrix_column,
+)
 
 
 def _as_float(x: Any) -> Optional[float]:
@@ -81,6 +88,27 @@ _DEFAULT_GOSB_RANK: List[str] = [
     "PLACE_GOSB",
     "gosbRatingPlace",
     "ratingPlaceGOSB",
+]
+# Лист LIST-REWARDS: табельный и код награды (русские заголовки и запасные англ. имена)
+_DEFAULT_LIST_RW_EMP: List[str] = [
+    "Табельный номер сотрудника",
+    "PERSON_NUMBER",
+    "PERSON_NUMBER_ADD",
+    "personNumber",
+    "Табельный номер",
+    "EMPLOYEE_NUMBER",
+]
+_DEFAULT_LIST_RW_CODE: List[str] = [
+    "Код награды",
+    "REWARD_CODE",
+    "rewardCode",
+    "Код",
+]
+_DEFAULT_CRYSTALS: List[str] = [
+    "Количество кристаллов",
+    "CRYSTAL_COUNT",
+    "crystalsEarnedTotal",
+    "crystalEarnedTotal",
 ]
 
 
@@ -270,12 +298,13 @@ def apply_rating_item_matrix_enrichment(
     if not any((country_c, tb_c, gosb_c)):
         logging.warning(
             f"[rating_item_matrix] Нет ни одного столбца места в рейтинге — "
-            f"country={country_c!r}, tb={tb_c!r}, gosb={gosb_c!r}. Матрица ITEM будет без подсветки."
+            f"country={country_c!r}, tb={tb_c!r}, gosb={gosb_c!r}. "
+            "Критерии minRating* по отсутствующим колонкам будут считаться невыполненными (красная ячейка), если порог > 0."
         )
     elif not (country_c and tb_c and gosb_c):
         logging.info(
             f"[rating_item_matrix] Часть столбцов рейтинга не найдена (country={country_c!r}, tb={tb_c!r}, gosb={gosb_c!r}) — "
-            "подсветка только по доступным измерениям."
+            "доступность считается только по найденным местам в рейтинге."
         )
 
     specs = _collect_item_reward_specs(reward_t[0], rating_df, cfg)
@@ -310,6 +339,89 @@ def apply_rating_item_matrix_enrichment(
             "gosb": sp["min_gosb"],
         }
 
+    reward_df0 = reward_t[0]
+    rtc_res2 = _resolve_column(
+        reward_df0, cfg.get("reward_type_col"), ["REWARD_TYPE", "reward_type", "RewardType"]
+    )
+    rcc_res2 = _resolve_column(
+        reward_df0, cfg.get("reward_code_col"), ["REWARD_CODE", "reward_code", "RewardCode"]
+    )
+    adc = str(cfg.get("reward_add_data_col") or "REWARD_ADD_DATA")
+    if adc not in reward_df0.columns:
+        adc = "REWARD_ADD_DATA"
+    if rtc_res2 is None or rcc_res2 is None:
+        catalog = {}
+        logging.warning("[rating_item_matrix] Каталог ITEM из REWARD не построен: нет колонок типа/кода награды")
+    else:
+        catalog = build_item_catalog_from_reward_df(
+            reward_df0,
+            rtc_res2,
+            rcc_res2,
+            full_name_col="FULL_NAME",
+            add_data_col=adc,
+        )
+
+    order_by_emp: Dict[str, Set[str]] = defaultdict(set)
+    for _, orow in order_df.iterrows():
+        e = _norm_str(orow.get(emp_o))
+        p = _norm_str(orow.get(prod_o))
+        if e and p:
+            order_by_emp[e].add(p)
+
+    slr = cfg.get("sheet_list_rewards") or "LIST-REWARDS"
+    rewards_by_emp: Dict[str, Set[str]] = defaultdict(set)
+    if slr in sheets_data and sheets_data[slr] is not None:
+        lr_df = sheets_data[slr][0]
+        if isinstance(lr_df, pd.DataFrame):
+            le = _resolve_column(lr_df, cfg.get("list_rewards_employee_col"), _DEFAULT_LIST_RW_EMP)
+            lc = _resolve_column(lr_df, cfg.get("list_rewards_code_col"), _DEFAULT_LIST_RW_CODE)
+            if le and lc:
+                for _, lrow in lr_df.iterrows():
+                    e2 = _norm_str(lrow.get(le))
+                    c2 = _norm_str(lrow.get(lc))
+                    if e2 and c2:
+                        rewards_by_emp[e2].add(c2)
+            else:
+                logging.warning(
+                    f"[rating_item_matrix] Лист «{slr}»: не найдены колонки табельного/кода награды — "
+                    f"критерий rewardCode для всех товаров считается невыполненным, если список кодов не пуст."
+                )
+    else:
+        logging.info(f"[rating_item_matrix] Лист «{slr}» отсутствует — множество наград сотрудника пустое.")
+
+    cry_c = _resolve_column(rating_df, cfg.get("crystals_col"), _DEFAULT_CRYSTALS)
+
+    accessibility_cells: List[Dict[str, Any]] = []
+    for pos, (_, row) in enumerate(rating_df.iterrows()):
+        emp_key = _norm_str(row.get(emp_r))
+        rc = _as_float(row.get(country_c)) if country_c else None
+        rt = _as_float(row.get(tb_c)) if tb_c else None
+        rg = _as_float(row.get(gosb_c)) if gosb_c else None
+        cry = _as_float(row.get(cry_c)) if cry_c else None
+        order_codes = order_by_emp.get(emp_key, set())
+        rw_codes = rewards_by_emp.get(emp_key, set())
+        excel_row = pos + 2
+        for sp in specs:
+            rules = rules_for_matrix_column(
+                sp["match_code"],
+                catalog,
+                min_bank=sp.get("min_bank"),
+                min_tb=sp.get("min_tb"),
+                min_gosb=sp.get("min_gosb"),
+            )
+            ok = item_accessible_for_manager(
+                rules,
+                rank_country=rc,
+                rank_tb=rt,
+                rank_gosb=rg,
+                crystals=cry,
+                order_product_codes=order_codes,
+                list_reward_codes=rw_codes,
+            )
+            accessibility_cells.append(
+                {"row_excel": excel_row, "col_name": sp["col_name"], "ok": ok}
+            )
+
     sheets_data[sr] = (rating_df, rating_t[1])
     logging.info(
         f"[rating_item_matrix] Лист «{sr}»: добавлено колонок ITEM-матрицы: {len(added)}"
@@ -322,11 +434,11 @@ def apply_rating_item_matrix_enrichment(
         "country_rank_col": country_c,
         "tb_rank_col": tb_c,
         "gosb_rank_col": gosb_c,
-        "fill_country": cfg.get("fill_country_ok") or "C6EFCE",
-        "fill_tb": cfg.get("fill_tb_ok") or "FFEB9C",
-        "fill_gosb": cfg.get("fill_gosb_ok") or "BDD7EE",
-        # Подсветка возможна, если есть хотя бы одно место в рейтинге (страна / ТБ / ГОСБ)
-        "skip_colors": not any((country_c, tb_c, gosb_c)),
+        "accessibility_cells": accessibility_cells,
+        "fill_accessibility_ok": (cfg.get("fill_accessibility_ok") or "C6EFCE").lstrip("#"),
+        "fill_accessibility_fail": (cfg.get("fill_accessibility_fail") or "FFC7CE").lstrip("#"),
+        # Раскраска по полной доступности (зелёный / красный), без старой тройной подсветки по minRating
+        "skip_colors": False,
     }
 
 
@@ -349,7 +461,11 @@ def apply_rating_item_matrix_colors(
     if not cfg or not bool(cfg.get("enabled")):
         return
     if meta.get("skip_colors"):
-        logging.info("[rating_item_matrix] Подсветка отключена (на листе RATING нет столбцов мест в рейтинге)")
+        logging.info("[rating_item_matrix] Подсветка отключена флагом skip_colors")
+        return
+    cells = meta.get("accessibility_cells") or []
+    if not cells:
+        logging.warning("[rating_item_matrix] Нет предвычисленных ячеек доступности — подсветка пропущена")
         return
     try:
         wb = load_workbook(xlsx_path)
@@ -367,69 +483,26 @@ def apply_rating_item_matrix_colors(
     def col_for(name: str) -> Optional[int]:
         return hmap.get(str(name).strip())
 
-    def _col_idx(name: Optional[str]) -> Optional[int]:
-        if not name:
-            return None
-        return col_for(name)
+    ok_hex = meta.get("fill_accessibility_ok") or "C6EFCE"
+    fail_hex = meta.get("fill_accessibility_fail") or "FFC7CE"
+    fill_ok = PatternFill(fill_type="solid", start_color=ok_hex, end_color=ok_hex)
+    fill_fail = PatternFill(fill_type="solid", start_color=fail_hex, end_color=fail_hex)
 
-    c_country = _col_idx(meta.get("country_rank_col"))
-    c_tb = _col_idx(meta.get("tb_rank_col"))
-    c_gosb = _col_idx(meta.get("gosb_rank_col"))
-    if c_country is None and c_tb is None and c_gosb is None:
-        logging.warning("[rating_item_matrix] Подсветка: в файле не найдены заголовки столбцов рейтинга")
-        wb.close()
-        return
-
-    fill_country = PatternFill(
-        fill_type="solid",
-        start_color=meta.get("fill_country", "C6EFCE"),
-        end_color=meta.get("fill_country", "C6EFCE"),
-    )
-    fill_tb = PatternFill(
-        fill_type="solid",
-        start_color=meta.get("fill_tb", "FFEB9C"),
-        end_color=meta.get("fill_tb", "FFEB9C"),
-    )
-    fill_gosb = PatternFill(
-        fill_type="solid",
-        start_color=meta.get("fill_gosb", "BDD7EE"),
-        end_color=meta.get("fill_gosb", "BDD7EE"),
-    )
-
-    thr_all: Dict[str, Dict[str, Optional[float]]] = meta.get("thresholds") or {}
-    added = meta.get("added_columns") or []
-
-    for r in range(2, ws.max_row + 1):
-        v_country = (
-            _as_float(ws.cell(row=r, column=c_country).value) if c_country is not None else None
-        )
-        v_tb = _as_float(ws.cell(row=r, column=c_tb).value) if c_tb is not None else None
-        v_gosb = _as_float(ws.cell(row=r, column=c_gosb).value) if c_gosb is not None else None
-
-        for ac in added:
-            ci = col_for(ac)
-            if ci is None:
-                continue
-            cell = ws.cell(row=r, column=ci)
-            tinfo = thr_all.get(ac) or {}
-            t_b = tinfo.get("bank")
-            t_t = tinfo.get("tb")
-            t_g = tinfo.get("gosb")
-
-            # Кандидаты: (порог minRating*, приоритет при равных порогах, заливка).
-            # При равных порогах выше «страна», затем ТБ, затем ГОСБ (см. ToDo SPOD).
-            cands: List[Tuple[float, int, PatternFill]] = []
-            if c_country is not None and t_b is not None and v_country is not None and v_country <= t_b:
-                cands.append((float(t_b), 2, fill_country))
-            if c_tb is not None and t_t is not None and v_tb is not None and v_tb <= t_t:
-                cands.append((float(t_t), 1, fill_tb))
-            if c_gosb is not None and t_g is not None and v_gosb is not None and v_gosb <= t_g:
-                cands.append((float(t_g), 0, fill_gosb))
-
-            if cands:
-                _thr, _prio, chosen_fill = max(cands, key=lambda x: (x[0], x[1]))
-                cell.fill = chosen_fill
+    n_applied = 0
+    for item in cells:
+        r = int(item.get("row_excel") or 0)
+        cname = item.get("col_name")
+        ok = bool(item.get("ok"))
+        if r < 2 or not cname:
+            continue
+        ci = col_for(str(cname))
+        if ci is None:
+            continue
+        ws.cell(row=r, column=ci).fill = fill_ok if ok else fill_fail
+        n_applied += 1
 
     wb.save(xlsx_path)
     wb.close()
-    logging.info(f"[rating_item_matrix] Подсветка матрицы применена к файлу: {xlsx_path}")
+    logging.info(
+        f"[rating_item_matrix] Подсветка доступности ITEM (зелёный/красный): {n_applied} ячеек в {xlsx_path}"
+    )

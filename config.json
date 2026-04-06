@@ -2495,6 +2495,25 @@
       "wrap_text": false
     },
     {
+      "sheet": "RATING",
+      "columns": [
+        "Количество кристаллов",
+        "Место в рейтинге по стране",
+        "Место в рейтинге ТБ",
+        "Место в рейтинге ГОСБ",
+        "ТБ",
+        "ГОСБ"
+      ],
+      "data_type": "number",
+      "decimal_places": 0,
+      "decimal_separator": ",",
+      "thousands_separator": true,
+      "date_format": "YYYY-MM-DD",
+      "horizontal": "center",
+      "vertical": "center",
+      "wrap_text": false
+    },
+    {
       "sheet": "STATISTICS",
       "except_columns": [
         "Табельный номер",
@@ -3598,9 +3617,13 @@
     "col_min_rating_bank": "ADD_DATA => getCondition => employeeRating => minRatingBANK",
     "col_min_rating_tb": "ADD_DATA => getCondition => employeeRating => minRatingTB",
     "col_min_rating_gosb": "ADD_DATA => getCondition => employeeRating => minRatingGOSB",
-    "fill_country_ok": "C6EFCE",
-    "fill_tb_ok": "FFEB9C",
-    "fill_gosb_ok": "BDD7EE"
+    "reward_add_data_col": "REWARD_ADD_DATA",
+    "sheet_list_rewards": "LIST-REWARDS",
+    "list_rewards_employee_col": "Табельный номер сотрудника",
+    "list_rewards_code_col": "Код награды",
+    "crystals_col": "Количество кристаллов",
+    "fill_accessibility_ok": "C6EFCE",
+    "fill_accessibility_fail": "FFC7CE"
   },
   "json_columns": {
     "CONTEST-DATA": [

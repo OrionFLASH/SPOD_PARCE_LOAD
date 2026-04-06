@@ -29,12 +29,17 @@
 
 - `EXCEL_FEATURES_EXAMPLES.md` — примеры работы с валидациями/формулами в Excel.
 
+## Снимок POST для переноса без Git (`Docs/POST_SNAPSHOT/`)
+
+- Шаблоны **`КУДА_ПОЛОЖИТЬ_ФАЙЛЫ.txt`** и **`restore_names_from_txt.bat`** копируются скриптом **`python src/Tools/sync_post_txt.py`** в локальный каталог **`POST/`** (каталог **`POST/`** в **`.gitignore`**, в репозиторий не коммитится).
+- В **`POST/`** после синхронизации: **`main.py.txt`**, **`config.json.txt`**, **`src/**/*.py.txt`** (без **Tools** и **Tests**). **README**, **requirements**, **Docs/** в POST не входят — см. **`README.md`**, раздел **«Каталог POST»**.
+
 ## Правила актуализации
 
-- **Источник истины по продукту:** корневой **`README.md`** (ТЗ, пайплайн, `config.json`, логирование, история версий). Разделы **`column_formats`** (в т.ч. `except_columns`, лист **STATISTICS**) и **`reward_getcondition_summary`** описывают актуальное поведение Excel и листа REWARD.
+- **Источник истины по продукту:** корневой **`README.md`** (ТЗ, пайплайн, `config.json`, логирование, история версий). Разделы **`column_formats`** (в т.ч. `except_columns`, лист **STATISTICS**), **`reward_getcondition_summary`**, **`rating_item_matrix`** и **«Каталог POST»** описывают актуальное поведение Excel, листов REWARD/RATING и снимка для переноса без Git.
 - После обновления CSV в `IN/SPOD/` пересобрать **`Docs/JSON/SPOD_INPUT_DATA_CATALOG.md`**: `python src/Tools/build_spod_input_catalog.py`; обновить примеры в **`Docs/JSON/examples/`**: `python src/Tools/export_spod_json_examples.py`; при смене схемы JSON править **`src/Tools/catalog_glossary/`**.
 - Справочник **`INPUT_DATA_AND_CONFIG_FULL.md`** держать согласованным с `README.md` по ключевым блокам конфигурации (п. 3), в т.ч. **`run_outputs`** (массив `source_only` / `main_only` / `consistency_only`) и при необходимости устаревший **`run_mode`**.
 - Новые изменения по консистентности вносить сначала в `README.md`, затем синхронно в `CONSISTENCY_CHECKS_FORMAT.md` и `CONSISTENCY_SAMPLE_FORMAT.md`. При добавлении или переименовании правил с типами `referential`, `referential_composite`, `unique`, `field_length` по возможности обновлять комментарии и логику в `SPOD_CONSISTENCY_CHECKS_SQL_MIRROR.sql` (соответствие `rules[].id` / `name`). Правила **`field_format`** в SQL-зеркале не ведутся — только в Python и конфиге.
-- Снимок для переноса без Git: `python src/Tools/sync_post_txt.py` — в **POST/** копируются `main.py`, `requirements.txt`, `config.json`, `README.md` и `src/**/*.py` (без Tools/Tests) с суффиксом `.txt` в имени; **Docs/** не входит.
+- Снимок для переноса без Git: `python src/Tools/sync_post_txt.py` — полная пересборка локального **POST/**: `main.py`, `config.json` и `src/**/*.py` (без Tools/Tests) с суффиксом `.txt` в имени файла; из **`Docs/POST_SNAPSHOT/`** — инструкция и **bat**; **POST/** в **`.gitignore`**. Подробно — **`README.md`** (раздел **«Каталог POST»**).
 - Для крупных блоков изменений использовать консолидированные документы, а не создавать новые `*_V2`, `*_FINAL`, `*_FULL` файлы.
 - Исторические документы с пересекающимся содержимым объединять и удалять дубли.

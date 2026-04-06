@@ -73,7 +73,7 @@ fix_gender_patterns.py
 .cursor/
 .cursorignore
 
-# Копии программы и документации (архивные .txt)
+# Локальный снимок кода для переноса без Git (python src/Tools/sync_post_txt.py); не коммитить
 POST/
 
 # Исходники и версии (Source)

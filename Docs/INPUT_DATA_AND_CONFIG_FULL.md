@@ -30,7 +30,12 @@
 - `column_formats` — форматы ячеек Excel по листам: списки `columns` или режим **`except_columns`** (формат ко всем колонкам кроме перечисленных). Для чисел после чтения CSV применяются нормализация имён заголовков (BOM, NFKC) и разбор чисел с разрядами (пробел/NBSP). Подробно: **README.md**, раздел **column_formats**.
 - `json_columns` — какие колонки с JSON разворачивать в плоские поля по листам (`column`, `prefix`).
 - `reward_getcondition_summary` — опциональная сводная колонка на листе **REWARD** по кодам из `getCondition` (аналог СЦЕПИТЬ/ВПР); ключи `enabled`, `column_name`. Подробно: **README.md**, раздел **reward_getcondition_summary**.
+- **`rating_item_matrix`** — матрица наград **ITEM** на листе **RATING**: столбцы со счётчиками заказов (**ORDER**) и подсветка ячеек (**светло-зелёный** / **светло-красный**) по доступности товара менеджеру из JSON **`REWARD_ADD_DATA`** (пороги **`minRating*`**, **`minCrystalEarnedTotal`**, коды **`rewardCode`** / **`nonRewardCode`** с листов **LIST-REWARDS** и **ORDER**). Ключи: **`enabled`**, имена листов и столбцов (**`sheet_rating`**, **`order_employee_col`**, **`crystals_col`**, **`sheet_list_rewards`**, **`list_rewards_*`**, **`fill_accessibility_*`**, **`reward_add_data_col`** и др.). Реализация: **`src/rating_item_matrix.py`**, **`src/reward_item_catalog.py`**. Полная таблица полей — **README.md**, раздел **rating_item_matrix**.
 - `logging` — уровни, имя логов и формат.
+
+### 3.1. Локальный снимок POST (без коммита в Git)
+
+- Каталог **`POST/`** в **`.gitignore`**. Команда **`python src/Tools/sync_post_txt.py`** (из корня репозитория) полностью пересоздаёт **POST/**: копии **`main.py`**, **`config.json`** и **`src/**/*.py`** (без **`Tools`** и **`Tests`**) с добавлением **`.txt`** к имени файла (**`main.py.txt`**, **`src/main_impl.py.txt`** и т.д.); из **`Docs/POST_SNAPSHOT/`** — **`КУДА_ПОЛОЖИТЬ_ФАЙЛЫ.txt`** и **`restore_names_from_txt.bat`**. **README**, **requirements**, **Docs/** в снимок не входят. Подробно: **README.md**, раздел **«Каталог POST»**, **`Docs/DOCS_INDEX.md`** (§ POST_SNAPSHOT).
 
 ## 4. JSON-поля
 

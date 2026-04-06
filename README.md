@@ -51,7 +51,7 @@ SPOD_PROM/
 ├── IN/                     # Корень входных данных (paths.input); внутри — subdir (SPOD, FILE и т.д.)
 ├── OUT/                    # Базовый каталог вывода (paths.output); файлы по дате: OUT/YYYY/DD-MM/; опционально OUT/DB/*.sqlite — архив входных CSV (input_archive_sqlite.db_path)
 ├── BACKUP/                 # Резервные копии
-├── POST/                   # Снимок для переноса без Git: python src/Tools/sync_post_txt.py — main.py, requirements.txt, config.json, README.md, src/**/*.py кроме src/Tools и src/Tests; см. POST/КУДА_ПОЛОЖИТЬ_ФАЙЛЫ.txt
+├── POST/                   # Не в Git (.gitignore). Снимок: python src/Tools/sync_post_txt.py — main.py.txt, config.json.txt, src/**/*.py.txt (без Tools/Tests); инструкция и bat из Docs/POST_SNAPSHOT/
 ├── LOGS/                   # Файлы логов (paths.logs); по дате: LOGS/YYYY/DD-MM/
 ├── Docs/                   # Дополнительная документация; каталог CSV/JSON — Docs/JSON/ (см. README внутри)
 ├── src/Tools/              # Утилиты: build_spod_input_catalog.py, export_spod_json_examples.py, sync_post_txt.py (заполнение POST/)
@@ -93,6 +93,8 @@ SPOD_PROM/
 | **logging_setup.py** | Настройка логирования | Класс `CallerFormatter` (добавляет имя функции в сообщение); функция `setup_logger(config)` — путь к лог-файлу; уровень файла из конфига (обычно DEBUG). В **`main_impl`** после настройки консольный поток поднимается до **WARNING**, чтобы **INFO** шёл в файл; краткий ход — **`console_ui`**. |
 | **json_utils.py** | Разбор и разворот JSON-полей в DataFrame | `safe_json_loads(s)` — парсинг строки в JSON с поправкой типичных ошибок; `safe_json_loads_preserve_triple_quotes(s)`; `flatten_json_column_recursive(df, column, prefix=..., sheet=..., sep=..., max_workers_io=...)` — рекурсивный разворот колонки в несколько колонок, при большом объёме — параллельно. |
 | **reward_getcondition_summary.py** | Сводный текст по кодам getCondition на листе REWARD | `add_reward_getcondition_summary_column(df_reward, prefix=..., column_name=...)` — после разворота JSON и merge; строки вида `[код] FULL_NAME {seasonItem}`. |
+| **reward_item_catalog.py** | Каталог ITEM из **`REWARD_ADD_DATA`** и проверка доступности товара менеджеру | `build_item_catalog_from_reward_df`, `rules_for_matrix_column`, `item_accessible_for_manager` — для раскраски матрицы на **RATING** (**`rating_item_matrix`**). |
+| **rating_item_matrix.py** | Колонки-счётчики по ORDER и подсветка доступности ITEM на **RATING** | `apply_rating_item_matrix_enrichment`, `apply_rating_item_matrix_colors` — светло-зелёный / светло-красный по полным критериям из JSON и листов **ORDER** / **LIST-REWARDS**. |
 | **file_loader.py** | Поиск и загрузка CSV, разворот JSON по конфигу | Класс `FileLoader(config)`: `find_file_case_insensitive(directory, base_name, extensions)`, `check_input_files_exist()`, `read_csv_file(file_path)`, `process_single_file(file_conf)` — возвращает `(df, sheet_name, file_conf)` или `(None, sheet_name, None)`. |
 | **tournament.py** | Расчёт статуса турнира по датам | `calculate_tournament_status(config, df_tournament, df_report=None)` — добавляет колонку `CALC_TOURNAMENT_STATUS` по правилам из `config.tournament_status_choices`. |
 | **validation.py** | Валидация длины полей и проверка дубликатов (устаревшие пути) | `validate_field_lengths(config, df, sheet_name)`, `validate_field_lengths_vectorized(config, df, sheet_name)`, `compare_validate_results`, `mark_duplicates`, `validate_single_sheet`, `check_duplicates_single_sheet`. Основной пайплайн больше не использует отдельные шаги проверки дубликатов и длины полей — всё выполняется в **consistency_checks**. |
@@ -133,6 +135,7 @@ SPOD_PROM/
 | `consistency_checks` | Единый конфиг проверок консистентности (summary_sheet_name, rules: referential, unique, field_length, field_format). |
 | `json_columns` | Колонки с JSON для разворота по листам (column, prefix). |
 | `reward_getcondition_summary` | Сводная колонка на листе REWARD по кодам `getCondition` (nonRewards/rewards); `enabled`, `column_name`. |
+| `rating_item_matrix` | Матрица ITEM на листе **RATING**: счётчики заказов по **ORDER** и подсветка доступности товара (зелёный/красный) по **`REWARD_ADD_DATA`**, **LIST-REWARDS**, кристаллам; см. раздел **rating_item_matrix**. |
 
 ### Общая структура файла
 
@@ -158,11 +161,12 @@ SPOD_PROM/
   "column_formats": [ ... ],
   "consistency_checks": { "summary_sheet_name": "CONSISTENCY", "rules": [ ... ] },
   "json_columns": { ... },
-  "reward_getcondition_summary": { "enabled": true, "column_name": "..." }
+  "reward_getcondition_summary": { "enabled": true, "column_name": "..." },
+  "rating_item_matrix": { "enabled": true, "...": "..." }
 }
 ```
 
-Дополнительные секции (при наличии в файле): `derived_columns`; опционально блок **`source_export`** с **`sort_rules`** для сортировки листов в source Excel — см. класс `Config` в **config_loader.py** и разделы ниже.
+Дополнительные секции (при наличии в файле): `derived_columns`; **`rating_item_matrix`** (матрица ITEM на RATING); опционально блок **`source_export`** с **`sort_rules`** для сортировки листов в source Excel — см. класс `Config` в **config_loader.py** и разделы ниже.
 
 ---
 
@@ -666,6 +670,52 @@ SPOD_PROM/
 
 ---
 
+### rating_item_matrix
+
+**Назначение:** после **merge_fields_advanced** на лист **RATING** добавляются столбцы по каждой награде с **REWARD_TYPE = ITEM** (имя столбца — **`REWARD_CODE`**, при необходимости с **`seasonCode`**; уникализация имён при дубликатах). В ячейке — число заказов на объединённом листе **ORDER** с тем же табельным номером и кодом товара (аналог **СЧЁТЕСЛИМН**); нулевые значения в Excel не выводятся (**NaN**).
+
+**Подсветка** выполняется **после** записи основного Excel (**openpyxl**): каждая ячейка матрицы получает **светло-зелёную** заливку, если товар **доступен** менеджеру по **всем** условиям из JSON **`REWARD_ADD_DATA`**, и **светло-красную**, если **хотя бы одно** условие не выполнено. Условия:
+
+1. **`minRatingBANK` / `minRatingTB` / `minRatingGOSB`** из **`employeeRating`**: учитываются только если значение **> 0**; тогда соответствующее **место в рейтинге** на RATING («Место в рейтинге по стране» / ТБ / ГОСБ) должно быть **≤** порога (меньшее число места = лучше).
+2. **`minCrystalEarnedTotal`**: если **> 0**, значение колонки **«Количество кристаллов»** на RATING должно быть **≥** порога; при **0** или отсутствии в JSON критерий не действует.
+3. **`getCondition` → `rewards`**: список **`rewardCode`**; если не пуст, **все** перечисленные коды должны встречаться на листе **LIST-REWARDS** для того же табельного (**«Табельный номер сотрудника»** + **«Код награды»** — имена настраиваются).
+4. **`getCondition` → `nonRewards`**: список **`nonRewardCode`**; если не пуст, **ни один** из кодов не должен встречаться в заказах сотрудника на **ORDER** (**«Табельный номер»** + **«Код товара»**).
+
+Каталог правил по коду товара строится модулем **`src/reward_item_catalog.py`** (разбор **`REWARD_ADD_DATA`** с нормализацией `"""` → `"` и снятием внешних кавычек). Если для кода нет записи в JSON, подставляются плоские пороги **`minRating*`** из развёрнутых колонок **REWARD** (как при сборе спецификаций матрицы). Трёхцветная подсветка только по **`minRating*`** (страна/ТБ/ГОСБ) **не используется**.
+
+| Ключ | Тип | Описание |
+|------|-----|----------|
+| `enabled` | bool | `false` — шаг отключён. |
+| `sheet_rating` / `sheet_order` / `sheet_reward` | строка | Листы RATING, ORDER, REWARD. |
+| `order_employee_col` / `order_product_col` | строка или список | Табельный и код товара на ORDER (есть запасные имена в коде). |
+| `rating_employee_col` | строка или список | Табельный на RATING. |
+| `country_rank_col` / `tb_rank_col` / `gosb_rank_col` | строка или список | Места в рейтинге (страна, ТБ, ГОСБ). |
+| `reward_type_col` / `reward_code_col` | строка или список | На REWARD: тип и код награды. |
+| `col_season_code` / `col_min_rating_bank` / `col_min_rating_tb` / `col_min_rating_gosb` | строка | Точные имена развёрнутых колонок или поиск по фрагментам. |
+| `reward_add_data_col` | строка | Имя сырой JSON-колонки (обычно **`REWARD_ADD_DATA`**). |
+| `sheet_list_rewards` | строка | Лист **LIST-REWARDS** (награды сотрудника). |
+| `list_rewards_employee_col` / `list_rewards_code_col` | строка или список | Табельный и код награды на LIST-REWARDS. |
+| `crystals_col` | строка или список | Колонка кристаллов на RATING. |
+| `fill_accessibility_ok` / `fill_accessibility_fail` | строка (ARGB без `#`) | Цвета заливки доступен / недоступен (по умолчанию **C6EFCE** / **FFC7CE**). |
+
+Реализация: **`src/rating_item_matrix.py`** (**`apply_rating_item_matrix_enrichment`**, **`apply_rating_item_matrix_colors`**), **`src/reward_item_catalog.py`**.
+
+---
+
+### Каталог POST (перенос кода без репозитория)
+
+**Назначение:** локальная папка **POST/** с копиями **`main.py`**, **`config.json`** и всех **`src/**/*.py`**, **кроме** **`src/Tools/`** и **`src/Tests/`**, чтобы перенести программу на ПК без Git. К имени каждого такого файла добавлен суффикс **`.txt`** (**`main.py.txt`**, **`config.json.txt`**, **`src/main_impl.py.txt`** и т.д.) — для обхода ограничений почты и вложений.
+
+**Каталог POST/ целиком в `.gitignore`** — в репозиторий не попадает; на каждой машине разработчика содержимое создаётся скриптом.
+
+**Обновление:** из корня проекта **`python src/Tools/sync_post_txt.py`**. Скрипт **полностью удаляет** прежний **POST/** и создаёт заново: копирует код с суффиксом **`.txt`**, затем копирует из **`Docs/POST_SNAPSHOT/`** без переименования файлы **`КУДА_ПОЛОЖИТЬ_ФАЙЛЫ.txt`** и **`restore_names_from_txt.bat`** (инструкция и снятие **`.txt`** на Windows).
+
+**Не копируются:** **`README.md`**, **`requirements.txt`**, каталог **`Docs/`**. На целевом ПК **`requirements.txt`** нужно взять из клона репозитория или установить зависимости вручную по списку в этом README (**pandas**, **openpyxl** и др.).
+
+**История:** ранее в POST входили также README и requirements; с версии **1.7.36** — только Python и **config.json** (плюс служебные файлы из **Docs/POST_SNAPSHOT/**).
+
+---
+
 ### check_duplicates (удалено из config.json)
 
 **Статус:** секция **удалена** из config.json. Проверка дубликатов полностью перенесена в **consistency_checks**.
@@ -1093,16 +1143,27 @@ python main.py
 
 - Если в **`run_outputs`** одновременно указаны **`main_only`** и **`consistency_only`**, отдельная книга **`SPOD_PROM CONSISTENCY`** создаётся **сразу после** проверок консистентности на сырых данных и сводки CSV (фаза 02), **до** merge, Summary и записи основного Excel — чтобы не ждать долгих стадий. Повторная запись того же файла в конце прогона **не** выполняется.
 
-### Версия 1.7.34 — Подсветка матрицы RATING: без требования счётчика; выбор цвета по max(minRating*)
+### Версия 1.7.36 — POST: только **`.py`** + **`config.json`** с суффиксом **`.txt`**; **POST/** в **`.gitignore`**
 
-- Ячейки столбцов ITEM-матрицы красятся по условиям рангов и порогов **`minRatingBANK` / `minRatingTB` / `minRatingGOSB`** даже при пустом или нулевом значении счётчика. Если срабатывает несколько условий, берётся цвет с **максимальным** порогом среди них; при равных порогах — приоритет страна → ТБ → ГОСБ. Подсветка возможна при наличии **хотя бы одного** столбца места в рейтинге.
+- **`sync_post_txt.py`:** каталог **POST/** перед сборкой **полностью удаляется** и создаётся заново. Копируются только **`main.py`**, **`config.json`** и **`src/**/*.py`** (без **`Tools`** и **`Tests`**) с именами вида **`имя.py.txt`**, **`config.json.txt`**. Из **`Docs/POST_SNAPSHOT/`** в **POST/** копируются **`КУДА_ПОЛОЖИТЬ_ФАЙЛЫ.txt`** и **`restore_names_from_txt.bat`** (отслеживаются в Git). **README.md**, **requirements.txt** и **Docs/** в POST не входят.
+- Каталог **POST/** указан в **`.gitignore`**; ранее закоммиченные файлы под **POST/** следует убрать из индекса (**`git rm -r --cached POST/`**). Подробно: раздел **«Каталог POST»** в README, **`Docs/POST_SNAPSHOT/`**, **`Docs/DOCS_INDEX.md`**.
+
+### Версия 1.7.35 — Матрица RATING: доступность ITEM по **`REWARD_ADD_DATA`**; подсветка зелёный / красный
+
+- Каталог условий для строк **`REWARD_TYPE` = ITEM** строится из сырого JSON колонки **`REWARD_ADD_DATA`** (нормализация кавычек как в ТЗ), модуль **`src/reward_item_catalog.py`**; при отсутствии записи в каталоге подставляются плоские пороги из развёрнутых колонок **`employeeRating`** (как раньше в **`_collect_item_reward_specs`**).
+- После записи основного Excel каждая ячейка матрицы (строка менеджера × столбец кода ITEM) получает **светло-зелёную** заливку, если товар **доступен** по **всем** критериям, и **светло-красную**, если **хотя бы один** не выполнен: пороги **`minRating*`** (учитываются только значения **> 0**; место в рейтинге на RATING должно быть **≤** порога), **`minCrystalEarnedTotal`** (если **> 0** — сравнение с колонкой **`Количество кристаллов`**, настраивается **`crystals_col`**), список **`rewardCode`** (все коды должны встречаться на листе **`LIST-REWARDS`** для того же табельного: **`list_rewards_employee_col`**, **`list_rewards_code_col`**), список **`nonRewardCode`** (ни один код не должен быть в заказах сотрудника на **ORDER**: табельный + **`Код товара`**).
+- Трёхцветная подсветка только по **`minRating*** (жёлтый/голубой/зелёный по стране/ТБ/ГОСБ) **не применяется**. Цвета: **`fill_accessibility_ok`**, **`fill_accessibility_fail`** в **`rating_item_matrix`**.
+
+### Версия 1.7.34 — Подсветка матрицы RATING: без требования счётчика; выбор цвета по max(minRating*) *(заменено 1.7.35)*
+
+- Исторически: три цвета по max(**`minRating*`**). С версии **1.7.35** раскраска только по полной доступности (см. выше).
 
 ### Версия 1.7.31 — Матрица ITEM на листе RATING (`rating_item_matrix`)
 
 - После **`merge_fields_advanced`** и сводки REWARD: на лист **`RATING`** добавляются колонки по строкам **`REWARD`** с **`REWARD_TYPE` = ITEM** (имена колонок — **`REWARD_CODE`**, при необходимости с сезоном; сортировка по коду и **`seasonCode`**). Значения — число строк на объединённом листе **`ORDER`**, где табельный номер и код товара совпадают с формулой СЧЁТЕСЛИМН; нули в ячейки не пишутся.
-- Подсветка ячеек матрицы (после записи основного Excel): зелёный / жёлтый / голубой при выполнении условий по местам в рейтинге и порогам **`minRatingBANK` / `minRatingTB` / `minRatingGOSB`** из развёрнутого **`ADD_DATA`** на **REWARD**. Настройки — **`rating_item_matrix`** в **`config.json`**, код — **`src/rating_item_matrix.py`**.
-- **Сопоставление столбцов:** для ORDER/RATING поддерживаются и русские заголовки из ТЗ, и типичные англ. имена (**`PERSON_NUMBER`**, **`REWARD_CODE`** и др.); пороги **`employeeRating`** ищутся также по фрагментам имени столбца, если путь отличается (например, индекс в **`getCondition`**). Если столбцы мест в рейтинге не найдены, матрица счётчиков всё равно строится, подсветка пропускается; в лог пишутся подсказки и первые заголовки листов.
-- **Подсветка матрицы:** заливка ячейки столбца кода товара ставится по условиям «место в рейтинге ≤ соответствующий **`minRating*`**» **даже если** счётчик в ячейке пустой или ноль. Если для кода выполняется несколько условий (страна / ТБ / ГОСБ), выбирается цвет с **наибольшим** порогом **`minRating*`** среди сработавших; при **равных** порогах приоритет: страна → ТБ → ГОСБ.
+- Подсветка ячеек матрицы (после записи основного Excel): см. **версию 1.7.35** — **`src/rating_item_matrix.py`**, **`src/reward_item_catalog.py`**, секция **`rating_item_matrix`** в **`config.json`**.
+- **Сопоставление столбцов:** для ORDER/RATING поддерживаются и русские заголовки из ТЗ, и типичные англ. имена (**`PERSON_NUMBER`**, **`REWARD_CODE`** и др.); пороги **`employeeRating`** ищутся также по фрагментам имени столбца, если путь отличается (например, индекс в **`getCondition`**). Если столбцы мест в рейтинге не найдены, матрица счётчиков всё равно строится; критерии **`minRating*`** с порогом **> 0** при отсутствии соответствующей колонки ранга дают **недоступность** (красная ячейка).
+- **Подсветка матрицы:** заливка по полной проверке доступности (см. **1.7.35**), в том числе при пустом или нулевом счётчике в ячейке столбца ITEM.
 
 ### Версия 1.7.30 — Агрегированные листы ORDER / RATING (`aggregate_into_sheet`)
 
@@ -1183,7 +1244,7 @@ python main.py
 - **`config.json`**: вместо одного **`run_mode`/`full`** — массив **`run_outputs`**: `source_only`, `main_only`, `consistency_only` (несколько значений = какие файлы создавать). Старый **`run_mode`** читается, если **`run_outputs`** нет.
 - **`copy_consistency_results_from_raw_to_processed`**: копирование колонок проверок через **`pd.concat`**, без предупреждения **PerformanceWarning** о фрагментированном DataFrame.
 - **`console_ui`**: **`print_wrapped`** + **textwrap** для сводки консистентности (без усечения «…»); **`expected_phases_for_run_flags`** для прогресс-бара.
-- **Документация**: **`Docs/INPUT_DATA_AND_CONFIG_FULL.md`**, **`Docs/DOCS_INDEX.md`** — описание **`run_outputs`**; **POST** и **`sync_post_txt`** при необходимости синхронизировать командой `python src/Tools/sync_post_txt.py`.
+- **Документация**: **`Docs/INPUT_DATA_AND_CONFIG_FULL.md`**, **`Docs/DOCS_INDEX.md`** — описание **`run_outputs`**; снимок **POST/** (не в Git): **`python src/Tools/sync_post_txt.py`**, раздел README **«Каталог POST»**, **`Docs/POST_SNAPSHOT/`**.
 
 ### Версия 1.7.15 — Сводка консистентности в консоли: обзор и таблица по типам
 
@@ -1238,13 +1299,13 @@ python main.py
 - **`consistency_only`:** больше не создаётся файл **SPOD_PROM source** — только отчёт консистентности. Выгрузка **source** выполняется только в режиме **`full`** (и отдельно при **`source_only`** до выхода).
 - **`write_source_excel`:** для всех ячеек листов файла source включены **перенос по словам** и выравнивание по верху.
 
-### Версия 1.7.6 — POST: только программа и config.json
+### Версия 1.7.6 — POST: состав снимка *(устарело; актуально 1.7.36)*
 
-- **`sync_post_txt.py`:** в **POST/** — **`main.py`**, **`requirements.txt`**, **`config.json`**, **`README.md`** и **`src/**/*.py`**, **исключая** **`src/Tools/`** и **`src/Tests/`**; суффикс **.txt** в имени. **Docs/** не копируется; перед синхронизацией POST очищается (кроме `КУДА_ПОЛОЖИТЬ_ФАЙЛЫ.txt` и `restore_names_from_txt.bat*`).
+- Исторически в **POST/** входили также **README** и **requirements**. Текущий состав и полная очистка каталога — см. **версию 1.7.36** и раздел **«Каталог POST»**.
 
 ### Версия 1.7.4 — Каталог POST (ранее с Docs/)
 
-- Введены **`sync_post_txt.py`**, bat для снятия **.txt** и расширенный состав POST; с **1.7.6** в POST код и **config.json**; **README.md** добавлен в состав POST позже (см. актуальный список в **`sync_post_txt.py`** и **POST/КУДА_ПОЛОЖИТЬ_ФАЙЛЫ.txt**).
+- Введены **`sync_post_txt.py`**, bat для снятия **.txt** и расширенный состав POST. Актуальный состав и шаблоны инструкций — **версия 1.7.36**, **`sync_post_txt.py`**, **`Docs/POST_SNAPSHOT/`** (в Git); сгенерированный **POST/** — только локально (**`.gitignore`**).
 
 ### Версия 1.7.3 — Полнота каталога JSON и CSV
 
@@ -1458,7 +1519,7 @@ python main.py
 - Итоговая статистика по дубликатам и отклонениям длины полей в лог и консоль в конце работы (без прерывания)
 - Добавлена поддержка JSON полей (разворот по json_columns)
 - **derived_columns** — производные колонки на листе (например, табельный в 20 знаков с лидирующими нулями на LIST-REWARDS); **src_key_transforms** / **dst_key_transforms** в merge — преобразование ключей при связке (pad_20 и т.д.)
-- Документация — README.md и Docs/; в POST/ синхронизируются код, config.json и копия README.md с суффиксом .txt (см. `sync_post_txt.py`).
+- Документация — README.md и Docs/; снимок для переноса без Git — каталог POST/ (не в репозитории), см. раздел **«Каталог POST»** и **`sync_post_txt.py`**.
 
 **Исправленные проблемы:**
 - Исправлены отступы в main.py (basedpyright): find_file_case_insensitive, safe_json_loads, generate_dynamic_color_scheme_from_merge_fields, merge_fields_across_sheets
@@ -1480,7 +1541,7 @@ python main.py
 
 ---
 
-*Документация обновлена: 2026-03-17*
+*Документация обновлена: 2026-03-28*
 
 ---
 
@@ -1491,5 +1552,5 @@ python main.py
 - В **config.json** секция **consistency_checks** (summary_sheet_name, rules) — единственное место задания правил unique и field_length.
 - В **config_loader** — атрибут `consistency_checks`; в **main_impl** — вызов `run_consistency_checks_and_attach_summary` после merge, до SUMMARY.
 
-**Папка POST:**
-- В **POST/** складываются копии **всех файлов программы** с добавлением к расширению суффикса **.txt** (main.py → main.py.txt, config.json → config.json.txt, README.md → README.md.txt, requirements.txt → requirements.txt.txt, все файлы из src/ → src/имя_файла.py.txt) для переноса программы без репозитория. Существующие файлы в POST заменяются новыми версиями при обновлении.
+**Папка POST (историческая формулировка):**
+- Актуальное поведение см. **версию 1.7.36** и раздел **«Каталог POST»**: в **POST/** только **main.py**, **config.json** и **src/**/*.py** (без Tools/Tests) с суффиксом **.txt** в имени файла; каталог не версионируется (**`.gitignore`**).

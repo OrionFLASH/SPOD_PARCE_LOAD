@@ -1,16 +1,18 @@
 # -*- coding: utf-8 -*-
 """
-Сборка каталога POST/: копии файлов программы с суффиксом .txt в имени (для переноса без Git).
+Сборка каталога POST/: снимок кода для переноса без Git.
 
-Копируются только:
-  - корень: main.py, requirements.txt, config.json, README.md (в POST — с суффиксом .txt);
-  - модули основной программы: src/*.py и src/**/*.py, кроме каталогов src/Tools/ и src/Tests/;
-  - вся документация под Docs/: каждый файл копируется с именем «как в проекте + .txt»
-    (например Docs/JSON/README.md → POST/Docs/JSON/README.md.txt).
+Полностью очищает POST/, затем копирует:
+  - main.py, config.json — в корень POST с именами main.py.txt, config.json.txt;
+  - все src/**/*.py, кроме каталогов src/Tools/ и src/Tests/ — с суффиксом .txt к имени файла
+    (например src/main_impl.py → POST/src/main_impl.py.txt).
 
-Перед копированием из POST удаляется всё,
-кроме служебных файлов: КУДА_ПОЛОЖИТЬ_ФАЙЛЫ.txt, restore_names_from_txt.bat,
-restore_names_from_txt.bat.txt.
+Служебные файлы без двойного .txt копируются из Docs/POST_SNAPSHOT/:
+  КУДА_ПОЛОЖИТЬ_ФАЙЛЫ.txt, restore_names_from_txt.bat
+
+README.md, requirements.txt и каталог Docs/ в POST не попадают.
+
+Каталог POST/ указан в .gitignore и не должен коммититься в репозиторий.
 
 Запуск из корня проекта: python src/Tools/sync_post_txt.py
 """
@@ -19,41 +21,22 @@ from __future__ import annotations
 import shutil
 import sys
 from pathlib import Path
-from typing import Iterable, List, Set
+from typing import Iterable
 
 ROOT = Path(__file__).resolve().parents[2]
 POST = ROOT / "POST"
-
-# Файлы в корне POST, которые не трогаем при очистке (инструкции и скрипт Windows).
-KEEP_IN_POST_ROOT: Set[str] = {
-    "КУДА_ПОЛОЖИТЬ_ФАЙЛЫ.txt",
-    "restore_names_from_txt.bat",
-    "restore_names_from_txt.bat.txt",
-}
-
-ROOT_FILES: List[str] = ["main.py", "requirements.txt", "config.json", "README.md"]
+# Шаблоны инструкции и bat для копирования в POST как есть (отслеживаются в Git под Docs/)
+HELPERS_SRC = ROOT / "Docs" / "POST_SNAPSHOT"
+_SKIP_SRC_SUBDIRS = frozenset({"Tools", "Tests"})
 
 
 def iter_py_files(src: Path) -> Iterable[Path]:
-    """Все .py под src/, кроме __pycache__, src/Tools/ и src/Tests/ (утилиты и тесты не для переноса)."""
-    skip_dirs = frozenset({"Tools", "Tests"})
+    """Все .py под src/, кроме __pycache__, src/Tools/ и src/Tests/."""
     for p in src.rglob("*.py"):
         if "__pycache__" in p.parts:
             continue
         rel_parts = p.relative_to(src).parts
-        if rel_parts and rel_parts[0] in skip_dirs:
-            continue
-        yield p
-
-
-def iter_docs_files(docs_root: Path) -> Iterable[Path]:
-    """Все обычные файлы под Docs/ (без каталогов и служебного .DS_Store)."""
-    if not docs_root.is_dir():
-        return
-    for p in docs_root.rglob("*"):
-        if not p.is_file():
-            continue
-        if p.name == ".DS_Store":
+        if rel_parts and rel_parts[0] in _SKIP_SRC_SUBDIRS:
             continue
         yield p
 
@@ -63,53 +46,38 @@ def dest_with_txt(rel: Path) -> Path:
     return rel.parent / f"{rel.name}.txt"
 
 
-def copy_one(src: Path, rel: Path) -> None:
-    """Копирует файл в POST с именем rel + .txt."""
+def copy_one_txt_suffix(src: Path, rel: Path) -> None:
+    """Копирует файл в POST с именем «как в проекте + .txt»."""
     out = POST / dest_with_txt(rel)
     out.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(src, out)
 
 
-def prune_post_keep_helpers() -> None:
-    """Удаляет из POST старые копии (в т.ч. Docs/), оставляя только служебные файлы."""
-    if not POST.is_dir():
-        return
-    for item in list(POST.iterdir()):
-        if item.name in KEEP_IN_POST_ROOT:
-            continue
-        if item.is_dir():
-            shutil.rmtree(item)
-        else:
-            try:
-                item.unlink()
-            except OSError as e:
-                print(f"Не удалось удалить {item}: {e}", file=sys.stderr)
-
-
 def main() -> None:
+    if POST.is_dir():
+        shutil.rmtree(POST)
     POST.mkdir(parents=True, exist_ok=True)
-    prune_post_keep_helpers()
+
+    if HELPERS_SRC.is_dir():
+        for h in sorted(HELPERS_SRC.iterdir()):
+            if h.is_file() and not h.name.startswith("."):
+                shutil.copy2(h, POST / h.name)
+    else:
+        print(f"Предупреждение: нет каталога шаблонов {HELPERS_SRC}", file=sys.stderr)
 
     n = 0
-    for name in ROOT_FILES:
+    for name in ("main.py", "config.json"):
         p = ROOT / name
         if not p.is_file():
             print(f"Пропуск (нет файла): {p}", file=sys.stderr)
             continue
-        copy_one(p, Path(name))
+        copy_one_txt_suffix(p, Path(name))
         n += 1
 
     src_root = ROOT / "src"
     for p in iter_py_files(src_root):
         rel = p.relative_to(ROOT)
-        copy_one(p, rel)
-        n += 1
-
-    # Документация: сохраняется структура каталогов Docs/, к имени каждого файла добавляется .txt
-    docs_root = ROOT / "Docs"
-    for p in iter_docs_files(docs_root):
-        rel = p.relative_to(ROOT)
-        copy_one(p, rel)
+        copy_one_txt_suffix(p, rel)
         n += 1
 
     for garbage in POST.rglob(".DS_Store"):
@@ -118,7 +86,7 @@ def main() -> None:
         except OSError:
             pass
 
-    print(f"Готово. Скопировано файлов: {n}. Каталог: {POST}")
+    print(f"Готово. Скопировано файлов кода/конфига с суффиксом .txt: {n}. Каталог: {POST}")
 
 
 if __name__ == "__main__":
