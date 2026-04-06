@@ -8,7 +8,8 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, List, Optional, Tuple
+import unicodedata
+from typing import Any, Dict, List, Optional, Union
 
 import numpy as np
 import pandas as pd
@@ -40,6 +41,101 @@ def _norm_str(x: Any) -> str:
     return str(x).strip()
 
 
+# Запасные имена колонок для типичных выгрузок (русские заголовки и англ. поля gamification)
+_DEFAULT_ORDER_EMP: List[str] = [
+    "Табельный номер",
+    "PERSON_NUMBER",
+    "PERSON_NUMBER_ADD",
+    "personNumber",
+    "EMPLOYEE_NUMBER",
+]
+_DEFAULT_ORDER_PROD: List[str] = [
+    "Код товара",
+    "REWARD_CODE",
+    "ITEM_CODE",
+    "PRODUCT_CODE",
+    "rewardCode",
+    "REWARD",
+]
+_DEFAULT_RATING_EMP: List[str] = _DEFAULT_ORDER_EMP
+_DEFAULT_COUNTRY_RANK: List[str] = [
+    "Место в рейтинге по стране",
+    "RANK_COUNTRY",
+    "COUNTRY_RANK",
+    "PLACE_COUNTRY",
+    "countryRatingPlace",
+    "ratingPlaceCountry",
+]
+_DEFAULT_TB_RANK: List[str] = [
+    "Место в рейтинге ТБ",
+    "RANK_TB",
+    "TB_RANK",
+    "PLACE_TB",
+    "tbRatingPlace",
+    "ratingPlaceTB",
+]
+_DEFAULT_GOSB_RANK: List[str] = [
+    "Место в рейтинге ГОСБ",
+    "RANK_GOSB",
+    "GOSB_RANK",
+    "PLACE_GOSB",
+    "gosbRatingPlace",
+    "ratingPlaceGOSB",
+]
+
+
+def _norm_header(s: str) -> str:
+    """Нормализация имени столбца для сопоставления (BOM, NFKC, регистр)."""
+    t = unicodedata.normalize("NFKC", str(s)).strip()
+    if t.startswith("\ufeff"):
+        t = t.lstrip("\ufeff").strip()
+    return t.casefold()
+
+
+def _build_header_index(df: pd.DataFrame) -> Dict[str, str]:
+    """casefold-ключ -> исходное имя столбца в DataFrame."""
+    out: Dict[str, str] = {}
+    for c in df.columns:
+        out[_norm_header(str(c))] = c
+    return out
+
+
+def _resolve_column(df: pd.DataFrame, names: Union[str, List[str], None], defaults: List[str]) -> Optional[str]:
+    """
+    Первое найденное имя столбца: сначала варианты из конфига (строка или список), затем defaults.
+    Сравнение по нормализованным строкам и точному вхождению в columns.
+    """
+    candidates: List[str] = []
+    if names is not None:
+        if isinstance(names, str) and names.strip():
+            candidates.append(names.strip())
+        elif isinstance(names, list):
+            candidates.extend(str(x).strip() for x in names if str(x).strip())
+    candidates.extend(d for d in defaults if d not in candidates)
+
+    idx = _build_header_index(df)
+    for want in candidates:
+        wn = _norm_header(want)
+        if wn in idx:
+            resolved = idx[wn]
+            if want != resolved:
+                logging.info(f"[rating_item_matrix] Столбец «{want}» сопоставлен с «{resolved}»")
+            return resolved
+        if want in df.columns:
+            return want
+    return None
+
+
+def _find_column_by_fragments(df: pd.DataFrame, fragments: List[str]) -> Optional[str]:
+    """Первый столбец, в имени которого встречаются все подстроки (без учёта регистра)."""
+    fr = [f.casefold() for f in fragments]
+    for c in df.columns:
+        s = str(c).casefold()
+        if all(f in s for f in fr):
+            return c
+    return None
+
+
 def _make_unique_col_name(base: str, existing: set) -> str:
     """Уникальное имя колонки в Excel (дубликаты REWARD_CODE)."""
     name = base.strip() or "ITEM"
@@ -64,31 +160,50 @@ def _collect_item_reward_specs(
     """
     rtc = cfg.get("reward_type_col") or "REWARD_TYPE"
     rcc = cfg.get("reward_code_col") or "REWARD_CODE"
-    c_season = cfg.get("col_season_code") or "ADD_DATA => getCondition => employeeRating => seasonCode"
-    c_bank = cfg.get("col_min_rating_bank") or "ADD_DATA => getCondition => employeeRating => minRatingBANK"
-    c_tb = cfg.get("col_min_rating_tb") or "ADD_DATA => getCondition => employeeRating => minRatingTB"
-    c_gosb = cfg.get("col_min_rating_gosb") or "ADD_DATA => getCondition => employeeRating => minRatingGOSB"
+    exact_season = cfg.get("col_season_code") or "ADD_DATA => getCondition => employeeRating => seasonCode"
+    exact_bank = cfg.get("col_min_rating_bank") or "ADD_DATA => getCondition => employeeRating => minRatingBANK"
+    exact_tb = cfg.get("col_min_rating_tb") or "ADD_DATA => getCondition => employeeRating => minRatingTB"
+    exact_gosb = cfg.get("col_min_rating_gosb") or "ADD_DATA => getCondition => employeeRating => minRatingGOSB"
 
-    need = [rtc, rcc]
-    for c in need:
-        if c not in reward_df.columns:
-            logging.warning(f"[rating_item_matrix] На листе REWARD нет колонки «{c}»")
-            return []
+    def _metric_col(exact: str, frags: List[str]) -> Optional[str]:
+        if exact in reward_df.columns:
+            return exact
+        found = _find_column_by_fragments(reward_df, frags)
+        if found:
+            logging.info(f"[rating_item_matrix] Порог рейтинга: вместо «{exact}» используется «{found}»")
+        return found
 
-    mask = reward_df[rtc].astype(str).str.strip().str.upper() == "ITEM"
+    c_season = _metric_col(exact_season, ["employeeRating", "seasonCode"])
+    c_bank = _metric_col(exact_bank, ["employeeRating", "minRatingBANK"])
+    c_tb = _metric_col(exact_tb, ["employeeRating", "minRatingTB"])
+    c_gosb = _metric_col(exact_gosb, ["employeeRating", "minRatingGOSB"])
+
+    rtc_res = _resolve_column(reward_df, rtc, ["REWARD_TYPE", "reward_type", "RewardType"])
+    rcc_res = _resolve_column(reward_df, rcc, ["REWARD_CODE", "reward_code", "RewardCode"])
+    if rtc_res is None or rcc_res is None:
+        logging.warning(
+            f"[rating_item_matrix] На листе REWARD не найдены колонки типа/кода награды "
+            f"(ожидались «{rtc}», «{rcc}»). Заголовки (первые 40): {list(reward_df.columns)[:40]}"
+        )
+        return []
+
+    mask = reward_df[rtc_res].astype(str).str.strip().str.upper() == "ITEM"
     sub = reward_df.loc[mask].copy()
     if sub.empty:
-        logging.info("[rating_item_matrix] Нет строк REWARD с REWARD_TYPE=ITEM")
+        logging.info(
+            f"[rating_item_matrix] Нет строк REWARD с типом ITEM (колонка «{rtc_res}»). "
+            f"Уникальные значения типа (до 15): {reward_df[rtc_res].astype(str).str.strip().unique()[:15].tolist()}"
+        )
         return []
 
     # Имена новых колонок не должны пересекаться с уже существующими на RATING
     existing_names: set = set(str(c) for c in rating_df.columns)
     rows: List[Dict[str, Any]] = []
     for _, row in sub.iterrows():
-        code = _norm_str(row.get(rcc))
+        code = _norm_str(row.get(rcc_res))
         if not code:
             continue
-        season = _norm_str(row.get(c_season)) if c_season in sub.columns else ""
+        season = _norm_str(row.get(c_season)) if c_season and c_season in sub.columns else ""
         col_name = code
         if season:
             col_name = f"{code} ({season})"
@@ -97,9 +212,9 @@ def _collect_item_reward_specs(
             {
                 "col_name": col_name,
                 "match_code": code,
-                "min_bank": _as_float(row.get(c_bank)) if c_bank in sub.columns else None,
-                "min_tb": _as_float(row.get(c_tb)) if c_tb in sub.columns else None,
-                "min_gosb": _as_float(row.get(c_gosb)) if c_gosb in sub.columns else None,
+                "min_bank": _as_float(row.get(c_bank)) if c_bank and c_bank in sub.columns else None,
+                "min_tb": _as_float(row.get(c_tb)) if c_tb and c_tb in sub.columns else None,
+                "min_gosb": _as_float(row.get(c_gosb)) if c_gosb and c_gosb in sub.columns else None,
                 "sort_season": season or "",
             }
         )
@@ -137,28 +252,33 @@ def apply_rating_item_matrix_enrichment(
     if not isinstance(rating_df, pd.DataFrame) or not isinstance(order_df, pd.DataFrame):
         return None
 
-    emp_o = cfg.get("order_employee_col") or "Табельный номер"
-    prod_o = cfg.get("order_product_col") or "Код товара"
-    emp_r = cfg.get("rating_employee_col") or "Табельный номер"
-    country_c = cfg.get("country_rank_col") or "Место в рейтинге по стране"
-    tb_c = cfg.get("tb_rank_col") or "Место в рейтинге ТБ"
-    gosb_c = cfg.get("gosb_rank_col") or "Место в рейтинге ГОСБ"
+    emp_o = _resolve_column(order_df, cfg.get("order_employee_col"), _DEFAULT_ORDER_EMP)
+    prod_o = _resolve_column(order_df, cfg.get("order_product_col"), _DEFAULT_ORDER_PROD)
+    emp_r = _resolve_column(rating_df, cfg.get("rating_employee_col"), _DEFAULT_RATING_EMP)
+    country_c = _resolve_column(rating_df, cfg.get("country_rank_col"), _DEFAULT_COUNTRY_RANK)
+    tb_c = _resolve_column(rating_df, cfg.get("tb_rank_col"), _DEFAULT_TB_RANK)
+    gosb_c = _resolve_column(rating_df, cfg.get("gosb_rank_col"), _DEFAULT_GOSB_RANK)
 
-    for col, label in (
-        (emp_o, "ORDER"),
-        (prod_o, "ORDER"),
-        (emp_r, "RATING"),
-        (country_c, "RATING"),
-        (tb_c, "RATING"),
-        (gosb_c, "RATING"),
-    ):
-        df_ref = order_df if label == "ORDER" else rating_df
-        if col not in df_ref.columns:
-            logging.warning(f"[rating_item_matrix] Нет колонки «{col}» на листе {label}")
-            return None
+    if emp_o is None or prod_o is None or emp_r is None:
+        logging.warning(
+            f"[rating_item_matrix] Не удалось сопоставить обязательные столбцы ORDER/RATING. "
+            f"ORDER: сотрудник={emp_o!r}, товар/код={prod_o!r}; RATING: сотрудник={emp_r!r}. "
+            f"Колонки ORDER (до 30): {list(order_df.columns)[:30]}; RATING (до 30): {list(rating_df.columns)[:30]}"
+        )
+        return None
+
+    if country_c is None or tb_c is None or gosb_c is None:
+        logging.warning(
+            f"[rating_item_matrix] Не найдены столбцы мест в рейтинге (страна/ТБ/ГОСБ) — "
+            f"country={country_c!r}, tb={tb_c!r}, gosb={gosb_c!r}. Матрица ITEM будет добавлена, подсветка пропущена."
+        )
 
     specs = _collect_item_reward_specs(reward_t[0], rating_df, cfg)
     if not specs:
+        logging.warning(
+            "[rating_item_matrix] Список ITEM-наград пуст — колонки на RATING не добавлялись "
+            "(проверьте REWARD_TYPE=ITEM и разворот ADD_DATA на листе REWARD)."
+        )
         return None
 
     rating_df = rating_df.copy()
@@ -200,6 +320,7 @@ def apply_rating_item_matrix_enrichment(
         "fill_country": cfg.get("fill_country_ok") or "C6EFCE",
         "fill_tb": cfg.get("fill_tb_ok") or "FFEB9C",
         "fill_gosb": cfg.get("fill_gosb_ok") or "BDD7EE",
+        "skip_colors": not (country_c and tb_c and gosb_c),
     }
 
 
@@ -220,6 +341,9 @@ def apply_rating_item_matrix_colors(
 ) -> None:
     """Подсветка ячеек матрицы на сохранённом файле Excel (после write_to_excel)."""
     if not cfg or not bool(cfg.get("enabled")):
+        return
+    if meta.get("skip_colors"):
+        logging.info("[rating_item_matrix] Подсветка отключена (нет столбцов рейтинга на листе RATING)")
         return
     try:
         wb = load_workbook(xlsx_path)
