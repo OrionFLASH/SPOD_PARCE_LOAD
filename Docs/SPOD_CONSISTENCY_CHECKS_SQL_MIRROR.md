@@ -1,7 +1,9 @@
 # Документация SQL-скрипта `SPOD_CONSISTENCY_CHECKS_SQL_MIRROR.sql`
 
 Файл: **`Docs/SPOD_CONSISTENCY_CHECKS_SQL_MIRROR.md`**  
-Исходный скрипт: **`Docs/SPOD_CONSISTENCY_CHECKS_SQL_MIRROR.sql`**
+Исходные скрипты:
+- **`Docs/SPOD_CONSISTENCY_CHECKS_SQL_MIRROR.sql`** — подробная версия с комментариями
+- **`Docs/SPOD_CONSISTENCY_CHECKS_SQL_MIRROR_PLAIN.sql`** — версия без подробных комментариев
 
 Документ описывает назначение скрипта, состав «команд» (на самом деле это **один** запрос), все CTE, все проверки, используемые таблицы и поля, а также что нужно заменить под вашу витрину данных.
 
@@ -11,7 +13,7 @@
 
 - **Зеркало** части правил из `config.json` → секция **`consistency_checks.rules`**: типы **`referential`**, **`referential_composite`**, **`unique`**, **`field_length`**.
 - Скрипт **не вызывается** из Python-пайплайна SPOD_PROM; его выполняют вручную в клиенте СУБД (Hive, Spark SQL и т.п.) против таблиц витрины, соответствующих листам Excel выгрузки.
-- Идентификаторы проверок **`check_id`** совпадают с полем **`rules[].id`** в конфиге (для зеркалируемых правил).
+- Набор проверок и CTE соответствует зеркалируемым правилам из `consistency_checks.rules` (типы `referential`, `referential_composite`, `unique`, `field_length`).
 - Логика согласована с модулем **`src/consistency_checks.py`**; подробный формат правил — в **`Docs/CONSISTENCY_CHECKS_FORMAT.md`**.
 
 **В SQL намеренно не переносятся:**
@@ -118,14 +120,14 @@ flowchart TB
 
 1. **`dim_*`** — урезанные копии или **множества ключей** (`DISTINCT`), чтобы не читать полные таблицы лишний раз и переиспользовать одни и те же наборы в нескольких проверках.
 2. **`base_schedule_ref`** — одна строка на строку расписания плюс три «флага» наличия `CONTEST_CODE` в CONTEST-DATA / INDICATOR / GROUP (для `scenario_1`, `scenario_16`, `scenario_20`).
-3. **`v_*`** — в каждом CTE только строки **нарушений** (или пустой результат). Колонки: `check_id`, `check_type`, `detail_key`, `detail_message`.
-4. **`chk_summary`** — для каждого `check_id`: **`violation_count`** = `COUNT(*)` из соответствующего `v_*`.
+3. **`v_*`** — в каждом CTE только строки **нарушений** (или пустой результат). Колонки: `detail_key`, `detail_message`.
+4. **`chk_summary`** — список счётчиков: **`violation_count`** = `COUNT(*)` из соответствующего `v_*`.
 5. **`chk_detail`** — **`UNION ALL`** всех `v_*` в один длинный список деталей.
 6. **Финальный `SELECT`** — объединяет:
    - строки с **`report_section = 'SUMMARY'`** (`passed` 1/0, `violation_count`);
    - строки с **`report_section = 'DETAIL'`** (`detail_key`, `detail_message`).
 
-Сортировка: сначала весь SUMMARY (`result_order = 1`), затем весь DETAIL (`result_order = 2`), внутри — по `check_id`, `detail_key`.
+Сортировка: сначала весь SUMMARY (`result_order = 1`), затем весь DETAIL (`result_order = 2`), внутри — по `detail_key`.
 
 ---
 
@@ -284,10 +286,8 @@ JOIN по **двум и более** полям; снова `LEFT JOIN` + отс
 
 ## 12. CTE `chk_summary` и `chk_detail`
 
-- **`chk_summary`**: для каждого `check_id` из списка — литерал `check_id`, `check_type`, и подзапрос **`(SELECT COUNT(*) FROM v_…)`** как `violation_count`.
+- **`chk_summary`**: набор подзапросов **`(SELECT COUNT(*) FROM v_…)`** как `violation_count` по всем зеркалируемым проверкам.
 - **`chk_detail`**: последовательность **`UNION ALL SELECT … FROM v_…`** для всех тех же `v_*`, что учтены в сводке.
-
-Порядок строк в `chk_summary` может **не совпадать** с порядком объектов в `config.json`; ориентир — совпадение **`check_id`**.
 
 ---
 
@@ -297,8 +297,6 @@ JOIN по **двум и более** полям; снова `LEFT JOIN` + отс
 |---------|-----------|----------|
 | `result_order` | `1` | `2` |
 | `report_section` | `'SUMMARY'` | `'DETAIL'` |
-| `check_id` | да | да |
-| `check_type` | да | да |
 | `passed` | `1` если `violation_count = 0`, иначе `0` | `NULL` |
 | `violation_count` | число | `NULL` |
 | `detail_key` | `NULL` | ключ нарушения (строка) |
@@ -308,7 +306,7 @@ JOIN по **двум и более** полям; снова `LEFT JOIN` + отс
 
 - только сводка: `WHERE report_section = 'SUMMARY'`
 - только упавшие проверки: `WHERE report_section = 'SUMMARY' AND passed = 0`
-- детали по одному правилу: `WHERE report_section = 'DETAIL' AND check_id = '1.1'`
+- детали с фильтром по ключу: `WHERE report_section = 'DETAIL' AND detail_key LIKE '%значение%'`
 
 ---
 
@@ -324,4 +322,5 @@ JOIN по **двум и более** полям; снова `LEFT JOIN` + отс
 
 | Версия | Изменения |
 |--------|-----------|
+| 1.1 | Добавлены 2 версии SQL-файла (`.sql` с комментариями и `_PLAIN.sql` без комментариев); в описании отражено удаление `check_id`/`check_type` из результата и CTE. |
 | 1.0 | Первоначальное описание скрипта: структура CTE, все проверки, таблицы и поля, замены для витрины, исключения (field_format, json, csv_columns_count). |

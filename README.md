@@ -71,8 +71,8 @@ SPOD_PROM/
 
 - `Docs/INPUT_DATA_AND_CONFIG_FULL.md` — структура входных данных и конфигурация.
 - `Docs/CONSISTENCY_CHECKS_FORMAT.md` — формат правил `consistency_checks`.
-- `Docs/SPOD_CONSISTENCY_CHECKS_SQL_MIRROR.sql` — SQL-зеркало правил `referential` / `referential_composite` / `unique` / `field_length` для СУБД (сводка **passed** 1/0 и детали нарушений); правила **`field_format`** в SQL не дублируются (только Python). CTE **`dim_*`** / **`base_schedule_ref`** снижают повторные сканы таблиц; в файле — глоссарий SQL и пояснения к коду на русском, соответствие **`consistency_checks.rules[].id`** / **`name`**, связь с **`consistency_checks.py`**.
-- `Docs/SPOD_CONSISTENCY_CHECKS_SQL_MIRROR.md` — подробная документация по SQL-зеркалу: одна команда `WITH`…`SELECT`, все CTE и проверки, таблицы и поля витрины, что заменять под реальную БД, формат результата SUMMARY/DETAIL.
+- `Docs/SPOD_CONSISTENCY_CHECKS_SQL_MIRROR.sql` — SQL-зеркало правил `referential` / `referential_composite` / `unique` / `field_length` для СУБД (подробная версия с комментариями). Результат: блок **SUMMARY** (`passed` 1/0, `violation_count`) и блок **DETAIL** (`detail_key`, `detail_message`) без колонок `check_id` / `check_type`; правила **`field_format`** в SQL не дублируются (только Python). CTE **`dim_*`** / **`base_schedule_ref`** снижают повторные сканы таблиц; в файле — глоссарий SQL и пояснения к коду на русском, связь с **`consistency_checks.py`**.
+- `Docs/SPOD_CONSISTENCY_CHECKS_SQL_MIRROR.md` — подробная документация по SQL-зеркалу: одна команда `WITH`…`SELECT`, все CTE и проверки, таблицы и поля витрины, что заменять под реальную БД, формат результата SUMMARY/DETAIL, плюс соглашение по двум версиям SQL-файла (подробная и `*_PLAIN.sql`).
 - `Docs/CONSISTENCY_SAMPLE_FORMAT.md` — формат заполнения колонки `sample`.
 - `Docs/INPUT_ARCHIVE_SQLITE_DESIGN.md` — архив входных CSV в SQLite (без отдельного сервера); секция **`input_archive_sqlite`** в `config.json`, код **`src/input_archive_sqlite.py`**, разворот **`CONTEST_FEATURE`** / **`REWARD_ADD_DATA`** в колонки **`JSON_*`** — **`src/archive_json_columns.py`**.
 - `Docs/АНАЛИЗ_ПРОВЕРОК_КОНСИСТЕНТНОСТИ.md` — аналитика покрытия и предложения по новым правилам.
@@ -1142,6 +1142,11 @@ python main.py
 ### Версия 1.7.32 — Ранняя запись файла консистентности при `main_only` + `consistency_only`
 
 - Если в **`run_outputs`** одновременно указаны **`main_only`** и **`consistency_only`**, отдельная книга **`SPOD_PROM CONSISTENCY`** создаётся **сразу после** проверок консистентности на сырых данных и сводки CSV (фаза 02), **до** merge, Summary и записи основного Excel — чтобы не ждать долгих стадий. Повторная запись того же файла в конце прогона **не** выполняется.
+
+### Версия 1.7.37 — SQL-зеркало: 2 версии файла и упрощённый вывод
+
+- Для SQL-проверок консистентности добавлены две версии: подробная **`Docs/SPOD_CONSISTENCY_CHECKS_SQL_MIRROR.sql`** (с комментариями) и компактная **`Docs/SPOD_CONSISTENCY_CHECKS_SQL_MIRROR_PLAIN.sql`** (только код запроса).
+- Из SQL-результата убраны **`check_id`** и **`check_type`**: в **SUMMARY** остаются `passed` и `violation_count`, в **DETAIL** — `detail_key` и `detail_message`.
 
 ### Версия 1.7.36 — POST: только **`.py`** + **`config.json`** с суффиксом **`.txt`**; **POST/** в **`.gitignore`**
 

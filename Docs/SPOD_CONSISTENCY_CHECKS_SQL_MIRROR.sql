@@ -18,7 +18,7 @@
 --   report_section = 'SUMMARY' — по одной строке на проверку:
 --     passed = 1 если нарушений нет, 0 если есть (как в примере game_dq: ok/consistent);
 --     violation_count — число строк/ключей с нарушением.
---   report_section = 'DETAIL' — только нарушения: check_id, detail_key, detail_message.
+--   report_section = 'DETAIL' — только нарушения: detail_key, detail_message.
 --   Сначала идут все строки SUMMARY (result_order=1), затем все DETAIL (result_order=2).
 --   Чтобы взять только сводку: WHERE report_section = 'SUMMARY'.
 --   Чтобы взять только детали: WHERE report_section = 'DETAIL'.
@@ -39,19 +39,19 @@
 --    t_group, t_reward_link, t_tournament_schedule, t_contest_data там, где ключи совпадают
 --    с семантикой JOIN к полным таблицам (см. комментарий у dim_group_raw).
 -- 2b) Затем CTE v_* — в каждом только строки-НАРУШИТЕЛИ (или пустой набор). Формат:
---    check_id, check_type, detail_key, detail_message.
+--    detail_key, detail_message.
 --
 -- 3) CTE chk_summary: для каждой проверки COUNT(*) из соответствующего v_* —
 --    violation_count и далее passed. Промежуточные dim_* при повторных ссылках
 --    часто переиспользуются планировщиком (Spark чаще, чем старый Hive).
 --
--- 4) CTE chk_detail склеивает (UNION ALL) все v_* в один длинный список — это
---    все детальные строки по всем проверкам сразу (удобно фильтровать по check_id).
+-- 4) CTE chk_detail склеивает (UNION ALL) все v_* в один длинный список —
+--    все детальные строки по всем проверкам сразу.
 --
 -- 5) Внешний SELECT после chk_detail объединяет две «плоскости» результата:
 --    строки SUMMARY (сводка) и строки DETAIL (детали) через UNION ALL; колонки
 --    выровнены типами (где не применимо — NULL). ORDER BY сначала выводит сводку,
---    потом детали; внутри секции — по check_id и detail_key.
+--    потом детали; внутри секции — по detail_key.
 --
 -- 6) Типичный сценарий: сохранить результат во временную таблицу или смотреть
 --    в IDE; для «только упавшие проверки» — фильтр report_section='SUMMARY'
@@ -61,7 +61,7 @@
 -- Соответствие исходному коду проекта SPOD_PROM
 -- -----------------------------------------------------------------------------
 -- Источник правил: config.json → объект "consistency_checks" → массив "rules".
---   Поле "id" у правила совпадает с литералом check_id в этом SQL (строка в кавычках).
+--   Поле "id" у правила соответствует секции проверки в этом SQL (см. комментарии у CTE).
 --   Поле "name" — человекочитаемое название; ниже у каждого CTE оно процитировано в «ёлочках».
 --   Поле "type" — тип обработчика (referential, referential_composite, unique, …).
 --
@@ -207,8 +207,6 @@ base_schedule_ref AS (
 -- id "1.1" | name «Все CONTEST_CODE из GROUP существуют в CONTEST-DATE» | type referential
 v_ref_1_1 AS (
     SELECT
-        '1.1' AS check_id,                                              -- id правила в config.json
-        'referential' AS check_type,                                    -- тип проверки в отчёте
         CAST(g.CONTEST_CODE AS STRING) AS detail_key,                   -- значение, вызвавшее нарушение
         'GROUP.CONTEST_CODE отсутствует в CONTEST-DATA' AS detail_message
     FROM dim_group_raw g                                               -- факт: каждая строка GROUP
@@ -222,8 +220,6 @@ v_ref_1_1 AS (
 -- id "1.2" | name «Все CONTEST_CODE из INDICATOR существуют в CONTEST-DATE» | type referential
 v_ref_1_2 AS (
     SELECT
-        '1.2' AS check_id,
-        'referential' AS check_type,
         CAST(i.CONTEST_CODE AS STRING) AS detail_key,
         'INDICATOR.CONTEST_CODE отсутствует в CONTEST-DATA' AS detail_message
     FROM spod_dq.t_indicator i                                          -- факт: строки INDICATOR
@@ -237,8 +233,6 @@ v_ref_1_2 AS (
 -- id "1.3" | name «Все CONTEST_CODE из REWARD-LINK существуют в CONTEST-DATE» | type referential
 v_ref_1_3 AS (
     SELECT
-        '1.3' AS check_id,
-        'referential' AS check_type,
         CAST(rl.CONTEST_CODE AS STRING) AS detail_key,
         'REWARD-LINK.CONTEST_CODE отсутствует в CONTEST-DATA' AS detail_message
     FROM dim_reward_link_raw rl                                         -- факт: строки REWARD-LINK
@@ -252,8 +246,6 @@ v_ref_1_3 AS (
 -- id "2" | name «Все REWARD_CODE из REWARD-LINK существуют в REWARD» | type referential
 v_ref_2 AS (
     SELECT
-        '2' AS check_id,
-        'referential' AS check_type,
         CAST(rl.REWARD_CODE AS STRING) AS detail_key,
         'REWARD-LINK.REWARD_CODE отсутствует в REWARD' AS detail_message
     FROM dim_reward_link_raw rl
@@ -267,8 +259,6 @@ v_ref_2 AS (
 -- id "9" | name «Все ORG_UNIT_CODE из EMPLOYEE существуют в ORG_UNIT_V20» | type referential
 v_ref_9 AS (
     SELECT
-        '9' AS check_id,
-        'referential' AS check_type,
         CAST(e.ORG_UNIT_CODE AS STRING) AS detail_key,
         'EMPLOYEE.ORG_UNIT_CODE отсутствует в ORG_UNIT_V20' AS detail_message
     FROM spod_dq.t_employee e                                           -- факт: сотрудники
@@ -285,8 +275,6 @@ v_ref_9 AS (
 -- (строки из base_schedule_ref — один проход по расписанию для 1 / 16 / 20)
 v_ref_scenario_1 AS (
     SELECT
-        'scenario_1' AS check_id,
-        'referential' AS check_type,
         CAST(b.CONTEST_CODE AS STRING) AS detail_key,
         'TOURNAMENT-SCHEDULE.CONTEST_CODE отсутствует в CONTEST-DATA' AS detail_message
     FROM base_schedule_ref b                                             -- уже посчитанные JOIN к трём справочникам
@@ -298,8 +286,6 @@ v_ref_scenario_1 AS (
 -- id "scenario_16" | name «Все CONTEST_CODE из TOURNAMENT-SCHEDULE существуют в INDICATOR» | type referential
 v_ref_scenario_16 AS (
     SELECT
-        'scenario_16' AS check_id,
-        'referential' AS check_type,
         CAST(b.CONTEST_CODE AS STRING) AS detail_key,
         'TOURNAMENT-SCHEDULE.CONTEST_CODE отсутствует в INDICATOR' AS detail_message
     FROM base_schedule_ref b
@@ -311,8 +297,6 @@ v_ref_scenario_16 AS (
 -- id "scenario_20" | name «Все CONTEST_CODE из TOURNAMENT-SCHEDULE существуют в GROUP» | type referential
 v_ref_scenario_20 AS (
     SELECT
-        'scenario_20' AS check_id,
-        'referential' AS check_type,
         CAST(b.CONTEST_CODE AS STRING) AS detail_key,
         'TOURNAMENT-SCHEDULE.CONTEST_CODE отсутствует в GROUP' AS detail_message
     FROM base_schedule_ref b
@@ -324,8 +308,6 @@ v_ref_scenario_20 AS (
 -- id "ref_contest_data_group" | name «Все CONTEST_CODE из CONTEST-DATE существуют в GROUP» | type referential
 v_ref_contest_data_group AS (
     SELECT
-        'ref_contest_data_group' AS check_id,
-        'referential' AS check_type,
         CAST(c.CONTEST_CODE AS STRING) AS detail_key,
         'CONTEST-DATA.CONTEST_CODE отсутствует в GROUP' AS detail_message
     FROM spod_dq.t_contest_data c                                       -- факт: конкурсы
@@ -339,8 +321,6 @@ v_ref_contest_data_group AS (
 -- id "ref_indicator_group" | name «Все CONTEST_CODE из INDICATOR существуют в GROUP» | type referential
 v_ref_indicator_group AS (
     SELECT
-        'ref_indicator_group' AS check_id,
-        'referential' AS check_type,
         CAST(i.CONTEST_CODE AS STRING) AS detail_key,
         'INDICATOR.CONTEST_CODE отсутствует в GROUP' AS detail_message
     FROM spod_dq.t_indicator i
@@ -354,8 +334,6 @@ v_ref_indicator_group AS (
 -- id "ref_report_contest_data" | name «Все CONTEST_CODE из REPORT существуют в CONTEST-DATE» | type referential
 v_ref_report_contest_data AS (
     SELECT
-        'ref_report_contest_data' AS check_id,
-        'referential' AS check_type,
         CAST(r.CONTEST_CODE AS STRING) AS detail_key,
         'REPORT.CONTEST_CODE отсутствует в CONTEST-DATA' AS detail_message
     FROM spod_dq.t_report r
@@ -369,8 +347,6 @@ v_ref_report_contest_data AS (
 -- id "ref_reward_reward_link" | name «Все REWARD_CODE из REWARD существуют в REWARD-LINK» | type referential
 v_ref_reward_reward_link AS (
     SELECT
-        'ref_reward_reward_link' AS check_id,
-        'referential' AS check_type,
         CAST(rw.REWARD_CODE AS STRING) AS detail_key,
         'REWARD.REWARD_CODE отсутствует в REWARD-LINK' AS detail_message
     FROM spod_dq.t_reward rw                                             -- факт: справочник наград
@@ -390,8 +366,6 @@ v_ref_reward_reward_link AS (
 -- id "5" | name «Все пары CONTEST_CODE, GROUP_CODE из REWARD-LINK существуют в GROUP» | type referential_composite
 v_comp_5 AS (
     SELECT
-        '5' AS check_id,
-        'referential_composite' AS check_type,
         CONCAT_WS('|', CAST(rl.CONTEST_CODE AS STRING), CAST(rl.GROUP_CODE AS STRING)) AS detail_key,  -- ключ нарушения: пара через |
         'Пара CONTEST_CODE+GROUP_CODE из REWARD-LINK отсутствует в GROUP' AS detail_message
     FROM dim_reward_link_raw rl                                          -- каждая связь награда–группа
@@ -406,8 +380,6 @@ v_comp_5 AS (
 -- id "ref_composite_group_reward_link" | name «Все пары CONTEST_CODE, GROUP_CODE из GROUP существуют в REWARD-LINK» | type referential_composite
 v_comp_grp_rl AS (
     SELECT
-        'ref_composite_group_reward_link' AS check_id,
-        'referential_composite' AS check_type,
         CONCAT_WS('|', CAST(g.CONTEST_CODE AS STRING), CAST(g.GROUP_CODE AS STRING)) AS detail_key,
         'Пара из GROUP отсутствует в REWARD-LINK' AS detail_message
     FROM dim_group_raw g                                                 -- каждая строка GROUP
@@ -422,8 +394,6 @@ v_comp_grp_rl AS (
 -- id "ref_composite_report_schedule" | name «Все пары TOURNAMENT_CODE, CONTEST_CODE из REPORT существуют в TOURNAMENT-SCHEDULE» | type referential_composite
 v_comp_rep_sch AS (
     SELECT
-        'ref_composite_report_schedule' AS check_id,
-        'referential_composite' AS check_type,
         CONCAT_WS('|', CAST(r.TOURNAMENT_CODE AS STRING), CAST(r.CONTEST_CODE AS STRING)) AS detail_key,
         'Пара из REPORT отсутствует в TOURNAMENT-SCHEDULE' AS detail_message
     FROM spod_dq.t_report r                                              -- строки отчёта
@@ -440,15 +410,13 @@ v_comp_rep_sch AS (
 -- ---------------------------------------------------------------------------
 -- Логика: внутренний подзапрос (алиас x) — GROUP BY по бизнес-ключу, HAVING COUNT(*)>1
 -- оставляет только ключи, по которым больше одной строки в таблице. Внешний SELECT
--- добавляет check_id, check_type и собирает detail_key / detail_message из полей x.
+-- формирует detail_key / detail_message из полей x.
 -- В DETAIL одна строка = один дублирующийся ключ (не каждая физическая строка Excel).
 -- Остальные v_uq_* ниже устроены так же, меняются таблица, ключ и тексты.
 
 -- id "3" | name «В GROUP нет дублей по составному полю CONTEST_CODE, GROUP_CODE, GROUP_VALUE» | type unique
 v_uq_3 AS (
     SELECT
-        '3' AS check_id,
-        'unique' AS check_type,
         CONCAT_WS('|', CAST(x.CONTEST_CODE AS STRING), CAST(x.GROUP_CODE AS STRING), CAST(x.GROUP_VALUE AS STRING)) AS detail_key,
         CONCAT('Дубликат по (CONTEST_CODE, GROUP_CODE, GROUP_VALUE): строк=', CAST(x.cnt AS STRING)) AS detail_message
     FROM (
@@ -463,8 +431,6 @@ v_uq_3 AS (
 -- id "4" | name «В REWARD-LINK нет дублей по составному полю CONTEST_CODE, GROUP_CODE, REWARD_CODE» | type unique
 v_uq_4 AS (
     SELECT
-        '4' AS check_id,
-        'unique' AS check_type,
         CONCAT_WS('|', CAST(x.CONTEST_CODE AS STRING), CAST(x.GROUP_CODE AS STRING), CAST(x.REWARD_CODE AS STRING)) AS detail_key,
         CONCAT('Дубликат по (CONTEST_CODE, GROUP_CODE, REWARD_CODE): строк=', CAST(x.cnt AS STRING)) AS detail_message
     FROM (
@@ -479,8 +445,6 @@ v_uq_4 AS (
 -- id "unique_contest_data" | name «В CONTEST-DATA нет дублей по полю CONTEST_CODE» | type unique
 v_uq_contest_data AS (
     SELECT
-        'unique_contest_data' AS check_id,
-        'unique' AS check_type,
         CAST(x.CONTEST_CODE AS STRING) AS detail_key,
         CONCAT('Дубликат CONTEST_CODE: строк=', CAST(x.cnt AS STRING)) AS detail_message
     FROM (
@@ -495,8 +459,6 @@ v_uq_contest_data AS (
 -- id "unique_indicator_1" | name «В INDICATOR нет дублей по составному полю CONTEST_CODE, INDICATOR_ADD_CALC_TYPE, INDICATOR_CODE» | type unique
 v_uq_ind1 AS (
     SELECT
-        'unique_indicator_1' AS check_id,
-        'unique' AS check_type,
         CONCAT_WS('|', CAST(x.CONTEST_CODE AS STRING), CAST(x.INDICATOR_ADD_CALC_TYPE AS STRING), CAST(x.INDICATOR_CODE AS STRING)) AS detail_key,
         CONCAT('Дубликат ключа индикатора: строк=', CAST(x.cnt AS STRING)) AS detail_message
     FROM (
@@ -510,8 +472,6 @@ v_uq_ind1 AS (
 -- id "unique_indicator_n" | name «В INDICATOR нет дублей по полю N» | type unique
 v_uq_ind_n AS (
     SELECT
-        'unique_indicator_n' AS check_id,
-        'unique' AS check_type,
         CAST(x.N AS STRING) AS detail_key,
         CONCAT('Дубликат N: строк=', CAST(x.cnt AS STRING)) AS detail_message
     FROM (
@@ -525,8 +485,6 @@ v_uq_ind_n AS (
 -- id "unique_report" | name «В REPORT нет дублей по составному полю MANAGER_PERSON_NUMBER, TOURNAMENT_CODE, CONTEST_CODE» | type unique
 v_uq_report AS (
     SELECT
-        'unique_report' AS check_id,
-        'unique' AS check_type,
         CONCAT_WS('|', CAST(x.MANAGER_PERSON_NUMBER AS STRING), CAST(x.TOURNAMENT_CODE AS STRING), CAST(x.CONTEST_CODE AS STRING)) AS detail_key,
         CONCAT('Дубликат ключа отчёта: строк=', CAST(x.cnt AS STRING)) AS detail_message
     FROM (
@@ -540,8 +498,6 @@ v_uq_report AS (
 -- id "unique_reward" | name «В REWARD нет дублей по полю REWARD_CODE» | type unique
 v_uq_reward AS (
     SELECT
-        'unique_reward' AS check_id,
-        'unique' AS check_type,
         CAST(x.REWARD_CODE AS STRING) AS detail_key,
         CONCAT('Дубликат REWARD_CODE: строк=', CAST(x.cnt AS STRING)) AS detail_message
     FROM (
@@ -555,8 +511,6 @@ v_uq_reward AS (
 -- id "unique_reward_link_2" | name «В REWARD-LINK нет дублей по составному полю CONTEST_CODE, REWARD_CODE» | type unique
 v_uq_rl2 AS (
     SELECT
-        'unique_reward_link_2' AS check_id,
-        'unique' AS check_type,
         CONCAT_WS('|', CAST(x.CONTEST_CODE AS STRING), CAST(x.REWARD_CODE AS STRING)) AS detail_key,
         CONCAT('Дубликат (CONTEST_CODE, REWARD_CODE): строк=', CAST(x.cnt AS STRING)) AS detail_message
     FROM (
@@ -570,8 +524,6 @@ v_uq_rl2 AS (
 -- id "unique_reward_link_reward" | name «В REWARD-LINK нет дублей по полю REWARD_CODE» | type unique
 v_uq_rl_r AS (
     SELECT
-        'unique_reward_link_reward' AS check_id,
-        'unique' AS check_type,
         CAST(x.REWARD_CODE AS STRING) AS detail_key,
         CONCAT('Дубликат REWARD_CODE в REWARD-LINK: строк=', CAST(x.cnt AS STRING)) AS detail_message
     FROM (
@@ -585,8 +537,6 @@ v_uq_rl_r AS (
 -- id "unique_schedule_2" | name «В TOURNAMENT-SCHEDULE нет дублей по составному полю TOURNAMENT_CODE, CONTEST_CODE» | type unique
 v_uq_sch2 AS (
     SELECT
-        'unique_schedule_2' AS check_id,
-        'unique' AS check_type,
         CONCAT_WS('|', CAST(x.TOURNAMENT_CODE AS STRING), CAST(x.CONTEST_CODE AS STRING)) AS detail_key,
         CONCAT('Дубликат (TOURNAMENT_CODE, CONTEST_CODE): строк=', CAST(x.cnt AS STRING)) AS detail_message
     FROM (
@@ -600,8 +550,6 @@ v_uq_sch2 AS (
 -- id "unique_schedule_1" | name «В TOURNAMENT-SCHEDULE нет дублей по полю TOURNAMENT_CODE» | type unique
 v_uq_sch1 AS (
     SELECT
-        'unique_schedule_1' AS check_id,
-        'unique' AS check_type,
         CAST(x.TOURNAMENT_CODE AS STRING) AS detail_key,
         CONCAT('Дубликат TOURNAMENT_CODE: строк=', CAST(x.cnt AS STRING)) AS detail_message
     FROM (
@@ -615,8 +563,6 @@ v_uq_sch1 AS (
 -- id "unique_org_unit" | name «В ORG_UNIT_V20 нет дублей по полю ORG_UNIT_CODE» | type unique
 v_uq_org AS (
     SELECT
-        'unique_org_unit' AS check_id,
-        'unique' AS check_type,
         CAST(x.ORG_UNIT_CODE AS STRING) AS detail_key,
         CONCAT('Дубликат ORG_UNIT_CODE: строк=', CAST(x.cnt AS STRING)) AS detail_message
     FROM (
@@ -630,8 +576,6 @@ v_uq_org AS (
 -- id "unique_tb_gosb" | name «В ORG_UNIT_V20 нет дублей по составному полю TB_CODE, GOSB_CODE» | type unique
 v_uq_tb_gosb AS (
     SELECT
-        'unique_tb_gosb' AS check_id,
-        'unique' AS check_type,
         CONCAT_WS('|', CAST(x.TB_CODE AS STRING), CAST(x.GOSB_CODE AS STRING)) AS detail_key,
         CONCAT('Дубликат (TB_CODE, GOSB_CODE): строк=', CAST(x.cnt AS STRING)) AS detail_message
     FROM (
@@ -645,8 +589,6 @@ v_uq_tb_gosb AS (
 -- id "unique_user_role" | name «В USER_ROLE нет дублей по полю RULE_NUM» | type unique
 v_uq_ur AS (
     SELECT
-        'unique_user_role' AS check_id,
-        'unique' AS check_type,
         CAST(x.RULE_NUM AS STRING) AS detail_key,
         CONCAT('Дубликат RULE_NUM: строк=', CAST(x.cnt AS STRING)) AS detail_message
     FROM (
@@ -660,8 +602,6 @@ v_uq_ur AS (
 -- id "unique_user_role_sb" | name «В USER_ROLE SB нет дублей по полю RULE_NUM» | type unique (лист "USER_ROLE SB" → t_user_role_sb)
 v_uq_ursb AS (
     SELECT
-        'unique_user_role_sb' AS check_id,
-        'unique' AS check_type,
         CAST(x.RULE_NUM AS STRING) AS detail_key,
         CONCAT('Дубликат RULE_NUM (SB): строк=', CAST(x.cnt AS STRING)) AS detail_message
     FROM (
@@ -675,8 +615,6 @@ v_uq_ursb AS (
 -- id "unique_employee_person" | name «В EMPLOYEE нет дублей по полю PERSON_NUMBER» | type unique
 v_uq_emp_p AS (
     SELECT
-        'unique_employee_person' AS check_id,
-        'unique' AS check_type,
         CAST(x.PERSON_NUMBER AS STRING) AS detail_key,
         CONCAT('Дубликат PERSON_NUMBER: строк=', CAST(x.cnt AS STRING)) AS detail_message
     FROM (
@@ -690,8 +628,6 @@ v_uq_emp_p AS (
 -- id "unique_employee_person_add" | name «В EMPLOYEE нет дублей по полю PERSON_NUMBER_ADD» | type unique
 v_uq_emp_pa AS (
     SELECT
-        'unique_employee_person_add' AS check_id,
-        'unique' AS check_type,
         CAST(x.PERSON_NUMBER_ADD AS STRING) AS detail_key,
         CONCAT('Дубликат PERSON_NUMBER_ADD: строк=', CAST(x.cnt AS STRING)) AS detail_message
     FROM (
@@ -705,8 +641,6 @@ v_uq_emp_pa AS (
 -- id "unique_employee_kpk_gosb" | name «В EMPLOYEE нет дублей по POSITION_NAME, KPK_CODE, ORG_UNIT_CODE среди строк с POSITION_NAME=КПК и непустым KPK_CODE» | type unique
 v_uq_emp_kpk AS (
     SELECT
-        'unique_employee_kpk_gosb' AS check_id,
-        'unique' AS check_type,
         CONCAT_WS('|', CAST(x.POSITION_NAME AS STRING), CAST(x.KPK_CODE AS STRING), CAST(x.ORG_UNIT_CODE AS STRING)) AS detail_key,
         CONCAT('Дубликат (КПК, KPK_CODE, ORG_UNIT_CODE): строк=', CAST(x.cnt AS STRING)) AS detail_message
     FROM (
@@ -730,22 +664,18 @@ v_uq_emp_kpk AS (
 -- Три ветки UNION ALL: одна таблица, разные поля и лимиты длины (каждая ветка — свой WHERE).
 v_fl_org AS (
     SELECT
-        'field_length_org_unit' AS check_id,
-        'field_length' AS check_type,
         CONCAT_WS(':', CAST(ORG_UNIT_CODE AS STRING), 'TB_FULL_NAME') AS detail_key,
         CONCAT('Длина TB_FULL_NAME=', CAST(LENGTH(CAST(TB_FULL_NAME AS STRING)) AS STRING), ' > 100') AS detail_message
     FROM spod_dq.t_org_unit_v20
     WHERE LENGTH(CAST(TB_FULL_NAME AS STRING)) > 100                     -- длина строки после приведения к STRING
     UNION ALL                                                              -- объединить строки нарушений по полям
     SELECT
-        'field_length_org_unit', 'field_length',
         CONCAT_WS(':', CAST(ORG_UNIT_CODE AS STRING), 'GOSB_NAME'),
         CONCAT('Длина GOSB_NAME=', CAST(LENGTH(CAST(GOSB_NAME AS STRING)) AS STRING), ' > 100')
     FROM spod_dq.t_org_unit_v20
     WHERE LENGTH(CAST(GOSB_NAME AS STRING)) > 100
     UNION ALL
     SELECT
-        'field_length_org_unit', 'field_length',
         CONCAT_WS(':', CAST(ORG_UNIT_CODE AS STRING), 'GOSB_SHORT_NAME'),
         CONCAT('Длина GOSB_SHORT_NAME=', CAST(LENGTH(CAST(GOSB_SHORT_NAME AS STRING)) AS STRING), ' > 20')
     FROM spod_dq.t_org_unit_v20
@@ -755,15 +685,12 @@ v_fl_org AS (
 -- id "field_length_employee" | name «Поле PERSON_NUMBER в EMPLOYEE должно быть =20; PERSON_NUMBER_ADD =20» | type field_length
 v_fl_emp AS (
     SELECT
-        'field_length_employee' AS check_id,
-        'field_length' AS check_type,
         CONCAT('PERSON_NUMBER=', CAST(PERSON_NUMBER AS STRING)) AS detail_key,
         CONCAT('Длина PERSON_NUMBER=', CAST(LENGTH(CAST(PERSON_NUMBER AS STRING)) AS STRING), ' (ожидается 20)') AS detail_message
     FROM spod_dq.t_employee
     WHERE LENGTH(CAST(PERSON_NUMBER AS STRING)) <> 20                    -- строго 20 символов
     UNION ALL
     SELECT
-        'field_length_employee', 'field_length',
         CONCAT('PERSON_NUMBER_ADD=', CAST(PERSON_NUMBER_ADD AS STRING)),
         CONCAT('Длина PERSON_NUMBER_ADD=', CAST(LENGTH(CAST(PERSON_NUMBER_ADD AS STRING)) AS STRING), ' (ожидается 20)')
     FROM spod_dq.t_employee
@@ -773,8 +700,6 @@ v_fl_emp AS (
 -- id "field_length_report" | name «Поле MANAGER_PERSON_NUMBER в REPORT должно быть =20» | type field_length
 v_fl_rep AS (
     SELECT
-        'field_length_report' AS check_id,
-        'field_length' AS check_type,
         CONCAT_WS('|', CAST(MANAGER_PERSON_NUMBER AS STRING), CAST(TOURNAMENT_CODE AS STRING), CAST(CONTEST_CODE AS STRING)) AS detail_key,
         CONCAT('Длина MANAGER_PERSON_NUMBER=', CAST(LENGTH(CAST(MANAGER_PERSON_NUMBER AS STRING)) AS STRING), ' (ожидается 20)') AS detail_message
     FROM spod_dq.t_report
@@ -790,89 +715,88 @@ v_fl_rep AS (
 -- по таблицам или несколько) зависит от планировщика вашей СУБД.
 -- Каждая строка UNION ALL ниже соответствует одному правилу из config consistency_checks.rules
 -- с тем же id (порядок строк здесь может отличаться от порядка объектов в JSON — ориентир по id).
--- Шаблон строки: литерал check_id, литерал check_type, скаляр (SELECT COUNT(*) FROM v_*) = число нарушений.
+-- Шаблон строки: скаляр (SELECT COUNT(*) FROM v_*) = число нарушений.
 chk_summary AS (
-    SELECT '1.1' AS check_id, 'referential' AS check_type, (SELECT COUNT(*) FROM v_ref_1_1) AS violation_count
-    UNION ALL SELECT '1.2', 'referential', (SELECT COUNT(*) FROM v_ref_1_2)
-    UNION ALL SELECT '1.3', 'referential', (SELECT COUNT(*) FROM v_ref_1_3)
-    UNION ALL SELECT '2', 'referential', (SELECT COUNT(*) FROM v_ref_2)
-    UNION ALL SELECT '9', 'referential', (SELECT COUNT(*) FROM v_ref_9)
-    UNION ALL SELECT 'scenario_1', 'referential', (SELECT COUNT(*) FROM v_ref_scenario_1)
-    UNION ALL SELECT 'scenario_16', 'referential', (SELECT COUNT(*) FROM v_ref_scenario_16)
-    UNION ALL SELECT 'scenario_20', 'referential', (SELECT COUNT(*) FROM v_ref_scenario_20)
-    UNION ALL SELECT 'ref_contest_data_group', 'referential', (SELECT COUNT(*) FROM v_ref_contest_data_group)
-    UNION ALL SELECT 'ref_indicator_group', 'referential', (SELECT COUNT(*) FROM v_ref_indicator_group)
-    UNION ALL SELECT 'ref_report_contest_data', 'referential', (SELECT COUNT(*) FROM v_ref_report_contest_data)
-    UNION ALL SELECT 'ref_reward_reward_link', 'referential', (SELECT COUNT(*) FROM v_ref_reward_reward_link)
-    UNION ALL SELECT '5', 'referential_composite', (SELECT COUNT(*) FROM v_comp_5)
-    UNION ALL SELECT 'ref_composite_group_reward_link', 'referential_composite', (SELECT COUNT(*) FROM v_comp_grp_rl)
-    UNION ALL SELECT 'ref_composite_report_schedule', 'referential_composite', (SELECT COUNT(*) FROM v_comp_rep_sch)
-    UNION ALL SELECT '3', 'unique', (SELECT COUNT(*) FROM v_uq_3)
-    UNION ALL SELECT '4', 'unique', (SELECT COUNT(*) FROM v_uq_4)
-    UNION ALL SELECT 'unique_contest_data', 'unique', (SELECT COUNT(*) FROM v_uq_contest_data)
-    UNION ALL SELECT 'unique_indicator_1', 'unique', (SELECT COUNT(*) FROM v_uq_ind1)
-    UNION ALL SELECT 'unique_indicator_n', 'unique', (SELECT COUNT(*) FROM v_uq_ind_n)
-    UNION ALL SELECT 'unique_report', 'unique', (SELECT COUNT(*) FROM v_uq_report)
-    UNION ALL SELECT 'unique_reward', 'unique', (SELECT COUNT(*) FROM v_uq_reward)
-    UNION ALL SELECT 'unique_reward_link_2', 'unique', (SELECT COUNT(*) FROM v_uq_rl2)
-    UNION ALL SELECT 'unique_reward_link_reward', 'unique', (SELECT COUNT(*) FROM v_uq_rl_r)
-    UNION ALL SELECT 'unique_schedule_2', 'unique', (SELECT COUNT(*) FROM v_uq_sch2)
-    UNION ALL SELECT 'unique_schedule_1', 'unique', (SELECT COUNT(*) FROM v_uq_sch1)
-    UNION ALL SELECT 'unique_org_unit', 'unique', (SELECT COUNT(*) FROM v_uq_org)
-    UNION ALL SELECT 'unique_tb_gosb', 'unique', (SELECT COUNT(*) FROM v_uq_tb_gosb)
-    UNION ALL SELECT 'unique_user_role', 'unique', (SELECT COUNT(*) FROM v_uq_ur)
-    UNION ALL SELECT 'unique_user_role_sb', 'unique', (SELECT COUNT(*) FROM v_uq_ursb)
-    UNION ALL SELECT 'unique_employee_person', 'unique', (SELECT COUNT(*) FROM v_uq_emp_p)
-    UNION ALL SELECT 'unique_employee_person_add', 'unique', (SELECT COUNT(*) FROM v_uq_emp_pa)
-    UNION ALL SELECT 'unique_employee_kpk_gosb', 'unique', (SELECT COUNT(*) FROM v_uq_emp_kpk)
-    UNION ALL SELECT 'field_length_org_unit', 'field_length', (SELECT COUNT(*) FROM v_fl_org)
-    UNION ALL SELECT 'field_length_employee', 'field_length', (SELECT COUNT(*) FROM v_fl_emp)
-    UNION ALL SELECT 'field_length_report', 'field_length', (SELECT COUNT(*) FROM v_fl_rep)
+    SELECT (SELECT COUNT(*) FROM v_ref_1_1) AS violation_count
+    UNION ALL SELECT (SELECT COUNT(*) FROM v_ref_1_2)
+    UNION ALL SELECT (SELECT COUNT(*) FROM v_ref_1_3)
+    UNION ALL SELECT (SELECT COUNT(*) FROM v_ref_2)
+    UNION ALL SELECT (SELECT COUNT(*) FROM v_ref_9)
+    UNION ALL SELECT (SELECT COUNT(*) FROM v_ref_scenario_1)
+    UNION ALL SELECT (SELECT COUNT(*) FROM v_ref_scenario_16)
+    UNION ALL SELECT (SELECT COUNT(*) FROM v_ref_scenario_20)
+    UNION ALL SELECT (SELECT COUNT(*) FROM v_ref_contest_data_group)
+    UNION ALL SELECT (SELECT COUNT(*) FROM v_ref_indicator_group)
+    UNION ALL SELECT (SELECT COUNT(*) FROM v_ref_report_contest_data)
+    UNION ALL SELECT (SELECT COUNT(*) FROM v_ref_reward_reward_link)
+    UNION ALL SELECT (SELECT COUNT(*) FROM v_comp_5)
+    UNION ALL SELECT (SELECT COUNT(*) FROM v_comp_grp_rl)
+    UNION ALL SELECT (SELECT COUNT(*) FROM v_comp_rep_sch)
+    UNION ALL SELECT (SELECT COUNT(*) FROM v_uq_3)
+    UNION ALL SELECT (SELECT COUNT(*) FROM v_uq_4)
+    UNION ALL SELECT (SELECT COUNT(*) FROM v_uq_contest_data)
+    UNION ALL SELECT (SELECT COUNT(*) FROM v_uq_ind1)
+    UNION ALL SELECT (SELECT COUNT(*) FROM v_uq_ind_n)
+    UNION ALL SELECT (SELECT COUNT(*) FROM v_uq_report)
+    UNION ALL SELECT (SELECT COUNT(*) FROM v_uq_reward)
+    UNION ALL SELECT (SELECT COUNT(*) FROM v_uq_rl2)
+    UNION ALL SELECT (SELECT COUNT(*) FROM v_uq_rl_r)
+    UNION ALL SELECT (SELECT COUNT(*) FROM v_uq_sch2)
+    UNION ALL SELECT (SELECT COUNT(*) FROM v_uq_sch1)
+    UNION ALL SELECT (SELECT COUNT(*) FROM v_uq_org)
+    UNION ALL SELECT (SELECT COUNT(*) FROM v_uq_tb_gosb)
+    UNION ALL SELECT (SELECT COUNT(*) FROM v_uq_ur)
+    UNION ALL SELECT (SELECT COUNT(*) FROM v_uq_ursb)
+    UNION ALL SELECT (SELECT COUNT(*) FROM v_uq_emp_p)
+    UNION ALL SELECT (SELECT COUNT(*) FROM v_uq_emp_pa)
+    UNION ALL SELECT (SELECT COUNT(*) FROM v_uq_emp_kpk)
+    UNION ALL SELECT (SELECT COUNT(*) FROM v_fl_org)
+    UNION ALL SELECT (SELECT COUNT(*) FROM v_fl_emp)
+    UNION ALL SELECT (SELECT COUNT(*) FROM v_fl_rep)
 ),
 
 -- ---------------------------------------------------------------------------
 -- chk_detail — единый поток всех нарушений (построчно)
 -- ---------------------------------------------------------------------------
 -- UNION ALL склеивает наборы строк из всех v_*; если проверка чистая, её CTE пустой и
--- в итог не даёт строк. Удобно искать по check_id (= rules[].id в config) или экспортировать в файл расследования.
--- Каждая ветка: четыре колонки из одного CTE нарушений (одинаковая схема у всех v_*).
+-- в итог не даёт строк. Каждая ветка: две колонки из одного CTE нарушений.
 chk_detail AS (
-    SELECT check_id, check_type, detail_key, detail_message FROM v_ref_1_1
-    UNION ALL SELECT check_id, check_type, detail_key, detail_message FROM v_ref_1_2
-    UNION ALL SELECT check_id, check_type, detail_key, detail_message FROM v_ref_1_3
-    UNION ALL SELECT check_id, check_type, detail_key, detail_message FROM v_ref_2
-    UNION ALL SELECT check_id, check_type, detail_key, detail_message FROM v_ref_9
-    UNION ALL SELECT check_id, check_type, detail_key, detail_message FROM v_ref_scenario_1
-    UNION ALL SELECT check_id, check_type, detail_key, detail_message FROM v_ref_scenario_16
-    UNION ALL SELECT check_id, check_type, detail_key, detail_message FROM v_ref_scenario_20
-    UNION ALL SELECT check_id, check_type, detail_key, detail_message FROM v_ref_contest_data_group
-    UNION ALL SELECT check_id, check_type, detail_key, detail_message FROM v_ref_indicator_group
-    UNION ALL SELECT check_id, check_type, detail_key, detail_message FROM v_ref_report_contest_data
-    UNION ALL SELECT check_id, check_type, detail_key, detail_message FROM v_ref_reward_reward_link
-    UNION ALL SELECT check_id, check_type, detail_key, detail_message FROM v_comp_5
-    UNION ALL SELECT check_id, check_type, detail_key, detail_message FROM v_comp_grp_rl
-    UNION ALL SELECT check_id, check_type, detail_key, detail_message FROM v_comp_rep_sch
-    UNION ALL SELECT check_id, check_type, detail_key, detail_message FROM v_uq_3
-    UNION ALL SELECT check_id, check_type, detail_key, detail_message FROM v_uq_4
-    UNION ALL SELECT check_id, check_type, detail_key, detail_message FROM v_uq_contest_data
-    UNION ALL SELECT check_id, check_type, detail_key, detail_message FROM v_uq_ind1
-    UNION ALL SELECT check_id, check_type, detail_key, detail_message FROM v_uq_ind_n
-    UNION ALL SELECT check_id, check_type, detail_key, detail_message FROM v_uq_report
-    UNION ALL SELECT check_id, check_type, detail_key, detail_message FROM v_uq_reward
-    UNION ALL SELECT check_id, check_type, detail_key, detail_message FROM v_uq_rl2
-    UNION ALL SELECT check_id, check_type, detail_key, detail_message FROM v_uq_rl_r
-    UNION ALL SELECT check_id, check_type, detail_key, detail_message FROM v_uq_sch2
-    UNION ALL SELECT check_id, check_type, detail_key, detail_message FROM v_uq_sch1
-    UNION ALL SELECT check_id, check_type, detail_key, detail_message FROM v_uq_org
-    UNION ALL SELECT check_id, check_type, detail_key, detail_message FROM v_uq_tb_gosb
-    UNION ALL SELECT check_id, check_type, detail_key, detail_message FROM v_uq_ur
-    UNION ALL SELECT check_id, check_type, detail_key, detail_message FROM v_uq_ursb
-    UNION ALL SELECT check_id, check_type, detail_key, detail_message FROM v_uq_emp_p
-    UNION ALL SELECT check_id, check_type, detail_key, detail_message FROM v_uq_emp_pa
-    UNION ALL SELECT check_id, check_type, detail_key, detail_message FROM v_uq_emp_kpk
-    UNION ALL SELECT check_id, check_type, detail_key, detail_message FROM v_fl_org
-    UNION ALL SELECT check_id, check_type, detail_key, detail_message FROM v_fl_emp
-    UNION ALL SELECT check_id, check_type, detail_key, detail_message FROM v_fl_rep
+    SELECT detail_key, detail_message FROM v_ref_1_1
+    UNION ALL SELECT detail_key, detail_message FROM v_ref_1_2
+    UNION ALL SELECT detail_key, detail_message FROM v_ref_1_3
+    UNION ALL SELECT detail_key, detail_message FROM v_ref_2
+    UNION ALL SELECT detail_key, detail_message FROM v_ref_9
+    UNION ALL SELECT detail_key, detail_message FROM v_ref_scenario_1
+    UNION ALL SELECT detail_key, detail_message FROM v_ref_scenario_16
+    UNION ALL SELECT detail_key, detail_message FROM v_ref_scenario_20
+    UNION ALL SELECT detail_key, detail_message FROM v_ref_contest_data_group
+    UNION ALL SELECT detail_key, detail_message FROM v_ref_indicator_group
+    UNION ALL SELECT detail_key, detail_message FROM v_ref_report_contest_data
+    UNION ALL SELECT detail_key, detail_message FROM v_ref_reward_reward_link
+    UNION ALL SELECT detail_key, detail_message FROM v_comp_5
+    UNION ALL SELECT detail_key, detail_message FROM v_comp_grp_rl
+    UNION ALL SELECT detail_key, detail_message FROM v_comp_rep_sch
+    UNION ALL SELECT detail_key, detail_message FROM v_uq_3
+    UNION ALL SELECT detail_key, detail_message FROM v_uq_4
+    UNION ALL SELECT detail_key, detail_message FROM v_uq_contest_data
+    UNION ALL SELECT detail_key, detail_message FROM v_uq_ind1
+    UNION ALL SELECT detail_key, detail_message FROM v_uq_ind_n
+    UNION ALL SELECT detail_key, detail_message FROM v_uq_report
+    UNION ALL SELECT detail_key, detail_message FROM v_uq_reward
+    UNION ALL SELECT detail_key, detail_message FROM v_uq_rl2
+    UNION ALL SELECT detail_key, detail_message FROM v_uq_rl_r
+    UNION ALL SELECT detail_key, detail_message FROM v_uq_sch2
+    UNION ALL SELECT detail_key, detail_message FROM v_uq_sch1
+    UNION ALL SELECT detail_key, detail_message FROM v_uq_org
+    UNION ALL SELECT detail_key, detail_message FROM v_uq_tb_gosb
+    UNION ALL SELECT detail_key, detail_message FROM v_uq_ur
+    UNION ALL SELECT detail_key, detail_message FROM v_uq_ursb
+    UNION ALL SELECT detail_key, detail_message FROM v_uq_emp_p
+    UNION ALL SELECT detail_key, detail_message FROM v_uq_emp_pa
+    UNION ALL SELECT detail_key, detail_message FROM v_uq_emp_kpk
+    UNION ALL SELECT detail_key, detail_message FROM v_fl_org
+    UNION ALL SELECT detail_key, detail_message FROM v_fl_emp
+    UNION ALL SELECT detail_key, detail_message FROM v_fl_rep
 )
 
 -- ---------------------------------------------------------------------------
@@ -884,8 +808,6 @@ chk_detail AS (
 SELECT
     1 AS result_order,                                                 -- сортировка: сначала блок сводки
     CAST('SUMMARY' AS STRING) AS report_section,                       -- метка типа строки результата
-    s.check_id,                                                          -- id правила (как в config)
-    s.check_type,                                                        -- тип проверки
     CAST(CASE WHEN s.violation_count = 0 THEN 1 ELSE 0 END AS BIGINT) AS passed,  -- 1 = без нарушений, 0 = есть
     CAST(s.violation_count AS BIGINT) AS violation_count,               -- сколько строк нарушений по правилу
     CAST(NULL AS STRING) AS detail_key,                                  -- в сводке деталей нет
@@ -898,8 +820,6 @@ UNION ALL
 SELECT
     2 AS result_order,                                                 -- после всех SUMMARY идут DETAIL
     CAST('DETAIL' AS STRING) AS report_section,
-    d.check_id,
-    d.check_type,
     CAST(NULL AS BIGINT) AS passed,                                     -- в деталях флаги сводки не заполняем
     CAST(NULL AS BIGINT) AS violation_count,
     d.detail_key,                                                      -- краткий ключ проблемной записи
@@ -907,8 +827,8 @@ SELECT
 FROM chk_detail d
 
 -- ORDER BY: сначала все строки с result_order=1 (SUMMARY), затем result_order=2 (DETAIL);
--- внутри — по check_id и detail_key для устойчивого порядка строк.
-ORDER BY result_order, check_id, detail_key
+-- внутри — по detail_key для устойчивого порядка строк.
+ORDER BY result_order, detail_key
 ;
 -- Конец единого запроса (одна команда для клиента СУБД). Дальше — только поясняющие комментарии вне SQL.
 
