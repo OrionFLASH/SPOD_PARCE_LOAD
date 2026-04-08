@@ -121,9 +121,9 @@ ORDER BY loaded_at;
 
 ## 7. Реализация в коде
 
-- **`src/input_archive_sqlite.py`** — создание схемы, сравнение сигнатур, вставка; сообщения в лог по **`reporting.log`**, сбор строк для консоли.
+- **`src/input_archive_sqlite.py`** — создание схемы, сравнение сигнатур, вставка; сообщения в лог по **`reporting.log`**, сбор строк для консоли. В лог и в отчёт передаётся **`db_display`**: полный путь к файлу БД **относительно корня проекта** (без усечения «…» в середине пути).
 - **`src/archive_json_columns.py`** — нормализация и разворот **`CONTEST_FEATURE`** / **`REWARD_ADD_DATA`** в колонки **`JSON_*`** в конец `arch_*`; при необходимости — **`UPDATE`** существующих строк снимка.
-- **`src/console_ui.py`** — **`print_input_archive_sqlite_report`**: вывод в stdout по **`reporting.console`** (независимо от уровня логгера).
+- **`src/console_ui.py`** — **`print_input_archive_sqlite_report`**: вывод в stdout по **`reporting.console`** (независимо от уровня логгера). Режимы: **`off`** — тишина; **`summary`** — заголовок, **полный** путь к БД (перенос по ширине терминала), итоговые счётчики; **`normal`** — плюс **таблица** «Лист / Строки / Примечание» по событиям архива; **`verbose`** — плюс размер файла, префикс SHA, id снимка.
 - **`src/main_impl.py`** — после фазы чтения CSV вызов архива; `process_single_file` возвращает ещё **`file_path`** для метаданных диска.
 - **`src/config_loader.py`** — атрибут **`input_archive_sqlite`** (смёрженный с дефолтами).
 
@@ -137,6 +137,7 @@ ORDER BY loaded_at;
 
 | Версия | Изменения |
 |--------|-----------|
+| 1.7 | Документация отчёта: полный путь **`db_display`**, табличный вывод по листам, режимы **`summary`** / **`normal`** / **`verbose`** в **`print_input_archive_sqlite_report`**. |
 | 1.6 | Несколько файлов БД: **`archive_db_path`** в **`input_files`**, группировка payload и рекурсивный вызов **`run_input_archive_sqlite`** по группам. |
 | 1.5 | Синхронизация **`JSON_*`** при отсутствии нового снимка: **`ALTER`** и **`UPDATE`** по актуальному снимку; функции **`update_json_flat_for_snapshot_rows`**, вызовы из **`input_archive_sqlite`** до **`commit`** на ветках skip / SHA backfill / реактивация. |
 | 1.4 | Колонки **`JSON_*`**: разворот **`CONTEST_FEATURE`** / **`REWARD_ADD_DATA`** для **CONTEST-DATA** и **REWARD** (`archive_json_columns`). |

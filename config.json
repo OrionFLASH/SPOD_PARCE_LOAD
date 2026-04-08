@@ -1,7 +1,7 @@
 {
   "run_outputs": [
-    "main_only",
-    "consistency_only"
+    "consistency_only",
+    "main_only"
   ],
   "_run_outputs_allowed": [
     "source_only",
@@ -58,7 +58,7 @@
   ],
   "input_files": [
     {
-      "file": "CONTEST (PROM) 31-03 v0.csv",
+      "file": "CONTEST (PROM) 08-04 v4.csv",
       "sheet": "CONTEST-DATA",
       "subdir": "SPOD",
       "archive_to_db": true,
@@ -76,7 +76,7 @@
       "archive_db_path": "OUT/DB/spod_input_archive.sqlite"
     },
     {
-      "file": "GROUP (PROM) 06-04 v0.csv",
+      "file": "GROUP (PROM) 07-04 v0.csv",
       "sheet": "GROUP",
       "subdir": "SPOD",
       "archive_to_db": true,
@@ -102,7 +102,7 @@
       "archive_db_path": "OUT/DB/spod_input_archive.sqlite"
     },
     {
-      "file": "INDICATOR (PROM) 18-03 v0.csv",
+      "file": "INDICATOR (PROM) 08-04 v3C.csv",
       "sheet": "INDICATOR",
       "subdir": "SPOD",
       "archive_to_db": true,
@@ -128,7 +128,7 @@
       "archive_db_path": "OUT/DB/spod_input_archive.sqlite"
     },
     {
-      "file": "REPORT (PROM) 06-04 v0.csv",
+      "file": "REPORT (PROM) 07-04 v0.csv",
       "sheet": "REPORT",
       "subdir": "SPOD",
       "archive_to_db": true,
@@ -146,7 +146,7 @@
       "archive_db_path": "OUT/DB/spod_input_archive.sqlite"
     },
     {
-      "file": "REWARD (PROM) 30-03 v0.csv",
+      "file": "REWARD (PROM) 08-04 v2.csv",
       "sheet": "REWARD",
       "subdir": "SPOD",
       "archive_to_db": true,
@@ -168,7 +168,7 @@
       "archive_db_path": "OUT/DB/spod_input_archive.sqlite"
     },
     {
-      "file": "REWARD-LINK (PROM) 18-03 v0.csv",
+      "file": "REWARD-LINK (PROM) 08-04 v0.csv",
       "sheet": "REWARD-LINK",
       "subdir": "SPOD",
       "archive_to_db": true,
@@ -190,7 +190,7 @@
       "archive_db_path": "OUT/DB/spod_input_archive.sqlite"
     },
     {
-      "file": "SCHEDULE (PROM) 30-03 v0.csv",
+      "file": "SCHEDULE (PROM) 07-04 v0.csv",
       "sheet": "TOURNAMENT-SCHEDULE",
       "subdir": "SPOD",
       "archive_to_db": true,
@@ -2542,6 +2542,7 @@
   ],
   "consistency_checks": {
     "summary_sheet_name": "CONSISTENCY",
+    "spod_todo_config_guide": "П.1 ToDo SPOD: проверки SPOD-JSON — в rules ниже, type \"json_spod_format\", id с префиксом spod_json_ (лист, json_column, json_required, numeric_value_keys). П.2: фильтр строк referential/referential_composite — поля src_row_conditions и ref_row_conditions (массив {column, op, value}, op = или <>); полный пример см. правило example_referential_row_filters.",
     "csv_columns_count": {
       "_default": {
         "ТИП ПРОВЕРКИ": "число полей в CSV",
@@ -2634,7 +2635,111 @@
     },
     "rules": [
       {
-        "id": "1.1",
+        "id": "spod_json_contest_data",
+        "name": "CONTEST-DATA: формат SPOD-JSON в колонке CONTEST-DATA",
+        "type": "json_spod_format",
+        "enabled": true,
+        "sheet": "CONTEST-DATA",
+        "json_column": "CONTEST-DATA",
+        "json_required": true,
+        "numeric_value_keys": ["minNumber", "accuracy"],
+        "output": {
+          "column_on_sheet": "ПРОВЕРКА: SPOD-JSON (CONTEST-DATA)",
+          "include_in_summary": true
+        }
+      },
+      {
+        "id": "spod_json_contest_period",
+        "name": "CONTEST-DATA: формат SPOD-JSON в колонке CONTEST_PERIOD",
+        "type": "json_spod_format",
+        "enabled": true,
+        "sheet": "CONTEST-DATA",
+        "json_column": "CONTEST_PERIOD",
+        "json_required": false,
+        "numeric_value_keys": ["period_code", "criterion_mark_value"],
+        "output": {
+          "column_on_sheet": "ПРОВЕРКА: SPOD-JSON (CONTEST_PERIOD)",
+          "include_in_summary": true
+        }
+      },
+      {
+        "id": "spod_json_reward_add_data",
+        "name": "REWARD: формат SPOD-JSON в REWARD_ADD_DATA",
+        "type": "json_spod_format",
+        "enabled": true,
+        "sheet": "REWARD",
+        "json_column": "REWARD_ADD_DATA",
+        "json_required": true,
+        "numeric_value_keys": [],
+        "output": {
+          "column_on_sheet": "ПРОВЕРКА: SPOD-JSON (REWARD_ADD_DATA)",
+          "include_in_summary": true
+        }
+      },
+      {
+        "id": "spod_json_tournament_filter_period",
+        "name": "TOURNAMENT-SCHEDULE: формат SPOD-JSON в FILTER_PERIOD_ARR",
+        "type": "json_spod_format",
+        "enabled": true,
+        "sheet": "TOURNAMENT-SCHEDULE",
+        "json_column": "FILTER_PERIOD_ARR",
+        "json_required": false,
+        "numeric_value_keys": ["period_code", "criterion_mark_value"],
+        "output": {
+          "column_on_sheet": "ПРОВЕРКА: SPOD-JSON (FILTER_PERIOD_ARR)",
+          "include_in_summary": true
+        }
+      },
+      {
+        "id": "spod_json_tournament_target_type",
+        "name": "TOURNAMENT-SCHEDULE: формат SPOD-JSON в TARGET_TYPE",
+        "type": "json_spod_format",
+        "enabled": true,
+        "sheet": "TOURNAMENT-SCHEDULE",
+        "json_column": "TARGET_TYPE",
+        "json_required": false,
+        "numeric_value_keys": [],
+        "output": {
+          "column_on_sheet": "ПРОВЕРКА: SPOD-JSON (TARGET_TYPE)",
+          "include_in_summary": true
+        }
+      },
+      {
+        "id": "spod_json_indicator_filter",
+        "name": "INDICATOR: формат SPOD-JSON в INDICATOR_FILTER",
+        "type": "json_spod_format",
+        "enabled": true,
+        "sheet": "INDICATOR",
+        "json_column": "INDICATOR_FILTER",
+        "json_required": false,
+        "numeric_value_keys": [],
+        "output": {
+          "column_on_sheet": "ПРОВЕРКА: SPOD-JSON (INDICATOR_FILTER)",
+          "include_in_summary": true
+        }
+      },
+      {
+        "id": "example_referential_row_filters",
+        "name": "ПРИМЕР (выключено): referential + src_row_conditions / ref_row_conditions — скопируйте поля в нужные правила п.2 ToDo",
+        "type": "referential",
+        "enabled": false,
+        "sheet_src": "CONTEST-DATA",
+        "column_src": "CONTEST_CODE",
+        "sheet_ref": "INDICATOR",
+        "column_ref": "CONTEST_CODE",
+        "src_row_conditions": [
+          { "column": "BUSINESS_STATUS", "op": "=", "value": "АКТИВНЫЙ" },
+          { "column": "CONTEST_TYPE", "op": "=", "value": "ИНДИВИДУАЛЬНЫЙ НАКОПИТЕЛЬНЫЙ" },
+          { "column": "CREATE_DT", "op": "<>", "value": "2025-01-01" }
+        ],
+        "ref_row_conditions": [],
+        "output": {
+          "column_on_sheet": "ПРОВЕРКА (пример фильтра): CONTEST_CODE в INDICATOR",
+          "include_in_summary": true
+        }
+      },
+      {
+        "id": "ref_group_contest_code_in_contest_data",
         "name": "Все CONTEST_CODE из GROUP существуют в CONTEST-DATE",
         "type": "referential",
         "enabled": true,
@@ -2642,13 +2747,15 @@
         "column_src": "CONTEST_CODE",
         "sheet_ref": "CONTEST-DATA",
         "column_ref": "CONTEST_CODE",
+        "src_row_conditions": [],
+        "ref_row_conditions": [],
         "output": {
           "column_on_sheet": "ПРОВЕРКА: CONTEST_CODE в CONTEST-DATA",
           "include_in_summary": true
         }
       },
       {
-        "id": "1.2",
+        "id": "ref_indicator_contest_code_in_contest_data",
         "name": "Все CONTEST_CODE из INDICATOR существуют в CONTEST-DATE",
         "type": "referential",
         "enabled": true,
@@ -2656,13 +2763,15 @@
         "column_src": "CONTEST_CODE",
         "sheet_ref": "CONTEST-DATA",
         "column_ref": "CONTEST_CODE",
+        "src_row_conditions": [],
+        "ref_row_conditions": [],
         "output": {
           "column_on_sheet": "ПРОВЕРКА: CONTEST_CODE в CONTEST-DATA",
           "include_in_summary": true
         }
       },
       {
-        "id": "1.3",
+        "id": "ref_reward_link_contest_code_in_contest_data",
         "name": "Все CONTEST_CODE из REWARD-LINK существуют в CONTEST-DATE",
         "type": "referential",
         "enabled": true,
@@ -2670,13 +2779,15 @@
         "column_src": "CONTEST_CODE",
         "sheet_ref": "CONTEST-DATA",
         "column_ref": "CONTEST_CODE",
+        "src_row_conditions": [],
+        "ref_row_conditions": [],
         "output": {
           "column_on_sheet": "ПРОВЕРКА: CONTEST_CODE в CONTEST-DATA",
           "include_in_summary": true
         }
       },
       {
-        "id": "2",
+        "id": "ref_reward_link_reward_code_in_reward",
         "name": "Все REWARD_CODE из REWARD-LINK существуют в REWARD",
         "type": "referential",
         "enabled": true,
@@ -2684,13 +2795,15 @@
         "column_src": "REWARD_CODE",
         "sheet_ref": "REWARD",
         "column_ref": "REWARD_CODE",
+        "src_row_conditions": [],
+        "ref_row_conditions": [],
         "output": {
           "column_on_sheet": "ПРОВЕРКА: REWARD_CODE в REWARD",
           "include_in_summary": true
         }
       },
       {
-        "id": "9",
+        "id": "ref_employee_org_unit_code_in_org_unit_v20",
         "name": "Все ORG_UNIT_CODE из EMPLOYEE существуют в ORG_UNIT_V20",
         "type": "referential",
         "enabled": true,
@@ -2698,6 +2811,8 @@
         "column_src": "ORG_UNIT_CODE",
         "sheet_ref": "ORG_UNIT_V20",
         "column_ref": "ORG_UNIT_CODE",
+        "src_row_conditions": [],
+        "ref_row_conditions": [],
         "output": {
           "column_on_sheet": "ПРОВЕРКА: ORG_UNIT_CODE в ORG_UNIT_V20",
           "include_in_summary": true
@@ -2788,7 +2903,7 @@
         }
       },
       {
-        "id": "3",
+        "id": "unique_group_contest_code_group_code_group_value",
         "name": "В GROUP нет дублей по составному полю CONTEST_CODE, GROUP_CODE, GROUP_VALUE",
         "type": "unique",
         "enabled": true,
@@ -2809,7 +2924,7 @@
         }
       },
       {
-        "id": "4",
+        "id": "unique_reward_link_contest_code_group_code_reward_code",
         "name": "В REWARD-LINK нет дублей по составному полю CONTEST_CODE, GROUP_CODE, REWARD_CODE",
         "type": "unique",
         "enabled": true,
@@ -2830,7 +2945,7 @@
         }
       },
       {
-        "id": "5",
+        "id": "ref_composite_reward_link_pair_in_group",
         "name": "Все пары CONTEST_CODE, GROUP_CODE из REWARD-LINK существуют в GROUP",
         "type": "referential_composite",
         "enabled": true,
@@ -2902,6 +3017,20 @@
         "column_ref": "CONTEST_CODE",
         "output": {
           "column_on_sheet": "ПРОВЕРКА: CONTEST_CODE в GROUP",
+          "include_in_summary": true
+        }
+      },
+      {
+        "id": "ref_contest_data_indicator",
+        "name": "Все CONTEST_CODE из CONTEST-DATE существуют в INDICATOR",
+        "type": "referential",
+        "enabled": false,
+        "sheet_src": "CONTEST-DATA",
+        "column_src": "CONTEST_CODE",
+        "sheet_ref": "INDICATOR",
+        "column_ref": "CONTEST_CODE",
+        "output": {
+          "column_on_sheet": "ПРОВЕРКА: CONTEST_CODE в INDICATOR",
           "include_in_summary": true
         }
       },
@@ -3118,7 +3247,7 @@
         "id": "unique_reward_link_2",
         "name": "В REWARD-LINK нет дублей по составному полю CONTEST_CODE, REWARD_CODE",
         "type": "unique",
-        "enabled": true,
+        "enabled": false,
         "sheet": "REWARD-LINK",
         "key_columns": [
           "CONTEST_CODE",
@@ -3157,7 +3286,7 @@
         "id": "unique_schedule_2",
         "name": "В TOURNAMENT-SCHEDULE нет дублей по составному полю TOURNAMENT_CODE, CONTEST_CODE",
         "type": "unique",
-        "enabled": true,
+        "enabled": false,
         "sheet": "TOURNAMENT-SCHEDULE",
         "key_columns": [
           "TOURNAMENT_CODE",

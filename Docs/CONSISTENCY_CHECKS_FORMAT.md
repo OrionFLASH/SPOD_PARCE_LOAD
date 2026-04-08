@@ -8,6 +8,10 @@
 
 **Версия 1.7.12:** для типа **`unique`** — поля **`unique_scope_conditions`**, **`unique_scope_mode`**, **`unique_require_non_empty`** и устаревшая пара **`unique_scope_column`** / **`unique_scope_value`** (см. п. 2.4). В **config.json** проекта все правила **`unique`** содержат полный набор этих ключей (пустые значения = проверка по всем строкам листа); подробнее — в **README.md**, раздел **consistency_checks → Правило unique**.
 
+**Дополнение:** тип **`json_spod_format`**; для **`referential`** / **`referential_composite`** — опциональные **`src_row_conditions`** / **`ref_row_conditions`**; правила с **`enabled: false`** всё равно попадают в свод **CONSISTENCY** (см. п. 2.2, 2.8, 3.2).
+
+**Идентификаторы правил (`id`):** для базовых проверок из ПРОВЕРКИ.txt в **`config.json`** используются **смысловые** id (например **`ref_group_contest_code_in_contest_data`** вместо **`1.1`**); см. таблицу в п. 6 и **`Docs/SPOD_CONSISTENCY_CHECKS_SQL_MIRROR.md`**.
+
 **SQL-зеркало (витрина / Hive / Spark):** файл **`Docs/SPOD_CONSISTENCY_CHECKS_SQL_MIRROR.sql`** дублирует в СУБД логику типов **`referential`**, **`referential_composite`**, **`unique`**, **`field_length`** (один запрос со сводкой и деталями); идентификаторы проверок совпадают с **`rules[].id`** для этих правил. Тип **`field_format`** в SQL не зеркалируется — только **`consistency_checks.py`**. Внутри запроса — CTE **`dim_*`** для снижения повторных чтений таблиц и комментарии на русском к конструкциям SQL и проверкам. Полное описание назначения и ограничений — в шапке этого SQL, в **`Docs/DOCS_INDEX.md`** и в отдельном справочнике **`Docs/SPOD_CONSISTENCY_CHECKS_SQL_MIRROR.md`** (все CTE, проверки, таблицы/поля, замены под витрину).
 
 ---
@@ -46,8 +50,8 @@
 
 - **id** — короткий идентификатор (для логов и сводки).
 - **name** — человекочитаемое название (по желанию).
-- **type** — тип: `"referential"` | `"unique"` | `"referential_composite"` | `"field_length"` | `"field_format"` | `"json_field_equals_column"` | `"json_field_in_column"` | `"json_priority_unique_per_contest_link"`.
-- **enabled** — выполнять ли проверку (true/false).
+- **type** — тип: `"referential"` | `"unique"` | `"referential_composite"` | `"field_length"` | `"field_format"` | `"json_field_equals_column"` | `"json_field_in_column"` | `"json_priority_unique_per_contest_link"` | `"json_spod_format"`.
+- **enabled** — выполнять ли проверку (true/false). При **false** строка в своде **CONSISTENCY** всё равно создаётся: **total_rows** по целевому листу, **violations = 0**, в **sample** — пометка об отключённом правиле; колонка проверки на листе не заполняется.
 - **output** — куда и как выводить результат (см. ниже).
 
 Остальные параметры зависят от типа.
@@ -81,6 +85,13 @@
 - **column_ref** — колонка справочника.
 - **output.column_on_sheet** — имя колонки на **sheet_src**, куда пишем результат по строкам (например «OK» / «НЕТ в CONTEST-DATA»).
 - **output.include_in_summary** — включать ли эту проверку в сводный лист.
+
+**Опционально — ограничение строк:**
+
+- **`src_row_conditions`** (или устаревшее **`sheet_src_row_conditions`**) — массив объектов `{ "column": "ИМЯ", "op": "=", "value": "..." }`. **op**: `=`, `==`, `eq`, `<>`, `!=`, `ne`. Условия объединяются по **И**. Строки источника, не удовлетворяющие фильтру, получают в колонке результата **«—»** и **не** учитываются в **violations**.
+- **`ref_row_conditions`** (**`sheet_ref_row_conditions`**) — то же для листа-справочника: во множество допустимых значений попадают только строки, прошедшие фильтр.
+
+Те же ключи поддерживаются для типа **`referential_composite`**.
 
 ---
 
@@ -355,6 +366,22 @@
 
 ---
 
+### 2.8. Тип `json_spod_format` (JSON в нотации SPOD с тройными кавычками)
+
+Проверка ячейки как строки **SPOD-JSON**: после нормализации **`"""` → `"`** и снятия внешних кавычек строка должна быть валидным JSON; для перечисленных в **`numeric_value_keys`** ключей значение в сыром тексте и после разбора должно быть **числом без обёртки в тройные кавычки**; контролируется отсутствие «пустого» значения сразу после двоеточия.
+
+| Поле | Описание |
+|------|----------|
+| `sheet` | Лист с колонкой JSON. |
+| `json_column` | Имя колонки. |
+| `json_required` | Если **true**, пустая ячейка — нарушение; если **false**, пустые пропускаются. |
+| `numeric_value_keys` | Список имён ключей, у которых значение — число **без** `"""…"""`. |
+| `output.column_on_sheet` | Колонка с результатом (**OK** или текст ошибки). |
+
+Реализация: **`src/json_spod_format_check.py`**. Примеры правил — в **`config.json`** (идентификаторы **`spod_json_*`**).
+
+---
+
 ## 3. Куда выводить информацию
 
 ### 3.1. На загружаемых листах (основной Excel)
@@ -362,19 +389,20 @@
 - В **output** у каждой проверки задаётся **column_on_sheet** (имя колонки).
 - Для листа, к которому привязана проверка (**sheet_src** или **sheet**), добавляется колонка с этим именем.
 - В ячейках по строкам:
-  - **referential**: «OK» или короткий текст ошибки (например «НЕТ в CONTEST-DATA»);
-  - **referential_composite**: «OK» или «НЕТ в GROUP»;
+  - **referential**: «OK» или короткий текст ошибки (например «НЕТ в CONTEST-DATA»); при фильтре строк источника — **«—»** вне области;
+  - **referential_composite**: «OK» или «НЕТ в GROUP»; при фильтре — **«—»** вне области;
   - **unique**: пусто (уникально или проверка к строке не применялась — вне области / пустые обязательные колонки) или «xN»;
   - **field_length**: «-» или строка с описанием нарушений;
   - **field_format**: «OK» или описание нарушения формата;
   - **json_field_equals_column** / **json_field_in_column**: «OK», пусто (не применимо) или текст ошибки;
-  - **json_priority_unique_per_contest_link**: «OK», пусто (не в группе по ссылке или в группе все без json_key) или текст нарушения / «Ошибка разбора ADD_DATA».
+  - **json_priority_unique_per_contest_link**: «OK», пусто (не в группе по ссылке или в группе все без json_key) или текст нарушения / «Ошибка разбора ADD_DATA»;
+  - **json_spod_format**: «OK» или краткое описание ошибки формата / JSON.
 - При необходимости для колонок проверок можно задать цвет/формат в **color_scheme** (как для «ДУБЛЬ: …»), чтобы нарушения были заметны.
 
 ### 3.2. Сводный лист по проверкам
 
 - Отдельный лист, например **CONSISTENCY** или **ПРОВЕРКИ_КОНСИСТЕНТНОСТИ**.
-- Создаётся только если в конфиге есть включённые проверки и у части из них **output.include_in_summary: true**.
+- Создаётся при наличии правил в конфиге; в свод попадают записи с **output.include_in_summary: true**, в том числе для правил с **enabled: false** (без выполнения проверки, см. п. 2.1).
 - Колонки формируются по образцу таблицы проверок (Проверки-Tаблица 1.csv). Сначала идут колонки-описания (заполняются из правил конфига):
   - **ТИП ПРОВЕРКИ** (внешний ключ в одну колонку, уникальность, длина полей, формат поля и т.д.),
   - **Описание** (поле name правила),
@@ -407,7 +435,7 @@
   "summary_sheet_name": "CONSISTENCY",
   "rules": [
     {
-      "id": "1.1",
+      "id": "ref_group_contest_code_in_contest_data",
       "name": "CONTEST_CODE из GROUP в CONTEST-DATA",
       "type": "referential",
       "enabled": true,
@@ -418,7 +446,7 @@
       "output": { "column_on_sheet": "ПРОВЕРКА: CONTEST_CODE", "include_in_summary": true }
     },
     {
-      "id": "3",
+      "id": "unique_group_contest_code_group_code_group_value",
       "name": "Уникальность CONTEST_CODE+GROUP_CODE+GROUP_VALUE в GROUP",
       "type": "unique",
       "enabled": true,
@@ -427,7 +455,7 @@
       "output": { "column_on_sheet": "ДУБЛЬ: CONTEST_CODE_GROUP_CODE_GROUP_VALUE", "include_in_summary": true }
     },
     {
-      "id": "5",
+      "id": "ref_composite_reward_link_pair_in_group",
       "name": "Пара CONTEST_CODE+GROUP_CODE из REWARD-LINK в GROUP",
       "type": "referential_composite",
       "enabled": true,
@@ -465,7 +493,7 @@
 - Проверки выполняются после загрузки листов и merge, при необходимости после текущих проверок дубликатов и длины полей.
 - Перед финальной записью основного Excel:
   1. Загрузить правила из **consistency_checks.rules** (только **enabled: true**).
-  2. Для каждого правила по **type** вызвать соответствующую функцию модуля **consistency_checks** (в т.ч. referential, referential_composite, unique, field_length, field_format, json_field_equals_column, json_field_in_column, json_priority_unique_per_contest_link).
+  2. Для каждого правила по **type** вызвать соответствующую функцию модуля **consistency_checks** (в т.ч. referential, referential_composite, unique, field_length, field_format, json_field_equals_column, json_field_in_column, json_priority_unique_per_contest_link, json_spod_format).
   3. Записать в соответствующий лист колонку **output.column_on_sheet**.
   4. Собрать по правилам с **include_in_summary** статистику (лист, количество нарушений, примеры).
   5. Сформировать DataFrame для **summary_sheet_name** и добавить его в **sheets_data**.
@@ -475,20 +503,23 @@
 
 ## 6. Сводная таблица по пунктам ПРОВЕРКИ.txt (1.1–5)
 
-| Пункт | Тип | Лист-источник | Что проверяем | С чем / что делаем |
-|-------|-----|----------------|---------------|---------------------|
-| 1.1 | referential | GROUP | CONTEST_CODE | все значения есть в CONTEST-DATA.CONTEST_CODE |
-| 1.2 | referential | INDICATOR | CONTEST_CODE | все значения есть в CONTEST-DATA.CONTEST_CODE |
-| 1.3 | referential | REWARD-LINK | CONTEST_CODE | все значения есть в CONTEST-DATA.CONTEST_CODE |
-| 2 | referential | REWARD-LINK | REWARD_CODE | все значения есть в REWARD.REWARD_CODE |
-| 3 | unique | GROUP | (CONTEST_CODE, GROUP_CODE, GROUP_VALUE) | комбинация уникальна |
-| 4 | unique | REWARD-LINK | (CONTEST_CODE, GROUP_CODE, REWARD_CODE) | комбинация уникальна |
-| 5 | referential_composite | REWARD-LINK | (CONTEST_CODE, GROUP_CODE) | пара есть в GROUP |
+| Пункт текста | `id` в config.json | Тип | Лист-источник | Что проверяем | С чем / что делаем |
+|--------------|-------------------|-----|----------------|---------------|---------------------|
+| 1.1 | `ref_group_contest_code_in_contest_data` | referential | GROUP | CONTEST_CODE | все значения есть в CONTEST-DATA.CONTEST_CODE |
+| 1.2 | `ref_indicator_contest_code_in_contest_data` | referential | INDICATOR | CONTEST_CODE | все значения есть в CONTEST-DATA.CONTEST_CODE |
+| 1.3 | `ref_reward_link_contest_code_in_contest_data` | referential | REWARD-LINK | CONTEST_CODE | все значения есть в CONTEST-DATA.CONTEST_CODE |
+| 2 | `ref_reward_link_reward_code_in_reward` | referential | REWARD-LINK | REWARD_CODE | все значения есть в REWARD.REWARD_CODE |
+| 3 | `unique_group_contest_code_group_code_group_value` | unique | GROUP | (CONTEST_CODE, GROUP_CODE, GROUP_VALUE) | комбинация уникальна |
+| 4 | `unique_reward_link_contest_code_group_code_reward_code` | unique | REWARD-LINK | (CONTEST_CODE, GROUP_CODE, REWARD_CODE) | комбинация уникальна |
+| 5 | `ref_composite_reward_link_pair_in_group` | referential_composite | REWARD-LINK | (CONTEST_CODE, GROUP_CODE) | пара есть в GROUP |
+
+Отдельное правило в **`config.json`**: **`ref_employee_org_unit_code_in_org_unit_v20`** — EMPLOYEE.ORG_UNIT_CODE ∈ ORG_UNIT_V20 (раньше id **`9`**).
 
 ---
 
 ## 7. Миграция текущих конфигов (при реализации)
 
+- **Переименование `id`:** если у вас остались старые короткие идентификаторы (**`1.1`**, **`2`**, **`3`**, **`4`**, **`5`**, **`9`**), замените их на смысловые из п. 6 (колонка **`id` в config.json**), чтобы совпадать с проектным **`config.json`** и SQL-зеркалом в комментариях.
 - **check_duplicates** — каждую запись вида `{ "sheet": "...", "key": [...] }` можно преобразовать в правило **type: "unique"** с **key_columns** = **key**, **column_on_sheet** = «ДУБЛЬ: » + «_».join(key).
 - **field_length_validations** — каждый лист с **result_column** и **fields** преобразовать в правило **type: "field_length"** с теми же полями и **output.column_on_sheet** = **result_column**.
 

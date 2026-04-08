@@ -417,6 +417,7 @@ def apply_rating_item_matrix_enrichment(
                 crystals=cry,
                 order_product_codes=order_codes,
                 list_reward_codes=rw_codes,
+                manager_tab=emp_key or None,
             )
             accessibility_cells.append(
                 {"row_excel": excel_row, "col_name": sp["col_name"], "ok": ok}

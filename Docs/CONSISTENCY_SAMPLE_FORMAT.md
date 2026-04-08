@@ -183,6 +183,28 @@ CODE = 25 <= 20; NAME = 3 = 5
 
 ---
 
+## 9. json_spod_format (SPOD-JSON в ячейке)
+
+### Текущее поведение
+
+- На листе: текст ошибки из **`src/json_spod_format_check.py`** (тройные кавычки **`"""`**, пустые значения, числовые ключи без кавычек, затем **`json.loads`**).
+- В **sample** для CONSISTENCY: до **20** уникальных коротких сообщений об ошибке (как у **field_format**), с привязкой к строке через общий механизм **`[N]`** там, где это реализовано в **`collect_*`** для данного правила.
+
+### Предложение
+
+- **`[N] | spod_json | <код>`** — единый стиль с остальными JSON-проверками.
+
+---
+
+## 10. Правило с `enabled: false`
+
+### Текущее поведение
+
+- Проверка **не** выполняется, колонка результата на целевом листе **не** заполняется.
+- Если у правила **`include_in_summary: true`**, в своде **CONSISTENCY** всё равно есть строка: **`total_rows`** по листу, **`violations: 0`**, в **`sample`** — пояснение, что правило отключено (см. **`README.md`**, раздел **consistency_checks**).
+
+---
+
 ## Сводная таблица: сейчас vs предложение
 
 | Тип проверки              | Сейчас в sample (кратко)                    | Предложение (ядро)                                      |
@@ -194,6 +216,8 @@ CODE = 25 <= 20; NAME = 3 = 5
 | unique                    | ключ + строки Excel + число дублей          | [N, M, K], ключ, дубль×n                                |
 | json_field_equals_column  | текст из ячейки проверки                    | [N], ключ JSON, сравнение/ json_бит                     |
 | json_field_in_column      | «НЕТ в COL» / ошибка JSON                   | [N], значение, ∉COL                                     |
+| json_spod_format          | тексты ошибок SPOD-JSON                       | [N], spod_json, код                                     |
+| enabled: false            | в sample — текст «отключено»                  | — (нарушений нет)                                       |
 | csv_columns_count         | стр., ожид/факт, больше/меньше              | [N], полей факт/ожид, +/−                               |
 
 ---
@@ -210,6 +234,7 @@ CODE = 25 <= 20; NAME = 3 = 5
 | `формат`       | дата / decimal / цифры         |
 | `json_бит`     | не разобрать JSON в ячейке     |
 | `поля CSV`     | число полей в строке ≠ ожид. |
+| `spod_json`    | ячейка не соответствует контракту SPOD-JSON |
 
 Разделитель между примерами в одной ячейке: **`"; "`** (как сейчас) или **` | `** между записями — на выбор при внедрении в код.
 
@@ -221,7 +246,8 @@ CODE = 25 <= 20; NAME = 3 = 5
   `run_referential`, `run_referential_composite`,  
   `collect_field_format_result`, `collect_field_length_result`,  
   `collect_unique_result`,  
-  `collect_json_field_equals_column_result`, `collect_json_field_in_column_result`  
+  `collect_json_field_equals_column_result`, `collect_json_field_in_column_result`,  
+  сбор sample для **`json_spod_format`**  
   (для JSON-проверок потребуется при нарушении знать индекс строки — обход `df.loc[violations_mask]` с `index` или `reset_index`).
 - **`src/main_impl.py`:** при необходимости — только уточнение строки для `csv_columns_count` (уже есть номер строки файла).
 
@@ -244,3 +270,4 @@ CODE = 25 <= 20; NAME = 3 = 5
 | 1.1    | Реализованы предложения в коде: единый стиль sample для всех типов проверок. |
 | 1.2    | Номера строк: формат **стр.N** заменён на **`[N]`** и **`[N, M, K]`**; лимит записей в sample — 20. |
 | 1.3    | referential: только `[N] значение`; unique: `[N,M] {ключ} ×k`; json_field_equals: `значение ≠ ожид`; field_format (длина): `[N] значение = факт < ожид`; DEBUG по JSON — отдельные строки, дерево, целиком. Режим full: отдельный файл consistency. |
+| 1.4    | Разделы **json_spod_format** и **enabled: false**; в алфавит кодов добавлен **`spod_json`**; SQL-зеркало и индекс документации уточнены по исключениям. |

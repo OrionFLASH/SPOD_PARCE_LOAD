@@ -21,7 +21,7 @@
 | Категория | Пояснение |
 |-----------|-----------|
 | **`field_format`** (все `format_*`) | Форматы полей проверяются только в Python. |
-| **`json_field_*`**, **`json_priority_*`** | Нужен разбор JSON в СУБД или отдельный слой. |
+| **`json_field_*`**, **`json_priority_*`**, **`json_spod_format`** | Нужен разбор JSON / контракта SPOD-JSON в СУБД или отдельный слой (**`src/json_spod_format_check.py`** в Python). |
 | **`csv_columns_count`** | Относится к сырому CSV, не к витрине. |
 | Правила с **`enabled: false`** | В конфиге отключены **`ref_contest_data_indicator`**, **`ref_group_indicator`** — в SQL их нет. |
 
@@ -212,13 +212,13 @@ flowchart TB
 
 Общий приём: **`LEFT JOIN`** фактовой таблицы со справочником по ключу; в **`WHERE`** остаются строки, где справа **`NULL`**, а слева значение считается заполненным (`IS NOT NULL` и `TRIM(CAST(... AS STRING)) <> ''`).
 
-| check_id | CTE | Факт (откуда значение) | Справочник (где должно быть) |
+| check_id (в `config.json`) | CTE | Факт (откуда значение) | Справочник (где должно быть) |
 |----------|-----|------------------------|------------------------------|
-| `1.1` | `v_ref_1_1` | `dim_group_raw` → `CONTEST_CODE` | `dim_contest_code` |
-| `1.2` | `v_ref_1_2` | `t_indicator` → `CONTEST_CODE` | `dim_contest_code` |
-| `1.3` | `v_ref_1_3` | `dim_reward_link_raw` → `CONTEST_CODE` | `dim_contest_code` |
-| `2` | `v_ref_2` | `dim_reward_link_raw` → `REWARD_CODE` | `dim_reward_code` |
-| `9` | `v_ref_9` | `t_employee` → `ORG_UNIT_CODE` | `t_org_unit_v20` по `ORG_UNIT_CODE` |
+| `ref_group_contest_code_in_contest_data` (было `1.1`) | `v_ref_1_1` | `dim_group_raw` → `CONTEST_CODE` | `dim_contest_code` |
+| `ref_indicator_contest_code_in_contest_data` (было `1.2`) | `v_ref_1_2` | `t_indicator` → `CONTEST_CODE` | `dim_contest_code` |
+| `ref_reward_link_contest_code_in_contest_data` (было `1.3`) | `v_ref_1_3` | `dim_reward_link_raw` → `CONTEST_CODE` | `dim_contest_code` |
+| `ref_reward_link_reward_code_in_reward` (было `2`) | `v_ref_2` | `dim_reward_link_raw` → `REWARD_CODE` | `dim_reward_code` |
+| `ref_employee_org_unit_code_in_org_unit_v20` (было `9`) | `v_ref_9` | `t_employee` → `ORG_UNIT_CODE` | `t_org_unit_v20` по `ORG_UNIT_CODE` |
 | `scenario_1` | `v_ref_scenario_1` | `base_schedule_ref` → `CONTEST_CODE` | наличие в CONTEST-DATA (`ref_contest_data IS NULL`) |
 | `scenario_16` | `v_ref_scenario_16` | то же | наличие в INDICATOR (`ref_indicator IS NULL`) |
 | `scenario_20` | `v_ref_scenario_20` | то же | наличие в GROUP (`ref_group IS NULL`) |
@@ -235,9 +235,9 @@ flowchart TB
 
 JOIN по **двум и более** полям; снова `LEFT JOIN` + отсутствие совпадения в справочнике.
 
-| check_id | CTE | Смысл |
+| check_id (в `config.json`) | CTE | Смысл |
 |----------|-----|--------|
-| `5` | `v_comp_5` | Каждая пара `(CONTEST_CODE, GROUP_CODE)` из REWARD-LINK должна существовать в GROUP. |
+| `ref_composite_reward_link_pair_in_group` (было `5`) | `v_comp_5` | Каждая пара `(CONTEST_CODE, GROUP_CODE)` из REWARD-LINK должна существовать в GROUP. |
 | `ref_composite_group_reward_link` | `v_comp_grp_rl` | Каждая пара из GROUP должна встречаться в REWARD-LINK. |
 | `ref_composite_report_schedule` | `v_comp_rep_sch` | Каждая пара `(TOURNAMENT_CODE, CONTEST_CODE)` из REPORT должна быть в расписании (`dim_schedule_tournament_contest_pair`). |
 
@@ -249,10 +249,10 @@ JOIN по **двум и более** полям; снова `LEFT JOIN` + отс
 
 Приём: подзапрос с **`GROUP BY`** по бизнес-ключу и **`HAVING COUNT(*) > 1`**. В DETAIL попадает **одна строка на каждый дублирующийся ключ** (не каждая физическая строка таблицы).
 
-| check_id | CTE | Ключ уникальности | Таблица / источник |
+| check_id (в `config.json`) | CTE | Ключ уникальности | Таблица / источник |
 |----------|-----|-------------------|---------------------|
-| `3` | `v_uq_3` | `CONTEST_CODE`, `GROUP_CODE`, `GROUP_VALUE` | `dim_group_raw` |
-| `4` | `v_uq_4` | `CONTEST_CODE`, `GROUP_CODE`, `REWARD_CODE` | `dim_reward_link_raw` |
+| `unique_group_contest_code_group_code_group_value` (было `3`) | `v_uq_3` | `CONTEST_CODE`, `GROUP_CODE`, `GROUP_VALUE` | `dim_group_raw` |
+| `unique_reward_link_contest_code_group_code_reward_code` (было `4`) | `v_uq_4` | `CONTEST_CODE`, `GROUP_CODE`, `REWARD_CODE` | `dim_reward_link_raw` |
 | `unique_contest_data` | `v_uq_contest_data` | `CONTEST_CODE` | `t_contest_data` |
 | `unique_indicator_1` | `v_uq_ind1` | `CONTEST_CODE`, `INDICATOR_ADD_CALC_TYPE`, `INDICATOR_CODE` | `t_indicator` |
 | `unique_indicator_n` | `v_uq_ind_n` | `N` | `t_indicator` |
@@ -323,4 +323,6 @@ JOIN по **двум и более** полям; снова `LEFT JOIN` + отс
 | Версия | Изменения |
 |--------|-----------|
 | 1.1 | Добавлены 2 версии SQL-файла (`.sql` с комментариями и `_PLAIN.sql` без комментариев); в описании отражено удаление `check_id`/`check_type` из результата и CTE. |
+| 1.2 | Идентификаторы правил в `config.json` для базовых проверок ПРОВЕРКИ.txt (1.1–5) переименованы с коротких (`1.1`, `2`, …) на смысловые (`ref_group_contest_code_in_contest_data`, …); в таблицах §8–10 указаны новые id и пометка «было …». |
+| 1.3 | В перечень намеренных исключений добавлен тип **`json_spod_format`**. |
 | 1.0 | Первоначальное описание скрипта: структура CTE, все проверки, таблицы и поля, замены для витрины, исключения (field_format, json, csv_columns_count). |

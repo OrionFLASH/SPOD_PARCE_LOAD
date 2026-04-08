@@ -39,6 +39,7 @@ SPOD_PROM/
 │   ├── debug_timing.py    # DEBUG [PERF]; отдельный xlsx STAT_FILE <таймштамп> (этапы и функции)
 │   ├── console_ui.py      # Краткий вывод в консоль: этапы, прогресс, сводки (stdlib)
 │   ├── json_utils.py      # Разбор и разворот JSON-полей
+│   ├── json_spod_format_check.py  # Проверка формата SPOD-JSON в ячейках (consistency_checks: json_spod_format)
 │   ├── archive_json_columns.py  # Архив SQLite: колонки JSON_* из CONTEST_FEATURE / REWARD_ADD_DATA
 │   ├── input_archive_sqlite.py   # Архив сырых CSV в SQLite (снимки, дедуп, JSON_* для CONTEST/REWARD)
 │   ├── reward_getcondition_summary.py  # Сводная колонка по getCondition на листе REWARD
@@ -93,14 +94,15 @@ SPOD_PROM/
 | **logging_setup.py** | Настройка логирования | Класс `CallerFormatter` (добавляет имя функции в сообщение); функция `setup_logger(config)` — путь к лог-файлу; уровень файла из конфига (обычно DEBUG). В **`main_impl`** после настройки консольный поток поднимается до **WARNING**, чтобы **INFO** шёл в файл; краткий ход — **`console_ui`**. |
 | **json_utils.py** | Разбор и разворот JSON-полей в DataFrame | `safe_json_loads(s)` — парсинг строки в JSON с поправкой типичных ошибок; `safe_json_loads_preserve_triple_quotes(s)`; `flatten_json_column_recursive(df, column, prefix=..., sheet=..., sep=..., max_workers_io=...)` — рекурсивный разворот колонки в несколько колонок, при большом объёме — параллельно. |
 | **reward_getcondition_summary.py** | Сводный текст по кодам getCondition на листе REWARD | `add_reward_getcondition_summary_column(df_reward, prefix=..., column_name=...)` — после разворота JSON и merge; строки вида `[код] FULL_NAME {seasonItem}`. |
-| **reward_item_catalog.py** | Каталог ITEM из **`REWARD_ADD_DATA`** и проверка доступности товара менеджеру | `build_item_catalog_from_reward_df`, `rules_for_matrix_column`, `item_accessible_for_manager` — для раскраски матрицы на **RATING** (**`rating_item_matrix`**). |
-| **rating_item_matrix.py** | Колонки-счётчики по ORDER и подсветка доступности ITEM на **RATING** | `apply_rating_item_matrix_enrichment`, `apply_rating_item_matrix_colors` — светло-зелёный / светло-красный по полным критериям из JSON и листов **ORDER** / **LIST-REWARDS**. |
+| **reward_item_catalog.py** | Каталог ITEM из **`REWARD_ADD_DATA`** и проверка доступности товара менеджеру | `build_item_catalog_from_reward_df`, `rules_for_matrix_column`, `item_accessible_for_manager` — для раскраски матрицы на **RATING**; учёт массива **`ignoreConditions`** (табельные «всегда доступно»). |
+| **rating_item_matrix.py** | Колонки-счётчики по ORDER и подсветка доступности ITEM на **RATING** | `apply_rating_item_matrix_enrichment`, `apply_rating_item_matrix_colors` — светло-зелёный / светло-красный по полным критериям из JSON и листов **ORDER** / **LIST-REWARDS**; передача табельного в **`item_accessible_for_manager`**. |
+| **json_spod_format_check.py** | Валидация ячеек в нотации SPOD (тройные кавычки, числовые ключи, JSON) | `validate_spod_json_cell`, `run_json_spod_format_check` — вызывается из **`consistency_checks`** для правил **`type: "json_spod_format"`**. |
 | **file_loader.py** | Поиск и загрузка CSV, разворот JSON по конфигу | Класс `FileLoader(config)`: `find_file_case_insensitive(directory, base_name, extensions)`, `check_input_files_exist()`, `read_csv_file(file_path)`, `process_single_file(file_conf)` — возвращает `(df, sheet_name, file_conf)` или `(None, sheet_name, None)`. |
 | **tournament.py** | Расчёт статуса турнира по датам | `calculate_tournament_status(config, df_tournament, df_report=None)` — добавляет колонку `CALC_TOURNAMENT_STATUS` по правилам из `config.tournament_status_choices`. |
 | **validation.py** | Валидация длины полей и проверка дубликатов (устаревшие пути) | `validate_field_lengths(config, df, sheet_name)`, `validate_field_lengths_vectorized(config, df, sheet_name)`, `compare_validate_results`, `mark_duplicates`, `validate_single_sheet`, `check_duplicates_single_sheet`. Основной пайплайн больше не использует отдельные шаги проверки дубликатов и длины полей — всё выполняется в **consistency_checks**. |
-| **consistency_checks.py** | Проверки консистентности (unique, field_length, field_format, referential, json_field_equals_column, json_field_in_column, json_priority_unique_per_contest_link) | Выполняет правила из `consistency_checks.rules` **с параллелизацией** (ThreadPoolExecutor). **Фаза 1** — создаёт на листах колонки `unique` («ДУБЛЬ: …»), `field_length`, `field_format`, json-проверки; **Фаза 2** — referential/referential_composite и сбор результатов. Парсинг JSON в ячейках (ADD_DATA и т.п.): **`_parse_add_data_cell`**, **`_parse_add_data_cell_with_normalized`** — замена `"""` на `"`, затем `json.loads`. Сводный лист CONSISTENCY формируется с колонками-описаниями (ТИП ПРОВЕРКИ, Описание, таблица источник, поле источник и т.д.); расхождения по числу полей CSV (csv_columns_count) также попадают в свод. Функции: `_run_unique_check` (область **`_unique_active_row_mask`**, **`_unique_scope_mask`**, **`_normalize_unique_scope_conditions`**), `_run_field_length_check`, `_run_field_format_check`, `run_referential`, `run_referential_composite`, `_run_json_field_equals_column_check`, `_run_json_field_in_column_check`, `_run_json_priority_unique_per_contest_link_check`, `collect_*`, `run_all_consistency_checks`, `run_consistency_checks_and_attach_summary`, `build_consistency_summary_df(results, rules)`. |
+| **consistency_checks.py** | Проверки консистентности (unique, field_length, field_format, referential, referential_composite с фильтрами строк, json_*, **json_spod_format**) | Выполняет правила из `consistency_checks.rules` **с параллелизацией** (ThreadPoolExecutor). **Фаза 1** — создаёт на листах колонки `unique`, `field_length`, `field_format`, json_field_*; **Фаза 2** — referential/referential_composite, **json_spod_format**, сбор результатов. Правила с **`enabled: false`** не выполняются, но строка в своде **CONSISTENCY** всё равно создаётся (**total_rows**, **violations=0**, текст в **sample**). Парсинг JSON в ячейках: **`_parse_add_data_cell`**, **`_parse_add_data_cell_with_normalized`**. Свод **CONSISTENCY** и **csv_columns_count** — как раньше. См. **`Docs/CONSISTENCY_CHECKS_FORMAT.md`** (п. 2.2 — фильтры **src_row_conditions** / **ref_row_conditions**, п. 2.8 — **json_spod_format**). |
 | **gender.py** | Определение пола по отчеству, имени, фамилии | `add_auto_gender_column(config, df, sheet_name)`, `add_auto_gender_column_vectorized(config, df, sheet_name)`, `compare_gender_results(df_old, df_new)`. Внутри используются паттерны из `config.gender_patterns`. |
-| **console_ui.py** | Краткий вывод в **stdout** при работе **main** | `print_banner`, `on_phase_start` / `on_phase_end`, `expected_phases_for_run_flags`, `expected_phases_for_run_mode`, `print_wrapped`, `set_phase_progress_total`, `reset_phase_counter`, `render_progress_bar`, `print_consistency_summary`, `print_validation_and_csv_compact`, `print_data_processing_summary`, `print_phases_table`, `print_top_functions`, `print_paths_and_total_time`, `stderr_message`. Только stdlib. |
+| **console_ui.py** | Краткий вывод в **stdout** при работе **main** | Этапы, сводки, **`print_consistency_summary`**, **`print_input_archive_sqlite_report`** (путь к БД **от корня проекта** без усечения «…», таблица по листам). Только stdlib. |
 | **main_impl.py** | Полный пайплайн обработки | При импорте вызывается `_load_config_globals()`. Функция `main()`: хуки консоли и прогресс по этапам → параллельная загрузка CSV и разворот JSON → **выгрузка source** (`SPOD_PROM source …`) только в режимах **`full`** и отдельно в **`source_only`** (до выхода); в **`main_only`** и **`consistency_only`** source не создаётся → проверка наличия файлов → проверки консистентности на сырых данных и перенос на обработанные листы → добавление AUTO_GENDER (EMPLOYEE) → расчёт статуса турнира → merge (кроме SUMMARY) → **сводка getCondition на REWARD** (`reward_getcondition_summary`, если не `consistency_only`) → **проверки консистентности** (модуль `consistency_checks`) → формирование SUMMARY → лист STAT_FILE → запись основного Excel → **файл статистики времени** `STAT_FILE <таймштамп>.xlsx` (`write_performance_statistics_excel` из `debug_timing`) → итоговый отчёт по отклонениям длины полей и расхождениям CSV (**полный текст в лог**, в консоль — **`console_ui`**). Режим **`consistency_only`**: без merge, gender, турнира и основного Excel — только файл консистентности. Файл **source**: для всех ячеек включён перенос по словам (`write_source_excel`). Запись основного Excel: **`write_to_excel`**, подготовка типов **`apply_column_format_conversion`**, пост-оформление листа **`_format_sheet`** (ширины **`calculate_column_width`** с выборкой **`_AUTO_COLUMN_WIDTH_MAX_DATA_ROWS`**, цвета **`apply_color_scheme`**, выравнивание и форматы **`apply_column_formats`**, вспомогательно **`_column_indices_covered_by_column_formats`**). |
 
 **Запуск:** из корня проекта выполняется `python main.py`. При этом создаётся `Config()` (путь к config.json — корень проекта), конфиг передаётся в `set_current_config(config)`, затем вызывается `main_impl.main()`. В начале `main_impl.main()` снова вызывается `_load_config_globals()`, поэтому все глобальные переменные в main_impl берутся из внедрённого конфига.
@@ -132,7 +134,7 @@ SPOD_PROM/
 | `merge_fields_advanced` | Правила переноса/подсчёта полей между листами. |
 | `color_scheme` | Цвета заголовков и ячеек по листам и колонкам. |
 | `column_formats` | Формат ячеек: число, дата, выравнивание по листам и колонкам; режимы `columns` и `except_columns` (см. раздел **column_formats**). |
-| `consistency_checks` | Единый конфиг проверок консистентности (summary_sheet_name, rules: referential, unique, field_length, field_format). |
+| `consistency_checks` | Единый конфиг проверок: **summary_sheet_name**, **rules**, **csv_columns_count**; опционально **`spod_todo_config_guide`** (текст-подсказка где искать правила SPOD-JSON и фильтры referential). Типы правил: **unique**, **field_length**, **field_format**, **referential**, **referential_composite**, **json_field_***, **json_priority_unique_per_contest_link**, **json_spod_format**. |
 | `json_columns` | Колонки с JSON для разворота по листам (column, prefix). |
 | `reward_getcondition_summary` | Сводная колонка на листе REWARD по кодам `getCondition` (nonRewards/rewards); `enabled`, `column_name`. |
 | `rating_item_matrix` | Матрица ITEM на листе **RATING**: счётчики заказов по **ORDER** и подсветка доступности товара (зелёный/красный) по **`REWARD_ADD_DATA`**, **LIST-REWARDS**, кристаллам; см. раздел **rating_item_matrix**. |
@@ -680,6 +682,7 @@ SPOD_PROM/
 2. **`minCrystalEarnedTotal`**: если **> 0**, значение колонки **«Количество кристаллов»** на RATING должно быть **≥** порога; при **0** или отсутствии в JSON критерий не действует.
 3. **`getCondition` → `rewards`**: список **`rewardCode`**; если не пуст, **все** перечисленные коды должны встречаться на листе **LIST-REWARDS** для того же табельного (**«Табельный номер сотрудника»** + **«Код награды»** — имена настраиваются).
 4. **`getCondition` → `nonRewards`**: список **`nonRewardCode`**; если не пуст, **ни один** из кодов не должен встречаться в заказах сотрудника на **ORDER** (**«Табельный номер»** + **«Код товара»**).
+5. **`ignoreConditions`** (корень **`REWARD_ADD_DATA`**, массив табельных номеров): если **табельный номер строки RATING** входит в этот список для данного кода товара (**ITEM**), ячейка матрицы считается **доступной** (**светло-зелёный**, **`fill_accessibility_ok`**) **независимо** от пунктов 1–4.
 
 Каталог правил по коду товара строится модулем **`src/reward_item_catalog.py`** (разбор **`REWARD_ADD_DATA`** с нормализацией `"""` → `"` и снятием внешних кавычек). Если для кода нет записи в JSON, подставляются плоские пороги **`minRating*`** из развёрнутых колонок **REWARD** (как при сборе спецификаций матрицы). Трёхцветная подсветка только по **`minRating*`** (страна/ТБ/ГОСБ) **не используется**.
 
@@ -731,20 +734,27 @@ SPOD_PROM/
 | Ключ | Тип | Описание |
 |------|-----|----------|
 | `summary_sheet_name` | строка | Имя сводного листа (по умолчанию `"CONSISTENCY"`). |
-| `rules` | массив объектов | Список правил; у каждого: `id`, `name` (опционально), `type`, `enabled`, `output` (column_on_sheet, include_in_summary). Остальные поля зависят от типа. |
+| `rules` | массив объектов | Список правил; у каждого: **`id`** (смысловой идентификатор, например **`ref_group_contest_code_in_contest_data`**), `name`, `type`, `enabled`, `output`. Остальные поля зависят от типа. |
+| `spod_todo_config_guide` | строка (опц.) | Человекочитаемая подсказка: где в **rules** искать **`json_spod_format`** и поля фильтра referential. |
+| `csv_columns_count` | объект | Ожидаемое число полей CSV по листам и тексты колонок свода (как раньше). |
 
-**Порядок выполнения:** **Фаза 1** — для правил с `type: "unique"` и `type: "field_length"` модуль **создаёт** на листах соответствующие колонки («ДУБЛЬ: …» и FIELD_LENGTH_CHECK и т.д.). **Фаза 2** — выполняются referential/referential_composite и **сбор** результатов unique/field_length в свод.
+**Загрузка конфига:** в **`Config`** и в **`main_impl`** в объект **`consistency_checks`** попадают также **прочие** ключи из JSON (не только три перечисленных выше), чтобы не терять подсказки.
+
+**Порядок выполнения:** **Фаза 1** — **`unique`**, **`field_length`**, **`field_format`**, **`json_field_equals_column`**, **`json_field_in_column`**, **`json_priority_unique_per_contest_link`** (создание колонок на листах). **Фаза 2** — **`referential`**, **`referential_composite`**, **`json_spod_format`**, сбор результатов фазы 1 в свод. Правила с **`enabled: false`** в фазах не участвуют; для них формируется только строка свода (**см. ниже**).
 
 **Типы правил:**
 
-- **referential** — внешний ключ в одну колонку: значения `column_src` на `sheet_src` должны присутствовать в `sheet_ref.column_ref`. Поля: `sheet_src`, `column_src`, `sheet_ref`, `column_ref`. Результат записывается в колонку на листе-источнике («OK» или «НЕТ в &lt;sheet_ref&gt;»).
-- **referential_composite** — внешний ключ из нескольких колонок: комбинация `columns_src` на `sheet_src` должна встречаться в `sheet_ref` по `columns_ref`. Поля: `sheet_src`, `columns_src`, `sheet_ref`, `columns_ref`.
+- **referential** — внешний ключ в одну колонку: значения `column_src` на `sheet_src` должны присутствовать в `sheet_ref.column_ref`. Поля: `sheet_src`, `column_src`, `sheet_ref`, `column_ref`. Опционально **`src_row_conditions`** и **`ref_row_conditions`** (или **`sheet_src_row_conditions`** / **`sheet_ref_row_conditions`**): массив **`{ "column", "op", "value" }`**, **`op`** = **`=`** / **`==`** / **`eq`** или **`<>`** / **`!=`** / **`ne`**; условия объединяются по **И**. Строки источника вне фильтра получают в колонке результата **«—»** и не считаются нарушениями; множество допустимых значений справочника строится по строкам ref, прошедшим **`ref_row_conditions`**. Результат: «OK», «НЕТ в …» или «—».
+- **referential_composite** — внешний ключ из нескольких колонок; те же опциональные **`src_row_conditions`** / **`ref_row_conditions`**, семантика как у **referential**.
 - **unique** — уникальность комбинации колонок **`key_columns`** на листе **`sheet`**; колонка результата из **`output.column_on_sheet`** (значения **пусто** или **xN**). Поддерживаются **область строк** и **обязательная непустота** части колонок; подробный сценарий и шаблон конфига — в подразделе **«Правило unique»** ниже. В фазе 2 результат собирается в свод.
 - **field_length** — проверка длины полей. В фазе 1 модуль **создаёт** колонку результата на листе по полям `sheet`, `result_column`, **`fields`** (объект: имя поля → `{ "limit": N, "operator": "=" | "<=" | ">=" }`), `output.column_on_sheet`. В ячейках: «-» или строка с описанием нарушений. В фазе 2 результат собирается в свод.
 - **field_format** — проверка формата поля (дата, десятичное число с фиксированной дробной частью, строка из N цифр). В фазе 1 создаётся колонка результата на листе по полям `sheet`, `field`, **`format`** (type: date/decimal/fixed_length_digits + параметры). В фазе 2 результат собирается в свод.
 - **json_field_equals_column** — значение ключа из JSON-колонки сравнивается с колонкой листа. Применяется к полям вроде REWARD_ADD_DATA (JSON с тройными кавычками). Поля: `sheet`, **`json_column`** (например REWARD_ADD_DATA), **`json_key`** (например parentRewardCode), **`column_compare`** (например REWARD_CODE). Опционально: **`filter_column`** + **`filter_value`** (только строки, где значение колонки совпадает, например REWARD_TYPE=BADGE), **`json_filter_key`** + **`json_filter_value`** (доп. условие по ключу в JSON, например masterBadge=Y). При **`must_not_equal`: true** требование инвертируется: значение из JSON **не должно** равняться колонке (для BADGE с masterBadge=N: parentRewardCode ≠ REWARD_CODE). Парсинг JSON: тройные кавычки `"""` заменяются на `"`, затем `json.loads`. В ячейке: OK / сообщение об ошибке / пусто для неприменимых строк.
 - **json_field_in_column** — все уникальные значения ключа из JSON-колонки должны присутствовать в указанной колонке того же листа. Поля: `sheet`, **`json_column`**, **`json_key`**, **`column_in_sheet`** (например REWARD_CODE). Используется для проверки: все parentRewardCode из ADD_DATA должны быть в REWARD_CODE.
 - **json_priority_unique_per_contest_link** — для каждого **`CONTEST_CODE`** на листе **`link_sheet`** (по умолчанию REWARD-LINK) берутся **уникальные `REWARD_CODE`** (**`GROUP_CODE` не учитывается**). На листе **`sheet`** (REWARD) в колонке **`json_column`** (REWARD_ADD_DATA) из JSON читается ключ **`json_key`** (по умолчанию `priority`); разбор тот же, что у **json_field_*** — через **`_parse_add_data_cell_with_normalized`**. В рамках одного конкурса: если у **всех** привязанных наград поле отсутствует — **не нарушение**; если у **всех** задано — значения должны быть **попарно различны**; если **часть с полем, часть без** — **нарушение** для всех строк этой группы. Результат пишется в колонку на **REWARD**. Поля: `sheet`, `reward_code_column`, `json_column`, `json_key`, `link_sheet`, `link_contest_column`, `link_reward_column`, `output`.
+- **json_spod_format** — проверка ячейки как строки **SPOD-JSON** (тройные кавычки **`"""`**, пустые значения, список **`numeric_value_keys`** с числами без кавычек, затем валидность JSON). Поля: **`sheet`**, **`json_column`**, **`json_required`** (bool), **`numeric_value_keys`** (массив имён ключей), **`output`**. Реализация: **`src/json_spod_format_check.py`**. В проектном **config.json** — правила с префиксом id **`spod_json_`** на листах CONTEST-DATA, REWARD, TOURNAMENT-SCHEDULE, INDICATOR.
+
+**Правило с `enabled: false`:** проверка **не** выполняется, колонка на листе **не** заполняется; в своде **CONSISTENCY** при **`include_in_summary: true`** всё равно есть строка: **`total_rows`** по целевому листу, **`violations: 0`**, в **`sample`** — пояснение, что правило отключено.
 
 ### Правило `unique`: область строк, непустота и единый шаблон в config.json
 
@@ -776,12 +786,14 @@ SPOD_PROM/
 
 **csv_columns_count** (внутри `consistency_checks`): список листов и ожидаемое число полей в CSV (0 = АВТО по заголовку), плюс тексты для колонок листа CONSISTENCY (ТИП ПРОВЕРКИ, Описание, таблица источник, поле источник, параметр сравнения, комментарий). Секция **`_default`** задаёт подписи по умолчанию; **`sheets`** — объект «имя листа» → `{ "expected_columns": 0, опционально переопределение текстов }`. Записи по расхождениям числа полей добавляются в свод CONSISTENCY с заполненными колонками описания. Колонка **sample** на листе CONSISTENCY для этой проверки заполняется **только при наличии отклонений** (номера строк и ожид./факт. число полей); при отсутствии отклонений sample остаётся пустой.
 
-**Вывод:** для каждого правила с `include_in_summary: true` — строка в сводном листе **CONSISTENCY**. На листе CONSISTENCY сначала идут колонки по образцу таблицы проверок: **ТИП ПРОВЕРКИ**, **Описание**, **таблица источник**, **поле источник**, **таблица где проверяем**, **поле для проверки**, **параметр сравнения**, **комментарий** (заполняются из правил конфига), затем колонки результата: check_id, sheet, name, имя_колонки, type, total_rows, violations, sample. В **лог** — подробный отчёт; в **консоль** — **`console_ui.print_consistency_summary`**: обзор (число правил и листов, сумма нарушений), таблица **по типам проверок**, при необходимости детализация по правилам с нарушениями (без длинных sample).
+**Вывод:** для каждого правила с **`include_in_summary: true`** — строка в сводном листе **CONSISTENCY**, **включая отключённые** (**`enabled: false`**): см. выше. Колонки свода — как раньше (**ТИП ПРОВЕРКИ**, …, **check_id**, **violations**, **sample**). В **лог** — подробный отчёт; в **консоль** — **`console_ui.print_consistency_summary`**.
+
+**Идентификаторы базовых проверок** (вместо коротких **`1.1`**, **`2`**, …): **`ref_group_contest_code_in_contest_data`**, **`ref_indicator_contest_code_in_contest_data`**, **`ref_reward_link_contest_code_in_contest_data`**, **`ref_reward_link_reward_code_in_reward`**, **`ref_employee_org_unit_code_in_org_unit_v20`**, **`unique_group_contest_code_group_code_group_value`**, **`unique_reward_link_contest_code_group_code_reward_code`**, **`ref_composite_reward_link_pair_in_group`** — см. таблицу в **`Docs/CONSISTENCY_CHECKS_FORMAT.md`** (п. 6).
 
 **Пример фрагмента rules (referential и unique):**
 ```json
 {
-  "id": "1.1",
+  "id": "ref_group_contest_code_in_contest_data",
   "name": "CONTEST_CODE из GROUP в CONTEST-DATA",
   "type": "referential",
   "enabled": true,
@@ -789,10 +801,12 @@ SPOD_PROM/
   "column_src": "CONTEST_CODE",
   "sheet_ref": "CONTEST-DATA",
   "column_ref": "CONTEST_CODE",
+  "src_row_conditions": [],
+  "ref_row_conditions": [],
   "output": { "column_on_sheet": "ПРОВЕРКА: CONTEST_CODE в CONTEST-DATA", "include_in_summary": true }
 },
 {
-  "id": "4",
+  "id": "unique_reward_link_contest_code_group_code_reward_code",
   "name": "Уникальность CONTEST_CODE+GROUP_CODE+REWARD_CODE в REWARD-LINK",
   "type": "unique",
   "enabled": true,
@@ -807,7 +821,7 @@ SPOD_PROM/
 }
 ```
 
-Полное описание формата и соответствия пунктам ПРОВЕРКИ.txt — в **Docs/CONSISTENCY_CHECKS_FORMAT.md** (в т.ч. раздел **2.7** — тип **json_priority_unique_per_contest_link**).
+Полное описание формата и соответствия пунктам ПРОВЕРКИ.txt — в **Docs/CONSISTENCY_CHECKS_FORMAT.md** (в т.ч. **2.7** — **json_priority_unique_per_contest_link**, **2.8** — **json_spod_format**, фильтры строк в **2.2**).
 
 ---
 
@@ -918,7 +932,7 @@ main_impl.main()                     # Запуск пайплайна
 
 ##### 3.2. Проверки консистентности (consistency_checks)
 
-После merge выполняется модуль **consistency_checks** (с параллелизацией: пул потоков, блокировка по листу при записи). Создаются колонки «ДУБЛЬ: …» (unique), проверки длины полей (field_length) и формата полей (field_format) на листах, выполняются referential/referential_composite, результаты собираются в сводный лист **CONSISTENCY**; **подробности** — в **лог**, **краткая сводка по типам и листам** — в **консоль** (`console_ui.print_consistency_summary`). На листе CONSISTENCY выводятся колонки-описания проверок (ТИП ПРОВЕРКИ, Описание, таблица источник, поле источник, таблица где проверяем, поле для проверки, параметр сравнения, комментарий) и колонки результата (check_id, sheet, name, total_rows, violations, sample). Правила задаются в **config.json** в секции `consistency_checks.rules` (типы `unique`, `field_length`, `field_format`, `referential`, `referential_composite`, `json_field_equals_column`, `json_field_in_column`, `json_priority_unique_per_contest_link`). Секции `check_duplicates` и `field_length_validations` в config больше не используются.
+После merge выполняется модуль **consistency_checks** (с параллелизацией: пул потоков, блокировка по листу при записи). Создаются колонки **unique** / **field_length** / **field_format** / **json_field_***; выполняются **referential** / **referential_composite** (с опциональными фильтрами строк) и **json_spod_format**; свод **CONSISTENCY** включает и правила с **`enabled: false`** (без выполнения проверки). **Подробности** — в **лог**, **краткая сводка** — в **консоль** (`console_ui.print_consistency_summary`). Типы правил см. раздел **consistency_checks** выше. Секции `check_duplicates` и `field_length_validations` в config не используются.
 
 ##### 3.3. Обработка JSON полей
 
@@ -1133,6 +1147,16 @@ python main.py
 ---
 
 ## История версий
+
+### Версия 1.7.38 — Консистентность: SPOD-JSON, фильтры referential, свод для отключённых правил; архив SQLite в консоли/логе; RATING **`ignoreConditions`**; смысловые **`id`** правил
+
+- **`json_spod_format`**: проверка колонок с JSON в нотации SPOD (**`src/json_spod_format_check.py`**), правила в **`config.json`** (**`spod_json_*`**). Параметры: **`json_column`**, **`json_required`**, **`numeric_value_keys`**, **`output`**.
+- **referential** / **referential_composite**: опциональные **`src_row_conditions`** / **`ref_row_conditions`** (и алиасы **`sheet_*_row_conditions`**); строки вне фильтра — **«—»** в колонке результата. Пример с условиями — правило **`example_referential_row_filters`** (`enabled: false`) для копирования в боевые правила.
+- **CONSISTENCY**: при **`enabled: false`** строка свода всё равно создаётся (**total_rows**, **violations=0**, текст в **sample**).
+- **`consistency_checks`**: опциональный ключ **`spod_todo_config_guide`**; **`Config`** / **`main_impl`** сохраняют в объекте секции все дополнительные поля из JSON.
+- **Архив SQLite** (**`input_archive_sqlite`**): в консоль и стартовую строку лога выводится **полный относительный** путь к файлу БД (без усечения); блок «По листам» — табличный вид (**`console_ui.print_input_archive_sqlite_report`**).
+- **Матрица RATING**: массив **`ignoreConditions`** в **`REWARD_ADD_DATA`** для **ITEM** — перечисленные табельные номера получают ячейку **доступной** (**`fill_accessibility_ok`**) без проверки остальных критериев (**`reward_item_catalog`**, **`item_accessible_for_manager(..., manager_tab=)`**).
+- Переименованы короткие **`id`** базовых правил (вместо **`1.1`**, **`2`**, …) на смысловые (**`ref_group_contest_code_in_contest_data`** и т.д.); обновлены **`Docs/SPOD_CONSISTENCY_CHECKS_SQL_MIRROR.*`**, **`Docs/CONSISTENCY_CHECKS_FORMAT.md`**.
 
 ### Версия 1.7.33 — Архив SQLite: несколько файлов БД (`archive_db_path`)
 

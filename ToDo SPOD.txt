@@ -1,36 +1,254 @@
 ================================================================================
-  SPOD — заметки / ToDo (обновлено по результатам доработки кода)
+СТАТУС РЕАЛИЗАЦИИ (актуально по коду в репозитории)
 ================================================================================
 
-1) PerformanceWarning «DataFrame is highly fragmented» (main_impl, копирование колонок проверок)
+П.1 — Проверка SPOD-JSON по листу/колонке
+  ГДЕ В КОНФИГЕ: файл config.json → объект "consistency_checks" → массив "rules"
+  → шесть правил с "type": "json_spod_format" и id spod_json_contest_data,
+  spod_json_contest_period, spod_json_reward_add_data,
+  spod_json_tournament_filter_period, spod_json_tournament_target_type,
+  spod_json_indicator_filter (сразу после csv_columns_count). Подсказка в том же
+  разделе: ключ "spod_todo_config_guide".
+  СДЕЛАНО: тип правила json_spod_format (consistency_checks.py), модуль
+  src/json_spod_format_check.py, правила в config.json (id spod_json_*).
+  Как: снятие внешних кавычек у всей ячейки, замена """ -> ", контроль
+  пустого значения после ключа, список numeric_value_keys (число без """),
+  разбор JSON; эвристика ключа в одной паре " вместо тройных кавычек.
+  ОГОВОРКИ: нет полного обхода всего текста с требованием «каждый ключ и
+  каждая строковая величина строго в """…""" на всех уровнях вложенности» —
+  часть нарушений отлавливается только если ломается JSON или попадает под
+  эвристики. Смешанная нотация (как в примере с двойными "" у ключей в
+  FILTER_PERIOD_ARR) может остаться незамеченной, если после нормализации JSON
+  всё же валиден. Массивы: требование «элементы в """» не проверяется
+  отдельным проходом, опираемся на итоговый JSON.
 
-   Причина: многократное присваивание вида proc_df[col] = … раздувает внутренние блоки DataFrame.
+П.2 — Ограничение строк для referential / referential_composite
+  ГДЕ В КОНФИГЕ: тот же массив consistency_checks.rules — у боевых referential
+  добавлены пустые "src_row_conditions": [], "ref_row_conditions": [] (см. правила
+  id ref_group_contest_code_in_contest_data, ref_indicator_contest_code_in_contest_data,
+  ref_reward_link_contest_code_in_contest_data, ref_reward_link_reward_code_in_reward,
+  ref_employee_org_unit_code_in_org_unit_v20); заполните при необходимости. Полный образец условий
+  из текста задачи — правило id example_referential_row_filters (enabled: false),
+  скопируйте блоки условий в своё правило и включите его.
+  СДЕЛАНО: src_row_conditions и ref_row_conditions (алиасы
+  sheet_src_row_conditions, sheet_ref_row_conditions): объекты
+  { "column", "op", "value" }, op = или <> (также ==, !=, eq, ne). Все
+  условия — логическое И. Строки источника вне фильтра: в колонке результата
+  «—», не входят в violations. Справочник строится по отфильтрованным
+  строкам ref.
+  ОГОВОРКИ: нет одного поля с массивом «любое из значений» — несколько
+  вариантов задаются несколькими элементами в массиве условий (или расширять
+  конфиг позже). Пример из текста ниже (BUSINESS_STATUS + CONTEST_TYPE +
+  CREATE_DT) в config.json не добавлялся — только механизм.
 
-   Сделано: в copy_consistency_results_from_raw_to_processed колонки добавляются одним вызовом
-   pd.concat([proc_df, raw_df[added_cols].copy()], axis=1) и кортеж в sheets_data обновляется.
+П.3 — CONSISTENCY при enabled: false
+  СДЕЛАНО: строка в своде сохраняется, total_rows по целевому листу,
+  violations = 0, в sample текст на русском про отключённое правило
+  (не «disable», а явная формулировка; флаг disabled в записи результата).
 
-2) Консоль: не сокращать длинный текст по консистентности
+П.4 — Консоль и лог: архив SQLite
+  СДЕЛАНО: путь к БД — относительный от корня проекта, полное имя файла,
+  перенос по ширине терминала (без «…» в середине пути). Блок «По листам» —
+  заголовок-таблица (Лист / Строки / Примечание). Стартовая строка лога
+  архива использует тот же относительный путь.
+  ОГОВОРКИ: при узком терминале длинные подписи листов в таблице могут
+  усекаться; режим verbose по-прежнему может обрезать вторичные строки
+  через общий лимит ширины.
 
-   Сделано: в console_ui добавлены print_wrapped + textwrap для оценки, итога и строк правил
-   с нарушениями (перенос по ширине терминала, break_long_words для длинных имён колонок).
+П.5 — RATING, ignoreConditions
+  СДЕЛАНО: разбор ignoreConditions в reward_item_catalog (каталог ITEM),
+  item_accessible_for_manager(..., manager_tab=), rating_item_matrix передаёт
+  табельный строки; при совпадении ячейка считается доступной (заливка
+  fill_accessibility_ok).
 
-3) run_mode / full → массив выходов
-
-   Сделано: в config.json поле run_outputs: ["source_only", "main_only", "consistency_only"].
-   Вариант как раньше full — все три строки в массиве. Устаревший run_mode читается, если
-   run_outputs отсутствует. Логика: config_loader.parse_run_outputs_config, флаги в main_impl.
-
+Документация: Docs/CONSISTENCY_CHECKS_FORMAT.md (доп. п. 2.8, фильтры 2.2).
 ================================================================================
-  Пример исходного предупреждения pandas (до исправления)
-================================================================================
 
-  main_impl.py:4004: PerformanceWarning: DataFrame is highly fragmented...
-  proc_df[col] = raw_df[col].values
+1) надо добавть еще один вариант проверок на консистентность.   [п.1 СТАТУС — см.верх]
+Суть
+указываем лист указваем колонку
+в этой колонке будет JSON в значениях
+надо проверять JSON на корректность.
 
-================================================================================
-  Пример обрезанной строки в консоли (до print_wrapped)
-================================================================================
+формат JSON должен быть с экранированием параметров (экранирование тройными кавычками """)
+те надо проверять все ли параметры с экранированием, если какой-то из параметров не экранирован с обеих сторон или значение не экранировано
+то это считаем за ошибку консистентности
 
-  reward_priority_unique_per_contest | REWARD | ПРОВЕРКА: priority уникален по CO…
+также вся строка может быть заключена в одинарную кавычку - это верно
+не верно если кавычки не с обеих сторон
 
-================================================================================
+также и экранирование - тоже должно быть с двух сторон
+
+те надо проверить наличие тройных кавычек, наличие (если есть) начальной и конечной кавычки
+
+после надо сделать в памяти замену """ -> "  тройных кавычек на одинарные и проверить сам JSON на валидность.
+если валиден то ОК если нет, то это тоже ошибка консистентности
+
+Также обращаем внимание на формат записи пустого значения
+вот так верно ("""momentRewarding""": """""", )
+а так нет ("""momentRewarding""": , )
+
+также в параметрах проверки на консистентность надо задать параметры (перечислить их), значения которых не должны иметь экранирования вообще
+это параметры значения которых должны быть числовыми
+те для них (те что укажем) название параметра все равно в экране. А вот значение без
+те для них вот так - верно: """period_code""": 1,
+а вот так - нет: """period_code""": """1""",
+
+Если в качестве значения параметра идет массив то сам массив не экранитруется, а вот значения внутри - да
+вот верно:"[{"""filtered_attribute_code""":"""product""","""filtered_attribute_type""":"""STRING""","""filtered_attribute_match""":"""IN""","""filtered_attribute_condition""":["""БАНКОВСКИЕ ГАРАНТИИ""","""ЭЛЕКТРОННЫЕ ГАРАНТИИ (ВОЗМЕЩЕНИЕ НАЛОГОВ)"""]}]"
+
+
+
+Лист CONTEST-DATA
+колонка CONTEST-DATA
+JSON - обязателен в каждой строке
+параметры в которых значения не экранируем (число): minNumber, accuracy,
+пример корректного:
+{"""feature""": [], """vid""": """ТЕСТ""", """momentRewarding""": """AFTER""", """minNumber""": 1, """capacity""": """""", """accuracy""": 0, """masking""": """N""", """tournamentStartMailing""": """N""", """tournamentEndMailing""": """N""", """tournamentLikeMailing""": """Y""", """tournamentRewardingMailing""": """N""", """tournamentListMailing""": [], """persomanNumberVisible""": ["""00673892"""],  """persomanNumberHidden""": [], """gosbVisible""": [], """gosbHidden""": [], """tbVisible""": [], """tbHidden""": [], """businessBlock""": ["""KMKKSB"""], """typeRewarding""": """all"""}
+{"""feature""": ["""Победители получат бесплатное премиальное обслуживание 4 уровня сроком на один год""", """Пакеты услуг могут быть подключены любым способом: по SLA, ФОТ или самостоятельно оплачиваться клиентом""", """В зачет идут пакеты услуг, подключенные после 1 марта 2025 года вместе с закрытой сделкой в ЕФС""", """Для победы необходимо минимум 3 действующих пакета услуг и выполнение требования по остаткам на последний день турнира""", """Если участники имеют одинаковое количество пакетов услуг, то победит менеджер, у которого ЛПР - обладатели пакетов услуг - имеют большую сумму остатков на счетах (AUM)""", """ЛПР - это представители компании, являющиеся ЕИО или бенефициарами"""], """vid""": """ПРОМ""", """momentRewarding""": """AFTER""", """minNumber""": 1, """capacity""": """""", """accuracy""": 0, """masking""": """N""", """tournamentStartMailing""": """Y""", """tournamentEndMailing""": """Y""", """tournamentLikeMailing""": """Y""", """tournamentRewardingMailing""": """Y""", """tournamentListMailing""": [], """persomanNumberVisible""": [], """persomanNumberHidden""": [], """gosbVisible""": [], """gosbHidden""": [], """tbVisible""": [], """tbHidden""": [], """businessBlock""": ["""KMKKSB"""], """typeRewarding""": """one"""}
+{"""feature""": [], """vid""": """ПРОМ""", """momentRewarding""": """AFTER""", """minNumber""": 1, """capacity""": """""", """accuracy""": 0, """masking""": """N""", """tournamentStartMailing""": """N""", """tournamentEndMailing""": """N""", """tournamentLikeMailing""": """Y""", """tournamentRewardingMailing""": """Y""", """tournamentListMailing""": [], """persomanNumberVisible""": [],  """persomanNumberHidden""": [], """gosbVisible""": [], """gosbHidden""": [], """tbVisible""": [], """tbHidden""": [], """businessBlock""": ["""KMKKSB"""], """typeRewarding""": """all"""}
+
+колонка CONTEST_PERIOD
+JSON не обязателен в каждой строке. может отсутсвтвоать
+параметры в которых значения не экранируем (число): period_code, criterion_mark_value
+пример корректного:
+"[{"""period_code""": 0, """criterion_mark_type""": """>""", """criterion_mark_value""": 0}, {"""period_code""": 1, """criterion_mark_type""": """>""", """criterion_mark_value""": 0}]"
+"[{"""period_code""": 0, """criterion_mark_type""": """>""", """criterion_mark_value""": 0}, {"""period_code""": 1, """criterion_mark_type""": """>""", """criterion_mark_value""": 0}]"
+
+Лист REWARD
+колонка REWARD_ADD_DATA
+JSON - обязателен в каждой строке
+параметры в которых значения не экранируем (число): нет таких
+Пример корректного:
+{"""feature""": ["""Сертификат будет направлен Вам в течение первого полугодия 2026 года на рабочую почту"""], """itemFeature""": ["""Нельзя забронировать совместно с сертификатами других номиналов в SberShop""", """Сертификат будет направлен Вам в течение первого полугодия 2026 года на рабочую почту""", """Согласно законодательству РФ, если полученные за год подарочные сертификаты или подарки превысят 4 тыс.руб. в денежном эквиваленте, размер превышения включится в сумму доходов для НДФЛ и банк удержит сумму при очередном начислении ЗП"""], """nftFlg""":"""N""", """outstanding""":"""N""", """rewardRule""":"""Сертификат будет направлен Вам в течение первого полугодия 2026 года на рабочую почту""", """rewardAgainGlobal""":"""N""", """rewardAgainTournament""":"""N""", """hidden""":"""N""", """hiddenRewardList""":"""N""", """persomanNumberVisible""": [], """fileName""":"""""", """teamNews""":"""""", """singleNews""":"""""", """refreshOldNews""":"""N""", """businessBlock""": ["""MNS"""], """getCondition""": {"""rewards""":[], """nonRewards""": [], """employeeRating""": {"""minRatingBANK""":"""50""", """minRatingTB""":"""""", """minRatingGOSB""":"""""", """minCrystalEarnedTotal""":"""""", """seasonCode""":"""SEASON_m_2025_2"""}}, """itemGroupAmount""": [], """isGroupingTitle""":"""""", """isGroupingTultip""":"""""", """itemAmount""":"""30""", """isGrouping""":"""N""", """isGroupingName""":"""SberShop""", """itemMinShow""":"""5""", """itemLimitCount""":"""1""", """itemLimitPeriod""":"""once""", """seasonItem""": ["""SEASON_m_2025_2"""], """bookingRequired""":"""Y""", """deliveryRequired""":"""Y""", """commingSoon""":"""N""", """ignoreConditions""": []}
+{"""feature""": ["""Учёт договоров ведется с начала 2025 года""", """Бейдж выдается за 5 и более заключенных договоров""", """Факт получения бейджа попадает в лену сообщества"""], """nftFlg""":"""N""", """outstanding""":"""Y""", """newsType""":"""TEMPLATE""", """rewardRule""":"""""", """rewardAgainGlobal""":"""N""", """rewardAgainTournament""":"""N""", """hidden""":"""N""", """hiddenRewardList""":"""Y""", """fileName""":"""""", """teamNews""":"""<span>[Имя_Фамилия]</span> и еще [n] [amount:менеджер] заключили 5 договоров с начала года на предоставление услуги по поиску контрагента в Индии - Business Develpment. Поздравляем, так держать!""", """singleNews""":"""[Имя] [gender:1:заключил|gender:2:заключила] 5 договоров с начала года на предоставление услуги по поиску контрагента в Индии - Business Develpment. Поздравляем, так держать!""", """businessBlock""": ["""KMKKSB"""], """recommendationLevel""":"""TB""", """priority""":"""1""", """masterBadge""":"""Y""", """parentRewardCode""":"""r_01_2025-0_10-3_2"""}
+{"""feature""": ["""Факт получения бейджа попадает в ленту сообщества"""], """nftFlg""":"""N""", """outstanding""":"""Y""", """newsType""":"""AIPROMPT""", """winCriterion""":"""Необходимо прирости по объему перечислений ФОТ за месяц на уровне всей страны и стать ТОП-5 в турнире""", """rewardRule""":"""Бейдж получат ТОП-5 от числа участников турнира в стране""", """rewardAgainGlobal""":"""Y""", """rewardAgainTournament""":"""N""", """hidden""":"""N""", """fileName""":"""""", """teamNews""":"""<span>[Имя_Фамилия]</span> и еще [n] [amount:менеджер] стали победителями турнира «ФОТ. Прирост объема перечислений». Они показали лучший результат во всей стране""", """singleNews""":"""Новое достижение! <span>[Имя]</span> [gender:1:стал|gender:2:стала] победителем турнира «ФОТ. Прирост объема перечислений». [gender:1:Он|gender:2:Она] [gender:1:показал|gender:2:показала] лучший результат по итогам турнира во всей стране""", """refreshOldNews""":"""Y""", """businessBlock""": ["""KMKKSB"""], """recommendationLevel""":"""BANK""", """priority""":"""1""", """masterBadge""":"""N""", """parentRewardCode""":"""r_01_2026-1_00-1_1"""}
+{"""feature""": [], """nftFlg""":"""N""", """outstanding""":"""N""", """rewardRule""":"""""", """rewardAgainGlobal""":"""N""", """rewardAgainTournament""":"""N""", """hidden""":"""N""", """fileName""":"""""", """teamNews""":"""""", """singleNews""":"""""", """businessBlock""": ["""KMKKSB"""], """recommendationLevel""":"""NON""", """priority""":"""3""", """masterBadge""":"""Y""", """parentRewardCode""":"""r_01_2026-1_00-1_3""", """seasonItem""": ["""SEASON_2026_1"""]}
+
+Лист TOURNAMENT-SCHEDULE
+колонка: FILTER_PERIOD_ARR
+JSON не обязателен в каждой строке. может отсутсвтвоать
+параметры в которых значения не экранируем (число): period_code, criterion_mark_value
+Пример корректного:
+"[{""period_code"": 1, ""criterion_mark_type"": "">"", ""criterion_mark_value"": 0, ""start_dt"": ""2023-08-01"" , ""end_dt"": ""2023-08-31""}]"
+"[{"""period_code""": 1, """start_dt""": """2025-07-01""" , """end_dt""": """2025-07-31"""}]"
+"[{"""period_code""": 1, """criterion_mark_type""": """>""", """criterion_mark_value""": 0, """start_dt""": """2025-03-01""" , """end_dt""": """2025-03-31"""}]"
+
+колонка: TARGET_TYPE
+JSON не обязателен в каждой строке. может отсутсвтвоать
+параметры в которых значения не экранируем (число): нет таких
+Пример коррктного
+{"""seasonCode""": """SEASON_2025_2"""}
+{"""seasonCode""": """SEASON_kmsb1_2025"""}
+
+лист: INDICATOR
+колонка: INDICATOR_FILTER
+JSON не обязателен в каждой строке. может отсутсвтвоать
+параметры в которых значения не экранируем (число): нет таких
+пример корректного
+"[{"""filtered_attribute_code""":"""segment""","""filtered_attribute_type""":"""STRING""","""filtered_attribute_match""":"""IN""","""filtered_attribute_condition""":["""20201""","""10100""","""20202""","""20605"""]},{"""filtered_attribute_code""":"""tb""","""filtered_attribute_type""":"""STRING""","""filtered_attribute_match""":"""NOT_IN""","""filtered_attribute_condition""":["""99"""]},{"""filtered_attribute_code""":"""is_manual_correct""","""filtered_attribute_type""":"""STRING""","""filtered_attribute_match""":"""IN""","""filtered_attribute_condition""":["""0"""]},{"""filtered_attribute_code""":"""is_cva_product""","""filtered_attribute_type""":"""STRING""","""filtered_attribute_match""":"""IN""","""filtered_attribute_condition""":["""0"""]},{"""filtered_attribute_code""":"""product_group""","""filtered_attribute_type""":"""STRING""","""filtered_attribute_match""":"""IN""","""filtered_attribute_condition""":["""1""","""2""","""14""","""8"""]}]"
+"[{"""filtered_attribute_code""":"""product""","""filtered_attribute_type""":"""STRING""","""filtered_attribute_match""":"""IN""","""filtered_attribute_condition""":["""БАНКОВСКИЕ ГАРАНТИИ""","""ЭЛЕКТРОННЫЕ ГАРАНТИИ (ВОЗМЕЩЕНИЕ НАЛОГОВ)"""]}]"
+"[{"""filtered_attribute_code""":"""segment""","""filtered_attribute_type""":"""STRING""","""filtered_attribute_match""":"""IN""","""filtered_attribute_condition""":["""20201""","""10100""","""20202""","""20605"""]},{"""filtered_attribute_code""":"""tb""","""filtered_attribute_type""":"""STRING""","""filtered_attribute_match""":"""NOT_IN""","""filtered_attribute_condition""":["""99"""]},{"""filtered_attribute_code""":"""is_manual_correct""","""filtered_attribute_type""":"""STRING""","""filtered_attribute_match""":"""IN""","""filtered_attribute_condition""":["""0"""]},{"""filtered_attribute_code""":"""is_cva_product""","""filtered_attribute_type""":"""STRING""","""filtered_attribute_match""":"""IN""","""filtered_attribute_condition""":["""0"""]},{"""filtered_attribute_code""":"""product_group""","""filtered_attribute_type""":"""STRING""","""filtered_attribute_match""":"""IN""","""filtered_attribute_condition""":["""1""","""2""","""14""","""8"""]}]"
+
+
+ Примеры не корректных JSON с экранированием
+ {"seasonCode": """SEASON_kmsb1_2025"""}
+ {"seasonCode": ""SEASON_kmsb1_2025"""}
+ {"""seasonCode""": "SEASON_kmsb1_2025"}
+ {seasonCode: """SEASON_kmsb1_2025"""}
+ "[{"""period_code""": 1, """start_dt""": """2025-07-01""" , """end_dt""": """2025-07-31"""}]
+ [{"""period_code""": 1, """start_dt""": """2025-07-01""" , """end_dt""": """2025-07-31"""}]"
+ "[{"""period_code""": 1, "start_dt": """2025-07-01""" , end_dt: """2025-07-31"""}]"
+"[{"""filtered_attribute_code""":"""product""","""filtered_attribute_type""":"""STRING""","""filtered_attribute_match""":"""IN""","""filtered_attribute_condition""":"""["""БАНКОВСКИЕ ГАРАНТИИ""","""ЭЛЕКТРОННЫЕ ГАРАНТИИ (ВОЗМЕЩЕНИЕ НАЛОГОВ)"""]"""}]"
+
+
+
+2) надо для такиз проверок добавить доп параметр ограничение   [п.2 СТАТУС — см.верх]
+задаем значение определенного поля (колонки) и проверки проводятся только среди строк которые
+либо включают какой-то указанное значение (или варианты значений)
+либо наоборот исключают
+
+для примера ниже. те зададим такие параметры
+ищем совпадения (проверяем консистентность) если BUSINESS_STATUS = "АКТИВНЫЙ", "CONTEST_TYPE" = "ИНДИВИДУАЛЬНЫЙ НАКОПИТЕЛЬНЫЙ"
+а CREATE_DT <> "2025-01-01"
+выпониться должно оба условия и = и среди них <>
+ну или каждое отдельно если оба не заданы
+
+А для остальных таких проверок параметры задаем но задаем оба пустыми чтобы не использовать при проверках
+
+такое делаем для referential и referential_composite
+как для таблицы sheet_src так и для sheet_ref (для каждого свои)
+
+
+{
+        "id": "ref_contest_data_group",
+        "name": "Все CONTEST_CODE из CONTEST-DATE существуют в INDICATOR",
+        "type": "referential",
+        "enabled": true,
+        "sheet_src": "CONTEST-DATA",
+        "column_src": "CONTEST_CODE",
+        "sheet_ref": "INDICATOR",
+        "column_ref": "CONTEST_CODE",
+        "output": {
+          "column_on_sheet": "ПРОВЕРКА: CONTEST_CODE в INDICATOR",
+          "include_in_summary": true
+        }
+      },
+
+
+3) на листе CONSISTENCY в consistency_only и в main_only   [п.3 СТАТУС — см.верх]
+если  "enabled": false, надо помечать что правило не активное и не считается.
+те строку с такими проверками отключенными добавляем, но помечаем что она отключена например в колонке sample
+те выводим даныне по ней число строк в total_rows, но в sample "disable" или подобное
+
+4) в консоль и в лог вот эту информацию надо выводить в более стурктурированном виде   [п.4 СТАТУС — см.верх]
+может в виде удобной таблицы для большей наглядности
+
+— Архив входных CSV (SQLite) —
+  Файл БД: C:\Users\01803187\Documents\MyProject\SPOD_CSV_PARCER\OUT/DB/spod_i…
+  Итог: новых снимков 0; без изменений 11; реактивация 0; дозапись SHA 0; пропуск (только первый снимок) 0; ошибок доступа 0; вне архива по конфигу 0; нет данных 0.
+  — По листам —
+· EMPLOYEE строк=713 без изменений (SHA-256)
+· INDICATOR строк=328 без изменений (SHA-256)
+· REWARD-LINK строк=602 без изменений (SHA-256)
+· TOURNAMENT-SCHEDULE строк=608 без изменений (SHA-256)
+· ORG_UNIT_V20 строк=128 без изменений (SHA-256)
+· USER_ROLE строк=202 без изменений (SHA-256)
+· USER_ROLE SB строк=202 без изменений (SHA-256)
+· GROUP строк=448 без изменений (SHA-256)
+· REPORT строк=18757 без изменений (SHA-256)
+· CONTEST-DATA строк=341 без изменений (SHA-256)
+· REWARD строк=602 без изменений (SHA-256)
+— Архив входных CSV (SQLite) —
+  Файл БД: C:\Users\01803187\Documents\MyProject\SPOD_CSV_PARCER\OUT/DB/spod_g…
+  Итог: новых снимков 0; без изменений 15; реактивация 0; дозапись SHA 0; пропуск (только первый снимок) 0; ошибок доступа 0; вне архива по конфигу 0; нет данных 0.
+  — По листам —
+· LIST-TOURNAMENT строк=606 без изменений (SHA-256)
+· RATING_2025_2 (MNS) строк=328 без изменений (SHA-256)
+· RATING_2025_2 (KMKKSB) строк=1683 без изменений (SHA-256)
+· STATISTICS строк=9955 без изменений (SHA-256)
+· LIST-REWARDS строк=37960 без изменений (SHA-256)
+· RATING_2026_1 (KMKKSB) строк=1683 без изменений (SHA-256)
+· RATING_ALLTIME (MNS) строк=339 без изменений (SHA-256)
+· RATING_ALLTIME (KMKKSB) строк=1683 без изменений (SHA-256)
+· ORDER_2025_1 (KMKKSB) строк=278 без изменений (SHA-256)
+· ORDER_2025_1 (MNS) строк=53 без изменений (SHA-256)
+· ORDER_2024 (KMKKSB) строк=190 без изменений (SHA-256)
+· ORDER_2024 (MNS) строк=28 без изменений (SHA-256)
+· ORDER_2025_2 (KMKKSB) строк=55 без изменений (SHA-256)
+· ORDER_2025_2 (MNS) строк=51 без изменений (SHA-256)
+· YEAR_STATA строк=1703 без изменений (SHA-256)
+
++ вот так  Файл БД: C:\Users\01803187\Documents\MyProject\SPOD_CSV_PARCER\OUT/DB/spod_g…
+не надо, ну те вот эти spod_g… троеточие сокращение в конце
+сделай что б было видно. можно путь указывать от папки программы рабочей те OUT/DB/spod_g… и вместо … полное название
+
+5) в части доработки где мы определяем на листе RATING доступность товаров ранее делалось   [п.5 СТАТУС — см.верх]
+надо добавить что если для кода товара из колонки на листе REWARD в JSON в параметра """ignoreConditions""":
+есть табельный номер с текущей строки. то не важно выполнены или нет другие условия строку красим как выполняющие условия
+те красим светло зеленым.
+пример
+ """ignoreConditions""": ["""01133564""", """01720392""", """01837506""", """01102170""", """00274460""", """01579072""", """01648619""", """01359999""", """01693245""", """00938960""", """01922405""", """01455420""", """00394379""", """01489633"""]
+ это в части rating_item_matrix
+ красим в fill_accessibility_ok
+ те тут перечислены табельные номера которые получают возможность получить товар в любом случае.

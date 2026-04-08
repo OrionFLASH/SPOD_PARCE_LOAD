@@ -575,6 +575,8 @@ def run_input_archive_sqlite(
 
     db_rel = str(cfg.get("db_path") or "OUT/DB/spod_input_archive.sqlite")
     db_path = db_rel if os.path.isabs(db_rel) else os.path.join(project_base_dir, db_rel)
+    # Для консоли и лога — относительный путь от корня проекта (полное имя файла, без усечения в UI)
+    db_display = db_rel if not os.path.isabs(db_rel) else os.path.relpath(db_path, project_base_dir)
     os.makedirs(os.path.dirname(db_path) or ".", exist_ok=True)
 
     sys_cols = cfg["system_columns"]
@@ -613,7 +615,7 @@ def run_input_archive_sqlite(
 
         _log_archive_event(
             log_mode,
-            f"[archive_sqlite] Старт архивации, БД: {db_path}",
+            f"[archive_sqlite] Старт архивации, БД: {db_display}",
             f"режимы: console={console_mode}, log={log_mode}; use_sha256={use_sha256}; "
             f"append_on_content_change={append_on_change}; default_archive_to_db={default_on}",
             f"листов в пакете: {len(payloads)}",
@@ -1233,7 +1235,7 @@ def run_input_archive_sqlite(
             f"нет данных={stats['no_payload']}"
         )
         _log_archive_summary_line(summary)
-        console_ui.print_input_archive_sqlite_report(console_mode, db_path, stats, events)
+        console_ui.print_input_archive_sqlite_report(console_mode, db_display, stats, events)
 
         conn.commit()
     finally:

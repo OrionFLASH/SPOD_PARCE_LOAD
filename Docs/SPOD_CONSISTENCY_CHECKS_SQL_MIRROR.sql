@@ -204,7 +204,7 @@ base_schedule_ref AS (
 -- У каждого CTE: первая строка комментария — config rules[].id и name; тип — для consistency_checks.py.
 -- Построчные пояснения к SELECT / FROM / JOIN / WHERE см. в v_ref_1_1 и v_ref_9; остальные v_ref_* — тот же шаблон.
 
--- id "1.1" | name «Все CONTEST_CODE из GROUP существуют в CONTEST-DATE» | type referential
+-- id "ref_group_contest_code_in_contest_data" | name «Все CONTEST_CODE из GROUP существуют в CONTEST-DATE» | type referential (раньше 1.1)
 v_ref_1_1 AS (
     SELECT
         CAST(g.CONTEST_CODE AS STRING) AS detail_key,                   -- значение, вызвавшее нарушение
@@ -217,7 +217,7 @@ v_ref_1_1 AS (
       AND c.CONTEST_CODE IS NULL                                        -- в справочнике пары не нашлось
 ),
 
--- id "1.2" | name «Все CONTEST_CODE из INDICATOR существуют в CONTEST-DATE» | type referential
+-- id "ref_indicator_contest_code_in_contest_data" | name «Все CONTEST_CODE из INDICATOR существуют в CONTEST-DATE» | type referential (раньше 1.2)
 v_ref_1_2 AS (
     SELECT
         CAST(i.CONTEST_CODE AS STRING) AS detail_key,
@@ -230,7 +230,7 @@ v_ref_1_2 AS (
       AND c.CONTEST_CODE IS NULL
 ),
 
--- id "1.3" | name «Все CONTEST_CODE из REWARD-LINK существуют в CONTEST-DATE» | type referential
+-- id "ref_reward_link_contest_code_in_contest_data" | name «Все CONTEST_CODE из REWARD-LINK существуют в CONTEST-DATE» | type referential (раньше 1.3)
 v_ref_1_3 AS (
     SELECT
         CAST(rl.CONTEST_CODE AS STRING) AS detail_key,
@@ -243,7 +243,7 @@ v_ref_1_3 AS (
       AND c.CONTEST_CODE IS NULL
 ),
 
--- id "2" | name «Все REWARD_CODE из REWARD-LINK существуют в REWARD» | type referential
+-- id "ref_reward_link_reward_code_in_reward" | name «Все REWARD_CODE из REWARD-LINK существуют в REWARD» | type referential (раньше 2)
 v_ref_2 AS (
     SELECT
         CAST(rl.REWARD_CODE AS STRING) AS detail_key,
@@ -256,7 +256,7 @@ v_ref_2 AS (
       AND r.REWARD_CODE IS NULL
 ),
 
--- id "9" | name «Все ORG_UNIT_CODE из EMPLOYEE существуют в ORG_UNIT_V20» | type referential
+-- id "ref_employee_org_unit_code_in_org_unit_v20" | name «Все ORG_UNIT_CODE из EMPLOYEE существуют в ORG_UNIT_V20» | type referential (раньше 9)
 v_ref_9 AS (
     SELECT
         CAST(e.ORG_UNIT_CODE AS STRING) AS detail_key,
@@ -363,7 +363,7 @@ v_ref_reward_reward_link AS (
 -- Отличие от раздела A: JOIN задаётся по паре/набору полей; «осиротевшие» комбинации
 -- ищутся тем же LEFT JOIN + проверка NULL на стороне справочника.
 
--- id "5" | name «Все пары CONTEST_CODE, GROUP_CODE из REWARD-LINK существуют в GROUP» | type referential_composite
+-- id "ref_composite_reward_link_pair_in_group" | name «Все пары CONTEST_CODE, GROUP_CODE из REWARD-LINK существуют в GROUP» | type referential_composite (раньше 5)
 v_comp_5 AS (
     SELECT
         CONCAT_WS('|', CAST(rl.CONTEST_CODE AS STRING), CAST(rl.GROUP_CODE AS STRING)) AS detail_key,  -- ключ нарушения: пара через |
@@ -414,7 +414,7 @@ v_comp_rep_sch AS (
 -- В DETAIL одна строка = один дублирующийся ключ (не каждая физическая строка Excel).
 -- Остальные v_uq_* ниже устроены так же, меняются таблица, ключ и тексты.
 
--- id "3" | name «В GROUP нет дублей по составному полю CONTEST_CODE, GROUP_CODE, GROUP_VALUE» | type unique
+-- id "unique_group_contest_code_group_code_group_value" | name «В GROUP нет дублей по составному полю CONTEST_CODE, GROUP_CODE, GROUP_VALUE» | type unique (раньше 3)
 v_uq_3 AS (
     SELECT
         CONCAT_WS('|', CAST(x.CONTEST_CODE AS STRING), CAST(x.GROUP_CODE AS STRING), CAST(x.GROUP_VALUE AS STRING)) AS detail_key,
@@ -428,7 +428,7 @@ v_uq_3 AS (
     ) x
 ),
 
--- id "4" | name «В REWARD-LINK нет дублей по составному полю CONTEST_CODE, GROUP_CODE, REWARD_CODE» | type unique
+-- id "unique_reward_link_contest_code_group_code_reward_code" | name «В REWARD-LINK нет дублей по составному полю CONTEST_CODE, GROUP_CODE, REWARD_CODE» | type unique (раньше 4)
 v_uq_4 AS (
     SELECT
         CONCAT_WS('|', CAST(x.CONTEST_CODE AS STRING), CAST(x.GROUP_CODE AS STRING), CAST(x.REWARD_CODE AS STRING)) AS detail_key,

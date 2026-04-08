@@ -137,6 +137,7 @@ def _empty_item_record(reward_code: str, full_name: str) -> Dict[str, Any]:
             "seasonCode": "",
         },
         "itemAmount": None,
+        "ignoreConditions": [],
     }
 
 
@@ -164,6 +165,14 @@ def parse_reward_add_data_object(data: Any, reward_code: str, full_name: str) ->
     if data.get("itemAmount") is not None:
         ia = _to_num0(data.get("itemAmount"))
         rec["itemAmount"] = int(ia) if ia == int(ia) else ia
+
+    # Табельные номера: для этих сотрудников товар считается доступным независимо от остальных условий (матрица RATING).
+    ic = data.get("ignoreConditions")
+    if isinstance(ic, list):
+        for x in ic:
+            t = _norm(x)
+            if t:
+                rec["ignoreConditions"].append(t)
     return rec
 
 
@@ -243,15 +252,24 @@ def item_accessible_for_manager(
     crystals: Optional[float],
     order_product_codes: Set[str],
     list_reward_codes: Set[str],
+    manager_tab: Optional[str] = None,
 ) -> bool:
     """
     Все критерии ToDo для доступности товара менеджеру (True = доступен, зелёная ячейка).
 
+    ignoreConditions в ADD_DATA: если табельный текущей строки входит в список — сразу True.
     minRating*: учитываются только значения > 0; место в рейтинге должно быть <= порога.
     minCrystalEarnedTotal: если > 0, кристаллы >= порога.
     rewardCode: если список не пуст, каждый код должен быть в list_reward_codes.
     nonRewardCode: если список не пуст, ни один код не должен быть в order_product_codes.
     """
+    if manager_tab:
+        mt = _norm(manager_tab)
+        if mt:
+            for tab in rules.get("ignoreConditions") or []:
+                if _norm(tab) == mt:
+                    return True
+
     er = rules.get("employeeRating") or {}
     mn = (er.get("minRating") or {})
 

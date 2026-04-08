@@ -406,7 +406,11 @@ def print_input_archive_sqlite_report(
 
     w = terminal_width()
     print(_truncate("— Архив входных CSV (SQLite) —", w), flush=True)
-    print(f"  Файл БД: {_truncate(str(db_display), w - 12)}", flush=True)
+    # Путь к БД не усечём: полный относительный путь от корня проекта, перенос по ширине терминала
+    db_s = str(db_display or "").strip() or "—"
+    print("  Файл БД (от корня проекта):", flush=True)
+    for ln in textwrap.wrap(db_s, width=max(40, w - 6), break_long_words=True, break_on_hyphens=False):
+        print(f"    {ln}", flush=True)
     print(
         f"  Итог: новых снимков {int(stats.get('ingested', 0))}; "
         f"без изменений {int(stats.get('unchanged', 0))}; "
@@ -426,14 +430,22 @@ def print_input_archive_sqlite_report(
         print("  Нет строк отчёта по листам.", flush=True)
         return
 
+    # Табличный вид: имя листа и число строк в фиксированных колонках, описание — дальше
     print("  — По листам —", flush=True)
+    col_sheet = min(42, max(22, w // 3))
+    hdr = f"  {'Лист':<{col_sheet}} {'Строки':<9} Примечание"
+    print(hdr[:w], flush=True)
+    print("  " + "-" * min(w - 2, col_sheet + 9 + 24), flush=True)
     for e in events:
         sh = str(e.get("sheet", "") or "")
         lbl = str(e.get("label", "") or "")
         rows = e.get("rows")
         rows_s = "—" if rows is None else str(int(rows))
-        line1 = f"    · {_truncate(sh, 24):<24}  строк={rows_s:<8}  {_truncate(lbl, w - 44)}"
-        print(_truncate(line1, w), flush=True)
+        sh_disp = sh if len(sh) <= col_sheet else sh[: max(1, col_sheet - 1)] + "…"
+        rest_w = max(20, w - col_sheet - 14)
+        lbl_short = lbl if len(lbl) <= rest_w else lbl[: max(1, rest_w - 1)] + "…"
+        line1 = f"  {sh_disp:<{col_sheet}} {rows_s:<9} {lbl_short}"
+        print(line1[:w], flush=True)
         if verbose:
             sz = e.get("size")
             sz_s = "—" if sz is None else str(int(sz))

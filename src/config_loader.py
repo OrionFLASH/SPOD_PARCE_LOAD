@@ -146,11 +146,15 @@ class Config:
         self.check_duplicates: List[Dict[str, Any]] = self._cfg.get("check_duplicates") or []
         # Проверки консистентности: единый конфиг правил (referential, unique, field_length и т.д.)
         _cc = self._cfg.get("consistency_checks") or {}
-        self.consistency_checks: Dict[str, Any] = {
+        # Базовые ключи + любые дополнительные из JSON (подсказки, расширения), чтобы не терять поля вроде spod_todo_config_guide
+        self.consistency_checks = {
             "summary_sheet_name": _cc.get("summary_sheet_name", "CONSISTENCY"),
             "rules": _cc.get("rules") or [],
             "csv_columns_count": _cc.get("csv_columns_count") or {},
         }
+        for _k, _v in _cc.items():
+            if _k not in self.consistency_checks:
+                self.consistency_checks[_k] = _v
         self.json_columns: Dict[str, List[Dict[str, Any]]] = self._cfg.get("json_columns") or {}
         self.derived_columns: List[Dict[str, Any]] = self._cfg.get("derived_columns") or []
         # Сводная колонка по getCondition на листе REWARD (см. reward_getcondition_summary.py)

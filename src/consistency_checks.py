@@ -2,7 +2,7 @@
 """
 Модуль проверок консистентности данных.
 Выполняет правила из конфига consistency_checks: создаёт колонки unique (ДУБЛЬ: …, опционально область unique_scope_*
-и unique_require_non_empty), field_length, field_format и json-проверки на листах, затем referential/referential_composite,
+и unique_require_non_empty), field_length, field_format, json-проверки и json_spod_format на листах, затем referential/referential_composite,
 собирает результаты в свод CONSISTENCY.
 Результаты выводятся в колонки на листах, сводный лист CONSISTENCY, консоль и лог.
 Тип json_priority_unique_per_contest_link: уникальность ключа JSON (например priority) среди REWARD_CODE
@@ -187,6 +187,51 @@ def _unique_active_row_mask(df: pd.DataFrame, rule: Dict[str, Any]) -> pd.Series
     return scope_m & nonempty_m
 
 
+def _referential_row_conditions_mask(
+    df: pd.DataFrame,
+    conditions: Optional[List[Dict[str, Any]]],
+    sheet_hint: str = "",
+) -> pd.Series:
+    """
+    Маска строк листа по списку условий (логическое И).
+    Элемент: column, op (=, ==, eq, <>, !=, ne), value (строковое сравнение после strip).
+    Пустой список или None — все строки True.
+    """
+    if not conditions:
+        return pd.Series(True, index=df.index)
+    m = pd.Series(True, index=df.index)
+    for c in conditions:
+        if not isinstance(c, dict):
+            continue
+        col = str(c.get("column", "")).strip()
+        op = str(c.get("op", "=")).strip().lower()
+        val = c.get("value")
+        expected = "" if val is None else str(val)
+        if not col:
+            continue
+        if col not in df.columns:
+            logging.warning(
+                f"[consistency] referential: колонка фильтра «{col}» отсутствует на листе {sheet_hint or '?'}"
+            )
+            return pd.Series(False, index=df.index)
+
+        def _cell_str(x: Any) -> str:
+            if x is None or (isinstance(x, float) and pd.isna(x)):
+                return ""
+            return str(x).strip()
+
+        colvals = df[col].map(_cell_str)
+        if op in ("=", "==", "eq"):
+            m &= colvals == expected
+        elif op in ("<>", "!=", "ne"):
+            m &= colvals != expected
+        else:
+            logging.warning(
+                f"[consistency] referential: неизвестный op «{op}» для колонки «{col}», условие пропущено"
+            )
+    return m
+
+
 def run_referential(
     sheets_data: Dict[str, Any],
     rule: Dict[str, Any],
@@ -214,9 +259,15 @@ def run_referential(
         logging.warning(f"[consistency] referential {check_id}: колонка {column_src} не найдена на {sheet_src}")
         return {"check_id": check_id, "sheet": sheet_src, "name": rule.get("name", ""), "column_on_sheet": col_out, "type": "referential", "total_rows": len(df_src), "violations": len(df_src), "sample": [], "include_in_summary": True}
 
+    src_conds = rule.get("src_row_conditions") or rule.get("sheet_src_row_conditions")
+    ref_conds = rule.get("ref_row_conditions") or rule.get("sheet_ref_row_conditions")
+    src_mask = _referential_row_conditions_mask(df_src, src_conds, str(sheet_src or ""))
+
     ref_set = set()
     if df_ref is not None and column_ref in df_ref.columns:
-        ref_set = set(df_ref[column_ref].astype(str).str.strip())
+        ref_mask = _referential_row_conditions_mask(df_ref, ref_conds, str(sheet_ref or ""))
+        ref_sub = df_ref.loc[ref_mask]
+        ref_set = set(ref_sub[column_ref].astype(str).str.strip())
 
     def _status(val: Any) -> str:
         s = str(val).strip() if pd.notna(val) else ""
@@ -224,9 +275,10 @@ def run_referential(
             return "OK"
         return "OK" if s in ref_set else f"НЕТ в {sheet_ref}"
 
-    results = df_src[column_src].map(_status)
+    checked = df_src[column_src].map(_status)
+    results = checked.where(src_mask, other="—")
     total = len(df_src)
-    violations_mask = results != "OK"
+    violations_mask = src_mask & (checked != "OK")
     n_violations = int(violations_mask.sum())
     sample: List[str] = []
     if n_violations > 0:
@@ -282,11 +334,17 @@ def run_referential_composite(
         logging.warning(f"[consistency] referential_composite {check_id}: колонки {missing_src} не найдены на {sheet_src}")
         return {"check_id": check_id, "sheet": sheet_src, "name": rule.get("name", ""), "column_on_sheet": col_out, "type": "referential_composite", "total_rows": len(df_src), "violations": 0, "sample": [], "include_in_summary": True}
 
+    src_conds = rule.get("src_row_conditions") or rule.get("sheet_src_row_conditions")
+    ref_conds = rule.get("ref_row_conditions") or rule.get("sheet_ref_row_conditions")
+    src_mask = _referential_row_conditions_mask(df_src, src_conds, str(sheet_src or ""))
+
     ref_set = set()
     if df_ref is not None:
         missing_ref = [c for c in columns_ref if c not in df_ref.columns]
         if not missing_ref:
-            for _, row in df_ref[columns_ref].iterrows():
+            ref_mask = _referential_row_conditions_mask(df_ref, ref_conds, str(sheet_ref or ""))
+            ref_sub = df_ref.loc[ref_mask]
+            for _, row in ref_sub[columns_ref].iterrows():
                 t = tuple(str(row[c]).strip() if pd.notna(row[c]) else "" for c in columns_ref)
                 ref_set.add(t)
 
@@ -294,9 +352,10 @@ def run_referential_composite(
         t = tuple(str(row[c]).strip() if pd.notna(row[c]) else "" for c in columns_src)
         return "OK" if t in ref_set else f"НЕТ в {sheet_ref}"
 
-    results = df_src[columns_src].apply(_row_status, axis=1)
+    checked = df_src[columns_src].apply(_row_status, axis=1)
+    results = checked.where(src_mask, other="—")
     total = len(df_src)
-    violations_mask = results != "OK"
+    violations_mask = src_mask & (checked != "OK")
     n_violations = int(violations_mask.sum())
     sample: List[str] = []
     if n_violations > 0:
@@ -1249,11 +1308,46 @@ def _sheet_written_by_rule(rule: Dict[str, Any]) -> Optional[str]:
         "json_field_equals_column",
         "json_field_in_column",
         "json_priority_unique_per_contest_link",
+        "json_spod_format",
     ):
         return rule.get("sheet")
     if t in ("referential", "referential_composite"):
         return rule.get("sheet_src")
     return None
+
+
+def _disabled_rule_summary(
+    rule: Dict[str, Any],
+    sheets_data: Dict[str, Any],
+) -> Dict[str, Any]:
+    """
+    Строка свода CONSISTENCY для правила с enabled: false: total_rows по целевому листу,
+    в sample — пометка без подсчёта нарушений.
+    """
+    t = str(rule.get("type", ""))
+    if t in ("referential", "referential_composite"):
+        sheet = rule.get("sheet_src") or ""
+    else:
+        sheet = rule.get("sheet") or rule.get("sheet_src") or ""
+    out = rule.get("output") or {}
+    col = out.get("column_on_sheet", "")
+    total = 0
+    if sheet:
+        df = _get_sheet_df(sheets_data, str(sheet))
+        if df is not None:
+            total = len(df)
+    return {
+        "check_id": rule.get("id", ""),
+        "sheet": sheet,
+        "name": rule.get("name", ""),
+        "column_on_sheet": col,
+        "type": t,
+        "total_rows": total,
+        "violations": 0,
+        "sample": ["правило отключено (enabled: false), проверка не выполнялась"],
+        "include_in_summary": out.get("include_in_summary", True),
+        "disabled": True,
+    }
 
 
 def run_all_consistency_checks(
@@ -1266,20 +1360,26 @@ def run_all_consistency_checks(
     Сначала создаёт колонки unique (ДУБЛЬ: …), field_length, json_* на листах; затем referential/referential_composite
     и сбор результатов. Правила, пишущие в разные листы, выполняются параллельно;
     запись в один лист защищена блокировкой по листу.
-    Возвращает список записей для сводного листа в порядке правил.
+    Возвращает список записей для сводного листа в порядке правил (включая выключенные — синтетическая строка свода).
     """
     rules = config.get("rules") or []
-    enabled = [r for r in rules if r.get("enabled", True)]
-    if not enabled:
+    if not rules:
         return []
 
-    n_workers = max_workers if max_workers is not None and max_workers > 0 else min(8, (os.cpu_count() or 8), len(enabled))
-    n_workers = max(1, n_workers)
-    logging.debug(f"[consistency] Параллельный запуск проверок: потоков={n_workers}, правил={len(enabled)}")
+    enabled_pairs: List[Tuple[int, Dict[str, Any]]] = [
+        (i, r) for i, r in enumerate(rules) if r.get("enabled", True)
+    ]
 
-    # Листы, в которые что-то пишется — по одному Lock на лист
+    n_workers = max_workers if max_workers is not None and max_workers > 0 else min(8, (os.cpu_count() or 8), max(1, len(enabled_pairs)))
+    n_workers = max(1, n_workers)
+    logging.debug(
+        f"[consistency] Параллельный запуск проверок: потоков={n_workers}, "
+        f"включённых правил={len(enabled_pairs)} из {len(rules)}"
+    )
+
+    # Листы, в которые что-то пишется — по одному Lock на лист (только для включённых правил)
     sheets_written: set = set()
-    for r in enabled:
+    for _, r in enabled_pairs:
         sh = _sheet_written_by_rule(r)
         if sh:
             sheets_written.add(sh)
@@ -1305,8 +1405,8 @@ def run_all_consistency_checks(
 
     # Фаза 1: создаём колонки unique, field_length, field_format, json_* на листах
     phase1_rules = [
-        (i, r)
-        for i, r in enumerate(enabled)
+        (gi, r)
+        for gi, r in enabled_pairs
         if r.get("type")
         in (
             "unique",
@@ -1323,7 +1423,7 @@ def run_all_consistency_checks(
             for f in as_completed(futures_ph1):
                 f.result()
 
-    # Фаза 2: referential/referential_composite/collect — каждый возвращает (index, result)
+    # Фаза 2: referential/referential_composite/collect/json_spod_format — (глобальный индекс правила, результат)
     def _phase2_task(idx: int, rule: Dict[str, Any]) -> Tuple[int, Dict[str, Any]]:
         rule_type = rule.get("type", "")
         check_id = rule.get("id", "")
@@ -1354,6 +1454,15 @@ def run_all_consistency_checks(
                 res = collect_json_field_in_column_result(sheets_data, rule)
             elif rule_type == "json_priority_unique_per_contest_link":
                 res = collect_json_priority_unique_per_contest_link_result(sheets_data, rule)
+            elif rule_type == "json_spod_format":
+                from src.json_spod_format_check import run_json_spod_format_check
+
+                sh_json = rule.get("sheet")
+                if sh_json and sh_json in lock_by_sheet:
+                    with lock_by_sheet[sh_json]:
+                        res = run_json_spod_format_check(sheets_data, rule)
+                else:
+                    res = run_json_spod_format_check(sheets_data, rule)
             else:
                 logging.debug(f"[consistency] Неизвестный тип правила: {rule_type}, id={check_id}")
                 _out = rule.get("output") or {}
@@ -1385,15 +1494,20 @@ def run_all_consistency_checks(
                 "error": str(e),
             })
 
-    with ThreadPoolExecutor(max_workers=n_workers) as executor:
-        futures_ph2 = [executor.submit(_phase2_task, idx, rule) for idx, rule in enumerate(enabled)]
-        indexed: List[Tuple[int, Dict[str, Any]]] = []
-        for future in as_completed(futures_ph2):
-            idx, res = future.result()
-            indexed.append((idx, res))
-        indexed.sort(key=lambda x: x[0])
-        results = [r for _, r in indexed]
-    return results
+    slot: List[Optional[Dict[str, Any]]] = [None] * len(rules)
+    if enabled_pairs:
+        with ThreadPoolExecutor(max_workers=n_workers) as executor:
+            futures_ph2 = [executor.submit(_phase2_task, gi, rule) for gi, rule in enabled_pairs]
+            for future in as_completed(futures_ph2):
+                gi, res = future.result()
+                slot[gi] = res
+    out: List[Dict[str, Any]] = []
+    for i, rule in enumerate(rules):
+        if slot[i] is not None:
+            out.append(slot[i])  # type: ignore[arg-type]
+        else:
+            out.append(_disabled_rule_summary(rule, sheets_data))
+    return out
 
 
 def _rule_to_description_columns(rule: Dict[str, Any]) -> Dict[str, str]:
@@ -1412,6 +1526,7 @@ def _rule_to_description_columns(rule: Dict[str, Any]) -> Dict[str, str]:
         "json_field_equals_column": "поле в JSON равно колонке",
         "json_field_in_column": "поле в JSON должно быть в колонке листа",
         "json_priority_unique_per_contest_link": "уникальность поля JSON по CONTEST_CODE (REWARD-LINK)",
+        "json_spod_format": "JSON в формате SPOD (тройные кавычки, числа без кавычек)",
     }.get(t, t)
     table_src = ""
     field_src = ""
@@ -1425,12 +1540,20 @@ def _rule_to_description_columns(rule: Dict[str, Any]) -> Dict[str, str]:
         table_ref = rule.get("sheet_ref", "")
         field_ref = rule.get("column_ref", "")
         param = "все из источника существуют во второй таблице"
+        sc = rule.get("src_row_conditions") or rule.get("sheet_src_row_conditions")
+        rc = rule.get("ref_row_conditions") or rule.get("sheet_ref_row_conditions")
+        if sc or rc:
+            comment = f"фильтр src: {sc!r}; фильтр ref: {rc!r}".strip()
     elif t == "referential_composite":
         table_src = rule.get("sheet_src", "")
         field_src = ", ".join(rule.get("columns_src") or [])
         table_ref = rule.get("sheet_ref", "")
         field_ref = ", ".join(rule.get("columns_ref") or [])
         param = "все из источника существуют во второй таблице"
+        sc = rule.get("src_row_conditions") or rule.get("sheet_src_row_conditions")
+        rc = rule.get("ref_row_conditions") or rule.get("sheet_ref_row_conditions")
+        if sc or rc:
+            comment = f"фильтр src: {sc!r}; фильтр ref: {rc!r}".strip()
     elif t == "unique":
         table_src = rule.get("sheet", "")
         field_src = ", ".join(rule.get("key_columns") or [])
@@ -1499,6 +1622,14 @@ def _rule_to_description_columns(rule: Dict[str, Any]) -> Dict[str, str]:
             "либо поле отсутствует у всех, либо задано у всех с разными значениями"
         )
         comment = "GROUP_CODE не учитывается; парсинг ADD_DATA как в json_field_equals_column"
+    elif t == "json_spod_format":
+        table_src = rule.get("sheet", "")
+        field_src = rule.get("json_column", "")
+        req = rule.get("json_required", True)
+        param = "обязательный JSON в каждой строке" if req else "пустые ячейки допустимы"
+        nv = rule.get("numeric_value_keys") or []
+        if nv:
+            comment = "числовые значения без кавычек у ключей: " + ", ".join(str(x) for x in nv)
     return {
         "ТИП ПРОВЕРКИ": type_ru,
         "Описание": name,

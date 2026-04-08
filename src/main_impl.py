@@ -274,6 +274,9 @@ def _load_config_globals():
         "rules": _cc.get("rules") or [],
         "csv_columns_count": _cc.get("csv_columns_count") or {},
     }
+    for _cc_k, _cc_v in _cc.items():
+        if _cc_k not in CONSISTENCY_CHECKS:
+            CONSISTENCY_CHECKS[_cc_k] = _cc_v
     _ro = parse_run_outputs_config(_cfg)
     RUN_OUTPUTS = list(_ro[0])
     RUN_SOURCE_ONLY_EXIT = _ro[1]
