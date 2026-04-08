@@ -23,6 +23,44 @@
 Перед копированием каталог POST полностью очищается и создаётся заново.
 
 --------------------------------------------------------------------------------
+Перечень файлов программы в POST (имена с суффиксом .txt у кода и config)
+--------------------------------------------------------------------------------
+
+Состав соответствует текущему дереву репозитория; при добавлении нового .py в src/
+(вне каталогов Tools/ и Tests/) достаточно снова запустить sync_post_txt.py.
+
+Корень POST/:
+  • main.py.txt
+  • config.json.txt
+
+POST/src/ (все модули пайплайна, без подкаталогов Tools/ и Tests/):
+  • __init__.py.txt
+  • archive_json_columns.py.txt
+  • config_holder.py.txt
+  • config_loader.py.txt
+  • consistency_checks.py.txt
+  • console_ui.py.txt
+  • debug_timing.py.txt
+  • file_loader.py.txt
+  • gender.py.txt
+  • input_archive_sqlite.py.txt
+  • json_spod_format_check.py.txt
+  • json_utils.py.txt
+  • logging_setup.py.txt
+  • main_impl.py.txt
+  • rating_item_matrix.py.txt
+  • reward_getcondition_summary.py.txt
+  • reward_item_catalog.py.txt
+  • tournament.py.txt
+  • validation.py.txt
+
+В POST копируются без переименования (имена как в репозитории):
+  • КУДА_ПОЛОЖИТЬ_ФАЙЛЫ.txt
+  • restore_names_from_txt.bat
+
+Не входят в снимок: src/Tools/**, src/Tests/**, README.md, requirements.txt, каталог Docs/.
+
+--------------------------------------------------------------------------------
 Снятие суффикса .txt на Windows
 --------------------------------------------------------------------------------
 

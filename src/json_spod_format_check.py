@@ -4,7 +4,7 @@
 рекурсивный разбор (ключи и строки в тройных кавычках, numeric_value_keys без кавычек);
 типовые ошибки: \"\"key\"\" вместо \"\"\"key\"\"\", значение в одной паре кавычек как в JSON,
 лишние {} вокруг одной строки в массиве. Нормализация кавычек и json.loads.
-Сообщения в колонку на листе — короткие (путь + суть), см. Docs/CONSISTENCY_CHECKS_FORMAT.md п. 2.8.
+Сообщения в колонку на листе — короткие (путь + суть); по одной ячейке собираются **все** замечания этапа разбора SPOD (не только первое), см. Docs/CONSISTENCY_CHECKS_FORMAT.md п. 2.8.
 
 Используется типом правила consistency_checks: json_spod_format (см. consistency_checks.py).
 """
@@ -24,6 +24,9 @@ _MAX_SAMPLE = 20
 
 # Лимит длины текста ошибки в колонке на листе (в Excel ~32767 символов на ячейку).
 _MAX_CELL_ERROR_LEN = 12000
+
+# Сколько структурных замечаний SPOD собирать в одной ячейке (остальное — сводка «и ещё N»).
+_MAX_STRUCTURE_ERRORS = 80
 
 # Имя ключа в объекте SPOD: латиница, цифры, подчёркивание (как в проектных данных).
 _KEY_NAME_RE = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
@@ -54,9 +57,23 @@ def _snippet_around(s: str, pos: int, before: int = 28, after: int = 55) -> str:
 
 
 def _short_json_string_literal(s: str, i: int, max_len: int = 36) -> str:
-    """Если s[i]=='\"', возвращает короткое представление литерала \"…\" для текста ошибки."""
+    """Если s[i]=='\"', короткое представление литерала для текста ошибки (JSON или ошибочное \"\"…\"\")."""
     if i >= len(s) or s[i] != '"':
         return ""
+    n = len(s)
+    if i + 1 < n and s[i + 1] == '"' and not s.startswith('"""', i):
+        j = i + 2
+        if j >= n or s[j] in ",]}:" or s[j].isspace():
+            return '""'
+        while j + 1 < n:
+            if s[j] == '"' and s[j + 1] == '"':
+                body = s[i + 2 : j]
+                if len(body) > max_len:
+                    body = body[: max_len - 1] + "…"
+                return '""' + body + '""'
+            j += 1
+        body = s[i + 2 : min(i + 2 + max_len, n)]
+        return '""' + body + "…"
     j = i + 1
     while j < len(s) and s[j] != '"':
         j += 1
@@ -196,43 +213,227 @@ def _property_key_from_value_path(value_path: str) -> str:
     return value_path.rsplit(".", 1)[-1]
 
 
-def _expect_literal(s: str, i: int, lit: str, where: str) -> int:
-    if not s.startswith(lit, i):
-        raise SpodParseError(f"{where}: ожидался символ «{lit}»", i)
-    return i + len(lit)
+def _skip_json_string_end(s: str, i: int) -> int:
+    """
+    Позиция сразу после строкового токена, начинающегося в i.
+    Учитывает обычный JSON-литерал «"…"» и ошибочный шаблон «""текст""» (как у ключей SPOD).
+    """
+    if i >= len(s) or s[i] != '"':
+        return i
+    n = len(s)
+    # Не тройные: «""…""» в значении (частая ошибка вместо """…""")
+    if i + 1 < n and s[i + 1] == '"' and not s.startswith('"""', i):
+        j = i + 2
+        if j >= n:
+            return n
+        if s[j] in ",]}:" or s[j].isspace():
+            return j
+        while j + 1 < n:
+            if s[j] == '"' and s[j + 1] == '"':
+                return j + 2
+            if s[j] == "\\" and j + 1 < n:
+                j += 2
+                continue
+            j += 1
+        return n
+    j = i + 1
+    while j < n:
+        if s[j] == "\\" and j + 1 < n:
+            j += 2
+            continue
+        if s[j] == '"':
+            return j + 1
+        j += 1
+    return n
 
 
-def _read_spod_key(s: str, i: int, object_path: str) -> Tuple[str, int]:
-    """После вызова i указывает на начало ключа: должно быть \"\"\"имя\"\"\"."""
-    loc = _format_spod_location(object_path)
+def _scan_to_property_boundary(s: str, i: int) -> int:
+    """
+    Следующая «,» или «}» на текущем уровне содержимого объекта (вложенные {}[] и строки учитываются).
+    Используется для восстановления после ошибки ключа/значения.
+    """
+    brace = 0
+    bracket = 0
+    j = i
+    n = len(s)
+    while j < n:
+        if s.startswith('"""', j):
+            e = s.find('"""', j + 3)
+            if e < 0:
+                return n
+            j = e + 3
+            continue
+        if s[j] == '"':
+            j = _skip_json_string_end(s, j)
+            continue
+        c = s[j]
+        if c == "{":
+            brace += 1
+        elif c == "}":
+            if brace == 0 and bracket == 0:
+                return j + 1
+            brace = max(0, brace - 1)
+        elif c == "[":
+            bracket += 1
+        elif c == "]":
+            bracket = max(0, bracket - 1)
+        elif c == "," and brace == 0 and bracket == 0:
+            return j + 1
+        j += 1
+    return n
+
+
+def _scan_to_array_element_boundary(s: str, i: int) -> int:
+    """
+    Следующая «,» или «]», завершающая текущий элемент верхнего массива (внешний «[» уже открыт).
+    """
+    brace = 0
+    bracket = 1
+    j = i
+    n = len(s)
+    while j < n:
+        if s.startswith('"""', j):
+            e = s.find('"""', j + 3)
+            if e < 0:
+                return n
+            j = e + 3
+            continue
+        if s[j] == '"':
+            j = _skip_json_string_end(s, j)
+            continue
+        c = s[j]
+        if c == "{":
+            brace += 1
+        elif c == "}":
+            brace = max(0, brace - 1)
+        elif c == "[":
+            bracket += 1
+        elif c == "]":
+            if brace == 0 and bracket == 1:
+                return j + 1
+            bracket -= 1
+        elif c == "," and brace == 0 and bracket == 1:
+            return j + 1
+        j += 1
+    return n
+
+
+def _scan_balanced(s: str, i: int, open_ch: str, close_ch: str) -> int:
+    """Индекс после парной закрывающей скобки для open_ch в позиции i."""
+    if i >= len(s) or s[i] != open_ch:
+        return i
+    depth = 0
+    j = i
+    n = len(s)
+    while j < n:
+        if s.startswith('"""', j):
+            e = s.find('"""', j + 3)
+            if e < 0:
+                return n
+            j = e + 3
+            continue
+        if s[j] == '"':
+            j = _skip_json_string_end(s, j)
+            continue
+        if s[j] == open_ch:
+            depth += 1
+        elif s[j] == close_ch:
+            depth -= 1
+            if depth == 0:
+                return j + 1
+        j += 1
+    return n
+
+
+def _skip_value_token(s: str, i: int) -> int:
+    """Один токен значения SPOD/JSON с позиции i (грубый пропуск при сбое разбора)."""
     i = _skip_ws(s, i)
-    # Двойные кавычки ""key"" вместо тройных """key"""
+    if i >= len(s):
+        return i
+    if s.startswith('"""', i):
+        e = s.find('"""', i + 3)
+        return (e + 3) if e >= 0 else len(s)
+    if s[i] == '"':
+        return _skip_json_string_end(s, i)
+    if s[i] == "{":
+        return _scan_balanced(s, i, "{", "}")
+    if s[i] == "[":
+        return _scan_balanced(s, i, "[", "]")
+    m = _NUM_RE.match(s, i)
+    if m:
+        return m.end()
+    for w in ("true", "false", "null"):
+        if s.startswith(w, i) and (i + len(w) >= len(s) or s[i + len(w)] in ",}] \t\n\r"):
+            return i + len(w)
+    return i + 1
+
+
+def _read_spod_key_collect(
+    s: str, i: int, object_path: str
+) -> Tuple[Optional[str], int, List[str]]:
+    """
+    Читает ключ объекта SPOD или фиксирует ошибку и позицию для продолжения разбора.
+    Возвращает (имя_ключа_или_None, индекс_после_токена_ключа, список_сообщений).
+    """
+    loc = _format_spod_location(object_path)
+    errs: List[str] = []
+    i = _skip_ws(s, i)
+    # Неверный стиль ""key"" вместо """key"""
     if s.startswith('""', i) and not s.startswith('"""', i):
         m_wrong = _KEY_NAME_RE.match(s, i + 2)
         if m_wrong:
             kn = m_wrong.group(0)
-            raise SpodParseError(
-                f"{loc}: ключ «{kn}» — оберните имя в тройные кавычки (\"\"\"{kn}\"\"\"), не в двойные (\"\"{kn}\"\")",
-                i,
-            )
-    if not s.startswith('"""', i):
-        raise SpodParseError(
-            f"{loc}: следующий ключ должен начинаться с \"\"\" (тройных кавычек)",
-            i,
-        )
-    i += 3
-    m = _KEY_NAME_RE.match(s, i)
-    if not m:
-        raise SpodParseError(f"{loc}: недопустимое имя ключа (латиница, цифры, _)", i)
-    name = m.group(0)
-    i = m.end()
-    if not s.startswith('"""', i):
-        raise SpodParseError(
-            f"{loc}, ключ «{name}»: после имени нужны три кавычки \"\"\" перед «:»",
-            i,
-        )
-    i += 3
-    return name, i
+            end = m_wrong.end()
+            if s.startswith('""', end):
+                msg = (
+                    f"{loc}: ключ «{kn}» — оберните имя в тройные кавычки (\"\"\"{kn}\"\"\"), "
+                    f"не в двойные (\"\"{kn}\"\")"
+                )
+                return kn, end + 2, [msg]
+        errs.append(f"{loc}: ожидалось имя ключа в виде \"\"ключ\"\" или \"\"\"ключ\"\"\"")
+        return None, _scan_to_property_boundary(s, i), errs
+    if s.startswith('"""', i):
+        i += 3
+        m = _KEY_NAME_RE.match(s, i)
+        if not m:
+            errs.append(f"{loc}: недопустимое имя ключа (латиница, цифры, _)")
+            return None, _scan_to_property_boundary(s, i), errs
+        name = m.group(0)
+        i = m.end()
+        if not s.startswith('"""', i):
+            errs.append(f"{loc}, ключ «{name}»: после имени нужны три кавычки \"\"\" перед «:»")
+            return None, _scan_to_property_boundary(s, i), errs
+        return name, i + 3, []
+    # Одинарная «"» как в JSON: "key"
+    if i < len(s) and s[i] == '"':
+        j = i + 1
+        while j < len(s) and s[j] != '"':
+            if s[j] == "\\" and j + 1 < len(s):
+                j += 2
+                continue
+            j += 1
+        if j >= len(s):
+            errs.append(f"{loc}: незакрытая кавычка у ключа")
+            return None, len(s), errs
+        inner = s[i + 1 : j]
+        if _KEY_NAME_RE.fullmatch(inner):
+            msg = f"{loc}: ключ «{inner}» — оберните имя в тройные кавычки (\"\"\"{inner}\"\"\")"
+            return inner, j + 1, [msg]
+        errs.append(f"{loc}: недопустимое имя ключа")
+        return None, j + 1, errs
+    errs.append(f"{loc}: следующий ключ должен начинаться с \"\"\" (тройных кавычек)")
+    return None, _scan_to_property_boundary(s, i), errs
+
+
+def _format_structure_errors_list(errs: List[str]) -> str:
+    """Склеивает список структурных ошибок с ограничением длины списка."""
+    if not errs:
+        return ""
+    if len(errs) <= _MAX_STRUCTURE_ERRORS:
+        return "\n• ".join(["разбор SPOD:"] + errs)
+    head = errs[: _MAX_STRUCTURE_ERRORS - 1]
+    rest = len(errs) - len(head)
+    return "\n• ".join(["разбор SPOD:"] + head + [f"… и ещё {rest} ошибок(ок)"])
 
 
 def _parse_triple_quoted_string(s: str, i: int, value_path: str) -> int:
@@ -267,116 +468,174 @@ def _parse_json_primitive(s: str, i: int, value_path: str) -> int:
     return m.end()
 
 
-def _parse_spod_value(s: str, i: int, numeric_keys: Set[str], value_path: str) -> int:
-    """value_path — полный путь к значению (например getCondition.rewards[0].amount)."""
+def _parse_spod_value_collect(
+    s: str, i: int, numeric_keys: Set[str], value_path: str
+) -> Tuple[int, List[str]]:
+    """Разбор значения SPOD с накоплением всех замечаний по поддереву."""
+    errs: List[str] = []
     prop = _property_key_from_value_path(value_path)
     vp = _format_value_location(value_path)
     i = _skip_ws(s, i)
     if i >= len(s):
-        raise SpodParseError(f"значение {vp}: обрыв текста", i)
-
+        errs.append(f"значение {vp}: обрыв текста")
+        return i, errs
     if prop and prop in numeric_keys:
-        return _parse_json_primitive(s, i, value_path)
-
+        try:
+            return _parse_json_primitive(s, i, value_path), errs
+        except SpodParseError as e:
+            errs.append(e.message)
+            return _skip_value_token(s, i), errs
     if s[i] == "{":
-        return _parse_spod_object(s, i, numeric_keys, value_path)
+        return _parse_spod_object_collect(s, i, numeric_keys, value_path)
     if s[i] == "[":
-        return _parse_spod_array(s, i, numeric_keys, value_path)
+        return _parse_spod_array_collect(s, i, numeric_keys, value_path)
     if s.startswith('"""', i):
-        return _parse_triple_quoted_string(s, i, value_path)
-
+        try:
+            return _parse_triple_quoted_string(s, i, value_path), errs
+        except SpodParseError as e:
+            errs.append(e.message)
+            e2 = s.find('"""', i + 3)
+            return (e2 + 3) if e2 >= 0 else len(s), errs
     if s[i] == '"':
         lit = _short_json_string_literal(s, i)
-        raise SpodParseError(
-            f"значение {vp}: строка должна быть в \"\"\"…\"\"\", не в одной паре кавычек как в JSON; сейчас: {lit}",
-            i,
+        errs.append(
+            f"значение {vp}: строка должна быть в \"\"\"…\"\"\", не в одной паре кавычек как в JSON; сейчас: {lit}"
         )
-
-    raise SpodParseError(
-        f"значение {vp}: ожидались \"\"\"строка\"\"\", объект {{}} или массив []",
-        i,
-    )
+        return _skip_json_string_end(s, i), errs
+    errs.append(f"значение {vp}: ожидались \"\"\"строка\"\"\", объект {{}} или массив []")
+    return _skip_value_token(s, i), errs
 
 
-def _parse_spod_object(s: str, i: int, numeric_keys: Set[str], object_path: str) -> int:
+def _parse_spod_object_collect(
+    s: str, i: int, numeric_keys: Set[str], object_path: str
+) -> Tuple[int, List[str]]:
+    """Объект SPOD: все ошибки по полям, без остановки на первой."""
+    errs: List[str] = []
     loc = _format_spod_location(object_path)
     i = _skip_ws(s, i)
-    i = _expect_literal(s, i, "{", loc)
+    if i >= len(s) or s[i] != "{":
+        errs.append(f"{loc}: ожидался символ «{{»")
+        return i, errs
+    i += 1
     only = _object_body_is_only_triple_quoted_string(s, i)
     if only is not None:
-        inner, _end = only
+        inner, end_after = only
         pv = (inner[:48] + "…") if len(inner) > 48 else inner
-        raise SpodParseError(
+        errs.append(
             f"{loc}: в {{}} только строка без ключа — так нельзя; для списка строк используйте "
-            f"[\"\"\"…\"\"\"], не {{\"\"\"…\"\"\"}} (содержимое: {pv!r})",
-            i,
+            f"[\"\"\"…\"\"\"], не {{\"\"\"…\"\"\"}} (содержимое: {pv!r})"
         )
+        return end_after, errs
+    steps = 0
     while True:
+        steps += 1
+        if steps > 20000:
+            errs.append(f"{loc}: разбор прерван (слишком много шагов)")
+            return i, errs
         i = _skip_ws(s, i)
-        if i < len(s) and s[i] == "}":
-            return i + 1
-        key, j = _read_spod_key(s, i, object_path)
+        if i >= len(s):
+            errs.append(f"{loc}: незакрытый объект")
+            return i, errs
+        if s[i] == "}":
+            return i + 1, errs
+        key_start = i
+        key, j, kerrs = _read_spod_key_collect(s, i, object_path)
+        errs.extend(kerrs)
+        if key is None:
+            nxt = j if j > key_start else _scan_to_property_boundary(s, key_start)
+            if nxt <= key_start:
+                nxt = min(key_start + 1, len(s))
+            i = nxt
+            continue
         value_path = f"{object_path}.{key}" if object_path else key
         i = _skip_ws(s, j)
-        i = _expect_literal(s, i, ":", f"{loc}, ключ «{key}»")
-        i = _parse_spod_value(s, i, numeric_keys, value_path)
+        if i >= len(s) or s[i] != ":":
+            errs.append(f"{loc}, после ключа «{key}»: ожидался «:»")
+            i = _scan_to_property_boundary(s, j)
+            continue
+        i += 1
+        i, verrs = _parse_spod_value_collect(s, i, numeric_keys, value_path)
+        errs.extend(verrs)
         i = _skip_ws(s, i)
         if i < len(s) and s[i] == ",":
             i += 1
             continue
         if i < len(s) and s[i] == "}":
-            return i + 1
-        raise SpodParseError(f"{loc}, после «{key}»: нужна «,» или «}}»", i)
+            return i + 1, errs
+        errs.append(f"{loc}, после «{key}»: нужна «,» или «}}»")
+        i = _scan_to_property_boundary(s, i)
 
 
-def _parse_spod_array(s: str, i: int, numeric_keys: Set[str], array_path: str) -> int:
-    """Массив не в кавычках; строки — в тройных; числа/literal — без; объекты/массивы — как в JSON-структуре SPOD."""
+def _parse_spod_array_collect(
+    s: str, i: int, numeric_keys: Set[str], array_path: str
+) -> Tuple[int, List[str]]:
+    """Массив SPOD с накоплением ошибок по элементам."""
+    errs: List[str] = []
     loc = f"массив {_format_value_location(array_path)}" if array_path else "массив в корне"
     i = _skip_ws(s, i)
-    i = _expect_literal(s, i, "[", loc)
+    if i >= len(s) or s[i] != "[":
+        errs.append(f"{loc}: ожидался символ «[»")
+        return i, errs
+    i += 1
     elem_idx = 0
+    steps = 0
     while True:
+        steps += 1
+        if steps > 20000:
+            errs.append(f"{loc}: разбор прерван (слишком много шагов)")
+            return i, errs
         i = _skip_ws(s, i)
-        if i < len(s) and s[i] == "]":
-            return i + 1
+        if i >= len(s):
+            errs.append(f"{loc}: незакрытый массив")
+            return i, errs
+        if s[i] == "]":
+            return i + 1, errs
         elem_path = f"{array_path}[{elem_idx}]" if array_path else f"[{elem_idx}]"
-        if s[i] == "{":
-            i = _parse_spod_object(s, i, numeric_keys, elem_path)
-        elif s[i] == "[":
-            i = _parse_spod_array(s, i, numeric_keys, elem_path)
-        elif s.startswith('"""', i):
-            i = _parse_triple_quoted_string(s, i, elem_path)
-        elif s[i] in "-0123456789" or s.startswith("true", i) or s.startswith("false", i) or s.startswith("null", i):
-            i = _parse_json_primitive(s, i, elem_path)
+        if (
+            s[i] == "{"
+            or s[i] == "["
+            or s.startswith('"""', i)
+            or s[i] == '"'
+            or s[i] in "-0123456789"
+            or s.startswith("true", i)
+            or s.startswith("false", i)
+            or s.startswith("null", i)
+        ):
+            i, verrs = _parse_spod_value_collect(s, i, numeric_keys, elem_path)
+            errs.extend(verrs)
         else:
-            raise SpodParseError(
-                f"{loc}, элемент [{elem_idx}]: нужен \"\"\"строка\"\"\", число, {{}}, [] или literal",
-                i,
+            errs.append(
+                f"{loc}, элемент [{elem_idx}]: нужен \"\"\"строка\"\"\", число, {{}}, [] или literal"
             )
+            i = _skip_value_token(s, i)
         elem_idx += 1
         i = _skip_ws(s, i)
         if i < len(s) and s[i] == ",":
             i += 1
             continue
         if i < len(s) and s[i] == "]":
-            return i + 1
-        raise SpodParseError(f"{loc}, после элемента [{elem_idx - 1}]: нужна «,» или «]»", i)
+            return i + 1, errs
+        errs.append(f"{loc}, после элемента [{elem_idx - 1}]: нужна «,» или «]»")
+        i = _scan_to_array_element_boundary(s, i)
 
 
-def _parse_spod_root(s: str, numeric_keys: Set[str]) -> None:
-    """Проверяет, что вся строка — один корневой JSON-значение в нотации SPOD."""
+def _parse_spod_root_collect(s: str, numeric_keys: Set[str]) -> List[str]:
+    """Полный проход по строке SPOD: список всех структурных ошибок (пустой — ОК)."""
+    errs: List[str] = []
     i = _skip_ws(s, 0)
     if i >= len(s):
-        raise SpodParseError("пустая структура", i)
+        return ["пустая структура"]
     if s[i] == "{":
-        j = _parse_spod_object(s, i, numeric_keys, "")
+        j, e = _parse_spod_object_collect(s, i, numeric_keys, "")
     elif s[i] == "[":
-        j = _parse_spod_array(s, i, numeric_keys, "")
+        j, e = _parse_spod_array_collect(s, i, numeric_keys, "")
     else:
-        raise SpodParseError("корень: ожидается {{ или [", i)
+        return ["корень: ожидается { или ["]
+    errs.extend(e)
     j = _skip_ws(s, j)
     if j != len(s):
-        raise SpodParseError("лишний текст после конца JSON", j)
+        errs.append("лишний текст после конца JSON")
+    return errs
 
 
 def _collect_numeric_type_errors(obj: Any, numeric_keys: Set[str], path: str) -> List[str]:
@@ -413,6 +672,8 @@ def validate_spod_json_cell(
     Проверка одной ячейки.
 
     Возвращает (успех, сообщение об ошибке или «OK»).
+    При ошибках разбора SPOD в сообщение включаются все найденные нарушения (список через «•»),
+    с ограничением длины списка константой _MAX_STRUCTURE_ERRORS.
     """
     numeric_keys: Set[str] = set(str(x).strip() for x in (numeric_value_keys or []) if str(x).strip())
 
@@ -435,10 +696,9 @@ def validate_spod_json_cell(
     s1 = _strip_leading_bom(s1)
     s1 = _drop_whitespace_outside_spod_triple_strings(s1)
 
-    try:
-        _parse_spod_root(s1, numeric_keys)
-    except SpodParseError as e:
-        return False, e.message
+    st_errs = _parse_spod_root_collect(s1, numeric_keys)
+    if st_errs:
+        return False, _format_structure_errors_list(st_errs)
 
     s2 = _normalize_triple_to_double(s1)
     s2 = _strip_outer_matching_quotes(s2)

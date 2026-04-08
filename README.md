@@ -96,7 +96,7 @@ SPOD_PROM/
 | **reward_getcondition_summary.py** | Сводный текст по кодам getCondition на листе REWARD | `add_reward_getcondition_summary_column(df_reward, prefix=..., column_name=...)` — после разворота JSON и merge; строки вида `[код] FULL_NAME {seasonItem}`. |
 | **reward_item_catalog.py** | Каталог ITEM из **`REWARD_ADD_DATA`** и проверка доступности товара менеджеру | `build_item_catalog_from_reward_df`, `rules_for_matrix_column`, `item_accessible_for_manager` — для раскраски матрицы на **RATING**; учёт массива **`ignoreConditions`** (табельные «всегда доступно»). |
 | **rating_item_matrix.py** | Колонки-счётчики по ORDER и подсветка доступности ITEM на **RATING** | `apply_rating_item_matrix_enrichment`, `apply_rating_item_matrix_colors` — светло-зелёный / светло-красный по полным критериям из JSON и листов **ORDER** / **LIST-REWARDS**; передача табельного в **`item_accessible_for_manager`**. |
-| **json_spod_format_check.py** | Валидация SPOD-JSON: BOM/Unicode-пробелы вне **`"""…"""`**, симметрия внешних кавычек, рекурсивный разбор, распознавание **`""key""`**, JSON-кавычек у значения, лишних **`{}`** вокруг строки в массиве; **`numeric_value_keys`**; нормализация и **json.loads**; **короткие** сообщения в колонку на листе (путь + суть) | `validate_spod_json_cell`, `run_json_spod_format_check` — из **`consistency_checks`**, **`type: "json_spod_format"`**. |
+| **json_spod_format_check.py** | Валидация SPOD-JSON: BOM/Unicode-пробелы вне **`"""…"""`**, симметрия внешних кавычек, рекурсивный разбор **со сбором всех** структурных ошибок в ячейке; **`""key""`**, JSON- и **`""значение""`** у строки, лишние **`{}`** в массиве; **`numeric_value_keys`**; нормализация и **json.loads**; **короткие** строки (путь + суть), лимиты **`_MAX_STRUCTURE_ERRORS`** / **`_MAX_CELL_ERROR_LEN`** | `validate_spod_json_cell`, `run_json_spod_format_check` — из **`consistency_checks`**, **`type: "json_spod_format"`**. |
 | **file_loader.py** | Поиск и загрузка CSV, разворот JSON по конфигу | Класс `FileLoader(config)`: `find_file_case_insensitive(directory, base_name, extensions)`, `check_input_files_exist()`, `read_csv_file(file_path)`, `process_single_file(file_conf)` — возвращает `(df, sheet_name, file_conf)` или `(None, sheet_name, None)`. |
 | **tournament.py** | Расчёт статуса турнира по датам | `calculate_tournament_status(config, df_tournament, df_report=None)` — добавляет колонку `CALC_TOURNAMENT_STATUS` по правилам из `config.tournament_status_choices`. |
 | **validation.py** | Валидация длины полей и проверка дубликатов (устаревшие пути) | `validate_field_lengths(config, df, sheet_name)`, `validate_field_lengths_vectorized(config, df, sheet_name)`, `compare_validate_results`, `mark_duplicates`, `validate_single_sheet`, `check_duplicates_single_sheet`. Основной пайплайн больше не использует отдельные шаги проверки дубликатов и длины полей — всё выполняется в **consistency_checks**. |
@@ -711,7 +711,7 @@ SPOD_PROM/
 
 **Каталог POST/ целиком в `.gitignore`** — в репозиторий не попадает; на каждой машине разработчика содержимое создаётся скриптом.
 
-**Обновление:** из корня проекта **`python src/Tools/sync_post_txt.py`**. Скрипт **полностью удаляет** прежний **POST/** и создаёт заново: копирует код с суффиксом **`.txt`**, затем копирует из **`Docs/POST_SNAPSHOT/`** без переименования файлы **`КУДА_ПОЛОЖИТЬ_ФАЙЛЫ.txt`** и **`restore_names_from_txt.bat`** (инструкция и снятие **`.txt`** на Windows).
+**Обновление:** из корня проекта **`python src/Tools/sync_post_txt.py`**. Скрипт **полностью удаляет** прежний **POST/** и создаёт заново: копирует **`main.py`**, **`config.json`** и все **`src/**/*.py`** (кроме **`src/Tools/`**, **`src/Tests/`**) с суффиксом **`.txt`** в имени файла (**`main.py.txt`**, **`config.json.txt`**, **`src/…/модуль.py.txt`**), затем копирует из **`Docs/POST_SNAPSHOT/`** без переименования **`КУДА_ПОЛОЖИТЬ_ФАЙЛЫ.txt`** и **`restore_names_from_txt.bat`**. Актуальный **перечень имён** файлов с **`.txt`** приведён в **`Docs/POST_SNAPSHOT/КУДА_ПОЛОЖИТЬ_ФАЙЛЫ.txt`** (раздел «Перечень файлов программы»); при появлении новых модулей в **`src/`** пересоберите POST скриптом и при необходимости обновите этот раздел в репозитории.
 
 **Не копируются:** **`README.md`**, **`requirements.txt`**, каталог **`Docs/`**. На целевом ПК **`requirements.txt`** нужно взять из клона репозитория или установить зависимости вручную по списку в этом README (**pandas**, **openpyxl** и др.).
 
@@ -1148,13 +1148,21 @@ python main.py
 
 ## История версий
 
+### Версия 1.7.41 — POST: перечень файлов в инструкции; уточнение README
+
+- **`Docs/POST_SNAPSHOT/КУДА_ПОЛОЖИТЬ_ФАЙЛЫ.txt`:** добавлен раздел с полным перечнем **`main.py.txt`**, **`config.json.txt`** и всех **`src/*.py.txt`** (без **Tools**/**Tests**), плюс служебные файлы POST. Раздел **«Каталог POST»** в **README** ссылается на этот перечень и явно описывает имена с **`.txt`**; исправлена устаревшая строка про **requirements.txt** в составе POST.
+
+### Версия 1.7.40 — SPOD-JSON: все структурные ошибки в одной ячейке
+
+- **`json_spod_format`** (**`src/json_spod_format_check.py`**): разбор этапа **(1)** проходит по всей структуре и **накапливает** все нарушения (не останавливается на первом ключе/значении); вывод **«разбор SPOD:»** и список с **•**, лимит **`_MAX_STRUCTURE_ERRORS`** (**80**); улучшен пропуск ошибочных значений вида **`""текст""`** при восстановлении позиции. Подробности — **`Docs/CONSISTENCY_CHECKS_FORMAT.md`**, п. **2.8**.
+
 ### Версия 1.7.39 — SPOD-JSON: устойчивость к NBSP/BOM, компактные сообщения на листе, типовые ошибки разметки
 
 - **`json_spod_format`** (**`src/json_spod_format_check.py`**): пропуск **Unicode-пробелов** между токенами (`str.isspace()`), снятие **BOM**; удаление пробельных символов **вне** **`"""…"""`** до нормализации; **короткие** тексты в колонке проверки (путь к полю + суть, без длинных фрагментов и позиции в типовых случаях); явное распознавание **`""ключ""`** вместо **`"""ключ"""`**, значения в **одной паре** кавычек как в JSON (**`"1"`** вместо **`"""1"""`**), объект **`{"""текст"""}`** без пары ключ:значение (подсказка **`["""…"""]`** для массива строк). Ошибки **numeric_value_keys** и **JSON** после нормализации — в сжатом виде; в ячейке — до **12000** символов. Документация: **`Docs/CONSISTENCY_CHECKS_FORMAT.md`** (п. **2.8**), **`Docs/CONSISTENCY_SAMPLE_FORMAT.md`**.
 
 ### Версия 1.7.38 — Консистентность: SPOD-JSON, фильтры referential, свод для отключённых правил; архив SQLite в консоли/логе; RATING **`ignoreConditions`**; смысловые **`id`** правил
 
-- **`json_spod_format`**: проверка колонок с JSON в нотации SPOD (**`src/json_spod_format_check.py`**), правила **`spod_json_*`**; компактные сообщения и типовые шаблоны ошибок — см. **1.7.39**.
+- **`json_spod_format`**: проверка колонок с JSON в нотации SPOD (**`src/json_spod_format_check.py`**), правила **`spod_json_*`**; компактные сообщения, все замечания разбора в одной ячейке — см. **1.7.40**; прочее — **1.7.39**.
 - **referential** / **referential_composite**: опциональные **`src_row_conditions`** / **`ref_row_conditions`** (и алиасы **`sheet_*_row_conditions`**); строки вне фильтра — **«—»** в колонке результата. Пример с условиями — правило **`example_referential_row_filters`** (`enabled: false`) для копирования в боевые правила.
 - **CONSISTENCY**: при **`enabled: false`** строка свода всё равно создаётся (**total_rows**, **violations=0**, текст в **sample**).
 - **`consistency_checks`**: опциональный ключ **`spod_todo_config_guide`**; **`Config`** / **`main_impl`** сохраняют в объекте секции все дополнительные поля из JSON.
@@ -1452,7 +1460,7 @@ python main.py
 - В режиме **consistency_only** лист SUMMARY не записывается — при установке активного листа книги проверяется наличие "SUMMARY", иначе активным делается первый лист.
 - Документация обновлена: все поля конфигурации описаны с примерами; добавлены run_mode, output_filenames, apply_sort_to_source/main, paths (подпапки по дате), input_files (expected_columns, subdir, sort_columns).
 
-**Папка POST:** копии **основной программы и config.json** с суффиксом **.txt** (main.py, requirements.txt, config.json, `src/**/*.py` кроме **Tools** и **Tests**); документация в POST не кладётся.
+**Папка POST:** копии **main.py**, **config.json** и **`src/**/*.py`** (кроме **Tools** и **Tests**) с суффиксом **.txt** в имени файла; **requirements.txt** в POST не входит. Документация в POST не кладётся; перечень файлов — **`Docs/POST_SNAPSHOT/КУДА_ПОЛОЖИТЬ_ФАЙЛЫ.txt`**.
 
 ---
 

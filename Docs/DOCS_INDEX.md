@@ -33,7 +33,7 @@
 ## Снимок POST для переноса без Git (`Docs/POST_SNAPSHOT/`)
 
 - Шаблоны **`КУДА_ПОЛОЖИТЬ_ФАЙЛЫ.txt`** и **`restore_names_from_txt.bat`** копируются скриптом **`python src/Tools/sync_post_txt.py`** в локальный каталог **`POST/`** (каталог **`POST/`** в **`.gitignore`**, в репозиторий не коммитится).
-- В **`POST/`** после синхронизации: **`main.py.txt`**, **`config.json.txt`**, **`src/**/*.py.txt`** (без **Tools** и **Tests**). **README**, **requirements**, **Docs/** в POST не входят — см. **`README.md`**, раздел **«Каталог POST»**.
+- В **`POST/`** после синхронизации: **`main.py.txt`**, **`config.json.txt`**, **`src/**/*.py.txt`** (без **Tools** и **Tests**). Полный перечень имён с **`.txt`** — в **`КУДА_ПОЛОЖИТЬ_ФАЙЛЫ.txt`**, раздел «Перечень файлов программы». **README**, **requirements**, **Docs/** в POST не входят — см. **`README.md`**, раздел **«Каталог POST»**.
 
 ## Правила актуализации
 
