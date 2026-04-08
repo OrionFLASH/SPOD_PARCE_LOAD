@@ -102,7 +102,7 @@
       "archive_db_path": "OUT/DB/spod_input_archive.sqlite"
     },
     {
-      "file": "INDICATOR (PROM) 08-04 v3C.csv",
+      "file": "INDICATOR (PROM) 08-04 v3.csv",
       "sheet": "INDICATOR",
       "subdir": "SPOD",
       "archive_to_db": true,
@@ -2640,7 +2640,7 @@
         "type": "json_spod_format",
         "enabled": true,
         "sheet": "CONTEST-DATA",
-        "json_column": "CONTEST-DATA",
+        "json_column": "CONTEST_FEATURE",
         "json_required": true,
         "numeric_value_keys": ["minNumber", "accuracy"],
         "output": {
