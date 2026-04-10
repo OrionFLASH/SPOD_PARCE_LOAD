@@ -13,6 +13,21 @@ from typing import Optional
 from src.config_loader import Config
 
 
+def _logging_level_from_config(name: str) -> int:
+    """
+    Строка logging.level из config → константа logging.
+    Неизвестное значение трактуется как INFO.
+    """
+    mapping = {
+        "DEBUG": logging.DEBUG,
+        "INFO": logging.INFO,
+        "WARNING": logging.WARNING,
+        "ERROR": logging.ERROR,
+        "CRITICAL": logging.CRITICAL,
+    }
+    return mapping.get((name or "INFO").strip().upper(), logging.INFO)
+
+
 class CallerFormatter(logging.Formatter):
     """Форматтер, добавляющий имя вызывающей функции к сообщению лога."""
 
@@ -53,7 +68,8 @@ def _get_log_dir_for_run(dir_logs: str) -> str:
 
 def setup_logger(config: Config) -> str:
     """
-    Настраивает логирование: файл (DEBUG) и консоль (INFO).
+    Настраивает логирование: файл и консоль.
+    Уровень файла берётся из config.logging.level (суффикс в имени файла совпадает с ним).
     Лог-файл кладётся в подкаталог по дате: LOGS/YYYY/DD-MM (как в OUT).
     Возвращает путь к лог-файлу.
     """
@@ -67,6 +83,8 @@ def setup_logger(config: Config) -> str:
     logger = logging.getLogger()
     logger.setLevel(logging.DEBUG)
 
+    file_level = _logging_level_from_config(config.log_level)
+
     file_formatter = CallerFormatter(
         "%(asctime)s | %(levelname)s | %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
@@ -77,7 +95,7 @@ def setup_logger(config: Config) -> str:
     )
 
     file_handler = logging.FileHandler(log_file, encoding="utf-8", mode="a")
-    file_handler.setLevel(logging.DEBUG)
+    file_handler.setLevel(file_level)
     file_handler.setFormatter(file_formatter)
 
     console_handler = logging.StreamHandler(sys.stdout)

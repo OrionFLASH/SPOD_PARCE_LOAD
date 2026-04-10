@@ -62,7 +62,7 @@ def validate_field_lengths(config: Config, df: pd.DataFrame, sheet_name: str) ->
                 length = len(str(value)) if not pd.isna(value) else 0
                 violations.append(f"{field_name} = {length} {operator} {limit}")
                 logging.debug(
-                    f"[DEBUG] Строка {row_idx}: поле '{field_name}' = {length} {operator} {limit} (нарушение)"
+                    f"Строка {row_idx}: поле '{field_name}' = {length} {operator} {limit} (нарушение)"
                 )
         return "; ".join(violations) if violations else "-"
 
@@ -142,7 +142,7 @@ def validate_field_lengths_vectorized(config: Config, df: pd.DataFrame, sheet_na
             )
             for idx in df.index[mask]:
                 logging.debug(
-                    f"[DEBUG] Строка {idx}: поле '{field_name}' = {len(str(df.loc[idx, field_name]))} {operator} {limit} (нарушение)"
+                    f"Строка {idx}: поле '{field_name}' = {len(str(df.loc[idx, field_name]))} {operator} {limit} (нарушение)"
                 )
 
     if violations_dict:

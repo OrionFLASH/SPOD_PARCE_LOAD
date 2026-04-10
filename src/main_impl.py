@@ -368,14 +368,29 @@ def get_log_filename():
 
 
 # === Логирование ===
+def _logging_level_from_config(name: str) -> int:
+    """
+    Преобразует строку logging.level из config.json в константу logging.
+    Неизвестные значения — INFO (чтобы не засорять файл сообщениями DEBUG при опечатке).
+    """
+    mapping = {
+        "DEBUG": logging.DEBUG,
+        "INFO": logging.INFO,
+        "WARNING": logging.WARNING,
+        "ERROR": logging.ERROR,
+        "CRITICAL": logging.CRITICAL,
+    }
+    return mapping.get((name or "INFO").strip().upper(), logging.INFO)
+
+
 def setup_logger():
     """
     Настраивает систему логирования для программы.
-    
+
     Создает логгер с двумя обработчиками:
-    - Файловый: записывает логи в файл с кодировкой UTF-8 (включая DEBUG)
-    - Консольный: WARNING, ERROR (подробный ход работы — в лог-файле DEBUG/INFO); краткий ход — console_ui
-    
+    - Файловый: уровень из config.json → logging.level (имя файла уже содержит суффикс уровня)
+    - Консольный: WARNING и выше (краткий ход — console_ui)
+
     Returns:
         str: Путь к созданному лог-файлу
     """
@@ -384,26 +399,28 @@ def setup_logger():
     # Если логгер уже инициализирован, не добавляем обработчики ещё раз
     if logging.getLogger().hasHandlers():
         return log_file
-    
+
+    # Уровень файла совпадает с config: при level=INFO в лог-файл не попадают записи DEBUG
+    file_level = _logging_level_from_config(LOG_LEVEL)
+
     # Получаем корневой логгер
     logger = logging.getLogger()
-    logger.setLevel(logging.DEBUG)  # Устанавливаем максимальный уровень для логгера
-    
+    logger.setLevel(logging.DEBUG)
+
     # Форматтер для файла (с именем функции)
     file_formatter = CallerFormatter(
         "%(asctime)s | %(levelname)s | %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S"
     )
-    
+
     # Форматтер для консоли (без имени функции)
     console_formatter = logging.Formatter(
         "%(asctime)s | %(levelname)s | %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S"
     )
-    
-    # Файловый обработчик - принимает все уровни включая DEBUG
+
     file_handler = logging.FileHandler(log_file, encoding="utf-8", mode="a")
-    file_handler.setLevel(logging.DEBUG)
+    file_handler.setLevel(file_level)
     file_handler.setFormatter(file_formatter)
     
     # Консольный обработчик: WARNING и ERROR (INFO — только в файл; консоль — console_ui)
@@ -646,7 +663,7 @@ def validate_field_lengths(df, sheet_name):
                 violations.append(f"{field_name} = {length} {operator} {limit}")
 
                 # Логируем нарушение для отладки
-                logging.debug(f"[DEBUG] Строка {row_idx}: поле '{field_name}' = {length} {operator} {limit} (нарушение)")
+                logging.debug(f"Строка {row_idx}: поле '{field_name}' = {length} {operator} {limit} (нарушение)")
 
         # Возвращаем результат: "-" если нарушений нет, иначе список нарушений через "; "
         return "; ".join(violations) if violations else "-"
@@ -743,7 +760,7 @@ def validate_field_lengths_vectorized(df, sheet_name):
             )
             
             for idx in df.index[mask]:
-                logging.debug(f"[DEBUG] Строка {idx}: поле '{field_name}' = {len(str(df.loc[idx, field_name]))} {operator} {limit} (нарушение)")
+                logging.debug(f"Строка {idx}: поле '{field_name}' = {len(str(df.loc[idx, field_name]))} {operator} {limit} (нарушение)")
 
     if violations_dict:
         violations_df = pd.DataFrame(violations_dict)
@@ -936,7 +953,7 @@ def read_csv_file(
 
         for col in df.columns:
             if "FEATURE" in col or "ADD_DATA" in col:
-                logging.debug(f"[DEBUG] CSV {file_path} поле {col}: {df[col].dropna().head(2).to_list()}")
+                logging.debug(f"CSV {file_path} поле {col}: {df[col].dropna().head(2).to_list()}")
 
         if issues:
             logging.warning(f"[CSV] Расхождение по числу полей: {file_path}, строк с расхождением: {len(issues)}")
@@ -1110,21 +1127,21 @@ def write_to_excel(
         output_path: Путь к выходному Excel файлу
         use_color_scheme: Применять ли цветовую схему (False для режима «только консистентность»)
     """
-    logging.debug(f"[DEBUG write_to_excel] === НАЧАЛО === Путь: {output_path}")
-    logging.debug(f"[DEBUG write_to_excel] Листов для записи: {len(sheets_data)}")
+    logging.debug(f"[write_to_excel] === НАЧАЛО === Путь: {output_path}")
+    logging.debug(f"[write_to_excel] Листов для записи: {len(sheets_data)}")
     for sheet_name, sheet_data in sheets_data.items():
         if sheet_data is not None and len(sheet_data) > 0:
             df, params = sheet_data
             if df is not None and isinstance(df, pd.DataFrame):
-                logging.debug(f"[DEBUG write_to_excel] Лист {sheet_name}: shape={df.shape}, колонок={len(df.columns)}")
+                logging.debug(f"[write_to_excel] Лист {sheet_name}: shape={df.shape}, колонок={len(df.columns)}")
                 if len(df) == 0:
-                    logging.warning(f"[DEBUG write_to_excel] ⚠️  Лист {sheet_name} ПУСТОЙ (0 строк)!")
+                    logging.warning(f"[write_to_excel] ⚠️  Лист {sheet_name} ПУСТОЙ (0 строк)!")
                 else:
-                    logging.debug(f"[DEBUG write_to_excel] Лист {sheet_name} первые 3 строки:\n{df.head(3).to_string()}")
+                    logging.debug(f"[write_to_excel] Лист {sheet_name} первые 3 строки:\n{df.head(3).to_string()}")
             else:
-                logging.warning(f"[DEBUG write_to_excel] ⚠️  Лист {sheet_name}: DataFrame равен None")
+                logging.warning(f"[write_to_excel] ⚠️  Лист {sheet_name}: DataFrame равен None")
         else:
-            logging.warning(f"[DEBUG write_to_excel] ⚠️  Лист {sheet_name}: sheet_data равен None или пуст")
+            logging.warning(f"[write_to_excel] ⚠️  Лист {sheet_name}: sheet_data равен None или пуст")
 
     func_start = time()  # Засекаем время начала выполнения
     params = f"({output_path})"
@@ -1240,12 +1257,12 @@ def write_to_excel(
                     continue
                 
                 df_write, params_sheet = sheet_data
-                logging.debug(f"[DEBUG write_to_excel] Записываем лист {sheet_name}...")
-                logging.debug(f"[DEBUG write_to_excel] DataFrame shape: {df_write.shape}, колонок: {len(df_write.columns)}")
+                logging.debug(f"[write_to_excel] Записываем лист {sheet_name}...")
+                logging.debug(f"[write_to_excel] DataFrame shape: {df_write.shape}, колонок: {len(df_write.columns)}")
                 if len(df_write) == 0:
-                    logging.error(f"[DEBUG write_to_excel] ❌ ОШИБКА: Лист {sheet_name} ПУСТОЙ перед записью!")
+                    logging.error(f"[write_to_excel] ❌ ОШИБКА: Лист {sheet_name} ПУСТОЙ перед записью!")
                 else:
-                    logging.debug(f"[DEBUG write_to_excel] Первые 3 строки перед записью:\n{df_write.head(3).to_string()}")
+                    logging.debug(f"[write_to_excel] Первые 3 строки перед записью:\n{df_write.head(3).to_string()}")
 
                 df_write.to_excel(writer, index=False, sheet_name=sheet_name)
                 logging.info(f"Лист Excel записан: {sheet_name} (строк: {len(df_write)}, колонок: {len(df_write.columns)})")
@@ -2180,7 +2197,7 @@ def collect_summary_keys(dfs):
     for code in all_contest_codes:
         is_debug = str(code) in DEBUG_CODES
         if is_debug:
-            logging.info(f"[DEBUG GROUP] === Обработка CONTEST_CODE: {code} ===")
+            logging.debug(f"[GROUP] === Обработка CONTEST_CODE: {code} ===")
         
         tourns = tournaments[tournaments["CONTEST_CODE"] == code][
             "TOURNAMENT_CODE"].dropna().unique() if not tournaments.empty else []
@@ -2189,9 +2206,9 @@ def collect_summary_keys(dfs):
         groups_df = groups[groups["CONTEST_CODE"] == code] if not groups.empty else pd.DataFrame()
         
         if is_debug:
-            logging.info(f"[DEBUG GROUP] Найдено строк в GROUP для CONTEST_CODE {code}: {len(groups_df)}")
+            logging.debug(f"[GROUP] Найдено строк в GROUP для CONTEST_CODE {code}: {len(groups_df)}")
             if not groups_df.empty:
-                logging.info(f"[DEBUG GROUP] Строки GROUP:\n{groups_df[['GROUP_CODE', 'GROUP_VALUE', 'CONTEST_CODE']].to_string()}")
+                logging.debug(f"[GROUP] Строки GROUP:\n{groups_df[['GROUP_CODE', 'GROUP_VALUE', 'CONTEST_CODE']].to_string()}")
         
         # ИСПРАВЛЕНИЕ: GROUP_VALUE должен быть связан с конкретным GROUP_CODE
         # Вместо декартова произведения создаем пары (GROUP_CODE, GROUP_VALUE)
@@ -2207,12 +2224,12 @@ def collect_summary_keys(dfs):
                         group_code_value_pairs.append(pair)
         
         if is_debug:
-            logging.info(f"[DEBUG GROUP] Уникальные пары (GROUP_CODE, GROUP_VALUE) для CONTEST_CODE {code}: {group_code_value_pairs}")
+            logging.debug(f"[GROUP] Уникальные пары (GROUP_CODE, GROUP_VALUE) для CONTEST_CODE {code}: {group_code_value_pairs}")
             if not groups_df.empty:
                 unique_groups = groups_df["GROUP_CODE"].dropna().unique()
                 unique_values = groups_df["GROUP_VALUE"].dropna().unique()
-                logging.info(f"[DEBUG GROUP] Уникальные GROUP_CODE: {list(unique_groups)}")
-                logging.info(f"[DEBUG GROUP] Уникальные GROUP_VALUE: {list(unique_values)}")
+                logging.debug(f"[GROUP] Уникальные GROUP_CODE: {list(unique_groups)}")
+                logging.debug(f"[GROUP] Уникальные GROUP_VALUE: {list(unique_values)}")
         
         # Если нет пар, создаем одну с "-"
         if not group_code_value_pairs:
@@ -2230,10 +2247,10 @@ def collect_summary_keys(dfs):
         indicator_types_ = indicator_types_ if len(indicator_types_) else [""]
         
         if is_debug:
-            logging.info(f"[DEBUG GROUP] TOURNAMENT_CODE: {list(tourns)}")
-            logging.info(f"[DEBUG GROUP] REWARD_CODE: {list(rewards_)}")
-            logging.info(f"[DEBUG GROUP] INDICATOR_ADD_CALC_TYPE: {indicator_types_}")
-            logging.info(f"[DEBUG GROUP] Будет создано комбинаций: {len(tourns)} x {len(rewards_)} x {len(group_code_value_pairs)} x {len(indicator_types_)} = {len(tourns) * len(rewards_) * len(group_code_value_pairs) * len(indicator_types_)}")
+            logging.debug(f"[GROUP] TOURNAMENT_CODE: {list(tourns)}")
+            logging.debug(f"[GROUP] REWARD_CODE: {list(rewards_)}")
+            logging.debug(f"[GROUP] INDICATOR_ADD_CALC_TYPE: {indicator_types_}")
+            logging.debug(f"[GROUP] Будет создано комбинаций: {len(tourns)} x {len(rewards_)} x {len(group_code_value_pairs)} x {len(indicator_types_)} = {len(tourns) * len(rewards_) * len(group_code_value_pairs) * len(indicator_types_)}")
 
         for t in tourns:
             for r in rewards_:
@@ -2242,7 +2259,7 @@ def collect_summary_keys(dfs):
                         ind_code = _indicator_code_for_contest_type(indicators, str(code), ind_type)
                         all_rows.append((str(code), str(t), str(r), str(g_code), str(g_value), ind_code, str(ind_type)))
                         if is_debug:
-                            logging.debug(f"[DEBUG GROUP] Создана строка: CONTEST={code}, TOURNAMENT={t}, REWARD={r}, GROUP_CODE={g_code}, GROUP_VALUE={g_value}, INDICATOR={ind_type}")
+                            logging.debug(f"[GROUP] Создана строка: CONTEST={code}, TOURNAMENT={t}, REWARD={r}, GROUP_CODE={g_code}, GROUP_VALUE={g_value}, INDICATOR={ind_type}")
 
     # 2. Для каждого TOURNAMENT_CODE (даже если нет CONTEST_CODE)
     if not tournaments.empty:
@@ -2337,30 +2354,30 @@ def collect_summary_keys(dfs):
             is_debug = str(g_code) in DEBUG_CODES
             
             if is_debug:
-                logging.info(f"[DEBUG GROUP] === Обработка GROUP_CODE: {g_code} ===")
+                logging.debug(f"[GROUP] === Обработка GROUP_CODE: {g_code} ===")
             
             # ИСПРАВЛЕНИЕ: Находим все CONTEST_CODE для данного GROUP_CODE и обрабатываем каждый отдельно
             group_contest_codes = groups[groups["GROUP_CODE"] == g_code]["CONTEST_CODE"].dropna().unique()
             
             if is_debug:
-                logging.info(f"[DEBUG GROUP] Найдено CONTEST_CODE для GROUP_CODE {g_code}: {list(group_contest_codes)}")
+                logging.debug(f"[GROUP] Найдено CONTEST_CODE для GROUP_CODE {g_code}: {list(group_contest_codes)}")
             
             # Обрабатываем каждый CONTEST_CODE отдельно
             for group_contest_code in group_contest_codes:
                 actual_code = str(group_contest_code)
                 
                 if is_debug:
-                    logging.info(f"[DEBUG GROUP] Обработка GROUP_CODE {g_code} для CONTEST_CODE: {actual_code}")
+                    logging.debug(f"[GROUP] Обработка GROUP_CODE {g_code} для CONTEST_CODE: {actual_code}")
                 
                 # Берем GROUP_VALUE только для конкретного CONTEST_CODE и GROUP_CODE
                 group_values_df = groups[(groups["GROUP_CODE"] == g_code) & (groups["CONTEST_CODE"] == actual_code)]
                 group_values_ = group_values_df["GROUP_VALUE"].dropna().unique() if not group_values_df.empty else []
                 
                 if is_debug:
-                    logging.info(f"[DEBUG GROUP] Найдено строк в GROUP для GROUP_CODE {g_code} и CONTEST_CODE {actual_code}: {len(group_values_df)}")
+                    logging.debug(f"[GROUP] Найдено строк в GROUP для GROUP_CODE {g_code} и CONTEST_CODE {actual_code}: {len(group_values_df)}")
                     if not group_values_df.empty:
-                        logging.info(f"[DEBUG GROUP] Строки GROUP:\n{group_values_df[['GROUP_CODE', 'GROUP_VALUE', 'CONTEST_CODE']].to_string()}")
-                    logging.info(f"[DEBUG GROUP] Уникальные GROUP_VALUE: {list(group_values_)}")
+                        logging.debug(f"[GROUP] Строки GROUP:\n{group_values_df[['GROUP_CODE', 'GROUP_VALUE', 'CONTEST_CODE']].to_string()}")
+                    logging.debug(f"[GROUP] Уникальные GROUP_VALUE: {list(group_values_)}")
                 
                 # Ищем связанные TOURNAMENT_CODE и REWARD_CODE для этого CONTEST_CODE
                 tourns = tournaments[tournaments["CONTEST_CODE"] == actual_code][
@@ -2381,7 +2398,7 @@ def collect_summary_keys(dfs):
                 indicator_types_ = indicator_types_ if len(indicator_types_) else [""]
                 
                 if is_debug:
-                    logging.info(f"[DEBUG GROUP] Будет создано комбинаций: {len(tourns)} x {len(rewards_)} x {len(group_values_)} x {len(indicator_types_)} = {len(tourns) * len(rewards_) * len(group_values_) * len(indicator_types_)}")
+                    logging.debug(f"[GROUP] Будет создано комбинаций: {len(tourns)} x {len(rewards_)} x {len(group_values_)} x {len(indicator_types_)} = {len(tourns) * len(rewards_) * len(group_values_) * len(indicator_types_)}")
                 
                 for t in tourns:
                     for r in rewards_:
@@ -2390,7 +2407,7 @@ def collect_summary_keys(dfs):
                                 ind_code = _indicator_code_for_contest_type(indicators, actual_code, ind_type)
                                 all_rows.append((actual_code, str(t), str(r), str(g_code), str(gv), ind_code, str(ind_type)))
                                 if is_debug:
-                                    logging.debug(f"[DEBUG GROUP] Создана строка: CONTEST={actual_code}, TOURNAMENT={t}, REWARD={r}, GROUP_CODE={g_code}, GROUP_VALUE={gv}, INDICATOR={ind_type}")
+                                    logging.debug(f"[GROUP] Создана строка: CONTEST={actual_code}, TOURNAMENT={t}, REWARD={r}, GROUP_CODE={g_code}, GROUP_VALUE={gv}, INDICATOR={ind_type}")
 
 # 5. Для каждого INDICATOR_ADD_CALC_TYPE (даже если нет CONTEST_CODE)
     if not indicators.empty:
@@ -2459,13 +2476,13 @@ def collect_summary_keys(dfs):
     for debug_code in DEBUG_CODES:
         debug_rows = summary_keys[summary_keys["CONTEST_CODE"] == debug_code]
         if not debug_rows.empty:
-            logging.info(f"[DEBUG GROUP] === ИТОГОВЫЕ СТРОКИ В SUMMARY для CONTEST_CODE: {debug_code} ===")
-            logging.info(f"[DEBUG GROUP] Всего строк: {len(debug_rows)}")
-            logging.info(f"[DEBUG GROUP] Уникальные GROUP_CODE: {debug_rows['GROUP_CODE'].unique().tolist()}")
-            logging.info(f"[DEBUG GROUP] Уникальные GROUP_VALUE: {debug_rows['GROUP_VALUE'].unique().tolist()}")
-            logging.info("[DEBUG GROUP] Комбинации (GROUP_CODE, GROUP_VALUE):")
+            logging.debug(f"[GROUP] === ИТОГОВЫЕ СТРОКИ В SUMMARY для CONTEST_CODE: {debug_code} ===")
+            logging.debug(f"[GROUP] Всего строк: {len(debug_rows)}")
+            logging.debug(f"[GROUP] Уникальные GROUP_CODE: {debug_rows['GROUP_CODE'].unique().tolist()}")
+            logging.debug(f"[GROUP] Уникальные GROUP_VALUE: {debug_rows['GROUP_VALUE'].unique().tolist()}")
+            logging.debug("[GROUP] Комбинации (GROUP_CODE, GROUP_VALUE):")
             for _, row in debug_rows.iterrows():
-                logging.info(f"[DEBUG GROUP]   GROUP_CODE={row['GROUP_CODE']}, GROUP_VALUE={row['GROUP_VALUE']}")
+                logging.debug(f"[GROUP]   GROUP_CODE={row['GROUP_CODE']}, GROUP_VALUE={row['GROUP_VALUE']}")
     
     
     # ОПТИМИЗАЦИЯ v5.0: Финальная проверка - гарантируем возврат DataFrame
@@ -2553,18 +2570,18 @@ def add_fields_to_sheet(df_base, df_ref, src_keys, dst_keys, columns, sheet_name
         if df_base is not None and isinstance(df_base, pd.DataFrame):
             logging.info(f"[MERGE] add_fields_to_sheet df_base (TOURNAMENT-SCHEDULE) колонок: {len(df_base.columns)}, есть TOURNAMENT_CODE: {'TOURNAMENT_CODE' in df_base.columns}")
 
-    logging.debug(f"[DEBUG add_fields_to_sheet] === НАЧАЛО === Лист: {sheet_name}, Источник: {ref_sheet_name}")
-    logging.debug(f"[DEBUG add_fields_to_sheet] df_base shape: {df_base.shape if df_base is not None and isinstance(df_base, pd.DataFrame) else "None или не DataFrame"}")
-    logging.debug(f"[DEBUG add_fields_to_sheet] df_ref shape: {df_ref.shape if df_ref is not None and isinstance(df_ref, pd.DataFrame) else "None или не DataFrame"}")
-    logging.debug(f"[DEBUG add_fields_to_sheet] Колонки для добавления: {columns}")
-    logging.debug(f"[DEBUG add_fields_to_sheet] Ключи: dst_keys={dst_keys}, src_keys={src_keys}")
-    logging.debug(f"[DEBUG add_fields_to_sheet] Режим: mode={mode}, multiply_rows={multiply_rows}")
+    logging.debug(f"[add_fields_to_sheet] === НАЧАЛО === Лист: {sheet_name}, Источник: {ref_sheet_name}")
+    logging.debug(f"[add_fields_to_sheet] df_base shape: {df_base.shape if df_base is not None and isinstance(df_base, pd.DataFrame) else "None или не DataFrame"}")
+    logging.debug(f"[add_fields_to_sheet] df_ref shape: {df_ref.shape if df_ref is not None and isinstance(df_ref, pd.DataFrame) else "None или не DataFrame"}")
+    logging.debug(f"[add_fields_to_sheet] Колонки для добавления: {columns}")
+    logging.debug(f"[add_fields_to_sheet] Ключи: dst_keys={dst_keys}, src_keys={src_keys}")
+    logging.debug(f"[add_fields_to_sheet] Режим: mode={mode}, multiply_rows={multiply_rows}")
     if df_base is not None and isinstance(df_base, pd.DataFrame) and len(df_base) > 0:
-        logging.debug(f"[DEBUG add_fields_to_sheet] df_base колонки: {list(df_base.columns)}")
-        logging.debug(f"[DEBUG add_fields_to_sheet] df_base первые 3 строки:\n{df_base.head(3).to_string()}")
+        logging.debug(f"[add_fields_to_sheet] df_base колонки: {list(df_base.columns)}")
+        logging.debug(f"[add_fields_to_sheet] df_base первые 3 строки:\n{df_base.head(3).to_string()}")
     if df_ref is not None and isinstance(df_ref, pd.DataFrame) and len(df_ref) > 0:
-        logging.debug(f"[DEBUG add_fields_to_sheet] df_ref колонки: {list(df_ref.columns)}")
-        logging.debug(f"[DEBUG add_fields_to_sheet] df_ref первые 3 строки:\n{df_ref.head(3).to_string()}")
+        logging.debug(f"[add_fields_to_sheet] df_ref колонки: {list(df_ref.columns)}")
+        logging.debug(f"[add_fields_to_sheet] df_ref первые 3 строки:\n{df_ref.head(3).to_string()}")
 
 
 
@@ -2940,15 +2957,15 @@ def _process_single_merge_rule(rule, sheets_data_copy, count_column_prefix="COUN
     if sheet_src in sheets_data_copy and sheets_data_copy[sheet_src] is not None:
         df_src_check = sheets_data_copy[sheet_src][0] if len(sheets_data_copy[sheet_src]) > 0 else None
         if df_src_check is not None and isinstance(df_src_check, pd.DataFrame):
-            logging.debug(f"[DEBUG _process_single_merge_rule] df_src ({sheet_src}): shape={df_src_check.shape}")
+            logging.debug(f"[_process_single_merge_rule] df_src ({sheet_src}): shape={df_src_check.shape}")
         else:
-            logging.warning(f"[DEBUG _process_single_merge_rule] ⚠️  df_src ({sheet_src}) равен None!")
+            logging.warning(f"[_process_single_merge_rule] ⚠️  df_src ({sheet_src}) равен None!")
     if sheet_dst in sheets_data_copy and sheets_data_copy[sheet_dst] is not None:
         df_dst_check = sheets_data_copy[sheet_dst][0] if len(sheets_data_copy[sheet_dst]) > 0 else None
         if df_dst_check is not None and isinstance(df_dst_check, pd.DataFrame):
-            logging.debug(f"[DEBUG _process_single_merge_rule] df_dst ({sheet_dst}): shape={df_dst_check.shape}")
+            logging.debug(f"[_process_single_merge_rule] df_dst ({sheet_dst}): shape={df_dst_check.shape}")
         else:
-            logging.warning(f"[DEBUG _process_single_merge_rule] ⚠️  df_dst ({sheet_dst}) равен None!")
+            logging.warning(f"[_process_single_merge_rule] ⚠️  df_dst ({sheet_dst}) равен None!")
 
     
     # ОПТИМИЗАЦИЯ v5.0: Проверка на существование листов и None (правильный порядок)
@@ -3691,23 +3708,23 @@ def compare_gender_results(df_old, df_new):
 
 @debug_timed()
 def build_summary_sheet(dfs, params_summary, merge_fields):
-    logging.debug(f"[DEBUG build_summary_sheet] === НАЧАЛО === Доступные листы в dfs: {list(dfs.keys())}")
+    logging.debug(f"[build_summary_sheet] === НАЧАЛО === Доступные листы в dfs: {list(dfs.keys())}")
     for sheet_name, df in dfs.items():
         if df is not None and isinstance(df, pd.DataFrame):
-            logging.debug(f"[DEBUG build_summary_sheet] Лист {sheet_name}: shape={df.shape}, колонки={list(df.columns)[:10]}...")
+            logging.debug(f"[build_summary_sheet] Лист {sheet_name}: shape={df.shape}, колонки={list(df.columns)[:10]}...")
         else:
-            logging.debug(f"[DEBUG build_summary_sheet] Лист {sheet_name}: DataFrame равен None")
-    logging.debug(f"[DEBUG build_summary_sheet] Правил merge_fields: {len(merge_fields)}")
+            logging.debug(f"[build_summary_sheet] Лист {sheet_name}: DataFrame равен None")
+    logging.debug(f"[build_summary_sheet] Правил merge_fields: {len(merge_fields)}")
 
     func_start = time()
     params_log = f"(лист: {params_summary['sheet']})"
     logging.info(f"[START] build_summary_sheet {params_log}")
 
     summary = collect_summary_keys(dfs)
-    logging.debug(f"[DEBUG build_summary_sheet] После collect_summary_keys: summary shape={summary.shape if summary is not None and isinstance(summary, pd.DataFrame) else "None"}")
+    logging.debug(f"[build_summary_sheet] После collect_summary_keys: summary shape={summary.shape if summary is not None and isinstance(summary, pd.DataFrame) else "None"}")
     if summary is not None and isinstance(summary, pd.DataFrame) and len(summary) > 0:
-        logging.debug(f"[DEBUG build_summary_sheet] summary колонки: {list(summary.columns)}")
-        logging.debug(f"[DEBUG build_summary_sheet] summary первые 3 строки:\n{summary.head(3).to_string()}")
+        logging.debug(f"[build_summary_sheet] summary колонки: {list(summary.columns)}")
+        logging.debug(f"[build_summary_sheet] summary первые 3 строки:\n{summary.head(3).to_string()}")
 
     
     # ОПТИМИЗАЦИЯ v5.0: Проверка на None
@@ -3723,28 +3740,28 @@ def build_summary_sheet(dfs, params_summary, merge_fields):
     for debug_code in DEBUG_CODES:
         debug_rows = summary[summary["CONTEST_CODE"] == debug_code]
         if not debug_rows.empty:
-            logging.info(f"[DEBUG SUMMARY] === После collect_summary_keys для CONTEST_CODE: {debug_code} ===")
-            logging.info(f"[DEBUG SUMMARY] Всего строк: {len(debug_rows)}")
-            logging.info(f"[DEBUG SUMMARY] Уникальные GROUP_CODE: {debug_rows['GROUP_CODE'].unique().tolist()}")
-            logging.info(f"[DEBUG SUMMARY] Уникальные GROUP_VALUE: {debug_rows['GROUP_VALUE'].unique().tolist()}")
-            logging.info("[DEBUG SUMMARY] Комбинации (GROUP_CODE, GROUP_VALUE):")
+            logging.debug(f"[SUMMARY] === После collect_summary_keys для CONTEST_CODE: {debug_code} ===")
+            logging.debug(f"[SUMMARY] Всего строк: {len(debug_rows)}")
+            logging.debug(f"[SUMMARY] Уникальные GROUP_CODE: {debug_rows['GROUP_CODE'].unique().tolist()}")
+            logging.debug(f"[SUMMARY] Уникальные GROUP_VALUE: {debug_rows['GROUP_VALUE'].unique().tolist()}")
+            logging.debug("[SUMMARY] Комбинации (GROUP_CODE, GROUP_VALUE):")
             for _, row in debug_rows.iterrows():
-                logging.info(
-                    f"[DEBUG SUMMARY]   CONTEST={row.get('CONTEST_CODE', '')}, GROUP_CODE={row.get('GROUP_CODE', '')}, GROUP_VALUE={row.get('GROUP_VALUE', '')}"
+                logging.debug(
+                    f"[SUMMARY]   CONTEST={row.get('CONTEST_CODE', '')}, GROUP_CODE={row.get('GROUP_CODE', '')}, GROUP_VALUE={row.get('GROUP_VALUE', '')}"
                 )
             
             # Проверяем, что есть в таблице GROUP
             if "GROUP" in dfs and not dfs["GROUP"].empty:
                 group_rows = dfs["GROUP"][dfs["GROUP"]["CONTEST_CODE"] == debug_code]
                 if not group_rows.empty:
-                    logging.info(f"[DEBUG SUMMARY] === Данные в таблице GROUP для CONTEST_CODE: {debug_code} ===")
-                    logging.info(f"[DEBUG SUMMARY] Всего строк в GROUP: {len(group_rows)}")
-                    logging.info(
-                        f"[DEBUG SUMMARY] Строки GROUP:\n{group_rows[['CONTEST_CODE', 'GROUP_CODE', 'GROUP_VALUE']].to_string()}"
+                    logging.debug(f"[SUMMARY] === Данные в таблице GROUP для CONTEST_CODE: {debug_code} ===")
+                    logging.debug(f"[SUMMARY] Всего строк в GROUP: {len(group_rows)}")
+                    logging.debug(
+                        f"[SUMMARY] Строки GROUP:\n{group_rows[['CONTEST_CODE', 'GROUP_CODE', 'GROUP_VALUE']].to_string()}"
                     )
 
     logging.info(f"Summary: Каркас: {len(summary)} строк (реальные комбинации ключей)")
-    logging.debug(f"[DEBUG] {params_summary['sheet']}: первые строки после разворачивания:\n{summary.head(5).to_string()}")
+    logging.debug(f"{params_summary['sheet']}: первые строки после разворачивания:\n{summary.head(5).to_string()}")
 
     # Универсально добавляем все поля по merge_fields
     for field_idx, field in enumerate(merge_fields):
@@ -3758,28 +3775,28 @@ def build_summary_sheet(dfs, params_summary, merge_fields):
         params_str = f"(лист-источник: {sheet_src}, поля: {col_names}, ключ: {dst_keys}->{src_keys}, mode: {mode})"
         logging.info(f"[START] add_fields_to_sheet {params_str}")
         
-        logging.debug(f"[DEBUG build_summary_sheet] === MERGE {field_idx+1}/{len(merge_fields)} ===")
-        logging.debug(f"[DEBUG build_summary_sheet] Правило: sheet_src={sheet_src}, sheet_dst={params_summary["sheet"]}")
-        logging.debug(f"[DEBUG build_summary_sheet] Поля: {col_names}, ключи: {dst_keys}->{src_keys}, mode={mode}")
-        logging.debug(f"[DEBUG build_summary_sheet] summary ДО merge: shape={summary.shape if summary is not None and isinstance(summary, pd.DataFrame) else "None"}")
+        logging.debug(f"[build_summary_sheet] === MERGE {field_idx+1}/{len(merge_fields)} ===")
+        logging.debug(f"[build_summary_sheet] Правило: sheet_src={sheet_src}, sheet_dst={params_summary["sheet"]}")
+        logging.debug(f"[build_summary_sheet] Поля: {col_names}, ключи: {dst_keys}->{src_keys}, mode={mode}")
+        logging.debug(f"[build_summary_sheet] summary ДО merge: shape={summary.shape if summary is not None and isinstance(summary, pd.DataFrame) else "None"}")
         if summary is not None and isinstance(summary, pd.DataFrame) and len(summary) > 0:
-            logging.debug(f"[DEBUG build_summary_sheet] summary ДО merge первые 3 строки:\n{summary.head(3).to_string()}")
+            logging.debug(f"[build_summary_sheet] summary ДО merge первые 3 строки:\n{summary.head(3).to_string()}")
 
         # Детальное логирование для merge_fields с GROUP
         if sheet_src == "GROUP":
             for debug_code in DEBUG_CODES:
                 debug_rows_before = summary[summary["CONTEST_CODE"] == debug_code]
                 if not debug_rows_before.empty:
-                    logging.info(f"[DEBUG SUMMARY] === Перед merge_fields из GROUP для CONTEST_CODE: {debug_code} ===")
-                    logging.info(f"[DEBUG SUMMARY] Строк в Summary: {len(debug_rows_before)}")
-                    logging.info(f"[DEBUG SUMMARY] GROUP_CODE: {debug_rows_before['GROUP_CODE'].unique().tolist()}")
-                    logging.info(f"[DEBUG SUMMARY] GROUP_VALUE: {debug_rows_before['GROUP_VALUE'].unique().tolist()}")
+                    logging.debug(f"[SUMMARY] === Перед merge_fields из GROUP для CONTEST_CODE: {debug_code} ===")
+                    logging.debug(f"[SUMMARY] Строк в Summary: {len(debug_rows_before)}")
+                    logging.debug(f"[SUMMARY] GROUP_CODE: {debug_rows_before['GROUP_CODE'].unique().tolist()}")
+                    logging.debug(f"[SUMMARY] GROUP_VALUE: {debug_rows_before['GROUP_VALUE'].unique().tolist()}")
         
         ref_df = dfs.get(sheet_src)
         if ref_df is not None and isinstance(ref_df, pd.DataFrame):
-            logging.debug(f"[DEBUG build_summary_sheet] ref_df ({sheet_src}): shape={ref_df.shape}, колонки={list(ref_df.columns)[:10]}...")
+            logging.debug(f"[build_summary_sheet] ref_df ({sheet_src}): shape={ref_df.shape}, колонки={list(ref_df.columns)[:10]}...")
         else:
-            logging.warning(f"[DEBUG build_summary_sheet] ⚠️  ref_df ({sheet_src}) равен None!")
+            logging.warning(f"[build_summary_sheet] ⚠️  ref_df ({sheet_src}) равен None!")
         if ref_df is None:
             logging.warning(f"Колонка {col_names} не добавлена: нет листа {sheet_src} или ключей {src_keys}")
             continue
@@ -3798,11 +3815,11 @@ def build_summary_sheet(dfs, params_summary, merge_fields):
                 logging.error(f"[build_summary_sheet] Параметры merge: поля={col_names}, ключи={dst_keys}->{src_keys}, mode={mode}")
                 summary = summary_before_merge.copy() if summary_before_merge is not None else pd.DataFrame(columns=SUMMARY_KEY_COLUMNS)  # Восстанавливаем исходный summary
 
-            logging.debug(f"[DEBUG build_summary_sheet] summary ПОСЛЕ merge: shape={summary.shape if summary is not None and isinstance(summary, pd.DataFrame) else "None"}")
+            logging.debug(f"[build_summary_sheet] summary ПОСЛЕ merge: shape={summary.shape if summary is not None and isinstance(summary, pd.DataFrame) else "None"}")
             if summary is not None and isinstance(summary, pd.DataFrame) and len(summary) > 0:
-                logging.debug(f"[DEBUG build_summary_sheet] summary ПОСЛЕ merge первые 3 строки:\n{summary.head(3).to_string()}")
+                logging.debug(f"[build_summary_sheet] summary ПОСЛЕ merge первые 3 строки:\n{summary.head(3).to_string()}")
             else:
-                logging.error(f"[DEBUG build_summary_sheet] ❌ КРИТИЧЕСКАЯ ОШИБКА: summary стал None или пустым после merge!")
+                logging.error(f"[build_summary_sheet] ❌ КРИТИЧЕСКАЯ ОШИБКА: summary стал None или пустым после merge!")
 
                 logging.warning(f"[build_summary_sheet] Восстановлен исходный summary ({len(summary)} строк) после None merge с {sheet_src}")
         except Exception as e:
@@ -3818,14 +3835,14 @@ def build_summary_sheet(dfs, params_summary, merge_fields):
             for debug_code in DEBUG_CODES:
                 debug_rows_after = summary[summary["CONTEST_CODE"] == debug_code]
                 if not debug_rows_after.empty:
-                    logging.info(f"[DEBUG SUMMARY] === После merge_fields из GROUP для CONTEST_CODE: {debug_code} ===")
-                    logging.info(f"[DEBUG SUMMARY] Строк в Summary: {len(debug_rows_after)}")
-                    logging.info(f"[DEBUG SUMMARY] GROUP_CODE: {debug_rows_after['GROUP_CODE'].unique().tolist()}")
-                    logging.info(f"[DEBUG SUMMARY] GROUP_VALUE: {debug_rows_after['GROUP_VALUE'].unique().tolist()}")
-                    logging.info("[DEBUG SUMMARY] Комбинации (GROUP_CODE, GROUP_VALUE):")
+                    logging.debug(f"[SUMMARY] === После merge_fields из GROUP для CONTEST_CODE: {debug_code} ===")
+                    logging.debug(f"[SUMMARY] Строк в Summary: {len(debug_rows_after)}")
+                    logging.debug(f"[SUMMARY] GROUP_CODE: {debug_rows_after['GROUP_CODE'].unique().tolist()}")
+                    logging.debug(f"[SUMMARY] GROUP_VALUE: {debug_rows_after['GROUP_VALUE'].unique().tolist()}")
+                    logging.debug("[SUMMARY] Комбинации (GROUP_CODE, GROUP_VALUE):")
                     for _, row in debug_rows_after.iterrows():
-                        logging.info(
-                            f"[DEBUG SUMMARY]   CONTEST={row.get('CONTEST_CODE', '')}, GROUP_CODE={row.get('GROUP_CODE', '')}, GROUP_VALUE={row.get('GROUP_VALUE', '')}"
+                        logging.debug(
+                            f"[SUMMARY]   CONTEST={row.get('CONTEST_CODE', '')}, GROUP_CODE={row.get('GROUP_CODE', '')}, GROUP_VALUE={row.get('GROUP_VALUE', '')}"
                         )
         
 
@@ -3894,7 +3911,7 @@ def process_single_file(file_conf):
                 logging.warning(f"[JSON FLATTEN] {sheet_name}: поле '{col}' не найдено в колонках! [поток: {th}]")
         
         # Для дебага: логируем итоговый список колонок после всех разворотов
-        logging.debug(f"[DEBUG] {sheet_name}: колонки после разворачивания: {', '.join(df.columns.tolist())} [поток: {th}]")
+        logging.debug(f"{sheet_name}: колонки после разворачивания: {', '.join(df.columns.tolist())} [поток: {th}]")
 
         logging.info(f"Файл успешно обработан: {sheet_name}, строк: {len(df)} [поток: {th}]")
         

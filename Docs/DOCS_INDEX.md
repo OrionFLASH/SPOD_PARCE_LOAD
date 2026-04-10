@@ -10,7 +10,7 @@
 - `SPOD_CONSISTENCY_CHECKS_SQL_MIRROR_PLAIN.sql` — та же логика SQL-зеркала, но без подробных комментариев (только исполняемый код).
 - `SPOD_CONSISTENCY_CHECKS_SQL_MIRROR.md` — отдельное подробное описание скрипта: структура CTE, полный перечень проверок и таблиц/полей, замены схемы и имён, формат вывода, исключения (field_format, json, csv).
 - `CONSISTENCY_SAMPLE_FORMAT.md` — актуальный формат поля `sample` по всем типам проверок.
-- `INPUT_ARCHIVE_SQLITE_DESIGN.md` — опциональный архив сырых входных CSV в SQLite (`config.input_archive_sqlite`, модули `src/input_archive_sqlite.py`, `src/archive_json_columns.py` — колонки **`JSON_*`** для **CONTEST-DATA** / **REWARD**, в т.ч. **`UPDATE`** при отсутствии нового снимка). Файл БД по умолчанию: **`OUT/DB/spod_input_archive.sqlite`** (см. **`db_path`** в `config.json`). В консоли и стартовом логе путь к БД выводится **полностью** (от корня проекта), отчёт по листам — **таблицей** (`console_ui.print_input_archive_sqlite_report`).
+- `INPUT_ARCHIVE_SQLITE_DESIGN.md` — опциональный архив сырых входных CSV в SQLite (`config.input_archive_sqlite`, модули `src/input_archive_sqlite.py`, `src/archive_json_columns.py` — колонки **`JSON_*`** для **CONTEST-DATA** / **REWARD**, в т.ч. **`UPDATE`** при отсутствии нового снимка). Логика SHA: согласование **`archive_file_inventory`** и **`source_sha256`** у **latest**-снимка; условия «дозаписи SHA» без нового ingest. Файл БД по умолчанию: **`OUT/DB/spod_input_archive.sqlite`**. В консоли и стартовом логе путь к БД — полностью от корня проекта; отчёт по листам — **`console_ui.print_input_archive_sqlite_report`**.
 - `АНАЛИЗ_ПРОВЕРОК_КОНСИСТЕНТНОСТИ.md` — аналитика покрытия проверок и предложения по расширению.
 
 ## Консолидированные исторические документы

@@ -100,7 +100,7 @@ class FileLoader:
             for col in df.columns:
                 if "FEATURE" in col or "ADD_DATA" in col:
                     logging.debug(
-                        f"[DEBUG] CSV {file_path} поле {col}: {df[col].dropna().head(2).to_list()}"
+                        f"CSV {file_path} поле {col}: {df[col].dropna().head(2).to_list()}"
                     )
             logging.info(
                 f"Файл успешно загружен: {file_path}, строк: {len(df)}, колонок: {len(df.columns)}"
@@ -167,7 +167,7 @@ class FileLoader:
                         f"[JSON FLATTEN] {sheet_name}: поле '{col}' не найдено в колонках! [поток: {th}]"
                     )
             logging.debug(
-                f"[DEBUG] {sheet_name}: колонки после разворачивания: {', '.join(df.columns.tolist())} [поток: {th}]"
+                f"{sheet_name}: колонки после разворачивания: {', '.join(df.columns.tolist())} [поток: {th}]"
             )
             logging.info(f"Файл успешно обработан: {sheet_name}, строк: {len(df)} [поток: {th}]")
             return df, sheet_name, file_conf

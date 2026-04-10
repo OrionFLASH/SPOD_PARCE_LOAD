@@ -291,6 +291,19 @@ def _hash_file(path: str) -> str:
     return sha.hexdigest()
 
 
+def _normalize_sha256_hex(value: Optional[Any]) -> Optional[str]:
+    """
+    Приводит сохранённый в БД SHA-256 к виду для сравнения: без пробелов, нижний регистр.
+    Пустая строка и нестроковые значения трактуются как «хеша нет».
+    """
+    if value is None:
+        return None
+    s = str(value).strip().lower()
+    if not s:
+        return None
+    return s
+
+
 def _file_stat(path: str) -> Tuple[float, int]:
     """mtime (float), size_bytes."""
     st = os.stat(path)
@@ -535,7 +548,10 @@ def run_input_archive_sqlite(
 
     Решение о новом снимке:
     - при use_sha256_for_identity=true: если размер, число строк и колонок как в inventory —
-      сравнивается SHA-256 файла; совпадение → без новых строк в arch_*;
+      сравнивается SHA-256 файла; совпадение с inventory **и** с latest-снимком (если там уже есть SHA) → без новых строк;
+      если inventory и файл совпадают, а у latest другой source_sha256 — выполняется новый снимок (рассинхрон);
+      если в inventory пустой last_content_sha256, но у снимка уже записан SHA и он **не** совпадает с файлом —
+      делается полный ingest, а не «тихая» дозапись хеша.
     - при false: как раньше — размер, строки, колонки и mtime.
     - при reuse_matching_historical_snapshot=true и режиме SHA: перед INSERT ищется **любой** снимок с тем же
       хешем; если это не текущий latest — снимок **реактивируется** (без дублирования строк в arch_*).
@@ -785,21 +801,176 @@ def run_input_archive_sqlite(
             elif quick_changed:
                 skip_ingest = False
             else:
+                # Считаем SHA файла на диске и сравниваем с inventory и с latest-снимком.
+                # Раньше при last_content_sha256 IS NULL всегда делалась «дозапись SHA» и continue — без проверки,
+                # совпадает ли файл с source_sha256 у текущего снимка. При смене содержимого CSV без смены
+                # числа строк/колонок это давало ложное «всё ок» и не писало новые строки в arch_*.
                 content_hash = _hash_file(file_path)
-                prev_h = inv["last_content_sha256"]
-                if prev_h is not None and str(prev_h) == content_hash:
-                    skip_ingest = True
-                elif prev_h is None:
+                ch = _normalize_sha256_hex(content_hash)
+                prev_raw = inv["last_content_sha256"]
+                prev_n = _normalize_sha256_hex(prev_raw)
+
+                latest_row = _get_latest_snapshot(cur, sheet_name, fn, subdir)
+                latest_raw = latest_row["source_sha256"] if latest_row else None
+                latest_n = _normalize_sha256_hex(latest_raw)
+
+                if prev_raw is None or prev_n is None:
+                    sid_bf = inv["latest_snapshot_id"]
+                    meta_sha_n: Optional[str] = None
+                    if sid_bf is not None:
+                        cur.execute(
+                            f"SELECT source_sha256 FROM {META_TABLE} WHERE id = ?",
+                            (int(sid_bf),),
+                        )
+                        rbf = cur.fetchone()
+                        if rbf is not None and rbf[0] is not None:
+                            meta_sha_n = _normalize_sha256_hex(rbf[0])
+                    if meta_sha_n is not None and ch is not None and meta_sha_n != ch:
+                        # У снимка уже есть отпечаток, но байты файла на диске другие — нужен полный ingest.
+                        skip_ingest = False
+                    else:
+                        cur.execute(
+                            f"""
+                            UPDATE {INVENTORY_TABLE}
+                            SET last_content_sha256 = ?, last_checked_at = ?,
+                                resolved_path_last = ?, last_source_mtime = ?,
+                                last_source_size = ?, last_source_row_count = ?, last_source_col_count = ?
+                            WHERE sheet_name = ? AND file_name = ? AND subdir = ?
+                            """,
+                            (
+                                content_hash,
+                                checked_at,
+                                file_path,
+                                mtime,
+                                size,
+                                row_count,
+                                col_count,
+                                sheet_name,
+                                fn,
+                                subdir,
+                            ),
+                        )
+                        sid = inv["latest_snapshot_id"]
+                        if sid is not None:
+                            cur.execute(
+                                f"""
+                                UPDATE {META_TABLE}
+                                SET source_sha256 = ?, actuality_checked_at = ?,
+                                    source_col_count = ?, resolved_path = ?,
+                                    source_mtime = ?, source_size = ?, source_row_count = ?
+                                WHERE id = ?
+                                """,
+                                (
+                                    content_hash,
+                                    checked_at,
+                                    col_count,
+                                    file_path,
+                                    mtime,
+                                    size,
+                                    row_count,
+                                    int(sid),
+                                ),
+                            )
+                        stats["sha_backfill"] += 1
+                        _log_archive_event(
+                            log_mode,
+                            f"[archive_sqlite] Дозаписан SHA-256 без нового снимка: {sheet_name} / {fn}",
+                            f"size={size}, rows={row_count}, cols={col_count}, mtime={mtime}",
+                            f"sha256={content_hash}" if content_hash else None,
+                        )
+                        events.append(
+                            {
+                                "sheet": sheet_name,
+                                "file": fn,
+                                "subdir": subdir,
+                                "kind": "sha_backfill",
+                                "label": "обновлён хеш, строки не дублировались",
+                                "rows": row_count,
+                                "size": size,
+                                "snapshot_id": int(sid) if sid is not None else None,
+                                "sha16": (content_hash or "")[:16] if content_hash else None,
+                                "extra": "",
+                            }
+                        )
+                        if sid is not None and json_flat_cols:
+                            _sync_arch_json_flat_columns(
+                                cur,
+                                table,
+                                snap_c,
+                                row_c,
+                                int(sid),
+                                json_flat_cols,
+                                json_row_maps,
+                            )
+                        conn.commit()
+                        continue
+                else:
+                    inv_match = ch is not None and prev_n == ch
+                    lat_match = ch is not None and latest_n is not None and latest_n == ch
+                    lat_conflict = (
+                        ch is not None
+                        and latest_n is not None
+                        and latest_n != ch
+                    )
+                    if inv_match and (lat_match or latest_n is None):
+                        skip_ingest = True
+                    elif inv_match and lat_conflict:
+                        logging.warning(
+                            "[archive_sqlite] Расхождение SHA: inventory и файл совпадают, "
+                            "но latest-снимок id=%s хранит другой source_sha256; будет записан новый снимок.",
+                            int(latest_row["id"]) if latest_row else -1,
+                        )
+                        skip_ingest = False
+                    elif (not inv_match) and lat_match:
+                        logging.info(
+                            "[archive_sqlite] Синхронизация inventory: файл совпадает с latest-снимком, "
+                            "исправляем last_content_sha256 без нового ingest (%s / %s).",
+                            sheet_name,
+                            fn,
+                        )
+                        skip_ingest = True
+                    else:
+                        skip_ingest = False
+
+            if skip_ingest and inv is not None:
+                # При режиме SHA обновляем last_content_sha256, чтобы устранить расхождение с latest/файлом.
+                if use_sha256 and content_hash is not None:
                     cur.execute(
                         f"""
                         UPDATE {INVENTORY_TABLE}
-                        SET last_content_sha256 = ?, last_checked_at = ?,
-                            resolved_path_last = ?, last_source_mtime = ?,
-                            last_source_size = ?, last_source_row_count = ?, last_source_col_count = ?
+                        SET last_checked_at = ?,
+                            total_skips_same_content = total_skips_same_content + 1,
+                            resolved_path_last = ?,
+                            last_source_mtime = ?, last_source_size = ?,
+                            last_source_row_count = ?, last_source_col_count = ?,
+                            last_content_sha256 = ?
                         WHERE sheet_name = ? AND file_name = ? AND subdir = ?
                         """,
                         (
+                            checked_at,
+                            file_path,
+                            mtime,
+                            size,
+                            row_count,
+                            col_count,
                             content_hash,
+                            sheet_name,
+                            fn,
+                            subdir,
+                        ),
+                    )
+                else:
+                    cur.execute(
+                        f"""
+                        UPDATE {INVENTORY_TABLE}
+                        SET last_checked_at = ?,
+                            total_skips_same_content = total_skips_same_content + 1,
+                            resolved_path_last = ?,
+                            last_source_mtime = ?, last_source_size = ?,
+                            last_source_row_count = ?, last_source_col_count = ?
+                        WHERE sheet_name = ? AND file_name = ? AND subdir = ?
+                        """,
+                        (
                             checked_at,
                             file_path,
                             mtime,
@@ -811,104 +982,47 @@ def run_input_archive_sqlite(
                             subdir,
                         ),
                     )
-                    sid = inv["latest_snapshot_id"]
-                    if sid is not None:
+                sid = inv["latest_snapshot_id"]
+                if sid is not None:
+                    if use_sha256 and content_hash is not None:
                         cur.execute(
                             f"""
                             UPDATE {META_TABLE}
-                            SET source_sha256 = ?, actuality_checked_at = ?,
-                                source_col_count = ?, resolved_path = ?,
-                                source_mtime = ?, source_size = ?, source_row_count = ?
+                            SET actuality_checked_at = ?, resolved_path = ?,
+                                source_mtime = ?, source_size = ?, source_row_count = ?,
+                                source_col_count = ?, source_sha256 = ?
                             WHERE id = ?
                             """,
                             (
-                                content_hash,
                                 checked_at,
-                                col_count,
                                 file_path,
                                 mtime,
                                 size,
                                 row_count,
+                                col_count,
+                                content_hash,
                                 int(sid),
                             ),
                         )
-                    stats["sha_backfill"] += 1
-                    _log_archive_event(
-                        log_mode,
-                        f"[archive_sqlite] Дозаписан SHA-256 без нового снимка: {sheet_name} / {fn}",
-                        f"size={size}, rows={row_count}, cols={col_count}, mtime={mtime}",
-                        f"sha256={content_hash}" if content_hash else None,
-                    )
-                    events.append(
-                        {
-                            "sheet": sheet_name,
-                            "file": fn,
-                            "subdir": subdir,
-                            "kind": "sha_backfill",
-                            "label": "обновлён хеш, строки не дублировались",
-                            "rows": row_count,
-                            "size": size,
-                            "snapshot_id": int(sid) if sid is not None else None,
-                            "sha16": (content_hash or "")[:16] if content_hash else None,
-                            "extra": "",
-                        }
-                    )
-                    if sid is not None and json_flat_cols:
-                        _sync_arch_json_flat_columns(
-                            cur,
-                            table,
-                            snap_c,
-                            row_c,
-                            int(sid),
-                            json_flat_cols,
-                            json_row_maps,
+                    else:
+                        cur.execute(
+                            f"""
+                            UPDATE {META_TABLE}
+                            SET actuality_checked_at = ?, resolved_path = ?,
+                                source_mtime = ?, source_size = ?, source_row_count = ?,
+                                source_col_count = ?
+                            WHERE id = ?
+                            """,
+                            (
+                                checked_at,
+                                file_path,
+                                mtime,
+                                size,
+                                row_count,
+                                col_count,
+                                int(sid),
+                            ),
                         )
-                    conn.commit()
-                    continue
-
-            if skip_ingest and inv is not None:
-                cur.execute(
-                    f"""
-                    UPDATE {INVENTORY_TABLE}
-                    SET last_checked_at = ?,
-                        total_skips_same_content = total_skips_same_content + 1,
-                        resolved_path_last = ?,
-                        last_source_mtime = ?, last_source_size = ?,
-                        last_source_row_count = ?, last_source_col_count = ?
-                    WHERE sheet_name = ? AND file_name = ? AND subdir = ?
-                    """,
-                    (
-                        checked_at,
-                        file_path,
-                        mtime,
-                        size,
-                        row_count,
-                        col_count,
-                        sheet_name,
-                        fn,
-                        subdir,
-                    ),
-                )
-                sid = inv["latest_snapshot_id"]
-                if sid is not None:
-                    cur.execute(
-                        f"""
-                        UPDATE {META_TABLE}
-                        SET actuality_checked_at = ?, resolved_path = ?,
-                            source_mtime = ?, source_size = ?, source_row_count = ?,
-                            source_col_count = ?
-                        WHERE id = ?
-                        """,
-                        (
-                            checked_at,
-                            file_path,
-                            mtime,
-                            size,
-                            row_count,
-                            col_count,
-                            int(sid),
-                        ),
-                    )
                 skips = int(inv["total_skips_same_content"]) + 1
                 stats["unchanged"] += 1
                 same_by = "SHA-256" if use_sha256 and content_hash is not None else "метаданные (размер/строки/колонки/mtime)"

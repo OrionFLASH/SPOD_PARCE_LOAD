@@ -41,7 +41,7 @@ SPOD_PROM/
 │   ├── json_utils.py      # Разбор и разворот JSON-полей
 │   ├── json_spod_format_check.py  # Проверка формата SPOD-JSON в ячейках (consistency_checks: json_spod_format)
 │   ├── archive_json_columns.py  # Архив SQLite: колонки JSON_* из CONTEST_FEATURE / REWARD_ADD_DATA
-│   ├── input_archive_sqlite.py   # Архив сырых CSV в SQLite (снимки, дедуп, JSON_* для CONTEST/REWARD)
+│   ├── input_archive_sqlite.py   # Архив сырых CSV в SQLite (снимки, дедуп по SHA/mtime, согласование inventory/latest, JSON_*)
 │   ├── reward_getcondition_summary.py  # Сводная колонка по getCondition на листе REWARD
 │   ├── file_loader.py     # Класс FileLoader — поиск/чтение CSV, разворот JSON
 │   ├── tournament.py      # Расчёт статуса турнира (CALC_TOURNAMENT_STATUS)
@@ -91,13 +91,14 @@ SPOD_PROM/
 |--------|------------|-------------------|
 | **config_loader.py** | Загрузка и хранение настроек из config.json | Класс `Config`: атрибуты `dir_input`, `dir_output`, `dir_logs`, `input_files`, `run_outputs`, `run_source_only_exit`, `run_write_source`, `run_write_main`, `run_write_consistency_file`, `run_consistency_early`, `run_mode` (число 1–4 для логов), **`parse_run_outputs_config`**, остальные поля как прежде; метод `get_output_filename()`. |
 | **config_holder.py** | Внедрение текущего конфига для кода, работающего с глобальными переменными | `set_current_config(config)`, `get_current_config()`. |
-| **logging_setup.py** | Настройка логирования | Класс `CallerFormatter` (добавляет имя функции в сообщение); функция `setup_logger(config)` — путь к лог-файлу; уровень файла из конфига (обычно DEBUG). В **`main_impl`** после настройки консольный поток поднимается до **WARNING**, чтобы **INFO** шёл в файл; краткий ход — **`console_ui`**. |
+| **logging_setup.py** | Настройка логирования | Класс `CallerFormatter` (добавляет имя вызывающей функции в текст сообщения); **`_logging_level_from_config`**, **`setup_logger(config)`** — путь к лог-файлу; **уровень записи в файл** = **`logging.level`** из **config.json** (при **INFO** в файл не попадают строки **DEBUG**). В **`main_impl.setup_logger()`** — то же для файла; консольный handler — **WARNING** и выше; краткий ход — **`console_ui`**. |
 | **json_utils.py** | Разбор и разворот JSON-полей в DataFrame | `safe_json_loads(s)` — парсинг строки в JSON с поправкой типичных ошибок; `safe_json_loads_preserve_triple_quotes(s)`; `flatten_json_column_recursive(df, column, prefix=..., sheet=..., sep=..., max_workers_io=...)` — рекурсивный разворот колонки в несколько колонок, при большом объёме — параллельно. |
 | **reward_getcondition_summary.py** | Сводный текст по кодам getCondition на листе REWARD | `add_reward_getcondition_summary_column(df_reward, prefix=..., column_name=...)` — после разворота JSON и merge; строки вида `[код] FULL_NAME {seasonItem}`. |
 | **reward_item_catalog.py** | Каталог ITEM из **`REWARD_ADD_DATA`** и проверка доступности товара менеджеру | `build_item_catalog_from_reward_df`, `rules_for_matrix_column`, `item_accessible_for_manager` — для раскраски матрицы на **RATING**; учёт массива **`ignoreConditions`** (табельные «всегда доступно»). |
 | **rating_item_matrix.py** | Колонки-счётчики по ORDER и подсветка доступности ITEM на **RATING** | `apply_rating_item_matrix_enrichment`, `apply_rating_item_matrix_colors` — светло-зелёный / светло-красный по полным критериям из JSON и листов **ORDER** / **LIST-REWARDS**; передача табельного в **`item_accessible_for_manager`**. |
 | **json_spod_format_check.py** | Валидация SPOD-JSON: BOM/Unicode-пробелы вне **`"""…"""`**, симметрия внешних кавычек, рекурсивный разбор **со сбором всех** структурных ошибок в ячейке; **`""key""`**, JSON- и **`""значение""`** у строки, лишние **`{}`** в массиве; **`numeric_value_keys`**; нормализация и **json.loads**; **короткие** строки (путь + суть), лимиты **`_MAX_STRUCTURE_ERRORS`** / **`_MAX_CELL_ERROR_LEN`** | `validate_spod_json_cell`, `run_json_spod_format_check` — из **`consistency_checks`**, **`type: "json_spod_format"`**. |
 | **file_loader.py** | Поиск и загрузка CSV, разворот JSON по конфигу | Класс `FileLoader(config)`: `find_file_case_insensitive(directory, base_name, extensions)`, `check_input_files_exist()`, `read_csv_file(file_path)`, `process_single_file(file_conf)` — возвращает `(df, sheet_name, file_conf)` или `(None, sheet_name, None)`. |
+| **archive_json_columns.py**, **input_archive_sqlite.py** | Опциональный архив сырых входных CSV в SQLite (**`input_archive_sqlite`** в config) | **`archive_json_columns`**: план и синхронизация колонок **JSON_*** для **CONTEST_FEATURE** / **REWARD_ADD_DATA**. **`input_archive_sqlite`**: `run_input_archive_sqlite`, `merge_archive_config`, **`_hash_file`**, **`_normalize_sha256_hex`** (единый формат сравнения SHA из БД и с диска), решение о новом снимке с учётом **inventory** и **latest** в **`archive_file_snapshot`** (в т.ч. без ложной «дозаписи SHA» при смене содержимого при тех же размерах). Подробно: **`Docs/INPUT_ARCHIVE_SQLITE_DESIGN.md`**. |
 | **tournament.py** | Расчёт статуса турнира по датам | `calculate_tournament_status(config, df_tournament, df_report=None)` — добавляет колонку `CALC_TOURNAMENT_STATUS` по правилам из `config.tournament_status_choices`. |
 | **validation.py** | Валидация длины полей и проверка дубликатов (устаревшие пути) | `validate_field_lengths(config, df, sheet_name)`, `validate_field_lengths_vectorized(config, df, sheet_name)`, `compare_validate_results`, `mark_duplicates`, `validate_single_sheet`, `check_duplicates_single_sheet`. Основной пайплайн больше не использует отдельные шаги проверки дубликатов и длины полей — всё выполняется в **consistency_checks**. |
 | **consistency_checks.py** | Проверки консистентности (unique, field_length, field_format, referential, referential_composite с фильтрами строк, json_*, **json_spod_format**) | Выполняет правила из `consistency_checks.rules` **с параллелизацией** (ThreadPoolExecutor). **Фаза 1** — создаёт на листах колонки `unique`, `field_length`, `field_format`, json_field_*; **Фаза 2** — referential/referential_composite, **json_spod_format**, сбор результатов. Правила с **`enabled: false`** не выполняются, но строка в своде **CONSISTENCY** всё равно создаётся (**total_rows**, **violations=0**, текст в **sample**). Парсинг JSON в ячейках: **`_parse_add_data_cell`**, **`_parse_add_data_cell_with_normalized`**. Свод **CONSISTENCY** и **csv_columns_count** — как раньше. См. **`Docs/CONSISTENCY_CHECKS_FORMAT.md`** (п. 2.2 — фильтры **src_row_conditions** / **ref_row_conditions**, п. 2.8 — **json_spod_format**). |
@@ -892,7 +893,7 @@ set_current_config(config)           # Внедрение для main_impl
 main_impl.main()                     # Запуск пайплайна
 ```
 
-Внутри `main_impl.main()` сначала вызывается `_load_config_globals()` — глобальные переменные (DIR_INPUT, INPUT_FILES, MERGE_FIELDS_ADVANCED, SOURCE_EXPORT_SORT и т.д.) заполняются из внедрённого Config. Затем настраивается логирование (`setup_logger()` — использует `logging.level` и `logging.base_name` из конфига): в **файл** — уровень из конфига (как правило **DEBUG**); для **консоли** в **main_impl** уровень поднимается до **WARNING**, чтобы не дублировать длинный **INFO** в терминал — ход работы показывает **`console_ui`**.
+Внутри `main_impl.main()` сначала вызывается `_load_config_globals()` — глобальные переменные (DIR_INPUT, INPUT_FILES, MERGE_FIELDS_ADVANCED, SOURCE_EXPORT_SORT и т.д.) заполняются из внедрённого Config. Затем настраивается логирование (`setup_logger()` — использует `logging.level` и `logging.base_name` из конфига): в **файл** — минимальный уровень = **`logging.level`** (например **INFO**: в файл пишутся только **INFO** и выше, без **DEBUG**; для полного **DEBUG** в файле задайте в config **`"level": "DEBUG"`**); для **консоли** в **main_impl** — **WARNING** и выше, ход работы показывает **`console_ui`**.
 
 #### 2. Чтение CSV файлов
 
@@ -990,17 +991,18 @@ def write_to_excel(sheets_data, output_path):
 
 Программа разделяет потоки вывода **main**:
 
-1. **Файл лога** (уровень из **config.json** → `logging.level`, обычно **DEBUG**):
-   - Полный ход: чтение/запись, этапы, **INFO**-итоги, **DEBUG**-детали (в т.ч. `[PERF]`, прогресс длины полей).
-   - Формат: `дата время - [DEBUG] - сообщение [class: ClassName | def: function_name]` (см. `logging_setup`).
+1. **Файл лога** — минимальный уровень из **config.json** → **`logging.level`** (часто **INFO**):
+   - При **INFO**: в файл попадают **INFO**, **WARNING**, **ERROR**; строк **DEBUG** нет (уровень файлового handler совпадает с конфигом).
+   - При **DEBUG**: дополнительно детали (в т.ч. **`[PERF]`** из **`debug_timing`**, подробные сообщения merge/summary и т.д.).
+   - Формат строки в файле ( **`main_impl` / `CallerFormatter`** ): `YYYY-MM-DD HH:MM:SS | УРОВЕНЬ | текст [def: имя_функции]`.
 
 2. **Консоль (stdout)** для **main_impl**:
    - Обработчик логгера — **WARNING** и выше (предупреждения и ошибки из `logging`).
    - Обычный **INFO** в терминал **не** дублируется; вместо этого — модуль **`console_ui`** (см. п. 8).
 
 **Именование логов:**
-- Формат: `LOGS_DEBUG_YYYYMMDD_HH_MM.log`
-- Расположение: `LOGS/YYYY/DD-MM/` (подпапки по дате, как для OUT)
+- Шаблон имени: **`{logging.base_name}_{logging.level}_YYYYMMDD_HH_MM.log`** (например **`LOGS_INFO_20260410_14_30.log`** при **`base_name`: `LOGS`**, **`level`: `INFO`**).
+- Расположение: **`LOGS/YYYY/DD-MM/`** (как для **OUT**).
 
 ---
 
@@ -1024,9 +1026,9 @@ def write_to_excel(sheets_data, output_path):
    - Сохранение всех исходных данных
 
 4. **Логирование:**
-   - DEBUG/INFO в файл (уровень из конфига)
+   - В файл — сообщения не ниже уровня **`logging.level`** в **config.json** (**INFO** по умолчанию: без **DEBUG** в файле; для полного **DEBUG** задать **`"level": "DEBUG"`**)
    - Краткий ход в консоль через **console_ui**; сообщения **logging** в консоль — **WARNING** и выше
-   - Формат с указанием функции в файле
+   - В файле — формат с временем, уровнем и именем функции (**`CallerFormatter`**)
 
 ---
 
@@ -1125,16 +1127,18 @@ python main.py
 
 ### Формат логов
 
-**DEBUG уровень (в файл)** — пример строки (формат задаётся в `logging_setup`):
+Пример строки **в файле** при запуске через **`main.py`** (**`main_impl`**, форматтер **`CallerFormatter`**):
 ```
-2025-11-14 03:02:51,034 - [DEBUG] - Загрузка файла CONTEST-DATA [class: FileLoader | def: read_csv_file]
+2026-04-10 14:30:01 | INFO | Файл успешно обработан: CONTEST-DATA, строк: 200 [поток: ThreadPoolExecutor-0_0] [def: process_single_file]
 ```
 
-Для **`main.py` / main_impl** подробный **INFO/DEBUG** пишется **в файл**; в **терминал** обычный **INFO** из `logging` **не** дублируется (консольный handler — **WARNING+**, краткий ход пайплайна — **`console_ui`**).
+Уровень в колонке **`УРОВЕНЬ`** соответствует реальному уровню записи. Текст сообщения **не** дублирует слово «DEBUG» искусственно: отладочные сообщения идут с уровнем **`DEBUG`** и при **`logging.level`: `INFO`** в файл **не** попадают.
+
+Для **`main.py` / main_impl** сообщения **`INFO`** и выше (в пределах выбранного **`logging.level`**) пишутся **в файл**; в **терминал** из `logging` идут **WARNING** и выше; краткий ход пайплайна — **`console_ui`**.
 
 ### Именование файлов логов
 
-- `main.py`: `LOGS_DEBUG_YYYYMMDD_HH_MM.log` (каталог и шаблон задаются в конфиге, см. **`paths.logs`**).
+- **`main.py`**: **`{base_name}_{level}_YYYYMMDD_HH_MM.log`** в **`paths.logs/YYYY/DD-MM/`** ( **`base_name`** и **`level`** — из **`logging`** в **config.json**).
 
 ### Расположение
 
@@ -1142,11 +1146,17 @@ python main.py
 
 ### Профилирование в DEBUG (`[PERF]`)
 
-Модуль **`src/debug_timing.py`**: после старта пайплайна в лог-файл пишутся строки **`[PERF]`** — вход/выход отмеченных функций (время вызова, накопленная сумма по функции, номер вызова за прогон), крупные **фазы** пайплайна (`debug_phase`), при завершении процесса — **сводная таблица** по всем функциям (вызовы, сумма/среднее/min/max, пометка `hot` для частых вызовов). Краткий **топ** по времени и этапы дублируются в **консоли** через **`console_ui`** (итог прогона); на **stdout** обработчик логгера — только **WARNING** и выше, подробный **INFO/DEBUG** — в лог-файл. Дополнительно **`write_performance_statistics_excel`** записывает отдельный файл **`STAT_FILE <таймштамп>.xlsx`** (см. раздел 7 пайплайна).
+Модуль **`src/debug_timing.py`**: строки **`[PERF]`** имеют уровень **DEBUG** — в лог-файл они попадают только если в **config.json** задано **`logging.level`: `DEBUG`**. При **INFO** в файле остаётся сводка этапов/времени через **`console_ui`**. При **DEBUG** дополнительно: вход/выход отмеченных функций, фазы **`debug_phase`**, итоговая таблица по функциям; краткий **топ** и этапы — в **консоли** (**`console_ui`**). Отдельно **`write_performance_statistics_excel`** пишет **`STAT_FILE <таймштамп>.xlsx`** (раздел 7 пайплайна).
 
 ---
 
 ## История версий
+
+### Версия 1.7.42 — Архив SQLite: согласование SHA и inventory/latest; логирование по уровню конфига
+
+- **`src/input_archive_sqlite.py`**: функция **`_normalize_sha256_hex`** — нормализация SHA из БД и с диска для сравнения. Исправлена ветка **`last_content_sha256 IS NULL`**: если у текущего снимка уже есть **`source_sha256`** и он **не совпадает** с хешем файла на диске, выполняется **полный ingest**, а не только дозапись хеша в метаданные (иначе при неизменных числе строк/колонок и размере данные в **`arch_*`** могли не обновляться). Пропуск ingest по SHA учитывает согласованность **inventory** и **latest**-снимка; при расхождении — предупреждение и новый снимок или синхронизация **`last_content_sha256`** без ingest; при пропуске обновляются **`last_content_sha256`** / **`source_sha256`**.
+- **Логирование**: **`main_impl.setup_logger`** и **`logging_setup.setup_logger`** выставляют уровень **файлового** handler из **`logging.level`** (при **INFO** в файл не пишутся записи **DEBUG**). Убраны вводящие в заблуждение префиксы **`[DEBUG]`** в текстах при уровне **INFO**; трассировки **GROUP/SUMMARY** переведены на **`logging.debug`** с тегами **`[GROUP]`** / **`[SUMMARY]`**.
+- **Документация**: **`Docs/INPUT_ARCHIVE_SQLITE_DESIGN.md`** (дозапись SHA, согласованность inventory/latest); **README** (таблица модулей, разделы «Логирование», ТЗ, **`[PERF]`** при **INFO** vs **DEBUG**).
 
 ### Версия 1.7.41 — POST: перечень файлов в инструкции; уточнение README
 
