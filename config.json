@@ -58,7 +58,7 @@
   ],
   "input_files": [
     {
-      "file": "CONTEST (PROM) 08-04 v4.csv",
+      "file": "CONTEST (PROM) 09-04 v1.csv",
       "sheet": "CONTEST-DATA",
       "subdir": "SPOD",
       "archive_to_db": true,
@@ -76,7 +76,7 @@
       "archive_db_path": "OUT/DB/spod_input_archive.sqlite"
     },
     {
-      "file": "GROUP (PROM) 07-04 v0.csv",
+      "file": "GROUP (PROM) 09-04 v1.csv",
       "sheet": "GROUP",
       "subdir": "SPOD",
       "archive_to_db": true,
@@ -102,7 +102,7 @@
       "archive_db_path": "OUT/DB/spod_input_archive.sqlite"
     },
     {
-      "file": "INDICATOR (PROM) 08-04 v3.csv",
+      "file": "INDICATOR (PROM) 09-04 v1.csv",
       "sheet": "INDICATOR",
       "subdir": "SPOD",
       "archive_to_db": true,
@@ -128,7 +128,7 @@
       "archive_db_path": "OUT/DB/spod_input_archive.sqlite"
     },
     {
-      "file": "REPORT (PROM) 07-04 v0.csv",
+      "file": "REPORT (PROM) 09-04 v1.csv",
       "sheet": "REPORT",
       "subdir": "SPOD",
       "archive_to_db": true,
@@ -146,7 +146,7 @@
       "archive_db_path": "OUT/DB/spod_input_archive.sqlite"
     },
     {
-      "file": "REWARD (PROM) 08-04 v2.csv",
+      "file": "REWARD (PROM) 09-04 v1.csv",
       "sheet": "REWARD",
       "subdir": "SPOD",
       "archive_to_db": true,
@@ -168,7 +168,7 @@
       "archive_db_path": "OUT/DB/spod_input_archive.sqlite"
     },
     {
-      "file": "REWARD-LINK (PROM) 08-04 v0.csv",
+      "file": "REWARD-LINK (PROM) 09-04 v1.csv",
       "sheet": "REWARD-LINK",
       "subdir": "SPOD",
       "archive_to_db": true,
@@ -190,7 +190,7 @@
       "archive_db_path": "OUT/DB/spod_input_archive.sqlite"
     },
     {
-      "file": "SCHEDULE (PROM) 07-04 v0.csv",
+      "file": "SCHEDULE (PROM) 09-04 v1.csv",
       "sheet": "TOURNAMENT-SCHEDULE",
       "subdir": "SPOD",
       "archive_to_db": true,
@@ -234,7 +234,7 @@
       "archive_db_path": "OUT/DB/spod_input_archive.sqlite"
     },
     {
-      "file": "USER_ROLE (PROM) 06-04 v1.csv",
+      "file": "USER_ROLE (PROM) 09-04 v0.csv",
       "sheet": "USER_ROLE",
       "subdir": "SPOD",
       "archive_to_db": true,
@@ -252,7 +252,7 @@
       "archive_db_path": "OUT/DB/spod_input_archive.sqlite"
     },
     {
-      "file": "USER_ROLE_SB (PROM) 06-04 v1.csv",
+      "file": "USER_ROLE_SB (PROM) 09-04 v0.csv",
       "sheet": "USER_ROLE SB",
       "subdir": "SPOD",
       "archive_to_db": true,
@@ -327,7 +327,7 @@
       "archive_db_path": "OUT/DB/spod_gamification_archive.sqlite"
     },
     {
-      "file": "gamification-ratingList 2KM.csv",
+      "file": "gamification-ratingList_KMKKSB_SEASON_2025_2.csv",
       "sheet": "RATING_2025_2 (KMKKSB)",
       "subdir": "FILE",
       "aggregate_into_sheet": "RATING",
@@ -341,7 +341,7 @@
       "archive_db_path": "OUT/DB/spod_gamification_archive.sqlite"
     },
     {
-      "file": "gamification-ratingList 2MNS.csv",
+      "file": "gamification-ratingList_MNS_SEASON_m_2025_2.csv",
       "sheet": "RATING_2025_2 (MNS)",
       "subdir": "FILE",
       "aggregate_into_sheet": "RATING",
@@ -355,7 +355,63 @@
       "archive_db_path": "OUT/DB/spod_gamification_archive.sqlite"
     },
     {
-      "file": "gamification-ratingList KM.csv",
+      "file": "gamification-ratingList_KMKKSB_SEASON_2024.csv",
+      "sheet": "RATING_2024 (KMKKSB)",
+      "subdir": "FILE",
+      "aggregate_into_sheet": "RATING",
+      "archive_to_db": true,
+      "sort_columns": [],
+      "max_col_width": 80,
+      "freeze": "D2",
+      "col_width_mode": "AUTO",
+      "min_col_width": 12,
+      "include_in_source": false,
+      "archive_db_path": "OUT/DB/spod_gamification_archive.sqlite"
+    },
+    {
+      "file": "gamification-ratingList_MNS_SEASON_m_2024.csv",
+      "sheet": "RATING_2024 (MNS)",
+      "subdir": "FILE",
+      "aggregate_into_sheet": "RATING",
+      "archive_to_db": true,
+      "sort_columns": [],
+      "max_col_width": 80,
+      "freeze": "D2",
+      "col_width_mode": "AUTO",
+      "min_col_width": 12,
+      "include_in_source": false,
+      "archive_db_path": "OUT/DB/spod_gamification_archive.sqlite"
+    },
+    {
+      "file": "gamification-ratingList_KMKKSB_SEASON_2025_1.csv",
+      "sheet": "RATING_2025_1 (KMKKSB)",
+      "subdir": "FILE",
+      "aggregate_into_sheet": "RATING",
+      "archive_to_db": true,
+      "sort_columns": [],
+      "max_col_width": 80,
+      "freeze": "D2",
+      "col_width_mode": "AUTO",
+      "min_col_width": 12,
+      "include_in_source": false,
+      "archive_db_path": "OUT/DB/spod_gamification_archive.sqlite"
+    },
+    {
+      "file": "gamification-ratingList_MNS_SEASON_m_2025_1.csv",
+      "sheet": "RATING_2025_1 (MNS)",
+      "subdir": "FILE",
+      "aggregate_into_sheet": "RATING",
+      "archive_to_db": true,
+      "sort_columns": [],
+      "max_col_width": 80,
+      "freeze": "D2",
+      "col_width_mode": "AUTO",
+      "min_col_width": 12,
+      "include_in_source": false,
+      "archive_db_path": "OUT/DB/spod_gamification_archive.sqlite"
+    },
+    {
+      "file": "gamification-ratingList_KMKKSB_ACTIVESEASON.csv",
       "sheet": "RATING_2026_1 (KMKKSB)",
       "subdir": "FILE",
       "aggregate_into_sheet": "RATING",
@@ -369,7 +425,21 @@
       "archive_db_path": "OUT/DB/spod_gamification_archive.sqlite"
     },
     {
-      "file": "gamification-ratingList AllKM.csv",
+      "file": "gamification-ratingList_MNS_ACTIVESEASON.csv",
+      "sheet": "RATING_2026_1 (MNS)",
+      "subdir": "FILE",
+      "aggregate_into_sheet": "RATING",
+      "archive_to_db": true,
+      "sort_columns": [],
+      "max_col_width": 80,
+      "freeze": "D2",
+      "col_width_mode": "AUTO",
+      "min_col_width": 12,
+      "include_in_source": false,
+      "archive_db_path": "OUT/DB/spod_gamification_archive.sqlite"
+    },
+    {
+      "file": "gamification-ratingList_KMKKSB_ALLTHETIME.csv",
       "sheet": "RATING_ALLTIME (KMKKSB)",
       "subdir": "FILE",
       "aggregate_into_sheet": "RATING",
@@ -383,7 +453,7 @@
       "archive_db_path": "OUT/DB/spod_gamification_archive.sqlite"
     },
     {
-      "file": "gamification-ratingList AllMNS.csv",
+      "file": "gamification-ratingList_MNS_ALLTHETIME.csv",
       "sheet": "RATING_ALLTIME (MNS)",
       "subdir": "FILE",
       "aggregate_into_sheet": "RATING",
@@ -397,7 +467,7 @@
       "archive_db_path": "OUT/DB/spod_gamification_archive.sqlite"
     },
     {
-      "file": "gamification-orderList 1KM.csv",
+      "file": "gamification-orderList_KMKKSB_SEASON_2025_1.csv",
       "sheet": "ORDER_2025_1 (KMKKSB)",
       "subdir": "FILE",
       "aggregate_into_sheet": "ORDER",
@@ -411,7 +481,7 @@
       "archive_db_path": "OUT/DB/spod_gamification_archive.sqlite"
     },
     {
-      "file": "gamification-orderList 1MNS.csv",
+      "file": "gamification-orderList_MNS_SEASON_m_2025_1.csv",
       "sheet": "ORDER_2025_1 (MNS)",
       "subdir": "FILE",
       "aggregate_into_sheet": "ORDER",
@@ -425,7 +495,21 @@
       "archive_db_path": "OUT/DB/spod_gamification_archive.sqlite"
     },
     {
-      "file": "gamification-orderList 2024КМ.csv",
+      "file": "gamification-orderList_MNS_ALLSEASONS.csv",
+      "sheet": "ORDER_ALL (MNS)",
+      "subdir": "FILE",
+      "aggregate_into_sheet": "",
+      "archive_to_db": true,
+      "sort_columns": [],
+      "max_col_width": 80,
+      "freeze": "E2",
+      "col_width_mode": "AUTO",
+      "min_col_width": 12,
+      "include_in_source": false,
+      "archive_db_path": "OUT/DB/spod_gamification_archive.sqlite"
+    },
+    {
+      "file": "gamification-orderList_KMKKSB_SEASON_2024.csv",
       "sheet": "ORDER_2024 (KMKKSB)",
       "subdir": "FILE",
       "aggregate_into_sheet": "ORDER",
@@ -439,7 +523,7 @@
       "archive_db_path": "OUT/DB/spod_gamification_archive.sqlite"
     },
     {
-      "file": "gamification-orderList 2024MNS.csv",
+      "file": "gamification-orderList_MNS_SEASON_m_2024.csv",
       "sheet": "ORDER_2024 (MNS)",
       "subdir": "FILE",
       "aggregate_into_sheet": "ORDER",
@@ -453,7 +537,7 @@
       "archive_db_path": "OUT/DB/spod_gamification_archive.sqlite"
     },
     {
-      "file": "gamification-orderList 2KM.csv",
+      "file": "gamification-orderList_KMKKSB_SEASON_2025_2.csv",
       "sheet": "ORDER_2025_2 (KMKKSB)",
       "subdir": "FILE",
       "aggregate_into_sheet": "ORDER",
@@ -467,7 +551,21 @@
       "archive_db_path": "OUT/DB/spod_gamification_archive.sqlite"
     },
     {
-      "file": "gamification-orderList 2MNS.csv",
+      "file": "gamification-orderList_KMKKSB_NONSEASON.csv",
+      "sheet": "ORDER_NA (KMKKSB)",
+      "subdir": "FILE",
+      "aggregate_into_sheet": "ORDER",
+      "archive_to_db": true,
+      "sort_columns": [],
+      "max_col_width": 80,
+      "freeze": "E2",
+      "col_width_mode": "AUTO",
+      "min_col_width": 12,
+      "include_in_source": false,
+      "archive_db_path": "OUT/DB/spod_gamification_archive.sqlite"
+    },
+    {
+      "file": "gamification-orderList_MNS_SEASON_m_2025_2.csv",
       "sheet": "ORDER_2025_2 (MNS)",
       "subdir": "FILE",
       "aggregate_into_sheet": "ORDER",
@@ -525,10 +623,17 @@
     "STATISTICS",
     "LIST-TOURNAMENT",
     "RATING_2026_1 (KMKKSB)",
+    "RATING_2026_1 (MNS)",
+    "RATING_2025_1 (KMKKSB)",
+    "RATING_2025_1 (MNS)",
+    "RATING_2024 (KMKKSB)",
+    "RATING_2024 (MNS)",
     "RATING_ALLTIME (KMKKSB)",
     "RATING_ALLTIME (MNS)",
+    "ORDER_NA (KMKKSB)",
     "ORDER_2025_1 (KMKKSB)",
     "ORDER_2025_1 (MNS)",
+    "ORDER_ALL (MNS)",
     "ORDER_2024 (MNS)",
     "ORDER_2024 (KMKKSB)",
     "YEAR_STATA",
@@ -2392,6 +2497,44 @@
       "wrap_text": false
     },
     {
+      "sheet": "RATING_2024 (KMKKSB)",
+      "columns": [
+        "Количество кристаллов",
+        "Место в рейтинге по стране",
+        "Место в рейтинге ТБ",
+        "Место в рейтинге ГОСБ",
+        "ТБ",
+        "ГОСБ"
+      ],
+      "data_type": "number",
+      "decimal_places": 0,
+      "decimal_separator": ",",
+      "thousands_separator": true,
+      "date_format": "YYYY-MM-DD",
+      "horizontal": "center",
+      "vertical": "center",
+      "wrap_text": false
+    },
+    {
+      "sheet": "RATING_2025_1 (KMKKSB)",
+      "columns": [
+        "Количество кристаллов",
+        "Место в рейтинге по стране",
+        "Место в рейтинге ТБ",
+        "Место в рейтинге ГОСБ",
+        "ТБ",
+        "ГОСБ"
+      ],
+      "data_type": "number",
+      "decimal_places": 0,
+      "decimal_separator": ",",
+      "thousands_separator": true,
+      "date_format": "YYYY-MM-DD",
+      "horizontal": "center",
+      "vertical": "center",
+      "wrap_text": false
+    },
+    {
       "sheet": "YEAR_STATA",
       "columns": [
         "Общее количество разыгранных наград (badgeAmount)",
@@ -2420,6 +2563,25 @@
     },
     {
       "sheet": "RATING_2026_1 (KMKKSB)",
+      "columns": [
+        "Количество кристаллов",
+        "Место в рейтинге по стране",
+        "Место в рейтинге ТБ",
+        "Место в рейтинге ГОСБ",
+        "ТБ",
+        "ГОСБ"
+      ],
+      "data_type": "number",
+      "decimal_places": 0,
+      "decimal_separator": ",",
+      "thousands_separator": true,
+      "date_format": "YYYY-MM-DD",
+      "horizontal": "center",
+      "vertical": "center",
+      "wrap_text": false
+    },
+    {
+      "sheet": "RATING_2026_1 (MNS)",
       "columns": [
         "Количество кристаллов",
         "Место в рейтинге по стране",
@@ -2477,6 +2639,44 @@
     },
     {
       "sheet": "RATING_2025_2 (MNS)",
+      "columns": [
+        "Количество кристаллов",
+        "Место в рейтинге по стране",
+        "Место в рейтинге ТБ",
+        "Место в рейтинге ГОСБ",
+        "ТБ",
+        "ГОСБ"
+      ],
+      "data_type": "number",
+      "decimal_places": 0,
+      "decimal_separator": ",",
+      "thousands_separator": true,
+      "date_format": "YYYY-MM-DD",
+      "horizontal": "center",
+      "vertical": "center",
+      "wrap_text": false
+    },
+    {
+      "sheet": "RATING_2024 (MNS)",
+      "columns": [
+        "Количество кристаллов",
+        "Место в рейтинге по стране",
+        "Место в рейтинге ТБ",
+        "Место в рейтинге ГОСБ",
+        "ТБ",
+        "ГОСБ"
+      ],
+      "data_type": "number",
+      "decimal_places": 0,
+      "decimal_separator": ",",
+      "thousands_separator": true,
+      "date_format": "YYYY-MM-DD",
+      "horizontal": "center",
+      "vertical": "center",
+      "wrap_text": false
+    },
+    {
+      "sheet": "RATING_2025_1 (MNS)",
       "columns": [
         "Количество кристаллов",
         "Место в рейтинге по стране",
@@ -2598,10 +2798,25 @@
         "RATING_2025_2 (KMKKSB)": {
           "expected_columns": 0
         },
+        "RATING_2024 (KMKKSB)": {
+          "expected_columns": 0
+        },
+        "RATING_2025_1  (KMKKSB)": {
+          "expected_columns": 0
+        },
         "RATING_2025_2 (MNS)": {
           "expected_columns": 0
         },
+        "RATING_2024 (MNS)": {
+          "expected_columns": 0
+        },
+        "RATING_2025_1 (MNS)": {
+          "expected_columns": 0
+        },
         "RATING_2026_1 (KMKKSB)": {
+          "expected_columns": 0
+        },
+        "RATING_2026_1 (MNS)": {
           "expected_columns": 0
         },
         "RATING_ALLTIME (KMKKSB)": {
@@ -2616,7 +2831,13 @@
         "ORDER_2025_1 (MNS)": {
           "expected_columns": 0
         },
+        "ORDER_ALL (MNS)": {
+          "expected_columns": 0
+        },
         "ORDER_2025_2 (KMKKSB)": {
+          "expected_columns": 0
+        },
+        "ORDER_NA (KMKKSB)": {
           "expected_columns": 0
         },
         "ORDER_2025_2 (MNS)": {
