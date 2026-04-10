@@ -52,7 +52,7 @@ SPOD_PROM/
 ├── IN/                     # Корень входных данных (paths.input); внутри — subdir (SPOD, FILE и т.д.)
 ├── OUT/                    # Базовый каталог вывода (paths.output); файлы по дате: OUT/YYYY/DD-MM/; опционально OUT/DB/*.sqlite — архив входных CSV (input_archive_sqlite.db_path)
 ├── BACKUP/                 # Резервные копии
-├── POST/                   # Не в Git (.gitignore). Снимок: python src/Tools/sync_post_txt.py — main.py.txt, config.json.txt, src/**/*.py.txt (без Tools/Tests); инструкция и bat из Docs/POST_SNAPSHOT/
+├── POST/                   # Не в Git (.gitignore). Снимок: sync_post_txt.py — код (.py), config, README.md, requirements.txt, дерево Docs/ — всё с суффиксом .txt; шаблоны из Docs/POST_SNAPSHOT/ в корень POST без переименования
 ├── LOGS/                   # Файлы логов (paths.logs); по дате: LOGS/YYYY/DD-MM/
 ├── Docs/                   # Дополнительная документация; каталог CSV/JSON — Docs/JSON/ (см. README внутри)
 ├── src/Tools/              # Утилиты: build_spod_input_catalog.py, export_spod_json_examples.py, sync_post_txt.py (заполнение POST/)
@@ -706,17 +706,17 @@ SPOD_PROM/
 
 ---
 
-### Каталог POST (перенос кода без репозитория)
+### Каталог POST (перенос кода и документации без репозитория)
 
-**Назначение:** локальная папка **POST/** с копиями **`main.py`**, **`config.json`** и всех **`src/**/*.py`**, **кроме** **`src/Tools/`** и **`src/Tests/`**, чтобы перенести программу на ПК без Git. К имени каждого такого файла добавлен суффикс **`.txt`** (**`main.py.txt`**, **`config.json.txt`**, **`src/main_impl.py.txt`** и т.д.) — для обхода ограничений почты и вложений.
+**Назначение:** локальная папка **POST/** со снимком проекта для переноса на ПК без Git. К имени каждого файла **кода, конфигурации и документов** добавлен суффикс **`.txt`** в конце (**`main.py.txt`**, **`config.json.txt`**, **`README.md.txt`**, **`requirements.txt.txt`**, **`src/…/модуль.py.txt`**, **`Docs/…/документ.md.txt`**) — для обхода ограничений почты и вложений.
+
+**Состав снимка:** **`main.py`**, **`config.json`**, **`README.md`**, **`requirements.txt`**, все **`src/**/*.py`**, кроме **`src/Tools/`** и **`src/Tests/`**; дерево **`Docs/`** целиком с сохранением подкаталогов, **кроме** **`Docs/POST_SNAPSHOT/`** (чтобы не дублировать шаблоны с «двойным» именем). В **корень POST** без доп. суффикса копируются из **Docs/POST_SNAPSHOT/**: **`КУДА_ПОЛОЖИТЬ_ФАЙЛЫ.txt`**, **`restore_names_from_txt.bat`**.
 
 **Каталог POST/ целиком в `.gitignore`** — в репозиторий не попадает; на каждой машине разработчика содержимое создаётся скриптом.
 
-**Обновление:** из корня проекта **`python src/Tools/sync_post_txt.py`**. Скрипт **полностью удаляет** прежний **POST/** и создаёт заново: копирует **`main.py`**, **`config.json`** и все **`src/**/*.py`** (кроме **`src/Tools/`**, **`src/Tests/`**) с суффиксом **`.txt`** в имени файла (**`main.py.txt`**, **`config.json.txt`**, **`src/…/модуль.py.txt`**), затем копирует из **`Docs/POST_SNAPSHOT/`** без переименования **`КУДА_ПОЛОЖИТЬ_ФАЙЛЫ.txt`** и **`restore_names_from_txt.bat`**. Актуальный **перечень имён** файлов с **`.txt`** приведён в **`Docs/POST_SNAPSHOT/КУДА_ПОЛОЖИТЬ_ФАЙЛЫ.txt`** (раздел «Перечень файлов программы»); при появлении новых модулей в **`src/`** пересоберите POST скриптом и при необходимости обновите этот раздел в репозитории.
+**Обновление:** из корня проекта **`python src/Tools/sync_post_txt.py`**. Скрипт **полностью удаляет** прежний **POST/** и создаёт заново. Подробная инструкция и структура после снятия **`.txt`** на Windows — **`Docs/POST_SNAPSHOT/КУДА_ПОЛОЖИТЬ_ФАЙЛЫ.txt`**.
 
-**Не копируются:** **`README.md`**, **`requirements.txt`**, каталог **`Docs/`**. На целевом ПК **`requirements.txt`** нужно взять из клона репозитория или установить зависимости вручную по списку в этом README (**pandas**, **openpyxl** и др.).
-
-**История:** ранее в POST входили также README и requirements; с версии **1.7.36** — только Python и **config.json** (плюс служебные файлы из **Docs/POST_SNAPSHOT/**).
+**История состава POST:** с **1.7.36** в снимок входили только **`.py`** и **config.json**; с **1.7.43** снова добавлены **README.md**, **requirements.txt** и дерево **Docs/** (кроме **Docs/POST_SNAPSHOT** внутри копии).
 
 ---
 
@@ -1152,6 +1152,12 @@ python main.py
 
 ## История версий
 
+### Версия 1.7.43 — POST: снимок с README, requirements и Docs/
+
+- **`src/Tools/sync_post_txt.py`:** в **POST/** дополнительно копируются **`README.md.txt`**, **`requirements.txt.txt`** и всё дерево **Docs/** (кроме **Docs/POST_SNAPSHOT/**) с суффиксом **`.txt`** к каждому имени файла и сохранением путей.
+- **`Docs/POST_SNAPSHOT/`:** обновлены **`КУДА_ПОЛОЖИТЬ_ФАЙЛЫ.txt`**, **`restore_names_from_txt.bat`** (рекурсивное снятие **`.txt`** в том числе под **Docs/**).
+- **README**, **`Docs/DOCS_INDEX.md`**: разделы про **POST** и правила актуализации. Каталог **POST/** по-прежнему в **`.gitignore`**.
+
 ### Версия 1.7.42 — Архив SQLite: согласование SHA и inventory/latest; логирование по уровню конфига
 
 - **`src/input_archive_sqlite.py`**: функция **`_normalize_sha256_hex`** — нормализация SHA из БД и с диска для сравнения. Исправлена ветка **`last_content_sha256 IS NULL`**: если у текущего снимка уже есть **`source_sha256`** и он **не совпадает** с хешем файла на диске, выполняется **полный ingest**, а не только дозапись хеша в метаданные (иначе при неизменных числе строк/колонок и размере данные в **`arch_*`** могли не обновляться). Пропуск ingest по SHA учитывает согласованность **inventory** и **latest**-снимка; при расхождении — предупреждение и новый снимок или синхронизация **`last_content_sha256`** без ingest; при пропуске обновляются **`last_content_sha256`** / **`source_sha256`**.
@@ -1470,7 +1476,7 @@ python main.py
 - В режиме **consistency_only** лист SUMMARY не записывается — при установке активного листа книги проверяется наличие "SUMMARY", иначе активным делается первый лист.
 - Документация обновлена: все поля конфигурации описаны с примерами; добавлены run_mode, output_filenames, apply_sort_to_source/main, paths (подпапки по дате), input_files (expected_columns, subdir, sort_columns).
 
-**Папка POST:** копии **main.py**, **config.json** и **`src/**/*.py`** (кроме **Tools** и **Tests**) с суффиксом **.txt** в имени файла; **requirements.txt** в POST не входит. Документация в POST не кладётся; перечень файлов — **`Docs/POST_SNAPSHOT/КУДА_ПОЛОЖИТЬ_ФАЙЛЫ.txt`**.
+**Папка POST (исторически для v1.5):** актуальный состав снимка — раздел **«Каталог POST»** и версия **1.7.43** в истории версий.
 
 ---
 
@@ -1592,7 +1598,7 @@ python main.py
 
 ---
 
-*Документация обновлена: 2026-03-28*
+*Документация обновлена: 2026-04-10*
 
 ---
 
@@ -1604,4 +1610,4 @@ python main.py
 - В **config_loader** — атрибут `consistency_checks`; в **main_impl** — вызов `run_consistency_checks_and_attach_summary` после merge, до SUMMARY.
 
 **Папка POST (историческая формулировка):**
-- Актуальное поведение см. **версию 1.7.36** и раздел **«Каталог POST»**: в **POST/** только **main.py**, **config.json** и **src/**/*.py** (без Tools/Tests) с суффиксом **.txt** в имени файла; каталог не версионируется (**`.gitignore`**).
+- Актуальное поведение см. раздел **«Каталог POST»** и версию **1.7.43** в истории версий; каталог **POST/** не версионируется (**`.gitignore`**).

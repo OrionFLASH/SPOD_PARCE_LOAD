@@ -1,17 +1,19 @@
 ================================================================================
-  ИНСТРУКЦИЯ ПО ПЕРЕНОСУ КОДА НА ЦЕЛЕВОЙ ПК (БЕЗ РЕПОЗИТОРИЯ)
+  ИНСТРУКЦИЯ ПО ПЕРЕНОСУ КОДА И ДОКУМЕНТАЦИИ НА ЦЕЛЕВОЙ ПК (БЕЗ РЕПОЗИТОРИЯ)
 ================================================================================
 
 Каталог POST/ на машине разработки заполняется скриптом синхронизации (см. README.md).
-В POST попадают только:
 
-  • корень: main.py.txt, config.json.txt;
-  • все модули: src/**/*.py.txt (кроме каталогов src/Tools/ и src/Tests/).
+В POST копируется (ко всем перечисленным ниже именам файлов кода, конфига и документов
+добавлен суффикс .txt в конце имени, например main.py.txt):
 
-Документация (README.md, Docs/), requirements.txt в POST не копируются — их берите из
-репозитория или восстановите зависимости по корневому requirements.txt проекта.
+  • корень POST/: main.py.txt, config.json.txt, README.md.txt, requirements.txt.txt;
+  • все модули пайплайна: src/**/*.py.txt (кроме каталогов src/Tools/ и src/Tests/);
+  • документация: всё дерево Docs/** с сохранением подкаталогов, кроме Docs/POST_SNAPSHOT/
+    (пример: Docs/CONSISTENCY_CHECKS_FORMAT.md → POST/Docs/CONSISTENCY_CHECKS_FORMAT.md.txt).
 
-Вместе с содержимым POST в эту папку скрипт копирует из Docs/POST_SNAPSHOT/ (без суффикса .txt):
+Подкаталог Docs/POST_SNAPSHOT/ в дерево POST/Docs не копируется (чтобы не дублировать
+шаблоны с двойным расширением). Вместо этого в корень POST без переименования кладутся:
 
   • КУДА_ПОЛОЖИТЬ_ФАЙЛЫ.txt — эта инструкция;
   • restore_names_from_txt.bat — снятие суффикса .txt на Windows.
@@ -23,54 +25,40 @@
 Перед копированием каталог POST полностью очищается и создаётся заново.
 
 --------------------------------------------------------------------------------
-Перечень файлов программы в POST (имена с суффиксом .txt у кода и config)
+Перечень модулей src/ в POST (без Tools и Tests)
 --------------------------------------------------------------------------------
 
 Состав соответствует текущему дереву репозитория; при добавлении нового .py в src/
-(вне каталогов Tools/ и Tests/) достаточно снова запустить sync_post_txt.py.
+достаточно снова запустить sync_post_txt.py. Документы под POST/Docs/ перечислять
+вручную не требуется — они повторяют структуру Docs/ (кроме POST_SNAPSHOT).
 
-Корень POST/:
-  • main.py.txt
-  • config.json.txt
+POST/src/ (типичный набор; фактический список — по результату скрипта):
+  • __init__.py.txt, archive_json_columns.py.txt, config_holder.py.txt,
+    config_loader.py.txt, consistency_checks.py.txt, console_ui.py.txt,
+    debug_timing.py.txt, file_loader.py.txt, gender.py.txt,
+    input_archive_sqlite.py.txt, json_spod_format_check.py.txt, json_utils.py.txt,
+    logging_setup.py.txt, main_impl.py.txt, rating_item_matrix.py.txt,
+    reward_getcondition_summary.py.txt, reward_item_catalog.py.txt,
+    tournament.py.txt, validation.py.txt
 
-POST/src/ (все модули пайплайна, без подкаталогов Tools/ и Tests/):
-  • __init__.py.txt
-  • archive_json_columns.py.txt
-  • config_holder.py.txt
-  • config_loader.py.txt
-  • consistency_checks.py.txt
-  • console_ui.py.txt
-  • debug_timing.py.txt
-  • file_loader.py.txt
-  • gender.py.txt
-  • input_archive_sqlite.py.txt
-  • json_spod_format_check.py.txt
-  • json_utils.py.txt
-  • logging_setup.py.txt
-  • main_impl.py.txt
-  • rating_item_matrix.py.txt
-  • reward_getcondition_summary.py.txt
-  • reward_item_catalog.py.txt
-  • tournament.py.txt
-  • validation.py.txt
-
-В POST копируются без переименования (имена как в репозитории):
+В корне POST без суффикса .txt к имени (как в репозитории):
   • КУДА_ПОЛОЖИТЬ_ФАЙЛЫ.txt
   • restore_names_from_txt.bat
 
-Не входят в снимок: src/Tools/**, src/Tests/**, README.md, requirements.txt, каталог Docs/.
+Не входят в снимок: src/Tools/**, src/Tests/**.
 
 --------------------------------------------------------------------------------
 Снятие суффикса .txt на Windows
 --------------------------------------------------------------------------------
 
 1. Скопируйте папку POST на целевой ПК.
-2. Запустите restore_names_from_txt.bat из этой папки.
+2. Запустите restore_names_from_txt.bat из этой папки (он обходит POST рекурсивно).
 
-Скрипт переименовывает все *.txt, у которых в базовом имени есть точка
-(например main.py.txt → main.py, config.json.txt → config.json).
-Файлы без точки в имени перед последним .txt (например КУДА_ПОЛОЖИТЬ_ФАЙЛЫ.txt)
-не переименовываются.
+Скрипт переименовывает все *.txt, у которых в базовом имени (имя без последнего .txt)
+есть точка — например main.py.txt → main.py, config.json.txt → config.json,
+README.md.txt → README.md, Docs\...\файл.md.txt → файл.md.
+
+Файлы без точки в базовом имени (например КУДА_ПОЛОЖИТЬ_ФАЙЛЫ.txt) не переименовываются.
 
 --------------------------------------------------------------------------------
 Структура на целевом ПК после снятия .txt
@@ -79,6 +67,11 @@ POST/src/ (все модули пайплайна, без подкаталого
   SPOD_PROM/
   ├── main.py
   ├── config.json
+  ├── README.md
+  ├── requirements.txt
+  ├── Docs/
+  │   └── … (как в исходном проекте, без подкаталога POST_SNAPSHOT в архиве;
+  │        при необходимости скопируйте шаблоны из репозитория Docs/POST_SNAPSHOT/)
   └── src/
       └── … (модули из POST/src, без Tools и Tests)
 
@@ -86,9 +79,8 @@ POST/src/ (все модули пайплайна, без подкаталого
 Дополнительно на целевом ПК
 --------------------------------------------------------------------------------
 
-1. Скопировать из репозитория requirements.txt и выполнить: pip install -r requirements.txt
-   (либо установить pandas, openpyxl и прочие пакеты по списку в README.md проекта).
-2. Каталоги: IN/SPOD/ (или путь из config.json), OUT/, LOGS/.
+1. После переименования requirements.txt уже в корне; выполнить: pip install -r requirements.txt
+2. Каталоги данных: IN/ (или путь из config.json), OUT/, LOGS/ — по README.md.
 3. Запуск: python main.py
 
 --------------------------------------------------------------------------------

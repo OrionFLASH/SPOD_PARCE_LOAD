@@ -1,18 +1,18 @@
 # -*- coding: utf-8 -*-
 """
-Сборка каталога POST/: снимок кода для переноса без Git.
+Сборка каталога POST/: снимок кода и документации для переноса без Git.
 
 Полностью очищает POST/, затем копирует:
-  - main.py, config.json — в корень POST с именами main.py.txt, config.json.txt;
-  - все src/**/*.py, кроме каталогов src/Tools/ и src/Tests/ — с суффиксом .txt к имени файла
-    (например src/main_impl.py → POST/src/main_impl.py.txt).
+  - main.py, config.json, README.md, requirements.txt — в корень POST с суффиксом .txt к имени файла
+    (main.py.txt, config.json.txt, README.md.txt, requirements.txt.txt);
+  - все src/**/*.py, кроме каталогов src/Tools/ и src/Tests/ — POST/src/.../модуль.py.txt;
+  - всё дерево Docs/**, кроме подкаталога Docs/POST_SNAPSHOT/ (шаблоны дублируются в корень POST отдельно),
+    с сохранением структуры и суффиксом .txt (например Docs/CONSISTENCY.md → POST/Docs/CONSISTENCY.md.txt).
 
-Служебные файлы без двойного .txt копируются из Docs/POST_SNAPSHOT/:
+Служебные файлы без доп. суффикса копируются из Docs/POST_SNAPSHOT/ в корень POST:
   КУДА_ПОЛОЖИТЬ_ФАЙЛЫ.txt, restore_names_from_txt.bat
 
-README.md, requirements.txt и каталог Docs/ в POST не попадают.
-
-Каталог POST/ указан в .gitignore и не должен коммититься в репозиторий.
+Каталог POST/ в .gitignore — не коммитится.
 
 Запуск из корня проекта: python src/Tools/sync_post_txt.py
 """
@@ -28,6 +28,9 @@ POST = ROOT / "POST"
 # Шаблоны инструкции и bat для копирования в POST как есть (отслеживаются в Git под Docs/)
 HELPERS_SRC = ROOT / "Docs" / "POST_SNAPSHOT"
 _SKIP_SRC_SUBDIRS = frozenset({"Tools", "Tests"})
+# Шаблоны из Docs/POST_SNAPSHOT кладутся в корень POST как есть; дерево Docs копируем без этого подкаталога
+_DOCS_ROOT = ROOT / "Docs"
+_POST_SNAPSHOT_UNDER_DOCS = _DOCS_ROOT / "POST_SNAPSHOT"
 
 
 def iter_py_files(src: Path) -> Iterable[Path]:
@@ -38,6 +41,23 @@ def iter_py_files(src: Path) -> Iterable[Path]:
         rel_parts = p.relative_to(src).parts
         if rel_parts and rel_parts[0] in _SKIP_SRC_SUBDIRS:
             continue
+        yield p
+
+
+def iter_docs_files(docs: Path) -> Iterable[Path]:
+    """Файлы под Docs/, кроме __pycache__, скрытых и всего под Docs/POST_SNAPSHOT/."""
+    if not docs.is_dir():
+        return
+    for p in docs.rglob("*"):
+        if not p.is_file():
+            continue
+        if "__pycache__" in p.parts or p.name.startswith("."):
+            continue
+        try:
+            p.relative_to(_POST_SNAPSHOT_UNDER_DOCS)
+            continue
+        except ValueError:
+            pass
         yield p
 
 
@@ -65,20 +85,26 @@ def main() -> None:
     else:
         print(f"Предупреждение: нет каталога шаблонов {HELPERS_SRC}", file=sys.stderr)
 
-    n = 0
-    for name in ("main.py", "config.json"):
+    n_code = 0
+    for name in ("main.py", "config.json", "README.md", "requirements.txt"):
         p = ROOT / name
         if not p.is_file():
             print(f"Пропуск (нет файла): {p}", file=sys.stderr)
             continue
         copy_one_txt_suffix(p, Path(name))
-        n += 1
+        n_code += 1
 
     src_root = ROOT / "src"
     for p in iter_py_files(src_root):
         rel = p.relative_to(ROOT)
         copy_one_txt_suffix(p, rel)
-        n += 1
+        n_code += 1
+
+    n_docs = 0
+    for p in iter_docs_files(_DOCS_ROOT):
+        rel = p.relative_to(ROOT)
+        copy_one_txt_suffix(p, rel)
+        n_docs += 1
 
     for garbage in POST.rglob(".DS_Store"):
         try:
@@ -86,7 +112,11 @@ def main() -> None:
         except OSError:
             pass
 
-    print(f"Готово. Скопировано файлов кода/конфига с суффиксом .txt: {n}. Каталог: {POST}")
+    print(
+        f"Готово. Код и конфиг (.txt): {n_code}; документация Docs/ (.txt): {n_docs}. "
+        f"Каталог: {POST}",
+        file=sys.stdout,
+    )
 
 
 if __name__ == "__main__":
