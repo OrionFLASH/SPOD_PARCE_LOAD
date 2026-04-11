@@ -1,5 +1,6 @@
 # Virtual Environment
 venv/
+.venv/
 env/
 ENV/
 
@@ -47,13 +48,16 @@ OUT/
 # Локальная SQLite-архивная БД (по умолчанию OUT/DB/*.sqlite) входит в игнорируемый OUT/
 archive/
 
-# Data files
+# Data files (*.csv по умолчанию не в репозитории; исключение — входы панели турниров)
 *.csv
 *.CSV
-SPOD/
+!spod_tournament_admin/IN/**/*.csv
+# Только каталог SPOD в корне (не путь …/IN/SPOD/ у панели турниров)
+/SPOD/
 EDIT/
 File/
-IN/
+# Только каталог IN в корне репозитория (не затрагивает spod_tournament_admin/IN/)
+/IN/
 
 # Temporary files
 *.tmp
@@ -68,6 +72,9 @@ main_final.py
 main_original_backup.py
 fix_gender_patterns.py
 *.backup
+
+# Секреты (в т.ч. локальные для spod_tournament_admin)
+.env
 
 # Cursor IDE files
 .cursor/
