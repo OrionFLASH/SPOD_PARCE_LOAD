@@ -48,15 +48,14 @@ OUT/
 # Локальная SQLite-архивная БД (по умолчанию OUT/DB/*.sqlite) входит в игнорируемый OUT/
 archive/
 
-# Data files (*.csv по умолчанию не в репозитории; исключение — входы панели турниров)
+# Data files (*.csv по умолчанию не в репозитории)
 *.csv
 *.CSV
-!spod_tournament_admin/IN/**/*.csv
-# Только каталог SPOD в корне (не путь …/IN/SPOD/ у панели турниров)
+# Только каталог SPOD в корне
 /SPOD/
 EDIT/
 File/
-# Только каталог IN в корне репозитория (не затрагивает spod_tournament_admin/IN/)
+# Только каталог IN в корне репозитория
 /IN/
 
 # Temporary files
@@ -73,7 +72,7 @@ main_original_backup.py
 fix_gender_patterns.py
 *.backup
 
-# Секреты (в т.ч. локальные для spod_tournament_admin)
+# Секреты
 .env
 
 # Cursor IDE files
