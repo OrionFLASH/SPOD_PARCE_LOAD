@@ -12,9 +12,9 @@
   "apply_sort_to_source": true,
   "apply_sort_to_main": false,
   "output_filenames": {
-    "main": "SPOD_ALL_IN_ONE",
+    "main": "SPOD_PROM main",
     "source": "SPOD_PROM source",
-    "consistency": "SPOD_PROM CONSISTENCY"
+    "consistency": "SPOD_PROM consistency"
   },
   "paths": {
     "input": "IN",
