@@ -3,9 +3,9 @@
 Сборка каталога POST/: снимок кода и документации для переноса без Git.
 
 Полностью очищает POST/, затем копирует:
-  - main.py, config.json, README.md, requirements.txt — в корень POST с суффиксом .txt к имени файла
-    (main.py.txt, config.json.txt, README.md.txt, requirements.txt.txt);
-  - все src/**/*.py, кроме каталогов src/Tools/ и src/Tests/ — POST/src/.../модуль.py.txt;
+  - все *.py из корня проекта + config.json, README.md, requirements.txt — в корень POST
+    с суффиксом .txt к имени файла;
+  - все src/**/*.py (включая Tools и Tests) — POST/src/.../модуль.py.txt;
   - всё дерево Docs/**, кроме подкаталога Docs/POST_SNAPSHOT/ (шаблоны дублируются в корень POST отдельно),
     с сохранением структуры и суффиксом .txt (например Docs/CONSISTENCY.md → POST/Docs/CONSISTENCY.md.txt).
 
@@ -27,19 +27,24 @@ ROOT = Path(__file__).resolve().parents[2]
 POST = ROOT / "POST"
 # Шаблоны инструкции и bat для копирования в POST как есть (отслеживаются в Git под Docs/)
 HELPERS_SRC = ROOT / "Docs" / "POST_SNAPSHOT"
-_SKIP_SRC_SUBDIRS = frozenset({"Tools", "Tests"})
+# Все модули под src/ копируются в POST (включая Tools и Tests) для полного переноса.
 # Шаблоны из Docs/POST_SNAPSHOT кладутся в корень POST как есть; дерево Docs копируем без этого подкаталога
 _DOCS_ROOT = ROOT / "Docs"
 _POST_SNAPSHOT_UNDER_DOCS = _DOCS_ROOT / "POST_SNAPSHOT"
 
 
 def iter_py_files(src: Path) -> Iterable[Path]:
-    """Все .py под src/, кроме __pycache__, src/Tools/ и src/Tests/."""
+    """Все .py под src/, кроме __pycache__."""
     for p in src.rglob("*.py"):
         if "__pycache__" in p.parts:
             continue
-        rel_parts = p.relative_to(src).parts
-        if rel_parts and rel_parts[0] in _SKIP_SRC_SUBDIRS:
+        yield p
+
+
+def iter_root_py_files(root: Path) -> Iterable[Path]:
+    """Все .py в корне проекта (без скрытых файлов)."""
+    for p in sorted(root.glob("*.py")):
+        if p.name.startswith("."):
             continue
         yield p
 
@@ -86,7 +91,12 @@ def main() -> None:
         print(f"Предупреждение: нет каталога шаблонов {HELPERS_SRC}", file=sys.stderr)
 
     n_code = 0
-    for name in ("main.py", "config.json", "README.md", "requirements.txt"):
+    for p in iter_root_py_files(ROOT):
+        rel = p.relative_to(ROOT)
+        copy_one_txt_suffix(p, rel)
+        n_code += 1
+
+    for name in ("config.json", "README.md", "requirements.txt"):
         p = ROOT / name
         if not p.is_file():
             print(f"Пропуск (нет файла): {p}", file=sys.stderr)
