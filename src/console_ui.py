@@ -230,7 +230,10 @@ def print_consistency_summary(results: List[Dict[str, Any]]) -> None:
         )
 
     if not with_v:
-        print_wrapped("Примеры строк и полный разбор — в лог-файле (DEBUG).", width=w)
+        print_wrapped(
+            "Примеры строк и полный разбор доступны в debug-логе при logging.level=DEBUG.",
+            width=w,
+        )
         return
 
     # Детализация: только правила с нарушениями, по типам (длинные строки переносим)
@@ -254,7 +257,10 @@ def print_consistency_summary(results: List[Dict[str, Any]]) -> None:
             print_wrapped(line, width=w, indent="      ", sub_indent="        ")
         if len(rows) > 8:
             print(f"      … ещё правил с нарушениями по типу «{t}»: {len(rows) - 8}", flush=True)
-    print_wrapped("Детали и примеры значений — в лог-файле (DEBUG).", width=w)
+    print_wrapped(
+        "Детали и примеры значений доступны в debug-логе при logging.level=DEBUG.",
+        width=w,
+    )
 
 
 def print_phases_table(phases: List[Dict[str, Any]]) -> None:
