@@ -743,12 +743,13 @@ SPOD_PROM/
 
 **Загрузка конфига:** в **`Config`** и в **`main_impl`** в объект **`consistency_checks`** попадают также **прочие** ключи из JSON (не только три перечисленных выше), чтобы не терять подсказки.
 
-**Порядок выполнения:** **Фаза 1** — **`unique`**, **`field_length`**, **`field_format`**, **`json_field_equals_column`**, **`json_field_in_column`**, **`json_priority_unique_per_contest_link`** (создание колонок на листах). **Фаза 2** — **`referential`**, **`referential_composite`**, **`json_spod_format`**, сбор результатов фазы 1 в свод. Правила с **`enabled: false`** в фазах не участвуют; для них формируется только строка свода (**см. ниже**).
+**Порядок выполнения:** **Фаза 1** — **`unique`**, **`field_length`**, **`field_format`**, **`json_field_equals_column`**, **`json_field_in_column`**, **`json_priority_unique_per_contest_link`** (создание колонок на листах). **Фаза 2** — **`referential`**, **`referential_composite`**, **`cross_sheet_date_lte_today`**, **`json_spod_format`**, сбор результатов фазы 1 в свод. Правила с **`enabled: false`** в фазах не участвуют; для них формируется только строка свода (**см. ниже**).
 
 **Типы правил:**
 
 - **referential** — внешний ключ в одну колонку: значения `column_src` на `sheet_src` должны присутствовать в `sheet_ref.column_ref`. Поля: `sheet_src`, `column_src`, `sheet_ref`, `column_ref`. Опционально **`src_row_conditions`** и **`ref_row_conditions`** (или **`sheet_src_row_conditions`** / **`sheet_ref_row_conditions`**): массив **`{ "column", "op", "value" }`**, **`op`** = **`=`** / **`==`** / **`eq`** или **`<>`** / **`!=`** / **`ne`**; условия объединяются по **И**. Строки источника вне фильтра получают в колонке результата **«—»** и не считаются нарушениями; множество допустимых значений справочника строится по строкам ref, прошедшим **`ref_row_conditions`**. Результат: «OK», «НЕТ в …» или «—».
 - **referential_composite** — внешний ключ из нескольких колонок; те же опциональные **`src_row_conditions`** / **`ref_row_conditions`**, семантика как у **referential**.
+- **cross_sheet_date_lte_today** — межлистовая проверка «дата из справочника не позже текущей системной даты»: для кода `column_src` на `sheet_src` берётся дата `column_date_ref` с листа `sheet_ref` по ключу `column_ref` и проверяется `<= today`. Поля: `sheet_src`, `column_src`, `sheet_ref`, `column_ref`, `column_date_ref`, `date_format`, `output`; опционально `src_row_conditions` / `ref_row_conditions`. Для будущей даты сообщение в колонке: `START_DT:2026-05-01>2026-04-27` (формат: `<поле>:<факт>><сегодня>`).
 - **unique** — уникальность комбинации колонок **`key_columns`** на листе **`sheet`**; колонка результата из **`output.column_on_sheet`** (значения **пусто** или **xN**). Поддерживаются **область строк** и **обязательная непустота** части колонок; подробный сценарий и шаблон конфига — в подразделе **«Правило unique»** ниже. В фазе 2 результат собирается в свод.
 - **field_length** — проверка длины полей. В фазе 1 модуль **создаёт** колонку результата на листе по полям `sheet`, `result_column`, **`fields`** (объект: имя поля → `{ "limit": N, "operator": "=" | "<=" | ">=" }`), `output.column_on_sheet`. В ячейках: «-» или строка с описанием нарушений. В фазе 2 результат собирается в свод.
 - **field_format** — проверка формата поля (дата, десятичное число с фиксированной дробной частью, строка из N цифр). В фазе 1 создаётся колонка результата на листе по полям `sheet`, `field`, **`format`** (type: date/decimal/fixed_length_digits + параметры). В фазе 2 результат собирается в свод.
@@ -1169,6 +1170,12 @@ python main.py
 ### Версия 1.7.41 — POST: перечень файлов в инструкции; уточнение README
 
 - **`Docs/POST_SNAPSHOT/КУДА_ПОЛОЖИТЬ_ФАЙЛЫ.txt`:** добавлен раздел с полным перечнем **`main.py.txt`**, **`config.json.txt`** и всех **`src/*.py.txt`** (без **Tools**/**Tests**), плюс служебные файлы POST. Раздел **«Каталог POST»** в **README** ссылается на этот перечень и явно описывает имена с **`.txt`**; исправлена устаревшая строка про **requirements.txt** в составе POST.
+
+### Версия 1.7.42 — Консистентность: старт турнира не в будущем для кодов из REPORT
+
+- Добавлен тип проверки **`cross_sheet_date_lte_today`** в **`src/consistency_checks.py`** и в документацию правил.
+- В **`config.json`** добавлено правило **`report_tournament_start_dt_not_future`**: для каждого **`TOURNAMENT_CODE`** из **`REPORT`** дата **`START_DT`** из **`TOURNAMENT-SCHEDULE`** должна быть `<=` текущей дате системы.
+- Формат сообщения о нарушении расширен фактической датой: `START_DT:YYYY-MM-DD>YYYY-MM-DD` (например `START_DT:2026-05-01>2026-04-27`).
 
 ### Версия 1.7.40 — SPOD-JSON: все структурные ошибки в одной ячейке
 

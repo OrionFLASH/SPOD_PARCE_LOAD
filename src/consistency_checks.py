@@ -385,6 +385,147 @@ def run_referential_composite(
     }
 
 
+def _parse_cfg_date(value: Any, date_format: str) -> Optional[datetime]:
+    """Парсит дату по формату из конфига (в т.ч. YYYY-MM-DD)."""
+    s = str(value).strip() if value is not None and pd.notna(value) else ""
+    if s == "":
+        return None
+    fmt = date_format
+    if fmt.upper() == "YYYY-MM-DD":
+        fmt = "%Y-%m-%d"
+    try:
+        return datetime.strptime(s, fmt)
+    except (TypeError, ValueError):
+        return None
+
+
+def run_cross_sheet_date_lte_today(
+    sheets_data: Dict[str, Any],
+    rule: Dict[str, Any],
+) -> Dict[str, Any]:
+    """
+    Проверка: для каждого кода из sheet_src.column_src дата sheet_ref.column_date_ref
+    по ключу sheet_ref.column_ref должна быть <= текущей системной дате.
+    """
+    sheet_src = rule.get("sheet_src")
+    column_src = rule.get("column_src")
+    sheet_ref = rule.get("sheet_ref")
+    column_ref = rule.get("column_ref")
+    column_date_ref = rule.get("column_date_ref")
+    date_format = str(rule.get("date_format", "YYYY-MM-DD"))
+    output = rule.get("output") or {}
+    col_out = output.get("column_on_sheet") or f"ПРОВЕРКА: {column_date_ref} <= today"
+    check_id = rule.get("id", "")
+
+    df_src = _get_sheet_df(sheets_data, sheet_src)
+    df_ref = _get_sheet_df(sheets_data, sheet_ref)
+    if df_src is None:
+        return {
+            "check_id": check_id,
+            "sheet": sheet_src,
+            "name": rule.get("name", ""),
+            "column_on_sheet": col_out,
+            "type": "cross_sheet_date_lte_today",
+            "total_rows": 0,
+            "violations": 0,
+            "sample": [],
+            "include_in_summary": output.get("include_in_summary", True),
+        }
+
+    if column_src not in df_src.columns:
+        logging.warning(f"[consistency] cross_sheet_date_lte_today {check_id}: колонка {column_src} не найдена на {sheet_src}")
+        return {
+            "check_id": check_id,
+            "sheet": sheet_src,
+            "name": rule.get("name", ""),
+            "column_on_sheet": col_out,
+            "type": "cross_sheet_date_lte_today",
+            "total_rows": len(df_src),
+            "violations": len(df_src),
+            "sample": [],
+            "include_in_summary": output.get("include_in_summary", True),
+        }
+
+    src_conds = rule.get("src_row_conditions") or rule.get("sheet_src_row_conditions")
+    ref_conds = rule.get("ref_row_conditions") or rule.get("sheet_ref_row_conditions")
+    src_mask = _referential_row_conditions_mask(df_src, src_conds, str(sheet_src or ""))
+
+    ref_dates_by_code: Dict[str, List[datetime]] = defaultdict(list)
+    ref_parse_error_codes: Set[str] = set()
+    ref_empty_date_codes: Set[str] = set()
+    if df_ref is not None:
+        required_ref = [column_ref, column_date_ref]
+        missing_ref = [c for c in required_ref if c not in df_ref.columns]
+        if missing_ref:
+            logging.warning(f"[consistency] cross_sheet_date_lte_today {check_id}: колонки {missing_ref} не найдены на {sheet_ref}")
+        else:
+            ref_mask = _referential_row_conditions_mask(df_ref, ref_conds, str(sheet_ref or ""))
+            ref_sub = df_ref.loc[ref_mask]
+            for _, row in ref_sub[[column_ref, column_date_ref]].iterrows():
+                code = str(row[column_ref]).strip() if pd.notna(row[column_ref]) else ""
+                if not code:
+                    continue
+                parsed_dt = _parse_cfg_date(row[column_date_ref], date_format)
+                if parsed_dt is None:
+                    raw = str(row[column_date_ref]).strip() if pd.notna(row[column_date_ref]) else ""
+                    if raw == "":
+                        ref_empty_date_codes.add(code)
+                    else:
+                        ref_parse_error_codes.add(code)
+                    continue
+                ref_dates_by_code[code].append(parsed_dt)
+
+    today = datetime.now().date()
+
+    def _status(code_val: Any) -> str:
+        code = str(code_val).strip() if pd.notna(code_val) else ""
+        if code == "":
+            return "OK"
+        if code in ref_parse_error_codes:
+            return f"Некорректная дата {column_date_ref} в {sheet_ref}"
+        if code in ref_empty_date_codes and not ref_dates_by_code.get(code):
+            return f"Пустая дата {column_date_ref} в {sheet_ref}"
+        ref_vals = ref_dates_by_code.get(code) or []
+        if not ref_vals:
+            return f"НЕТ в {sheet_ref}"
+        max_dt = max(ref_vals).date()
+        if max_dt <= today:
+            return "OK"
+        return f"{column_date_ref}:{max_dt.strftime('%Y-%m-%d')}>{today.strftime('%Y-%m-%d')}"
+
+    checked = df_src[column_src].map(_status)
+    results = checked.where(src_mask, other="—")
+    violations_mask = src_mask & (checked != "OK")
+    n_violations = int(violations_mask.sum())
+    total = len(df_src)
+    sample: List[str] = []
+    if n_violations > 0:
+        vio_idx = df_src.index[violations_mask].tolist()[: _MAX_SAMPLE]
+        for idx in vio_idx:
+            code = str(df_src.loc[idx, column_src]).strip() if pd.notna(df_src.loc[idx, column_src]) else ""
+            msg = str(checked.loc[idx]).strip()
+            sample.append(f"[{_excel_row(idx)}] {code} | {msg}")
+
+    item = _get_sheet_item(sheets_data, sheet_src)
+    if item is not None:
+        df, conf = item
+        df = df.copy()
+        df[col_out] = results.values
+        sheets_data[sheet_src] = (df, conf)
+
+    return {
+        "check_id": check_id,
+        "sheet": sheet_src,
+        "name": rule.get("name", ""),
+        "column_on_sheet": col_out,
+        "type": "cross_sheet_date_lte_today",
+        "total_rows": total,
+        "violations": n_violations,
+        "sample": sample,
+        "include_in_summary": output.get("include_in_summary", True),
+    }
+
+
 def _run_unique_check(sheets_data: Dict[str, Any], rule: Dict[str, Any]) -> None:
     """
     Создаёт на листе колонку с пометкой дублей по key_columns (значение «xN» или пусто).
@@ -1311,7 +1452,7 @@ def _sheet_written_by_rule(rule: Dict[str, Any]) -> Optional[str]:
         "json_spod_format",
     ):
         return rule.get("sheet")
-    if t in ("referential", "referential_composite"):
+    if t in ("referential", "referential_composite", "cross_sheet_date_lte_today"):
         return rule.get("sheet_src")
     return None
 
@@ -1442,6 +1583,13 @@ def run_all_consistency_checks(
                         res = run_referential_composite(sheets_data, rule)
                 else:
                     res = run_referential_composite(sheets_data, rule)
+            elif rule_type == "cross_sheet_date_lte_today":
+                sheet_src = rule.get("sheet_src")
+                if sheet_src and sheet_src in lock_by_sheet:
+                    with lock_by_sheet[sheet_src]:
+                        res = run_cross_sheet_date_lte_today(sheets_data, rule)
+                else:
+                    res = run_cross_sheet_date_lte_today(sheets_data, rule)
             elif rule_type == "unique":
                 res = collect_unique_result(sheets_data, rule)
             elif rule_type == "field_length":
@@ -1520,6 +1668,7 @@ def _rule_to_description_columns(rule: Dict[str, Any]) -> Dict[str, str]:
     type_ru = {
         "referential": "внешний ключ в одну колонку",
         "referential_composite": "внешний ключ из нескольких колонок",
+        "cross_sheet_date_lte_today": "дата из справочника не позже текущей даты",
         "unique": "уникальность, отсутствие дублей по ключу",
         "field_length": "длина полей",
         "field_format": "формат поля",
@@ -1550,6 +1699,16 @@ def _rule_to_description_columns(rule: Dict[str, Any]) -> Dict[str, str]:
         table_ref = rule.get("sheet_ref", "")
         field_ref = ", ".join(rule.get("columns_ref") or [])
         param = "все из источника существуют во второй таблице"
+        sc = rule.get("src_row_conditions") or rule.get("sheet_src_row_conditions")
+        rc = rule.get("ref_row_conditions") or rule.get("sheet_ref_row_conditions")
+        if sc or rc:
+            comment = f"фильтр src: {sc!r}; фильтр ref: {rc!r}".strip()
+    elif t == "cross_sheet_date_lte_today":
+        table_src = rule.get("sheet_src", "")
+        field_src = rule.get("column_src", "")
+        table_ref = rule.get("sheet_ref", "")
+        field_ref = f"{rule.get('column_ref', '')} -> {rule.get('column_date_ref', '')}"
+        param = f"{rule.get('column_date_ref', '')} <= сегодня ({rule.get('date_format', 'YYYY-MM-DD')})"
         sc = rule.get("src_row_conditions") or rule.get("sheet_src_row_conditions")
         rc = rule.get("ref_row_conditions") or rule.get("sheet_ref_row_conditions")
         if sc or rc:

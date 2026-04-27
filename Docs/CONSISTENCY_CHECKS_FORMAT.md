@@ -50,7 +50,7 @@
 
 - **id** — короткий идентификатор (для логов и сводки).
 - **name** — человекочитаемое название (по желанию).
-- **type** — тип: `"referential"` | `"unique"` | `"referential_composite"` | `"field_length"` | `"field_format"` | `"json_field_equals_column"` | `"json_field_in_column"` | `"json_priority_unique_per_contest_link"` | `"json_spod_format"`.
+- **type** — тип: `"referential"` | `"unique"` | `"referential_composite"` | `"cross_sheet_date_lte_today"` | `"field_length"` | `"field_format"` | `"json_field_equals_column"` | `"json_field_in_column"` | `"json_priority_unique_per_contest_link"` | `"json_spod_format"`.
 - **enabled** — выполнять ли проверку (true/false). При **false** строка в своде **CONSISTENCY** всё равно создаётся: **total_rows** по целевому листу, **violations = 0**, в **sample** — пометка об отключённом правиле; колонка проверки на листе не заполняется.
 - **output** — куда и как выводить результат (см. ниже).
 
@@ -92,6 +92,39 @@
 - **`ref_row_conditions`** (**`sheet_ref_row_conditions`**) — то же для листа-справочника: во множество допустимых значений попадают только строки, прошедшие фильтр.
 
 Те же ключи поддерживаются для типа **`referential_composite`**.
+
+### 2.2.1. Тип `cross_sheet_date_lte_today` (дата из справочника не позже сегодня)
+
+Проверка для сценариев вида: «для кода из листа-источника дата в листе-справочнике должна быть не позже текущей даты системы».
+
+Пример:
+
+```json
+{
+  "id": "report_tournament_start_dt_not_future",
+  "name": "Для всех TOURNAMENT_CODE из REPORT дата START_DT в TOURNAMENT-SCHEDULE должна быть меньше или равна текущей дате системы",
+  "type": "cross_sheet_date_lte_today",
+  "enabled": true,
+  "sheet_src": "REPORT",
+  "column_src": "TOURNAMENT_CODE",
+  "sheet_ref": "TOURNAMENT-SCHEDULE",
+  "column_ref": "TOURNAMENT_CODE",
+  "column_date_ref": "START_DT",
+  "date_format": "YYYY-MM-DD",
+  "src_row_conditions": [],
+  "ref_row_conditions": [],
+  "output": {
+    "column_on_sheet": "ПРОВЕРКА: START_DT по TOURNAMENT_CODE <= сегодня",
+    "include_in_summary": true
+  }
+}
+```
+
+- **sheet_src / column_src** — где расположен код для проверки.
+- **sheet_ref / column_ref** — где искать этот код в справочнике.
+- **column_date_ref** — дата для сравнения с текущей системной датой.
+- **date_format** — формат даты (поддерживается `YYYY-MM-DD`).
+- При нарушении формат сообщения: **`<поле>:<факт>><сегодня>`**, например **`START_DT:2026-05-01>2026-04-27`**.
 
 ---
 
@@ -501,7 +534,7 @@
 - Проверки выполняются после загрузки листов и merge, при необходимости после текущих проверок дубликатов и длины полей.
 - Перед финальной записью основного Excel:
   1. Загрузить правила из **consistency_checks.rules** (только **enabled: true**).
-  2. Для каждого правила по **type** вызвать соответствующую функцию модуля **consistency_checks** (в т.ч. referential, referential_composite, unique, field_length, field_format, json_field_equals_column, json_field_in_column, json_priority_unique_per_contest_link, json_spod_format).
+  2. Для каждого правила по **type** вызвать соответствующую функцию модуля **consistency_checks** (в т.ч. referential, referential_composite, cross_sheet_date_lte_today, unique, field_length, field_format, json_field_equals_column, json_field_in_column, json_priority_unique_per_contest_link, json_spod_format).
   3. Записать в соответствующий лист колонку **output.column_on_sheet**.
   4. Собрать по правилам с **include_in_summary** статистику (лист, количество нарушений, примеры).
   5. Сформировать DataFrame для **summary_sheet_name** и добавить его в **sheets_data**.
