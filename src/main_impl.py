@@ -929,12 +929,12 @@ def read_csv_file(
         headers = None
         issues: List[Dict[str, Any]] = []
 
-        with open(file_path, 'r', encoding='utf-8', newline='') as file:
+        with open(file_path, "r", encoding="utf-8-sig", newline="") as file:
             csv_reader = csv.reader(file, delimiter=';', quoting=csv.QUOTE_NONE)
 
             for i, row in enumerate(csv_reader):
                 if i == 0:
-                    headers = row
+                    headers = [_normalize_column_name_for_format_match(h) for h in row]
                     # АВТО (expected_columns=0): ожидаемое число полей = длина заголовка; иначе — из конфига
                     n = expected_columns if expected_columns > 0 else len(headers)
                 else:
@@ -1441,15 +1441,12 @@ def _config_date_format_to_pandas(fmt: Optional[str]) -> Optional[str]:
 
 def _normalize_column_name_for_format_match(name: Optional[str]) -> str:
     """
-    Имя колонки для сравнения с ``except_columns`` / ``columns`` в COLUMN_FORMATS:
-    NFKC, обрезка, схлопывание последовательностей пробелов (в т.ч. разные Unicode).
-    Устраняет рассинхрон из‑за BOM в первом заголовке, неразрывных пробелов и т.п.
+    Имя колонки для сравнения с ``except_columns`` / ``columns`` в COLUMN_FORMATS.
+    Делегирует в csv_headers (BOM, NFKC, пробелы).
     """
-    s = (name or "").strip()
-    # UTF-8 BOM в первом заголовке CSV (\ufeffColumn) — strip() не всегда убирает BOM
-    s = s.lstrip("\ufeff")
-    s = unicodedata.normalize("NFKC", s)
-    return " ".join(s.split())
+    from src.csv_headers import normalize_csv_column_header
+
+    return normalize_csv_column_header(name)
 
 
 def _normalize_string_for_numeric_cell(val: Any) -> str:

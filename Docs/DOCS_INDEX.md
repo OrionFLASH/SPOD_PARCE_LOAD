@@ -11,7 +11,7 @@
 - `SPOD_CONSISTENCY_CHECKS_SQL_MIRROR.md` — отдельное подробное описание скрипта: структура CTE, полный перечень проверок и таблиц/полей, замены схемы и имён, формат вывода, исключения (field_format, json, csv).
 - `CONSISTENCY_SAMPLE_FORMAT.md` — актуальный формат поля `sample` по всем типам проверок.
 - `INPUT_ARCHIVE_SQLITE_DESIGN.md` — архив **v1** (снимки целого файла): `src/input_archive_sqlite.py`, **`JSON_*`** через `src/archive_json_columns.py`, БД **`OUT/DB/spod_input_archive.sqlite`**, отчёт **`print_input_archive_sqlite_report`**.
-- `INPUT_ARCHIVE_ROW_LEVEL.md` — архив **v2 (построчно)**, реализован: `row_level_archive`, `src/input_archive_sqlite_v2.py`, `input_archive_row_hash.py`, `input_archive_row_parallel.py`, БД **`OUT/DB/spod_input_archive_v2.sqlite`**, отчёт **`print_input_archive_row_report`**.
+- `INPUT_ARCHIVE_ROW_LEVEL.md` — архив **v2 (построчно)**, реализован: `row_level_archive`, `src/input_archive_sqlite_v2.py`, `input_archive_row_hash.py`, `input_archive_row_parallel.py`, **`src/csv_headers.py`** (BOM/сопоставление заголовков), БД **`OUT/DB/spod_input_archive_v2.sqlite`**, отчёт **`print_input_archive_row_report`**.
 - `INPUT_ARCHIVE_ROW_LEVEL_PLAN.md` — план и таблица **`row_key_columns`** по листам (справочник).
 - `RATING_MATRIX_COLORS_AND_LOGIC.md` — лист RATING: подсчёт, доступность, раскраска матрицы ITEM (в т.ч. itemAmount и шапка колонки).
 - `SEASON_ORDER_SUMMARY.md` — лист **ORDER-SEASON-SUMMARY**: сводка заказов по группам **SEASON_*** (`item_order_groups`), остаток склада, счётчики КМ.

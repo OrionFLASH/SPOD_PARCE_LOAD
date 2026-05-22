@@ -109,6 +109,7 @@ SPOD_PROM/
 | **json_spod_format_check.py** | Валидация SPOD-JSON: BOM/Unicode-пробелы вне **`"""…"""`**, симметрия внешних кавычек, рекурсивный разбор **со сбором всех** структурных ошибок в ячейке; **`""key""`**, JSON- и **`""значение""`** у строки, лишние **`{}`** в массиве; **`numeric_value_keys`**; нормализация и **json.loads**; **короткие** строки (путь + суть), лимиты **`_MAX_STRUCTURE_ERRORS`** / **`_MAX_CELL_ERROR_LEN`** | `validate_spod_json_cell`, `run_json_spod_format_check` — из **`consistency_checks`**, **`type: "json_spod_format"`**. |
 | **file_loader.py** | Поиск и загрузка CSV, разворот JSON по конфигу | Класс `FileLoader(config)`: `find_file_case_insensitive(directory, base_name, extensions)`, `check_input_files_exist()`, `read_csv_file(file_path)`, `process_single_file(file_conf)` — возвращает `(df, sheet_name, file_conf)` или `(None, sheet_name, None)`. |
 | **archive_json_columns.py**, **input_archive_sqlite.py** | Архив v1: снимки целого файла в SQLite | **`archive_json_columns`**: колонки **JSON_***. **`input_archive_sqlite`**: `run_input_archive_sqlite`, снимки **`latest`/`historical`**, дедуп по SHA файла. См. **`Docs/INPUT_ARCHIVE_SQLITE_DESIGN.md`**. |
+| **csv_headers.py** | Нормализация заголовков CSV (BOM, NFKC, пробелы) | `normalize_csv_column_header`, `resolve_columns_in_dataframe` — чтение gamification и сопоставление **`row_key_columns`** в архиве v2. |
 | **input_archive_sqlite_v2.py**, **input_archive_row_hash.py**, **input_archive_row_parallel.py** | Архив **v2**: построчная история (**`row_level_archive`: true**) | **`run_input_archive_sqlite_v2`**: upsert по `row_key_hash`, новый `payload` только при смене `row_hash`, пропавшие строки → **`inactive`**, пропуск ingest при неизменном SHA файла, параллельные фазы hash/compare. Отчёт: **`print_input_archive_row_report`**. См. **`Docs/INPUT_ARCHIVE_ROW_LEVEL.md`**. |
 | **tournament.py** | Расчёт статуса турнира по датам | `calculate_tournament_status(config, df_tournament, df_report=None)` — добавляет колонку `CALC_TOURNAMENT_STATUS` по правилам из `config.tournament_status_choices`. |
 | **validation.py** | Валидация длины полей и проверка дубликатов (устаревшие пути) | `validate_field_lengths(config, df, sheet_name)`, `validate_field_lengths_vectorized(config, df, sheet_name)`, `compare_validate_results`, `mark_duplicates`, `validate_single_sheet`, `check_duplicates_single_sheet`. Основной пайплайн больше не использует отдельные шаги проверки дубликатов и длины полей — всё выполняется в **consistency_checks**. |
@@ -1201,6 +1202,15 @@ python main.py
 ---
 
 ## История версий
+
+### Версия 1.7.45 — Архив v2 и CSV: BOM в заголовках, ключ STATISTICS
+
+- **Причина ошибок** «в CSV нет колонок ключа» для RATING/ORDER/LIST-REWARDS: в gamification-CSV первый заголовок с **UTF-8 BOM** (`\ufeffТабельный номер` вместо `Табельный номер`).
+- **`src/csv_headers.py`**: нормализация имён столбцов; **`resolve_columns_in_dataframe`** в **`input_archive_sqlite_v2`**.
+- **Чтение CSV:** **`utf-8-sig`** и нормализация заголовков в **`read_csv_file`** (**`main_impl`**) и **`file_loader`**.
+- **`default_row_key_by_sheet.STATISTICS`**: убрана колонка **Период** (в текущей выгрузке её нет) — ключ: **Табельный номер**, **Код роли**, **Дата вступления в роль**.
+- **Документация:** **`Docs/INPUT_ARCHIVE_ROW_LEVEL.md`** (п. 5.0), план п. 9.2. **Тесты:** `src/Tests/test_csv_headers.py`.
+- **`sync_post_txt.py`:** режим **`--main-only`** (POST без Tests/Tools/Docs) и **`КУДА_ПОЛОЖИТЬ_ФАЙЛЫ.txt`** с картой файлов.
 
 ### Версия 1.7.44 — Архив SQLite v2: построчная история входных CSV
 

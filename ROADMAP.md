@@ -50,5 +50,6 @@
 | 3.4 | Повторная загрузка того же содержимого из другого файла — только source_file / loaded_at | [v] |
 | 3.7 | Замеры производительности (фазы hash / compare / db), DEBUG-лог | [v] |
 | 3.5 | Отчёт в консоль (`print_input_archive_row_report`), README/ROADMAP | [v] |
+| 3.8 | BOM в заголовках gamification-CSV, ключ STATISTICS без «Период» (`csv_headers.py`) | [v] |
 
-Подробности параллелизации: **`Docs/INPUT_ARCHIVE_ROW_LEVEL_PLAN.md`**, раздел **11**.
+Подробности параллелизации: **`Docs/INPUT_ARCHIVE_ROW_LEVEL_PLAN.md`**, раздел **11**. Заголовки CSV: **`Docs/INPUT_ARCHIVE_ROW_LEVEL.md`**, п. **5.0**.

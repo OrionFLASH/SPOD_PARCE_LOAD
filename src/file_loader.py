@@ -79,11 +79,13 @@ class FileLoader:
         try:
             rows: List[List[str]] = []
             headers: Optional[List[str]] = None
-            with open(file_path, "r", encoding="utf-8", newline="") as file:
+            from src.csv_headers import normalize_csv_column_header
+
+            with open(file_path, "r", encoding="utf-8-sig", newline="") as file:
                 csv_reader = csv.reader(file, delimiter=";", quoting=csv.QUOTE_NONE)
                 for i, row in enumerate(csv_reader):
                     if i == 0:
-                        headers = row
+                        headers = [normalize_csv_column_header(h) for h in row]
                     else:
                         # Нормализуем длину строки под число колонок заголовка (разное число полей в CSV)
                         n = len(headers)

@@ -32,6 +32,7 @@ from src.input_archive_row_parallel import (
     dedupe_by_key_last_wins,
     merge_parallel_config,
 )
+from src.csv_headers import resolve_columns_in_dataframe
 from src.input_archive_sqlite import (
     _archive_reporting_modes,
     _hash_file,
@@ -667,13 +668,18 @@ def run_input_archive_sqlite_v2(
                 )
                 continue
 
-            missing_cols = [c for c in key_cols if c not in df_raw.columns]
+            resolved_cols, missing_cols = resolve_columns_in_dataframe(df_raw, key_cols)
             if missing_cols:
                 stats["errors"] += 1
+                actual_headers = [
+                    str(c) for c in list(df_raw.columns)[:12]
+                ]
                 logging.error(
-                    "[archive_v2] «%s»: в CSV нет колонок ключа: %s",
+                    "[archive_v2] «%s»: в CSV нет колонок ключа: %s (заголовки: %s%s)",
                     sheet_name,
                     missing_cols,
+                    actual_headers,
+                    "…" if len(df_raw.columns) > 12 else "",
                 )
                 events.append(
                     {
@@ -687,6 +693,15 @@ def run_input_archive_sqlite_v2(
                 )
                 continue
 
+            if resolved_cols != key_cols:
+                logging.info(
+                    "[archive_v2] «%s»: сопоставление колонок ключа %s → %s",
+                    sheet_name,
+                    key_cols,
+                    resolved_cols,
+                )
+            key_cols_ingest = resolved_cols
+
             try:
                 result = _ingest_one_file(
                     cur,
@@ -698,7 +713,7 @@ def run_input_archive_sqlite_v2(
                     file_path,
                     fn,
                     df_raw,
-                    key_cols,
+                    key_cols_ingest,
                     now_utc,
                     log_mode,
                 )
