@@ -50,7 +50,7 @@
 
 - **id** — короткий идентификатор (для логов и сводки).
 - **name** — человекочитаемое название (по желанию).
-- **type** — тип: `"referential"` | `"unique"` | `"referential_composite"` | `"cross_sheet_date_lte_today"` | `"field_length"` | `"field_format"` | `"json_field_equals_column"` | `"json_field_in_column"` | `"json_priority_unique_per_contest_link"` | `"json_spod_format"`.
+- **type** — тип: `"referential"` | `"unique"` | `"referential_composite"` | `"cross_sheet_date_lte_today"` | `"field_length"` | `"field_format"` | `"field_in_values"` | `"json_field_equals_column"` | `"json_field_in_column"` | `"json_priority_unique_per_contest_link"` | `"json_spod_format"`.
 - **enabled** — выполнять ли проверку (true/false). При **false** строка в своде **CONSISTENCY** всё равно создаётся: **total_rows** по целевому листу, **violations = 0**, в **sample** — пометка об отключённом правиле; колонка проверки на листе не заполняется.
 - **output** — куда и как выводить результат (см. ниже).
 
@@ -346,6 +346,45 @@
 ```
 
 В сводке и в ячейках для **field_format**: «OK» или описание нарушения (например «Не дата формата %Y-%m-%d», «18 < 20», «21 > 20», «Ожидаются только цифры»).
+
+---
+
+### 2.6.1. Тип `field_in_values` (значение в списке допустимых, IN)
+
+Проверка: значение **колонки** или **ключа JSON** должно входить в фиксированный список **`allowed_values`**. Опционально обязательное заполнение (**NOT NULL**): **`allow_empty`: false** или **`require_not_null`: true**.
+
+| Поле | Описание |
+|------|----------|
+| `sheet` | Лист проверки |
+| `source` | `column` (по умолчанию) — поле **`field`** (или **`column`**); `json` — **`json_column`** + **`json_key`** (разбор как в json_field_*) |
+| `allowed_values` | Массив допустимых строк (сравнение после `strip`) |
+| `allow_empty` | `true` — пустая ячейка не нарушение; `false` — пустые недопустимы |
+| `row_conditions` | Опционально: фильтр строк (как **`src_row_conditions`** у referential); вне области — **«—»** |
+| `output.column_on_sheet` | Колонка результата на листе |
+
+В ячейках: **OK**, **Пустое значение**, **не в списке: …**, **Ошибка разбора JSON** (для source=json), **—** (строка вне фильтра).
+
+**Пример (TOURNAMENT-SCHEDULE / TOURNAMENT_STATUS):**
+
+```json
+{
+  "id": "in_schedule_tournament_status",
+  "name": "TOURNAMENT-SCHEDULE: TOURNAMENT_STATUS — допустимые значения (IN, NOT NULL)",
+  "type": "field_in_values",
+  "enabled": true,
+  "sheet": "TOURNAMENT-SCHEDULE",
+  "source": "column",
+  "field": "TOURNAMENT_STATUS",
+  "allowed_values": ["УДАЛЕН", "ЗАВЕРШЕН", "АКТИВНЫЙ", "ПОДВЕДЕНИЕ ИТОГОВ", "ОТМЕНЕН"],
+  "allow_empty": false,
+  "output": {
+    "column_on_sheet": "ПРОВЕРКА: TOURNAMENT_STATUS IN",
+    "include_in_summary": true
+  }
+}
+```
+
+Реализация: **`src/consistency_checks.py`** — **`_run_field_in_values_check`**, **`collect_field_in_values_result`**.
 
 ---
 

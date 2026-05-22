@@ -2,7 +2,7 @@
 """
 Модуль проверок консистентности данных.
 Выполняет правила из конфига consistency_checks: создаёт колонки unique (ДУБЛЬ: …, опционально область unique_scope_*
-и unique_require_non_empty), field_length, field_format, json-проверки и json_spod_format на листах, затем referential/referential_composite,
+и unique_require_non_empty), field_length, field_format, field_in_values, json-проверки и json_spod_format на листах, затем referential/referential_composite,
 собирает результаты в свод CONSISTENCY.
 Результаты выводятся в колонки на листах, сводный лист CONSISTENCY, консоль и лог.
 Тип json_priority_unique_per_contest_link: уникальность ключа JSON (например priority) среди REWARD_CODE
@@ -806,6 +806,193 @@ def collect_field_format_result(
     }
 
 
+def _field_in_values_allow_empty(rule: Dict[str, Any]) -> bool:
+    """
+    Допустима ли пустая ячейка (NOT NULL при allow_empty=false / require_not_null=true).
+    """
+    if "allow_empty" in rule:
+        return bool(rule.get("allow_empty"))
+    if rule.get("require_not_null") is True:
+        return False
+    return True
+
+
+def _field_in_values_allowed_set(rule: Dict[str, Any]) -> Set[str]:
+    """Множество допустимых значений (после strip)."""
+    raw = rule.get("allowed_values") or rule.get("values_in") or []
+    out: Set[str] = set()
+    if isinstance(raw, list):
+        for v in raw:
+            if v is None:
+                continue
+            s = str(v).strip()
+            if s:
+                out.add(s)
+    return out
+
+
+def _field_in_values_cell_empty(val: Any) -> bool:
+    """Пустое значение для проверки IN (согласовано с field_format / unique)."""
+    if val is None:
+        return True
+    if isinstance(val, float) and pd.isna(val):
+        return True
+    s = str(val).strip()
+    return s == "" or s in ("-", "None", "null")
+
+
+def _validate_field_in_values_scalar(
+    val: Any,
+    allowed: Set[str],
+    allow_empty: bool,
+) -> str:
+    """OK или текст нарушения для одного скалярного значения."""
+    if _field_in_values_cell_empty(val):
+        return "OK" if allow_empty else "Пустое значение"
+    s = str(val).strip()
+    if s in allowed:
+        return "OK"
+    short = s[:50] + ("…" if len(s) > 50 else "")
+    return f"не в списке: {short}"
+
+
+def _run_field_in_values_check(sheets_data: Dict[str, Any], rule: Dict[str, Any]) -> None:
+    """
+    Проверка: значение колонки или ключа JSON должно входить в allowed_values (IN).
+    source: column (поле field) | json (json_column + json_key).
+    allow_empty: false — обязательное заполнение (NOT NULL).
+    Опционально row_conditions — как у referential (И по column/op/value).
+    """
+    sheet_name = rule.get("sheet")
+    source = str(rule.get("source", "column")).strip().lower()
+    field_name = rule.get("field") or rule.get("column")
+    json_column = rule.get("json_column")
+    json_key = rule.get("json_key")
+    allow_empty = _field_in_values_allow_empty(rule)
+    allowed = _field_in_values_allowed_set(rule)
+    output = rule.get("output") or {}
+    label = field_name or json_key or "?"
+    col_out = output.get("column_on_sheet") or f"ПРОВЕРКА IN: {label}"
+    check_id = rule.get("id", "")
+    row_conds = rule.get("row_conditions") or rule.get("sheet_row_conditions")
+
+    item = _get_sheet_item(sheets_data, sheet_name)
+    if item is None:
+        logging.debug(f"[consistency] field_in_values {check_id}: лист {sheet_name} отсутствует")
+        return
+    df, conf = item
+
+    if source in ("json", "json_field"):
+        if not json_column or not json_key:
+            logging.warning(
+                f"[consistency] field_in_values {check_id}: для source=json нужны json_column и json_key"
+            )
+            return
+        if json_column not in df.columns:
+            logging.warning(
+                f"[consistency] field_in_values {check_id}: колонка {json_column} не найдена на {sheet_name}"
+            )
+            return
+    else:
+        if not field_name or field_name not in df.columns:
+            logging.warning(
+                f"[consistency] field_in_values {check_id}: поле {field_name!r} не найдено на {sheet_name}"
+            )
+            return
+
+    if not allowed:
+        logging.warning(f"[consistency] field_in_values {check_id}: пустой список allowed_values, пропуск")
+        return
+
+    active = _referential_row_conditions_mask(df, row_conds, str(sheet_name or ""))
+
+    def _check_one(row: pd.Series) -> str:
+        if not bool(active.loc[row.name]):
+            return "—"
+        if source in ("json", "json_field"):
+            raw_val = row.get(json_column)
+            add_data, _, _ = _parse_add_data_cell_with_normalized(raw_val)
+            if add_data is None:
+                return "Ошибка разбора JSON"
+            return _validate_field_in_values_scalar(
+                add_data.get(json_key),
+                allowed,
+                allow_empty,
+            )
+        return _validate_field_in_values_scalar(row.get(field_name), allowed, allow_empty)
+
+    results = df.apply(_check_one, axis=1)
+    df = df.copy()
+    df[col_out] = results.values
+    sheets_data[sheet_name] = (df, conf)
+    logging.debug(f"[consistency] field_in_values {check_id}: записана колонка {col_out} на {sheet_name}")
+
+
+def collect_field_in_values_result(
+    sheets_data: Dict[str, Any],
+    rule: Dict[str, Any],
+) -> Dict[str, Any]:
+    """Собирает результат проверки field_in_values по уже заполненной колонке."""
+    sheet_name = rule.get("sheet")
+    output = rule.get("output") or {}
+    field_name = rule.get("field") or rule.get("column") or ""
+    json_key = rule.get("json_key", "")
+    label = field_name or json_key or "?"
+    col_out = output.get("column_on_sheet") or f"ПРОВЕРКА IN: {label}"
+    check_id = rule.get("id", "")
+    source = str(rule.get("source", "column")).strip().lower()
+    value_col = field_name if source not in ("json", "json_field") else (rule.get("json_column") or "")
+
+    df = _get_sheet_df(sheets_data, sheet_name)
+    if df is None or col_out not in df.columns:
+        return {
+            "check_id": check_id,
+            "sheet": sheet_name,
+            "name": rule.get("name", ""),
+            "column_on_sheet": col_out,
+            "type": "field_in_values",
+            "total_rows": 0,
+            "violations": 0,
+            "sample": [],
+            "include_in_summary": output.get("include_in_summary", True),
+        }
+
+    col_series = df[col_out].astype(str).str.strip()
+    applicable = col_series != "—"
+    violations_mask = applicable & (col_series != "OK")
+    n_violations = int(violations_mask.sum())
+    total = int(applicable.sum())
+    sample: List[str] = []
+    if n_violations > 0:
+        vio_idx = df.index[violations_mask].tolist()[:_MAX_SAMPLE]
+        for idx in vio_idx:
+            msg = col_series.loc[idx]
+            if "Ошибка разбора" in msg:
+                sample.append(f"[{_excel_row(idx)}] | json_бит")
+            elif msg == "Пустое значение":
+                sample.append(f"[{_excel_row(idx)}] | пусто")
+            elif msg.startswith("не в списке:"):
+                raw = ""
+                if value_col and value_col in df.columns:
+                    rv = df.loc[idx, value_col]
+                    raw = "" if pd.isna(rv) else str(rv).strip()[:30]
+                sample.append(f"[{_excel_row(idx)}] {raw} | ∉IN")
+            else:
+                sample.append(f"[{_excel_row(idx)}] | {msg[:50]}")
+
+    return {
+        "check_id": check_id,
+        "sheet": sheet_name,
+        "name": rule.get("name", ""),
+        "column_on_sheet": col_out,
+        "type": "field_in_values",
+        "total_rows": total,
+        "violations": n_violations,
+        "sample": sample,
+        "include_in_summary": output.get("include_in_summary", True),
+    }
+
+
 def collect_unique_result(
     sheets_data: Dict[str, Any],
     rule: Dict[str, Any],
@@ -1446,6 +1633,7 @@ def _sheet_written_by_rule(rule: Dict[str, Any]) -> Optional[str]:
         "unique",
         "field_length",
         "field_format",
+        "field_in_values",
         "json_field_equals_column",
         "json_field_in_column",
         "json_priority_unique_per_contest_link",
@@ -1537,6 +1725,8 @@ def run_all_consistency_checks(
                 _run_field_length_check(sheets_data, rule)
             elif rule.get("type") == "field_format":
                 _run_field_format_check(sheets_data, rule)
+            elif rule.get("type") == "field_in_values":
+                _run_field_in_values_check(sheets_data, rule)
             elif rule.get("type") == "json_field_equals_column":
                 _run_json_field_equals_column_check(sheets_data, rule)
             elif rule.get("type") == "json_field_in_column":
@@ -1553,6 +1743,7 @@ def run_all_consistency_checks(
             "unique",
             "field_length",
             "field_format",
+            "field_in_values",
             "json_field_equals_column",
             "json_field_in_column",
             "json_priority_unique_per_contest_link",
@@ -1596,6 +1787,8 @@ def run_all_consistency_checks(
                 res = collect_field_length_result(sheets_data, rule)
             elif rule_type == "field_format":
                 res = collect_field_format_result(sheets_data, rule)
+            elif rule_type == "field_in_values":
+                res = collect_field_in_values_result(sheets_data, rule)
             elif rule_type == "json_field_equals_column":
                 res = collect_json_field_equals_column_result(sheets_data, rule)
             elif rule_type == "json_field_in_column":
@@ -1672,6 +1865,7 @@ def _rule_to_description_columns(rule: Dict[str, Any]) -> Dict[str, str]:
         "unique": "уникальность, отсутствие дублей по ключу",
         "field_length": "длина полей",
         "field_format": "формат поля",
+        "field_in_values": "значение в списке допустимых (IN)",
         "json_field_equals_column": "поле в JSON равно колонке",
         "json_field_in_column": "поле в JSON должно быть в колонке листа",
         "json_priority_unique_per_contest_link": "уникальность поля JSON по CONTEST_CODE (REWARD-LINK)",
@@ -1754,6 +1948,24 @@ def _rule_to_description_columns(rule: Dict[str, Any]) -> Dict[str, str]:
             param = f"{fmt.get('length', 20)} цифр с лидирующими нулями"
         else:
             param = str(fmt_type)
+    elif t == "field_in_values":
+        table_src = rule.get("sheet", "")
+        comment = ""
+        src = str(rule.get("source", "column")).strip().lower()
+        if src in ("json", "json_field"):
+            field_src = f"{rule.get('json_column', '')} → {rule.get('json_key', '')}"
+        else:
+            field_src = rule.get("field") or rule.get("column") or ""
+        av = rule.get("allowed_values") or []
+        param = "IN: " + ", ".join(str(x) for x in av[:8])
+        if len(av) > 8:
+            param += f" … (+{len(av) - 8})"
+        if not _field_in_values_allow_empty(rule):
+            comment = "NOT NULL (пустые недопустимы)"
+        rc = rule.get("row_conditions") or rule.get("sheet_row_conditions")
+        if rc:
+            extra = f"фильтр строк: {rc!r}"
+            comment = f"{comment}; {extra}" if comment else extra
     elif t == "json_field_equals_column":
         table_src = rule.get("sheet", "")
         field_src = rule.get("json_column", "")

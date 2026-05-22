@@ -1,7 +1,5 @@
 {
-  "run_outputs": [
-    "main_only"
-  ],
+  "run_outputs": ["main_only"],
   "_run_outputs_allowed": [
     "source_only",
     "main_only",
@@ -57,7 +55,7 @@
   ],
   "input_files": [
     {
-      "file": "CONTEST (PROM) 22-04 v0.csv",
+      "file": "CONTEST (PROM) 21-05 v0.csv",
       "sheet": "CONTEST-DATA",
       "subdir": "SPOD",
       "archive_to_db": true,
@@ -75,7 +73,7 @@
       "archive_db_path": "OUT/DB/spod_input_archive.sqlite"
     },
     {
-      "file": "GROUP (PROM) 17-04 v0.csv",
+      "file": "GROUP (PROM) 21-05 v0.csv",
       "sheet": "GROUP",
       "subdir": "SPOD",
       "archive_to_db": true,
@@ -101,7 +99,7 @@
       "archive_db_path": "OUT/DB/spod_input_archive.sqlite"
     },
     {
-      "file": "INDICATOR (PROM) 22-04 v1.csv",
+      "file": "INDICATOR (PROM) 21-05 v0.csv",
       "sheet": "INDICATOR",
       "subdir": "SPOD",
       "archive_to_db": true,
@@ -127,7 +125,7 @@
       "archive_db_path": "OUT/DB/spod_input_archive.sqlite"
     },
     {
-      "file": "(БРОКЕР) REPORT (PROM) 24-04 v1.csv",
+      "file": "REPORT (PROM) 22-05 v0.csv",
       "sheet": "REPORT",
       "subdir": "SPOD",
       "archive_to_db": true,
@@ -145,7 +143,7 @@
       "archive_db_path": "OUT/DB/spod_input_archive.sqlite"
     },
     {
-      "file": "(БРОКЕР) REWARD (PROM) 24-04 v1.csv",
+      "file": "REWARD (PROM) 21-05 v0.csv",
       "sheet": "REWARD",
       "subdir": "SPOD",
       "archive_to_db": true,
@@ -167,7 +165,7 @@
       "archive_db_path": "OUT/DB/spod_input_archive.sqlite"
     },
     {
-      "file": "REWARD-LINK (PROM) 17-04 v0.csv",
+      "file": "REWARD-LINK (PROM) 21-05 v0.csv",
       "sheet": "REWARD-LINK",
       "subdir": "SPOD",
       "archive_to_db": true,
@@ -189,7 +187,7 @@
       "archive_db_path": "OUT/DB/spod_input_archive.sqlite"
     },
     {
-      "file": "SCHEDULE (PROM) 27-04 v0.csv",
+      "file": "SCHEDULE (PROM) 21-05 v0.csv",
       "sheet": "TOURNAMENT-SCHEDULE",
       "subdir": "SPOD",
       "archive_to_db": true,
@@ -233,7 +231,7 @@
       "archive_db_path": "OUT/DB/spod_input_archive.sqlite"
     },
     {
-      "file": "USER_ROLE (PROM) 20-04 v0.csv",
+      "file": "USER_ROLE (PROM) 18-05 v0.csv",
       "sheet": "USER_ROLE",
       "subdir": "SPOD",
       "archive_to_db": true,
@@ -251,7 +249,7 @@
       "archive_db_path": "OUT/DB/spod_input_archive.sqlite"
     },
     {
-      "file": "USER_ROLE_SB (PROM) 20-04 v0.csv",
+      "file": "USER_ROLE_SB (PROM) 18-05 v0.csv",
       "sheet": "USER_ROLE SB",
       "subdir": "SPOD",
       "archive_to_db": true,
@@ -2959,7 +2957,7 @@
         "sheet": "INDICATOR",
         "json_column": "INDICATOR_FILTER",
         "json_required": false,
-        "numeric_value_keys": [],
+        "numeric_value_keys": ["filtered_attribute_value"],
         "output": {
           "column_on_sheet": "ПРОВЕРКА: SPOD-JSON (INDICATOR_FILTER)",
           "include_in_summary": true
@@ -3388,24 +3386,6 @@
         ],
         "output": {
           "column_on_sheet": "ПРОВЕРКА: пара в TOURNAMENT-SCHEDULE",
-          "include_in_summary": true
-        }
-      },
-      {
-        "id": "report_tournament_start_dt_not_future",
-        "name": "Для всех TOURNAMENT_CODE из REPORT дата START_DT в TOURNAMENT-SCHEDULE должна быть меньше или равна текущей дате системы",
-        "type": "cross_sheet_date_lte_today",
-        "enabled": true,
-        "sheet_src": "REPORT",
-        "column_src": "TOURNAMENT_CODE",
-        "sheet_ref": "TOURNAMENT-SCHEDULE",
-        "column_ref": "TOURNAMENT_CODE",
-        "column_date_ref": "START_DT",
-        "date_format": "YYYY-MM-DD",
-        "src_row_conditions": [],
-        "ref_row_conditions": [],
-        "output": {
-          "column_on_sheet": "ПРОВЕРКА: START_DT по TOURNAMENT_CODE <= сегодня",
           "include_in_summary": true
         }
       },
@@ -3900,6 +3880,27 @@
         },
         "output": {
           "column_on_sheet": "ПРОВЕРКА ФОРМАТ: RESULT_DT",
+          "include_in_summary": true
+        }
+      },
+      {
+        "id": "in_schedule_tournament_status",
+        "name": "TOURNAMENT-SCHEDULE: TOURNAMENT_STATUS — допустимые значения (IN, NOT NULL)",
+        "type": "field_in_values",
+        "enabled": true,
+        "sheet": "TOURNAMENT-SCHEDULE",
+        "source": "column",
+        "field": "TOURNAMENT_STATUS",
+        "allowed_values": [
+          "УДАЛЕН",
+          "ЗАВЕРШЕН",
+          "АКТИВНЫЙ",
+          "ПОДВЕДЕНИЕ ИТОГОВ",
+          "ОТМЕНЕН"
+        ],
+        "allow_empty": false,
+        "output": {
+          "column_on_sheet": "ПРОВЕРКА: TOURNAMENT_STATUS IN",
           "include_in_summary": true
         }
       },
