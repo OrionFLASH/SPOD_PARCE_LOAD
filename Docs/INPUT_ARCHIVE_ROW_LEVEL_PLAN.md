@@ -57,7 +57,7 @@
 | row_key_hash | TEXT | SHA-256 канонического JSON ключа |
 | row_key_json | TEXT | Ключ для отладки |
 | row_hash | TEXT | SHA-256 содержимого строки (канон. поля) |
-| row_status | TEXT | `active` / `missing` / `superseded` |
+| row_status | TEXT | `active` / `inactive` / `superseded` (см. п. 9) |
 | source_file | TEXT | Имя файла последней загрузки |
 | source_path | TEXT | Полный путь |
 | first_seen_at | TEXT | UTC |
@@ -97,7 +97,7 @@
    b. Есть, row_hash совпадает → UPDATE current (last_loaded_at, source_file).
    c. Есть, row_hash другой → INSERT payload + UPDATE current (active, новый payload_id).
 5. Для current WHERE sheet=X AND row_status=active AND row_key_hash NOT IN K:
-   → row_status = missing, missing_since = now.
+   → row_status = inactive, inactive_since = now.
 6. (Опционально) если файл byte-identical предыдущему ingest — только шаг 4b для метаданных.
 ```
 
@@ -151,12 +151,59 @@
 
 ---
 
-## 9. Открытые вопросы
+## 9. Решения по согласованию (2026-05-22)
 
-1. Список **row_key_columns** для каждого листа из `input_files` — подготовить таблицу с заказчиком.
-2. Нужна ли полная история всех версий строки в SQL или достаточно current + последний payload?
-3. Имя статуса неактуальной строки: `missing`, `inactive`, `deleted`?
-4. Один ingest на весь прогон или на каждый файл отдельно (как сейчас)?
+| Вопрос | Решение |
+|--------|---------|
+| История версий строки | **Полная:** каждая смена `row_hash` → новая строка в `archive_row_payload`; в `archive_row_current` — ссылка на актуальный `payload_id`. Старые payload не удалять. |
+| Статус строки, отсутствующей в текущем CSV | **`inactive`** (не `missing` / `deleted`). Поле метки времени: `inactive_since`. |
+| Ingest: один на прогон или по файлам? | См. п. 9.1 ниже — **рекомендация: по файлу**, как сейчас. |
+
+### 9.1. Пояснение: «один ingest на прогон» vs «на каждый файл»
+
+Имелось в виду **гранулярность одного запуска `main.py`**:
+
+| Вариант | Что это | Плюсы / минусы |
+|---------|---------|----------------|
+| **По файлу** (как сейчас в v1) | После чтения каждого CSV из `input_files` вызывается отдельная процедура архивации для пары `(sheet, file, subdir)`. Сравнение с inventory, commit, отчёт в консоли — **на файл**. | Листы и пути независимы; сбой одного файла не откатывает остальные; разные `archive_db_path` (SPOD vs gamification) естественно разделены. |
+| **На весь прогон** | Один общий `ingest_run_id` на запуск, все файлы в одной большой транзакции SQLite, один итоговый отчёт. | Проще «срез на момент времени», но дольше блокировка БД и сложнее частичный откат при ошибке на одном CSV. |
+
+**Согласованная рекомендация для v2:** оставить **обработку по каждому файлу** (как сейчас), плюс ввести опциональный **`ingest_run_id`** в `archive_ingest_run`: один id на запуск `main.py`, к нему привязаны все пофайловые ingest с счётчиками (new / updated / unchanged / inactive). Так сохраняется привычная модель и появляется свод «за прогон».
+
+### 9.2. Предлагаемые `row_key_columns` по листам
+
+Основа — **включённые** правила `type: unique` в `consistency_checks.rules` (`key_columns`). Для листов без unique — ключи из `merge_fields` / фактических заголовков gamification; помечены как **уточнить по CSV**.
+
+| Лист (`sheet`) | `row_key_columns` (предложение) | Источник / правило unique (`id`) | Примечание |
+|----------------|----------------------------------|-----------------------------------|------------|
+| CONTEST-DATA | `CONTEST_CODE` | `unique_contest_data` | |
+| GROUP | `CONTEST_CODE`, `GROUP_CODE`, `GROUP_VALUE` | `unique_group_contest_code_group_code_group_value` | |
+| INDICATOR | `CONTEST_CODE`, `INDICATOR_ADD_CALC_TYPE`, `INDICATOR_CODE` | `unique_indicator_1` | Отдельно есть unique по `N` (`unique_indicator_n`) — для архива берём **бизнес-ключ**, не суррогат `N`. |
+| REPORT | `MANAGER_PERSON_NUMBER`, `TOURNAMENT_CODE`, `CONTEST_CODE` | `unique_report` | |
+| REWARD | `REWARD_CODE` | `unique_reward` | |
+| REWARD-LINK | `CONTEST_CODE`, `GROUP_CODE`, `REWARD_CODE` | `unique_reward_link_contest_code_group_code_reward_code` | Правило `unique_reward_link_reward` (только `REWARD_CODE`) **выключено** — составной ключ предпочтительнее. |
+| TOURNAMENT-SCHEDULE | `TOURNAMENT_CODE` | `unique_schedule_1` | Правило по паре `(TOURNAMENT_CODE, CONTEST_CODE)` **выключено** — в файле одна строка на турнир. |
+| ORG_UNIT_V20 | `ORG_UNIT_CODE` | `unique_org_unit` | Есть также unique `TB_CODE`+`GOSB_CODE` — для строки справочника ГОСБ достаточно `ORG_UNIT_CODE`. |
+| USER_ROLE | `RULE_NUM` | `unique_user_role` | |
+| USER_ROLE SB | `RULE_NUM` | `unique_user_role_sb` | |
+| EMPLOYEE | `PERSON_NUMBER` | `unique_employee_person` | Unique по `PERSON_NUMBER_ADD` и по `(POSITION_NAME, KPK_CODE, ORG_UNIT_CODE)` с областью КПК — для архива сотрудника достаточно **табельного** `PERSON_NUMBER`. |
+| LIST-REWARDS | `Табельный номер сотрудника`, `Код награды`, `Код турнира` | — (нет unique) | Согласовано с `rating_item_matrix` / merge (`LIST-REWARDS` → REPORT). **Уточнить:** если одна награда без привязки к турниру — убрать `Код турнира` из ключа. |
+| LIST-TOURNAMENT | `Код турнира` | — | Ключ merge в REPORT (`Код турнира` → `TOURNAMENT_CODE`). |
+| STATISTICS | `Табельный номер`, `Наименование Роли`, `Период` | — | Идентификаторы в `column_formats.except_columns`; **уточнить** по заголовкам CSV. |
+| RATING_* (все листы `RATING_…` в `input_files`) | `Табельный номер`, `Наименование Роли`, `Период` | — | Одна строка рейтинга = менеджер в срезе роль+период (согласовано с п. 2 RATING). Имена колонок — как в выгрузке. |
+| ORDER_* (все листы `ORDER_…`) | `Табельный номер`, `Код товара`, `Дата заказа` | — | **Уточнить по CSV:** при наличии стабильного `Номер заказа` / `orderId` — ключ **`[Номер заказа]`** вместо даты. Несколько заказов одного товара в один день тогда не сольются. |
+| ORDER_ALL (MNS) | то же, что ORDER_* | — | Отдельный файл «все сезоны» — тот же шаблон ключа. |
+| YEAR_STATA | `Табельный номер`, `Период`, `Версия записи` | — | В форматах есть «Версия записи»; **уточнить**, если период не уникален без версии. |
+
+**Дубликаты ключа в одном CSV:** при ingest — WARNING в лог, политика **последняя строка файла** перезаписывает предыдущую с тем же `row_key_hash` (зафиксировать в реализации).
+
+**Шаблон в `input_files`:**
+
+```json
+"row_key_columns": ["CONTEST_CODE", "GROUP_CODE", "GROUP_VALUE"]
+```
+
+Глобальный fallback в `input_archive_sqlite.default_row_key_by_sheet` — дублировать таблицу выше для листов без ключа в entry.
 
 ---
 
