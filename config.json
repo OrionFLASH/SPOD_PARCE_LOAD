@@ -4052,6 +4052,7 @@
     "list_rewards_employee_col": "Табельный номер сотрудника",
     "list_rewards_code_col": "Код награды",
     "crystals_col": "Количество кристаллов",
+    "item_amount_scope": "global",
     "fill_ordered_available": "E2F0D9",
     "fill_ordered_unavailable": "F5D6DC",
     "fill_available_not_ordered": "D9EAD3",

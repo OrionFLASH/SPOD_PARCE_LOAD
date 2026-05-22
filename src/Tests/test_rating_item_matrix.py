@@ -8,7 +8,10 @@ from src.rating_item_matrix import (
     FILL_UNAVAILABLE_NOT_ORDERED,
     _blocked_codes_for_row,
     _filter_order_dataframe,
+    _global_order_count_by_code,
+    _item_amount_header_stock_out,
     _item_amount_limit,
+    _item_amount_row_blocked,
     _matrix_fill_key,
     _order_counts_by_employee,
     _parse_item_order_groups,
@@ -94,3 +97,19 @@ def test_pastel_default_fills_not_bright_green() -> None:
     fills = _resolve_fill_colors({})
     assert fills[FILL_AVAILABLE_NOT_ORDERED] != "92D050"
     assert fills["header_stock_out"] != "FF0000"
+
+
+def test_item_amount_global_five_orders_five_managers() -> None:
+    """5 заказов от 5 табельных при itemAmount=5 — склад исчерпан (global)."""
+    counts = {
+        "1": {"ITEM_X": 1},
+        "2": {"ITEM_X": 1},
+        "3": {"ITEM_X": 1},
+        "4": {"ITEM_X": 1},
+        "5": {"ITEM_X": 1},
+    }
+    assert _global_order_count_by_code(counts)["ITEM_X"] == 5
+    assert _item_amount_header_stock_out("global", 5, 0, 5)
+    assert _item_amount_row_blocked("global", 5, 0, 5)
+    assert not _item_amount_row_blocked("global", 5, 1, 5)
+    assert not _item_amount_header_stock_out("per_manager", 5, 1, 5)

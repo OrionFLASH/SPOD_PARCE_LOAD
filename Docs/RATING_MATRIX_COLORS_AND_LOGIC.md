@@ -146,18 +146,37 @@ accessible_after_groups = base_accessible AND (match_code NOT IN blocked_codes)
 
 Пример: менеджер заказал 2 товара из `ITEM_02_2025-2_*` → вся группа SEASON_m_2025_2 блокируется для него, даже если рейтинг «зелёный».
 
-### 6.2. Личный лимит **itemAmount** (исправлено в коде)
+### 6.2. Лимит **itemAmount** (склад товара)
 
-Из JSON товара (`itemAmount` в `REWARD_ADD_DATA`, каталог ITEM):
+В JSON товара (`itemAmount` в `REWARD_ADD_DATA`) и в тексте feature («Доступно всего 5…») задаётся **число слотов на весь товар**, а не «5 заказов одним человеком».
+
+Режим в config: **`item_amount_scope`** (по умолчанию **`global`**).
+
+#### Режим `global` (по умолчанию)
 
 ```text
-at_personal_limit = (itemAmount задан) AND (count >= itemAmount)
-accessible = accessible_after_groups AND NOT at_personal_limit
+global_count = сумма заказов по коду товара по ВСЕМ табельным в ORDER (после фильтра статуса)
+склад_исчерпан = (itemAmount задан) AND (global_count >= itemAmount)
 ```
 
-**До исправления:** `itemAmount` влиял только на **красный заголовок**, но **не** на `accessible` → при исчерпании лимита у одного менеджера другие могли видеть **Y** при красной шапке.
+| Ситуация менеджера | accessible | Значение | Шапка колонки |
+|--------------------|------------|----------|---------------|
+| склад исчерпан, count = 0 | нет | **N** | красная, если склад_исчерпан |
+| склад исчерпан, count > 0 | да* | **count** | красная |
+| склад не исчерпан | по §5–6.1 | Y/N/count | обычная |
 
-**Сейчас:** у менеджера с `count >= itemAmount` ячейка **недоступна** (N или число заказа с цветом «заказан, недоступен»).
+\* при выполнении рейтинга и прочих критериев.
+
+**Пример `ITEM_01_2025-2_08`, itemAmount = 5:** в ORDER пять строк от **пяти разных** табельных (по 1 заказу). Раньше код требовал `count >= 5` у **одного** табельного → шапка не красилась и оставались **Y**. В режиме `global` сумма 5 ≥ 5 → шапка красная, у менеджеров без заказа — **N**.
+
+#### Режим `per_manager`
+
+```text
+item_amount_scope: "per_manager"
+личный_лимит = count(этот табельный, этот код) >= itemAmount
+```
+
+Красная шапка, если **хотя бы одна** строка листа исчерпала личный лимит. Для «Доступно всего N» на витрину обычно нужен **`global`**.
 
 ---
 
@@ -224,15 +243,16 @@ count := ORDER_filtered[табельный_i, код_T]
 ordered := count > 0
 base := item_accessible_for_manager(rules, ранги, кристаллы, ORDER_codes, LIST-REWARDS, табельный)
 blocked := код_T в группе с исчерпанным лимитом заказов
-limit := itemAmount из REWARD_ADD_DATA
-at_limit := limit задан и count >= limit
+global_sum := sum ORDER по коду T (все табельные)
+limit := itemAmount
+склад_исчерпан := global_sum >= limit   (при scope=global)
 
-accessible := base AND NOT blocked AND NOT at_limit
+accessible := base AND NOT blocked AND NOT (склад_исчерпан AND count=0)
 
-значение := count | "Y" | "N"  (см. таблицу §7)
-fill := f(accessible, ordered)   (см. таблицу §8)
+значение := count | "Y" | "N"
+fill := f(accessible, ordered)
 
-если at_limit для любой строки листа по T → заголовок колонки T ← fill_header_stock_out
+если склад_исчерпан → заголовок колонки T ← fill_header_stock_out
 ```
 
 ---
@@ -250,7 +270,8 @@ fill := f(accessible, ordered)   (см. таблицу §8)
 | `order_status_exclude` | Статусы вне расчёта |
 | `item_order_groups` | Группы кодов + max_orders |
 | `fill_*` | Цвета |
-| `rating_role_col`, `rating_period_col` | Зарезервированы; **не** в формуле itemAmount сейчас |
+| `item_amount_scope` | `global` (склад на товар) или `per_manager` |
+| `rating_role_col`, `rating_period_col` | Зарезервированы; **не** в формуле itemAmount |
 
 ---
 
@@ -260,7 +281,8 @@ fill := f(accessible, ordered)   (см. таблицу §8)
 |---------|----------------|
 | Везде N, рейтинг хороший | Пороги minRating*; пустые места в колонках; LIST-REWARDS / rewardCode |
 | Y, но шапка красная | Другой менеджер исчерпил itemAmount; у вас count < limit — **норма** после правки |
-| Y, шапка красная, у вас count ≥ limit | Ошибка данных ORDER или неверный itemAmount — пересчитать count |
+| Y при 5 заказах от 5 людей, itemAmount=5 | Проверьте `item_amount_scope`: нужен **`global`**, не per_manager |
+| Шапка красная, у вас count = 0 | Норма для global: склад пуст, у вас нет заказа → **N** |
 | Число заказов, розовый фон | ordered + не accessible (группа, рейтинг или лимит после заказа) |
 | Колонки ITEM нет | REWARD_TYPE не ITEM; нет разворота ADD_DATA |
 | Неверный count | Дубликаты табельного в ORDER; код товара не совпадает с REWARD_CODE; статус не отфильтрован |
@@ -273,4 +295,5 @@ fill := f(accessible, ordered)   (см. таблицу §8)
 
 | Версия | Изменения |
 |--------|-----------|
-| 1.0 | Первое подробное описание; учёт itemAmount в `accessible`; пастельные цвета в config |
+| 1.1 | itemAmount: режим **global** (сумма по ORDER); пример ITEM_01_2025-2_08 |
+| 1.0 | Первое подробное описание; пастельные цвета в config |

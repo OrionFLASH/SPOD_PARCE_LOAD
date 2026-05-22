@@ -317,6 +317,60 @@ def _item_amount_limit(rules: Dict[str, Any]) -> Optional[int]:
         return None
 
 
+def _normalize_item_amount_scope(cfg: Dict[str, Any]) -> str:
+    """
+    Режим itemAmount: global — лимит слотов на товар по всему ORDER (см. «Доступно всего N»);
+    per_manager — лимит заказов одного табельного на этот код.
+    """
+    s = str(cfg.get("item_amount_scope") or "global").strip().lower()
+    if s in ("per_manager", "manager", "row", "personal", "per_employee"):
+        return "per_manager"
+    return "global"
+
+
+def _global_order_count_by_code(
+    counts_by_emp: Dict[str, Dict[str, int]],
+) -> Dict[str, int]:
+    """Сумма заказов по коду товара по всем менеджерам (после фильтра статуса ORDER)."""
+    global_counts: Dict[str, int] = defaultdict(int)
+    for code_counts in counts_by_emp.values():
+        for code, n in code_counts.items():
+            global_counts[code] += int(n)
+    return dict(global_counts)
+
+
+def _item_amount_row_blocked(
+    scope: str,
+    limit_amt: Optional[int],
+    row_count: int,
+    global_count: int,
+) -> bool:
+    """
+    Строка RATING не может заказать товар из‑за itemAmount.
+    global: склад исчерпан (global_count >= limit) и у менеджера ещё нет заказа.
+    per_manager: у менеджера count >= limit.
+    """
+    if limit_amt is None or limit_amt <= 0:
+        return False
+    if scope == "per_manager":
+        return row_count >= limit_amt
+    return global_count >= limit_amt and row_count == 0
+
+
+def _item_amount_header_stock_out(
+    scope: str,
+    limit_amt: Optional[int],
+    row_count: int,
+    global_count: int,
+) -> bool:
+    """Красная шапка колонки: global — суммарно по ORDER; per_manager — эта строка исчерпала личный лимит."""
+    if limit_amt is None or limit_amt <= 0:
+        return False
+    if scope == "per_manager":
+        return row_count >= limit_amt
+    return global_count >= limit_amt
+
+
 def _make_unique_col_name(base: str, existing: set) -> str:
     """Уникальное имя колонки в Excel (дубликаты REWARD_CODE)."""
     name = base.strip() or "ITEM"
@@ -470,6 +524,8 @@ def apply_rating_item_matrix_enrichment(
 
     order_df = _filter_order_dataframe(order_df, cfg)
     counts_by_emp = _order_counts_by_employee(order_df, emp_o, prod_o)
+    item_amount_scope = _normalize_item_amount_scope(cfg)
+    global_count_by_code = _global_order_count_by_code(counts_by_emp)
     order_groups = _parse_item_order_groups(cfg)
 
     rating_df = rating_df.copy()
@@ -540,6 +596,28 @@ def apply_rating_item_matrix_enrichment(
     matrix_cells: List[Dict[str, Any]] = []
     header_stock_out_cols: Set[str] = set()
 
+    # Шапка при global itemAmount: один раз по коду товара (сумма заказов по всем табельным)
+    if item_amount_scope == "global" and catalog:
+        for sp in specs:
+            rules_h = rules_for_matrix_column(
+                sp["match_code"],
+                catalog,
+                min_bank=sp.get("min_bank"),
+                min_tb=sp.get("min_tb"),
+                min_gosb=sp.get("min_gosb"),
+            )
+            lim_h = _item_amount_limit(rules_h)
+            gc = global_count_by_code.get(sp["match_code"], 0)
+            if lim_h is not None and gc >= lim_h:
+                header_stock_out_cols.add(sp["col_name"])
+                logging.debug(
+                    "[rating_item_matrix] itemAmount global: «%s» заказов %s >= %s → шапка «%s»",
+                    sp["match_code"],
+                    gc,
+                    lim_h,
+                    sp["col_name"],
+                )
+
     for pos, (_, row) in enumerate(rating_df.iterrows()):
         emp_key = _norm_str(row.get(emp_r))
         rc = _as_float(row.get(country_c)) if country_c else None
@@ -576,9 +654,12 @@ def apply_rating_item_matrix_enrichment(
                 manager_tab=emp_key or None,
             )
             limit_amt = _item_amount_limit(rules)
-            at_personal_limit = limit_amt is not None and count >= limit_amt
+            global_count = int(global_count_by_code.get(code, 0))
+            blocked_by_amount = _item_amount_row_blocked(
+                item_amount_scope, limit_amt, count, global_count
+            )
             accessible = (
-                base_accessible and code not in blocked_codes and not at_personal_limit
+                base_accessible and code not in blocked_codes and not blocked_by_amount
             )
 
             if ordered:
@@ -599,9 +680,9 @@ def apply_rating_item_matrix_enrichment(
                 }
             )
 
-            # Красная шапка колонки: хотя бы у одного менеджера на листе исчерпан личный itemAmount
-            # (не означает «нет доступных» у всех строк — см. Docs/RATING_MATRIX_COLORS_AND_LOGIC.md)
-            if at_personal_limit:
+            if _item_amount_header_stock_out(
+                item_amount_scope, limit_amt, count, global_count
+            ):
                 header_stock_out_cols.add(cname)
 
     for cname in added:
@@ -616,7 +697,7 @@ def apply_rating_item_matrix_enrichment(
     if role_c is None or period_c is None:
         logging.debug(
             f"[rating_item_matrix] Колонки роль/период на RATING: role={role_c!r}, period={period_c!r} "
-            "(для itemAmount используется только счётчик заказов менеджера по коду)"
+            f"(itemAmount: scope={item_amount_scope})"
         )
 
     return {
