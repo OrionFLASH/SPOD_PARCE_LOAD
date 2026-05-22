@@ -161,6 +161,8 @@ class Config:
         self.reward_getcondition_summary: Dict[str, Any] = self._cfg.get("reward_getcondition_summary") or {}
         # Матрица ITEM на листе RATING (счётчики по ORDER, подсветка; см. rating_item_matrix.py)
         self.rating_item_matrix: Dict[str, Any] = self._cfg.get("rating_item_matrix") or {}
+        # Сводка заказов по группам SEASON (см. season_order_summary.py)
+        self.season_order_summary: Dict[str, Any] = self._cfg.get("season_order_summary") or {}
 
         # Параллелизм
         self.max_workers_io: int = self._cfg["performance"]["max_workers_io"]

@@ -178,7 +178,7 @@ def _load_config_globals():
     global COLUMN_FORMATS, CONSISTENCY_CHECKS, JSON_COLUMNS, REWARD_GETCONDITION_SUMMARY
     global MAX_WORKERS_IO, MAX_WORKERS_CPU, MAX_WORKERS, TOURNAMENT_STATUS_CHOICES
     global SOURCE_EXPORT_SORT
-    global INPUT_ARCHIVE_SQLITE, PROJECT_BASE_DIR, RATING_ITEM_MATRIX
+    global INPUT_ARCHIVE_SQLITE, PROJECT_BASE_DIR, RATING_ITEM_MATRIX, SEASON_ORDER_SUMMARY
 
     try:
         from src.config_holder import get_current_config
@@ -236,6 +236,7 @@ def _load_config_globals():
             PROJECT_BASE_DIR = _c.base_dir
             INPUT_ARCHIVE_SQLITE = getattr(_c, "input_archive_sqlite", None) or {"enabled": False}
             RATING_ITEM_MATRIX = getattr(_c, "rating_item_matrix", None) or {}
+            SEASON_ORDER_SUMMARY = getattr(_c, "season_order_summary", None) or {}
             return
     except Exception:
         pass
@@ -306,6 +307,7 @@ def _load_config_globals():
 
     INPUT_ARCHIVE_SQLITE = merge_archive_v2_config(_cfg.get("input_archive_sqlite"))
     RATING_ITEM_MATRIX = _cfg.get("rating_item_matrix") or {}
+    SEASON_ORDER_SUMMARY = _cfg.get("season_order_summary") or {}
 
 
 _load_config_globals()
@@ -4713,6 +4715,15 @@ def main():
                 from src.rating_item_matrix import apply_rating_item_matrix_enrichment
 
                 _rating_matrix_meta = apply_rating_item_matrix_enrichment(sheets_data, RATING_ITEM_MATRIX)
+
+            _sos = SEASON_ORDER_SUMMARY or {}
+            if _sos.get("enabled", True):
+                from src.season_order_summary import apply_season_order_summary
+
+                _sos_cfg = {"season_order_summary": _sos, "rating_item_matrix": RATING_ITEM_MATRIX}
+                _summary_sheet = apply_season_order_summary(sheets_data, _sos_cfg)
+                if _summary_sheet and _summary_sheet not in SHEET_ORDER:
+                    SHEET_ORDER.append(_summary_sheet)
 
     # Только отдельная книга консистентности без main (в массиве есть consistency_only, нет main_only)
     if RUN_CONSISTENCY_EARLY:

@@ -30,6 +30,9 @@
 | 2.3 | Лимит заказов по группам сезона (SEASON_m_2025_2, SEASON_2025_2, max=2) | [v] |
 | 2.4 | Красная шапка колонки при превышении itemAmount (по менеджеру и коду) | [v] |
 | 2.5 | Секция `rating_item_matrix` в config.json, тесты | [v] |
+| 2.6 | Лист `ORDER-SEASON-SUMMARY` (сводка SEASON, заказано/остаток, счётчики КМ) | [v] |
+
+Документация: `Docs/SEASON_ORDER_SUMMARY.md`.
 
 ---
 

@@ -642,6 +642,7 @@
     "EMPLOYEE",
     "STAT_FILE",
     "ORDER",
+    "ORDER-SEASON-SUMMARY",
     "RATING",
     "ORDER_2025_2 (KMKKSB)",
     "ORDER_2025_2 (MNS)",
@@ -4095,6 +4096,10 @@
         ]
       }
     ]
+  },
+  "season_order_summary": {
+    "enabled": true,
+    "sheet_name": "ORDER-SEASON-SUMMARY"
   },
   "json_columns": {
     "CONTEST-DATA": [

@@ -14,6 +14,7 @@
 - `INPUT_ARCHIVE_ROW_LEVEL.md` — архив **v2 (построчно)**, реализован: `row_level_archive`, `src/input_archive_sqlite_v2.py`, `input_archive_row_hash.py`, `input_archive_row_parallel.py`, БД **`OUT/DB/spod_input_archive_v2.sqlite`**, отчёт **`print_input_archive_row_report`**.
 - `INPUT_ARCHIVE_ROW_LEVEL_PLAN.md` — план и таблица **`row_key_columns`** по листам (справочник).
 - `RATING_MATRIX_COLORS_AND_LOGIC.md` — лист RATING: подсчёт, доступность, раскраска матрицы ITEM (в т.ч. itemAmount и шапка колонки).
+- `SEASON_ORDER_SUMMARY.md` — лист **ORDER-SEASON-SUMMARY**: сводка заказов по группам **SEASON_*** (`item_order_groups`), остаток склада, счётчики КМ.
 - `АНАЛИЗ_ПРОВЕРОК_КОНСИСТЕНТНОСТИ.md` — аналитика покрытия проверок и предложения по расширению.
 
 ## Консолидированные исторические документы
@@ -40,7 +41,7 @@
 
 ## Правила актуализации
 
-- **Источник истины по продукту:** корневой **`README.md`** (ТЗ, пайплайн, `config.json`, логирование, история версий). Разделы **`column_formats`** (в т.ч. `except_columns`, лист **STATISTICS**), **`reward_getcondition_summary`**, **`rating_item_matrix`** (в т.ч. **`ignoreConditions`**), **`consistency_checks`** (в т.ч. **`json_spod_format`**, фильтры **referential**, **`enabled: false`**, смысловые **`id`**) и **«Каталог POST»** описывают актуальное поведение Excel, листов REWARD/RATING и снимка для переноса без Git.
+- **Источник истины по продукту:** корневой **`README.md`** (ТЗ, пайплайн, `config.json`, логирование, история версий). Разделы **`column_formats`** (в т.ч. `except_columns`, лист **STATISTICS**), **`reward_getcondition_summary`**, **`rating_item_matrix`** (в т.ч. **`ignoreConditions`**), **`season_order_summary`** (лист **ORDER-SEASON-SUMMARY**), **`consistency_checks`** (в т.ч. **`json_spod_format`**, фильтры **referential**, **`enabled: false`**, смысловые **`id`**) и **«Каталог POST»** описывают актуальное поведение Excel, листов REWARD/RATING и снимка для переноса без Git.
 - После обновления CSV в `IN/SPOD/` пересобрать **`Docs/JSON/SPOD_INPUT_DATA_CATALOG.md`**: `python src/Tools/build_spod_input_catalog.py`; обновить примеры в **`Docs/JSON/examples/`**: `python src/Tools/export_spod_json_examples.py`; при смене схемы JSON править **`src/Tools/catalog_glossary/`**.
 - Справочник **`INPUT_DATA_AND_CONFIG_FULL.md`** держать согласованным с `README.md` по ключевым блокам конфигурации (п. 3), в т.ч. **`run_outputs`** (массив `source_only` / `main_only` / `consistency_only`) и при необходимости устаревший **`run_mode`**.
 - Новые изменения по консистентности вносить сначала в `README.md`, затем синхронно в `CONSISTENCY_CHECKS_FORMAT.md`, `CONSISTENCY_SAMPLE_FORMAT.md` и при необходимости **`INPUT_DATA_AND_CONFIG_FULL.md`**. Для **`json_spod_format`** детали поведения и формата сообщений на листе — п. **2.8** в `CONSISTENCY_CHECKS_FORMAT.md`. При добавлении или переименовании правил с типами `referential`, `referential_composite`, `unique`, `field_length` по возможности обновлять комментарии и логику в `SPOD_CONSISTENCY_CHECKS_SQL_MIRROR.sql` (соответствие `rules[].id` / `name`). Правила **`field_format`**, **`json_*`**, **`json_spod_format`** в SQL-зеркале не ведутся — только в Python и конфиге.

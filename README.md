@@ -84,6 +84,7 @@ SPOD_PROM/
 - `Docs/INPUT_ARCHIVE_ROW_LEVEL.md` — архив **v2 (построчно)**: `row_key_hash`, `row_hash`, `active`/`inactive`, параллельный расчёт хешей; модули **`input_archive_sqlite_v2.py`**, **`input_archive_row_hash.py`**, **`input_archive_row_parallel.py`**.
 - `Docs/INPUT_ARCHIVE_ROW_LEVEL_PLAN.md` — план и согласованные `row_key_columns` по листам (справочник).
 - `Docs/RATING_MATRIX_COLORS_AND_LOGIC.md` — лист RATING: подсчёт заказов, доступность, 4 цвета ячеек, шапка itemAmount.
+- `Docs/SEASON_ORDER_SUMMARY.md` — лист **ORDER-SEASON-SUMMARY**: сводка по группам **SEASON_***, заказано/остаток, признак **ЗАКОНЧИЛСЯ**, счётчики менеджеров.
 - `Docs/АНАЛИЗ_ПРОВЕРОК_КОНСИСТЕНТНОСТИ.md` — аналитика покрытия и предложения по новым правилам.
 - `Docs/PERFORMANCE_AND_PARALLELIZATION_HISTORY.md` — консолидированная история оптимизации и распараллеливания.
 - `Docs/SUMMARY_GROUP_FIX_HISTORY.md` — история исправлений логики `SUMMARY` и связки `GROUP`.
@@ -104,6 +105,7 @@ SPOD_PROM/
 | **reward_getcondition_summary.py** | Сводный текст по кодам getCondition на листе REWARD | `add_reward_getcondition_summary_column(df_reward, prefix=..., column_name=...)` — после разворота JSON и merge; строки вида `[код] FULL_NAME {seasonItem}`. |
 | **reward_item_catalog.py** | Каталог ITEM из **`REWARD_ADD_DATA`** и проверка доступности товара менеджеру | `build_item_catalog_from_reward_df`, `rules_for_matrix_column`, `item_accessible_for_manager` — для раскраски матрицы на **RATING**; учёт массива **`ignoreConditions`** (табельные «всегда доступно»). |
 | **rating_item_matrix.py** | Колонки-счётчики по ORDER и подсветка доступности ITEM на **RATING** | `apply_rating_item_matrix_enrichment`, `apply_rating_item_matrix_colors` — светло-зелёный / светло-красный по полным критериям из JSON и листов **ORDER** / **LIST-REWARDS**; передача табельного в **`item_accessible_for_manager`**. |
+| **season_order_summary.py** | Сводный лист заказов по группам сезона | `build_season_order_summary_sheet`, `apply_season_order_summary` — лист **ORDER-SEASON-SUMMARY** по **`item_order_groups`**; те же ORDER/RATING/REWARD, что и матрица. |
 | **json_spod_format_check.py** | Валидация SPOD-JSON: BOM/Unicode-пробелы вне **`"""…"""`**, симметрия внешних кавычек, рекурсивный разбор **со сбором всех** структурных ошибок в ячейке; **`""key""`**, JSON- и **`""значение""`** у строки, лишние **`{}`** в массиве; **`numeric_value_keys`**; нормализация и **json.loads**; **короткие** строки (путь + суть), лимиты **`_MAX_STRUCTURE_ERRORS`** / **`_MAX_CELL_ERROR_LEN`** | `validate_spod_json_cell`, `run_json_spod_format_check` — из **`consistency_checks`**, **`type: "json_spod_format"`**. |
 | **file_loader.py** | Поиск и загрузка CSV, разворот JSON по конфигу | Класс `FileLoader(config)`: `find_file_case_insensitive(directory, base_name, extensions)`, `check_input_files_exist()`, `read_csv_file(file_path)`, `process_single_file(file_conf)` — возвращает `(df, sheet_name, file_conf)` или `(None, sheet_name, None)`. |
 | **archive_json_columns.py**, **input_archive_sqlite.py** | Архив v1: снимки целого файла в SQLite | **`archive_json_columns`**: колонки **JSON_***. **`input_archive_sqlite`**: `run_input_archive_sqlite`, снимки **`latest`/`historical`**, дедуп по SHA файла. См. **`Docs/INPUT_ARCHIVE_SQLITE_DESIGN.md`**. |
@@ -148,6 +150,7 @@ SPOD_PROM/
 | `json_columns` | Колонки с JSON для разворота по листам (column, prefix). |
 | `reward_getcondition_summary` | Сводная колонка на листе REWARD по кодам `getCondition` (nonRewards/rewards); `enabled`, `column_name`. |
 | `rating_item_matrix` | Матрица ITEM на листе **RATING**: счётчики заказов по **ORDER** и подсветка доступности товара (зелёный/красный) по **`REWARD_ADD_DATA`**, **LIST-REWARDS**, кристаллам; см. раздел **rating_item_matrix**. |
+| `season_order_summary` | Лист **ORDER-SEASON-SUMMARY**: сводка по кодам из **`item_order_groups`**; см. раздел **season_order_summary**. |
 | `input_archive_sqlite` | Архив сырых CSV в SQLite: **`enabled`**, **`row_level_archive`** (v2 / v1), **`db_path`**, **`legacy_db_path`**, **`default_row_key_by_sheet`**, **`parallel_row_processing`**, **`reporting`**, **`archive_to_db`** в **`input_files`**. v1: **`Docs/INPUT_ARCHIVE_SQLITE_DESIGN.md`**; v2: **`Docs/INPUT_ARCHIVE_ROW_LEVEL.md`**. |
 
 ### Общая структура файла
@@ -175,11 +178,12 @@ SPOD_PROM/
   "consistency_checks": { "summary_sheet_name": "CONSISTENCY", "rules": [ ... ] },
   "json_columns": { ... },
   "reward_getcondition_summary": { "enabled": true, "column_name": "..." },
-  "rating_item_matrix": { "enabled": true, "...": "..." }
+  "rating_item_matrix": { "enabled": true, "...": "..." },
+  "season_order_summary": { "enabled": true, "sheet_name": "ORDER-SEASON-SUMMARY" }
 }
 ```
 
-Дополнительные секции (при наличии в файле): `derived_columns`; **`rating_item_matrix`** (матрица ITEM на RATING); опционально блок **`source_export`** с **`sort_rules`** для сортировки листов в source Excel — см. класс `Config` в **config_loader.py** и разделы ниже.
+Дополнительные секции (при наличии в файле): `derived_columns`; **`rating_item_matrix`** (матрица ITEM на RATING); **`season_order_summary`** (сводка SEASON); опционально блок **`source_export`** с **`sort_rules`** для сортировки листов в source Excel — см. класс `Config` в **config_loader.py** и разделы ниже.
 
 ---
 
@@ -723,6 +727,34 @@ SPOD_PROM/
 
 ---
 
+### season_order_summary
+
+**Назначение:** после обогащения матрицы RATING формируется отдельный лист **ORDER-SEASON-SUMMARY** — по одной строке на каждый **REWARD_CODE** из **`rating_item_matrix.item_order_groups`** (группы **SEASON_m_2025_2**, **SEASON_2025_2** и т.д.).
+
+**Данные по товару:** наименование из REWARD; **Всего** = `itemAmount`; **Заказано** = сумма строк агрегата **ORDER** по коду (статусы **Отменён** / **Отклонён** исключаются, как в матрице); **Остаток** = Всего − Заказано; **Статус наличия** = **ЗАКОНЧИЛСЯ**, если заказано ≥ itemAmount.
+
+**Пороги и ограничения из ADD_DATA:** минимальные рейтинги BANK/TB/GOSB, кристаллы, списки **rewardCode** / **nonRewardCode**, **ignoreConditions** (количество и табельные).
+
+**Счётчики менеджеров (лист RATING + ORDER + LIST-REWARDS):**
+
+| Колонка | Смысл |
+|---------|--------|
+| КМ: условия выполнены | Все критерии доступности (**`item_accessible_for_manager`**), без лимита 2 заказов в группе |
+| КМ: без 2 заказов в группе | Условия + в группе сезона суммарно &lt; **max_orders** |
+| КМ: не закончился и не 2 в группе | + глобальный остаток по **itemAmount** не исчерпан |
+| КМ: все ограничения кроме исчерпания | Условия + лимит 2 в группе (остаток склада **не** учитывается) |
+
+| Ключ | Тип | Описание |
+|------|-----|----------|
+| `enabled` | bool | Включить лист (по умолчанию **true**). |
+| `sheet_name` | строка | Имя листа (**ORDER-SEASON-SUMMARY**). |
+
+Колонки ORDER/RATING/группы **`item_order_groups`** наследуются из **`rating_item_matrix`** (отдельно в **`season_order_summary`** не дублируются).
+
+Реализация: **`src/season_order_summary.py`**, тесты **`src/Tests/test_season_order_summary.py`**. Подробнее: **`Docs/SEASON_ORDER_SUMMARY.md`**.
+
+---
+
 ### Каталог POST (перенос кода и документации без репозитория)
 
 **Назначение:** локальная папка **POST/** со снимком проекта для переноса на ПК без Git. К имени каждого файла **кода, конфигурации и документов** добавлен суффикс **`.txt`** в конце (**`main.py.txt`**, **`config.json.txt`**, **`README.md.txt`**, **`requirements.txt.txt`**, **`src/…/модуль.py.txt`**, **`Docs/…/документ.md.txt`**) — для обхода ограничений почты и вложений.
@@ -1201,6 +1233,10 @@ python main.py
 - Добавлен тип проверки **`cross_sheet_date_lte_today`** в **`src/consistency_checks.py`** и в документацию правил.
 - В **`config.json`** добавлено правило **`report_tournament_start_dt_not_future`**: для каждого **`TOURNAMENT_CODE`** из **`REPORT`** дата **`START_DT`** из **`TOURNAMENT-SCHEDULE`** должна быть `<=` текущей дате системы.
 - Формат сообщения о нарушении расширен фактической датой: `START_DT:YYYY-MM-DD>YYYY-MM-DD` (например `START_DT:2026-05-01>2026-04-27`).
+
+### Версия 1.7.41 — Лист ORDER-SEASON-SUMMARY (сводка заказов по группам SEASON)
+
+- **`season_order_summary`** (**`src/season_order_summary.py`**): лист **ORDER-SEASON-SUMMARY** по кодам из **`item_order_groups`** — заказано/остаток/**ЗАКОНЧИЛСЯ**, пороги REWARD, четыре счётчика менеджеров на RATING; колонки ORDER/RATING из **`rating_item_matrix`**. В **`sheet_order`** лист после **ORDER**. Документация: **`Docs/SEASON_ORDER_SUMMARY.md`**, **`ROADMAP.md`** п. **2.6**.
 
 ### Версия 1.7.40 — SPOD-JSON: все структурные ошибки в одной ячейке
 
