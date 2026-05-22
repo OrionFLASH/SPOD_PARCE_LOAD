@@ -4002,7 +4002,11 @@
     "sheet_reward": "REWARD",
     "order_employee_col": "Табельный номер",
     "order_product_col": "Код товара",
+    "order_status_col": "Статус заказа",
+    "order_status_exclude": ["Отклонён", "Отменён"],
     "rating_employee_col": "Табельный номер",
+    "rating_role_col": "Наименование Роли",
+    "rating_period_col": "Период",
     "country_rank_col": "Место в рейтинге по стране",
     "tb_rank_col": "Место в рейтинге ТБ",
     "gosb_rank_col": "Место в рейтинге ГОСБ",
@@ -4017,8 +4021,48 @@
     "list_rewards_employee_col": "Табельный номер сотрудника",
     "list_rewards_code_col": "Код награды",
     "crystals_col": "Количество кристаллов",
+    "fill_ordered_available": "C6EFCE",
+    "fill_ordered_unavailable": "FFB6C1",
+    "fill_available_not_ordered": "92D050",
+    "fill_unavailable_not_ordered": "C0006F",
+    "fill_header_stock_out": "FF0000",
     "fill_accessibility_ok": "C6EFCE",
-    "fill_accessibility_fail": "FFC7CE"
+    "fill_accessibility_fail": "FFC7CE",
+    "item_order_groups": [
+      {
+        "id": "SEASON_m_2025_2",
+        "max_orders": 2,
+        "codes": [
+          "ITEM_02_2025-2_01",
+          "ITEM_02_2025-2_02",
+          "ITEM_02_2025-2_03",
+          "ITEM_02_2025-2_04",
+          "ITEM_02_2025-2_06",
+          "ITEM_02_2025-2_07",
+          "ITEM_02_2025-2_08",
+          "ITEM_02_2025-2_09",
+          "ITEM_02_2025-2_10",
+          "ITEM_02_2025-2_11",
+          "ITEM_02_2025-2_12",
+          "ITEM_02_2025-2_13",
+          "ITEM_02_2025-2_14"
+        ]
+      },
+      {
+        "id": "SEASON_2025_2",
+        "max_orders": 2,
+        "codes": [
+          "ITEM_01_2025-2_01",
+          "ITEM_01_2025-2_03",
+          "ITEM_01_2025-2_06",
+          "ITEM_01_2025-2_07",
+          "ITEM_01_2025-2_08",
+          "ITEM_01_2025-2_13",
+          "ITEM_01_2025-2_14",
+          "ITEM_01_2025-2_15"
+        ]
+      }
+    ]
   },
   "json_columns": {
     "CONTEST-DATA": [

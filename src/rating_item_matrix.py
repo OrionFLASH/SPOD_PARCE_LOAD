@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-Матрица на листе RATING: колонки по наградам ITEM из REWARD, счётчики по листу ORDER, подсветка ячеек.
+Матрица на листе RATING: колонки ITEM из REWARD, заказы по ORDER, четыре состояния ячейки (число / Y / N).
 
-Выполняется после merge_fields_advanced (ожидаются развёрнутые колонки ADD_DATA => ... на REWARD).
+Фильтр ORDER по статусу; лимиты item_order_groups; красная шапка при itemAmount.
+Выполняется после merge_fields_advanced (развёрнутые колонки ADD_DATA на REWARD).
 """
 
 from __future__ import annotations
@@ -110,6 +111,18 @@ _DEFAULT_CRYSTALS: List[str] = [
     "crystalsEarnedTotal",
     "crystalEarnedTotal",
 ]
+_DEFAULT_ORDER_STATUS: List[str] = [
+    "Статус заказа",
+    "ORDER_STATUS",
+    "orderStatus",
+    "Статус",
+]
+
+# Ключи заливки ячеек матрицы (4 состояния + шапка при исчерпании itemAmount)
+FILL_ORDERED_AVAILABLE = "ordered_available"
+FILL_ORDERED_UNAVAILABLE = "ordered_unavailable"
+FILL_AVAILABLE_NOT_ORDERED = "available_not_ordered"
+FILL_UNAVAILABLE_NOT_ORDERED = "unavailable_not_ordered"
 
 
 def _norm_header(s: str) -> str:
@@ -162,6 +175,146 @@ def _find_column_by_fragments(df: pd.DataFrame, fragments: List[str]) -> Optiona
         if all(f in s for f in fr):
             return c
     return None
+
+
+def _strip_hex(color: str) -> str:
+    """ARGB для openpyxl без символа #."""
+    return str(color or "").strip().lstrip("#").upper()[:8]
+
+
+def _resolve_fill_colors(cfg: Dict[str, Any]) -> Dict[str, str]:
+    """Четыре цвета матрицы и шапки; устаревшие fill_accessibility_* — запасные."""
+    ok_legacy = _strip_hex(cfg.get("fill_accessibility_ok") or "C6EFCE")
+    fail_legacy = _strip_hex(cfg.get("fill_accessibility_fail") or "FFC7CE")
+    return {
+        FILL_ORDERED_AVAILABLE: _strip_hex(cfg.get("fill_ordered_available") or ok_legacy),
+        FILL_ORDERED_UNAVAILABLE: _strip_hex(cfg.get("fill_ordered_unavailable") or "FFB6C1"),
+        FILL_AVAILABLE_NOT_ORDERED: _strip_hex(cfg.get("fill_available_not_ordered") or "92D050"),
+        FILL_UNAVAILABLE_NOT_ORDERED: _strip_hex(
+            cfg.get("fill_unavailable_not_ordered") or fail_legacy
+        ),
+        "header_stock_out": _strip_hex(cfg.get("fill_header_stock_out") or "FF0000"),
+    }
+
+
+def _filter_order_dataframe(
+    order_df: pd.DataFrame,
+    cfg: Dict[str, Any],
+) -> pd.DataFrame:
+    """
+    Исключает заказы со статусом из order_status_exclude.
+    Если колонка статуса не найдена — все строки (WARNING), как в плане.
+    """
+    exclude_raw = cfg.get("order_status_exclude")
+    if exclude_raw is None:
+        exclude_list = ["Отклонён", "Отменён"]
+    else:
+        exclude_list = [str(x) for x in exclude_raw]
+    exclude_set = {_norm_str(x) for x in exclude_list if _norm_str(x)}
+    if not exclude_set:
+        return order_df
+
+    status_col = _resolve_column(
+        order_df,
+        cfg.get("order_status_col"),
+        _DEFAULT_ORDER_STATUS,
+    )
+    if status_col is None:
+        logging.warning(
+            "[rating_item_matrix] Колонка статуса заказа не найдена — "
+            "в расчёт попадают все строки ORDER"
+        )
+        return order_df
+
+    before = len(order_df)
+    status_series = order_df[status_col].map(_norm_str)
+    filtered = order_df.loc[~status_series.isin(exclude_set)].copy()
+    removed = before - len(filtered)
+    logging.debug(
+        f"[rating_item_matrix] ORDER: отфильтровано по статусу «{status_col}»: "
+        f"{removed} строк (исключены: {sorted(exclude_set)})"
+    )
+    return filtered
+
+
+def _order_counts_by_employee(
+    order_df: pd.DataFrame,
+    emp_col: str,
+    prod_col: str,
+) -> Dict[str, Dict[str, int]]:
+    """Табельный -> {код товара -> число строк заказов}."""
+    counts: Dict[str, Dict[str, int]] = defaultdict(lambda: defaultdict(int))
+    for _, row in order_df.iterrows():
+        emp = _norm_str(row.get(emp_col))
+        code = _norm_str(row.get(prod_col))
+        if emp and code:
+            counts[emp][code] += 1
+    return {emp: dict(codes) for emp, codes in counts.items()}
+
+
+def _parse_item_order_groups(cfg: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """Группы кодов с лимитом суммарных заказов на строку RATING."""
+    raw = cfg.get("item_order_groups") or []
+    groups: List[Dict[str, Any]] = []
+    for item in raw:
+        if not isinstance(item, dict):
+            continue
+        codes = [_norm_str(c) for c in (item.get("codes") or []) if _norm_str(c)]
+        try:
+            max_orders = int(item.get("max_orders") or item.get("max_orders_in_group") or 0)
+        except (TypeError, ValueError):
+            max_orders = 0
+        if codes and max_orders > 0:
+            groups.append(
+                {
+                    "id": str(item.get("id") or ""),
+                    "max_orders": max_orders,
+                    "codes": codes,
+                }
+            )
+    return groups
+
+
+def _blocked_codes_for_row(
+    count_by_code: Dict[str, int],
+    groups: List[Dict[str, Any]],
+) -> Set[str]:
+    """
+    Коды группы, по которым сумма заказов менеджера >= max_orders —
+    все коды группы считаются недоступными для строки.
+    """
+    blocked: Set[str] = set()
+    for grp in groups:
+        codes: List[str] = grp.get("codes") or []
+        try:
+            limit = int(grp.get("max_orders") or 0)
+        except (TypeError, ValueError):
+            limit = 0
+        if limit <= 0 or not codes:
+            continue
+        total = sum(int(count_by_code.get(c, 0)) for c in codes)
+        if total >= limit:
+            blocked.update(codes)
+    return blocked
+
+
+def _matrix_fill_key(accessible: bool, ordered: bool) -> str:
+    """Ключ заливки по доступности и факту заказа."""
+    if ordered:
+        return FILL_ORDERED_AVAILABLE if accessible else FILL_ORDERED_UNAVAILABLE
+    return FILL_AVAILABLE_NOT_ORDERED if accessible else FILL_UNAVAILABLE_NOT_ORDERED
+
+
+def _item_amount_limit(rules: Dict[str, Any]) -> Optional[int]:
+    """Лимит itemAmount из каталога REWARD; None — не задан."""
+    raw = rules.get("itemAmount")
+    if raw is None:
+        return None
+    try:
+        val = int(float(raw))
+        return val if val > 0 else None
+    except (TypeError, ValueError):
+        return None
 
 
 def _make_unique_col_name(base: str, existing: set) -> str:
@@ -315,23 +468,17 @@ def apply_rating_item_matrix_enrichment(
         )
         return None
 
-    rating_df = rating_df.copy()
-    prod_order_series = order_df[prod_o].map(_norm_str)
+    order_df = _filter_order_dataframe(order_df, cfg)
+    counts_by_emp = _order_counts_by_employee(order_df, emp_o, prod_o)
+    order_groups = _parse_item_order_groups(cfg)
 
+    rating_df = rating_df.copy()
     thresholds: Dict[str, Dict[str, Optional[float]]] = {}
     added: List[str] = []
+    col_values: Dict[str, List[Any]] = {sp["col_name"]: [] for sp in specs}
 
     for sp in specs:
-        code = sp["match_code"]
         cname = sp["col_name"]
-        mask = prod_order_series == code
-        sub = order_df.loc[mask]
-        emp_sub = sub[emp_o].map(_norm_str)
-        vc = emp_sub.value_counts(dropna=False)
-        cnt_dict: Dict[str, int] = {str(k): int(v) for k, v in vc.items()}
-        emp_r_norm = rating_df[emp_r].map(_norm_str)
-        vals = emp_r_norm.map(lambda e: int(cnt_dict.get(e, 0)))
-        rating_df[cname] = vals.where(vals > 0, np.nan)
         added.append(cname)
         thresholds[cname] = {
             "bank": sp["min_bank"],
@@ -361,12 +508,9 @@ def apply_rating_item_matrix_enrichment(
             add_data_col=adc,
         )
 
-    order_by_emp: Dict[str, Set[str]] = defaultdict(set)
-    for _, orow in order_df.iterrows():
-        e = _norm_str(orow.get(emp_o))
-        p = _norm_str(orow.get(prod_o))
-        if e and p:
-            order_by_emp[e].add(p)
+    order_by_emp: Dict[str, Set[str]] = {}
+    for emp_key, code_counts in counts_by_emp.items():
+        order_by_emp[emp_key] = {c for c, n in code_counts.items() if n > 0}
 
     slr = cfg.get("sheet_list_rewards") or "LIST-REWARDS"
     rewards_by_emp: Dict[str, Set[str]] = defaultdict(set)
@@ -390,26 +534,38 @@ def apply_rating_item_matrix_enrichment(
         logging.info(f"[rating_item_matrix] Лист «{slr}» отсутствует — множество наград сотрудника пустое.")
 
     cry_c = _resolve_column(rating_df, cfg.get("crystals_col"), _DEFAULT_CRYSTALS)
+    role_c = _resolve_column(rating_df, cfg.get("rating_role_col"), ["Наименование Роли"])
+    period_c = _resolve_column(rating_df, cfg.get("rating_period_col"), ["Период"])
 
-    accessibility_cells: List[Dict[str, Any]] = []
+    matrix_cells: List[Dict[str, Any]] = []
+    header_stock_out_cols: Set[str] = set()
+
     for pos, (_, row) in enumerate(rating_df.iterrows()):
         emp_key = _norm_str(row.get(emp_r))
         rc = _as_float(row.get(country_c)) if country_c else None
         rt = _as_float(row.get(tb_c)) if tb_c else None
         rg = _as_float(row.get(gosb_c)) if gosb_c else None
         cry = _as_float(row.get(cry_c)) if cry_c else None
+        count_by_code = counts_by_emp.get(emp_key, {})
+        blocked_codes = _blocked_codes_for_row(count_by_code, order_groups)
         order_codes = order_by_emp.get(emp_key, set())
         rw_codes = rewards_by_emp.get(emp_key, set())
         excel_row = pos + 2
+
         for sp in specs:
+            code = sp["match_code"]
+            cname = sp["col_name"]
+            count = int(count_by_code.get(code, 0))
+            ordered = count > 0
+
             rules = rules_for_matrix_column(
-                sp["match_code"],
+                code,
                 catalog,
                 min_bank=sp.get("min_bank"),
                 min_tb=sp.get("min_tb"),
                 min_gosb=sp.get("min_gosb"),
             )
-            ok = item_accessible_for_manager(
+            base_accessible = item_accessible_for_manager(
                 rules,
                 rank_country=rc,
                 rank_tb=rt,
@@ -419,14 +575,44 @@ def apply_rating_item_matrix_enrichment(
                 list_reward_codes=rw_codes,
                 manager_tab=emp_key or None,
             )
-            accessibility_cells.append(
-                {"row_excel": excel_row, "col_name": sp["col_name"], "ok": ok}
+            accessible = base_accessible and code not in blocked_codes
+
+            if ordered:
+                cell_val: Any = count
+            else:
+                cell_val = "Y" if accessible else "N"
+            col_values[cname].append(cell_val)
+
+            fill_key = _matrix_fill_key(accessible, ordered)
+            matrix_cells.append(
+                {
+                    "row_excel": excel_row,
+                    "col_name": cname,
+                    "accessible": accessible,
+                    "ordered": ordered,
+                    "count": count,
+                    "fill_key": fill_key,
+                }
             )
 
+            limit_amt = _item_amount_limit(rules)
+            if limit_amt is not None and count >= limit_amt:
+                header_stock_out_cols.add(cname)
+
+    for cname in added:
+        rating_df[cname] = col_values.get(cname, [])
+
     sheets_data[sr] = (rating_df, rating_t[1])
+    fills = _resolve_fill_colors(cfg)
     logging.info(
-        f"[rating_item_matrix] Лист «{sr}»: добавлено колонок ITEM-матрицы: {len(added)}"
+        f"[rating_item_matrix] Лист «{sr}»: колонок ITEM-матрицы: {len(added)}, "
+        f"ячеек для подсветки: {len(matrix_cells)}, красных заголовков: {len(header_stock_out_cols)}"
     )
+    if role_c is None or period_c is None:
+        logging.debug(
+            f"[rating_item_matrix] Колонки роль/период на RATING: role={role_c!r}, period={period_c!r} "
+            "(для itemAmount используется только счётчик заказов менеджера по коду)"
+        )
 
     return {
         "sheet_rating": sr,
@@ -435,10 +621,11 @@ def apply_rating_item_matrix_enrichment(
         "country_rank_col": country_c,
         "tb_rank_col": tb_c,
         "gosb_rank_col": gosb_c,
-        "accessibility_cells": accessibility_cells,
-        "fill_accessibility_ok": (cfg.get("fill_accessibility_ok") or "C6EFCE").lstrip("#"),
-        "fill_accessibility_fail": (cfg.get("fill_accessibility_fail") or "FFC7CE").lstrip("#"),
-        # Раскраска по полной доступности (зелёный / красный), без старой тройной подсветки по minRating
+        "matrix_cells": matrix_cells,
+        "fills": fills,
+        "header_stock_out_columns": sorted(header_stock_out_cols),
+        "fill_accessibility_ok": fills[FILL_ORDERED_AVAILABLE],
+        "fill_accessibility_fail": fills[FILL_UNAVAILABLE_NOT_ORDERED],
         "skip_colors": False,
     }
 
@@ -458,15 +645,15 @@ def apply_rating_item_matrix_colors(
     meta: Dict[str, Any],
     cfg: Dict[str, Any],
 ) -> None:
-    """Подсветка ячеек матрицы на сохранённом файле Excel (после write_to_excel)."""
+    """Подсветка ячеек матрицы (4 состояния) и заголовков при исчерпании itemAmount."""
     if not cfg or not bool(cfg.get("enabled")):
         return
     if meta.get("skip_colors"):
         logging.info("[rating_item_matrix] Подсветка отключена флагом skip_colors")
         return
-    cells = meta.get("accessibility_cells") or []
+    cells = meta.get("matrix_cells") or meta.get("accessibility_cells") or []
     if not cells:
-        logging.warning("[rating_item_matrix] Нет предвычисленных ячеек доступности — подсветка пропущена")
+        logging.warning("[rating_item_matrix] Нет предвычисленных ячеек матрицы — подсветка пропущена")
         return
     try:
         wb = load_workbook(xlsx_path)
@@ -484,26 +671,47 @@ def apply_rating_item_matrix_colors(
     def col_for(name: str) -> Optional[int]:
         return hmap.get(str(name).strip())
 
-    ok_hex = meta.get("fill_accessibility_ok") or "C6EFCE"
-    fail_hex = meta.get("fill_accessibility_fail") or "FFC7CE"
-    fill_ok = PatternFill(fill_type="solid", start_color=ok_hex, end_color=ok_hex)
-    fill_fail = PatternFill(fill_type="solid", start_color=fail_hex, end_color=fail_hex)
+    fills_cfg = meta.get("fills") or _resolve_fill_colors(cfg or {})
+    fill_by_key: Dict[str, PatternFill] = {}
+    for key in (
+        FILL_ORDERED_AVAILABLE,
+        FILL_ORDERED_UNAVAILABLE,
+        FILL_AVAILABLE_NOT_ORDERED,
+        FILL_UNAVAILABLE_NOT_ORDERED,
+    ):
+        hx = _strip_hex(fills_cfg.get(key) or "FFFFFF")
+        fill_by_key[key] = PatternFill(fill_type="solid", start_color=hx, end_color=hx)
+    header_hex = _strip_hex(fills_cfg.get("header_stock_out") or "FF0000")
+    fill_header = PatternFill(fill_type="solid", start_color=header_hex, end_color=header_hex)
+
+    n_header = 0
+    for cname in meta.get("header_stock_out_columns") or []:
+        ci = col_for(str(cname))
+        if ci is not None:
+            ws.cell(row=1, column=ci).fill = fill_header
+            n_header += 1
 
     n_applied = 0
     for item in cells:
         r = int(item.get("row_excel") or 0)
         cname = item.get("col_name")
-        ok = bool(item.get("ok"))
         if r < 2 or not cname:
             continue
         ci = col_for(str(cname))
         if ci is None:
             continue
-        ws.cell(row=r, column=ci).fill = fill_ok if ok else fill_fail
+        fill_key = item.get("fill_key")
+        if not fill_key and "ok" in item:
+            # Совместимость со старым meta (только ok)
+            fill_key = (
+                FILL_ORDERED_AVAILABLE if item.get("ok") else FILL_UNAVAILABLE_NOT_ORDERED
+            )
+        pf = fill_by_key.get(str(fill_key)) or fill_by_key[FILL_UNAVAILABLE_NOT_ORDERED]
+        ws.cell(row=r, column=ci).fill = pf
         n_applied += 1
 
     wb.save(xlsx_path)
     wb.close()
     logging.info(
-        f"[rating_item_matrix] Подсветка доступности ITEM (зелёный/красный): {n_applied} ячеек в {xlsx_path}"
+        f"[rating_item_matrix] Подсветка ITEM: {n_applied} ячеек, {n_header} заголовков в {xlsx_path}"
     )
