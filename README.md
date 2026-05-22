@@ -83,6 +83,7 @@ SPOD_PROM/
 - `Docs/INPUT_ARCHIVE_SQLITE_DESIGN.md` — архив v1: снимки целого CSV в SQLite; **`JSON_*`** для CONTEST-DATA / REWARD.
 - `Docs/INPUT_ARCHIVE_ROW_LEVEL.md` — архив **v2 (построчно)**: `row_key_hash`, `row_hash`, `active`/`inactive`, параллельный расчёт хешей; модули **`input_archive_sqlite_v2.py`**, **`input_archive_row_hash.py`**, **`input_archive_row_parallel.py`**.
 - `Docs/INPUT_ARCHIVE_ROW_LEVEL_PLAN.md` — план и согласованные `row_key_columns` по листам (справочник).
+- `Docs/RATING_MATRIX_COLORS_AND_LOGIC.md` — лист RATING: подсчёт заказов, доступность, 4 цвета ячеек, шапка itemAmount.
 - `Docs/АНАЛИЗ_ПРОВЕРОК_КОНСИСТЕНТНОСТИ.md` — аналитика покрытия и предложения по новым правилам.
 - `Docs/PERFORMANCE_AND_PARALLELIZATION_HISTORY.md` — консолидированная история оптимизации и распараллеливания.
 - `Docs/SUMMARY_GROUP_FIX_HISTORY.md` — история исправлений логики `SUMMARY` и связки `GROUP`.

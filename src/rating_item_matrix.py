@@ -183,17 +183,17 @@ def _strip_hex(color: str) -> str:
 
 
 def _resolve_fill_colors(cfg: Dict[str, Any]) -> Dict[str, str]:
-    """Четыре цвета матрицы и шапки; устаревшие fill_accessibility_* — запасные."""
-    ok_legacy = _strip_hex(cfg.get("fill_accessibility_ok") or "C6EFCE")
-    fail_legacy = _strip_hex(cfg.get("fill_accessibility_fail") or "FFC7CE")
+    """Четыре пастельных цвета матрицы и шапки; устаревшие fill_accessibility_* — запасные."""
+    ok_legacy = _strip_hex(cfg.get("fill_accessibility_ok") or "E2F0D9")
+    fail_legacy = _strip_hex(cfg.get("fill_accessibility_fail") or "F2D7DC")
     return {
         FILL_ORDERED_AVAILABLE: _strip_hex(cfg.get("fill_ordered_available") or ok_legacy),
-        FILL_ORDERED_UNAVAILABLE: _strip_hex(cfg.get("fill_ordered_unavailable") or "FFB6C1"),
-        FILL_AVAILABLE_NOT_ORDERED: _strip_hex(cfg.get("fill_available_not_ordered") or "92D050"),
+        FILL_ORDERED_UNAVAILABLE: _strip_hex(cfg.get("fill_ordered_unavailable") or "F5D6DC"),
+        FILL_AVAILABLE_NOT_ORDERED: _strip_hex(cfg.get("fill_available_not_ordered") or "D9EAD3"),
         FILL_UNAVAILABLE_NOT_ORDERED: _strip_hex(
             cfg.get("fill_unavailable_not_ordered") or fail_legacy
         ),
-        "header_stock_out": _strip_hex(cfg.get("fill_header_stock_out") or "FF0000"),
+        "header_stock_out": _strip_hex(cfg.get("fill_header_stock_out") or "E8B4B8"),
     }
 
 
@@ -575,7 +575,11 @@ def apply_rating_item_matrix_enrichment(
                 list_reward_codes=rw_codes,
                 manager_tab=emp_key or None,
             )
-            accessible = base_accessible and code not in blocked_codes
+            limit_amt = _item_amount_limit(rules)
+            at_personal_limit = limit_amt is not None and count >= limit_amt
+            accessible = (
+                base_accessible and code not in blocked_codes and not at_personal_limit
+            )
 
             if ordered:
                 cell_val: Any = count
@@ -595,8 +599,9 @@ def apply_rating_item_matrix_enrichment(
                 }
             )
 
-            limit_amt = _item_amount_limit(rules)
-            if limit_amt is not None and count >= limit_amt:
+            # Красная шапка колонки: хотя бы у одного менеджера на листе исчерпан личный itemAmount
+            # (не означает «нет доступных» у всех строк — см. Docs/RATING_MATRIX_COLORS_AND_LOGIC.md)
+            if at_personal_limit:
                 header_stock_out_cols.add(cname)
 
     for cname in added:

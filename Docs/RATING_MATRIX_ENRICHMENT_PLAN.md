@@ -64,7 +64,7 @@
 
 **Логика:**
 
-- `accessible` — после всех правил (рейтинг + группы); **не** зависит от itemAmount в ячейке строки (лимит склада — только шапка колонки, п. 6).
+- `accessible` — после всех правил (рейтинг + группы + **личный itemAmount**); красная шапка — см. п. 6 и **`Docs/RATING_MATRIX_COLORS_AND_LOGIC.md`**.
 - `ordered` — `count > 0` по отфильтрованному ORDER.
 - Запись в DataFrame: `rating_df[col] = count` если ordered, иначе `"Y"` / `"N"`.
 

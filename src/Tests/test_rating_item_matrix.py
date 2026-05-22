@@ -8,9 +8,11 @@ from src.rating_item_matrix import (
     FILL_UNAVAILABLE_NOT_ORDERED,
     _blocked_codes_for_row,
     _filter_order_dataframe,
+    _item_amount_limit,
     _matrix_fill_key,
     _order_counts_by_employee,
     _parse_item_order_groups,
+    _resolve_fill_colors,
 )
 
 
@@ -81,3 +83,14 @@ def test_parse_item_order_groups() -> None:
     groups = _parse_item_order_groups(cfg)
     assert len(groups) == 1
     assert groups[0]["max_orders"] == 2
+
+
+def test_item_amount_limit_parsed() -> None:
+    assert _item_amount_limit({"itemAmount": 3}) == 3
+    assert _item_amount_limit({"itemAmount": None}) is None
+
+
+def test_pastel_default_fills_not_bright_green() -> None:
+    fills = _resolve_fill_colors({})
+    assert fills[FILL_AVAILABLE_NOT_ORDERED] != "92D050"
+    assert fills["header_stock_out"] != "FF0000"
