@@ -1,6 +1,8 @@
 # План: архив SQLite — актуальность и история по строкам (ToDo п. 3)
 
-Документ для согласования. Текущая реализация: `src/input_archive_sqlite.py`, `Docs/INPUT_ARCHIVE_SQLITE_DESIGN.md` — версионирование **целого файла** (снимок `latest` / `historical`).
+**Статус: реализовано (2026-05-22).** Код: `src/input_archive_sqlite_v2.py`, `src/input_archive_row_hash.py`, `src/input_archive_row_parallel.py`.  
+**Документация реализации:** `Docs/INPUT_ARCHIVE_ROW_LEVEL.md`.  
+Режим v1 (снимки файла): `src/input_archive_sqlite.py`, `Docs/INPUT_ARCHIVE_SQLITE_DESIGN.md`.
 
 ---
 
@@ -11,6 +13,7 @@
 - Строки, **отсутствующие** в текущей загрузке, помечать как неактуальные (не удалять историю).
 - Повторная загрузка **того же содержимого** из **другого файла** — обновить только `source_file` / `last_loaded_at` у актуальных строк без новой версии данных.
 - Новая БД; старую оставить как архив (путь в config).
+- **Ускорение ingest:** по возможности **распараллелить по процессам** расчёт хешей строк и сравнение с уже известными ключами (см. **п. 11**).
 
 ---
 
@@ -46,6 +49,7 @@
 
 - `default_row_key_columns` по sheet (если не задано в entry).
 - `row_hash_columns`: `null` = все колонки CSV после чтения; или явный список для хеша.
+- **`parallel_row_processing`** — блок настроек параллелизации (п. 11): `enabled`, `max_workers`, `chunk_size`.
 
 ### 3.3. Таблицы (предложение)
 
@@ -90,18 +94,17 @@
 
 ```
 1. Прочитать CSV → DataFrame (как сейчас).
-2. Построить row_key_hash, row_hash для каждой строки.
+2. [CPU, параллельно] Построить row_key_hash, row_hash для каждой строки (пул процессов, чанками).
 3. Множество K = ключи текущего файла.
-4. Для каждой строки:
-   a. Нет в archive_row_current → INSERT payload + current (active).
-   b. Есть, row_hash совпадает → UPDATE current (last_loaded_at, source_file).
-   c. Есть, row_hash другой → INSERT payload + UPDATE current (active, новый payload_id).
-5. Для current WHERE sheet=X AND row_status=active AND row_key_hash NOT IN K:
-   → row_status = inactive, inactive_since = now.
-6. (Опционально) если файл byte-identical предыдущему ingest — только шаг 4b для метаданных.
+4. [I/O] Одним запросом загрузить из БД существующие (row_key_hash → row_hash, payload_id) для sheet.
+5. [CPU, параллельно] Классифицировать строки файла: new / unchanged / changed (без записи в SQLite).
+6. [I/O, один поток] Транзакция SQLite: batch INSERT payload, UPSERT current, UPDATE inactive.
+7. (Опционально) если файл byte-identical предыдущему ingest — пропуск шагов 2–6 для данных, только метаданные inventory.
 ```
 
 **Канонизация ключа и хеша:** сортировка имён колонок, `str(value).strip()`, JSON `sort_keys=True`, UTF-8, SHA-256.
+
+Шаги **2** и **5** — основной выигрыш по времени при десятках/сотнях тысяч строк; шаг **6** остаётся последовательным из‑за одного писателя SQLite.
 
 ---
 
@@ -114,17 +117,20 @@
 
 ---
 
-## 6. Изменения в коде
+## 6. Изменения в коде (выполнено)
 
-| Компонент | Действие |
-|-----------|----------|
-| `input_archive_sqlite.py` | Режим `schema_version: 2` или отдельный модуль `input_archive_sqlite_v2.py` |
-| `config_loader` / `Config` | Чтение `row_key_columns` из input_files |
-| `main_impl.py` | Вызов ingest v2 при `enabled` + `row_level: true` |
-| `console_ui.py` | Отчёт: new / updated / unchanged / marked_missing |
-| `INPUT_ARCHIVE_SQLITE_DESIGN.md` | Слить описание v2 в README |
+| Компонент | Статус |
+|-----------|--------|
+| `input_archive_sqlite_v2.py` | [v] Схема, ingest, inventory по SHA файла |
+| `input_archive_row_parallel.py` | [v] Пул процессов: хеши и классификация |
+| `input_archive_row_hash.py` | [v] Канонизация и SHA-256 |
+| `config_loader` / `Config` | [v] `merge_archive_v2_config` |
+| `main_impl.py` | [v] Ветка v2 при `row_level_archive` |
+| `console_ui.py` | [v] `print_input_archive_row_report` |
+| `Docs/INPUT_ARCHIVE_ROW_LEVEL.md` | [v] Подробная документация |
+| `INPUT_ARCHIVE_SQLITE_DESIGN.md` | [v] Сводка v2 + ссылка |
 
-**Миграция:** скрипт в `src/Tools/` — опционально перенос последнего `latest` снимка в row_current (одноразово).
+**Миграция v1→v2:** скрипт в `src/Tools/` — [ ] опционально, не реализован.
 
 ---
 
@@ -134,9 +140,11 @@
 |-----|---------|------------|
 | 1 | 3.1 | Схема SQL + новый db_path, флаг enabled |
 | 2 | 3.2 | row_key в config для всех archive_to_db файлов |
-| 3 | 3.3 | ingest upsert + mark missing |
-| 4 | 3.4 | Ветка «тот же хеш, другой файл» |
-| 5 | 3.5 | Отчёты, README, ROADMAP [v] |
+| 3 | 3.6 | Проектирование параллельных фаз (хеши, сравнение), параметры в config |
+| 4 | 3.3 | ingest upsert + mark inactive (с параллельными фазами 2 и 5) |
+| 5 | 3.4 | Ветка «тот же хеш, другой файл» |
+| 6 | 3.7 | Замеры: ingest до/после, лог длительности фаз |
+| 7 | 3.5 | Отчёты, README, ROADMAP [v] |
 
 ---
 
@@ -148,6 +156,60 @@
 | Дубликаты ключа в одном CSV | WARNING + последняя строка wins или ошибка ingest |
 | Рост payload | Периодическая чистка `superseded` / TTL в отдельной задаче |
 | Два режима БД | Флаг `row_level_archive`; v1 и v2 не писать в один файл |
+| Параллельные процессы + SQLite | Только **вычисления** в процессах; **запись** в одной транзакции одним соединением |
+| Oversubscription на малой машине | `max_workers` из config, по умолчанию `min(8, cpu_count-1)` |
+
+---
+
+## 11. Параллелизация и ускорение (процессы)
+
+### 11.1. Зачем
+
+При построчном архиве на **каждую строку** CSV дважды считается SHA-256 (ключ + тело) и выполняется сравнение с множеством уже известных `row_key_hash` / `row_hash`. На файлах **ORDER**, **RATING**, **LIST-REWARDS** и др. это **сотни тысяч** операций — в одном потоке ingest становится узким местом. Задачи **CPU-bound** (хеширование, канонизация полей), поэтому предпочтительны **процессы** (`multiprocessing` / `ProcessPoolExecutor`), а не потоки.
+
+### 11.2. Что распараллеливать
+
+| Фаза | Параллельно? | Примечание |
+|------|----------------|------------|
+| Чтение CSV → DataFrame | Нет (уже быстро) | Как в текущем пайплайне |
+| Расчёт `row_key_hash` + `row_hash` по строкам | **Да, процессы** | Чанки по `chunk_size` строк; функция воркера без доступа к SQLite |
+| Загрузка справочника из БД `(key_hash → row_hash, …)` | Нет | Один `SELECT` по `sheet_name` |
+| Классификация: new / unchanged / changed | **Да, процессы** | Вход: чанк хешей + общий dict из БД (read-only, picklable) |
+| `INSERT` / `UPDATE` в SQLite | **Нет** | Один writer, `executemany` / batch в транзакции |
+| Пометка `inactive` для ключей ∉ K | Нет | Один `UPDATE … WHERE row_key_hash NOT IN (...)` или временная таблица ключей |
+| Несколько **файлов** `input_files` подряд | Опционально | Разные `archive_db_path` — можно обрабатывать файлы параллельно **разных** БД; одна БД — **последовательно** по файлам |
+
+### 11.3. Конфиг `parallel_row_processing`
+
+```json
+"parallel_row_processing": {
+  "enabled": true,
+  "max_workers": 0,
+  "chunk_size": 2000,
+  "min_rows_for_parallel": 500
+}
+```
+
+| Поле | Описание |
+|------|----------|
+| `enabled` | Включить пул процессов для фаз хеширования и сравнения. |
+| `max_workers` | Число процессов; **`0`** — авто: `min(8, os.cpu_count() - 1)` (как в `main_impl` для I/O). |
+| `chunk_size` | Строк в одной задаче воркера (баланс накладных расходов / IPC). |
+| `min_rows_for_parallel` | Ниже порога — один процесс (не поднимать pool на малых листах). |
+
+### 11.4. Эскиз реализации
+
+1. **`compute_row_hashes_chunk(rows, key_cols, hash_cols) -> List[RowHashRecord]`** — чистая функция top-level (picklable) для `ProcessPoolExecutor`.
+2. **`classify_chunk(records, existing_map) -> ClassifiedChunk`** — new / unchanged / changed списки id.
+3. Главный процесс: `df` → список dict по строкам (или индекс + срезы) → `executor.map` по чанкам → merge результатов.
+4. Сбор batch для SQLite: только changed/new → INSERT payload; unchanged → только UPDATE метаданных current.
+5. В DEBUG-лог: `hash_phase_sec`, `compare_phase_sec`, `db_write_sec`, `workers`, `rows`.
+
+### 11.5. Ограничения
+
+- На **Windows** и macOS обязателен guard `if __name__ == "__main__"` при spawn (вызов ingest только из `main`, не из интерактивного REPL в том же модуле).
+- Большой `existing_map` для листа целиком держится в памяти главного процесса (один раз из БД); при экстремальных объёмах — рассмотреть SQLite `ATTACH` + сравнение через временную таблицу (фаза 2, не MVP).
+- Параллельная запись в **одну** SQLite-БД **не** используется (конфликты блокировок).
 
 ---
 
@@ -211,8 +273,9 @@
 
 | Блок | Оценка |
 |------|--------|
-| Схема + ingest | 2–3 дн |
+| Схема + ingest (базовый, однопоточный каркас) | 2–3 дн |
+| Параллельные фазы (хеши + сравнение, config, замеры) | 1–1.5 дн |
 | Конфиг ключей по листам | 0.5–1 дн |
 | Отчёты + документация | 1 дн |
 
-**Итого:** ~4–5 дней после утверждения.
+**Итого:** ~5–6 дней после утверждения (с параллелизацией).

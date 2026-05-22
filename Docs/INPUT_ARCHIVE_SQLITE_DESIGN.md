@@ -1,5 +1,7 @@
 # Архив входных CSV в SQLite (`input_archive_sqlite`)
 
+> **Построчный режим (v2):** при **`row_level_archive`: true** используется отдельный файл БД и модуль **`src/input_archive_sqlite_v2.py`**. Подробная документация реализации — **`Docs/INPUT_ARCHIVE_ROW_LEVEL.md`**. Ниже в основном описан режим **v1** (снимки целого файла).
+
 ## 1. Возможность и выбор СУБД
 
 **Да, основную программу можно дополнить записью загружаемых файлов в базу без отдельного сервера.**
@@ -77,8 +79,11 @@
 
 Секция **`input_archive_sqlite`** (см. актуальный `config.json`):
 
+- **`row_level_archive`** — при **`true`** активен **v2** (`input_archive_sqlite_v2.py`, **`db_path`** → обычно **`OUT/DB/spod_input_archive_v2.sqlite`**). При **`false`** — **v1** (снимки), путь БД берётся из **`legacy_db_path`** (**`OUT/DB/spod_input_archive.sqlite`**).
 - **`enabled`** — мастер-переключатель.
-- **`db_path`** — путь к файлу БД относительно корня проекта или абсолютный (по умолчанию **`OUT/DB/spod_input_archive.sqlite`** — рядом с выходными артефактами).
+- **`db_path`** — путь к файлу БД относительно корня проекта или абсолютный (для v1 по умолчанию **`OUT/DB/spod_input_archive.sqlite`**; для v2 в поставке — **`spod_input_archive_v2.sqlite`**).
+- **`legacy_db_path`** — файл БД v1, если построчный режим выключен.
+- **`default_row_key_by_sheet`**, **`parallel_row_processing`**, **`skip_ingest_if_file_unchanged`**, **`row_hash_columns`** — только для v2; см. **`Docs/INPUT_ARCHIVE_ROW_LEVEL.md`**.
 - **`default_archive_to_db`** — значение по умолчанию, если у записи в **`input_files`** **нет** ключа **`archive_to_db`**. В поставляемом **`config.json`** стоит **`false`**, а у **каждой** записи **`input_files`** явно указано **`archive_to_db`**: так проще видеть политику по файлу. Если поставить **`true`**, в архив пойдут все записи без своего ключа; для исключения отдельного файла задайте **`"archive_to_db": false`**.
 - У каждого элемента **`input_files`** можно задать:
   - **`archive_to_db`**: `true` / `false` — грузить ли этот файл в архив.
@@ -135,10 +140,23 @@ ORDER BY loaded_at;
 - Очень большие CSV увеличивают файл `.sqlite`; при необходимости — ротация файла БД по пути или выгрузка старых снимков.
 - Имена колонок с спецсимволами приводятся к безопасным SQL-именам; исходное имя в метаданных таблицы не дублируется — ориентир по порядку и документации выгрузки.
 
+## 10. Режим v2 (построчный архив) — краткая сводка
+
+| Тема | v1 | v2 |
+|------|----|----|
+| Модуль | `input_archive_sqlite.py` | `input_archive_sqlite_v2.py` |
+| Гранулярность | Снимок всего файла | Строка по `row_key_hash` |
+| Таблицы данных | `arch_<SHEET>` + `__snapshot_id` | `archive_row_current`, `archive_row_payload` |
+| Пропуск без изменений | SHA **файла** | SHA **файла** (inventory) + сравнение **хешей строк** |
+| Отчёт в консоли | `print_input_archive_sqlite_report` | `print_input_archive_row_report` |
+
+Полное описание: **`Docs/INPUT_ARCHIVE_ROW_LEVEL.md`**.
+
 ## 9. История документа
 
 | Версия | Изменения |
 |--------|-----------|
+| 2.0 | Документирован построчный режим v2, ссылка на **`INPUT_ARCHIVE_ROW_LEVEL.md`**, поля **`row_level_archive`** / **`legacy_db_path`** в config. |
 | 1.8 | Согласование SHA: **`last_content_sha256`** и **`source_sha256`** у latest; условия дозаписи SHA без ingest при **`NULL`** в inventory; пропуск ingest только при согласованных отпечатках. |
 | 1.7 | Документация отчёта: полный путь **`db_display`**, табличный вывод по листам, режимы **`summary`** / **`normal`** / **`verbose`** в **`print_input_archive_sqlite_report`**. |
 | 1.6 | Несколько файлов БД: **`archive_db_path`** в **`input_files`**, группировка payload и рекурсивный вызов **`run_input_archive_sqlite`** по группам. |
