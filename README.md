@@ -43,7 +43,10 @@ SPOD_PROM/
 │   ├── json_utils.py      # Разбор и разворот JSON-полей
 │   ├── json_spod_format_check.py  # Проверка формата SPOD-JSON в ячейках (consistency_checks: json_spod_format)
 │   ├── archive_json_columns.py  # Архив SQLite: колонки JSON_* из CONTEST_FEATURE / REWARD_ADD_DATA
-│   ├── input_archive_sqlite.py   # Архив сырых CSV в SQLite (снимки, дедуп по SHA/mtime, согласование inventory/latest, JSON_*)
+│   ├── input_archive_sqlite.py   # Архив v1: снимки целого файла (SHA/mtime, inventory/latest, JSON_*)
+│   ├── input_archive_sqlite_v2.py # Архив v2: построчно (row_key_hash, row_hash, active/inactive)
+│   ├── input_archive_row_hash.py  # Канонизация полей и SHA-256 для v2
+│   ├── input_archive_row_parallel.py # Параллельный расчёт хешей и классификация строк (v2)
 │   ├── reward_getcondition_summary.py  # Сводная колонка по getCondition на листе REWARD
 │   ├── file_loader.py     # Класс FileLoader — поиск/чтение CSV, разворот JSON
 │   ├── tournament.py      # Расчёт статуса турнира (CALC_TOURNAMENT_STATUS)

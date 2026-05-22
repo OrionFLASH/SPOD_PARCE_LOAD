@@ -2,7 +2,7 @@
 
 Статусы: `[v]` сделано · `[w]` в работе · `[ ]` не сделано · `[x]` отменено
 
-Согласование: пункты **2** и **3** — только план и этот файл; реализация после явного одобрения.
+Согласование: пункты **2** и **3** — реализованы (см. планы в `Docs/`).
 
 ---
 
@@ -35,13 +35,17 @@
 
 ## Пункт 3 — Архив SQLite: история по строкам, не по файлу
 
-**Документ плана:** `Docs/INPUT_ARCHIVE_ROW_LEVEL_PLAN.md` (решения + таблица `row_key_columns` — п. 9, 2026-05-22). **Реализация не начата.**
+**Документ плана:** `Docs/INPUT_ARCHIVE_ROW_LEVEL_PLAN.md`. Код: **`src/input_archive_sqlite_v2.py`**, **`src/input_archive_row_hash.py`**, **`src/input_archive_row_parallel.py`**. БД: **`OUT/DB/spod_input_archive_v2.sqlite`** при **`row_level_archive`: true**.
 
 | # | Задача | Статус |
 |---|--------|--------|
-| 3.0 | Утверждение плана, `row_key_columns`, режима ingest | [w] |
-| 3.1 | Новая БД + схема: ключ строки, row_hash, row_status, метаданные загрузки | [ ] |
-| 3.2 | `row_keys` в `input_files` / конфиге архива | [ ] |
-| 3.3 | Ingest: upsert изменённых, пометка отсутствующих в срезе как неактуальных | [ ] |
-| 3.4 | Повторная загрузка того же содержимого из другого файла — только source_file / loaded_at | [ ] |
-| 3.5 | Миграция, отчёт в консоль, документация | [ ] |
+| 3.0 | Утверждение плана, `row_key_columns`, режима ingest | [v] |
+| 3.1 | Новая БД + схема: ключ строки, row_hash, row_status, метаданные загрузки | [v] |
+| 3.2 | `row_key_columns` в `input_files` / конфиге архива (`default_row_key_by_sheet`) | [v] |
+| 3.6 | Параллелизация: `parallel_row_processing` в config, хеши и сравнение по процессам (п. 11 плана) | [v] |
+| 3.3 | Ingest: upsert / inactive + интеграция параллельных фаз, batch-запись SQLite | [v] |
+| 3.4 | Повторная загрузка того же содержимого из другого файла — только source_file / loaded_at | [v] |
+| 3.7 | Замеры производительности (фазы hash / compare / db), DEBUG-лог | [v] |
+| 3.5 | Отчёт в консоль (`print_input_archive_row_report`), README/ROADMAP | [v] |
+
+Подробности параллелизации: **`Docs/INPUT_ARCHIVE_ROW_LEVEL_PLAN.md`**, раздел **11**.
