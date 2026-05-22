@@ -302,9 +302,9 @@ def _load_config_globals():
         "ПОДВЕДЕНИЕ ИТОГОВ", "ПОДВЕДЕНИЕ ИТОГОВ", "ПОДВЕДЕНИЕ ИТОГОВ", "ЗАВЕРШЕН",
     ]
     TOURNAMENT_STATUS_CHOICES = _cfg.get("tournament_status_choices") or _TOURNAMENT_STATUS_DEFAULT
-    from src.input_archive_sqlite import merge_archive_config
+    from src.input_archive_sqlite_v2 import merge_archive_v2_config
 
-    INPUT_ARCHIVE_SQLITE = merge_archive_config(_cfg.get("input_archive_sqlite"))
+    INPUT_ARCHIVE_SQLITE = merge_archive_v2_config(_cfg.get("input_archive_sqlite"))
     RATING_ITEM_MATRIX = _cfg.get("rating_item_matrix") or {}
 
 
@@ -4516,11 +4516,22 @@ def main():
     # Архив сырых CSV в SQLite (опционально, config input_archive_sqlite.enabled)
     if INPUT_ARCHIVE_SQLITE.get("enabled"):
         try:
-            from src.input_archive_sqlite import run_input_archive_sqlite
+            if INPUT_ARCHIVE_SQLITE.get("row_level_archive"):
+                from src.input_archive_sqlite_v2 import run_input_archive_sqlite_v2
 
-            run_input_archive_sqlite(PROJECT_BASE_DIR, INPUT_ARCHIVE_SQLITE, archive_payload)
+                run_input_archive_sqlite_v2(
+                    PROJECT_BASE_DIR, INPUT_ARCHIVE_SQLITE, archive_payload
+                )
+            else:
+                from src.input_archive_sqlite import run_input_archive_sqlite
+
+                run_input_archive_sqlite(
+                    PROJECT_BASE_DIR, INPUT_ARCHIVE_SQLITE, archive_payload
+                )
         except Exception:
-            logging.exception("[archive_sqlite] Ошибка записи архива во входной SQLite (продолжаем пайплайн)")
+            logging.exception(
+                "[archive_sqlite] Ошибка записи архива во входной SQLite (продолжаем пайплайн)"
+            )
 
     run_mode = int(RUN_MODE) if RUN_MODE is not None else 1
     _run_mode_label = f"run_outputs={RUN_OUTPUTS} (compat_mode={run_mode})"

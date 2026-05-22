@@ -464,3 +464,60 @@ def print_input_archive_sqlite_report(
             if extra:
                 line2 += f"  |  {extra}"
             print(_truncate(line2, w), flush=True)
+
+
+def print_input_archive_row_report(
+    console_mode: str,
+    db_display: str,
+    stats: Dict[str, Any],
+    events: List[Dict[str, Any]],
+) -> None:
+    """
+    Сводка построчного архива SQLite v2 (run_input_archive_sqlite_v2).
+    """
+    mode = str(console_mode or "normal").lower().strip()
+    if mode in ("0", "off", "none", "no", "false"):
+        return
+
+    w = terminal_width()
+    print(_truncate("— Архив входных CSV (SQLite v2, построчно) —", w), flush=True)
+    db_s = str(db_display or "").strip() or "—"
+    print("  Файл БД (от корня проекта):", flush=True)
+    for ln in textwrap.wrap(db_s, width=max(40, w - 6), break_long_words=True, break_on_hyphens=False):
+        print(f"    {ln}", flush=True)
+    print(
+        f"  Итог: новых строк {int(stats.get('new', 0))}; "
+        f"изменённых {int(stats.get('changed', 0))}; "
+        f"без изменений {int(stats.get('unchanged', 0))}; "
+        f"неактуальных (inactive) {int(stats.get('inactive', 0))}; "
+        f"файл без изменений (SHA) {int(stats.get('file_unchanged', 0))}; "
+        f"ошибок ключа {int(stats.get('key_errors', 0))}; "
+        f"ошибок {int(stats.get('errors', 0))}; "
+        f"нет ключа в config {int(stats.get('no_row_key', 0))}.",
+        flush=True,
+    )
+    if mode in ("1", "summary", "brief", "short"):
+        return
+
+    verbose = mode in ("3", "verbose", "debug", "detail", "full")
+    if not events:
+        print("  Нет строк отчёта по листам.", flush=True)
+        return
+
+    print("  — По листам —", flush=True)
+    col_sheet = min(42, max(22, w // 3))
+    print(f"  {'Лист':<{col_sheet}} {'Строки':<9} Примечание"[:w], flush=True)
+    print("  " + "-" * min(w - 2, col_sheet + 9 + 24), flush=True)
+    for e in events:
+        sh = str(e.get("sheet", "") or "")
+        lbl = str(e.get("label", "") or "")
+        rows = e.get("rows")
+        rows_s = "—" if rows is None else str(int(rows))
+        sh_disp = sh if len(sh) <= col_sheet else sh[: max(1, col_sheet - 1)] + "…"
+        rest_w = max(20, w - col_sheet - 14)
+        lbl_short = lbl if len(lbl) <= rest_w else lbl[: max(1, rest_w - 1)] + "…"
+        print(f"  {sh_disp:<{col_sheet}} {rows_s:<9} {lbl_short}"[:w], flush=True)
+        if verbose:
+            extra = str(e.get("extra") or "").strip()
+            if extra:
+                print(_truncate(f"      {extra}", w), flush=True)
