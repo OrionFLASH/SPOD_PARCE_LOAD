@@ -4525,9 +4525,11 @@ def main():
             else:
                 from src.input_archive_sqlite import run_input_archive_sqlite
 
-                run_input_archive_sqlite(
-                    PROJECT_BASE_DIR, INPUT_ARCHIVE_SQLITE, archive_payload
-                )
+                cfg_v1 = dict(INPUT_ARCHIVE_SQLITE)
+                legacy_db = (cfg_v1.get("legacy_db_path") or "").strip()
+                if legacy_db:
+                    cfg_v1["db_path"] = legacy_db
+                run_input_archive_sqlite(PROJECT_BASE_DIR, cfg_v1, archive_payload)
         except Exception:
             logging.exception(
                 "[archive_sqlite] Ошибка записи архива во входной SQLite (продолжаем пайплайн)"
