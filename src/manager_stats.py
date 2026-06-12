@@ -315,6 +315,72 @@ def _get_sheet_df(sheets_data: Mapping[str, Any], sheet_name: str) -> Optional[p
     return df
 
 
+def _merge_where_not_in_maps(
+    base: Mapping[str, Sequence[str]],
+    extra: Mapping[str, Sequence[str]],
+) -> Dict[str, List[str]]:
+    """Объединение where_not_in по колонкам без дублей значений."""
+    out: Dict[str, List[str]] = {}
+    for src in (base, extra):
+        for col, vals in src.items():
+            bucket = out.setdefault(str(col), [])
+            for v in _normalize_value_list(vals):
+                if v not in bucket:
+                    bucket.append(v)
+    return out
+
+
+def _employee_placeholder_tabs_to_exclude(
+    sheets_data: Mapping[str, Any],
+    rules: Sequence[Mapping[str, Any]],
+    *,
+    pad_width: int,
+) -> Set[str]:
+    """
+    Табельные из строк EMPLOYEE, отфильтрованных where_not_in правил sources (заглушки SURNAME).
+
+    Убирает из итогового списка номера, которые могли попасть с других листов (REPORT, RATING, …).
+    """
+    emp_rules = [
+        r
+        for r in rules
+        if str(r.get("sheet") or "").strip() == "EMPLOYEE" and r.get("where_not_in")
+    ]
+    if not emp_rules:
+        return set()
+
+    df = _get_sheet_df(sheets_data, "EMPLOYEE")
+    if df is None:
+        return set()
+
+    merged_wni = _merge_where_not_in_maps({}, {})
+    for rule in emp_rules:
+        merged_wni = _merge_where_not_in_maps(merged_wni, rule["where_not_in"])
+    if not merged_wni:
+        return set()
+
+    keep_mask = _build_filter_mask(
+        df,
+        {},
+        merged_wni,
+        sheet_hint="EMPLOYEE",
+        rule_id="employee_placeholder_exclusion",
+    )
+    placeholder_mask = ~keep_mask
+    if not placeholder_mask.any():
+        return set()
+
+    excluded: Set[str] = set()
+    for rule in emp_rules:
+        tab_col = _resolve_df_column(df, rule["tab_column"])
+        if not tab_col:
+            continue
+        excluded |= _extract_tabs_from_filtered_rows(
+            df, tab_col, placeholder_mask, pad_width=pad_width
+        )
+    return excluded
+
+
 def _normalize_source_rule(raw: Mapping[str, Any]) -> Optional[Dict[str, Any]]:
     if raw.get("enabled") is False:
         return None
@@ -1175,6 +1241,30 @@ def collect_tab_numbers_from_sheets(
                     "Фильтры": filter_note,
                 }
             )
+
+    excluded_placeholder = _employee_placeholder_tabs_to_exclude(
+        sheets_data, rules, pad_width=pad_width
+    )
+    if excluded_placeholder:
+        removed = 0
+        for tab in list(tab_to_sources.keys()):
+            if tab in excluded_placeholder:
+                del tab_to_sources[tab]
+                removed += 1
+        logging.info(
+            "[manager_stats] Исключено табельных по заглушкам EMPLOYEE (SURNAME и др.): %s",
+            removed,
+        )
+        per_rule_rows.append(
+            {
+                "Правило": "employee_placeholder_exclusion",
+                "Лист": "EMPLOYEE",
+                "Колонка табельного": "PERSON_NUMBER; PERSON_NUMBER_ADD",
+                "Строк после фильтра": len(excluded_placeholder),
+                "Уникальных табельных": removed,
+                "Фильтры": "итоговое исключение табельных из строк-заглушек EMPLOYEE",
+            }
+        )
 
     rows: List[Dict[str, Any]] = []
     for i, tab in enumerate(sorted(tab_to_sources.keys()), start=1):

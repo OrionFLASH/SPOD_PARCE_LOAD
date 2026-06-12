@@ -4407,7 +4407,19 @@
         "sheet": "EMPLOYEE",
         "tab_column": "PERSON_NUMBER",
         "where_in": {},
-        "where_not_in": {}
+        "where_not_in": {
+          "SURNAME": ["…", "..."],
+          "POSITION_NAME": [
+            "КПК",
+            "ГОСБ",
+            "Управление МБ",
+            "ОСБ",
+            "ТБ",
+            "Центральный аппарат",
+            "Сбер Факторинг",
+            "Сбербанк Лизинг"
+          ]
+        }
       },
       {
         "id": "employee_person_add",
@@ -4415,7 +4427,19 @@
         "sheet": "EMPLOYEE",
         "tab_column": "PERSON_NUMBER_ADD",
         "where_in": {},
-        "where_not_in": {}
+        "where_not_in": {
+          "SURNAME": ["…", "..."],
+          "POSITION_NAME": [
+            "КПК",
+            "ГОСБ",
+            "Управление МБ",
+            "ОСБ",
+            "ТБ",
+            "Центральный аппарат",
+            "Сбер Факторинг",
+            "Сбербанк Лизинг"
+          ]
+        }
       },
       {
         "id": "statistics_tab",

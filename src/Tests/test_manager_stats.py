@@ -612,6 +612,113 @@ def test_tab_match_with_unpadded_source() -> None:
     assert out.iloc[0]["Фамилия"] == "Нормализован"
 
 
+def test_employee_surname_ellipsis_filtered_from_sources() -> None:
+    """Строки EMPLOYEE с SURNAME=«…» не попадают в исходный список табельных (sources)."""
+    sheets = {
+        "EMPLOYEE": (
+            pd.DataFrame(
+                {
+                    "PERSON_NUMBER": [
+                        "00000000000000000001",
+                        "00000000000000000002",
+                    ],
+                    "SURNAME": ["Иванов", "…"],
+                }
+            ),
+            {},
+        ),
+    }
+    cfg = {
+        "sources": [
+            {
+                "sheet": "EMPLOYEE",
+                "tab_column": "PERSON_NUMBER",
+                "where_not_in": {"SURNAME": ["…", "..."]},
+            }
+        ],
+    }
+    df_tabs, _ = collect_tab_numbers_from_sheets(sheets, cfg=cfg)
+    tabs = set(df_tabs["Табельный номер"].tolist())
+    assert "00000000000000000001" in tabs
+    assert "00000000000000000002" not in tabs
+
+
+def test_employee_placeholder_excluded_even_from_other_sources() -> None:
+    """Заглушка EMPLOYEE убирает табельный из итога, даже если он пришёл с REPORT."""
+    sheets = {
+        "EMPLOYEE": (
+            pd.DataFrame(
+                {
+                    "PERSON_NUMBER": ["00000000000000000099"],
+                    "PERSON_NUMBER_ADD": ["00000000000000000099"],
+                    "SURNAME": ["…"],
+                }
+            ),
+            {},
+        ),
+        "REPORT": (
+            pd.DataFrame(
+                {
+                    "MANAGER_PERSON_NUMBER": ["00000000000000000099"],
+                }
+            ),
+            {},
+        ),
+    }
+    cfg = {
+        "sources": [
+            {
+                "id": "report_manager",
+                "sheet": "REPORT",
+                "tab_column": "MANAGER_PERSON_NUMBER",
+            },
+            {
+                "id": "employee_person",
+                "sheet": "EMPLOYEE",
+                "tab_column": "PERSON_NUMBER",
+                "where_not_in": {"SURNAME": ["…", "..."]},
+            },
+        ],
+    }
+    df_tabs, _ = collect_tab_numbers_from_sheets(sheets, cfg=cfg)
+    assert df_tabs.empty or "00000000000000000099" not in set(df_tabs["Табельный номер"].tolist())
+
+
+def test_employee_position_name_filtered_from_sources() -> None:
+    """Строки EMPLOYEE с POSITION_NAME из списка исключений не попадают в список табельных."""
+    sheets = {
+        "EMPLOYEE": (
+            pd.DataFrame(
+                {
+                    "PERSON_NUMBER": [
+                        "00000000000000000001",
+                        "00000000000000000002",
+                    ],
+                    "SURNAME": ["Иванов", "Петров"],
+                    "POSITION_NAME": ["Менеджер", "КПК"],
+                }
+            ),
+            {},
+        ),
+    }
+    cfg = {
+        "sources": [
+            {
+                "sheet": "EMPLOYEE",
+                "tab_column": "PERSON_NUMBER",
+                "where_not_in": {
+                    "SURNAME": ["…", "..."],
+                    "POSITION_NAME": ["КПК", "ГОСБ", "ТБ"],
+                },
+            }
+        ],
+    }
+    df_tabs, _ = collect_tab_numbers_from_sheets(sheets, cfg=cfg)
+    tabs = set(df_tabs["Табельный номер"].tolist())
+    assert "00000000000000000001" in tabs
+    assert "00000000000000000002" not in tabs
+
+
 def test_build_workbook_includes_enrich() -> None:
     sheets = {
         "EMPLOYEE": (
