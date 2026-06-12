@@ -9,6 +9,10 @@
       — только основная программа: корневые *.py, config.json, src/**/*.py
         без каталогов src/Tests/ и src/Tools/; без Docs/README/requirements.
         В корень POST пишется КУДА_ПОЛОЖИТЬ_ФАЙЛЫ.txt с построчной картой размещения.
+  python src/Tools/sync_post_txt.py --main-only --changed-only
+      — в POST копируются только файлы, изменившиеся с прошлой синхронизации
+        (сравнение SHA-256; манифест POST/.sync_manifest.json). POST не очищается.
+        Дополнительно: ОБНОВЛЁННЫЕ_ФАЙЛЫ.txt — карта только для обновлённых файлов.
 
 Служебные файлы без .txt копируются из Docs/POST_SNAPSHOT/ в корень POST:
   restore_names_from_txt.bat
@@ -18,18 +22,20 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
+import json
 import shutil
 import sys
-from datetime import date
+from datetime import date, datetime, timezone
 from pathlib import Path
-from typing import Iterable, List, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 ROOT = Path(__file__).resolve().parents[2]
 POST = ROOT / "POST"
+MANIFEST_PATH = POST / ".sync_manifest.json"
 HELPERS_SRC = ROOT / "Docs" / "POST_SNAPSHOT"
 _DOCS_ROOT = ROOT / "Docs"
 _POST_SNAPSHOT_UNDER_DOCS = _DOCS_ROOT / "POST_SNAPSHOT"
-# Подкаталоги src/, не входящие в снимок «основной программы»
 _SRC_SKIP_DIRS = frozenset({"Tests", "Tools"})
 
 
@@ -75,37 +81,80 @@ def dest_with_txt(rel: Path) -> Path:
     return rel.parent / f"{rel.name}.txt"
 
 
-def copy_one_txt_suffix(src: Path, rel: Path) -> None:
-    """Копирует файл в POST с именем «как в проекте + .txt»."""
+def file_sha256(path: Path) -> str:
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        for chunk in iter(lambda: f.read(65536), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def copy_one_txt_suffix(src: Path, rel: Path) -> Path:
+    """Копирует файл в POST с именем «как в проекте + .txt»; возвращает путь назначения."""
     out = POST / dest_with_txt(rel)
     out.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(src, out)
+    return out
 
 
-def write_placement_map_main_only(copied: List[Tuple[Path, Path]]) -> None:
-    """
-    Текстовый файл: для каждого файла в POST — целевой путь в дереве проекта.
-    copied: (rel_in_project, rel_in_post_with_txt)
-    """
+def iter_main_only_sources() -> Iterable[Tuple[Path, Path]]:
+    """(абсолютный_путь, rel от ROOT) для снимка main-only."""
+    for p in iter_root_py_files(ROOT):
+        yield p, p.relative_to(ROOT)
+    for name in ("config.json",):
+        p = ROOT / name
+        if p.is_file():
+            yield p, Path(name)
+    src_root = ROOT / "src"
+    for p in iter_py_files(src_root, main_only=True):
+        yield p, p.relative_to(ROOT)
+
+
+def load_manifest() -> Dict[str, Any]:
+    if not MANIFEST_PATH.is_file():
+        return {}
+    try:
+        return json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return {}
+
+
+def save_manifest(files: Dict[str, str], *, mode: str) -> None:
+    POST.mkdir(parents=True, exist_ok=True)
+    data = {
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+        "mode": mode,
+        "files": files,
+    }
+    MANIFEST_PATH.write_text(
+        json.dumps(data, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+
+
+def write_placement_map(
+    copied: List[Tuple[Path, Path]],
+    *,
+    out_name: str,
+    title: str,
+    intro: List[str],
+) -> None:
+    """Текстовая карта размещения для списка скопированных файлов."""
     lines: List[str] = [
         "=" * 78,
-        "  КУДА ПОЛОЖИТЬ КАЖДЫЙ ФАЙЛ (основная программа, без тестов и Tools)",
+        f"  {title}",
         "=" * 78,
         "",
-        "Снимок: только Python-модули пайплайна и config.json.",
-        "Исключены: src/Tests/, src/Tools/, документация Docs/, README, requirements.",
-        "",
-        "На целевом ПК создайте корень проекта (например SPOD_PROM/) и для каждой",
-        "строки ниже: снимите суффикс .txt с имени файла в POST и скопируйте",
-        "в указанный каталог. Либо запустите restore_names_from_txt.bat в POST,",
-        "затем перенесите дерево целиком в SPOD_PROM/.",
+        *intro,
         "",
         "Формат:  файл в POST  →  каталог назначения в проекте",
         "-" * 78,
         "",
     ]
-    copied_sorted = sorted(copied, key=lambda x: (str(x[0]).count("/"), str(x[0])))
-    for rel_proj, rel_post in copied_sorted:
+    if not copied:
+        lines.append("  (нет изменённых файлов с прошлой синхронизации)")
+        lines.append("")
+    for rel_proj, rel_post in sorted(copied, key=lambda x: (str(x[0]).count("/"), str(x[0]))):
         target_dir = rel_proj.parent if str(rel_proj.parent) != "." else Path(".")
         if str(target_dir) == ".":
             dest = f"корень проекта/  ({rel_proj.name})"
@@ -114,85 +163,110 @@ def write_placement_map_main_only(copied: List[Tuple[Path, Path]]) -> None:
         lines.append(f"  POST/{rel_post.as_posix()}")
         lines.append(f"      →  {dest}")
         lines.append("")
-
     lines.extend(
         [
             "-" * 78,
-            "Структура каталогов на целевом ПК после переноса:",
-            "",
-            "  SPOD_PROM/",
-            "  ├── main.py          (и прочие *.py из корня POST, если есть)",
-            "  ├── config.json",
-            "  └── src/",
-            "      ├── __init__.py",
-            "      ├── main_impl.py",
-            "      └── … (остальные модули из POST/src/, кроме Tests и Tools)",
-            "",
-            "Дополнительно: IN/, OUT/, LOGS/ — по README.md; pip install -r requirements.txt",
-            "(requirements.txt в этот снимок не входит — возьмите из репозитория при необходимости).",
-            "",
-            f"Дата формирования: {date.today().isoformat()}",
+            f"Дата: {date.today().isoformat()}",
             "=" * 78,
         ]
     )
-    out_path = POST / "КУДА_ПОЛОЖИТЬ_ФАЙЛЫ.txt"
-    out_path.write_text("\n".join(lines), encoding="utf-8")
+    (POST / out_name).write_text("\n".join(lines), encoding="utf-8")
 
 
-def build_post(*, main_only: bool) -> None:
-    if POST.is_dir():
-        shutil.rmtree(POST)
-    POST.mkdir(parents=True, exist_ok=True)
+def write_placement_map_main_only(copied: List[Tuple[Path, Path]]) -> None:
+    write_placement_map(
+        copied,
+        out_name="КУДА_ПОЛОЖИТЬ_ФАЙЛЫ.txt",
+        title="КУДА ПОЛОЖИТЬ КАЖДЫЙ ФАЙЛ (основная программа, без тестов и Tools)",
+        intro=[
+            "Снимок: только Python-модули пайплайна и config.json.",
+            "Исключены: src/Tests/, src/Tools/, документация Docs/, README, requirements.",
+            "",
+            "На целевом ПК: снимите суффикс .txt или запустите restore_names_from_txt.bat.",
+        ],
+    )
 
-    if HELPERS_SRC.is_dir():
-        for h in sorted(HELPERS_SRC.iterdir()):
-            if h.is_file() and not h.name.startswith("."):
-                if main_only and h.name == "КУДА_ПОЛОЖИТЬ_ФАЙЛЫ.txt":
-                    continue
-                shutil.copy2(h, POST / h.name)
-    elif not main_only:
-        print(f"Предупреждение: нет каталога шаблонов {HELPERS_SRC}", file=sys.stderr)
 
-    copied: List[Tuple[Path, Path]] = []
-    n_code = 0
+def write_placement_map_changed_only(copied: List[Tuple[Path, Path]]) -> None:
+    write_placement_map(
+        copied,
+        out_name="ОБНОВЛЁННЫЕ_ФАЙЛЫ.txt",
+        title="ОБНОВЛЁННЫЕ ФАЙЛЫ (только изменения с прошлой синхронизации POST)",
+        intro=[
+            "Скопированы только файлы, у которых изменилось содержимое (SHA-256).",
+            "Остальные файлы в POST не трогались.",
+            "",
+            "Перенесите на целевой ПК только перечисленные ниже пути.",
+        ],
+    )
 
-    for p in iter_root_py_files(ROOT):
-        rel = p.relative_to(ROOT)
-        copy_one_txt_suffix(p, rel)
-        copied.append((rel, dest_with_txt(rel)))
-        n_code += 1
 
-    root_extras = ("config.json",) if main_only else ("config.json", "README.md", "requirements.txt")
-    for name in root_extras:
-        p = ROOT / name
-        if not p.is_file():
-            print(f"Пропуск (нет файла): {p}", file=sys.stderr)
+def copy_helpers(*, main_only: bool, force_helpers: bool) -> None:
+    if not HELPERS_SRC.is_dir():
+        if not main_only:
+            print(f"Предупреждение: нет каталога шаблонов {HELPERS_SRC}", file=sys.stderr)
+        return
+    for h in sorted(HELPERS_SRC.iterdir()):
+        if not h.is_file() or h.name.startswith("."):
             continue
-        rel = Path(name)
-        copy_one_txt_suffix(p, rel)
+        if main_only and h.name == "КУДА_ПОЛОЖИТЬ_ФАЙЛЫ.txt":
+            continue
+        dest = POST / h.name
+        if force_helpers or not dest.exists() or file_sha256(h) != file_sha256(dest):
+            shutil.copy2(h, dest)
+
+
+def build_post_main_only(*, changed_only: bool) -> None:
+    """Снимок main-only: полный или только изменённые файлы."""
+    if not changed_only:
+        if POST.is_dir():
+            shutil.rmtree(POST)
+        POST.mkdir(parents=True, exist_ok=True)
+    else:
+        POST.mkdir(parents=True, exist_ok=True)
+
+    copy_helpers(main_only=True, force_helpers=not changed_only)
+
+    prev_manifest = load_manifest()
+    prev_hashes: Dict[str, str] = prev_manifest.get("files") or {}
+    new_hashes: Dict[str, str] = dict(prev_hashes)
+    copied: List[Tuple[Path, Path]] = []
+    skipped = 0
+
+    for src_path, rel in iter_main_only_sources():
+        rel_key = rel.as_posix()
+        try:
+            digest = file_sha256(src_path)
+        except OSError as e:
+            print(f"Пропуск (ошибка чтения): {src_path}: {e}", file=sys.stderr)
+            continue
+        new_hashes[rel_key] = digest
+        if changed_only:
+            if prev_hashes.get(rel_key) == digest:
+                skipped += 1
+                continue
+            dest_post = POST / dest_with_txt(rel)
+            if dest_post.is_file() and file_sha256(dest_post) == digest:
+                skipped += 1
+                continue
+        copy_one_txt_suffix(src_path, rel)
         copied.append((rel, dest_with_txt(rel)))
-        n_code += 1
 
-    src_root = ROOT / "src"
-    for p in iter_py_files(src_root, main_only=main_only):
-        rel = p.relative_to(ROOT)
-        copy_one_txt_suffix(p, rel)
-        copied.append((rel, dest_with_txt(rel)))
-        n_code += 1
-
-    n_docs = 0
-    if not main_only:
-        for p in iter_docs_files(_DOCS_ROOT):
-            rel = p.relative_to(ROOT)
-            copy_one_txt_suffix(p, rel)
-            n_docs += 1
-
-    if main_only:
+    if changed_only:
+        write_placement_map_changed_only(copied)
+        save_manifest(new_hashes, mode="main-only-changed")
+        print(
+            f"Готово [main-only, только изменения]. Обновлено: {len(copied)}, "
+            f"без изменений: {skipped}. Список: POST/ОБНОВЛЁННЫЕ_ФАЙЛЫ.txt. Каталог: {POST}",
+            file=sys.stdout,
+        )
+    else:
         write_placement_map_main_only(copied)
-    elif HELPERS_SRC.is_dir():
-        helper = HELPERS_SRC / "КУДА_ПОЛОЖИТЬ_ФАЙЛЫ.txt"
-        if helper.is_file():
-            shutil.copy2(helper, POST / helper.name)
+        save_manifest(new_hashes, mode="main-only-full")
+        print(
+            f"Готово [main-only, полный]. Файлов с .txt: {len(copied)}. Каталог: {POST}",
+            file=sys.stdout,
+        )
 
     for garbage in POST.rglob(".DS_Store"):
         try:
@@ -200,11 +274,65 @@ def build_post(*, main_only: bool) -> None:
         except OSError:
             pass
 
-    mode = "main-only (без Tests/Tools/Docs)" if main_only else "полный"
+
+def build_post_full() -> None:
+    """Полный снимок (как раньше)."""
+    if POST.is_dir():
+        shutil.rmtree(POST)
+    POST.mkdir(parents=True, exist_ok=True)
+
+    copy_helpers(main_only=False, force_helpers=True)
+
+    copied: List[Tuple[Path, Path]] = []
+    n_code = 0
+    all_hashes: Dict[str, str] = {}
+
+    for p in iter_root_py_files(ROOT):
+        rel = p.relative_to(ROOT)
+        copy_one_txt_suffix(p, rel)
+        copied.append((rel, dest_with_txt(rel)))
+        all_hashes[rel.as_posix()] = file_sha256(p)
+        n_code += 1
+
+    for name in ("config.json", "README.md", "requirements.txt"):
+        p = ROOT / name
+        if not p.is_file():
+            print(f"Пропуск (нет файла): {p}", file=sys.stderr)
+            continue
+        rel = Path(name)
+        copy_one_txt_suffix(p, rel)
+        all_hashes[rel.as_posix()] = file_sha256(p)
+        n_code += 1
+
+    src_root = ROOT / "src"
+    for p in iter_py_files(src_root, main_only=False):
+        rel = p.relative_to(ROOT)
+        copy_one_txt_suffix(p, rel)
+        all_hashes[rel.as_posix()] = file_sha256(p)
+        n_code += 1
+
+    n_docs = 0
+    for p in iter_docs_files(_DOCS_ROOT):
+        rel = p.relative_to(ROOT)
+        copy_one_txt_suffix(p, rel)
+        all_hashes[rel.as_posix()] = file_sha256(p)
+        n_docs += 1
+
+    if HELPERS_SRC.is_dir():
+        helper = HELPERS_SRC / "КУДА_ПОЛОЖИТЬ_ФАЙЛЫ.txt"
+        if helper.is_file():
+            shutil.copy2(helper, POST / helper.name)
+
+    save_manifest(all_hashes, mode="full")
+
+    for garbage in POST.rglob(".DS_Store"):
+        try:
+            garbage.unlink()
+        except OSError:
+            pass
+
     print(
-        f"Готово [{mode}]. Файлов с .txt: {n_code}"
-        + (f"; Docs: {n_docs}" if not main_only else "")
-        + f". Каталог: {POST}",
+        f"Готово [полный]. Файлов с .txt: {n_code}; Docs: {n_docs}. Каталог: {POST}",
         file=sys.stdout,
     )
 
@@ -216,8 +344,24 @@ def main() -> None:
         action="store_true",
         help="Только основная программа: .py + config.json, без Tests/Tools/Docs",
     )
+    parser.add_argument(
+        "--changed-only",
+        action="store_true",
+        help="Копировать только изменённые файлы (требует --main-only; не очищает POST)",
+    )
     args = parser.parse_args()
-    build_post(main_only=args.main_only)
+
+    if args.changed_only and not args.main_only:
+        print("Ошибка: --changed-only работает только вместе с --main-only", file=sys.stderr)
+        sys.exit(1)
+
+    if args.main_only:
+        build_post_main_only(changed_only=args.changed_only)
+    else:
+        if args.changed_only:
+            print("Ошибка: --changed-only без --main-only не поддерживается", file=sys.stderr)
+            sys.exit(1)
+        build_post_full()
 
 
 if __name__ == "__main__":

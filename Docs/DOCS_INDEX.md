@@ -14,12 +14,14 @@
 - `INPUT_ARCHIVE_ROW_LEVEL.md` — архив **v2 (построчно)**, реализован: `row_level_archive`, `src/input_archive_sqlite_v2.py`, `input_archive_row_hash.py`, `input_archive_row_parallel.py`, **`src/csv_headers.py`** (BOM/сопоставление заголовков), БД **`OUT/DB/spod_input_archive_v2.sqlite`**, отчёт **`print_input_archive_row_report`**.
 - `INPUT_ARCHIVE_ROW_LEVEL_PLAN.md` — план и таблица **`row_key_columns`** по листам (справочник).
 - `RATING_MATRIX_COLORS_AND_LOGIC.md` — лист RATING: подсчёт, доступность, раскраска матрицы ITEM (в т.ч. itemAmount и шапка колонки).
-- `SEASON_ORDER_SUMMARY.md` — лист **ORDER-SEASON-SUMMARY**: сводка заказов по группам **SEASON_*** (`item_order_groups`), остаток склада, счётчики КМ.
+- `SEASON_ORDER_SUMMARY.md` — лист **ORDER-SEASON-SUMMARY**: сводка заказов по группам **SEASON_***, прочие ITEM, формат Excel.
+- `SEASON_ORDER_SUMMARY_KM_LOGIC.md` — логика колонок **«КМ:»** на сводке (как в коде, расхождения с ТЗ, чеклист правки).
 - `АНАЛИЗ_ПРОВЕРОК_КОНСИСТЕНТНОСТИ.md` — аналитика покрытия проверок и предложения по расширению.
 
 ## Консолидированные исторические документы
 
 - `PERFORMANCE_AND_PARALLELIZATION_HISTORY.md` — единая история оптимизаций/параллелизации и сравнения производительности (вместо множества версионных отчетов).
+- `PERFORMANCE_OPTIMIZATION_PROPOSALS.md` — анализ узких мест пайплайна, предложения по ускорению (Excel, архив v2, JSON, RATING), оценки эффекта и трудозатрат.
 - `SUMMARY_GROUP_FIX_HISTORY.md` — история исправлений логики формирования `SUMMARY` и связки `GROUP_CODE`/`GROUP_VALUE`.
 
 ## Каталог CSV и JSON `IN/SPOD` — папка `Docs/JSON/`

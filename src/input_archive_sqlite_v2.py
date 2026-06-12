@@ -46,6 +46,44 @@ TABLE_PAYLOAD = "archive_row_payload"
 TABLE_INGEST_RUN = "archive_ingest_run"
 TABLE_FILE_INVENTORY = "archive_file_row_inventory"
 SCHEMA_VERSION = 2
+# Лимит bind-параметров SQLite (по умолчанию 999); запас под фиксированные ? в запросе.
+_SQLITE_IN_CHUNK_SIZE = 900
+
+
+def _execute_updates_by_row_key_hashes(
+    cur: sqlite3.Cursor,
+    row_key_hashes: Sequence[str],
+    *,
+    sheet_name: str,
+    file_name: str,
+    subdir: str,
+    row_status: str,
+    inactive_since: Optional[str],
+    last_loaded_at: str,
+) -> None:
+    """UPDATE archive_row_current батчами, чтобы не превысить лимит SQL-переменных."""
+    if not row_key_hashes:
+        return
+    base_params: List[Any] = [
+        row_status,
+        inactive_since,
+        last_loaded_at,
+        sheet_name,
+        file_name,
+        subdir,
+    ]
+    for i in range(0, len(row_key_hashes), _SQLITE_IN_CHUNK_SIZE):
+        chunk = row_key_hashes[i : i + _SQLITE_IN_CHUNK_SIZE]
+        placeholders = ",".join("?" * len(chunk))
+        cur.execute(
+            f"""
+            UPDATE {TABLE_CURRENT}
+            SET row_status = ?, inactive_since = ?, last_loaded_at = ?
+            WHERE sheet_name = ? AND file_name = ? AND subdir = ?
+              AND row_key_hash IN ({placeholders})
+            """,
+            [*base_params, *chunk],
+        )
 
 
 def _defaults_row_level() -> Dict[str, Any]:
@@ -454,36 +492,26 @@ def _ingest_one_file(
 
     inactive_count = 0
     if key_set:
-        placeholders = ",".join("?" * len(key_set))
         cur.execute(
             f"""
             SELECT row_key_hash FROM {TABLE_CURRENT}
             WHERE sheet_name = ? AND file_name = ? AND subdir = ?
               AND row_status = 'active'
-              AND row_key_hash NOT IN ({placeholders})
             """,
-            [sheet_name, file_name, subdir, *key_set],
+            (sheet_name, file_name, subdir),
         )
-        to_inactivate = [str(r[0]) for r in cur.fetchall()]
+        to_inactivate = [str(r[0]) for r in cur.fetchall() if str(r[0]) not in key_set]
         inactive_count = len(to_inactivate)
         if to_inactivate:
-            ph2 = ",".join("?" * len(to_inactivate))
-            cur.execute(
-                f"""
-                UPDATE {TABLE_CURRENT}
-                SET row_status = ?, inactive_since = ?, last_loaded_at = ?
-                WHERE sheet_name = ? AND file_name = ? AND subdir = ?
-                  AND row_key_hash IN ({ph2})
-                """,
-                [
-                    ROW_STATUS_INACTIVE,
-                    now_utc,
-                    now_utc,
-                    sheet_name,
-                    file_name,
-                    subdir,
-                    *to_inactivate,
-                ],
+            _execute_updates_by_row_key_hashes(
+                cur,
+                to_inactivate,
+                sheet_name=sheet_name,
+                file_name=file_name,
+                subdir=subdir,
+                row_status=ROW_STATUS_INACTIVE,
+                inactive_since=now_utc,
+                last_loaded_at=now_utc,
             )
 
     _upsert_file_inventory(cur, sheet_name, file_name, subdir, content_sha, row_count, now_utc)
@@ -540,6 +568,45 @@ def _ingest_one_file(
         "compare_sec": compare_sec,
         "db_sec": db_sec,
     }
+
+
+def _format_sheet_ingest_label(result: Dict[str, Any], row_count: int) -> str:
+    """
+    Пояснение для консоли: «новых» = ключ строки впервые в БД, не «все строки файла изменились».
+    """
+    kind = str(result.get("kind") or "")
+    if kind == "file_unchanged":
+        return "файл без изменений (SHA), построчный разбор не выполнялся"
+
+    new_n = int(result.get("new") or 0)
+    chg_n = int(result.get("changed") or 0)
+    same_n = int(result.get("unchanged") or 0)
+    off_n = int(result.get("inactive") or 0)
+    total_keys = new_n + chg_n + same_n
+
+    parts: List[str] = []
+    if new_n and not chg_n and not same_n and total_keys > 0:
+        parts.append(f"первичная загрузка в БД: {new_n} ключ(ей) строк")
+    else:
+        if new_n:
+            parts.append(f"новых ключей {new_n}")
+        if chg_n:
+            parts.append(f"изменено {chg_n}")
+        if same_n:
+            parts.append(f"без изменений {same_n}")
+    if off_n:
+        parts.append(f"снято с учёта {off_n}")
+
+    if not parts:
+        return f"строк в CSV: {row_count}"
+
+    hint = ""
+    if new_n >= row_count and chg_n == 0 and same_n == 0 and row_count > 0:
+        hint = " (все ключи новые — лист/файл ранее не был в построчной БД)"
+    elif new_n > 0 and (chg_n or same_n):
+        hint = " (новых = ключ впервые в БД, не правка CSV)"
+
+    return "; ".join(parts) + hint
 
 
 def run_input_archive_sqlite_v2(
@@ -735,16 +802,22 @@ def run_input_archive_sqlite_v2(
             if result.get("kind") == "file_unchanged":
                 stats["file_unchanged"] += 1
                 stats["unchanged"] += int(result.get("unchanged", 0))
-                label = "файл без изменений (SHA)"
+                label = _format_sheet_ingest_label(result, len(df_raw))
             else:
                 stats["new"] += int(result.get("new", 0))
                 stats["changed"] += int(result.get("changed", 0))
                 stats["unchanged"] += int(result.get("unchanged", 0))
                 stats["inactive"] += int(result.get("inactive", 0))
                 stats["key_errors"] += int(result.get("key_errors", 0))
-                label = (
-                    f"new={result.get('new')} chg={result.get('changed')} "
-                    f"same={result.get('unchanged')} off={result.get('inactive')}"
+                label = _format_sheet_ingest_label(result, len(df_raw))
+                logging.info(
+                    "[archive_v2] «%s»: new=%s changed=%s unchanged=%s inactive=%s (строк CSV=%s)",
+                    sheet_name,
+                    result.get("new"),
+                    result.get("changed"),
+                    result.get("unchanged"),
+                    result.get("inactive"),
+                    len(df_raw),
                 )
 
             extra = ""

@@ -150,7 +150,9 @@ enabled && !row_level_archive →  run_input_archive_sqlite(..., db_path=legacy_
 7. [I/O, один поток, транзакция]:
    - new/changed → INSERT archive_row_payload, UPSERT archive_row_current (active);
    - unchanged → UPDATE last_loaded_at, source_file, source_path (без нового payload);
-   - ключи active, отсутствующие в текущем файле → inactive + inactive_since.
+   - ключи active, отсутствующие в текущем файле → inactive + inactive_since
+     (SELECT всех active по файлу + фильтр в Python; UPDATE батчами по **900** `row_key_hash`,
+     лимит SQLite **999** bind-параметров на запрос — иначе **`too many SQL variables`** на больших CSV).
 8. INSERT archive_ingest_run; UPDATE inventory SHA.
 ```
 
@@ -230,6 +232,19 @@ enabled && !row_level_archive →  run_input_archive_sqlite(..., db_path=legacy_
 - Дубликаты ключа — **WARNING**;
 - Тайминги фаз — **DEBUG**;
 - Ошибки отсутствия колонок ключа — **ERROR**.
+
+### 9.1. Как читать «новых» и «изменённых»
+
+| Счётчик | Значение | Не путать с |
+|---------|----------|-------------|
+| **Новых** (`new`) | Ключ строки (`row_key_hash`) **впервые** в построчной БД для (лист + файл + subdir) | «Все строки CSV изменились» |
+| **Изменённых** (`changed`) | Ключ уже был, **тело** (`row_hash`) другое | Число правок в файле |
+| **Без изменений** (`unchanged`) | Ключ и тело совпали | — |
+| **Файл без изменений (SHA)** | Байты CSV те же — построчный разбор **не делался** | — |
+
+**TOURNAMENT-SCHEDULE:** ключ — **`TOURNAMENT_CODE`**. Если после правки 4 строк первый прогон показал «636 новых» — это **первая загрузка листа в v2**, не «изменились все». Следующий прогон: `changed=7`, `unchanged=629` — сравнение по хешам (7 ключей с новым содержимым).
+
+SPOD-файлы с `archive_db_path: spod_input_archive.sqlite` пишут v2-таблицы **в этот файл**, не обязательно в `spod_input_archive_v2.sqlite`.
 
 ---
 

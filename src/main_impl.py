@@ -4605,10 +4605,14 @@ def main():
             )
             copy_consistency_results_from_raw_to_processed(raw_sheets_data, sheets_data, summary_sheet_name)
             logging.info("[main] Проверки консистентности завершены, результаты скопированы на обработанные листы")
-            console_ui.print_consistency_summary(consistency_results)
+            console_ui.print_consistency_summary(
+                consistency_results, rules=CONSISTENCY_CHECKS.get("rules")
+            )
         else:
             # В логе правила не запускались; в консоли — кратко, чтобы итог был предсказуемым
-            console_ui.print_consistency_summary(consistency_results)
+            console_ui.print_consistency_summary(
+                consistency_results, rules=CONSISTENCY_CHECKS.get("rules")
+            )
         append_csv_mismatches_to_consistency(
             sheets_data, list(_csv_column_mismatches),
             summary_sheet_name=summary_sheet_name,

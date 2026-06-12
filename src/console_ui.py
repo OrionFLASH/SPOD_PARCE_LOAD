@@ -158,107 +158,188 @@ def on_phase_end(label: str, duration_sec: float, depth: int = 0) -> None:
     print(_truncate(line, w), flush=True)
 
 
-def print_consistency_summary(results: List[Dict[str, Any]]) -> None:
+def _consistency_rule_map(rules: Optional[List[Dict[str, Any]]]) -> Dict[str, Dict[str, Any]]:
+    out: Dict[str, Dict[str, Any]] = {}
+    if not rules:
+        return out
+    for rule in rules:
+        rid = str(rule.get("id") or "").strip()
+        if rid:
+            out[rid] = rule
+    return out
+
+
+def _consistency_column_widths(width: int) -> tuple[int, int, int]:
+    """Ширины колонок таблицы OK: лист, ключ/поля, суть проверки."""
+    usable = max(40, width) - 4
+    w_sheet = max(10, min(24, usable // 5))
+    w_keys = max(12, min(32, usable // 3))
+    w_sum = max(16, usable - w_sheet - w_keys - 4)
+    return w_sheet, w_keys, w_sum
+
+
+def _print_consistency_ok_table(
+    included: List[Dict[str, Any]],
+    rule_by_id: Dict[str, Dict[str, Any]],
+    width: int,
+) -> None:
+    """Построчный список пройденных проверок, сгруппированный по типу проверки."""
+    from src.consistency_checks import consistency_check_line_parts
+
+    by_type: Dict[str, List[tuple[Dict[str, Any], Dict[str, str]]]] = {}
+    type_labels: Dict[str, str] = {}
+    for r in included:
+        parts = consistency_check_line_parts(r, rule_by_id.get(str(r.get("check_id") or "")))
+        tkey = str(parts.get("type") or "?")
+        type_labels[tkey] = str(parts.get("type_label") or tkey)
+        by_type.setdefault(tkey, []).append((r, parts))
+
+    w_sheet, w_keys, w_sum = _consistency_column_widths(width - 4)
+    indent = "    "
+    hdr = (
+        f"{indent}{'Лист':<{w_sheet}}  {'Ключ / поля':<{w_keys}}  "
+        f"{'Проверка':<{w_sum}}  Итог"
+    )
+    sep = f"{indent}{'-' * w_sheet}  {'-' * w_keys}  {'-' * w_sum}  ----"
+
+    type_order = sorted(by_type.keys(), key=lambda k: type_labels.get(k, k).casefold())
+    for tkey in type_order:
+        rows = by_type[tkey]
+        label = _truncate(type_labels[tkey], max(20, width - 16))
+        print(f"  ▸ {label} ({len(rows)})", flush=True)
+        print(hdr, flush=True)
+        print(sep, flush=True)
+        for r, parts in rows:
+            sheet = _truncate(parts["sheet"], w_sheet)
+            keys = _truncate(parts["keys"] or "—", w_keys)
+            check_label = (
+                str(r.get("name") or "").strip()
+                or parts["summary"]
+                or parts["check_id"]
+                or "?"
+            )
+            summary = _truncate(check_label, w_sum)
+            print(
+                f"{indent}{sheet:<{w_sheet}}  {keys:<{w_keys}}  {summary:<{w_sum}}  OK",
+                flush=True,
+            )
+        print(flush=True)
+
+
+def _print_consistency_violations(
+    with_v: List[Dict[str, Any]],
+    rule_by_id: Dict[str, Dict[str, Any]],
+    width: int,
+    *,
+    max_samples_per_rule: int = 6,
+) -> None:
+    """Детализация только нарушенных проверок (без строк OK)."""
+    from src.consistency_checks import consistency_check_line_parts
+
+    for r in with_v:
+        cid = str(r.get("check_id") or "").strip()
+        rule = rule_by_id.get(cid)
+        parts = consistency_check_line_parts(r, rule)
+        nv = int(r.get("violations") or 0)
+        err = str(r.get("error") or "").strip()
+        display_name = str(r.get("name") or "").strip() or cid or parts["type"] or "?"
+        head = f"✗ {display_name}"
+        if cid and cid not in display_name:
+            head = f"{head} [{cid}]"
+        print(head, flush=True)
+        essence = str(parts.get("summary") or "").strip()
+        if essence and essence != display_name:
+            print_wrapped(f"Суть: {essence}", width=width, indent="    ", sub_indent="    ")
+        print_wrapped(
+            f"Лист: {parts['sheet']}; ключ/поля: {parts['keys'] or '—'}",
+            width=width,
+            indent="    ",
+            sub_indent="    ",
+        )
+        if parts["column_on_sheet"]:
+            print_wrapped(
+                f"Колонка на листе: {parts['column_on_sheet']}",
+                width=width,
+                indent="    ",
+                sub_indent="    ",
+            )
+        if err:
+            print_wrapped(f"Ошибка выполнения: {err}", width=width, indent="    ", sub_indent="    ")
+        elif nv > 0:
+            print(f"    Нарушений: {nv}", flush=True)
+            sample = r.get("sample") or []
+            if sample:
+                print("    Примеры:", flush=True)
+                for item in sample[:max_samples_per_rule]:
+                    print_wrapped(str(item), width=width, indent="      ", sub_indent="        ")
+                rest = len(sample) - max_samples_per_rule
+                if rest > 0:
+                    more = int(nv) - len(sample[:max_samples_per_rule])
+                    if more > rest:
+                        print(
+                            f"      … ещё примеров в sample: {rest}; всего нарушений: {nv}",
+                            flush=True,
+                        )
+                    else:
+                        print(f"      … ещё примеров: {rest}", flush=True)
+            else:
+                print_wrapped(
+                    "Конкретные строки не попали в sample — см. колонку результата на листе или лист CONSISTENCY.",
+                    width=width,
+                    indent="      ",
+                    sub_indent="        ",
+                )
+        print(flush=True)
+
+
+def print_consistency_summary(
+    results: List[Dict[str, Any]],
+    rules: Optional[List[Dict[str, Any]]] = None,
+) -> None:
     """
-    Сводка проверок консистентности: обзор (правила, листы, сумма нарушений),
-    таблица по типам; при нарушениях — краткая детализация по правилам.
-    Длинные sample не выводятся — только в лог.
+    Сводка проверок консистентности в консоль.
+    При OK — построчно: лист, ключ, суть проверки, итог.
+    При нарушениях — только проблемные правила с деталями (лист, ключ, колонка, примеры).
     """
     w = terminal_width()
-    print("— Консистентность (сводка) —", flush=True)
+    print("— Консистентность —", flush=True)
     if not results:
         print("  Проверки не выполнялись (в конфиге нет правил или блок пропущен).", flush=True)
         return
 
+    rule_by_id = _consistency_rule_map(rules)
     included = [r for r in results if r.get("include_in_summary", True)]
     if not included:
         print("  Нет результатов для свода (все правила с include_in_summary: false).", flush=True)
         return
 
-    # Уникальные листы, на которых сработали проверки (поле sheet у результата)
-    sheets_set: Set[str] = set()
-    for r in included:
-        sh = str(r.get("sheet") or "").strip()
-        if sh:
-            sheets_set.add(sh)
-
     n_rules = len(included)
-    n_sheets = len(sheets_set)
     total_violations = sum(int(r.get("violations") or 0) for r in included)
-    with_v = [r for r in included if int(r.get("violations") or 0) > 0]
-    n_rules_with_violations = len(with_v)
-
-    print_wrapped(
-        f"Оценка: правил в отчёте — {n_rules}; листов с колонками проверок — {n_sheets}.",
-        width=w,
-    )
-    if total_violations == 0:
-        print_wrapped(
-            "Проблем с консистентностью не обнаружено: суммарно нарушений по счётчикам правил — 0.",
-            width=w,
-        )
-    else:
-        print_wrapped(
-            f"Выявлено нарушений (сумма по правилам): {total_violations}; "
-            f"правил с нарушениями — {n_rules_with_violations}.",
-            width=w,
-        )
-
-    # Таблица по типам проверки: сколько правил, сколько листов, сколько нарушений
-    by_type: Dict[str, List[Dict[str, Any]]] = {}
-    for r in included:
-        t = str(r.get("type", "?"))
-        by_type.setdefault(t, []).append(r)
-
-    type_keys = sorted(by_type.keys())
-    w_type = max(len("Тип проверки"), max((len(k) for k in type_keys), default=0))
-    hdr = f"  {'Тип проверки':<{w_type}}  {'Правил':>7}  {'Листов':>7}  {'Нарушений':>11}  Примечание"
-    print(hdr, flush=True)
-    print(f"  {'-' * w_type}  -------  -------  -----------  ----------", flush=True)
-    for t in type_keys:
-        lst = by_type[t]
-        st_local: Set[str] = set()
-        for x in lst:
-            s = str(x.get("sheet") or "").strip()
-            if s:
-                st_local.add(s)
-        nv_t = sum(int(x.get("violations") or 0) for x in lst)
-        note = "OK" if nv_t == 0 else f"есть ({nv_t})"
-        print(
-            f"  {t:<{w_type}}  {len(lst):>7}  {len(st_local):>7}  {nv_t:>11}  {note}",
-            flush=True,
-        )
+    with_v = [
+        r for r in included
+        if int(r.get("violations") or 0) > 0 or bool(str(r.get("error") or "").strip())
+    ]
 
     if not with_v:
         print_wrapped(
-            "Примеры строк и полный разбор доступны в debug-логе при logging.level=DEBUG.",
+            f"Проблем не обнаружено: {n_rules} проверок, нарушений — 0.",
+            width=w,
+        )
+        _print_consistency_ok_table(included, rule_by_id, w)
+        print_wrapped(
+            "Подробные примеры строк — в debug-логе (logging.level=DEBUG).",
             width=w,
         )
         return
 
-    # Детализация: только правила с нарушениями, по типам (длинные строки переносим)
-    print("  — По правилам с нарушениями —", flush=True)
-    by_type_v: Dict[str, List[Dict[str, Any]]] = {}
-    for r in with_v:
-        tp = str(r.get("type", "?"))
-        by_type_v.setdefault(tp, []).append(r)
-    for t in sorted(by_type_v.keys()):
-        rows = by_type_v[t]
-        total_t = sum(int(x.get("violations") or 0) for x in rows)
-        sheets_t = sorted({str(x.get("sheet", "")) for x in rows if x.get("sheet")})
-        sh_line = ", ".join(sheets_t)
-        print_wrapped(f"· {t}: нарушений {total_t}; листы: {sh_line}", width=w, indent="    ", sub_indent="      ")
-        for r in rows[:8]:
-            cid = str(r.get("check_id", ""))
-            sh_one = str(r.get("sheet", ""))
-            col = str(r.get("column_on_sheet", ""))
-            nv = int(r.get("violations") or 0)
-            line = f"{cid} | {sh_one} | {col} | ×{nv}"
-            print_wrapped(line, width=w, indent="      ", sub_indent="        ")
-        if len(rows) > 8:
-            print(f"      … ещё правил с нарушениями по типу «{t}»: {len(rows) - 8}", flush=True)
     print_wrapped(
-        "Детали и примеры значений доступны в debug-логе при logging.level=DEBUG.",
+        f"Найдены ошибки консистентности: {total_violations} нарушений "
+        f"в {len(with_v)} из {n_rules} проверок.",
+        width=w,
+    )
+    _print_consistency_violations(with_v, rule_by_id, w)
+    print_wrapped(
+        "Полный список — лист CONSISTENCY в выходном файле; примеры строк — в debug-логе.",
         width=w,
     )
 
@@ -486,14 +567,18 @@ def print_input_archive_row_report(
     for ln in textwrap.wrap(db_s, width=max(40, w - 6), break_long_words=True, break_on_hyphens=False):
         print(f"    {ln}", flush=True)
     print(
-        f"  Итог: новых строк {int(stats.get('new', 0))}; "
-        f"изменённых {int(stats.get('changed', 0))}; "
+        f"  Итог: новых ключей в БД {int(stats.get('new', 0))}; "
+        f"изменённых строк {int(stats.get('changed', 0))}; "
         f"без изменений {int(stats.get('unchanged', 0))}; "
         f"неактуальных (inactive) {int(stats.get('inactive', 0))}; "
-        f"файл без изменений (SHA) {int(stats.get('file_unchanged', 0))}; "
+        f"файлов без изменений (SHA) {int(stats.get('file_unchanged', 0))}; "
         f"ошибок ключа {int(stats.get('key_errors', 0))}; "
         f"ошибок {int(stats.get('errors', 0))}; "
         f"нет ключа в config {int(stats.get('no_row_key', 0))}.",
+        flush=True,
+    )
+    print(
+        "  (новых = ключ строки впервые в БД; изменённых = тот же ключ, другое содержимое CSV)",
         flush=True,
     )
     if mode in ("1", "summary", "brief", "short"):

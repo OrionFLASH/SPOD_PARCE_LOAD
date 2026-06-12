@@ -75,6 +75,42 @@ def test_build_summary_ordered_and_remainder() -> None:
     assert row["Статус наличия"] == ""
     assert row["КМ: условия выполнены"] == 1
     assert row["КМ: без 2 заказов в группе"] == 1
+    assert row["Мин. рейтинг BANK"] == 10
+
+
+def test_other_items_section_without_group() -> None:
+    sheets = {
+        "RATING": (pd.DataFrame({"Табельный номер": ["1"]}), {}),
+        "ORDER": (
+            pd.DataFrame(
+                {
+                    "Табельный номер": ["1"],
+                    "Код товара": ["ITEM_Y"],
+                    "Статус заказа": ["Новый"],
+                }
+            ),
+            {},
+        ),
+        "REWARD": (
+            pd.DataFrame(
+                {
+                    "REWARD_TYPE": ["ITEM", "ITEM"],
+                    "REWARD_CODE": ["ITEM_X", "ITEM_Y"],
+                    "FULL_NAME": ["A", "B"],
+                    "REWARD_ADD_DATA": ["{}", "{}"],
+                }
+            ),
+            {},
+        ),
+    }
+    built = build_season_order_summary_sheet(sheets, _minimal_cfg())
+    assert built is not None
+    df, _ = built
+    assert df.iloc[0]["Код награды"] == "ITEM_X"
+    assert df.iloc[0]["Группа сезона"] == "SEASON_TEST"
+    other = df[df["Код награды"] == "ITEM_Y"]
+    assert len(other) == 1
+    assert other.iloc[0]["Группа сезона"] == ""
 
 
 def test_stock_ended_label() -> None:

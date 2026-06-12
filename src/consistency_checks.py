@@ -2013,6 +2013,59 @@ def _rule_to_description_columns(rule: Dict[str, Any]) -> Dict[str, str]:
     }
 
 
+def consistency_check_line_parts(
+    result: Dict[str, Any],
+    rule: Optional[Dict[str, Any]] = None,
+) -> Dict[str, str]:
+    """
+    Краткие части для консольной строки проверки: лист, ключ/поля, суть, колонка результата.
+    Используется console_ui.print_consistency_summary.
+    """
+    check_id = str(result.get("check_id") or "").strip()
+    name = str(result.get("name") or "").strip()
+    rrule = rule or {}
+    rule_type = str(rrule.get("type") or result.get("type") or "").strip()
+
+    type_ru = ""
+    if rrule:
+        desc = _rule_to_description_columns(rrule)
+        sheet = str(desc.get("таблица источник") or "").strip() or str(result.get("sheet") or "").strip()
+        keys = str(desc.get("поле источник") or "").strip()
+        field_ref = str(desc.get("поле для проверки") or "").strip()
+        if not keys and field_ref:
+            keys = field_ref
+        ref_table = str(desc.get("таблица где проверяем") or "").strip()
+        if ref_table and rule_type in ("referential", "referential_composite", "cross_sheet_date_lte_today"):
+            keys = f"{keys} → {ref_table}" if keys else f"→ {ref_table}"
+        type_ru = str(desc.get("ТИП ПРОВЕРКИ") or rule_type).strip()
+        param = str(desc.get("параметр сравнения") or "").strip()
+        comment = str(desc.get("комментарий") or "").strip()
+        if name:
+            summary = f"{name} — {type_ru}" if type_ru and type_ru not in name else name
+        else:
+            summary = type_ru
+        if param:
+            summary = f"{summary}: {param}" if summary else param
+        if comment and len(comment) <= 72:
+            summary = f"{summary} ({comment})" if summary else comment
+    else:
+        sheet = str(result.get("sheet") or "").strip()
+        keys = ""
+        summary = name or rule_type or check_id
+        type_ru = rule_type
+
+    col = str(result.get("column_on_sheet") or "").strip()
+    return {
+        "check_id": check_id,
+        "sheet": sheet or "?",
+        "keys": keys,
+        "summary": summary,
+        "column_on_sheet": col,
+        "type": rule_type,
+        "type_label": type_ru or rule_type or "?",
+    }
+
+
 def _sample_rows_prefix(sample: List[Any]) -> str:
     """
     Из записей sample извлекает все номера строк (из ведущих [N] или [N, M, K])
