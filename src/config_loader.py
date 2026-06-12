@@ -9,10 +9,18 @@ import os
 from typing import Any, Dict, List, Optional, Set, Tuple
 
 # Допустимые элементы массива run_outputs в config.json (какие выходные файлы формировать)
-_RUN_OUTPUT_TOKENS: Set[str] = frozenset({"source_only", "main_only", "consistency_only"})
+_RUN_OUTPUT_TOKENS: Set[str] = frozenset(
+    {
+        "source_only",
+        "main_only",
+        "consistency_only",
+        "manager_stats_only",
+        "stat_file_only",
+    }
+)
 
 
-def parse_run_outputs_config(cfg: Dict[str, Any]) -> Tuple[List[str], bool, bool, bool, bool, bool, int]:
+def parse_run_outputs_config(cfg: Dict[str, Any]) -> Tuple[List[str], bool, bool, bool, bool, bool, bool, bool, bool, int]:
     """
     Разбор режима запуска: приоритет у run_outputs (массив строк).
     Возвращает:
@@ -22,6 +30,9 @@ def parse_run_outputs_config(cfg: Dict[str, Any]) -> Tuple[List[str], bool, bool
       write_main — полный main Excel (SUMMARY, merge, …);
       write_consistency_file — отдельная книга консистентности;
       consistency_early — ранний выход с одной книгой консистентности (без main), бывший режим 4;
+      write_manager_stats — отдельная книга статистики менеджеров (табельные и др.);
+      manager_stats_early — только manager_stats без main (выход после merge);
+      write_stat_file — отдельный Excel STAT_FILE <таймштамп>.xlsx (время этапов и функций);
       run_mode_compat — число 1–4 для обратной совместимости и логов.
     """
     ro_raw = cfg.get("run_outputs")
@@ -37,7 +48,7 @@ def parse_run_outputs_config(cfg: Dict[str, Any]) -> Tuple[List[str], bool, bool
         if not tokens:
             raise ValueError(
                 "run_outputs: укажите хотя бы одно из значений: "
-                "source_only, main_only, consistency_only"
+                "source_only, main_only, consistency_only, manager_stats_only, stat_file_only"
             )
     else:
         # Обратная совместимость: run_mode full | source_only | main_only | consistency_only | 1–4
@@ -62,8 +73,12 @@ def parse_run_outputs_config(cfg: Dict[str, Any]) -> Tuple[List[str], bool, bool
     write_source = "source_only" in tokens
     write_main = "main_only" in tokens
     write_consistency_file = "consistency_only" in tokens
+    write_manager_stats = "manager_stats_only" in tokens
+    write_stat_file = "stat_file_only" in tokens
     # Ранний «только консистентность» без основной книги — как старый режим 4
     consistency_early = write_consistency_file and not write_main
+    # Только статистика менеджеров без основной книги — выход после merge
+    manager_stats_early = write_manager_stats and not write_main
 
     # Число 1–4 для логов и совместимости со старым кодом
     if source_only_exit:
@@ -85,6 +100,9 @@ def parse_run_outputs_config(cfg: Dict[str, Any]) -> Tuple[List[str], bool, bool
         write_main,
         write_consistency_file,
         consistency_early,
+        write_manager_stats,
+        manager_stats_early,
+        write_stat_file,
         run_mode_compat,
     )
 
@@ -163,6 +181,7 @@ class Config:
         self.rating_item_matrix: Dict[str, Any] = self._cfg.get("rating_item_matrix") or {}
         # Сводка заказов по группам SEASON (см. season_order_summary.py)
         self.season_order_summary: Dict[str, Any] = self._cfg.get("season_order_summary") or {}
+        self.manager_stats: Dict[str, Any] = self._cfg.get("manager_stats") or {}
 
         # Параллелизм
         self.max_workers_io: int = self._cfg["performance"]["max_workers_io"]
@@ -190,6 +209,9 @@ class Config:
             self.run_write_main,
             self.run_write_consistency_file,
             self.run_consistency_early,
+            self.run_write_manager_stats,
+            self.run_manager_stats_early,
+            self.run_write_stat_file,
             self.run_mode,
         ) = parse_run_outputs_config(self._cfg)
 
@@ -202,6 +224,9 @@ class Config:
         self.output_filename_main: str = _of.get("main", "SPOD_ALL_IN_ONE")
         self.output_filename_source: str = _of.get("source", "SPOD_PROM source")
         self.output_filename_consistency: str = _of.get("consistency", "SPOD_PROM CONSISTENCY")
+        self.output_filename_manager_stats: str = _of.get(
+            "manager_stats", "SPOD_PROM MANAGER_STATS"
+        )
 
         # Архив входных CSV в SQLite (см. src/input_archive_sqlite.py, Docs/INPUT_ARCHIVE_SQLITE_DESIGN.md)
         from src.input_archive_sqlite_v2 import merge_archive_v2_config

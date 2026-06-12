@@ -24,6 +24,8 @@ def expected_phases_for_run_flags(
     write_main: bool,
     write_consistency_file: bool,
     consistency_early: bool,
+    write_manager_stats: bool = False,
+    manager_stats_early: bool = False,
 ) -> int:
     """
     Число верхнеуровневых debug_phase в main_impl для полосы прогресса.
@@ -39,10 +41,15 @@ def expected_phases_for_run_flags(
     if consistency_early:
         n += 1  # 04
         return n
+    if manager_stats_early:
+        n += 1  # 08 manager_stats
+        return n
     if write_main:
         n += 2  # 05, 06
         if write_consistency_file:
             n += 1  # 07
+        if write_manager_stats:
+            n += 1  # 08
     return n
 
 
@@ -342,6 +349,18 @@ def print_consistency_summary(
         "Полный список — лист CONSISTENCY в выходном файле; примеры строк — в debug-логе.",
         width=w,
     )
+
+
+def print_manager_stats_summary(unique_tabs: int, output_path: str) -> None:
+    """Краткая сводка по файлу статистики менеджеров (табельные номера)."""
+    w = terminal_width()
+    print("— Статистика менеджеров (табельные) —", flush=True)
+    print_wrapped(
+        f"Уникальных табельных номеров: {unique_tabs}.",
+        width=w,
+    )
+    if output_path:
+        print_wrapped(f"Файл: {output_path}", width=w)
 
 
 def print_phases_table(phases: List[Dict[str, Any]]) -> None:

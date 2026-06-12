@@ -1,17 +1,20 @@
 {
-  "run_outputs": ["main_only"],
+  "run_outputs": ["manager_stats_only"],
   "_run_outputs_allowed": [
     "source_only",
     "main_only",
-    "consistency_only"
+    "consistency_only",
+    "manager_stats_only",
+    "stat_file_only"
   ],
-  "_run_outputs_note": "Перечислите нужные выходы. Полный набор как раньше full: [\"source_only\",\"main_only\",\"consistency_only\"]. Устаревшее поле run_mode всё ещё читается, если run_outputs отсутствует.",
+  "_run_outputs_note": "Перечислите нужные выходы — выполняются ВСЕ перечисленные токены. Полный набор как раньше full: [\"source_only\",\"main_only\",\"consistency_only\"]. manager_stats_only + main_only — обе книги (без раннего выхода). Только manager_stats_only — ранний выход после merge. stat_file_only — отдельный STAT_FILE <таймштамп>.xlsx. Устаревшее run_mode читается, если run_outputs отсутствует.",
   "apply_sort_to_source": true,
   "apply_sort_to_main": false,
   "output_filenames": {
     "main": "SPOD_PROM main",
     "source": "SPOD_PROM source",
-    "consistency": "SPOD_PROM consistency"
+    "consistency": "SPOD_PROM consistency",
+    "manager_stats": "SPOD_PROM MANAGER_STATS"
   },
   "paths": {
     "input": "IN",
@@ -4378,6 +4381,317 @@
   "season_order_summary": {
     "enabled": true,
     "sheet_name": "ORDER-SEASON-SUMMARY"
+  },
+  "manager_stats": {
+    "output_sheet": "TAB_NUMBERS",
+    "summary_sheet": "MANAGER_STATS_SUMMARY",
+    "normalize_pad_width": 20,
+    "freeze": "E2",
+    "column_widths": {
+      "Табельный номер": { "width_mode": 24 },
+      "Источники": { "width_mode": "AUTO", "min_width": 50, "max_width": 80 }
+    },
+    "_sources_format": "sources[]: sheet (точное имя) ИЛИ sheet_pattern (glob, напр. RATING_*); tab_column — колонка табельного; where_in — объект «колонка → [значения]», строка попадает только если во ВСЕХ перечисленных колонках значение из списка; where_not_in — «колонка → [значения]», строка отбрасывается если значение в списке (логическое И между колонками). enabled: false — пропуск правила.",
+    "sources": [
+      {
+        "id": "report_manager",
+        "enabled": true,
+        "sheet": "REPORT",
+        "tab_column": "MANAGER_PERSON_NUMBER",
+        "where_in": {},
+        "where_not_in": {}
+      },
+      {
+        "id": "employee_person",
+        "enabled": true,
+        "sheet": "EMPLOYEE",
+        "tab_column": "PERSON_NUMBER",
+        "where_in": {},
+        "where_not_in": {}
+      },
+      {
+        "id": "employee_person_add",
+        "enabled": true,
+        "sheet": "EMPLOYEE",
+        "tab_column": "PERSON_NUMBER_ADD",
+        "where_in": {},
+        "where_not_in": {}
+      },
+      {
+        "id": "statistics_tab",
+        "enabled": true,
+        "sheet": "STATISTICS",
+        "tab_column": "Табельный номер",
+        "where_in": {},
+        "where_not_in": {}
+      },
+      {
+        "id": "list_rewards_tab",
+        "enabled": true,
+        "sheet": "LIST-REWARDS",
+        "tab_column": "Табельный номер сотрудника",
+        "where_in": {},
+        "where_not_in": {}
+      },
+      {
+        "id": "rating_aggregate",
+        "enabled": true,
+        "sheet": "RATING",
+        "tab_column": "Табельный номер",
+        "where_in": {},
+        "where_not_in": {}
+      },
+      {
+        "id": "rating_files",
+        "enabled": true,
+        "sheet_pattern": "RATING_*",
+        "tab_column": "Табельный номер",
+        "where_in": {},
+        "where_not_in": {}
+      },
+      {
+        "id": "order_aggregate",
+        "enabled": true,
+        "sheet": "ORDER",
+        "tab_column": "Табельный номер",
+        "where_in": {},
+        "where_not_in": {
+          "Статус заказа": ["Отклонён", "Отменён"]
+        }
+      },
+      {
+        "id": "order_files",
+        "enabled": true,
+        "sheet_pattern": "ORDER_*",
+        "tab_column": "Табельный номер",
+        "where_in": {},
+        "where_not_in": {
+          "Статус заказа": ["Отклонён", "Отменён"]
+        }
+      }
+    ],
+    "enrich_default": "-",
+    "enrich_parallel": {
+      "enabled": true,
+      "max_workers": 0,
+      "min_tabs_for_parallel": 50,
+      "chunk_size": 500
+    },
+    "_enrich_columns_format": "enrich_columns[]: output_column; lookup_row_key — составной ключ из колонок строки; mode: value | sum | count | exists (exists + present_value, напр. «ДА», если есть строки); multi_row: first | join; sources[]: sheet, tab_column или key_columns, value_column, where_in, where_not_in.",
+    "enrich_columns": [
+      {
+        "id": "last_name",
+        "enabled": true,
+        "output_column": "Фамилия",
+        "mode": "value",
+        "multi_row": "first",
+        "default": "-",
+        "sources": [
+          {
+            "priority": 1,
+            "sheet": "RATING",
+            "tab_column": "Табельный номер",
+            "value_column": "Фамилия",
+            "where_in": {
+              "Период": ["Сезон 2026"]
+            },
+            "where_not_in": {}
+          },
+          {
+            "priority": 2,
+            "sheet": "RATING",
+            "tab_column": "Табельный номер",
+            "value_column": "Фамилия",
+            "where_in": {},
+            "where_not_in": {}
+          },
+          {
+            "priority": 3,
+            "sheet": "STATISTICS",
+            "tab_column": "Табельный номер",
+            "value_column": "Фамилия",
+            "where_in": {
+              "Текущая роль": [true]
+            },
+            "where_not_in": {}
+          },
+          {
+            "priority": 4,
+            "sheet": "EMPLOYEE",
+            "tab_column": "PERSON_NUMBER",
+            "value_column": "SURNAME",
+            "where_in": {},
+            "where_not_in": {}
+          },
+          {
+            "priority": 5,
+            "sheet": "EMPLOYEE",
+            "tab_column": "PERSON_NUMBER_ADD",
+            "value_column": "SURNAME",
+            "where_in": {},
+            "where_not_in": {}
+          }
+        ]
+      },
+      {
+        "id": "first_name",
+        "enabled": true,
+        "output_column": "Имя",
+        "mode": "value",
+        "multi_row": "first",
+        "default": "-",
+        "sources": [
+          {
+            "priority": 1,
+            "sheet": "RATING",
+            "tab_column": "Табельный номер",
+            "value_column": "Имя",
+            "where_in": {
+              "Период": ["Сезон 2026"]
+            },
+            "where_not_in": {}
+          },
+          {
+            "priority": 2,
+            "sheet": "RATING",
+            "tab_column": "Табельный номер",
+            "value_column": "Имя",
+            "where_in": {},
+            "where_not_in": {}
+          },
+          {
+            "priority": 3,
+            "sheet": "STATISTICS",
+            "tab_column": "Табельный номер",
+            "value_column": "Имя",
+            "where_in": {
+              "Текущая роль": [true]
+            },
+            "where_not_in": {}
+          },
+          {
+            "priority": 4,
+            "sheet": "EMPLOYEE",
+            "tab_column": "PERSON_NUMBER",
+            "value_column": "FIRST_NAME",
+            "where_in": {},
+            "where_not_in": {}
+          },
+          {
+            "priority": 5,
+            "sheet": "EMPLOYEE",
+            "tab_column": "PERSON_NUMBER_ADD",
+            "value_column": "FIRST_NAME",
+            "where_in": {},
+            "where_not_in": {}
+          }
+        ]
+      },
+      {
+        "id": "tb_code",
+        "enabled": true,
+        "output_column": "ТБ",
+        "mode": "value",
+        "multi_row": "first",
+        "default": "-",
+        "sources": [
+          {
+            "priority": 1,
+            "sheet": "STATISTICS",
+            "tab_column": "Табельный номер",
+            "value_column": "ТБ"
+          },
+          {
+            "priority": 2,
+            "sheet": "EMPLOYEE",
+            "tab_column": "PERSON_NUMBER",
+            "value_column": "TB_CODE"
+          }
+        ]
+      },
+      {
+        "id": "gosb_code",
+        "enabled": true,
+        "output_column": "ГОСБ",
+        "mode": "value",
+        "multi_row": "first",
+        "default": "-",
+        "sources": [
+          {
+            "priority": 1,
+            "sheet": "STATISTICS",
+            "tab_column": "Табельный номер",
+            "value_column": "ГОСБ"
+          },
+          {
+            "priority": 2,
+            "sheet": "EMPLOYEE",
+            "tab_column": "PERSON_NUMBER",
+            "value_column": "GOSB_CODE"
+          }
+        ]
+      },
+      {
+        "id": "tb_full_name",
+        "enabled": true,
+        "output_column": "TB_FULL_NAME",
+        "mode": "value",
+        "multi_row": "first",
+        "default": "-",
+        "lookup_row_key": ["ТБ", "ГОСБ"],
+        "sources": [
+          {
+            "priority": 1,
+            "sheet": "ORG_UNIT_V20",
+            "key_columns": ["TB_CODE", "GOSB_CODE"],
+            "value_column": "TB_FULL_NAME",
+            "where_in": {},
+            "where_not_in": {}
+          }
+        ]
+      },
+      {
+        "id": "gosb_name",
+        "enabled": true,
+        "output_column": "GOSB_NAME",
+        "mode": "value",
+        "multi_row": "first",
+        "default": "-",
+        "lookup_row_key": ["ТБ", "ГОСБ"],
+        "sources": [
+          {
+            "priority": 1,
+            "sheet": "ORG_UNIT_V20",
+            "key_columns": ["TB_CODE", "GOSB_CODE"],
+            "value_column": "GOSB_NAME",
+            "where_in": {},
+            "where_not_in": {}
+          }
+        ]
+      },
+      {
+        "id": "in_current_rating",
+        "enabled": true,
+        "output_column": "есть в текущем рейтинге",
+        "mode": "exists",
+        "present_value": "ДА",
+        "default": "-",
+        "sources": [
+          {
+            "priority": 1,
+            "sheet": "RATING",
+            "tab_column": "Табельный номер",
+            "where_in": {
+              "Наименование Роли": [
+                "Клиентский менеджер крупнейшего, крупного и среднего бизнеса"
+              ],
+              "Период": ["Сезон 2026"]
+            },
+            "where_not_in": {}
+          }
+        ]
+      }
+    ]
   },
   "json_columns": {
     "CONTEST-DATA": [

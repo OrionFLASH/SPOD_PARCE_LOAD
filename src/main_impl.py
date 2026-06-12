@@ -170,7 +170,10 @@ def _load_config_globals():
     global DIR_INPUT, DIR_OUTPUT, DIR_LOGS, LOG_LEVEL, LOG_BASE_NAME, INPUT_FILES, RUN_MODE
     global RUN_OUTPUTS, RUN_SOURCE_ONLY_EXIT, RUN_WRITE_SOURCE, RUN_WRITE_MAIN
     global RUN_WRITE_CONSISTENCY_FILE, RUN_CONSISTENCY_EARLY
+    global RUN_WRITE_MANAGER_STATS, MANAGER_STATS_EARLY
+    global RUN_WRITE_STAT_FILE
     global OUTPUT_FILENAME_MAIN, OUTPUT_FILENAME_SOURCE, OUTPUT_FILENAME_CONSISTENCY
+    global OUTPUT_FILENAME_MANAGER_STATS
     global APPLY_SORT_TO_SOURCE, APPLY_SORT_TO_MAIN
     global SUMMARY_SHEET, SHEET_ORDER, SUMMARY_KEY_DEFS, SUMMARY_KEY_COLUMNS
     global GENDER_PATTERNS, GENDER_PROGRESS_STEP, FIELD_LENGTH_VALIDATIONS
@@ -179,6 +182,7 @@ def _load_config_globals():
     global MAX_WORKERS_IO, MAX_WORKERS_CPU, MAX_WORKERS, TOURNAMENT_STATUS_CHOICES
     global SOURCE_EXPORT_SORT
     global INPUT_ARCHIVE_SQLITE, PROJECT_BASE_DIR, RATING_ITEM_MATRIX, SEASON_ORDER_SUMMARY
+    global MANAGER_STATS
 
     try:
         from src.config_holder import get_current_config
@@ -212,6 +216,9 @@ def _load_config_globals():
                 RUN_WRITE_MAIN = bool(_c.run_write_main)
                 RUN_WRITE_CONSISTENCY_FILE = bool(_c.run_write_consistency_file)
                 RUN_CONSISTENCY_EARLY = bool(_c.run_consistency_early)
+                RUN_WRITE_MANAGER_STATS = bool(getattr(_c, "run_write_manager_stats", False))
+                MANAGER_STATS_EARLY = bool(getattr(_c, "run_manager_stats_early", False))
+                RUN_WRITE_STAT_FILE = bool(getattr(_c, "run_write_stat_file", False))
             else:
                 _ro = parse_run_outputs_config({"run_mode": RUN_MODE})
                 RUN_OUTPUTS = list(_ro[0])
@@ -220,10 +227,16 @@ def _load_config_globals():
                 RUN_WRITE_MAIN = _ro[3]
                 RUN_WRITE_CONSISTENCY_FILE = _ro[4]
                 RUN_CONSISTENCY_EARLY = _ro[5]
-                RUN_MODE = _ro[6]
+                RUN_WRITE_MANAGER_STATS = _ro[6]
+                MANAGER_STATS_EARLY = _ro[7]
+                RUN_WRITE_STAT_FILE = _ro[8]
+                RUN_MODE = _ro[9]
             OUTPUT_FILENAME_MAIN = getattr(_c, "output_filename_main", "SPOD_ALL_IN_ONE")
             OUTPUT_FILENAME_SOURCE = getattr(_c, "output_filename_source", "SPOD_PROM source")
             OUTPUT_FILENAME_CONSISTENCY = getattr(_c, "output_filename_consistency", "SPOD_PROM CONSISTENCY")
+            OUTPUT_FILENAME_MANAGER_STATS = getattr(
+                _c, "output_filename_manager_stats", "SPOD_PROM MANAGER_STATS"
+            )
             APPLY_SORT_TO_SOURCE = getattr(_c, "apply_sort_to_source", True)
             APPLY_SORT_TO_MAIN = getattr(_c, "apply_sort_to_main", False)
             JSON_COLUMNS = _c.json_columns
@@ -237,6 +250,7 @@ def _load_config_globals():
             INPUT_ARCHIVE_SQLITE = getattr(_c, "input_archive_sqlite", None) or {"enabled": False}
             RATING_ITEM_MATRIX = getattr(_c, "rating_item_matrix", None) or {}
             SEASON_ORDER_SUMMARY = getattr(_c, "season_order_summary", None) or {}
+            MANAGER_STATS = getattr(_c, "manager_stats", None) or {}
             return
     except Exception:
         pass
@@ -285,11 +299,15 @@ def _load_config_globals():
     RUN_WRITE_MAIN = _ro[3]
     RUN_WRITE_CONSISTENCY_FILE = _ro[4]
     RUN_CONSISTENCY_EARLY = _ro[5]
-    RUN_MODE = _ro[6]
+    RUN_WRITE_MANAGER_STATS = _ro[6]
+    MANAGER_STATS_EARLY = _ro[7]
+    RUN_WRITE_STAT_FILE = _ro[8]
+    RUN_MODE = _ro[9]
     _of = _cfg.get("output_filenames") or {}
     OUTPUT_FILENAME_MAIN = _of.get("main", "SPOD_ALL_IN_ONE")
     OUTPUT_FILENAME_SOURCE = _of.get("source", "SPOD_PROM source")
     OUTPUT_FILENAME_CONSISTENCY = _of.get("consistency", "SPOD_PROM CONSISTENCY")
+    OUTPUT_FILENAME_MANAGER_STATS = _of.get("manager_stats", "SPOD_PROM MANAGER_STATS")
     APPLY_SORT_TO_SOURCE = _cfg.get("apply_sort_to_source", True)
     APPLY_SORT_TO_MAIN = _cfg.get("apply_sort_to_main", False)
     JSON_COLUMNS = _cfg.get("json_columns") or {}
@@ -308,6 +326,7 @@ def _load_config_globals():
     INPUT_ARCHIVE_SQLITE = merge_archive_v2_config(_cfg.get("input_archive_sqlite"))
     RATING_ITEM_MATRIX = _cfg.get("rating_item_matrix") or {}
     SEASON_ORDER_SUMMARY = _cfg.get("season_order_summary") or {}
+    MANAGER_STATS = _cfg.get("manager_stats") or {}
 
 
 _load_config_globals()
@@ -4439,6 +4458,48 @@ def _console_footer(
     console_ui.print_banner(banner)
 
 
+def _write_stat_file_perf_excel(
+    run_output_dir: str,
+    start_time: datetime,
+    run_mode_label: str,
+) -> Optional[str]:
+    """Отдельная книга STAT_FILE <таймштамп>.xlsx — только при stat_file_only в run_outputs."""
+    if not RUN_WRITE_STAT_FILE:
+        return None
+    out_path = write_performance_statistics_excel(
+        run_output_dir,
+        program_started_at=start_time.strftime("%Y-%m-%d %H:%M:%S"),
+        run_mode_label=run_mode_label,
+    )
+    if out_path:
+        logging.info(f"[main] Статистика времени: {out_path}")
+    return out_path
+
+
+def _write_manager_stats_excel(
+    sheets_data: Dict[str, Any],
+    run_output_dir: str,
+    timestamp: str,
+) -> Optional[str]:
+    """Сбор уникальных табельных и запись отдельной книги MANAGER_STATS."""
+    if not RUN_WRITE_MANAGER_STATS:
+        return None
+    from src.manager_stats import build_manager_stats_workbook_data
+
+    ms_data = build_manager_stats_workbook_data(sheets_data, INPUT_FILES, MANAGER_STATS)
+    out_path = os.path.join(run_output_dir, f"{OUTPUT_FILENAME_MANAGER_STATS} {timestamp}.xlsx")
+    logging.info(f"[START] write_to_excel (manager_stats) ({out_path})")
+    with debug_phase("08_write_manager_stats_excel"):
+        write_to_excel(ms_data, out_path, use_color_scheme=False)
+    tab_sheet = (MANAGER_STATS or {}).get("output_sheet") or "TAB_NUMBERS"
+    n_tabs = 0
+    if tab_sheet in ms_data and ms_data[tab_sheet][0] is not None:
+        n_tabs = len(ms_data[tab_sheet][0])
+    logging.info(f"[END] write_to_excel (manager_stats): {n_tabs} уникальных табельных ({out_path})")
+    console_ui.print_manager_stats_summary(n_tabs, out_path)
+    return out_path
+
+
 def main():
     # Повторная загрузка глобалов при запуске (подхват внедрённого Config из config_holder)
     _load_config_globals()
@@ -4458,6 +4519,8 @@ def main():
             RUN_WRITE_MAIN,
             RUN_WRITE_CONSISTENCY_FILE,
             RUN_CONSISTENCY_EARLY,
+            RUN_WRITE_MANAGER_STATS,
+            MANAGER_STATS_EARLY,
         )
     )
     logging.info(f"=== Старт работы программы: {start_time.strftime('%Y-%m-%d %H:%M:%S')} ===")
@@ -4558,13 +4621,7 @@ def main():
             sys.exit(1)
         with debug_phase("mode2_source_only_excel"):
             write_source_excel(raw_sheets, run_output_dir)
-        _perf_xlsx = write_performance_statistics_excel(
-            run_output_dir,
-            program_started_at=start_time.strftime("%Y-%m-%d %H:%M:%S"),
-            run_mode_label=_run_mode_label,
-        )
-        if _perf_xlsx:
-            logging.info(f"[main] Статистика времени: {_perf_xlsx}")
+        _write_stat_file_perf_excel(run_output_dir, start_time, _run_mode_label)
         logging.info(f"=== Режим 2 завершён. Выгружен только source. Время: {datetime.now() - start_time} ===")
         _console_footer(log_file, banner="Режим 2: готово (только source)")
         return
@@ -4726,6 +4783,28 @@ def main():
                 if _summary_sheet and _summary_sheet not in SHEET_ORDER:
                     SHEET_ORDER.append(_summary_sheet)
 
+                if _summary_sheet and _summary_sheet not in SHEET_ORDER:
+                    SHEET_ORDER.append(_summary_sheet)
+
+    # Только статистика менеджеров без main (manager_stats_only без main_only)
+    if MANAGER_STATS_EARLY:
+        ts_ms = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        manager_stats_path = _write_manager_stats_excel(sheets_data, run_output_dir, ts_ms)
+        _write_stat_file_perf_excel(run_output_dir, start_time, _run_mode_label)
+        logging.info(
+            f"=== Режим manager_stats_only завершён. Файл: {manager_stats_path}. "
+            f"Время: {datetime.now() - start_time} ==="
+        )
+        _console_footer(
+            log_file,
+            output_excel=manager_stats_path or "",
+            banner="Режим manager_stats_only: готово",
+            files_processed=files_processed,
+            rows_total=rows_total,
+            summary_parts=summary,
+        )
+        return
+
     # Только отдельная книга консистентности без main (в массиве есть consistency_only, нет main_only)
     if RUN_CONSISTENCY_EARLY:
         sheets_with_violations = set()
@@ -4744,13 +4823,7 @@ def main():
         logging.info(f"[START] write_to_excel (режим 4) ({consistency_path})")
         with debug_phase("04_consistency_only_write_excel"):
             write_to_excel(consistency_data, consistency_path, use_color_scheme=False)
-        _perf_xlsx4 = write_performance_statistics_excel(
-            run_output_dir,
-            program_started_at=start_time.strftime("%Y-%m-%d %H:%M:%S"),
-            run_mode_label=_run_mode_label,
-        )
-        if _perf_xlsx4:
-            logging.info(f"[main] Статистика времени: {_perf_xlsx4}")
+        _write_stat_file_perf_excel(run_output_dir, start_time, _run_mode_label)
         logging.info(f"=== Режим 4 завершён. Файл консистентности: {consistency_path}. Время: {datetime.now() - start_time} ===")
         _console_footer(
             log_file,
@@ -4762,90 +4835,91 @@ def main():
         )
         return
 
-    # 6. Формирование итогового Summary (build_summary_sheet)
-    with debug_phase("05_summary_stat_baseline"):
-        dfs = {k: v[0] for k, v in sheets_data.items()}
-        df_summary = build_summary_sheet(
-            dfs,
-            params_summary=SUMMARY_SHEET,
-            merge_fields=[f for f in MERGE_FIELDS_ADVANCED if f.get("sheet_dst") == "SUMMARY"],
-        )
-        if df_summary is None or not isinstance(df_summary, pd.DataFrame):
-            logging.error("[main] КРИТИЧЕСКАЯ ОШИБКА: df_summary равен None или не DataFrame после build_summary_sheet!")
-            logging.error("[main] Создаем пустой DataFrame для SUMMARY")
-            df_summary = pd.DataFrame(columns=SUMMARY_KEY_COLUMNS)
-        elif len(df_summary) == 0:
-            logging.warning("[main] df_summary пустой после build_summary_sheet, но продолжаем работу")
-        else:
-            logging.info(f"[main] df_summary успешно создан: {len(df_summary)} строк, {len(df_summary.columns)} колонок")
-
-        sheets_data[SUMMARY_SHEET["sheet"]] = (df_summary, SUMMARY_SHEET)
-
-        df_stat = build_stat_file_sheet(INPUT_FILES, sheets_data, start_time)
-        stat_file_params = {
-            "sheet": "STAT_FILE",
-            "max_col_width": 80,
-            "freeze": "A2",
-            "col_width_mode": "AUTO",
-            "min_col_width": 10,
-        }
-        sheets_data["STAT_FILE"] = (df_stat, stat_file_params)
-        logging.info(f"[main] Лист STAT_FILE сформирован: {len(df_stat)} строк (статистика по файлам)")
-
-        _baseline_path = os.path.join(run_output_dir, "merge_output_baseline.json")
-        if os.environ.get("SAVE_MERGE_BASELINE") == "1":
-            snapshot = _dump_sheets_data_for_baseline(sheets_data, max_rows=3)
-            with open(_baseline_path, "w", encoding="utf-8") as f:
-                json.dump(snapshot, f, ensure_ascii=False, indent=2)
-            logging.info(f"[MERGE] Baseline сохранён: {_baseline_path} (колонки и по 3 строки на лист)")
-        elif os.path.isfile(_baseline_path):
-            ok, diff_errors = _compare_sheets_data_with_baseline(sheets_data, _baseline_path, max_rows=3)
-            if ok:
-                logging.info("[MERGE] Сравнение с baseline: колонки и сэмпл данных совпадают")
+    # 6–8. Основная книга Excel — только если в run_outputs есть main_only
+    output_excel = ""
+    if RUN_WRITE_MAIN:
+        with debug_phase("05_summary_stat_baseline"):
+            dfs = {k: v[0] for k, v in sheets_data.items()}
+            df_summary = build_summary_sheet(
+                dfs,
+                params_summary=SUMMARY_SHEET,
+                merge_fields=[f for f in MERGE_FIELDS_ADVANCED if f.get("sheet_dst") == "SUMMARY"],
+            )
+            if df_summary is None or not isinstance(df_summary, pd.DataFrame):
+                logging.error("[main] КРИТИЧЕСКАЯ ОШИБКА: df_summary равен None или не DataFrame после build_summary_sheet!")
+                logging.error("[main] Создаем пустой DataFrame для SUMMARY")
+                df_summary = pd.DataFrame(columns=SUMMARY_KEY_COLUMNS)
+            elif len(df_summary) == 0:
+                logging.warning("[main] df_summary пустой после build_summary_sheet, но продолжаем работу")
             else:
-                for msg in diff_errors:
-                    logging.warning(f"[MERGE] Baseline расхождение: {msg}")
+                logging.info(f"[main] df_summary успешно создан: {len(df_summary)} строк, {len(df_summary.columns)} колонок")
 
-    # 8. Запись в Excel
-    output_excel = os.path.join(run_output_dir, get_output_filename())
-    logging.info(f"[START] write_to_excel ({output_excel})")
-    with debug_phase("06_write_main_excel"):
-        write_to_excel(sheets_data, output_excel)
-    _wt_main_elapsed = run_elapsed_sec()
-    logging.info(f"[END] write_to_excel ({output_excel}) (от старта прогона ~{_wt_main_elapsed:.2f} s)")
+            sheets_data[SUMMARY_SHEET["sheet"]] = (df_summary, SUMMARY_SHEET)
 
-    if _rating_matrix_meta:
-        from src.rating_item_matrix import apply_rating_item_matrix_colors
+            df_stat = build_stat_file_sheet(INPUT_FILES, sheets_data, start_time)
+            stat_file_params = {
+                "sheet": "STAT_FILE",
+                "max_col_width": 80,
+                "freeze": "A2",
+                "col_width_mode": "AUTO",
+                "min_col_width": 10,
+            }
+            sheets_data["STAT_FILE"] = (df_stat, stat_file_params)
+            logging.info(f"[main] Лист STAT_FILE сформирован: {len(df_stat)} строк (статистика по файлам)")
 
-        apply_rating_item_matrix_colors(output_excel, _rating_matrix_meta, RATING_ITEM_MATRIX)
+            _baseline_path = os.path.join(run_output_dir, "merge_output_baseline.json")
+            if os.environ.get("SAVE_MERGE_BASELINE") == "1":
+                snapshot = _dump_sheets_data_for_baseline(sheets_data, max_rows=3)
+                with open(_baseline_path, "w", encoding="utf-8") as f:
+                    json.dump(snapshot, f, ensure_ascii=False, indent=2)
+                logging.info(f"[MERGE] Baseline сохранён: {_baseline_path} (колонки и по 3 строки на лист)")
+            elif os.path.isfile(_baseline_path):
+                ok, diff_errors = _compare_sheets_data_with_baseline(sheets_data, _baseline_path, max_rows=3)
+                if ok:
+                    logging.info("[MERGE] Сравнение с baseline: колонки и сэмпл данных совпадают")
+                else:
+                    for msg in diff_errors:
+                        logging.warning(f"[MERGE] Baseline расхождение: {msg}")
 
-    # 8.1. Отдельный файл consistency — если в run_outputs указаны и main_only, и consistency_only
-    if RUN_WRITE_MAIN and RUN_WRITE_CONSISTENCY_FILE and not consistency_written_early:
-        sheets_with_violations = set()
-        if summary_sheet_name in sheets_data and sheets_data[summary_sheet_name] is not None:
-            _df, _ = sheets_data[summary_sheet_name]
-            if isinstance(_df, pd.DataFrame) and "violations" in _df.columns and "sheet" in _df.columns:
-                viol = _df[_df["violations"].astype(int) > 0]
-                sheets_with_violations = set(viol["sheet"].dropna().astype(str).unique().tolist())
-        out_sheets = {summary_sheet_name}
-        for s in sheets_with_violations:
-            if s in sheets_data and sheets_data[s] is not None:
-                out_sheets.add(s)
-        consistency_data = {k: v for k, v in sheets_data.items() if k in out_sheets}
-        ts = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        consistency_path = os.path.join(run_output_dir, f"{OUTPUT_FILENAME_CONSISTENCY} {ts}.xlsx")
-        logging.info(f"[START] write_to_excel (файл consistency, режим full) ({consistency_path})")
-        with debug_phase("07_write_consistency_excel_full_mode"):
-            write_to_excel(consistency_data, consistency_path, use_color_scheme=False)
-        logging.info(f"[END] write_to_excel (файл consistency) ({consistency_path})")
+        output_excel = os.path.join(run_output_dir, get_output_filename())
+        logging.info(f"[START] write_to_excel ({output_excel})")
+        with debug_phase("06_write_main_excel"):
+            write_to_excel(sheets_data, output_excel)
+        _wt_main_elapsed = run_elapsed_sec()
+        logging.info(f"[END] write_to_excel ({output_excel}) (от старта прогона ~{_wt_main_elapsed:.2f} s)")
 
-    _perf_xlsx_main = write_performance_statistics_excel(
-        run_output_dir,
-        program_started_at=start_time.strftime("%Y-%m-%d %H:%M:%S"),
-        run_mode_label=_run_mode_label,
-    )
-    if _perf_xlsx_main:
-        logging.info(f"[main] Статистика времени: {_perf_xlsx_main}")
+        if _rating_matrix_meta:
+            from src.rating_item_matrix import apply_rating_item_matrix_colors
+
+            apply_rating_item_matrix_colors(output_excel, _rating_matrix_meta, RATING_ITEM_MATRIX)
+
+        # 8.1. Отдельный файл consistency — если в run_outputs указаны и main_only, и consistency_only
+        if RUN_WRITE_CONSISTENCY_FILE and not consistency_written_early:
+            sheets_with_violations = set()
+            if summary_sheet_name in sheets_data and sheets_data[summary_sheet_name] is not None:
+                _df, _ = sheets_data[summary_sheet_name]
+                if isinstance(_df, pd.DataFrame) and "violations" in _df.columns and "sheet" in _df.columns:
+                    viol = _df[_df["violations"].astype(int) > 0]
+                    sheets_with_violations = set(viol["sheet"].dropna().astype(str).unique().tolist())
+            out_sheets = {summary_sheet_name}
+            for s in sheets_with_violations:
+                if s in sheets_data and sheets_data[s] is not None:
+                    out_sheets.add(s)
+            consistency_data = {k: v for k, v in sheets_data.items() if k in out_sheets}
+            ts = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+            consistency_path = os.path.join(run_output_dir, f"{OUTPUT_FILENAME_CONSISTENCY} {ts}.xlsx")
+            logging.info(f"[START] write_to_excel (файл consistency, режим full) ({consistency_path})")
+            with debug_phase("07_write_consistency_excel_full_mode"):
+                write_to_excel(consistency_data, consistency_path, use_color_scheme=False)
+            logging.info(f"[END] write_to_excel (файл consistency) ({consistency_path})")
+
+    # 8.2. MANAGER_STATS — если токен в run_outputs (отдельно или вместе с main_only)
+    manager_stats_path: Optional[str] = None
+    if RUN_WRITE_MANAGER_STATS and not MANAGER_STATS_EARLY:
+        ts_ms = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        manager_stats_path = _write_manager_stats_excel(sheets_data, run_output_dir, ts_ms)
+
+    _write_stat_file_perf_excel(run_output_dir, start_time, _run_mode_label)
 
     # Итоговая статистика по отклонениям длины полей и расхождениям по числу полей в CSV (дубликаты — в сводке консистентности)
     validation_report, csv_mismatch_report = collect_duplicates_and_validation_report(sheets_data)
@@ -4857,12 +4931,15 @@ def main():
         f"=== Завершение работы. Обработано файлов: {files_processed}, строк всего: {rows_total}. Время выполнения: {time_elapsed} ==="
     )
     logging.info(f"Summary: {'; '.join(summary)}")
-    logging.info(f"Excel file: {output_excel}")
+    if output_excel:
+        logging.info(f"Excel file: {output_excel}")
+    if manager_stats_path:
+        logging.info(f"Manager stats file: {manager_stats_path}")
     logging.info(f"Log file: {log_file}")
 
     _console_footer(
         log_file,
-        output_excel=output_excel,
+        output_excel=output_excel or manager_stats_path or "",
         banner="Обработка завершена",
         files_processed=files_processed,
         rows_total=rows_total,
