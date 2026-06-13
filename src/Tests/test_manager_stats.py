@@ -11,6 +11,7 @@ from src.manager_stats import (
     _normalized_enrich_fields_from_config,
     build_manager_stats_summary_dataframe,
     build_manager_stats_workbook_data,
+    build_prom_tournament_catalog_dataframe,
     collect_tab_numbers_from_sheets,
     enrich_tab_dataframe,
     merge_manager_stats_config,
@@ -1353,6 +1354,79 @@ def test_enrich_statistics_monthly_days_and_logins_sum() -> None:
     assert out.iloc[1]["10_2025 (входы)"] == "7"
 
 
+def test_enrich_statistics_current_role_columns() -> None:
+    """STATISTICS: Код роли и Наименование Роли при Текущая роль = true."""
+    sheets = {
+        "STATISTICS": (
+            pd.DataFrame(
+                {
+                    "Табельный номер": [
+                        "00000000000000000001",
+                        "00000000000000000001",
+                        "00000000000000000002",
+                    ],
+                    "Код роли": ["OLD", "KM", "MNS"],
+                    "Наименование Роли": [
+                        "Старая роль",
+                        "Клиентский менеджер",
+                        "Менеджер нефинансовых сервисов",
+                    ],
+                    "Текущая роль": [False, True, True],
+                }
+            ),
+            {},
+        ),
+    }
+    df_tabs = pd.DataFrame(
+        {
+            "№": [1, 2],
+            "Табельный номер": [
+                "00000000000000000001",
+                "00000000000000000002",
+            ],
+            "Источники": ["a", "b"],
+            "Число источников": [1, 1],
+        }
+    )
+    cfg = {
+        "enrich_columns": [
+            {
+                "output_column": "Код роли",
+                "mode": "value",
+                "multi_row": "first",
+                "sources": [
+                    {
+                        "priority": 1,
+                        "sheet": "STATISTICS",
+                        "tab_column": "Табельный номер",
+                        "value_column": "Код роли",
+                        "where_in": {"Текущая роль": [True]},
+                    }
+                ],
+            },
+            {
+                "output_column": "Наименование Роли",
+                "mode": "value",
+                "multi_row": "first",
+                "sources": [
+                    {
+                        "priority": 1,
+                        "sheet": "STATISTICS",
+                        "tab_column": "Табельный номер",
+                        "value_column": "Наименование Роли",
+                        "where_in": {"Текущая роль": [True]},
+                    }
+                ],
+            },
+        ],
+    }
+    out = enrich_tab_dataframe(df_tabs, sheets, cfg)
+    assert out.iloc[0]["Код роли"] == "KM"
+    assert out.iloc[0]["Наименование Роли"] == "Клиентский менеджер"
+    assert out.iloc[1]["Код роли"] == "MNS"
+    assert out.iloc[1]["Наименование Роли"] == "Менеджер нефинансовых сервисов"
+
+
 def test_workbook_tab_column_widths() -> None:
     data = build_manager_stats_workbook_data({}, cfg={})
     tab_params = data["TAB_NUMBERS"][1]
@@ -1425,3 +1499,228 @@ def test_tb_gosb_numeric_conversion_for_excel() -> None:
     assert df.iloc[0]["ГОСБ"] == 0
     assert pd.isna(df.iloc[1]["ТБ"])
     assert df.iloc[1]["ГОСБ"] == 5
+
+
+def test_prom_tournament_catalog_sheet() -> None:
+    """Каталог PROM: статус/даты, vid=ПРОМ, награды из REWARD-LINK."""
+    sheets = {
+        "TOURNAMENT-SCHEDULE": (
+            pd.DataFrame(
+                {
+                    "TOURNAMENT_CODE": ["t_active", "t_2026", "t_test", "t_skip", "t_lr_only"],
+                    "CONTEST_CODE": ["c_prom_a", "c_prom_b", "c_test", "c_prom_c", "c_prom_d"],
+                    "TOURNAMENT_STATUS": [
+                        "АКТИВНЫЙ",
+                        "ЗАВЕРШЕН",
+                        "АКТИВНЫЙ",
+                        "УДАЛЕН",
+                        "ЗАВЕРШЕН",
+                    ],
+                    "PERIOD_TYPE": ["Месяц", "Квартал", "Месяц", "Месяц", "Месяц"],
+                    "START_DT": [
+                        "2025-01-01",
+                        "2026-03-01",
+                        "2025-06-01",
+                        "2024-01-01",
+                        "2025-01-01",
+                    ],
+                    "END_DT": [
+                        "2025-12-31",
+                        "2026-12-31",
+                        "2025-12-31",
+                        "2024-12-31",
+                        "2025-12-31",
+                    ],
+                }
+            ),
+            {},
+        ),
+        "CONTEST-DATA": (
+            pd.DataFrame(
+                {
+                    "CONTEST_CODE": ["c_prom_a", "c_prom_b", "c_test", "c_prom_c", "c_prom_d"],
+                    "FULL_NAME": ["Конкурс A", "Конкурс B", "Тест", "Конкурс C", "Конкурс D"],
+                    "CONTEST_TYPE": [
+                        "ТУРНИРНЫЙ",
+                        "ИНДИВИДУАЛЬНЫЙ НАКОПИТЕЛЬНЫЙ",
+                        "ТУРНИРНЫЙ",
+                        "ИНДИВИДУАЛЬНЫЙ",
+                        "ТУРНИРНЫЙ",
+                    ],
+                    "PRODUCT_GROUP": [
+                        "Статусные",
+                        "Эффективность",
+                        "Системные",
+                        "Статусные",
+                        "Статусные",
+                    ],
+                    "PRODUCT": ["Рейтинг", "Эффективность КМ", "Метки", "ЛПП", "Герой продаж"],
+                    "CONTEST_FEATURE": [
+                        '{"vid":"ПРОМ"}',
+                        '{"vid":"ПРОМ"}',
+                        '{"vid":"ТЕСТ"}',
+                        '{"vid":"ПРОМ"}',
+                        '{"vid":"ПРОМ"}',
+                    ],
+                }
+            ),
+            {},
+        ),
+        "REWARD-LINK": (
+            pd.DataFrame(
+                {
+                    "CONTEST_CODE": ["c_prom_a", "c_prom_a", "c_prom_b"],
+                    "GROUP_CODE": ["g1", "g1", "g2"],
+                    "REWARD_CODE": ["r_a1", "r_a2", "r_b1"],
+                }
+            ),
+            {},
+        ),
+        "REWARD": (
+            pd.DataFrame(
+                {
+                    "REWARD_CODE": ["r_a1", "r_a2", "r_b1", "r_lr1"],
+                    "FULL_NAME": ["Награда A1", "Награда A2", "Награда B1", "Награда LR1"],
+                }
+            ),
+            {},
+        ),
+        "LIST-REWARDS": (
+            pd.DataFrame(
+                {
+                    "Код турнира": ["t_lr_only", "t_lr_only", "t_active"],
+                    "Код награды": ["r_lr1", "r_lr1", "r_a1"],
+                    "Дата создания": ["2026-05-10", "2025-12-01", "2026-01-15"],
+                }
+            ),
+            {},
+        ),
+    }
+    df = build_prom_tournament_catalog_dataframe(sheets, cfg={})
+    assert df is not None
+    codes = set(zip(df["TOURNAMENT_CODE"], df["CONTEST_CODE"]))
+    assert ("t_active", "c_prom_a") in codes
+    assert ("t_2026", "c_prom_b") in codes
+    assert ("t_test", "c_test") not in codes
+    assert ("t_skip", "c_prom_c") not in codes
+    row_a1 = df[(df["TOURNAMENT_CODE"] == "t_active") & (df["REWARD_CODE"] == "r_a1")].iloc[0]
+    assert row_a1["FULL_NAME"] == "Конкурс A"
+    assert row_a1["REWARD_FULL_NAME"] == "Награда A1"
+    assert row_a1["PERIOD_TYPE"] == "Месяц"
+    assert pd.Timestamp(row_a1["START_DT"]) == pd.Timestamp("2025-01-01")
+    assert pd.Timestamp(row_a1["END_DT"]) == pd.Timestamp("2025-12-31")
+    assert row_a1["TOURNAMENT_STATUS"] == "АКТИВНЫЙ"
+    assert row_a1["CONTEST_TYPE"] == "ТУРНИР"
+    assert row_a1["PRODUCT_GROUP"] == "Статусные"
+    assert row_a1["PRODUCT"] == "Рейтинг"
+    assert row_a1["получено наград"] == 1
+    row_a2 = df[(df["TOURNAMENT_CODE"] == "t_active") & (df["REWARD_CODE"] == "r_a2")].iloc[0]
+    assert row_a2["получено наград"] == 0
+    row_b = df[df["CONTEST_CODE"] == "c_prom_b"].iloc[0]
+    assert row_b["CONTEST_TYPE"] == "НАГРАДА"
+    assert row_b["PRODUCT_GROUP"] == "Эффективность"
+    assert row_b["PRODUCT"] == "Эффективность КМ"
+    assert row_b["получено наград"] == 0
+    lr_row = df[(df["TOURNAMENT_CODE"] == "t_lr_only") & (df["REWARD_CODE"] == "r_lr1")].iloc[0]
+    assert lr_row["FULL_NAME"] == "Конкурс D"
+    assert lr_row["REWARD_FULL_NAME"] == "Награда LR1"
+    assert lr_row["TOURNAMENT_STATUS"] == "ЗАВЕРШЕН"
+    assert lr_row["получено наград"] == 2
+    assert df.iloc[0]["TOURNAMENT_CODE"] == "t_active"
+    assert df.iloc[0]["REWARD_CODE"] == "r_a1"
+    assert df.iloc[1]["REWARD_CODE"] == "r_a2"
+    assert df.iloc[2]["TOURNAMENT_CODE"] == "t_lr_only"
+    assert df.iloc[-1]["TOURNAMENT_CODE"] == "t_2026"
+
+    wb = build_manager_stats_workbook_data({}, cfg={"sources": [], "enrich_columns": []})
+    assert "PROM_TOURNAMENTS" not in wb
+    wb2 = build_manager_stats_workbook_data(sheets, cfg={"sources": [], "enrich_columns": []})
+    assert "PROM_TOURNAMENTS" in wb2
+
+
+def test_prom_tournament_tab_columns_enrich() -> None:
+    """TAB_NUMBERS: динамические колонки PROM, count LIST-REWARDS 2026 по табельному."""
+    tab1 = "1".zfill(20)
+    tab2 = "2".zfill(20)
+    sheets = {
+        "TOURNAMENT-SCHEDULE": (
+            pd.DataFrame(
+                {
+                    "TOURNAMENT_CODE": ["t_active", "t_2026"],
+                    "CONTEST_CODE": ["c_prom_a", "c_prom_b"],
+                    "TOURNAMENT_STATUS": ["АКТИВНЫЙ", "ЗАВЕРШЕН"],
+                    "PERIOD_TYPE": ["Месяц", "Квартал"],
+                    "START_DT": ["2025-01-01", "2026-03-01"],
+                    "END_DT": ["2025-12-31", "2026-12-31"],
+                }
+            ),
+            {},
+        ),
+        "CONTEST-DATA": (
+            pd.DataFrame(
+                {
+                    "CONTEST_CODE": ["c_prom_a", "c_prom_b"],
+                    "FULL_NAME": ["Конкурс A", "Конкурс B"],
+                    "CONTEST_TYPE": ["ТУРНИРНЫЙ", "ИНДИВИДУАЛЬНЫЙ НАКОПИТЕЛЬНЫЙ"],
+                    "PRODUCT_GROUP": ["Статусные", "Эффективность"],
+                    "PRODUCT": ["Рейтинг", "Эффективность КМ"],
+                    "CONTEST_FEATURE": ['{"vid":"ПРОМ"}', '{"vid":"ПРОМ"}'],
+                }
+            ),
+            {},
+        ),
+        "REWARD-LINK": (
+            pd.DataFrame(
+                {
+                    "CONTEST_CODE": ["c_prom_a", "c_prom_b"],
+                    "GROUP_CODE": ["g1", "g2"],
+                    "REWARD_CODE": ["r_a1", "r_b1"],
+                }
+            ),
+            {},
+        ),
+        "REWARD": (
+            pd.DataFrame(
+                {
+                    "REWARD_CODE": ["r_a1", "r_b1"],
+                    "FULL_NAME": ["Награда A1", "Награда B1"],
+                }
+            ),
+            {},
+        ),
+        "LIST-REWARDS": (
+            pd.DataFrame(
+                {
+                    "Код турнира": ["t_active", "t_active", "t_active"],
+                    "Код награды": ["r_a1", "r_a1", "r_a1"],
+                    "Дата создания": ["2026-01-15", "2026-02-10", "2025-12-01"],
+                    "Табельный номер сотрудника": [tab1, tab1, tab2],
+                }
+            ),
+            {},
+        ),
+    }
+    df_tabs = pd.DataFrame(
+        {
+            "№": [1, 2],
+            "Табельный номер": [tab1, tab2],
+            "Источники": ["TEST", "TEST"],
+            "Число источников": [1, 1],
+        }
+    )
+    out = enrich_tab_dataframe(df_tabs, sheets, cfg={"sources": [], "enrich_columns": []})
+    col_nagrada = "НАГРАДА Награда B1 (2026-03-01) [Эффективность КМ]"
+    col_turdir = "ТУРНИР Конкурс A (2025-01-01) [Рейтинг]"
+    assert col_nagrada in out.columns
+    assert col_turdir in out.columns
+    assert "НАГРАДА всего" in out.columns
+    assert "ТУРНИР всего" in out.columns
+    assert list(out.columns).index("НАГРАДА всего") < list(out.columns).index(col_nagrada)
+    assert list(out.columns).index("ТУРНИР всего") < list(out.columns).index(col_turdir)
+    assert out.loc[0, "НАГРАДА всего"] == 0
+    assert out.loc[0, "ТУРНИР всего"] == 2
+    assert out.loc[1, "ТУРНИР всего"] == 0
+    assert list(out.columns).index(col_nagrada) < list(out.columns).index(col_turdir)
+    assert out.loc[0, col_turdir] == 2
+    assert out.loc[1, col_turdir] == 0
+    assert out.loc[0, col_nagrada] == 0

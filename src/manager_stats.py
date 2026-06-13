@@ -13,6 +13,7 @@ import logging
 import os
 import re
 import time
+import datetime
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
@@ -20,6 +21,7 @@ from typing import Any, Dict, List, Mapping, Optional, Sequence, Set, Tuple
 
 import pandas as pd
 
+from src.json_utils import safe_json_loads
 from src.rating_item_matrix import _resolve_column
 
 _DEFAULT_TAB_FALLBACKS: List[str] = [
@@ -100,7 +102,36 @@ def merge_manager_stats_config(raw: Optional[Mapping[str, Any]]) -> Dict[str, An
             "enabled": True,
             "max_workers": 0,
             "min_tabs_for_parallel": 50,
+            "min_fields_for_parallel": 3,
             "chunk_size": 500,
+        },
+        "prom_tournament_catalog": {
+            "enabled": True,
+            "sheet_name": "PROM_TOURNAMENTS",
+            "schedule_sheet": "TOURNAMENT-SCHEDULE",
+            "reward_link_sheet": "REWARD-LINK",
+            "contest_sheet": "CONTEST-DATA",
+            "reward_sheet": "REWARD",
+            "list_rewards_sheet": "LIST-REWARDS",
+            "rewards_received_column": "получено наград",
+            "active_statuses": ["АКТИВНЫЙ", "ПОДВЕДЕНИЕ ИТОГОВ"],
+            "date_year": "2026",
+            "contest_vid": "ПРОМ",
+            "tab_columns_enabled": True,
+            "tab_columns_default": 0,
+            "tab_columns_width": 7,
+            "tab_columns_total_nagrada": "НАГРАДА всего",
+            "tab_columns_total_tournament": "ТУРНИР всего",
+            "column_formats": [
+                {
+                    "columns": ["START_DT", "END_DT"],
+                    "data_type": "date",
+                    "date_format": "YYYY-MM-DD",
+                    "horizontal": "center",
+                    "vertical": "center",
+                    "wrap_text": False,
+                }
+            ],
         },
     }
     if not raw:
@@ -117,6 +148,7 @@ def merge_manager_stats_config(raw: Optional[Mapping[str, Any]]) -> Dict[str, An
         "freeze",
         "column_widths",
         "column_formats",
+        "prom_tournament_catalog",
     ):
         if k in raw:
             out[k] = raw[k]
@@ -127,6 +159,11 @@ def merge_manager_stats_config(raw: Optional[Mapping[str, Any]]) -> Dict[str, An
         out["enrich_parallel"] = {**defaults["enrich_parallel"], **ep_raw}
     else:
         out["enrich_parallel"] = dict(defaults["enrich_parallel"])
+    ptc_raw = out.get("prom_tournament_catalog")
+    if isinstance(ptc_raw, dict):
+        out["prom_tournament_catalog"] = {**defaults["prom_tournament_catalog"], **ptc_raw}
+    else:
+        out["prom_tournament_catalog"] = dict(defaults["prom_tournament_catalog"])
     cw_raw = out.get("column_widths")
     if isinstance(cw_raw, dict):
         merged_cw = {**_DEFAULT_COLUMN_WIDTHS}
@@ -204,6 +241,26 @@ def _cell_str(x: Any) -> str:
     if x is None or (isinstance(x, float) and pd.isna(x)):
         return ""
     return str(x).strip()
+
+
+def _parse_catalog_date_value(x: Any) -> pd.Timestamp:
+    """Преобразование ячейки расписания в дату; пустое и «-» → NaT."""
+    if x is None or (isinstance(x, float) and pd.isna(x)):
+        return pd.NaT
+    if isinstance(x, pd.Timestamp):
+        return x
+    if isinstance(x, (datetime.datetime, datetime.date)):
+        return pd.Timestamp(x)
+    if isinstance(x, (int, float)) and not pd.isna(x):
+        try:
+            return pd.Timestamp("1899-12-30") + pd.Timedelta(days=float(x))
+        except (OverflowError, ValueError):
+            return pd.NaT
+    s = _cell_str(x)
+    if not s or s == "-":
+        return pd.NaT
+    parsed = pd.to_datetime(s, errors="coerce", dayfirst=False)
+    return parsed if not pd.isna(parsed) else pd.NaT
 
 
 def _normalize_bool_token(x: Any) -> str:
@@ -663,6 +720,20 @@ def _parallel_workers(parallel_cfg: Mapping[str, Any], n_tasks: int) -> int:
     if raw <= 0:
         raw = min(8, (os.cpu_count() or 4))
     return max(1, min(raw, n_tasks))
+
+
+def _parallel_field_workers(parallel_cfg: Mapping[str, Any], n_fields: int) -> int:
+    """Потоки для параллельного enrich нескольких колонок (только tab-ключ)."""
+    cfg = _merge_parallel_config(parallel_cfg)
+    if not cfg.get("enabled", True):
+        return 1
+    min_fields = int(cfg.get("min_fields_for_parallel") or 3)
+    if n_fields < min_fields:
+        return 1
+    raw = int(cfg.get("max_workers") or 0)
+    if raw <= 0:
+        raw = min(8, (os.cpu_count() or 4))
+    return max(1, min(raw, n_fields))
 
 
 def _build_source_maps(
@@ -1307,78 +1378,127 @@ def enrich_tab_dataframe(
     df_tabs: pd.DataFrame,
     sheets_data: Mapping[str, Any],
     cfg: Optional[Mapping[str, Any]] = None,
+    *,
+    df_catalog: Optional[pd.DataFrame] = None,
 ) -> pd.DataFrame:
-    """Добавляет в df_tabs колонки из manager_stats.enrich_columns."""
+    """Добавляет в df_tabs колонки из manager_stats.enrich_columns и PROM_TOURNAMENTS."""
     if df_tabs is None or df_tabs.empty:
         return df_tabs
     mcfg = merge_manager_stats_config(cfg)
     pad_width = int(mcfg.get("normalize_pad_width") or 20)
-    global_default = _cell_str(mcfg.get("enrich_default")) or "-"
     parallel_cfg = _merge_parallel_config(mcfg.get("enrich_parallel"))
     fields = _normalized_enrich_fields_from_config(mcfg)
-
-    if not fields:
-        return df_tabs
-
-    available = [k for k in sheets_data.keys() if sheets_data.get(k) is not None]
     tabs = [
         normalize_tab_number(v, pad_width)
         for v in df_tabs["Табельный номер"].tolist()
     ]
     n_tabs = len(tabs)
-
-    t0 = time.perf_counter()
-    contexts: List[_EnrichFieldContext] = []
-    index_workers = _parallel_workers(parallel_cfg, len(fields))
-    if index_workers <= 1 or len(fields) < 2:
-        for fld in fields:
-            contexts.append(
-                _build_enrich_field_context(fld, sheets_data, available, pad_width=pad_width)
-            )
-    else:
-        with ThreadPoolExecutor(max_workers=min(index_workers, len(fields))) as executor:
-            contexts = list(
-                executor.map(
-                    lambda fld: _build_enrich_field_context(
-                        fld, sheets_data, available, pad_width=pad_width
-                    ),
-                    fields,
-                )
-            )
-    t_index = time.perf_counter() - t0
-    total_index_entries = sum(len(c.sources) for c in contexts)
-
     out = df_tabs.copy()
-    lookup_workers = _parallel_workers(parallel_cfg, n_tabs)
-    t1 = time.perf_counter()
-    for fld, ctx in zip(fields, contexts):
-        col_name = fld["output_column"]
-        lookup_keys = _build_lookup_keys_for_field(out, fld, tabs)
-        out[col_name] = _lookup_keys_for_field(lookup_keys, ctx, parallel_cfg)
-        key_kind = "составной" if fld.get("lookup_row_key") else "табельный"
+
+    if fields:
+        available = [k for k in sheets_data.keys() if sheets_data.get(k) is not None]
+
+        t0 = time.perf_counter()
+        contexts: List[_EnrichFieldContext] = []
+        index_workers = _parallel_workers(parallel_cfg, len(fields))
+        if index_workers <= 1 or len(fields) < 2:
+            for fld in fields:
+                contexts.append(
+                    _build_enrich_field_context(fld, sheets_data, available, pad_width=pad_width)
+                )
+        else:
+            with ThreadPoolExecutor(max_workers=min(index_workers, len(fields))) as executor:
+                contexts = list(
+                    executor.map(
+                        lambda fld: _build_enrich_field_context(
+                            fld, sheets_data, available, pad_width=pad_width
+                        ),
+                        fields,
+                    )
+                )
+        t_index = time.perf_counter() - t0
+        total_index_entries = sum(len(c.sources) for c in contexts)
+
+        lookup_workers = _parallel_workers(parallel_cfg, n_tabs)
+        t1 = time.perf_counter()
+
+        tab_only_pairs: List[Tuple[Dict[str, Any], _EnrichFieldContext]] = []
+        composite_pairs: List[Tuple[Dict[str, Any], _EnrichFieldContext]] = []
+        for fld, ctx in zip(fields, contexts):
+            if fld.get("lookup_row_key"):
+                composite_pairs.append((fld, ctx))
+            else:
+                tab_only_pairs.append((fld, ctx))
+
+        field_workers = _parallel_field_workers(parallel_cfg, len(tab_only_pairs))
+
+        def _lookup_field_column(
+            pair: Tuple[Dict[str, Any], _EnrichFieldContext],
+        ) -> Tuple[str, List[str]]:
+            fld, ctx = pair
+            lookup_keys = _build_lookup_keys_for_field(out, fld, tabs)
+            return fld["output_column"], _lookup_keys_for_field(lookup_keys, ctx, parallel_cfg)
+
+        if tab_only_pairs and field_workers > 1:
+            with ThreadPoolExecutor(max_workers=min(field_workers, len(tab_only_pairs))) as executor:
+                tab_only_results = list(executor.map(_lookup_field_column, tab_only_pairs))
+            for col_name, values in tab_only_results:
+                out[col_name] = values
+            logging.info(
+                "[manager_stats] enrich: %s tab-колонок параллельно (workers=%s, строк=%s)",
+                len(tab_only_pairs),
+                field_workers,
+                n_tabs,
+            )
+        else:
+            for fld, ctx in tab_only_pairs:
+                col_name = fld["output_column"]
+                lookup_keys = _build_lookup_keys_for_field(out, fld, tabs)
+                out[col_name] = _lookup_keys_for_field(lookup_keys, ctx, parallel_cfg)
+                logging.info(
+                    "[manager_stats] enrich «%s» → «%s» (mode=%s, ключ=табельный, индексов=%s, строк=%s)",
+                    fld["id"],
+                    col_name,
+                    fld["mode"],
+                    len(ctx.sources),
+                    n_tabs,
+                )
+
+        for fld, ctx in composite_pairs:
+            col_name = fld["output_column"]
+            lookup_keys = _build_lookup_keys_for_field(out, fld, tabs)
+            out[col_name] = _lookup_keys_for_field(lookup_keys, ctx, parallel_cfg)
+            logging.info(
+                "[manager_stats] enrich «%s» → «%s» (mode=%s, ключ=составной, индексов=%s, строк=%s)",
+                fld["id"],
+                col_name,
+                fld["mode"],
+                len(ctx.sources),
+                n_tabs,
+            )
+
+        t_lookup = time.perf_counter() - t1
         logging.info(
-            "[manager_stats] enrich «%s» → «%s» (mode=%s, ключ=%s, индексов=%s, строк=%s)",
-            fld["id"],
-            col_name,
-            fld["mode"],
-            key_kind,
-            len(ctx.sources),
+            "[manager_stats] enrich: индексы %s за %.2f с; lookup %s таб. за %.2f с (workers=%s)",
+            total_index_entries,
+            t_index,
             n_tabs,
+            t_lookup,
+            lookup_workers,
         )
-    t_lookup = time.perf_counter() - t1
-    logging.info(
-        "[manager_stats] enrich: индексы %s за %.2f с; lookup %s таб. за %.2f с (workers=%s)",
-        total_index_entries,
-        t_index,
-        n_tabs,
-        t_lookup,
-        lookup_workers,
+
+    out, prom_cols = _append_prom_tournament_tab_columns(
+        out,
+        sheets_data,
+        mcfg,
+        tabs,
+        df_catalog=df_catalog,
     )
 
     tail = ["Источники", "Число источников"]
     enrich_names = [f["output_column"] for f in fields]
     head = ["№", "Табельный номер"]
-    ordered = head + enrich_names + [c for c in tail if c in out.columns]
+    ordered = head + enrich_names + prom_cols + [c for c in tail if c in out.columns]
     extra = [c for c in out.columns if c not in ordered]
     return out[ordered + extra]
 
@@ -1708,8 +1828,11 @@ def _column_formats_summary_rows(mcfg: Mapping[str, Any]) -> List[Dict[str, Any]
 def build_manager_stats_summary_dataframe(
     sources_summary: pd.DataFrame,
     mcfg: Mapping[str, Any],
+    sheets_data: Optional[Mapping[str, Any]] = None,
+    *,
+    df_catalog: Optional[pd.DataFrame] = None,
 ) -> pd.DataFrame:
-    """Полная сводка MANAGER_STATS_SUMMARY: sources, enrich, форматы колонок."""
+    """Полная сводка MANAGER_STATS_SUMMARY: sources, enrich, PROM колонки, форматы."""
     rows: List[Dict[str, Any]] = []
     rows.extend(_sources_summary_rows(sources_summary))
     if rows:
@@ -1718,12 +1841,851 @@ def build_manager_stats_summary_dataframe(
     if enrich_rows:
         rows.extend(enrich_rows)
         rows.append({col: "" for col in _SUMMARY_COLUMNS})
+    if sheets_data is not None:
+        catalog_cfg = dict(mcfg.get("prom_tournament_catalog") or {})
+        if catalog_cfg.get("tab_columns_enabled") is not False:
+            if df_catalog is None and sheets_data is not None:
+                df_catalog = build_prom_tournament_catalog_dataframe(sheets_data, mcfg)
+            if df_catalog is not None and not df_catalog.empty:
+                prom_rows = _prom_tab_columns_summary_rows(
+                    _build_prom_tab_column_specs(df_catalog),
+                    mcfg,
+                )
+                if prom_rows:
+                    rows.extend(prom_rows)
+                    rows.append({col: "" for col in _SUMMARY_COLUMNS})
     rows.extend(_column_formats_summary_rows(mcfg))
     if not rows:
         return pd.DataFrame(columns=_SUMMARY_COLUMNS)
     while rows and all(not str(rows[-1].get(c) or "").strip() for c in _SUMMARY_COLUMNS):
         rows.pop()
     return pd.DataFrame(rows, columns=_SUMMARY_COLUMNS)
+
+
+def _contest_vid_from_cell(raw: Any) -> str:
+    """Извлекает vid из ячейки CONTEST_FEATURE (нормализация тройных кавычек в JSON)."""
+    s = _cell_str(raw)
+    if not s:
+        return ""
+    parsed = safe_json_loads(s.replace('"""', '"'))
+    if isinstance(parsed, dict):
+        return _cell_str(parsed.get("vid"))
+    return ""
+
+
+def _map_contest_type_label(raw: Any) -> str:
+    """CONTEST_TYPE из CONTEST-DATA → метка для листа PROM_TOURNAMENTS."""
+    s = _cell_str(raw)
+    if s == "ТУРНИРНЫЙ":
+        return "ТУРНИР"
+    if s in ("ИНДИВИДУАЛЬНЫЙ", "ИНДИВИДУАЛЬНЫЙ НАКОПИТЕЛЬНЫЙ"):
+        return "НАГРАДА"
+    return "-"
+
+
+def _build_contest_prom_index(
+    df_contest: pd.DataFrame,
+    *,
+    contest_vid: str,
+) -> Tuple[Set[str], Dict[str, str], Dict[str, str], Dict[str, str], Dict[str, str]]:
+    """CONTEST_CODE с vid=ПРОМ; словари FULL_NAME, CONTEST_TYPE, PRODUCT_GROUP, PRODUCT."""
+    code_col = _resolve_df_column(df_contest, "CONTEST_CODE")
+    name_col = _resolve_df_column(df_contest, "FULL_NAME")
+    type_col = _resolve_df_column(df_contest, "CONTEST_TYPE")
+    pg_col = _resolve_df_column(df_contest, "PRODUCT_GROUP")
+    prod_col = _resolve_df_column(df_contest, "PRODUCT")
+    if not code_col:
+        return set(), {}, {}, {}, {}
+    vid_col = _resolve_df_column(df_contest, "CONTEST_FEATURE => vid", ["CONTEST_FEATURE => vid"])
+    feat_col = _resolve_df_column(df_contest, "CONTEST_FEATURE")
+    prom_codes: Set[str] = set()
+    names: Dict[str, str] = {}
+    types: Dict[str, str] = {}
+    product_groups: Dict[str, str] = {}
+    products: Dict[str, str] = {}
+    target_vid = _cell_str(contest_vid)
+    for _, row in df_contest.iterrows():
+        code = _cell_str(row.get(code_col))
+        if not code:
+            continue
+        vid = ""
+        if vid_col:
+            vid = _cell_str(row.get(vid_col))
+        elif feat_col:
+            vid = _contest_vid_from_cell(row.get(feat_col))
+        if vid != target_vid:
+            continue
+        prom_codes.add(code)
+        if name_col:
+            names[code] = _cell_str(row.get(name_col)) or "-"
+        if type_col:
+            types[code] = _map_contest_type_label(row.get(type_col))
+        if pg_col:
+            product_groups[code] = _cell_str(row.get(pg_col)) or "-"
+        if prod_col:
+            products[code] = _cell_str(row.get(prod_col)) or "-"
+    return prom_codes, names, types, product_groups, products
+
+
+def _schedule_selection_mask(
+    df_schedule: pd.DataFrame,
+    *,
+    active_statuses: Sequence[str],
+    date_year: str,
+) -> pd.Series:
+    """Маска TOURNAMENT-SCHEDULE: активные/подведение итогов или START_DT/END_DT с годом date_year."""
+    status_col = _resolve_df_column(df_schedule, "TOURNAMENT_STATUS")
+    start_col = _resolve_df_column(df_schedule, "START_DT")
+    end_col = _resolve_df_column(df_schedule, "END_DT")
+    active_set = {_cell_str(s) for s in active_statuses if _cell_str(s)}
+    year = _cell_str(date_year)
+    status_ok = (
+        df_schedule[status_col].map(_cell_str).isin(active_set)
+        if status_col
+        else pd.Series(False, index=df_schedule.index)
+    )
+    start_s = df_schedule[start_col].map(_cell_str) if start_col else pd.Series("", index=df_schedule.index)
+    end_s = df_schedule[end_col].map(_cell_str) if end_col else pd.Series("", index=df_schedule.index)
+    date_ok = start_s.str.contains(year, na=False) | end_s.str.contains(year, na=False)
+    return status_ok | date_ok
+
+
+def _extract_schedule_pairs(
+    df_schedule: pd.DataFrame,
+    *,
+    mask: Optional[pd.Series] = None,
+) -> pd.DataFrame:
+    """Уникальные пары TOURNAMENT_CODE+CONTEST_CODE с полями расписания."""
+    t_col = _resolve_df_column(df_schedule, "TOURNAMENT_CODE")
+    c_col = _resolve_df_column(df_schedule, "CONTEST_CODE")
+    period_col = _resolve_df_column(df_schedule, "PERIOD_TYPE")
+    start_col = _resolve_df_column(df_schedule, "START_DT")
+    end_col = _resolve_df_column(df_schedule, "END_DT")
+    status_col = _resolve_df_column(df_schedule, "TOURNAMENT_STATUS")
+    if not t_col or not c_col:
+        return df_schedule.iloc[0:0]
+
+    base = df_schedule.loc[mask] if mask is not None else df_schedule
+    pick_cols: List[str] = [t_col, c_col]
+    rename_map: Dict[str, str] = {t_col: "TOURNAMENT_CODE", c_col: "CONTEST_CODE"}
+    for src_col, out_name in (
+        (period_col, "PERIOD_TYPE"),
+        (start_col, "START_DT"),
+        (end_col, "END_DT"),
+        (status_col, "TOURNAMENT_STATUS"),
+    ):
+        if src_col:
+            pick_cols.append(src_col)
+            rename_map[src_col] = out_name
+
+    sub = base.loc[:, pick_cols].copy()
+    sub = sub.rename(columns=rename_map)
+    for col in ("TOURNAMENT_CODE", "CONTEST_CODE"):
+        sub[col] = sub[col].map(_cell_str)
+    for col in ("PERIOD_TYPE", "TOURNAMENT_STATUS"):
+        if col in sub.columns:
+            sub[col] = sub[col].map(lambda x: _cell_str(x) if _cell_str(x) else "-")
+    for col in ("START_DT", "END_DT"):
+        if col in sub.columns:
+            sub[col] = sub[col].map(_parse_catalog_date_value)
+    sub = sub[(sub["TOURNAMENT_CODE"] != "") & (sub["CONTEST_CODE"] != "")]
+    return sub.drop_duplicates(subset=["TOURNAMENT_CODE", "CONTEST_CODE"])
+
+
+def _rows_from_schedule_reward_link(
+    pairs: pd.DataFrame,
+    df_reward_link: Optional[pd.DataFrame],
+    reward_link_sheet: str,
+) -> pd.DataFrame:
+    """Пары расписания + REWARD_CODE из REWARD-LINK по CONTEST_CODE."""
+    if pairs.empty:
+        return pairs
+    rl_contest_col = _resolve_df_column(df_reward_link, "CONTEST_CODE") if df_reward_link is not None else None
+    rl_reward_col = _resolve_df_column(df_reward_link, "REWARD_CODE") if df_reward_link is not None else None
+    if df_reward_link is not None and rl_contest_col and rl_reward_col:
+        links = df_reward_link[[rl_contest_col, rl_reward_col]].copy()
+        links.columns = ["CONTEST_CODE", "REWARD_CODE"]
+        links["CONTEST_CODE"] = links["CONTEST_CODE"].map(_cell_str)
+        links["REWARD_CODE"] = links["REWARD_CODE"].map(_cell_str)
+        links = links[(links["CONTEST_CODE"] != "") & (links["REWARD_CODE"] != "")]
+        links = links.drop_duplicates(subset=["CONTEST_CODE", "REWARD_CODE"])
+        return pairs.merge(links, on="CONTEST_CODE", how="left")
+    logging.warning(
+        "[manager_stats] PROM_TOURNAMENTS: лист «%s» недоступен — REWARD_CODE из REWARD-LINK не заполняется",
+        reward_link_sheet,
+    )
+    out = pairs.copy()
+    out["REWARD_CODE"] = ""
+    return out
+
+
+def _rows_from_list_rewards(
+    df_list_rewards: pd.DataFrame,
+    schedule_all: pd.DataFrame,
+    *,
+    prom_codes: Set[str],
+    date_year: str,
+) -> pd.DataFrame:
+    """LIST-REWARDS: Код турнира + Код награды при Дата создания с годом date_year."""
+    t_col = _resolve_df_column(df_list_rewards, "Код турнира")
+    r_col = _resolve_df_column(df_list_rewards, "Код награды")
+    created_col = _resolve_df_column(df_list_rewards, "Дата создания")
+    if not t_col or not r_col or not created_col:
+        return df_list_rewards.iloc[0:0]
+    if schedule_all.empty:
+        return df_list_rewards.iloc[0:0]
+
+    year = _cell_str(date_year)
+    created_s = df_list_rewards[created_col].map(_cell_str)
+    mask = created_s.str.contains(year, na=False)
+    lr = df_list_rewards.loc[mask, [t_col, r_col]].copy()
+    lr.columns = ["TOURNAMENT_CODE", "REWARD_CODE"]
+    lr["TOURNAMENT_CODE"] = lr["TOURNAMENT_CODE"].map(_cell_str)
+    lr["REWARD_CODE"] = lr["REWARD_CODE"].map(_cell_str)
+    lr = lr[(lr["TOURNAMENT_CODE"] != "") & (lr["REWARD_CODE"] != "")]
+    lr = lr.drop_duplicates(subset=["TOURNAMENT_CODE", "REWARD_CODE"])
+    if lr.empty:
+        return lr
+
+    merged = lr.merge(schedule_all, on="TOURNAMENT_CODE", how="inner")
+    merged = merged[merged["CONTEST_CODE"].isin(prom_codes)]
+    return merged.drop_duplicates(subset=["TOURNAMENT_CODE", "CONTEST_CODE", "REWARD_CODE"])
+
+
+def _build_list_rewards_received_counts(
+    df_list_rewards: Optional[pd.DataFrame],
+) -> Dict[Tuple[str, str], int]:
+    """Число строк LIST-REWARDS по паре Код турнира + Код награды."""
+    if df_list_rewards is None or df_list_rewards.empty:
+        return {}
+    t_col = _resolve_df_column(df_list_rewards, "Код турнира")
+    r_col = _resolve_df_column(df_list_rewards, "Код награды")
+    if not t_col or not r_col:
+        return {}
+    sub = df_list_rewards[[t_col, r_col]].copy()
+    sub.columns = ["TOURNAMENT_CODE", "REWARD_CODE"]
+    sub["TOURNAMENT_CODE"] = sub["TOURNAMENT_CODE"].map(_cell_str)
+    sub["REWARD_CODE"] = sub["REWARD_CODE"].map(_cell_str)
+    sub = sub[(sub["TOURNAMENT_CODE"] != "") & (sub["REWARD_CODE"] != "")]
+    if sub.empty:
+        return {}
+    grouped = sub.groupby(["TOURNAMENT_CODE", "REWARD_CODE"], sort=False).size()
+    return {(str(t), str(r)): int(n) for (t, r), n in grouped.items()}
+
+
+def _reward_names_map(df_reward: Optional[pd.DataFrame]) -> Dict[str, str]:
+    """Словарь REWARD_CODE → FULL_NAME."""
+    reward_names: Dict[str, str] = {}
+    if df_reward is None:
+        return reward_names
+    rw_code_col = _resolve_df_column(df_reward, "REWARD_CODE")
+    rw_name_col = _resolve_df_column(df_reward, "FULL_NAME")
+    if not rw_code_col or not rw_name_col:
+        return reward_names
+    for _, row in df_reward.iterrows():
+        code = _cell_str(row.get(rw_code_col))
+        if code:
+            reward_names[code] = _cell_str(row.get(rw_name_col)) or "-"
+    return reward_names
+
+
+def _apply_prom_catalog_enrichment(
+    out: pd.DataFrame,
+    *,
+    contest_names: Mapping[str, str],
+    contest_types: Mapping[str, str],
+    product_groups: Mapping[str, str],
+    products: Mapping[str, str],
+    reward_names: Mapping[str, str],
+    received_counts: Optional[Mapping[Tuple[str, str], int]] = None,
+    rewards_received_column: str = "получено наград",
+) -> pd.DataFrame:
+    """Подстановка полей конкурса, награды и количества выдач."""
+    df = out.copy()
+    df["FULL_NAME"] = df["CONTEST_CODE"].map(lambda c: contest_names.get(c, "-"))
+    df["CONTEST_TYPE"] = df["CONTEST_CODE"].map(lambda c: contest_types.get(c, "-"))
+    df["PRODUCT_GROUP"] = df["CONTEST_CODE"].map(lambda c: product_groups.get(c, "-"))
+    df["PRODUCT"] = df["CONTEST_CODE"].map(lambda c: products.get(c, "-"))
+    df["REWARD_CODE"] = df["REWARD_CODE"].map(lambda c: _cell_str(c) if _cell_str(c) else "-")
+    df["REWARD_FULL_NAME"] = df["REWARD_CODE"].map(
+        lambda c: reward_names.get(c, "-") if c != "-" else "-"
+    )
+    counts = received_counts or {}
+    col = str(rewards_received_column or "получено наград").strip() or "получено наград"
+    df[col] = [
+        counts.get((t, r), 0) if r != "-" else 0
+        for t, r in zip(
+            df["TOURNAMENT_CODE"].map(_cell_str),
+            df["REWARD_CODE"].map(_cell_str),
+        )
+    ]
+    return df
+
+
+def _prom_catalog_column_format_rules(catalog_cfg: Mapping[str, Any]) -> List[Dict[str, Any]]:
+    """Правила формата колонок листа PROM_TOURNAMENTS (даты START_DT/END_DT)."""
+    default: List[Dict[str, Any]] = [
+        {
+            "columns": ["START_DT", "END_DT"],
+            "data_type": "date",
+            "date_format": "YYYY-MM-DD",
+            "horizontal": "center",
+            "vertical": "center",
+            "wrap_text": False,
+        }
+    ]
+    raw = catalog_cfg.get("column_formats")
+    if isinstance(raw, list) and raw:
+        return [dict(r) for r in raw if isinstance(r, dict)]
+    return default
+
+
+_PROM_CATALOG_SORT_PRIORITY: Tuple[str, ...] = (
+    "START_DT",
+    "REWARD_CODE",
+    "PRODUCT",
+    "PRODUCT_GROUP",
+    "CONTEST_TYPE",
+)
+
+
+def _prom_catalog_sort_text_value(x: Any) -> str:
+    """Текстовый ключ сортировки: trim; пустое и «-» → пустая строка."""
+    s = _cell_str(x)
+    return "" if not s or s == "-" else s
+
+
+def _sort_prom_catalog_dataframe(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Многоуровневая сортировка как диалог Excel (уровень 1 — главный ключ).
+
+    Уровни: START_DT → REWARD_CODE → PRODUCT → PRODUCT_GROUP → CONTEST_TYPE.
+    """
+    if df.empty:
+        return df
+    keys = df.copy()
+    for col in ("START_DT", "END_DT"):
+        if col in keys.columns:
+            keys[col] = keys[col].map(_parse_catalog_date_value)
+    for col in ("PRODUCT", "PRODUCT_GROUP", "REWARD_CODE", "CONTEST_TYPE"):
+        if col in keys.columns:
+            keys[col] = keys[col].map(_prom_catalog_sort_text_value)
+    sort_cols = [c for c in _PROM_CATALOG_SORT_PRIORITY if c in keys.columns]
+    if not sort_cols:
+        return df
+    order = keys.sort_values(by=sort_cols, kind="mergesort", na_position="last").index
+    return df.loc[order]
+
+
+def _finalize_prom_catalog_dataframe(
+    out: pd.DataFrame,
+    *,
+    rewards_received_column: str = "получено наград",
+) -> pd.DataFrame:
+    """Сортировка, нумерация и порядок колонок листа PROM_TOURNAMENTS."""
+    received_col = str(rewards_received_column or "получено наград").strip() or "получено наград"
+    work = out.copy()
+    sorted_df = _sort_prom_catalog_dataframe(work).reset_index(drop=True)
+    for col in ("START_DT", "END_DT"):
+        if col in sorted_df.columns:
+            sorted_df[col] = sorted_df[col].map(_parse_catalog_date_value)
+    sorted_df.insert(0, "№", range(1, len(sorted_df) + 1))
+    ordered = [
+        "№",
+        "TOURNAMENT_CODE",
+        "PERIOD_TYPE",
+        "START_DT",
+        "END_DT",
+        "TOURNAMENT_STATUS",
+        "CONTEST_CODE",
+        "CONTEST_TYPE",
+        "PRODUCT",
+        "PRODUCT_GROUP",
+        "REWARD_CODE",
+        "FULL_NAME",
+        "REWARD_FULL_NAME",
+        received_col,
+    ]
+    present = [c for c in ordered if c in sorted_df.columns]
+    extra = [c for c in sorted_df.columns if c not in present]
+    return sorted_df[present + extra]
+
+
+@dataclass
+class _PromTabColumnSpec:
+    """Колонка TAB_NUMBERS из каталога PROM_TOURNAMENTS."""
+
+    column_name: str
+    contest_type: str
+    product_group: str
+    product: str
+    contest_code: str
+    sort_start_dt: pd.Timestamp
+    pairs: List[Tuple[str, str]] = field(default_factory=list)
+
+
+def _format_prom_tab_column_start_dt(value: Any) -> str:
+    """Дата START_DT для заголовка колонки TAB_NUMBERS."""
+    ts = _parse_catalog_date_value(value)
+    if pd.isna(ts):
+        return "-"
+    return ts.strftime("%Y-%m-%d")
+
+
+def _prom_tab_column_sort_key(spec: _PromTabColumnSpec) -> Tuple[Any, ...]:
+    """Порядок колонок: НАГРАДА → ТУРНИР → PRODUCT_GROUP → PRODUCT → CONTEST_CODE → START_DT."""
+    type_rank = 0 if spec.contest_type == "НАГРАДА" else 1
+    start = spec.sort_start_dt if not pd.isna(spec.sort_start_dt) else pd.Timestamp.max
+    return (
+        type_rank,
+        _prom_catalog_sort_text_value(spec.product_group),
+        _prom_catalog_sort_text_value(spec.product),
+        _prom_catalog_sort_text_value(spec.contest_code),
+        start,
+        spec.column_name,
+    )
+
+
+def _build_prom_tab_column_specs(df_catalog: pd.DataFrame) -> List[_PromTabColumnSpec]:
+    """
+    Колонки TAB_NUMBERS по каталогу PROM_TOURNAMENTS.
+
+    НАГРАДА: НАГРАДА REWARD_FULL_NAME (START_DT) [PRODUCT]
+    ТУРНИР: ТУРНИР FULL_NAME (START_DT) [PRODUCT]
+    """
+    if df_catalog is None or df_catalog.empty:
+        return []
+    buckets: Dict[str, _PromTabColumnSpec] = {}
+    for _, row in df_catalog.iterrows():
+        contest_type = _cell_str(row.get("CONTEST_TYPE"))
+        if contest_type not in ("НАГРАДА", "ТУРНИР"):
+            continue
+        product_group = _cell_str(row.get("PRODUCT_GROUP")) or "-"
+        product = _cell_str(row.get("PRODUCT")) or "-"
+        contest_code = _cell_str(row.get("CONTEST_CODE"))
+        tournament_code = _cell_str(row.get("TOURNAMENT_CODE"))
+        reward_code = _cell_str(row.get("REWARD_CODE"))
+        if reward_code == "-":
+            reward_code = ""
+        contest_full_name = _cell_str(row.get("FULL_NAME")) or tournament_code
+        reward_full_name = _cell_str(row.get("REWARD_FULL_NAME")) or reward_code
+        if contest_full_name == "-":
+            contest_full_name = tournament_code
+        if reward_full_name == "-":
+            reward_full_name = reward_code
+        start_dt = _parse_catalog_date_value(row.get("START_DT"))
+        start_fmt = _format_prom_tab_column_start_dt(start_dt)
+        if contest_type == "ТУРНИР":
+            if not tournament_code:
+                continue
+            column_name = f"ТУРНИР {contest_full_name} ({start_fmt}) [{product}]"
+        else:
+            if not reward_code:
+                continue
+            column_name = f"НАГРАДА {reward_full_name} ({start_fmt}) [{product}]"
+        pair = (tournament_code, reward_code)
+        if column_name not in buckets:
+            buckets[column_name] = _PromTabColumnSpec(
+                column_name=column_name,
+                contest_type=contest_type,
+                product_group=product_group,
+                product=product,
+                contest_code=contest_code,
+                sort_start_dt=start_dt,
+            )
+        spec = buckets[column_name]
+        if pair[0] and pair[1] and pair not in spec.pairs:
+            spec.pairs.append(pair)
+    specs = list(buckets.values())
+    specs.sort(key=_prom_tab_column_sort_key)
+    return specs
+
+
+def _list_rewards_counts_long_df(
+    df_list_rewards: Optional[pd.DataFrame],
+    *,
+    date_year: str,
+    pad_width: int,
+) -> pd.DataFrame:
+    """Длинный индекс LIST-REWARDS: tab, TOURNAMENT_CODE, REWARD_CODE, n (фильтр по году)."""
+    empty = pd.DataFrame(columns=["tab", "TOURNAMENT_CODE", "REWARD_CODE", "n"])
+    if df_list_rewards is None or df_list_rewards.empty:
+        return empty
+    tab_col = _resolve_df_column(df_list_rewards, "Табельный номер сотрудника")
+    t_col = _resolve_df_column(df_list_rewards, "Код турнира")
+    r_col = _resolve_df_column(df_list_rewards, "Код награды")
+    created_col = _resolve_df_column(df_list_rewards, "Дата создания")
+    if not tab_col or not t_col or not r_col or not created_col:
+        return empty
+    year = _cell_str(date_year)
+    created_s = df_list_rewards[created_col].map(_cell_str)
+    mask = created_s.str.contains(year, na=False)
+    sub = df_list_rewards.loc[mask, [tab_col, t_col, r_col]].copy()
+    sub.columns = ["tab", "TOURNAMENT_CODE", "REWARD_CODE"]
+    sub["tab"] = sub["tab"].map(lambda x: normalize_tab_number(x, pad_width))
+    sub["TOURNAMENT_CODE"] = sub["TOURNAMENT_CODE"].map(_cell_str)
+    sub["REWARD_CODE"] = sub["REWARD_CODE"].map(_cell_str)
+    sub = sub[
+        (sub["tab"] != "")
+        & (sub["TOURNAMENT_CODE"] != "")
+        & (sub["REWARD_CODE"] != "")
+    ]
+    if sub.empty:
+        return empty
+    grouped = (
+        sub.groupby(["tab", "TOURNAMENT_CODE", "REWARD_CODE"], sort=False)
+        .size()
+        .reset_index(name="n")
+    )
+    grouped["n"] = grouped["n"].astype(int)
+    return grouped
+
+
+def _build_list_rewards_employee_counts_by_year(
+    df_list_rewards: Optional[pd.DataFrame],
+    *,
+    date_year: str,
+    pad_width: int,
+) -> Dict[str, Dict[Tuple[str, str], int]]:
+    """Число строк LIST-REWARDS по табельному и паре Код турнира + Код награды (год в Дата создания)."""
+    long_df = _list_rewards_counts_long_df(
+        df_list_rewards,
+        date_year=date_year,
+        pad_width=pad_width,
+    )
+    if long_df.empty:
+        return {}
+    result: Dict[str, Dict[Tuple[str, str], int]] = defaultdict(dict)
+    for row in long_df.itertuples(index=False):
+        result[str(row.tab)][(str(row.TOURNAMENT_CODE), str(row.REWARD_CODE))] = int(row.n)
+    return dict(result)
+
+
+def _build_prom_tab_columns_matrix(
+    tabs: Sequence[str],
+    specs: Sequence[_PromTabColumnSpec],
+    counts_long: pd.DataFrame,
+    *,
+    default_num: int,
+    summary_nagrada_col: str,
+    summary_turdir_col: str,
+) -> Tuple[pd.DataFrame, List[str]]:
+    """Векторизованная сборка PROM-колонок: merge + pivot вместо вложенных циклов."""
+    nagrada_cols = [s.column_name for s in specs if s.contest_type == "НАГРАДА"]
+    turdir_cols = [s.column_name for s in specs if s.contest_type == "ТУРНИР"]
+    col_names: List[str] = []
+    if nagrada_cols:
+        if summary_nagrada_col:
+            col_names.append(summary_nagrada_col)
+        col_names.extend(nagrada_cols)
+    if turdir_cols:
+        if summary_turdir_col:
+            col_names.append(summary_turdir_col)
+        col_names.extend(turdir_cols)
+    if not col_names:
+        return pd.DataFrame(index=range(len(tabs))), []
+
+    pair_rows: List[Dict[str, str]] = []
+    for spec in specs:
+        for t_code, r_code in spec.pairs:
+            if not t_code or not r_code:
+                continue
+            pair_rows.append(
+                {
+                    "column_name": spec.column_name,
+                    "TOURNAMENT_CODE": t_code,
+                    "REWARD_CODE": r_code,
+                }
+            )
+    if not pair_rows:
+        detail = pd.DataFrame(default_num, index=list(tabs), columns=[s.column_name for s in specs])
+    elif counts_long.empty:
+        detail = pd.DataFrame(default_num, index=list(tabs), columns=[s.column_name for s in specs])
+    else:
+        pairs_df = pd.DataFrame(pair_rows)
+        merged = pairs_df.merge(
+            counts_long,
+            on=["TOURNAMENT_CODE", "REWARD_CODE"],
+            how="left",
+        )
+        merged["n"] = merged["n"].fillna(0).astype(int)
+        per_tab_col = merged.groupby(["tab", "column_name"], sort=False)["n"].sum()
+        detail = (
+            per_tab_col.unstack(fill_value=0)
+            .reindex(list(tabs), fill_value=0)
+            .fillna(0)
+            .astype(int)
+        )
+        for spec in specs:
+            if spec.column_name not in detail.columns:
+                detail[spec.column_name] = default_num
+        detail = detail[[s.column_name for s in specs]]
+
+    out_cols: Dict[str, pd.Series] = {}
+    if nagrada_cols and summary_nagrada_col:
+        out_cols[summary_nagrada_col] = detail[nagrada_cols].sum(axis=1).astype(int)
+    if turdir_cols and summary_turdir_col:
+        out_cols[summary_turdir_col] = detail[turdir_cols].sum(axis=1).astype(int)
+    for name in col_names:
+        if name in out_cols:
+            continue
+        out_cols[name] = detail[name].astype(int)
+    return pd.DataFrame(out_cols, index=list(tabs))[col_names], col_names
+
+
+def _append_prom_tournament_tab_columns(
+    df_tabs: pd.DataFrame,
+    sheets_data: Mapping[str, Any],
+    mcfg: Mapping[str, Any],
+    tabs: Sequence[str],
+    *,
+    df_catalog: Optional[pd.DataFrame] = None,
+) -> Tuple[pd.DataFrame, List[str]]:
+    """Добавляет на TAB_NUMBERS колонки-счётчики LIST-REWARDS 2026 по каталогу PROM."""
+    catalog_cfg = dict(mcfg.get("prom_tournament_catalog") or {})
+    if catalog_cfg.get("tab_columns_enabled") is False:
+        return df_tabs, []
+    t0 = time.perf_counter()
+    if df_catalog is None:
+        df_catalog = build_prom_tournament_catalog_dataframe(sheets_data, mcfg)
+    if df_catalog is None or df_catalog.empty:
+        return df_tabs, []
+    specs = _build_prom_tab_column_specs(df_catalog)
+    if not specs:
+        return df_tabs, []
+
+    list_rewards_sheet = str(catalog_cfg.get("list_rewards_sheet") or "LIST-REWARDS").strip()
+    date_year = str(catalog_cfg.get("date_year") or "2026").strip()
+    pad_width = int(mcfg.get("normalize_pad_width") or 20)
+    default_val = catalog_cfg.get("tab_columns_default")
+    if default_val is None:
+        default_val = 0
+    try:
+        default_num = int(default_val)
+    except (TypeError, ValueError):
+        default_num = 0
+
+    df_lr = _get_sheet_df(sheets_data, list_rewards_sheet)
+    counts_long = _list_rewards_counts_long_df(
+        df_lr,
+        date_year=date_year,
+        pad_width=pad_width,
+    )
+    summary_nagrada_col = str(catalog_cfg.get("tab_columns_total_nagrada") or "НАГРАДА всего").strip()
+    summary_turdir_col = str(
+        catalog_cfg.get("tab_columns_total_tournament") or "ТУРНИР всего"
+    ).strip()
+    prom_df, col_names = _build_prom_tab_columns_matrix(
+        tabs,
+        specs,
+        counts_long,
+        default_num=default_num,
+        summary_nagrada_col=summary_nagrada_col,
+        summary_turdir_col=summary_turdir_col,
+    )
+    out = pd.concat([df_tabs, prom_df.set_index(df_tabs.index)], axis=1) if not prom_df.empty else df_tabs.copy()
+
+    logging.info(
+        "[manager_stats] PROM колонки TAB_NUMBERS: %s колонок за %.2f с "
+        "(LIST-REWARDS %s, строк индекса=%s, vid=%s)",
+        len(col_names),
+        time.perf_counter() - t0,
+        date_year,
+        len(counts_long),
+        catalog_cfg.get("contest_vid") or "ПРОМ",
+    )
+    return out, col_names
+
+
+def _prom_tab_columns_summary_rows(
+    specs: Sequence[_PromTabColumnSpec],
+    mcfg: Mapping[str, Any],
+) -> List[Dict[str, Any]]:
+    """Строки сводки по динамическим колонкам PROM на TAB_NUMBERS."""
+    catalog_cfg = dict(mcfg.get("prom_tournament_catalog") or {})
+    date_year = str(catalog_cfg.get("date_year") or "2026").strip()
+    rows: List[Dict[str, Any]] = []
+    for spec in specs:
+        pairs_note = "; ".join(f"{t}+{r}" for t, r in spec.pairs[:3])
+        if len(spec.pairs) > 3:
+            pairs_note += "; …"
+        rows.append(
+            {
+                "Раздел": "PROM колонки",
+                "Колонка TAB_NUMBERS": spec.column_name,
+                "ID": "prom_tab_column",
+                "Приоритет": spec.contest_type,
+                "Лист": "LIST-REWARDS",
+                "Сопоставление": "TOURNAMENT_CODE + REWARD_CODE",
+                "Колонка значения": "count",
+                "Режим": "count",
+                "Логика": (
+                    f"число строк LIST-REWARDS с «Дата создания» {date_year} "
+                    f"по табельному и паре турнир+награда"
+                ),
+                "Фильтры": f"Дата создания ∋ {date_year}",
+                "Примечание": (
+                    f"{spec.product_group} / {spec.product} / {spec.contest_code}; пары: {pairs_note}"
+                ),
+            }
+        )
+    return rows
+
+
+def _prom_tab_columns_width_params(
+    col_names: Sequence[str],
+    catalog_cfg: Mapping[str, Any],
+) -> Dict[str, Dict[str, Any]]:
+    """Узкая фиксированная ширина колонок НАГРАДА/ТУРНИР на TAB_NUMBERS."""
+    try:
+        width = int(catalog_cfg.get("tab_columns_width") or 7)
+    except (TypeError, ValueError):
+        width = 7
+    width = max(4, width)
+    rule = {"width_mode": width, "min_width": width, "max_width": width}
+    return {name: dict(rule) for name in col_names if name}
+
+
+def _prom_tab_columns_format_rules(catalog_cfg: Mapping[str, Any]) -> List[Dict[str, Any]]:
+    """Число по центру для колонок НАГРАДА/ТУРНИР на TAB_NUMBERS."""
+    raw = catalog_cfg.get("tab_columns_format")
+    if isinstance(raw, dict) and raw:
+        rule = dict(raw)
+    else:
+        rule = {
+            "data_type": "number",
+            "decimal_places": 0,
+            "decimal_separator": ",",
+            "thousands_separator": False,
+            "horizontal": "center",
+            "vertical": "center",
+            "wrap_text": False,
+        }
+    rule["column_prefixes"] = ["НАГРАДА ", "ТУРНИР "]
+    return [rule]
+
+
+def build_prom_tournament_catalog_dataframe(
+    sheets_data: Mapping[str, Any],
+    cfg: Optional[Mapping[str, Any]] = None,
+) -> Optional[pd.DataFrame]:
+    """
+    Каталог турниров/конкурсов/наград ПРОМ для отдельного листа MANAGER_STATS.
+
+    Источники (объединение без дублей):
+    1) TOURNAMENT-SCHEDULE (активные/подведение итогов или даты 2026) + REWARD-LINK;
+    2) LIST-REWARDS (Дата создания 2026) + TOURNAMENT-SCHEDULE по Код турнира = TOURNAMENT_CODE.
+    Только конкурсы CONTEST-DATA с CONTEST_FEATURE.vid = ПРОМ.
+    """
+    mcfg = merge_manager_stats_config(cfg)
+    catalog_cfg = dict(mcfg.get("prom_tournament_catalog") or {})
+    if catalog_cfg.get("enabled") is False:
+        return None
+
+    schedule_sheet = str(catalog_cfg.get("schedule_sheet") or "TOURNAMENT-SCHEDULE").strip()
+    reward_link_sheet = str(catalog_cfg.get("reward_link_sheet") or "REWARD-LINK").strip()
+    contest_sheet = str(catalog_cfg.get("contest_sheet") or "CONTEST-DATA").strip()
+    reward_sheet = str(catalog_cfg.get("reward_sheet") or "REWARD").strip()
+    list_rewards_sheet = str(catalog_cfg.get("list_rewards_sheet") or "LIST-REWARDS").strip()
+    rewards_received_column = str(
+        catalog_cfg.get("rewards_received_column") or "получено наград"
+    ).strip()
+    active_statuses = list(catalog_cfg.get("active_statuses") or ["АКТИВНЫЙ", "ПОДВЕДЕНИЕ ИТОГОВ"])
+    date_year = str(catalog_cfg.get("date_year") or "2026").strip()
+    contest_vid = str(catalog_cfg.get("contest_vid") or "ПРОМ").strip()
+
+    df_schedule = _get_sheet_df(sheets_data, schedule_sheet)
+    df_contest = _get_sheet_df(sheets_data, contest_sheet)
+    if df_schedule is None or df_contest is None:
+        logging.warning(
+            "[manager_stats] PROM_TOURNAMENTS: нет листов «%s» или «%s» — лист пропущен",
+            schedule_sheet,
+            contest_sheet,
+        )
+        return None
+
+    prom_codes, contest_names, contest_types, product_groups, products = _build_contest_prom_index(
+        df_contest,
+        contest_vid=contest_vid,
+    )
+    if not prom_codes:
+        logging.warning("[manager_stats] PROM_TOURNAMENTS: нет конкурсов с vid=%s", contest_vid)
+        return None
+
+    schedule_all = _extract_schedule_pairs(df_schedule)
+    schedule_mask = _schedule_selection_mask(
+        df_schedule,
+        active_statuses=active_statuses,
+        date_year=date_year,
+    )
+    pairs_filtered = _extract_schedule_pairs(df_schedule, mask=schedule_mask)
+    pairs_filtered = pairs_filtered[pairs_filtered["CONTEST_CODE"].isin(prom_codes)]
+
+    parts: List[pd.DataFrame] = []
+    n_schedule = 0
+    n_list_rewards = 0
+
+    if not pairs_filtered.empty:
+        df_reward_link = _get_sheet_df(sheets_data, reward_link_sheet)
+        from_schedule = _rows_from_schedule_reward_link(
+            pairs_filtered,
+            df_reward_link,
+            reward_link_sheet,
+        )
+        if not from_schedule.empty:
+            parts.append(from_schedule)
+            n_schedule = len(from_schedule)
+
+    df_list_rewards = _get_sheet_df(sheets_data, list_rewards_sheet)
+    if df_list_rewards is not None:
+        from_lr = _rows_from_list_rewards(
+            df_list_rewards,
+            schedule_all,
+            prom_codes=prom_codes,
+            date_year=date_year,
+        )
+        if not from_lr.empty:
+            parts.append(from_lr)
+            n_list_rewards = len(from_lr)
+    else:
+        logging.warning(
+            "[manager_stats] PROM_TOURNAMENTS: лист «%s» недоступен — выдачи 2026 не добавляются",
+            list_rewards_sheet,
+        )
+
+    if not parts:
+        logging.info("[manager_stats] PROM_TOURNAMENTS: нет строк после объединения источников")
+        return None
+
+    combined = pd.concat(parts, ignore_index=True)
+    combined = combined.drop_duplicates(subset=["TOURNAMENT_CODE", "CONTEST_CODE", "REWARD_CODE"])
+
+    df_reward = _get_sheet_df(sheets_data, reward_sheet)
+    reward_names = _reward_names_map(df_reward)
+    received_counts = _build_list_rewards_received_counts(df_list_rewards)
+    out = _apply_prom_catalog_enrichment(
+        combined,
+        contest_names=contest_names,
+        contest_types=contest_types,
+        product_groups=product_groups,
+        products=products,
+        reward_names=reward_names,
+        received_counts=received_counts,
+        rewards_received_column=rewards_received_column,
+    )
+    out = _finalize_prom_catalog_dataframe(
+        out,
+        rewards_received_column=rewards_received_column,
+    )
+
+    logging.info(
+        "[manager_stats] PROM_TOURNAMENTS: %s строк (расписание+REWARD-LINK: %s, LIST-REWARDS 2026: %s, vid=%s)",
+        len(out),
+        n_schedule,
+        n_list_rewards,
+        contest_vid,
+    )
+    return out
 
 
 def build_manager_stats_workbook_data(
@@ -1733,11 +2695,26 @@ def build_manager_stats_workbook_data(
 ) -> Dict[str, Tuple[pd.DataFrame, Dict[str, Any]]]:
     """Данные для write_to_excel: табельные (с enrich) и сводка по sources/enrich."""
     mcfg = merge_manager_stats_config(cfg)
+    catalog_cfg = dict(mcfg.get("prom_tournament_catalog") or {})
+    df_catalog: Optional[pd.DataFrame] = None
+    if catalog_cfg.get("enabled") is not False:
+        df_catalog = build_prom_tournament_catalog_dataframe(sheets_data, mcfg)
+
     df_tabs, df_sources_summary = collect_tab_numbers_from_sheets(sheets_data, input_files, mcfg)
-    df_tabs = enrich_tab_dataframe(df_tabs, sheets_data, mcfg)
-    df_summary = build_manager_stats_summary_dataframe(df_sources_summary, mcfg)
+    df_tabs = enrich_tab_dataframe(df_tabs, sheets_data, mcfg, df_catalog=df_catalog)
+    df_summary = build_manager_stats_summary_dataframe(
+        df_sources_summary,
+        mcfg,
+        sheets_data,
+        df_catalog=df_catalog,
+    )
     tab_sheet = str(mcfg.get("output_sheet") or "TAB_NUMBERS")
     summary_sheet = str(mcfg.get("summary_sheet") or "MANAGER_STATS_SUMMARY")
+    prom_tab_cols = [
+        str(c)
+        for c in df_tabs.columns
+        if str(c).startswith("НАГРАДА ") or str(c).startswith("ТУРНИР ")
+    ]
     base_params: Dict[str, Any] = {
         "max_col_width": 80,
         "freeze": str(mcfg.get("freeze") or "E2"),
@@ -1746,13 +2723,35 @@ def build_manager_stats_workbook_data(
         "added_columns_width": _added_columns_width_from_config(mcfg),
         "column_format_rules": _column_format_rules_from_config(mcfg),
     }
+    tab_params: Dict[str, Any] = {
+        **base_params,
+        "sheet": tab_sheet,
+        "added_columns_width": {
+            **dict(base_params.get("added_columns_width") or {}),
+            **_prom_tab_columns_width_params(prom_tab_cols, catalog_cfg),
+        },
+        "column_format_rules": list(base_params.get("column_format_rules") or [])
+        + _prom_tab_columns_format_rules(catalog_cfg),
+    }
     summary_params: Dict[str, Any] = {
         **base_params,
         "sheet": summary_sheet,
         "added_columns_width": {},
         "freeze": "A2",
     }
-    return {
-        tab_sheet: (df_tabs, {**base_params, "sheet": tab_sheet}),
+    result: Dict[str, Tuple[pd.DataFrame, Dict[str, Any]]] = {
+        tab_sheet: (df_tabs, tab_params),
         summary_sheet: (df_summary, summary_params),
     }
+    if catalog_cfg.get("enabled") is not False and df_catalog is not None and not df_catalog.empty:
+        catalog_sheet = str(catalog_cfg.get("sheet_name") or "PROM_TOURNAMENTS").strip()
+        catalog_params: Dict[str, Any] = {
+            **base_params,
+            "sheet": catalog_sheet,
+            "added_columns_width": {},
+            "freeze": "A2",
+            "column_format_rules": list(base_params.get("column_format_rules") or [])
+            + _prom_catalog_column_format_rules(catalog_cfg),
+        }
+        result[catalog_sheet] = (df_catalog, catalog_params)
+    return result

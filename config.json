@@ -4653,6 +4653,7 @@
       "enabled": true,
       "max_workers": 0,
       "min_tabs_for_parallel": 50,
+      "min_fields_for_parallel": 3,
       "chunk_size": 500
     },
     "_enrich_columns_format": "enrich_columns[]: output_column; lookup_row_key — составной ключ из колонок строки; mode: value | sum | count | exists (exists + present_value у source, напр. «КМ»); multi_row: first | join (для exists+join — все коды ролей через join_separator); sources[]: sheet, tab_column или key_columns, value_column, present_value (exists), where_in, where_not_in.",
@@ -4932,6 +4933,50 @@
               ],
               "Период": [
                 "Сезон 2026"
+              ]
+            },
+            "where_not_in": {}
+          }
+        ]
+      },
+      {
+        "id": "stats_role_code",
+        "enabled": true,
+        "output_column": "Код роли",
+        "mode": "value",
+        "multi_row": "first",
+        "default": "-",
+        "sources": [
+          {
+            "priority": 1,
+            "sheet": "STATISTICS",
+            "tab_column": "Табельный номер",
+            "value_column": "Код роли",
+            "where_in": {
+              "Текущая роль": [
+                true
+              ]
+            },
+            "where_not_in": {}
+          }
+        ]
+      },
+      {
+        "id": "stats_role_name",
+        "enabled": true,
+        "output_column": "Наименование Роли",
+        "mode": "value",
+        "multi_row": "first",
+        "default": "-",
+        "sources": [
+          {
+            "priority": 1,
+            "sheet": "STATISTICS",
+            "tab_column": "Табельный номер",
+            "value_column": "Наименование Роли",
+            "where_in": {
+              "Текущая роль": [
+                true
               ]
             },
             "where_not_in": {}
@@ -5826,7 +5871,51 @@
       }
     ],
     "_rating_enrich_groups_format": "Группы RATING (роль КМККСБ + период): для каждой пары «Наименование Роли»+«Период» отдельные колонки «метрика | период» — кристаллы и места в рейтинге; default «-».",
-    "_statistics_activity_format": "STATISTICS: сумма по табельному из колонок «<месяц> дней/входов» → «MM_YYYY (дней/входы)»; mode sum."
+    "_statistics_activity_format": "STATISTICS: сумма по табельному из колонок «<месяц> дней/входов» → «MM_YYYY (дней/входы)»; mode sum.",
+    "prom_tournament_catalog": {
+      "enabled": true,
+      "sheet_name": "PROM_TOURNAMENTS",
+      "schedule_sheet": "TOURNAMENT-SCHEDULE",
+      "reward_link_sheet": "REWARD-LINK",
+      "contest_sheet": "CONTEST-DATA",
+      "reward_sheet": "REWARD",
+      "list_rewards_sheet": "LIST-REWARDS",
+      "rewards_received_column": "получено наград",
+      "active_statuses": [
+        "АКТИВНЫЙ",
+        "ПОДВЕДЕНИЕ ИТОГОВ"
+      ],
+      "date_year": "2026",
+      "contest_vid": "ПРОМ",
+      "tab_columns_enabled": true,
+      "tab_columns_default": 0,
+      "tab_columns_width": 7,
+      "tab_columns_total_nagrada": "НАГРАДА всего",
+      "tab_columns_total_tournament": "ТУРНИР всего",
+      "tab_columns_format": {
+        "data_type": "number",
+        "decimal_places": 0,
+        "decimal_separator": ",",
+        "thousands_separator": false,
+        "horizontal": "center",
+        "vertical": "center",
+        "wrap_text": false
+      },
+      "column_formats": [
+        {
+          "columns": [
+            "START_DT",
+            "END_DT"
+          ],
+          "data_type": "date",
+          "date_format": "YYYY-MM-DD",
+          "horizontal": "center",
+          "vertical": "center",
+          "wrap_text": false
+        }
+      ]
+    },
+    "_prom_tournament_catalog_format": "PROM_TOURNAMENTS + TAB_NUMBERS: динамические колонки НАГРАДА/ТУРНИР (count LIST-REWARDS 2026 по табельному); каталог — расписание/LIST-REWARDS, vid=ПРОМ."
   },
   "json_columns": {
     "CONTEST-DATA": [

@@ -28,10 +28,11 @@
 | `normalize_pad_width` | Длина табельного с ведущими нулями (20) |
 | `freeze` | Закрепление областей Excel (`E2` — строка 1 и колонки A–D) |
 | `enrich_default` | Значение по умолчанию, если данные не найдены (`-`) |
-| `enrich_parallel` | Потоки для enrich: `enabled`, `max_workers` (0=авто), `min_tabs_for_parallel`, `chunk_size` |
+| `enrich_parallel` | Потоки для enrich: `enabled`, `max_workers` (0=авто), `min_tabs_for_parallel`, **`min_fields_for_parallel`** (параллель enrich tab-колонок), `chunk_size` |
 | `column_widths` | Ширина колонок листа TAB_NUMBERS (`added_columns_width`) |
 | `sources` | Откуда собирать **уникальные** табельные |
 | `enrich_columns` | Дополнительные колонки с приоритетным забором значений |
+| `prom_tournament_catalog` | Каталог турниров/наград ПРОМ и динамические колонки на TAB_NUMBERS (см. ниже) |
 
 ### `sources[]`
 
@@ -78,7 +79,7 @@
 
 | Колонка сводки | Содержание |
 |----------------|------------|
-| `Раздел` | `Сбор табельных` / `Обогащение` / `Формат Excel` |
+| `Раздел` | `Сбор табельных` / `Обогащение` / **`PROM колонки`** / `Формат Excel` |
 | `Колонка TAB_NUMBERS` | Имя добавляемой колонки (для sources — `Табельный номер`) |
 | `ID` | `id` правила sources или enrich |
 | `Приоритет` | Порядок источника enrich (меньше — раньше) |
@@ -213,17 +214,164 @@
 }
 ```
 
+## Лист PROM_TOURNAMENTS (`prom_tournament_catalog`)
+
+Третий лист книги MANAGER_STATS — каталог турниров, конкурсов и наград **vid = ПРОМ** за 2026 год.
+
+### Включение
+
+```json
+"prom_tournament_catalog": {
+  "enabled": true,
+  "sheet_name": "PROM_TOURNAMENTS"
+}
+```
+
+### Источники данных (объединение без дублей)
+
+| № | Источник | Условие отбора |
+|---|----------|----------------|
+| 1 | **TOURNAMENT-SCHEDULE** + **REWARD-LINK** | Статус `АКТИВНЫЙ` или `ПОДВЕДЕНИЕ ИТОГОВ`, **или** `START_DT` / `END_DT` содержат `date_year` (2026) |
+| 2 | **LIST-REWARDS** + **TOURNAMENT-SCHEDULE** | `Дата создания` содержит `date_year`; join по `Код турнира` = `TOURNAMENT_CODE` |
+
+В обоих случаях остаются только конкурсы из **CONTEST-DATA** с `CONTEST_FEATURE.vid = ПРОМ` (`contest_vid`).
+
+Дедупликация строк: `(TOURNAMENT_CODE, CONTEST_CODE, REWARD_CODE)`.
+
+### Колонки листа PROM_TOURNAMENTS
+
+| Колонка | Источник |
+|---------|----------|
+| `№` | Порядковый номер после сортировки |
+| `TOURNAMENT_CODE`, `PERIOD_TYPE`, `START_DT`, `END_DT`, `TOURNAMENT_STATUS` | TOURNAMENT-SCHEDULE |
+| `CONTEST_CODE` | TOURNAMENT-SCHEDULE / LIST-REWARDS |
+| `CONTEST_TYPE` | CONTEST-DATA → метка: `ТУРНИРНЫЙ` → **ТУРНИР**, `ИНДИВИДУАЛЬНЫЙ` / `ИНДИВИДУАЛЬНЫЙ НАКОПИТЕЛЬНЫЙ` → **НАГРАДА** |
+| `PRODUCT`, `PRODUCT_GROUP` | CONTEST-DATA по `CONTEST_CODE` |
+| `REWARD_CODE` | REWARD-LINK или LIST-REWARDS |
+| `FULL_NAME` | Наименование конкурса (CONTEST-DATA) |
+| `REWARD_FULL_NAME` | Наименование награды (REWARD) |
+| `получено наград` | Число **всех** строк LIST-REWARDS по паре `TOURNAMENT_CODE` + `REWARD_CODE` (без фильтра по году) |
+
+`START_DT` / `END_DT` — формат даты **YYYY-MM-DD** в Excel.
+
+### Сортировка PROM_TOURNAMENTS
+
+Многоуровневая (как диалог Excel), по возрастанию:
+
+1. `START_DT`
+2. `REWARD_CODE`
+3. `PRODUCT`
+4. `PRODUCT_GROUP`
+5. `CONTEST_TYPE`
+
+### Параметры `prom_tournament_catalog`
+
+| Ключ | По умолчанию | Назначение |
+|------|--------------|------------|
+| `schedule_sheet` | `TOURNAMENT-SCHEDULE` | Расписание турниров |
+| `reward_link_sheet` | `REWARD-LINK` | Связь конкурс ↔ награда |
+| `contest_sheet` | `CONTEST-DATA` | Конкурсы |
+| `reward_sheet` | `REWARD` | Справочник наград |
+| `list_rewards_sheet` | `LIST-REWARDS` | Выдачи наград |
+| `active_statuses` | `АКТИВНЫЙ`, `ПОДВЕДЕНИЕ ИТОГОВ` | Статусы для отбора по расписанию |
+| `date_year` | `2026` | Год в датах / `Дата создания` |
+| `contest_vid` | `ПРОМ` | Фильтр vid в CONTEST_FEATURE |
+| `rewards_received_column` | `получено наград` | Имя колонки счётчика на PROM_TOURNAMENTS |
+
+## Динамические колонки PROM на TAB_NUMBERS
+
+При `tab_columns_enabled: true` (по умолчанию) на лист **TAB_NUMBERS** добавляются колонки-счётчики **по каждому табельному**.
+
+### Что считается
+
+Для каждой колонки — число строк **LIST-REWARDS**, где:
+
+- `Табельный номер сотрудника` = табельный из строки TAB_NUMBERS;
+- `Код турнира` + `Код награды` = пара из каталога PROM_TOURNAMENTS;
+- `Дата создания` содержит `date_year` (2026).
+
+Если выдач нет — `tab_columns_default` (по умолчанию **0**).
+
+### Имена колонок
+
+| Тип | Шаблон | Пример |
+|-----|--------|--------|
+| **НАГРАДА** | `НАГРАДА {REWARD_FULL_NAME} ({START_DT}) [{PRODUCT}]` | `НАГРАДА Награда B1 (2026-03-01) [Эффективность КМ]` |
+| **ТУРНИР** | `ТУРНИР {FULL_NAME} ({START_DT}) [{PRODUCT}]` | `ТУРНИР Конкурс A (2025-01-01) [Рейтинг]` |
+
+`FULL_NAME` — наименование конкурса; `REWARD_FULL_NAME` — наименование награды. Если пусто — подставляется код.
+
+### Итоговые колонки по табельному
+
+| Колонка | Позиция | Значение |
+|---------|---------|----------|
+| `НАГРАДА всего` (`tab_columns_total_nagrada`) | Первая в блоке НАГРАДА | Сумма всех колонок НАГРАДА по табельному |
+| `ТУРНИР всего` (`tab_columns_total_tournament`) | Первая в блоке ТУРНИР | Сумма всех колонок ТУРНИР по табельному |
+
+### Порядок колонок на TAB_NUMBERS
+
+```
+№ | Табельный номер | … enrich_columns … |
+  НАГРАДА всего | НАГРАДА … | НАГРАДА … |
+  ТУРНИР всего | ТУРНИР … | ТУРНИР … |
+  Источники | Число источников
+```
+
+Порядок детальных PROM-колонок (внутри блока НАГРАДА / ТУРНИР):
+
+1. `PRODUCT_GROUP`
+2. `PRODUCT`
+3. `CONTEST_CODE` (сортировка)
+4. внутри конкурса — по `START_DT` (для НАГРАДА — `REWARD_CODE`, для ТУРНИР — `TOURNAMENT_CODE` в заголовке)
+
+### Ширина и формат PROM-колонок
+
+| Параметр | Значение |
+|----------|----------|
+| `tab_columns_width` | Фиксированная ширина (по умолчанию **7**) |
+| `tab_columns_format` | Число по центру (`horizontal` / `vertical`: `center`) |
+
+Колонки с префиксами `НАГРАДА ` и `ТУРНИР ` попадают под `tab_columns_format` через `column_prefixes`.
+
+### Параметры TAB_NUMBERS (дополнение к `prom_tournament_catalog`)
+
+| Ключ | По умолчанию |
+|------|--------------|
+| `tab_columns_enabled` | `true` |
+| `tab_columns_default` | `0` |
+| `tab_columns_width` | `7` |
+| `tab_columns_total_nagrada` | `НАГРАДА всего` |
+| `tab_columns_total_tournament` | `ТУРНИР всего` |
+
 ## Код
 
 | Модуль | Назначение |
 |--------|------------|
-| `src/manager_stats.py` | Сбор табельных, индексы enrich, параллельный lookup |
+| `src/manager_stats.py` | Сбор табельных, индексы enrich, каталог PROM, динамические колонки TAB_NUMBERS |
 | `src/main_impl.py` | `_write_manager_stats_excel`, ветвления `run_outputs` |
 | `src/config_loader.py` | `parse_run_outputs_config` |
 | `src/console_ui.py` | `print_manager_stats_summary`, фазы прогресса |
 | `src/Tests/test_manager_stats.py` | Тесты enrich и sources |
 | `src/Tests/test_run_outputs.py` | Тесты комбинаций `run_outputs` |
 
-## Производительность enrich
+## Производительность
 
-Раньше для каждого табельного выполнялся полный проход по листам. Сейчас один раз строятся индексы `tab → значение`, lookup — O(1); при большом числе табельных — `ThreadPoolExecutor` (см. `enrich_parallel`).
+### Enrich (`enrich_parallel`)
+
+Раньше для каждого табельного выполнялся полный проход по листам. Сейчас один раз строятся индексы `tab → значение`, lookup — O(1).
+
+| Механизм | Условие | Эффект |
+|----------|---------|--------|
+| Параллель lookup по табельным | `min_tabs_for_parallel` (50+) | `ThreadPoolExecutor`, чанки `chunk_size` |
+| Параллель enrich tab-колонок | `min_fields_for_parallel` (3+) | Несколько `enrich_columns` без `lookup_row_key` считаются параллельно |
+| Колонки с `lookup_row_key` | — | Последовательно (нужны уже заполненные колонки строки) |
+
+### PROM и LIST-REWARDS
+
+| Оптимизация | Описание |
+|-------------|----------|
+| Кэш каталога | `build_prom_tournament_catalog_dataframe` вызывается **один раз** на прогон; результат переиспользуется для TAB_NUMBERS, сводки и листа PROM_TOURNAMENTS |
+| Векторизация PROM-колонок | `groupby` + `merge` + `pivot` по длинному индексу LIST-REWARDS вместо вложенных циклов табельный × колонка × пара |
+| `pd.concat` | PROM-колонки добавляются одним блоком (без фрагментации DataFrame) |
+
+Основное время полного прогона часто занимает запись Excel (`08_write_manager_stats_excel`) — см. **`Docs/PERFORMANCE_OPTIMIZATION_PROPOSALS.md`**.
