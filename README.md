@@ -153,7 +153,7 @@ SPOD_PROM/
 | `reward_getcondition_summary` | Сводная колонка на листе REWARD по кодам `getCondition` (nonRewards/rewards); `enabled`, `column_name`. |
 | `rating_item_matrix` | Матрица ITEM на листе **RATING**: счётчики заказов по **ORDER** и подсветка доступности товара (зелёный/красный) по **`REWARD_ADD_DATA`**, **LIST-REWARDS**, кристаллам; см. раздел **rating_item_matrix**. |
 | `season_order_summary` | Лист **ORDER-SEASON-SUMMARY**: сводка по кодам из **`item_order_groups`**; см. раздел **season_order_summary**. |
-| `manager_stats` | Отдельная книга **MANAGER_STATS** (табельные, enrich-колонки: ФИО, ТБ/ГОСБ, коды ролей в рейтинге, Email, метрики RATING, `column_formats`); фильтры EMPLOYEE в `sources` и итоговое исключение заглушек; см. **`Docs/MANAGER_STATS.md`**. |
+| `manager_stats` | Отдельная книга **MANAGER_STATS** (табельные, enrich-колонки: ФИО, ТБ/ГОСБ, коды ролей в рейтинге, Email, дни/входы по месяцам из STATISTICS, метрики RATING, `column_formats`); фильтры EMPLOYEE в `sources` и итоговое исключение заглушек; см. **`Docs/MANAGER_STATS.md`**. |
 | `input_archive_sqlite` | Архив сырых CSV в SQLite: **`enabled`**, **`row_level_archive`** (v2 / v1), **`db_path`**, **`legacy_db_path`**, **`default_row_key_by_sheet`**, **`parallel_row_processing`**, **`reporting`**, **`archive_to_db`** в **`input_files`**. v1: **`Docs/INPUT_ARCHIVE_SQLITE_DESIGN.md`**; v2: **`Docs/INPUT_ARCHIVE_ROW_LEVEL.md`**. |
 
 ### Общая структура файла
@@ -1270,6 +1270,12 @@ python main.py
 - **Архив SQLite** (**`input_archive_sqlite`**): в консоль и стартовую строку лога выводится **полный относительный** путь к файлу БД (без усечения); блок «По листам» — табличный вид (**`console_ui.print_input_archive_sqlite_report`**).
 - **Матрица RATING**: массив **`ignoreConditions`** в **`REWARD_ADD_DATA`** для **ITEM** — перечисленные табельные номера получают ячейку **доступной** (**`fill_accessibility_ok`**) без проверки остальных критериев (**`reward_item_catalog`**, **`item_accessible_for_manager(..., manager_tab=)`**).
 - Переименованы короткие **`id`** базовых правил (вместо **`1.1`**, **`2`**, …) на смысловые (**`ref_group_contest_code_in_contest_data`** и т.д.); обновлены **`Docs/SPOD_CONSISTENCY_CHECKS_SQL_MIRROR.*`**, **`Docs/CONSISTENCY_CHECKS_FORMAT.md`**.
+
+### Версия 1.7.42 — MANAGER_STATS: дни и входы в приложении по месяцам
+
+- **`enrich_columns`** (лист **STATISTICS**, `mode: sum`): 18 колонок — сумма **дней** и **входов** за октябрь 2025 — июнь 2026 в формате `MM_YYYY (дней)` / `MM_YYYY (входы)` (напр. `10_2025 (дней)`, `01_2026 (входы)`); при нескольких строках STATISTICS у одного табельного значения суммируются.
+- **`column_formats`**: числовой формат для этих колонок в TAB_NUMBERS.
+- Тест **`test_enrich_statistics_monthly_days_and_logins_sum`**; документация **`Docs/MANAGER_STATS.md`**, **`Docs/DOCS_INDEX.md`**.
 
 ### Версия 1.7.41 — MANAGER_STATS: enrich рейтинга, коды ролей exists+join
 

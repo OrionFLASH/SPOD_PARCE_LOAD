@@ -4501,6 +4501,35 @@
         "horizontal": "center",
         "vertical": "center",
         "wrap_text": false
+      },
+      {
+        "columns": [
+          "10_2025 (дней)",
+          "10_2025 (входы)",
+          "11_2025 (дней)",
+          "11_2025 (входы)",
+          "12_2025 (дней)",
+          "12_2025 (входы)",
+          "01_2026 (дней)",
+          "01_2026 (входы)",
+          "02_2026 (дней)",
+          "02_2026 (входы)",
+          "03_2026 (дней)",
+          "03_2026 (входы)",
+          "04_2026 (дней)",
+          "04_2026 (входы)",
+          "05_2026 (дней)",
+          "05_2026 (входы)",
+          "06_2026 (дней)",
+          "06_2026 (входы)"
+        ],
+        "data_type": "number",
+        "decimal_places": 0,
+        "decimal_separator": ",",
+        "thousands_separator": false,
+        "horizontal": "center",
+        "vertical": "center",
+        "wrap_text": false
       }
     ],
     "_column_formats_format": "column_formats[] для листа TAB_NUMBERS: column_prefixes — префиксы enrich-колонок RATING (метрика | период); columns — ТБ, ГОСБ; data_type number — целые.",
@@ -4856,7 +4885,9 @@
               "Наименование Роли": [
                 "Клиентский менеджер крупнейшего, крупного и среднего бизнеса"
               ],
-              "Период": ["Сезон 2026"]
+              "Период": [
+                "Сезон 2026"
+              ]
             },
             "where_not_in": {}
           },
@@ -4866,8 +4897,12 @@
             "tab_column": "Табельный номер",
             "present_value": "AKM",
             "where_in": {
-              "Наименование Роли": ["Ассистент клиентского менеджера ККСБ"],
-              "Период": ["Сезон 2026"]
+              "Наименование Роли": [
+                "Ассистент клиентского менеджера ККСБ"
+              ],
+              "Период": [
+                "Сезон 2026"
+              ]
             },
             "where_not_in": {}
           },
@@ -4877,8 +4912,12 @@
             "tab_column": "Табельный номер",
             "present_value": "МНС",
             "where_in": {
-              "Наименование Роли": ["Менеджер нефинансовых сервисов"],
-              "Период": ["Сезон 2026"]
+              "Наименование Роли": [
+                "Менеджер нефинансовых сервисов"
+              ],
+              "Период": [
+                "Сезон 2026"
+              ]
             },
             "where_not_in": {}
           },
@@ -4891,7 +4930,9 @@
               "Наименование Роли": [
                 "Руководитель проектов по технологическому развитию клиентов"
               ],
-              "Период": ["Сезон 2026"]
+              "Период": [
+                "Сезон 2026"
+              ]
             },
             "where_not_in": {}
           }
@@ -5458,9 +5499,334 @@
             "where_not_in": {}
           }
         ]
+      },
+      {
+        "id": "stats_102025_дней",
+        "enabled": true,
+        "output_column": "10_2025 (дней)",
+        "mode": "sum",
+        "multi_row": "first",
+        "default": "-",
+        "sources": [
+          {
+            "priority": 1,
+            "sheet": "STATISTICS",
+            "tab_column": "Табельный номер",
+            "value_column": "Октябрь 2025 дней",
+            "where_in": {},
+            "where_not_in": {}
+          }
+        ]
+      },
+      {
+        "id": "stats_102025_входы",
+        "enabled": true,
+        "output_column": "10_2025 (входы)",
+        "mode": "sum",
+        "multi_row": "first",
+        "default": "-",
+        "sources": [
+          {
+            "priority": 1,
+            "sheet": "STATISTICS",
+            "tab_column": "Табельный номер",
+            "value_column": "Октябрь 2025 входов",
+            "where_in": {},
+            "where_not_in": {}
+          }
+        ]
+      },
+      {
+        "id": "stats_112025_дней",
+        "enabled": true,
+        "output_column": "11_2025 (дней)",
+        "mode": "sum",
+        "multi_row": "first",
+        "default": "-",
+        "sources": [
+          {
+            "priority": 1,
+            "sheet": "STATISTICS",
+            "tab_column": "Табельный номер",
+            "value_column": "Ноябрь 2025 дней",
+            "where_in": {},
+            "where_not_in": {}
+          }
+        ]
+      },
+      {
+        "id": "stats_112025_входы",
+        "enabled": true,
+        "output_column": "11_2025 (входы)",
+        "mode": "sum",
+        "multi_row": "first",
+        "default": "-",
+        "sources": [
+          {
+            "priority": 1,
+            "sheet": "STATISTICS",
+            "tab_column": "Табельный номер",
+            "value_column": "Ноябрь 2025 входов",
+            "where_in": {},
+            "where_not_in": {}
+          }
+        ]
+      },
+      {
+        "id": "stats_122025_дней",
+        "enabled": true,
+        "output_column": "12_2025 (дней)",
+        "mode": "sum",
+        "multi_row": "first",
+        "default": "-",
+        "sources": [
+          {
+            "priority": 1,
+            "sheet": "STATISTICS",
+            "tab_column": "Табельный номер",
+            "value_column": "Декабрь 2025 дней",
+            "where_in": {},
+            "where_not_in": {}
+          }
+        ]
+      },
+      {
+        "id": "stats_122025_входы",
+        "enabled": true,
+        "output_column": "12_2025 (входы)",
+        "mode": "sum",
+        "multi_row": "first",
+        "default": "-",
+        "sources": [
+          {
+            "priority": 1,
+            "sheet": "STATISTICS",
+            "tab_column": "Табельный номер",
+            "value_column": "Декабрь 2025 входов",
+            "where_in": {},
+            "where_not_in": {}
+          }
+        ]
+      },
+      {
+        "id": "stats_012026_дней",
+        "enabled": true,
+        "output_column": "01_2026 (дней)",
+        "mode": "sum",
+        "multi_row": "first",
+        "default": "-",
+        "sources": [
+          {
+            "priority": 1,
+            "sheet": "STATISTICS",
+            "tab_column": "Табельный номер",
+            "value_column": "Январь 2026 дней",
+            "where_in": {},
+            "where_not_in": {}
+          }
+        ]
+      },
+      {
+        "id": "stats_012026_входы",
+        "enabled": true,
+        "output_column": "01_2026 (входы)",
+        "mode": "sum",
+        "multi_row": "first",
+        "default": "-",
+        "sources": [
+          {
+            "priority": 1,
+            "sheet": "STATISTICS",
+            "tab_column": "Табельный номер",
+            "value_column": "Январь 2026 входов",
+            "where_in": {},
+            "where_not_in": {}
+          }
+        ]
+      },
+      {
+        "id": "stats_022026_дней",
+        "enabled": true,
+        "output_column": "02_2026 (дней)",
+        "mode": "sum",
+        "multi_row": "first",
+        "default": "-",
+        "sources": [
+          {
+            "priority": 1,
+            "sheet": "STATISTICS",
+            "tab_column": "Табельный номер",
+            "value_column": "Февраль 2026 дней",
+            "where_in": {},
+            "where_not_in": {}
+          }
+        ]
+      },
+      {
+        "id": "stats_022026_входы",
+        "enabled": true,
+        "output_column": "02_2026 (входы)",
+        "mode": "sum",
+        "multi_row": "first",
+        "default": "-",
+        "sources": [
+          {
+            "priority": 1,
+            "sheet": "STATISTICS",
+            "tab_column": "Табельный номер",
+            "value_column": "Февраль 2026 входов",
+            "where_in": {},
+            "where_not_in": {}
+          }
+        ]
+      },
+      {
+        "id": "stats_032026_дней",
+        "enabled": true,
+        "output_column": "03_2026 (дней)",
+        "mode": "sum",
+        "multi_row": "first",
+        "default": "-",
+        "sources": [
+          {
+            "priority": 1,
+            "sheet": "STATISTICS",
+            "tab_column": "Табельный номер",
+            "value_column": "Март 2026 дней",
+            "where_in": {},
+            "where_not_in": {}
+          }
+        ]
+      },
+      {
+        "id": "stats_032026_входы",
+        "enabled": true,
+        "output_column": "03_2026 (входы)",
+        "mode": "sum",
+        "multi_row": "first",
+        "default": "-",
+        "sources": [
+          {
+            "priority": 1,
+            "sheet": "STATISTICS",
+            "tab_column": "Табельный номер",
+            "value_column": "Март 2026 входов",
+            "where_in": {},
+            "where_not_in": {}
+          }
+        ]
+      },
+      {
+        "id": "stats_042026_дней",
+        "enabled": true,
+        "output_column": "04_2026 (дней)",
+        "mode": "sum",
+        "multi_row": "first",
+        "default": "-",
+        "sources": [
+          {
+            "priority": 1,
+            "sheet": "STATISTICS",
+            "tab_column": "Табельный номер",
+            "value_column": "Апрель 2026 дней",
+            "where_in": {},
+            "where_not_in": {}
+          }
+        ]
+      },
+      {
+        "id": "stats_042026_входы",
+        "enabled": true,
+        "output_column": "04_2026 (входы)",
+        "mode": "sum",
+        "multi_row": "first",
+        "default": "-",
+        "sources": [
+          {
+            "priority": 1,
+            "sheet": "STATISTICS",
+            "tab_column": "Табельный номер",
+            "value_column": "Апрель 2026 входов",
+            "where_in": {},
+            "where_not_in": {}
+          }
+        ]
+      },
+      {
+        "id": "stats_052026_дней",
+        "enabled": true,
+        "output_column": "05_2026 (дней)",
+        "mode": "sum",
+        "multi_row": "first",
+        "default": "-",
+        "sources": [
+          {
+            "priority": 1,
+            "sheet": "STATISTICS",
+            "tab_column": "Табельный номер",
+            "value_column": "Май 2026 дней",
+            "where_in": {},
+            "where_not_in": {}
+          }
+        ]
+      },
+      {
+        "id": "stats_052026_входы",
+        "enabled": true,
+        "output_column": "05_2026 (входы)",
+        "mode": "sum",
+        "multi_row": "first",
+        "default": "-",
+        "sources": [
+          {
+            "priority": 1,
+            "sheet": "STATISTICS",
+            "tab_column": "Табельный номер",
+            "value_column": "Май 2026 входов",
+            "where_in": {},
+            "where_not_in": {}
+          }
+        ]
+      },
+      {
+        "id": "stats_062026_дней",
+        "enabled": true,
+        "output_column": "06_2026 (дней)",
+        "mode": "sum",
+        "multi_row": "first",
+        "default": "-",
+        "sources": [
+          {
+            "priority": 1,
+            "sheet": "STATISTICS",
+            "tab_column": "Табельный номер",
+            "value_column": "Июнь 2026 дней",
+            "where_in": {},
+            "where_not_in": {}
+          }
+        ]
+      },
+      {
+        "id": "stats_062026_входы",
+        "enabled": true,
+        "output_column": "06_2026 (входы)",
+        "mode": "sum",
+        "multi_row": "first",
+        "default": "-",
+        "sources": [
+          {
+            "priority": 1,
+            "sheet": "STATISTICS",
+            "tab_column": "Табельный номер",
+            "value_column": "Июнь 2026 входов",
+            "where_in": {},
+            "where_not_in": {}
+          }
+        ]
       }
     ],
-    "_rating_enrich_groups_format": "Группы RATING (роль КМККСБ + период): для каждой пары «Наименование Роли»+«Период» отдельные колонки «метрика | период» — кристаллы и места в рейтинге; default «-»."
+    "_rating_enrich_groups_format": "Группы RATING (роль КМККСБ + период): для каждой пары «Наименование Роли»+«Период» отдельные колонки «метрика | период» — кристаллы и места в рейтинге; default «-».",
+    "_statistics_activity_format": "STATISTICS: сумма по табельному из колонок «<месяц> дней/входов» → «MM_YYYY (дней/входы)»; mode sum."
   },
   "json_columns": {
     "CONTEST-DATA": [

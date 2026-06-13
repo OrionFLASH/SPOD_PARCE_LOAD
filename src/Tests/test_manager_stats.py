@@ -1275,6 +1275,84 @@ def test_enrich_exists_in_rating_join_uses_single_combined_index() -> None:
     assert ctx.sources[0].join_map[tab] == ["КМ", "CSM"]
 
 
+def test_enrich_statistics_monthly_days_and_logins_sum() -> None:
+    """STATISTICS: сумма дней и входов по месяцам в колонки MM_YYYY (дней/входы)."""
+    sheets = {
+        "STATISTICS": (
+            pd.DataFrame(
+                {
+                    "Табельный номер": [
+                        "00000000000000000001",
+                        "00000000000000000001",
+                        "00000000000000000002",
+                    ],
+                    "Октябрь 2025 дней": ["5", "3", ""],
+                    "Октябрь 2025 входов": ["10", "2", "7"],
+                    "Ноябрь 2025 дней": ["1", "4", "-"],
+                }
+            ),
+            {},
+        ),
+    }
+    df_tabs = pd.DataFrame(
+        {
+            "№": [1, 2],
+            "Табельный номер": [
+                "00000000000000000001",
+                "00000000000000000002",
+            ],
+            "Источники": ["a", "b"],
+            "Число источников": [1, 1],
+        }
+    )
+    cfg = {
+        "enrich_columns": [
+            {
+                "output_column": "10_2025 (дней)",
+                "mode": "sum",
+                "sources": [
+                    {
+                        "priority": 1,
+                        "sheet": "STATISTICS",
+                        "tab_column": "Табельный номер",
+                        "value_column": "Октябрь 2025 дней",
+                    }
+                ],
+            },
+            {
+                "output_column": "10_2025 (входы)",
+                "mode": "sum",
+                "sources": [
+                    {
+                        "priority": 1,
+                        "sheet": "STATISTICS",
+                        "tab_column": "Табельный номер",
+                        "value_column": "Октябрь 2025 входов",
+                    }
+                ],
+            },
+            {
+                "output_column": "11_2025 (дней)",
+                "mode": "sum",
+                "sources": [
+                    {
+                        "priority": 1,
+                        "sheet": "STATISTICS",
+                        "tab_column": "Табельный номер",
+                        "value_column": "Ноябрь 2025 дней",
+                    }
+                ],
+            },
+        ],
+    }
+    out = enrich_tab_dataframe(df_tabs, sheets, cfg)
+    assert out.iloc[0]["10_2025 (дней)"] == "8"
+    assert out.iloc[0]["10_2025 (входы)"] == "12"
+    assert out.iloc[0]["11_2025 (дней)"] == "5"
+    assert out.iloc[1]["10_2025 (дней)"] == "-"
+    assert out.iloc[1]["10_2025 (входы)"] == "7"
+
+
 def test_workbook_tab_column_widths() -> None:
     data = build_manager_stats_workbook_data({}, cfg={})
     tab_params = data["TAB_NUMBERS"][1]
