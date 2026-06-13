@@ -1,5 +1,7 @@
 {
-  "run_outputs": ["manager_stats_only"],
+  "run_outputs": [
+    "manager_stats_only"
+  ],
   "_run_outputs_allowed": [
     "source_only",
     "main_only",
@@ -41,24 +43,72 @@
       "min_rows_for_parallel": 500
     },
     "default_row_key_by_sheet": {
-      "CONTEST-DATA": ["CONTEST_CODE"],
-      "GROUP": ["CONTEST_CODE", "GROUP_CODE", "GROUP_VALUE"],
-      "INDICATOR": ["CONTEST_CODE", "INDICATOR_ADD_CALC_TYPE", "INDICATOR_CODE"],
-      "REPORT": ["MANAGER_PERSON_NUMBER", "TOURNAMENT_CODE", "CONTEST_CODE"],
-      "REWARD": ["REWARD_CODE"],
-      "REWARD-LINK": ["CONTEST_CODE", "GROUP_CODE", "REWARD_CODE"],
-      "TOURNAMENT-SCHEDULE": ["TOURNAMENT_CODE"],
-      "ORG_UNIT_V20": ["ORG_UNIT_CODE"],
-      "USER_ROLE": ["RULE_NUM"],
-      "USER_ROLE SB": ["RULE_NUM"],
-      "EMPLOYEE": ["PERSON_NUMBER"],
-      "LIST-REWARDS": ["Уникальный идентификатор записи"],
-      "LIST-TOURNAMENT": ["Код турнира"],
-      "STATISTICS": ["Табельный номер", "Код роли", "Дата вступления в роль"],
-      "RATING_*": ["Табельный номер", "Наименование Роли", "Период"],
-      "ORDER_*": ["Уникальный идентификатор транзакции"],
-      "ORDER_ALL (MNS)": ["Уникальный идентификатор транзакции"],
-      "YEAR_STATA": ["Уникальный идентификатор записи"]
+      "CONTEST-DATA": [
+        "CONTEST_CODE"
+      ],
+      "GROUP": [
+        "CONTEST_CODE",
+        "GROUP_CODE",
+        "GROUP_VALUE"
+      ],
+      "INDICATOR": [
+        "CONTEST_CODE",
+        "INDICATOR_ADD_CALC_TYPE",
+        "INDICATOR_CODE"
+      ],
+      "REPORT": [
+        "MANAGER_PERSON_NUMBER",
+        "TOURNAMENT_CODE",
+        "CONTEST_CODE"
+      ],
+      "REWARD": [
+        "REWARD_CODE"
+      ],
+      "REWARD-LINK": [
+        "CONTEST_CODE",
+        "GROUP_CODE",
+        "REWARD_CODE"
+      ],
+      "TOURNAMENT-SCHEDULE": [
+        "TOURNAMENT_CODE"
+      ],
+      "ORG_UNIT_V20": [
+        "ORG_UNIT_CODE"
+      ],
+      "USER_ROLE": [
+        "RULE_NUM"
+      ],
+      "USER_ROLE SB": [
+        "RULE_NUM"
+      ],
+      "EMPLOYEE": [
+        "PERSON_NUMBER"
+      ],
+      "LIST-REWARDS": [
+        "Уникальный идентификатор записи"
+      ],
+      "LIST-TOURNAMENT": [
+        "Код турнира"
+      ],
+      "STATISTICS": [
+        "Табельный номер",
+        "Код роли",
+        "Дата вступления в роль"
+      ],
+      "RATING_*": [
+        "Табельный номер",
+        "Наименование Роли",
+        "Период"
+      ],
+      "ORDER_*": [
+        "Уникальный идентификатор транзакции"
+      ],
+      "ORDER_ALL (MNS)": [
+        "Уникальный идентификатор транзакции"
+      ],
+      "YEAR_STATA": [
+        "Уникальный идентификатор записи"
+      ]
     },
     "reporting": {
       "console": "normal",
@@ -3173,7 +3223,10 @@
         "sheet": "CONTEST-DATA",
         "json_column": "CONTEST_FEATURE",
         "json_required": true,
-        "numeric_value_keys": ["minNumber", "accuracy"],
+        "numeric_value_keys": [
+          "minNumber",
+          "accuracy"
+        ],
         "output": {
           "column_on_sheet": "ПРОВЕРКА: SPOD-JSON (CONTEST-DATA)",
           "include_in_summary": true
@@ -3187,7 +3240,10 @@
         "sheet": "CONTEST-DATA",
         "json_column": "CONTEST_PERIOD",
         "json_required": false,
-        "numeric_value_keys": ["period_code", "criterion_mark_value"],
+        "numeric_value_keys": [
+          "period_code",
+          "criterion_mark_value"
+        ],
         "output": {
           "column_on_sheet": "ПРОВЕРКА: SPOD-JSON (CONTEST_PERIOD)",
           "include_in_summary": true
@@ -3215,7 +3271,10 @@
         "sheet": "TOURNAMENT-SCHEDULE",
         "json_column": "FILTER_PERIOD_ARR",
         "json_required": false,
-        "numeric_value_keys": ["period_code", "criterion_mark_value"],
+        "numeric_value_keys": [
+          "period_code",
+          "criterion_mark_value"
+        ],
         "output": {
           "column_on_sheet": "ПРОВЕРКА: SPOD-JSON (FILTER_PERIOD_ARR)",
           "include_in_summary": true
@@ -3243,7 +3302,9 @@
         "sheet": "INDICATOR",
         "json_column": "INDICATOR_FILTER",
         "json_required": false,
-        "numeric_value_keys": ["filtered_attribute_value"],
+        "numeric_value_keys": [
+          "filtered_attribute_value"
+        ],
         "output": {
           "column_on_sheet": "ПРОВЕРКА: SPOD-JSON (INDICATOR_FILTER)",
           "include_in_summary": true
@@ -3259,9 +3320,21 @@
         "sheet_ref": "INDICATOR",
         "column_ref": "CONTEST_CODE",
         "src_row_conditions": [
-          { "column": "BUSINESS_STATUS", "op": "=", "value": "АКТИВНЫЙ" },
-          { "column": "CONTEST_TYPE", "op": "=", "value": "ИНДИВИДУАЛЬНЫЙ НАКОПИТЕЛЬНЫЙ" },
-          { "column": "CREATE_DT", "op": "<>", "value": "2025-01-01" }
+          {
+            "column": "BUSINESS_STATUS",
+            "op": "=",
+            "value": "АКТИВНЫЙ"
+          },
+          {
+            "column": "CONTEST_TYPE",
+            "op": "=",
+            "value": "ИНДИВИДУАЛЬНЫЙ НАКОПИТЕЛЬНЫЙ"
+          },
+          {
+            "column": "CREATE_DT",
+            "op": "<>",
+            "value": "2025-01-01"
+          }
         ],
         "ref_row_conditions": [],
         "output": {
@@ -4316,7 +4389,10 @@
     "order_employee_col": "Табельный номер",
     "order_product_col": "Код товара",
     "order_status_col": "Статус заказа",
-    "order_status_exclude": ["Отклонён", "Отменён"],
+    "order_status_exclude": [
+      "Отклонён",
+      "Отменён"
+    ],
     "rating_employee_col": "Табельный номер",
     "rating_role_col": "Наименование Роли",
     "rating_period_col": "Период",
@@ -4388,9 +4464,46 @@
     "normalize_pad_width": 20,
     "freeze": "E2",
     "column_widths": {
-      "Табельный номер": { "width_mode": 24 },
-      "Источники": { "width_mode": "AUTO", "min_width": 50, "max_width": 80 }
+      "Табельный номер": {
+        "width_mode": 24
+      },
+      "Источники": {
+        "width_mode": "AUTO",
+        "min_width": 50,
+        "max_width": 80
+      }
     },
+    "column_formats": [
+      {
+        "column_prefixes": [
+          "Количество кристаллов |",
+          "Место в рейтинге по стране |",
+          "Место в рейтинге ТБ |",
+          "Место в рейтинге ГОСБ |"
+        ],
+        "data_type": "number",
+        "decimal_places": 0,
+        "decimal_separator": ",",
+        "thousands_separator": true,
+        "horizontal": "center",
+        "vertical": "center",
+        "wrap_text": false
+      },
+      {
+        "columns": [
+          "ТБ",
+          "ГОСБ"
+        ],
+        "data_type": "number",
+        "decimal_places": 0,
+        "decimal_separator": ",",
+        "thousands_separator": false,
+        "horizontal": "center",
+        "vertical": "center",
+        "wrap_text": false
+      }
+    ],
+    "_column_formats_format": "column_formats[] для листа TAB_NUMBERS: column_prefixes — префиксы enrich-колонок RATING (метрика | период); columns — ТБ, ГОСБ; data_type number — целые.",
     "_sources_format": "sources[]: sheet (точное имя) ИЛИ sheet_pattern (glob, напр. RATING_*); tab_column — колонка табельного; where_in — объект «колонка → [значения]», строка попадает только если во ВСЕХ перечисленных колонках значение из списка; where_not_in — «колонка → [значения]», строка отбрасывается если значение в списке (логическое И между колонками). enabled: false — пропуск правила.",
     "sources": [
       {
@@ -4408,7 +4521,10 @@
         "tab_column": "PERSON_NUMBER",
         "where_in": {},
         "where_not_in": {
-          "SURNAME": ["…", "..."],
+          "SURNAME": [
+            "…",
+            "..."
+          ],
           "POSITION_NAME": [
             "КПК",
             "ГОСБ",
@@ -4428,7 +4544,10 @@
         "tab_column": "PERSON_NUMBER_ADD",
         "where_in": {},
         "where_not_in": {
-          "SURNAME": ["…", "..."],
+          "SURNAME": [
+            "…",
+            "..."
+          ],
           "POSITION_NAME": [
             "КПК",
             "ГОСБ",
@@ -4480,7 +4599,10 @@
         "tab_column": "Табельный номер",
         "where_in": {},
         "where_not_in": {
-          "Статус заказа": ["Отклонён", "Отменён"]
+          "Статус заказа": [
+            "Отклонён",
+            "Отменён"
+          ]
         }
       },
       {
@@ -4490,7 +4612,10 @@
         "tab_column": "Табельный номер",
         "where_in": {},
         "where_not_in": {
-          "Статус заказа": ["Отклонён", "Отменён"]
+          "Статус заказа": [
+            "Отклонён",
+            "Отменён"
+          ]
         }
       }
     ],
@@ -4501,7 +4626,7 @@
       "min_tabs_for_parallel": 50,
       "chunk_size": 500
     },
-    "_enrich_columns_format": "enrich_columns[]: output_column; lookup_row_key — составной ключ из колонок строки; mode: value | sum | count | exists (exists + present_value, напр. «ДА», если есть строки); multi_row: first | join; sources[]: sheet, tab_column или key_columns, value_column, where_in, where_not_in.",
+    "_enrich_columns_format": "enrich_columns[]: output_column; lookup_row_key — составной ключ из колонок строки; mode: value | sum | count | exists (exists + present_value у source, напр. «КМ»); multi_row: first | join (для exists+join — все коды ролей через join_separator); sources[]: sheet, tab_column или key_columns, value_column, present_value (exists), where_in, where_not_in.",
     "enrich_columns": [
       {
         "id": "last_name",
@@ -4517,7 +4642,9 @@
             "tab_column": "Табельный номер",
             "value_column": "Фамилия",
             "where_in": {
-              "Период": ["Сезон 2026"]
+              "Период": [
+                "Сезон 2026"
+              ]
             },
             "where_not_in": {}
           },
@@ -4535,7 +4662,9 @@
             "tab_column": "Табельный номер",
             "value_column": "Фамилия",
             "where_in": {
-              "Текущая роль": [true]
+              "Текущая роль": [
+                true
+              ]
             },
             "where_not_in": {}
           },
@@ -4571,7 +4700,9 @@
             "tab_column": "Табельный номер",
             "value_column": "Имя",
             "where_in": {
-              "Период": ["Сезон 2026"]
+              "Период": [
+                "Сезон 2026"
+              ]
             },
             "where_not_in": {}
           },
@@ -4589,7 +4720,9 @@
             "tab_column": "Табельный номер",
             "value_column": "Имя",
             "where_in": {
-              "Текущая роль": [true]
+              "Текущая роль": [
+                true
+              ]
             },
             "where_not_in": {}
           },
@@ -4662,12 +4795,18 @@
         "mode": "value",
         "multi_row": "first",
         "default": "-",
-        "lookup_row_key": ["ТБ", "ГОСБ"],
+        "lookup_row_key": [
+          "ТБ",
+          "ГОСБ"
+        ],
         "sources": [
           {
             "priority": 1,
             "sheet": "ORG_UNIT_V20",
-            "key_columns": ["TB_CODE", "GOSB_CODE"],
+            "key_columns": [
+              "TB_CODE",
+              "GOSB_CODE"
+            ],
             "value_column": "TB_FULL_NAME",
             "where_in": {},
             "where_not_in": {}
@@ -4681,12 +4820,18 @@
         "mode": "value",
         "multi_row": "first",
         "default": "-",
-        "lookup_row_key": ["ТБ", "ГОСБ"],
+        "lookup_row_key": [
+          "ТБ",
+          "ГОСБ"
+        ],
         "sources": [
           {
             "priority": 1,
             "sheet": "ORG_UNIT_V20",
-            "key_columns": ["TB_CODE", "GOSB_CODE"],
+            "key_columns": [
+              "TB_CODE",
+              "GOSB_CODE"
+            ],
             "value_column": "GOSB_NAME",
             "where_in": {},
             "where_not_in": {}
@@ -4698,13 +4843,15 @@
         "enabled": true,
         "output_column": "есть в текущем рейтинге",
         "mode": "exists",
-        "present_value": "ДА",
+        "multi_row": "join",
+        "join_separator": "; ",
         "default": "-",
         "sources": [
           {
             "priority": 1,
             "sheet": "RATING",
             "tab_column": "Табельный номер",
+            "present_value": "КМ",
             "where_in": {
               "Наименование Роли": [
                 "Клиентский менеджер крупнейшего, крупного и среднего бизнеса"
@@ -4712,10 +4859,608 @@
               "Период": ["Сезон 2026"]
             },
             "where_not_in": {}
+          },
+          {
+            "priority": 2,
+            "sheet": "RATING",
+            "tab_column": "Табельный номер",
+            "present_value": "AKM",
+            "where_in": {
+              "Наименование Роли": ["Ассистент клиентского менеджера ККСБ"],
+              "Период": ["Сезон 2026"]
+            },
+            "where_not_in": {}
+          },
+          {
+            "priority": 3,
+            "sheet": "RATING",
+            "tab_column": "Табельный номер",
+            "present_value": "МНС",
+            "where_in": {
+              "Наименование Роли": ["Менеджер нефинансовых сервисов"],
+              "Период": ["Сезон 2026"]
+            },
+            "where_not_in": {}
+          },
+          {
+            "priority": 4,
+            "sheet": "RATING",
+            "tab_column": "Табельный номер",
+            "present_value": "CSM",
+            "where_in": {
+              "Наименование Роли": [
+                "Руководитель проектов по технологическому развитию клиентов"
+              ],
+              "Период": ["Сезон 2026"]
+            },
+            "where_not_in": {}
+          }
+        ]
+      },
+      {
+        "id": "email_sigma",
+        "enabled": true,
+        "output_column": "Email Sigma",
+        "mode": "value",
+        "multi_row": "first",
+        "default": "-",
+        "sources": [
+          {
+            "priority": 1,
+            "sheet": "STATISTICS",
+            "tab_column": "Табельный номер",
+            "value_column": "Почта Сигма",
+            "where_in": {},
+            "where_not_in": {}
+          },
+          {
+            "priority": 2,
+            "sheet": "ORDER",
+            "tab_column": "Табельный номер",
+            "value_column": "Email в домене Sigma",
+            "where_in": {},
+            "where_not_in": {
+              "Статус заказа": [
+                "Отклонён",
+                "Отменён"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "id": "email_alpha",
+        "enabled": true,
+        "output_column": "Email Alpha",
+        "mode": "value",
+        "multi_row": "first",
+        "default": "-",
+        "sources": [
+          {
+            "priority": 1,
+            "sheet": "STATISTICS",
+            "tab_column": "Табельный номер",
+            "value_column": "Почта Альфа",
+            "where_in": {},
+            "where_not_in": {}
+          },
+          {
+            "priority": 2,
+            "sheet": "ORDER",
+            "tab_column": "Табельный номер",
+            "value_column": "Email в домене Alpha",
+            "where_in": {},
+            "where_not_in": {
+              "Статус заказа": [
+                "Отклонён",
+                "Отменён"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "id": "rating_crystals_h1_2025",
+        "enabled": true,
+        "output_column": "Количество кристаллов | 1 полугодие 2025",
+        "mode": "value",
+        "multi_row": "first",
+        "default": "-",
+        "sources": [
+          {
+            "priority": 1,
+            "sheet": "RATING",
+            "tab_column": "Табельный номер",
+            "value_column": "Количество кристаллов",
+            "where_in": {
+              "Наименование Роли": [
+                "Клиентский менеджер крупнейшего, крупного и среднего бизнеса"
+              ],
+              "Период": [
+                "1 полугодие 2025"
+              ]
+            },
+            "where_not_in": {}
+          }
+        ]
+      },
+      {
+        "id": "rating_rank_country_h1_2025",
+        "enabled": true,
+        "output_column": "Место в рейтинге по стране | 1 полугодие 2025",
+        "mode": "value",
+        "multi_row": "first",
+        "default": "-",
+        "sources": [
+          {
+            "priority": 1,
+            "sheet": "RATING",
+            "tab_column": "Табельный номер",
+            "value_column": "Место в рейтинге по стране",
+            "where_in": {
+              "Наименование Роли": [
+                "Клиентский менеджер крупнейшего, крупного и среднего бизнеса"
+              ],
+              "Период": [
+                "1 полугодие 2025"
+              ]
+            },
+            "where_not_in": {}
+          }
+        ]
+      },
+      {
+        "id": "rating_rank_tb_h1_2025",
+        "enabled": true,
+        "output_column": "Место в рейтинге ТБ | 1 полугодие 2025",
+        "mode": "value",
+        "multi_row": "first",
+        "default": "-",
+        "sources": [
+          {
+            "priority": 1,
+            "sheet": "RATING",
+            "tab_column": "Табельный номер",
+            "value_column": "Место в рейтинге ТБ",
+            "where_in": {
+              "Наименование Роли": [
+                "Клиентский менеджер крупнейшего, крупного и среднего бизнеса"
+              ],
+              "Период": [
+                "1 полугодие 2025"
+              ]
+            },
+            "where_not_in": {}
+          }
+        ]
+      },
+      {
+        "id": "rating_rank_gosb_h1_2025",
+        "enabled": true,
+        "output_column": "Место в рейтинге ГОСБ | 1 полугодие 2025",
+        "mode": "value",
+        "multi_row": "first",
+        "default": "-",
+        "sources": [
+          {
+            "priority": 1,
+            "sheet": "RATING",
+            "tab_column": "Табельный номер",
+            "value_column": "Место в рейтинге ГОСБ",
+            "where_in": {
+              "Наименование Роли": [
+                "Клиентский менеджер крупнейшего, крупного и среднего бизнеса"
+              ],
+              "Период": [
+                "1 полугодие 2025"
+              ]
+            },
+            "where_not_in": {}
+          }
+        ]
+      },
+      {
+        "id": "rating_crystals_h2_2025",
+        "enabled": true,
+        "output_column": "Количество кристаллов | 2 полугодие 2025",
+        "mode": "value",
+        "multi_row": "first",
+        "default": "-",
+        "sources": [
+          {
+            "priority": 1,
+            "sheet": "RATING",
+            "tab_column": "Табельный номер",
+            "value_column": "Количество кристаллов",
+            "where_in": {
+              "Наименование Роли": [
+                "Клиентский менеджер крупнейшего, крупного и среднего бизнеса"
+              ],
+              "Период": [
+                "2 полугодие 2025"
+              ]
+            },
+            "where_not_in": {}
+          }
+        ]
+      },
+      {
+        "id": "rating_rank_country_h2_2025",
+        "enabled": true,
+        "output_column": "Место в рейтинге по стране | 2 полугодие 2025",
+        "mode": "value",
+        "multi_row": "first",
+        "default": "-",
+        "sources": [
+          {
+            "priority": 1,
+            "sheet": "RATING",
+            "tab_column": "Табельный номер",
+            "value_column": "Место в рейтинге по стране",
+            "where_in": {
+              "Наименование Роли": [
+                "Клиентский менеджер крупнейшего, крупного и среднего бизнеса"
+              ],
+              "Период": [
+                "2 полугодие 2025"
+              ]
+            },
+            "where_not_in": {}
+          }
+        ]
+      },
+      {
+        "id": "rating_rank_tb_h2_2025",
+        "enabled": true,
+        "output_column": "Место в рейтинге ТБ | 2 полугодие 2025",
+        "mode": "value",
+        "multi_row": "first",
+        "default": "-",
+        "sources": [
+          {
+            "priority": 1,
+            "sheet": "RATING",
+            "tab_column": "Табельный номер",
+            "value_column": "Место в рейтинге ТБ",
+            "where_in": {
+              "Наименование Роли": [
+                "Клиентский менеджер крупнейшего, крупного и среднего бизнеса"
+              ],
+              "Период": [
+                "2 полугодие 2025"
+              ]
+            },
+            "where_not_in": {}
+          }
+        ]
+      },
+      {
+        "id": "rating_rank_gosb_h2_2025",
+        "enabled": true,
+        "output_column": "Место в рейтинге ГОСБ | 2 полугодие 2025",
+        "mode": "value",
+        "multi_row": "first",
+        "default": "-",
+        "sources": [
+          {
+            "priority": 1,
+            "sheet": "RATING",
+            "tab_column": "Табельный номер",
+            "value_column": "Место в рейтинге ГОСБ",
+            "where_in": {
+              "Наименование Роли": [
+                "Клиентский менеджер крупнейшего, крупного и среднего бизнеса"
+              ],
+              "Период": [
+                "2 полугодие 2025"
+              ]
+            },
+            "where_not_in": {}
+          }
+        ]
+      },
+      {
+        "id": "rating_crystals_all_time",
+        "enabled": true,
+        "output_column": "Количество кристаллов | За всё время",
+        "mode": "value",
+        "multi_row": "first",
+        "default": "-",
+        "sources": [
+          {
+            "priority": 1,
+            "sheet": "RATING",
+            "tab_column": "Табельный номер",
+            "value_column": "Количество кристаллов",
+            "where_in": {
+              "Наименование Роли": [
+                "Клиентский менеджер крупнейшего, крупного и среднего бизнеса"
+              ],
+              "Период": [
+                "За всё время"
+              ]
+            },
+            "where_not_in": {}
+          }
+        ]
+      },
+      {
+        "id": "rating_rank_country_all_time",
+        "enabled": true,
+        "output_column": "Место в рейтинге по стране | За всё время",
+        "mode": "value",
+        "multi_row": "first",
+        "default": "-",
+        "sources": [
+          {
+            "priority": 1,
+            "sheet": "RATING",
+            "tab_column": "Табельный номер",
+            "value_column": "Место в рейтинге по стране",
+            "where_in": {
+              "Наименование Роли": [
+                "Клиентский менеджер крупнейшего, крупного и среднего бизнеса"
+              ],
+              "Период": [
+                "За всё время"
+              ]
+            },
+            "where_not_in": {}
+          }
+        ]
+      },
+      {
+        "id": "rating_rank_tb_all_time",
+        "enabled": true,
+        "output_column": "Место в рейтинге ТБ | За всё время",
+        "mode": "value",
+        "multi_row": "first",
+        "default": "-",
+        "sources": [
+          {
+            "priority": 1,
+            "sheet": "RATING",
+            "tab_column": "Табельный номер",
+            "value_column": "Место в рейтинге ТБ",
+            "where_in": {
+              "Наименование Роли": [
+                "Клиентский менеджер крупнейшего, крупного и среднего бизнеса"
+              ],
+              "Период": [
+                "За всё время"
+              ]
+            },
+            "where_not_in": {}
+          }
+        ]
+      },
+      {
+        "id": "rating_rank_gosb_all_time",
+        "enabled": true,
+        "output_column": "Место в рейтинге ГОСБ | За всё время",
+        "mode": "value",
+        "multi_row": "first",
+        "default": "-",
+        "sources": [
+          {
+            "priority": 1,
+            "sheet": "RATING",
+            "tab_column": "Табельный номер",
+            "value_column": "Место в рейтинге ГОСБ",
+            "where_in": {
+              "Наименование Роли": [
+                "Клиентский менеджер крупнейшего, крупного и среднего бизнеса"
+              ],
+              "Период": [
+                "За всё время"
+              ]
+            },
+            "where_not_in": {}
+          }
+        ]
+      },
+      {
+        "id": "rating_crystals_season_2024",
+        "enabled": true,
+        "output_column": "Количество кристаллов | Сезон 2024",
+        "mode": "value",
+        "multi_row": "first",
+        "default": "-",
+        "sources": [
+          {
+            "priority": 1,
+            "sheet": "RATING",
+            "tab_column": "Табельный номер",
+            "value_column": "Количество кристаллов",
+            "where_in": {
+              "Наименование Роли": [
+                "Клиентский менеджер крупнейшего, крупного и среднего бизнеса"
+              ],
+              "Период": [
+                "Сезон 2024"
+              ]
+            },
+            "where_not_in": {}
+          }
+        ]
+      },
+      {
+        "id": "rating_rank_country_season_2024",
+        "enabled": true,
+        "output_column": "Место в рейтинге по стране | Сезон 2024",
+        "mode": "value",
+        "multi_row": "first",
+        "default": "-",
+        "sources": [
+          {
+            "priority": 1,
+            "sheet": "RATING",
+            "tab_column": "Табельный номер",
+            "value_column": "Место в рейтинге по стране",
+            "where_in": {
+              "Наименование Роли": [
+                "Клиентский менеджер крупнейшего, крупного и среднего бизнеса"
+              ],
+              "Период": [
+                "Сезон 2024"
+              ]
+            },
+            "where_not_in": {}
+          }
+        ]
+      },
+      {
+        "id": "rating_rank_tb_season_2024",
+        "enabled": true,
+        "output_column": "Место в рейтинге ТБ | Сезон 2024",
+        "mode": "value",
+        "multi_row": "first",
+        "default": "-",
+        "sources": [
+          {
+            "priority": 1,
+            "sheet": "RATING",
+            "tab_column": "Табельный номер",
+            "value_column": "Место в рейтинге ТБ",
+            "where_in": {
+              "Наименование Роли": [
+                "Клиентский менеджер крупнейшего, крупного и среднего бизнеса"
+              ],
+              "Период": [
+                "Сезон 2024"
+              ]
+            },
+            "where_not_in": {}
+          }
+        ]
+      },
+      {
+        "id": "rating_rank_gosb_season_2024",
+        "enabled": true,
+        "output_column": "Место в рейтинге ГОСБ | Сезон 2024",
+        "mode": "value",
+        "multi_row": "first",
+        "default": "-",
+        "sources": [
+          {
+            "priority": 1,
+            "sheet": "RATING",
+            "tab_column": "Табельный номер",
+            "value_column": "Место в рейтинге ГОСБ",
+            "where_in": {
+              "Наименование Роли": [
+                "Клиентский менеджер крупнейшего, крупного и среднего бизнеса"
+              ],
+              "Период": [
+                "Сезон 2024"
+              ]
+            },
+            "where_not_in": {}
+          }
+        ]
+      },
+      {
+        "id": "rating_crystals_season_2026",
+        "enabled": true,
+        "output_column": "Количество кристаллов | Сезон 2026",
+        "mode": "value",
+        "multi_row": "first",
+        "default": "-",
+        "sources": [
+          {
+            "priority": 1,
+            "sheet": "RATING",
+            "tab_column": "Табельный номер",
+            "value_column": "Количество кристаллов",
+            "where_in": {
+              "Наименование Роли": [
+                "Клиентский менеджер крупнейшего, крупного и среднего бизнеса"
+              ],
+              "Период": [
+                "Сезон 2026"
+              ]
+            },
+            "where_not_in": {}
+          }
+        ]
+      },
+      {
+        "id": "rating_rank_country_season_2026",
+        "enabled": true,
+        "output_column": "Место в рейтинге по стране | Сезон 2026",
+        "mode": "value",
+        "multi_row": "first",
+        "default": "-",
+        "sources": [
+          {
+            "priority": 1,
+            "sheet": "RATING",
+            "tab_column": "Табельный номер",
+            "value_column": "Место в рейтинге по стране",
+            "where_in": {
+              "Наименование Роли": [
+                "Клиентский менеджер крупнейшего, крупного и среднего бизнеса"
+              ],
+              "Период": [
+                "Сезон 2026"
+              ]
+            },
+            "where_not_in": {}
+          }
+        ]
+      },
+      {
+        "id": "rating_rank_tb_season_2026",
+        "enabled": true,
+        "output_column": "Место в рейтинге ТБ | Сезон 2026",
+        "mode": "value",
+        "multi_row": "first",
+        "default": "-",
+        "sources": [
+          {
+            "priority": 1,
+            "sheet": "RATING",
+            "tab_column": "Табельный номер",
+            "value_column": "Место в рейтинге ТБ",
+            "where_in": {
+              "Наименование Роли": [
+                "Клиентский менеджер крупнейшего, крупного и среднего бизнеса"
+              ],
+              "Период": [
+                "Сезон 2026"
+              ]
+            },
+            "where_not_in": {}
+          }
+        ]
+      },
+      {
+        "id": "rating_rank_gosb_season_2026",
+        "enabled": true,
+        "output_column": "Место в рейтинге ГОСБ | Сезон 2026",
+        "mode": "value",
+        "multi_row": "first",
+        "default": "-",
+        "sources": [
+          {
+            "priority": 1,
+            "sheet": "RATING",
+            "tab_column": "Табельный номер",
+            "value_column": "Место в рейтинге ГОСБ",
+            "where_in": {
+              "Наименование Роли": [
+                "Клиентский менеджер крупнейшего, крупного и среднего бизнеса"
+              ],
+              "Период": [
+                "Сезон 2026"
+              ]
+            },
+            "where_not_in": {}
           }
         ]
       }
-    ]
+    ],
+    "_rating_enrich_groups_format": "Группы RATING (роль КМККСБ + период): для каждой пары «Наименование Роли»+«Период» отдельные колонки «метрика | период» — кристаллы и места в рейтинге; default «-»."
   },
   "json_columns": {
     "CONTEST-DATA": [

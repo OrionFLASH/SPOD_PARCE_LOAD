@@ -106,7 +106,7 @@ SPOD_PROM/
 | **reward_item_catalog.py** | Каталог ITEM из **`REWARD_ADD_DATA`** и проверка доступности товара менеджеру | `build_item_catalog_from_reward_df`, `rules_for_matrix_column`, `item_accessible_for_manager` — для раскраски матрицы на **RATING**; учёт массива **`ignoreConditions`** (табельные «всегда доступно»). |
 | **rating_item_matrix.py** | Колонки-счётчики по ORDER и подсветка доступности ITEM на **RATING** | `apply_rating_item_matrix_enrichment`, `apply_rating_item_matrix_colors` — светло-зелёный / светло-красный по полным критериям из JSON и листов **ORDER** / **LIST-REWARDS**; передача табельного в **`item_accessible_for_manager`**. |
 | **season_order_summary.py** | Сводный лист заказов по группам сезона | `build_season_order_summary_sheet`, `apply_season_order_summary` — лист **ORDER-SEASON-SUMMARY** по **`item_order_groups`**; те же ORDER/RATING/REWARD, что и матрица. |
-| **manager_stats.py** | Книга MANAGER_STATS: табельные и enrich-колонки | `collect_tab_numbers_from_sheets`, `enrich_tab_dataframe`, `build_manager_stats_workbook_data` — конфиг **`manager_stats`**, фильтры EMPLOYEE в `sources`, итоговое исключение `employee_placeholder_exclusion`, индексы и параллельный lookup. См. **`Docs/MANAGER_STATS.md`**. |
+| **manager_stats.py** | Книга MANAGER_STATS: табельные и enrich-колонки | `collect_tab_numbers_from_sheets`, `enrich_tab_dataframe`, `build_manager_stats_workbook_data` — конфиг **`manager_stats`**, фильтры EMPLOYEE, `employee_placeholder_exclusion`, `exists+join` для кодов ролей в рейтинге, индексы и параллельный lookup. См. **`Docs/MANAGER_STATS.md`**. |
 | **json_spod_format_check.py** | Валидация SPOD-JSON: BOM/Unicode-пробелы вне **`"""…"""`**, симметрия внешних кавычек, рекурсивный разбор **со сбором всех** структурных ошибок в ячейке; **`""key""`**, JSON- и **`""значение""`** у строки, лишние **`{}`** в массиве; **`numeric_value_keys`**; нормализация и **json.loads**; **короткие** строки (путь + суть), лимиты **`_MAX_STRUCTURE_ERRORS`** / **`_MAX_CELL_ERROR_LEN`** | `validate_spod_json_cell`, `run_json_spod_format_check` — из **`consistency_checks`**, **`type: "json_spod_format"`**. |
 | **file_loader.py** | Поиск и загрузка CSV, разворот JSON по конфигу | Класс `FileLoader(config)`: `find_file_case_insensitive(directory, base_name, extensions)`, `check_input_files_exist()`, `read_csv_file(file_path)`, `process_single_file(file_conf)` — возвращает `(df, sheet_name, file_conf)` или `(None, sheet_name, None)`. |
 | **archive_json_columns.py**, **input_archive_sqlite.py** | Архив v1: снимки целого файла в SQLite | **`archive_json_columns`**: колонки **JSON_***. **`input_archive_sqlite`**: `run_input_archive_sqlite`, снимки **`latest`/`historical`**, дедуп по SHA файла. См. **`Docs/INPUT_ARCHIVE_SQLITE_DESIGN.md`**. |
@@ -153,7 +153,7 @@ SPOD_PROM/
 | `reward_getcondition_summary` | Сводная колонка на листе REWARD по кодам `getCondition` (nonRewards/rewards); `enabled`, `column_name`. |
 | `rating_item_matrix` | Матрица ITEM на листе **RATING**: счётчики заказов по **ORDER** и подсветка доступности товара (зелёный/красный) по **`REWARD_ADD_DATA`**, **LIST-REWARDS**, кристаллам; см. раздел **rating_item_matrix**. |
 | `season_order_summary` | Лист **ORDER-SEASON-SUMMARY**: сводка по кодам из **`item_order_groups`**; см. раздел **season_order_summary**. |
-| `manager_stats` | Отдельная книга **MANAGER_STATS** (табельные, enrich-колонки); фильтры EMPLOYEE в `sources` (`SURNAME`, `POSITION_NAME`) и итоговое исключение заглушек; см. **`Docs/MANAGER_STATS.md`**. |
+| `manager_stats` | Отдельная книга **MANAGER_STATS** (табельные, enrich-колонки: ФИО, ТБ/ГОСБ, коды ролей в рейтинге, Email, метрики RATING, `column_formats`); фильтры EMPLOYEE в `sources` и итоговое исключение заглушек; см. **`Docs/MANAGER_STATS.md`**. |
 | `input_archive_sqlite` | Архив сырых CSV в SQLite: **`enabled`**, **`row_level_archive`** (v2 / v1), **`db_path`**, **`legacy_db_path`**, **`default_row_key_by_sheet`**, **`parallel_row_processing`**, **`reporting`**, **`archive_to_db`** в **`input_files`**. v1: **`Docs/INPUT_ARCHIVE_SQLITE_DESIGN.md`**; v2: **`Docs/INPUT_ARCHIVE_ROW_LEVEL.md`**. |
 
 ### Общая структура файла
@@ -1270,6 +1270,12 @@ python main.py
 - **Архив SQLite** (**`input_archive_sqlite`**): в консоль и стартовую строку лога выводится **полный относительный** путь к файлу БД (без усечения); блок «По листам» — табличный вид (**`console_ui.print_input_archive_sqlite_report`**).
 - **Матрица RATING**: массив **`ignoreConditions`** в **`REWARD_ADD_DATA`** для **ITEM** — перечисленные табельные номера получают ячейку **доступной** (**`fill_accessibility_ok`**) без проверки остальных критериев (**`reward_item_catalog`**, **`item_accessible_for_manager(..., manager_tab=)`**).
 - Переименованы короткие **`id`** базовых правил (вместо **`1.1`**, **`2`**, …) на смысловые (**`ref_group_contest_code_in_contest_data`** и т.д.); обновлены **`Docs/SPOD_CONSISTENCY_CHECKS_SQL_MIRROR.*`**, **`Docs/CONSISTENCY_CHECKS_FORMAT.md`**.
+
+### Версия 1.7.41 — MANAGER_STATS: enrich рейтинга, коды ролей exists+join
+
+- **`есть в текущем рейтинге`**: `mode: exists`, `multi_row: join` — коды ролей **КМ / AKM / МНС / CSM** по листу **RATING** («Сезон 2026»); при нескольких ролях у одного табельного — через `; `; комбинированный индекс одним проходом по листу (**`_build_exists_join_combined_entry`**).
+- **`enrich_columns`**: Email Sigma/Alpha; 20 колонок метрик RATING (кристаллы и места по периодам); расширенная сводка **MANAGER_STATS_SUMMARY** (сбор, enrich, формат Excel); **`column_formats`** / **`column_prefixes`** для числовых колонок TAB_NUMBERS.
+- Тесты **`test_manager_stats.py`**; документация **`Docs/MANAGER_STATS.md`**, **`Docs/DOCS_INDEX.md`**.
 
 ### Версия 1.7.40 — MANAGER_STATS: фильтры EMPLOYEE при сборе табельных
 

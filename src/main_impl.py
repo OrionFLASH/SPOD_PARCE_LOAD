@@ -2,7 +2,7 @@
 import os          # Для работы с операционной системой и путями
 import sys         # Для системных функций и аргументов командной строки
 from collections import defaultdict
-from typing import Optional, List, Dict, Any, Tuple, Set  # Для аннотаций типов
+from typing import Optional, List, Dict, Any, Tuple, Set, Mapping, Sequence  # Для аннотаций типов
 import pandas as pd  # Для работы с данными в табличном формате
 import logging     # Для логирования процессов
 from datetime import datetime  # Для работы с датами и временем
@@ -1231,8 +1231,9 @@ def write_to_excel(
                 return sheet_name, None
             df, params_sheet = sheet_data
             df_write = df.copy()
+            extra_fmt = params_sheet.get("column_format_rules") if isinstance(params_sheet, dict) else None
             try:
-                apply_column_format_conversion(df_write, sheet_name)
+                apply_column_format_conversion(df_write, sheet_name, extra_rules=extra_fmt)
             except Exception as ex:
                 logging.exception(
                     f"[COLUMN_FORMATS] Ошибка преобразования типов для листа «{sheet_name}»: {ex}. "
@@ -1483,8 +1484,49 @@ def _normalize_string_for_numeric_cell(val: Any) -> str:
     return s.replace(",", ".")
 
 
+def _column_matches_format_rule(col_name: str, rule: Mapping[str, Any]) -> bool:
+    """Проверка, попадает ли колонка под правило columns / except_columns / column_prefixes."""
+    header_norm = _normalize_column_name_for_format_match(col_name)
+    except_cols = rule.get("except_columns") or []
+    columns_list = rule.get("columns") or []
+    prefixes = rule.get("column_prefixes") or []
+    if except_cols:
+        except_norm = {_normalize_column_name_for_format_match(x) for x in except_cols}
+        return header_norm not in except_norm
+    if columns_list:
+        allowed_norm = {_normalize_column_name_for_format_match(x) for x in columns_list}
+        return header_norm in allowed_norm
+    if prefixes:
+        for prefix in prefixes:
+            pnorm = _normalize_column_name_for_format_match(prefix)
+            if pnorm and header_norm.startswith(pnorm):
+                return True
+    return False
+
+
+def _format_rule_has_column_selector(rule: Mapping[str, Any]) -> bool:
+    return bool(rule.get("except_columns") or rule.get("columns") or rule.get("column_prefixes"))
+
+
+def _iter_sheet_format_rules(
+    sheet_name: str,
+    extra_rules: Optional[Sequence[Mapping[str, Any]]] = None,
+) -> List[Mapping[str, Any]]:
+    """Правила COLUMN_FORMATS для листа + дополнительные правила из params (MANAGER_STATS и др.)."""
+    rules: List[Mapping[str, Any]] = [
+        r for r in COLUMN_FORMATS if r.get("sheet") == sheet_name
+    ]
+    if extra_rules:
+        rules.extend(r for r in extra_rules if isinstance(r, dict))
+    return rules
+
+
 @debug_timed()
-def apply_column_format_conversion(df: pd.DataFrame, sheet_name: str) -> None:
+def apply_column_format_conversion(
+    df: pd.DataFrame,
+    sheet_name: str,
+    extra_rules: Optional[Sequence[Mapping[str, Any]]] = None,
+) -> None:
     """
     Преобразует типы колонок в DataFrame по правилам COLUMN_FORMATS перед записью в Excel.
     Вызывается для копии DataFrame перед to_excel, чтобы Excel получал числа/даты, а не строки.
@@ -1493,26 +1535,15 @@ def apply_column_format_conversion(df: pd.DataFrame, sheet_name: str) -> None:
     Args:
         df (pd.DataFrame): DataFrame листа (будет изменён in-place)
         sheet_name (str): Имя листа
+        extra_rules: Доп. правила из params листа (без поля sheet)
     """
-    for rule in COLUMN_FORMATS:
-        if rule.get("sheet") != sheet_name:
+    for rule in _iter_sheet_format_rules(sheet_name, extra_rules):
+        if not _format_rule_has_column_selector(rule):
             continue
-        # Режим: либо список колонок для применения формата (columns), либо все кроме указанных (except_columns)
-        except_cols = rule.get("except_columns") or []
-        columns_list = rule.get("columns") or []
-        # Нельзя применять «все колонки», если не заданы ни except, ни columns
-        if not except_cols and not columns_list:
-            continue
-        except_norm = {_normalize_column_name_for_format_match(x) for x in except_cols} if except_cols else set()
-        columns_norm = {_normalize_column_name_for_format_match(x) for x in columns_list} if columns_list else set()
         dtype = (rule.get("data_type") or "general").lower()
         for col in df.columns:
-            if except_cols:
-                if _normalize_column_name_for_format_match(col) in except_norm:
-                    continue
-            else:
-                if _normalize_column_name_for_format_match(col) not in columns_norm:
-                    continue
+            if not _column_matches_format_rule(col, rule):
+                continue
             col_data = df[col]
             if isinstance(col_data, pd.DataFrame):
                 logging.warning(
@@ -1561,45 +1592,34 @@ def apply_column_format_conversion(df: pd.DataFrame, sheet_name: str) -> None:
                 )
 
 
-def _column_indices_covered_by_column_formats(sheet_name: str, col_names: List[Any]) -> Set[int]:
+def _column_indices_covered_by_column_formats(
+    sheet_name: str,
+    col_names: List[Any],
+    extra_rules: Optional[Sequence[Mapping[str, Any]]] = None,
+) -> Set[int]:
     """
     Возвращает номера столбцов (1-based), к которым будут применены правила COLUMN_FORMATS на листе.
     Нужно, чтобы не выставлять общий alignment второй раз тем же ячейкам в _format_sheet (перенос и пр. из правил сохраняются).
     """
-    rules_for_sheet = [r for r in COLUMN_FORMATS if r.get("sheet") == sheet_name]
+    rules_for_sheet = _iter_sheet_format_rules(sheet_name, extra_rules)
     covered: Set[int] = set()
     if not rules_for_sheet:
         return covered
     for rule in rules_for_sheet:
-        except_cols = rule.get("except_columns") or []
-        columns_list = rule.get("columns") or []
-        if except_cols:
-            except_norm = {_normalize_column_name_for_format_match(x) for x in except_cols}
-        else:
-            except_norm = None
-        if columns_list:
-            allowed_norm = {_normalize_column_name_for_format_match(x) for x in columns_list}
-        else:
-            allowed_norm = None
-        if except_norm is None and allowed_norm is None:
+        if not _format_rule_has_column_selector(rule):
             continue
         for col_idx, raw_header in enumerate(col_names, start=1):
-            header_norm = _normalize_column_name_for_format_match(
-                str(raw_header) if raw_header is not None else ""
-            )
-            if except_norm is not None:
-                if header_norm in except_norm:
-                    continue
-            elif allowed_norm is not None:
-                if header_norm not in allowed_norm:
-                    continue
-            else:
-                continue
-            covered.add(col_idx)
+            header = str(raw_header) if raw_header is not None else ""
+            if _column_matches_format_rule(header, rule):
+                covered.add(col_idx)
     return covered
 
 
-def apply_column_formats(ws: Any, sheet_name: str) -> None:
+def apply_column_formats(
+    ws: Any,
+    sheet_name: str,
+    extra_rules: Optional[Sequence[Mapping[str, Any]]] = None,
+) -> None:
     """
     Применяет к ячейкам листа Excel формат числа/даты и выравнивание по правилам COLUMN_FORMATS.
     Вызывается из _format_sheet после базового форматирования. Обрабатывает только колонки,
@@ -1612,23 +1632,12 @@ def apply_column_formats(ws: Any, sheet_name: str) -> None:
     """
     header_cells = list(ws[1])
     col_names = [c.value for c in header_cells]
-    rules_for_sheet = [r for r in COLUMN_FORMATS if r.get("sheet") == sheet_name]
+    rules_for_sheet = _iter_sheet_format_rules(sheet_name, extra_rules)
     if not rules_for_sheet:
         return
 
     for rule in rules_for_sheet:
-        # Режим: либо список колонок (columns), либо все колонки листа кроме указанных (except_columns)
-        except_cols = rule.get("except_columns") or []
-        columns_list = rule.get("columns") or []
-        if except_cols:
-            except_norm = {_normalize_column_name_for_format_match(x) for x in except_cols}
-        else:
-            except_norm = None
-        if columns_list:
-            allowed_norm = {_normalize_column_name_for_format_match(x) for x in columns_list}
-        else:
-            allowed_norm = None
-        if except_norm is None and allowed_norm is None:
+        if not _format_rule_has_column_selector(rule):
             continue
         data_type = (rule.get("data_type") or "general").lower()
         # Строка формата Excel
@@ -1649,18 +1658,10 @@ def apply_column_formats(ws: Any, sheet_name: str) -> None:
             vertical=v_map.get(v, "center"),
             wrap_text=wrap,
         )
-        # Обход по индексу столбца: совпадение с except/columns через нормализованные имена (BOM, NBSP в заголовке)
+        # Обход по индексу столбца: совпадение с except/columns/prefixes
         for col_idx, raw_header in enumerate(col_names, start=1):
-            header_norm = _normalize_column_name_for_format_match(
-                str(raw_header) if raw_header is not None else ""
-            )
-            if except_norm is not None:
-                if header_norm in except_norm:
-                    continue
-            elif allowed_norm is not None:
-                if header_norm not in allowed_norm:
-                    continue
-            else:
+            header = str(raw_header) if raw_header is not None else ""
+            if not _column_matches_format_rule(header, rule):
                 continue
             # Для числа с 0 знаков после запятой: записать в ячейку целое значение (1, 2), а не 1.0, 2.0,
             # иначе Excel в части локалей отображает "1,0"
@@ -1729,7 +1730,10 @@ def _format_sheet(ws, df, params, use_color_scheme: bool = True):
     # (там wrap_text и т.д. как в конфиге), остальные — общий стиль с переносом по словам как раньше.
     if ws.max_row > 1:
         col_names_header = [c.value for c in header_cells]
-        cols_covered_by_rules = _column_indices_covered_by_column_formats(ws.title, col_names_header)
+        extra_fmt = params.get("column_format_rules") if isinstance(params, dict) else None
+        cols_covered_by_rules = _column_indices_covered_by_column_formats(
+            ws.title, col_names_header, extra_rules=extra_fmt
+        )
         for row in ws.iter_rows(min_row=2, max_row=ws.max_row, max_col=ws.max_column):
             for cell in row:
                 if cell.column in cols_covered_by_rules:
@@ -1737,7 +1741,7 @@ def _format_sheet(ws, df, params, use_color_scheme: bool = True):
                 cell.alignment = align_data
 
         # Формат чисел/дат и выравнивание по правилам (включая wrap_text из конфига)
-        apply_column_formats(ws, ws.title)
+        apply_column_formats(ws, ws.title, extra_rules=extra_fmt)
 
     # Закрепление строк и столбцов
     ws.freeze_panes = params.get("freeze", "A2")

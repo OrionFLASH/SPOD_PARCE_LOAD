@@ -6,10 +6,14 @@ from __future__ import annotations
 import pandas as pd
 
 from src.manager_stats import (
+    _build_enrich_field_context,
     _build_filter_mask,
+    _normalized_enrich_fields_from_config,
+    build_manager_stats_summary_dataframe,
     build_manager_stats_workbook_data,
     collect_tab_numbers_from_sheets,
     enrich_tab_dataframe,
+    merge_manager_stats_config,
     normalize_tab_number,
 )
 
@@ -719,6 +723,250 @@ def test_employee_position_name_filtered_from_sources() -> None:
     assert "00000000000000000002" not in tabs
 
 
+def test_enrich_email_sigma_and_alpha() -> None:
+    """Email Sigma / Email Alpha: STATISTICS, затем ORDER."""
+    sheets = {
+        "STATISTICS": (
+            pd.DataFrame(
+                {
+                    "Табельный номер": [
+                        "00000000000000000001",
+                        "00000000000000000002",
+                        "00000000000000000003",
+                    ],
+                    "Почта Сигма": ["sigma@stats.ru", "", ""],
+                    "Почта Альфа": ["alpha@stats.ru", "alpha2@stats.ru", ""],
+                }
+            ),
+            {},
+        ),
+        "ORDER": (
+            pd.DataFrame(
+                {
+                    "Табельный номер": [
+                        "00000000000000000002",
+                        "00000000000000000003",
+                    ],
+                    "Email в домене Sigma": ["sigma@order.ru", "sigma3@order.ru"],
+                    "Email в домене Alpha": ["alpha@order.ru", "alpha3@order.ru"],
+                    "Статус заказа": ["Выполнен", "Выполнен"],
+                }
+            ),
+            {},
+        ),
+    }
+    df_tabs = pd.DataFrame(
+        {
+            "№": [1, 2, 3],
+            "Табельный номер": [
+                "00000000000000000001",
+                "00000000000000000002",
+                "00000000000000000003",
+            ],
+            "Источники": ["a", "b", "c"],
+            "Число источников": [1, 1, 1],
+        }
+    )
+    cfg = {
+        "enrich_columns": [
+            {
+                "id": "email_sigma",
+                "output_column": "Email Sigma",
+                "sources": [
+                    {
+                        "priority": 1,
+                        "sheet": "STATISTICS",
+                        "tab_column": "Табельный номер",
+                        "value_column": "Почта Сигма",
+                    },
+                    {
+                        "priority": 2,
+                        "sheet": "ORDER",
+                        "tab_column": "Табельный номер",
+                        "value_column": "Email в домене Sigma",
+                    },
+                ],
+            },
+            {
+                "id": "email_alpha",
+                "output_column": "Email Alpha",
+                "sources": [
+                    {
+                        "priority": 1,
+                        "sheet": "STATISTICS",
+                        "tab_column": "Табельный номер",
+                        "value_column": "Почта Альфа",
+                    },
+                    {
+                        "priority": 2,
+                        "sheet": "ORDER",
+                        "tab_column": "Табельный номер",
+                        "value_column": "Email в домене Alpha",
+                    },
+                ],
+            },
+        ],
+    }
+    out = enrich_tab_dataframe(df_tabs, sheets, cfg)
+    assert out.iloc[0]["Email Sigma"] == "sigma@stats.ru"
+    assert out.iloc[0]["Email Alpha"] == "alpha@stats.ru"
+    assert out.iloc[1]["Email Sigma"] == "sigma@order.ru"
+    assert out.iloc[1]["Email Alpha"] == "alpha2@stats.ru"
+    assert out.iloc[2]["Email Sigma"] == "sigma3@order.ru"
+    assert out.iloc[2]["Email Alpha"] == "alpha3@order.ru"
+
+
+def test_enrich_rating_groups_by_role_and_period() -> None:
+    """Метрики RATING по группам Наименование Роли + Период."""
+    role = "Клиентский менеджер крупнейшего, крупного и среднего бизнеса"
+    sheets = {
+        "RATING": (
+            pd.DataFrame(
+                {
+                    "Табельный номер": [
+                        "00000000000000000001",
+                        "00000000000000000001",
+                        "00000000000000000002",
+                    ],
+                    "Наименование Роли": [role, role, role],
+                    "Период": ["Сезон 2026", "Сезон 2024", "Сезон 2026"],
+                    "Количество кристаллов": ["100", "50", "200"],
+                    "Место в рейтинге по стране": ["1", "10", "5"],
+                    "Место в рейтинге ТБ": ["2", "20", "6"],
+                    "Место в рейтинге ГОСБ": ["3", "30", "7"],
+                }
+            ),
+            {},
+        ),
+    }
+    df_tabs = pd.DataFrame(
+        {
+            "№": [1, 2, 3],
+            "Табельный номер": [
+                "00000000000000000001",
+                "00000000000000000002",
+                "00000000000000000099",
+            ],
+            "Источники": ["a", "b", "c"],
+            "Число источников": [1, 1, 1],
+        }
+    )
+    cfg = {
+        "enrich_columns": [
+            {
+                "id": "rating_crystals_season_2026",
+                "output_column": "Количество кристаллов | Сезон 2026",
+                "sources": [
+                    {
+                        "priority": 1,
+                        "sheet": "RATING",
+                        "tab_column": "Табельный номер",
+                        "value_column": "Количество кристаллов",
+                        "where_in": {
+                            "Наименование Роли": [role],
+                            "Период": ["Сезон 2026"],
+                        },
+                    }
+                ],
+            },
+            {
+                "id": "rating_crystals_season_2024",
+                "output_column": "Количество кристаллов | Сезон 2024",
+                "sources": [
+                    {
+                        "priority": 1,
+                        "sheet": "RATING",
+                        "tab_column": "Табельный номер",
+                        "value_column": "Количество кристаллов",
+                        "where_in": {
+                            "Наименование Роли": [role],
+                            "Период": ["Сезон 2024"],
+                        },
+                    }
+                ],
+            },
+            {
+                "id": "rating_rank_country_season_2026",
+                "output_column": "Место в рейтинге по стране | Сезон 2026",
+                "sources": [
+                    {
+                        "priority": 1,
+                        "sheet": "RATING",
+                        "tab_column": "Табельный номер",
+                        "value_column": "Место в рейтинге по стране",
+                        "where_in": {
+                            "Наименование Роли": [role],
+                            "Период": ["Сезон 2026"],
+                        },
+                    }
+                ],
+            },
+        ],
+    }
+    out = enrich_tab_dataframe(df_tabs, sheets, cfg)
+    assert out.iloc[0]["Количество кристаллов | Сезон 2026"] == "100"
+    assert out.iloc[0]["Количество кристаллов | Сезон 2024"] == "50"
+    assert out.iloc[0]["Место в рейтинге по стране | Сезон 2026"] == "1"
+    assert out.iloc[1]["Количество кристаллов | Сезон 2026"] == "200"
+    assert out.iloc[2]["Количество кристаллов | Сезон 2026"] == "-"
+
+
+def test_manager_stats_summary_includes_enrich_and_sources() -> None:
+    """MANAGER_STATS_SUMMARY: sources, enrich и форматы колонок TAB_NUMBERS."""
+    sheets = {
+        "EMPLOYEE": (
+            pd.DataFrame({"PERSON_NUMBER": ["00000000000000000001"]}),
+            {},
+        ),
+    }
+    cfg = {
+        "sources": [{"id": "emp", "sheet": "EMPLOYEE", "tab_column": "PERSON_NUMBER"}],
+        "enrich_columns": [
+            {
+                "id": "last_name",
+                "output_column": "Фамилия",
+                "mode": "value",
+                "multi_row": "first",
+                "sources": [
+                    {
+                        "priority": 1,
+                        "sheet": "STATISTICS",
+                        "tab_column": "Табельный номер",
+                        "value_column": "Фамилия",
+                        "where_in": {"Текущая роль": [True]},
+                    },
+                    {
+                        "priority": 2,
+                        "sheet": "EMPLOYEE",
+                        "tab_column": "PERSON_NUMBER",
+                        "value_column": "SURNAME",
+                    },
+                ],
+            }
+        ],
+        "column_formats": [
+            {
+                "column_prefixes": ["Количество кристаллов |"],
+                "data_type": "number",
+                "decimal_places": 0,
+            }
+        ],
+    }
+    _, df_sources = collect_tab_numbers_from_sheets(sheets, cfg=cfg)
+    df_summary = build_manager_stats_summary_dataframe(df_sources, cfg)
+    assert "Раздел" in df_summary.columns
+    assert "Обогащение" in set(df_summary["Раздел"].dropna())
+    assert "Сбор табельных" in set(df_summary["Раздел"].dropna())
+    enrich = df_summary[df_summary["Раздел"] == "Обогащение"]
+    assert (enrich["Колонка TAB_NUMBERS"] == "Фамилия").any()
+    assert (enrich["Приоритет"] == "1").any()
+    assert "Текущая роль" in enrich.iloc[0]["Фильтры"]
+    data = build_manager_stats_workbook_data(sheets, cfg=cfg)
+    summary_df = data["MANAGER_STATS_SUMMARY"][0]
+    assert "Логика" in summary_df.columns
+    assert len(summary_df) >= 3
+
+
 def test_build_workbook_includes_enrich() -> None:
     sheets = {
         "EMPLOYEE": (
@@ -828,6 +1076,7 @@ def test_enrich_composite_key_org_unit() -> None:
 
 
 def test_enrich_exists_in_rating() -> None:
+    role_km = "Клиентский менеджер крупнейшего, крупного и среднего бизнеса"
     sheets = {
         "RATING": (
             pd.DataFrame(
@@ -835,14 +1084,16 @@ def test_enrich_exists_in_rating() -> None:
                     "Табельный номер": [
                         "00000000000000000001",
                         "00000000000000000002",
-                        "00000000000000000001",
+                        "00000000000000000003",
+                        "00000000000000000004",
                     ],
                     "Наименование Роли": [
-                        "Клиентский менеджер крупнейшего, крупного и среднего бизнеса",
-                        "Клиентский менеджер крупнейшего, крупного и среднего бизнеса",
+                        role_km,
+                        role_km,
                         "Другая роль",
+                        "Руководитель проектов по технологическому развитию клиентов",
                     ],
-                    "Период": ["Сезон 2026", "Сезон 2025", "Сезон 2026"],
+                    "Период": ["Сезон 2026", "Сезон 2025", "Сезон 2026", "Сезон 2026"],
                 }
             ),
             {},
@@ -850,14 +1101,15 @@ def test_enrich_exists_in_rating() -> None:
     }
     df_tabs = pd.DataFrame(
         {
-            "№": [1, 2, 3],
+            "№": [1, 2, 3, 4],
             "Табельный номер": [
                 "00000000000000000001",
                 "00000000000000000002",
                 "00000000000000000003",
+                "00000000000000000004",
             ],
-            "Источники": ["a", "b", "c"],
-            "Число источников": [1, 1, 1],
+            "Источники": ["a", "b", "c", "d"],
+            "Число источников": [1, 1, 1, 1],
         }
     )
     cfg = {
@@ -865,28 +1117,162 @@ def test_enrich_exists_in_rating() -> None:
             {
                 "output_column": "есть в текущем рейтинге",
                 "mode": "exists",
-                "present_value": "ДА",
+                "multi_row": "first",
                 "default": "-",
                 "sources": [
                     {
                         "priority": 1,
                         "sheet": "RATING",
                         "tab_column": "Табельный номер",
+                        "present_value": "КМ",
+                        "where_in": {
+                            "Наименование Роли": [role_km],
+                            "Период": ["Сезон 2026"],
+                        },
+                    },
+                    {
+                        "priority": 4,
+                        "sheet": "RATING",
+                        "tab_column": "Табельный номер",
+                        "present_value": "CSM",
                         "where_in": {
                             "Наименование Роли": [
-                                "Клиентский менеджер крупнейшего, крупного и среднего бизнеса"
+                                "Руководитель проектов по технологическому развитию клиентов"
                             ],
                             "Период": ["Сезон 2026"],
                         },
-                    }
+                    },
                 ],
             }
         ],
     }
     out = enrich_tab_dataframe(df_tabs, sheets, cfg)
-    assert out.iloc[0]["есть в текущем рейтинге"] == "ДА"
+    assert out.iloc[0]["есть в текущем рейтинге"] == "КМ"
     assert out.iloc[1]["есть в текущем рейтинге"] == "-"
     assert out.iloc[2]["есть в текущем рейтинге"] == "-"
+    assert out.iloc[3]["есть в текущем рейтинге"] == "CSM"
+
+
+def test_enrich_exists_in_rating_join_multiple_roles() -> None:
+    """Несколько ролей в RATING → коды через join_separator."""
+    role_km = "Клиентский менеджер крупнейшего, крупного и среднего бизнеса"
+    role_csm = "Руководитель проектов по технологическому развитию клиентов"
+    sheets = {
+        "RATING": (
+            pd.DataFrame(
+                {
+                    "Табельный номер": [
+                        "00000000000000000001",
+                        "00000000000000000001",
+                    ],
+                    "Наименование Роли": [role_km, role_csm],
+                    "Период": ["Сезон 2026", "Сезон 2026"],
+                }
+            ),
+            {},
+        ),
+    }
+    df_tabs = pd.DataFrame(
+        {
+            "№": [1],
+            "Табельный номер": ["00000000000000000001"],
+            "Источники": ["a"],
+            "Число источников": [1],
+        }
+    )
+    cfg = {
+        "enrich_columns": [
+            {
+                "output_column": "есть в текущем рейтинге",
+                "mode": "exists",
+                "multi_row": "join",
+                "join_separator": "; ",
+                "default": "-",
+                "sources": [
+                    {
+                        "priority": 1,
+                        "sheet": "RATING",
+                        "tab_column": "Табельный номер",
+                        "present_value": "КМ",
+                        "where_in": {
+                            "Наименование Роли": [role_km],
+                            "Период": ["Сезон 2026"],
+                        },
+                    },
+                    {
+                        "priority": 4,
+                        "sheet": "RATING",
+                        "tab_column": "Табельный номер",
+                        "present_value": "CSM",
+                        "where_in": {
+                            "Наименование Роли": [role_csm],
+                            "Период": ["Сезон 2026"],
+                        },
+                    },
+                ],
+            }
+        ],
+    }
+    out = enrich_tab_dataframe(df_tabs, sheets, cfg)
+    assert out.iloc[0]["есть в текущем рейтинге"] == "КМ; CSM"
+
+
+def test_enrich_exists_in_rating_join_uses_single_combined_index() -> None:
+    """exists+join строит один комбинированный индекс на лист RATING."""
+    role_km = "Клиентский менеджер крупнейшего, крупного и среднего бизнеса"
+    role_csm = "Руководитель проектов по технологическому развитию клиентов"
+    sheets = {
+        "RATING": (
+            pd.DataFrame(
+                {
+                    "Табельный номер": ["1", "1"],
+                    "Наименование Роли": [role_km, role_csm],
+                    "Период": ["Сезон 2026", "Сезон 2026"],
+                }
+            ),
+            {},
+        ),
+    }
+    mcfg = merge_manager_stats_config(
+        {
+            "enrich_columns": [
+                {
+                    "id": "in_current_rating",
+                    "output_column": "есть в текущем рейтинге",
+                    "mode": "exists",
+                    "multi_row": "join",
+                    "join_separator": "; ",
+                    "sources": [
+                        {
+                            "priority": 1,
+                            "sheet": "RATING",
+                            "tab_column": "Табельный номер",
+                            "present_value": "КМ",
+                            "where_in": {
+                                "Наименование Роли": [role_km],
+                                "Период": ["Сезон 2026"],
+                            },
+                        },
+                        {
+                            "priority": 4,
+                            "sheet": "RATING",
+                            "tab_column": "Табельный номер",
+                            "present_value": "CSM",
+                            "where_in": {
+                                "Наименование Роли": [role_csm],
+                                "Период": ["Сезон 2026"],
+                            },
+                        },
+                    ],
+                }
+            ],
+        }
+    )
+    field = _normalized_enrich_fields_from_config(mcfg)[0]
+    ctx = _build_enrich_field_context(field, sheets, ["RATING"], pad_width=20)
+    assert len(ctx.sources) == 1
+    tab = "00000000000000000001"
+    assert ctx.sources[0].join_map[tab] == ["КМ", "CSM"]
 
 
 def test_workbook_tab_column_widths() -> None:
@@ -896,3 +1282,68 @@ def test_workbook_tab_column_widths() -> None:
     assert widths["Табельный номер"]["width_mode"] == 24
     assert widths["Источники"]["min_width"] == 50
     assert widths["Источники"]["max_width"] == 80
+    fmt_rules = tab_params.get("column_format_rules") or []
+    assert fmt_rules
+    assert fmt_rules[0].get("data_type") == "number"
+    assert "Количество кристаллов |" in (fmt_rules[0].get("column_prefixes") or [])
+
+
+def test_enrich_rating_numeric_conversion_for_excel() -> None:
+    """Колонки RATING-групп преобразуются в числа перед записью Excel."""
+    from src.main_impl import apply_column_format_conversion
+
+    df = pd.DataFrame(
+        {
+            "Количество кристаллов | Сезон 2026": ["1 234", "-"],
+            "Место в рейтинге ТБ | Сезон 2026": ["5", ""],
+            "Фамилия": ["Иванов", "Петров"],
+        }
+    )
+    apply_column_format_conversion(
+        df,
+        "TAB_NUMBERS",
+        extra_rules=[
+            {
+                "column_prefixes": [
+                    "Количество кристаллов |",
+                    "Место в рейтинге по стране |",
+                    "Место в рейтинге ТБ |",
+                    "Место в рейтинге ГОСБ |",
+                ],
+                "data_type": "number",
+                "decimal_places": 0,
+            }
+        ],
+    )
+    assert df.iloc[0]["Количество кристаллов | Сезон 2026"] == 1234
+    assert pd.isna(df.iloc[1]["Количество кристаллов | Сезон 2026"])
+    assert df.iloc[0]["Место в рейтинге ТБ | Сезон 2026"] == 5
+    assert df.iloc[0]["Фамилия"] == "Иванов"
+
+
+def test_tb_gosb_numeric_conversion_for_excel() -> None:
+    """Колонки ТБ и ГОСБ — числовой формат при записи Excel."""
+    from src.main_impl import apply_column_format_conversion
+
+    df = pd.DataFrame(
+        {
+            "ТБ": ["18", "-"],
+            "ГОСБ": ["0", "5"],
+            "Фамилия": ["Иванов", "Петров"],
+        }
+    )
+    apply_column_format_conversion(
+        df,
+        "TAB_NUMBERS",
+        extra_rules=[
+            {
+                "columns": ["ТБ", "ГОСБ"],
+                "data_type": "number",
+                "decimal_places": 0,
+            }
+        ],
+    )
+    assert df.iloc[0]["ТБ"] == 18
+    assert df.iloc[0]["ГОСБ"] == 0
+    assert pd.isna(df.iloc[1]["ТБ"])
+    assert df.iloc[1]["ГОСБ"] == 5

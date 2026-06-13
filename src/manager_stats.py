@@ -48,6 +48,36 @@ _VALID_MODES = frozenset({"value", "sum", "count", "exists"})
 _VALID_MULTI_ROW = frozenset({"first", "join"})
 _COMPOSITE_KEY_SEP = "\x1f"
 
+_DEFAULT_RATING_NUMERIC_PREFIXES: List[str] = [
+    "Количество кристаллов |",
+    "Место в рейтинге по стране |",
+    "Место в рейтинге ТБ |",
+    "Место в рейтинге ГОСБ |",
+]
+
+_DEFAULT_COLUMN_FORMATS: List[Dict[str, Any]] = [
+    {
+        "column_prefixes": list(_DEFAULT_RATING_NUMERIC_PREFIXES),
+        "data_type": "number",
+        "decimal_places": 0,
+        "decimal_separator": ",",
+        "thousands_separator": True,
+        "horizontal": "center",
+        "vertical": "center",
+        "wrap_text": False,
+    },
+    {
+        "columns": ["ТБ", "ГОСБ"],
+        "data_type": "number",
+        "decimal_places": 0,
+        "decimal_separator": ",",
+        "thousands_separator": False,
+        "horizontal": "center",
+        "vertical": "center",
+        "wrap_text": False,
+    },
+]
+
 _DEFAULT_COLUMN_WIDTHS: Dict[str, Dict[str, Any]] = {
     "Табельный номер": {"width_mode": 24},
     "Источники": {"width_mode": "AUTO", "min_width": 50, "max_width": 80},
@@ -65,6 +95,7 @@ def merge_manager_stats_config(raw: Optional[Mapping[str, Any]]) -> Dict[str, An
         "enrich_default": "-",
         "freeze": "E2",
         "column_widths": dict(_DEFAULT_COLUMN_WIDTHS),
+        "column_formats": list(_DEFAULT_COLUMN_FORMATS),
         "enrich_parallel": {
             "enabled": True,
             "max_workers": 0,
@@ -85,6 +116,7 @@ def merge_manager_stats_config(raw: Optional[Mapping[str, Any]]) -> Dict[str, An
         "enrich_parallel",
         "freeze",
         "column_widths",
+        "column_formats",
     ):
         if k in raw:
             out[k] = raw[k]
@@ -108,7 +140,20 @@ def merge_manager_stats_config(raw: Optional[Mapping[str, Any]]) -> Dict[str, An
         out["column_widths"] = merged_cw
     else:
         out["column_widths"] = dict(_DEFAULT_COLUMN_WIDTHS)
+    cf_raw = out.get("column_formats")
+    if isinstance(cf_raw, list) and cf_raw:
+        out["column_formats"] = [r for r in cf_raw if isinstance(r, dict)]
+    else:
+        out["column_formats"] = list(_DEFAULT_COLUMN_FORMATS)
     return out
+
+
+def _column_format_rules_from_config(mcfg: Mapping[str, Any]) -> List[Dict[str, Any]]:
+    """Правила числового/датового формата для листа TAB_NUMBERS (передаются в write_to_excel)."""
+    raw = mcfg.get("column_formats")
+    if isinstance(raw, list):
+        return [dict(r) for r in raw if isinstance(r, dict)]
+    return list(_DEFAULT_COLUMN_FORMATS)
 
 
 def _normalize_column_width_rule(raw: Any) -> Dict[str, Any]:
@@ -420,6 +465,7 @@ def _normalize_enrich_source(raw: Mapping[str, Any], index: int) -> Optional[Dic
         priority = int(raw.get("priority", index + 1))
     except (TypeError, ValueError):
         priority = index + 1
+    src_present = raw.get("present_value")
     return {
         **loc,
         "priority": priority,
@@ -428,6 +474,7 @@ def _normalize_enrich_source(raw: Mapping[str, Any], index: int) -> Optional[Dic
         "value_column": value_column,
         "where_in": _normalize_filter_map(raw.get("where_in")),
         "where_not_in": _normalize_filter_map(raw.get("where_not_in")),
+        "present_value": _cell_str(src_present) if src_present is not None else "",
     }
 
 
@@ -723,6 +770,82 @@ def _composite_keys_series(sub: pd.DataFrame, key_cols: Sequence[str]) -> pd.Ser
     return parts_df.apply(_row_key, axis=1)
 
 
+def _row_matches_filter_map(
+    row: Mapping[str, Any],
+    df: pd.DataFrame,
+    where_in: Mapping[str, Sequence[str]],
+    where_not_in: Mapping[str, Sequence[str]],
+) -> bool:
+    """Проверка одной строки листа на соответствие where_in / where_not_in."""
+    for col, allowed in where_in.items():
+        resolved = _resolve_df_column(df, col)
+        if not resolved:
+            return False
+        val = _normalize_bool_token(row.get(resolved))
+        if val not in set(allowed):
+            return False
+    for col, excluded in where_not_in.items():
+        resolved = _resolve_df_column(df, col)
+        if not resolved:
+            continue
+        val = _normalize_bool_token(row.get(resolved))
+        if val in set(excluded):
+            return False
+    return True
+
+
+def _build_exists_join_combined_entry(
+    sheets_data: Mapping[str, Any],
+    sheet_name: str,
+    sources: Sequence[Mapping[str, Any]],
+    field: Mapping[str, Any],
+    *,
+    pad_width: int,
+) -> Optional[_SourceIndexEntry]:
+    """
+    exists + join: один проход по листу — для каждой строки собираем коды всех подходящих sources.
+    """
+    df = _get_sheet_df(sheets_data, sheet_name)
+    if df is None or df.empty or not sources:
+        return None
+    tab_col = _resolve_df_column(df, sources[0]["tab_column"])
+    if not tab_col:
+        return None
+
+    join_sep = str(field.get("join_separator") or ";")
+    field_present = str(field.get("present_value") or "ДА")
+    sources_sorted = sorted(sources, key=lambda s: int(s["priority"]))
+
+    join_map: Dict[str, List[str]] = {}
+    first_map: Dict[str, str] = {}
+    min_priority = min(int(s["priority"]) for s in sources_sorted)
+
+    for _, row in df.iterrows():
+        tab = normalize_tab_number(row.get(tab_col), pad_width)
+        if not tab:
+            continue
+        for src in sources_sorted:
+            pv = str(src.get("present_value") or field_present or "ДА")
+            if not pv:
+                continue
+            if _row_matches_filter_map(
+                row,
+                df,
+                src.get("where_in") or {},
+                src.get("where_not_in") or {},
+            ):
+                codes = join_map.setdefault(tab, [])
+                if pv not in codes:
+                    codes.append(pv)
+
+    for tab, codes in join_map.items():
+        first_map[tab] = join_sep.join(codes)
+
+    if not first_map:
+        return None
+    return _SourceIndexEntry(priority=min_priority, first_map=first_map, join_map=join_map)
+
+
 def _build_composite_key_maps(
     df: pd.DataFrame,
     *,
@@ -822,7 +945,7 @@ def _build_source_index_entry(
     mode = str(field.get("mode") or "value")
     if mode not in ("count", "exists") and not value_col:
         return None
-    present_value = str(field.get("present_value") or "ДА")
+    present_value = str(src.get("present_value") or field.get("present_value") or "ДА")
 
     key_columns = list(src.get("key_columns") or [])
     if key_columns:
@@ -874,17 +997,50 @@ def _build_enrich_field_context(
 ) -> _EnrichFieldContext:
     """Собирает индексы всех sources для одной enrich-колонки."""
     entries: List[_SourceIndexEntry] = []
-    for src in field["sources"]:
-        for sheet_name in _sheets_for_locator(src, available):
-            entry = _build_source_index_entry(
+    use_combined_exists = field["mode"] == "exists" and field["multi_row"] == "join"
+
+    if use_combined_exists:
+        combined_groups: Dict[Tuple[str, str], List[Dict[str, Any]]] = defaultdict(list)
+        for src in field["sources"]:
+            if src.get("key_columns"):
+                for sheet_name in _sheets_for_locator(src, available):
+                    entry = _build_source_index_entry(
+                        sheets_data,
+                        sheet_name,
+                        src,
+                        field,
+                        pad_width=pad_width,
+                    )
+                    if entry is not None:
+                        entries.append(entry)
+                continue
+            tab_column = str(src.get("tab_column") or "").strip()
+            for sheet_name in _sheets_for_locator(src, available):
+                combined_groups[(sheet_name, tab_column)].append(src)
+
+        for (sheet_name, _), group_sources in combined_groups.items():
+            entry = _build_exists_join_combined_entry(
                 sheets_data,
                 sheet_name,
-                src,
+                group_sources,
                 field,
                 pad_width=pad_width,
             )
             if entry is not None:
                 entries.append(entry)
+    else:
+        for src in field["sources"]:
+            for sheet_name in _sheets_for_locator(src, available):
+                entry = _build_source_index_entry(
+                    sheets_data,
+                    sheet_name,
+                    src,
+                    field,
+                    pad_width=pad_width,
+                )
+                if entry is not None:
+                    entries.append(entry)
+
     entries.sort(key=lambda e: e.priority)
     return _EnrichFieldContext(field=dict(field), sources=entries)
 
@@ -905,6 +1061,20 @@ def _lookup_enrich_value_cached(lookup_key: str, ctx: _EnrichFieldContext) -> st
             for val in entry.join_map.get(lookup_key, []):
                 if val not in unique:
                     unique.append(val)
+        return join_sep.join(unique) if unique else default
+
+    if mode == "exists" and multi_row == "join":
+        unique: List[str] = []
+        for entry in ctx.sources:
+            codes = entry.join_map.get(lookup_key)
+            if codes:
+                for val in codes:
+                    if val and val not in unique:
+                        unique.append(val)
+                continue
+            val = entry.first_map.get(lookup_key)
+            if val is not None and val != "" and val not in unique:
+                unique.append(val)
         return join_sep.join(unique) if unique else default
 
     for entry in ctx.sources:
@@ -980,8 +1150,23 @@ def _try_source_enrich(
         return None
     value_col_cfg = str(src.get("value_column") or "").strip()
     value_col = _resolve_df_column(df, value_col_cfg, [value_col_cfg]) if value_col_cfg else None
-    if field["mode"] != "count" and not value_col:
+    mode = field["mode"]
+    if mode not in ("count", "exists") and not value_col:
         return None
+    if mode == "exists":
+        sub = _rows_for_tab(
+            df,
+            tab_col,
+            target_tab,
+            src["where_in"],
+            src["where_not_in"],
+            pad_width=pad_width,
+            sheet_hint=sheet_name,
+            rule_id=fid,
+        )
+        if sub.empty:
+            return None
+        return str(src.get("present_value") or field.get("present_value") or "ДА")
     sub = _rows_for_tab(
         df,
         tab_col,
@@ -1074,6 +1259,34 @@ def _lookup_enrich_value(
                         unique.append(val)
         return join_sep.join(unique) if unique else default
 
+    if mode == "exists" and multi_row == "join":
+        unique: List[str] = []
+        field_present = str(field.get("present_value") or "ДА")
+        for src in sorted(field["sources"], key=lambda s: int(s["priority"])):
+            for sheet_name in _sheets_for_locator(src, available):
+                df = _get_sheet_df(sheets_data, sheet_name)
+                if df is None:
+                    continue
+                tab_col = _resolve_df_column(df, src["tab_column"])
+                if not tab_col:
+                    continue
+                sub = _rows_for_tab(
+                    df,
+                    tab_col,
+                    target_tab,
+                    src["where_in"],
+                    src["where_not_in"],
+                    pad_width=pad_width,
+                    sheet_hint=sheet_name,
+                    rule_id=fid,
+                )
+                if sub.empty:
+                    continue
+                pv = str(src.get("present_value") or field_present or "ДА")
+                if pv and pv not in unique:
+                    unique.append(pv)
+        return join_sep.join(unique) if unique else default
+
     for src in field["sources"]:
         for sheet_name in _sheets_for_locator(src, available):
             result = _try_source_enrich(
@@ -1102,19 +1315,16 @@ def enrich_tab_dataframe(
     pad_width = int(mcfg.get("normalize_pad_width") or 20)
     global_default = _cell_str(mcfg.get("enrich_default")) or "-"
     parallel_cfg = _merge_parallel_config(mcfg.get("enrich_parallel"))
-    raw_fields = mcfg.get("enrich_columns") or []
-    fields: List[Dict[str, Any]] = []
-    for raw in raw_fields:
-        if isinstance(raw, dict):
-            norm = _normalize_enrich_field(raw, global_default)
-            if norm:
-                fields.append(norm)
+    fields = _normalized_enrich_fields_from_config(mcfg)
 
     if not fields:
         return df_tabs
 
     available = [k for k in sheets_data.keys() if sheets_data.get(k) is not None]
-    tabs = df_tabs["Табельный номер"].astype(str).tolist()
+    tabs = [
+        normalize_tab_number(v, pad_width)
+        for v in df_tabs["Табельный номер"].tolist()
+    ]
     n_tabs = len(tabs)
 
     t0 = time.perf_counter()
@@ -1320,15 +1530,212 @@ def _format_filter_note(
     return " | ".join(parts)
 
 
+_SUMMARY_COLUMNS: List[str] = [
+    "Раздел",
+    "Колонка TAB_NUMBERS",
+    "ID",
+    "Приоритет",
+    "Лист",
+    "Сопоставление",
+    "Колонка значения",
+    "Режим",
+    "Логика",
+    "Фильтры",
+    "Примечание",
+]
+
+
+def _sheet_label_from_locator(loc: Mapping[str, str]) -> str:
+    """Имя листа или glob-паттерн для сводки."""
+    sheet = str(loc.get("sheet") or "").strip()
+    pattern = str(loc.get("sheet_pattern") or "").strip()
+    if sheet:
+        return sheet
+    if pattern:
+        return f"pattern:{pattern}"
+    return "—"
+
+
+def _format_enrich_lookup(src: Mapping[str, Any], field: Mapping[str, Any]) -> str:
+    """Описание ключа сопоставления enrich-источника."""
+    lookup_row_key = list(field.get("lookup_row_key") or [])
+    key_columns = list(src.get("key_columns") or [])
+    tab_column = str(src.get("tab_column") or "").strip()
+    if lookup_row_key:
+        lrk = "+".join(lookup_row_key)
+        if key_columns:
+            return f"строка TAB_NUMBERS:[{lrk}] → лист:[{'+'.join(key_columns)}]"
+        return f"строка TAB_NUMBERS:[{lrk}]"
+    if key_columns:
+        return f"ключ листа:[{'+'.join(key_columns)}]"
+    if tab_column:
+        return f"табельный:[{tab_column}]"
+    return "—"
+
+
+def _format_enrich_field_logic(field: Mapping[str, Any]) -> str:
+    """Человекочитаемое описание режима enrich-колонки."""
+    mode = str(field.get("mode") or "value")
+    multi_row = str(field.get("multi_row") or "first")
+    if mode == "value" and multi_row == "join":
+        sep = str(field.get("join_separator") or ";")
+        return f"value+join: уникальные значения со всех источников через «{sep}»"
+    if mode == "value":
+        return "value+first: первый источник с данными (меньший приоритет = раньше)"
+    if mode == "sum":
+        return "sum: сумма value_column по первому источнику с подходящими строками"
+    if mode == "count":
+        return "count: число подходящих строк по первому источнику"
+    if mode == "exists":
+        present = str(field.get("present_value") or "ДА")
+        if multi_row == "join":
+            sep = str(field.get("join_separator") or ";")
+            return f"exists+join: коды present_value со всех подходящих источников через «{sep}»"
+        return f"exists: «{present}» если есть хотя бы одна подходящая строка (первый источник)"
+    return mode
+
+
+def _normalized_enrich_fields_from_config(mcfg: Mapping[str, Any]) -> List[Dict[str, Any]]:
+    """Нормализованные enrich_columns для сводки и enrich."""
+    global_default = _cell_str(mcfg.get("enrich_default")) or "-"
+    fields: List[Dict[str, Any]] = []
+    for raw in mcfg.get("enrich_columns") or []:
+        if isinstance(raw, dict):
+            norm = _normalize_enrich_field(raw, global_default)
+            if norm:
+                fields.append(norm)
+    return fields
+
+
+def _sources_summary_rows(sources_df: pd.DataFrame) -> List[Dict[str, Any]]:
+    """Строки сводки по правилам sources."""
+    rows: List[Dict[str, Any]] = []
+    if sources_df is None or sources_df.empty:
+        return rows
+    for rec in sources_df.to_dict(orient="records"):
+        rows.append(
+            {
+                "Раздел": "Сбор табельных",
+                "Колонка TAB_NUMBERS": "Табельный номер",
+                "ID": rec.get("Правило", ""),
+                "Приоритет": "—",
+                "Лист": rec.get("Лист", ""),
+                "Сопоставление": rec.get("Колонка табельного", ""),
+                "Колонка значения": "—",
+                "Режим": "табельный номер",
+                "Логика": "уникальные табельные в общий список (объединение всех sources)",
+                "Фильтры": rec.get("Фильтры", "—"),
+                "Примечание": (
+                    f"строк после фильтра: {rec.get('Строк после фильтра', '')}; "
+                    f"уникальных таб.: {rec.get('Уникальных табельных', '')}"
+                ),
+            }
+        )
+    return rows
+
+
+def _enrich_summary_rows(mcfg: Mapping[str, Any]) -> List[Dict[str, Any]]:
+    """Строки сводки по enrich_columns (что добавляется на лист TAB_NUMBERS)."""
+    rows: List[Dict[str, Any]] = []
+    for field in _normalized_enrich_fields_from_config(mcfg):
+        logic = _format_enrich_field_logic(field)
+        default = str(field.get("default") or "-")
+        lookup_note = ""
+        if field.get("lookup_row_key"):
+            lookup_note = f"lookup_row_key: {'+'.join(field['lookup_row_key'])}; "
+        note_prefix = f"{lookup_note}default: «{default}»"
+        sources = sorted(field.get("sources") or [], key=lambda s: int(s.get("priority") or 0))
+        for idx, src in enumerate(sources):
+            value_col = str(src.get("value_column") or "").strip()
+            mode = str(field.get("mode") or "value")
+            if mode in ("count", "exists") and not value_col:
+                value_col = "—"
+            rows.append(
+                {
+                    "Раздел": "Обогащение",
+                    "Колонка TAB_NUMBERS": field["output_column"],
+                    "ID": field["id"],
+                    "Приоритет": str(src.get("priority", "")),
+                    "Лист": _sheet_label_from_locator(src),
+                    "Сопоставление": _format_enrich_lookup(src, field),
+                    "Колонка значения": value_col or "—",
+                    "Режим": mode,
+                    "Логика": logic if idx == 0 else "запасной источник (если выше пусто)",
+                    "Фильтры": _format_filter_note(src.get("where_in") or {}, src.get("where_not_in") or {}),
+                    "Примечание": (
+                        (f"present_value: «{src.get('present_value')}»; " if src.get("present_value") else "")
+                        + (note_prefix if idx == 0 else "")
+                    ).strip("; "),
+                }
+            )
+    return rows
+
+
+def _column_formats_summary_rows(mcfg: Mapping[str, Any]) -> List[Dict[str, Any]]:
+    """Строки сводки по числовому формату колонок TAB_NUMBERS."""
+    rows: List[Dict[str, Any]] = []
+    for rule in _column_format_rules_from_config(mcfg):
+        prefixes = list(rule.get("column_prefixes") or [])
+        columns = list(rule.get("columns") or [])
+        targets = prefixes or columns
+        if not targets:
+            continue
+        dtype = str(rule.get("data_type") or "general")
+        dec = int(rule.get("decimal_places", 0))
+        thousands = bool(rule.get("thousands_separator"))
+        rows.append(
+            {
+                "Раздел": "Формат Excel",
+                "Колонка TAB_NUMBERS": "; ".join(str(t) for t in targets[:6])
+                + ("; …" if len(targets) > 6 else ""),
+                "ID": "column_formats",
+                "Приоритет": "—",
+                "Лист": str(mcfg.get("output_sheet") or "TAB_NUMBERS"),
+                "Сопоставление": "column_prefixes" if prefixes else "columns",
+                "Колонка значения": "—",
+                "Режим": dtype,
+                "Логика": (
+                    f"числовой формат при записи Excel "
+                    f"(decimal_places={dec}, thousands_separator={thousands})"
+                ),
+                "Фильтры": "—",
+                "Примечание": f"всего префиксов/колонок: {len(targets)}",
+            }
+        )
+    return rows
+
+
+def build_manager_stats_summary_dataframe(
+    sources_summary: pd.DataFrame,
+    mcfg: Mapping[str, Any],
+) -> pd.DataFrame:
+    """Полная сводка MANAGER_STATS_SUMMARY: sources, enrich, форматы колонок."""
+    rows: List[Dict[str, Any]] = []
+    rows.extend(_sources_summary_rows(sources_summary))
+    if rows:
+        rows.append({col: "" for col in _SUMMARY_COLUMNS})
+    enrich_rows = _enrich_summary_rows(mcfg)
+    if enrich_rows:
+        rows.extend(enrich_rows)
+        rows.append({col: "" for col in _SUMMARY_COLUMNS})
+    rows.extend(_column_formats_summary_rows(mcfg))
+    if not rows:
+        return pd.DataFrame(columns=_SUMMARY_COLUMNS)
+    while rows and all(not str(rows[-1].get(c) or "").strip() for c in _SUMMARY_COLUMNS):
+        rows.pop()
+    return pd.DataFrame(rows, columns=_SUMMARY_COLUMNS)
+
+
 def build_manager_stats_workbook_data(
     sheets_data: Mapping[str, Any],
     input_files: Optional[Sequence[Mapping[str, Any]]] = None,
     cfg: Optional[Mapping[str, Any]] = None,
 ) -> Dict[str, Tuple[pd.DataFrame, Dict[str, Any]]]:
-    """Данные для write_to_excel: табельные (с enrich) и сводка по sources."""
+    """Данные для write_to_excel: табельные (с enrich) и сводка по sources/enrich."""
     mcfg = merge_manager_stats_config(cfg)
-    df_tabs, df_sheet = collect_tab_numbers_from_sheets(sheets_data, input_files, mcfg)
+    df_tabs, df_sources_summary = collect_tab_numbers_from_sheets(sheets_data, input_files, mcfg)
     df_tabs = enrich_tab_dataframe(df_tabs, sheets_data, mcfg)
+    df_summary = build_manager_stats_summary_dataframe(df_sources_summary, mcfg)
     tab_sheet = str(mcfg.get("output_sheet") or "TAB_NUMBERS")
     summary_sheet = str(mcfg.get("summary_sheet") or "MANAGER_STATS_SUMMARY")
     base_params: Dict[str, Any] = {
@@ -1337,8 +1744,15 @@ def build_manager_stats_workbook_data(
         "col_width_mode": "AUTO",
         "min_col_width": 12,
         "added_columns_width": _added_columns_width_from_config(mcfg),
+        "column_format_rules": _column_format_rules_from_config(mcfg),
+    }
+    summary_params: Dict[str, Any] = {
+        **base_params,
+        "sheet": summary_sheet,
+        "added_columns_width": {},
+        "freeze": "A2",
     }
     return {
         tab_sheet: (df_tabs, {**base_params, "sheet": tab_sheet}),
-        summary_sheet: (df_sheet, {**base_params, "sheet": summary_sheet, "added_columns_width": {}}),
+        summary_sheet: (df_summary, summary_params),
     }
