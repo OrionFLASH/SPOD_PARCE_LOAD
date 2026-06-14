@@ -1935,6 +1935,53 @@ def test_profile_js_excludes_email_only_gaps() -> None:
     assert collect_tabs_missing_profile_fields(df, mcfg) == []
 
 
+def test_profile_js_ignores_extra_columns_in_js_missing_columns_config() -> None:
+    """Даже если в config указаны Email — в отбор JS не попадают."""
+    from src.profile_gp_auto_js import collect_tabs_missing_profile_fields
+
+    tab = normalize_tab_number("88888888", 20)
+    df = pd.DataFrame(
+        {
+            "Табельный номер": [tab],
+            "Фамилия": ["Иванов"],
+            "Имя": ["Пётр"],
+            "ТБ": ["52"],
+            "ГОСБ": ["9038"],
+            "Код роли": ["KM"],
+            "Email Sigma": ["-"],
+        }
+    )
+    mcfg = merge_manager_stats_config(
+        {
+            "enrich_default": "-",
+            "profile_gp_load": {
+                "js_missing_columns": [
+                    "Фамилия",
+                    "Имя",
+                    "ТБ",
+                    "ГОСБ",
+                    "Код роли",
+                    "Email Sigma",
+                    "Email Alpha",
+                ],
+            },
+        }
+    )
+    assert collect_tabs_missing_profile_fields(df, mcfg) == []
+
+
+def test_is_enrich_value_missing_null_and_dash() -> None:
+    from src.manager_stats import is_enrich_value_missing
+
+    assert is_enrich_value_missing(None) is True
+    assert is_enrich_value_missing("-") is True
+    assert is_enrich_value_missing("") is True
+    assert is_enrich_value_missing(float("nan")) is True
+    assert is_enrich_value_missing(pd.NA) is True
+    assert is_enrich_value_missing("NULL") is True
+    assert is_enrich_value_missing("Иванов") is False
+
+
 def test_prepare_tabs_for_profile_js_applies_json(tmp_path: Path) -> None:
     from src.profile_gp_auto_js import prepare_tabs_for_profile_js
 

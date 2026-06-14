@@ -5914,7 +5914,7 @@
       "enable_photo_download": false,
       "enable_photo_strip": true
     },
-    "_profile_gp_load_format": "1) CSV enrich → 2) profile GP JSON (json_field_map) → 3) ORG_UNIT lookup по ТБ+ГОСБ; Profile_GP_LOAD_AutoRun.js — только табельные, у которых после шагов 1–2 всё ещё пусто missing_columns.",
+    "_profile_gp_load_format": "1) CSV enrich → 2) profile GP JSON → 3) ORG_UNIT; Profile AutoRun JS — табельные с пустым/NULL/«-» в любом из: Фамилия, Имя, ТБ, ГОСБ, Код роли (не Email, не Наименование Роли).",
     "prom_tournament_catalog": {
       "enabled": true,
       "sheet_name": "PROM_TOURNAMENTS",

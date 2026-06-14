@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """
 Генерация Profile_GP_LOAD_AutoRun.js рядом с Excel (OUT/YYYY/DD-MM).
-Табельные — из MANAGER_STATS TAB_NUMBERS, у которых не заполнены поля из profile_gp_load.missing_columns
-(ФИО, ТБ/ГОСБ, роль, email).
+Табельные — из MANAGER_STATS TAB_NUMBERS для Profile AutoRun: только если пусты
+Фамилия / Имя / ТБ / ГОСБ / Код роли (после CSV-enrich и JSON).
 """
 from __future__ import annotations
 
@@ -180,15 +180,20 @@ def tab_for_profile_js(tab_padded: str) -> str:
 
 def profile_js_check_columns(pg_cfg: Mapping[str, Any]) -> List[str]:
     """
-    Колонки для отбора табельных в Profile AutoRun — только после CSV-enrich и JSON.
-    По умолчанию: js_missing_columns или ключи json_field_map (поля профиля API).
+    Колонки для отбора табельных в Profile AutoRun — строго поля профиля API.
+    Email Sigma / Email Alpha / Наименование Роли не участвуют.
     """
+    allowed = set(DEFAULT_PROFILE_JS_MISSING_COLUMNS)
     raw_js = pg_cfg.get("js_missing_columns")
     if isinstance(raw_js, list) and raw_js:
-        return [str(c).strip() for c in raw_js if str(c).strip()]
+        picked = [str(c).strip() for c in raw_js if str(c).strip() in allowed]
+        if picked:
+            return picked
     field_map = pg_cfg.get("json_field_map")
     if isinstance(field_map, dict) and field_map:
-        return [str(k).strip() for k in field_map if str(k).strip()]
+        picked = [str(k).strip() for k in field_map if str(k).strip() in allowed]
+        if picked:
+            return picked
     return list(DEFAULT_PROFILE_JS_MISSING_COLUMNS)
 
 
@@ -224,8 +229,9 @@ def collect_tabs_missing_profile_fields(
     mcfg: Mapping[str, Any],
 ) -> List[str]:
     """
-    Табельные, у которых хотя бы одна из js_missing_columns пуста или равна default («-»).
-    Вызывать только после CSV-enrich и apply_profile_gp_json_enrich.
+    Табельные, у которых хотя бы одно из js_missing_columns отсутствует
+    (пусто, NULL/NaN или «-»). Только Фамилия, Имя, ТБ, ГОСБ, Код роли.
+    Вызывать после CSV-enrich и apply_profile_gp_json_enrich.
     """
     if df_tabs is None or df_tabs.empty:
         return []
@@ -254,10 +260,14 @@ def collect_tabs_missing_profile_fields(
         tab_raw = _cell_str(row.get(tab_col))
         if not tab_raw:
             continue
-        need = any(
-            col not in df_tabs.columns or _is_missing(row.get(col))
-            for col in missing_cols
-        )
+        need = False
+        for col in missing_cols:
+            if col not in df_tabs.columns:
+                need = True
+                break
+            if _is_missing(row.get(col)):
+                need = True
+                break
         if not need:
             continue
         tab_js = tab_for_profile_js(tab_raw)

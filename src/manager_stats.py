@@ -307,10 +307,22 @@ def _cell_str(x: Any) -> str:
 
 
 def is_enrich_value_missing(val: Any, default: str = "-") -> bool:
-    """Пустое enrich-значение: пустая строка или default («-»)."""
+    """Отсутствие enrich-значения: пусто, NULL/NaN или «-» (и enrich_default)."""
+    if val is None:
+        return True
+    try:
+        if pd.isna(val):
+            return True
+    except (TypeError, ValueError):
+        pass
     s = _cell_str(val)
+    if not s:
+        return True
+    low = s.lower()
+    if low in ("null", "none", "nan"):
+        return True
     default_s = str(default or "-").strip()
-    return not s or s == default_s or s == "-"
+    return s == default_s or s == "-"
 
 
 def _parse_catalog_date_value(x: Any) -> pd.Timestamp:
