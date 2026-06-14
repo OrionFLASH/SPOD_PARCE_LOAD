@@ -21,6 +21,8 @@ def test_manager_stats_and_main_both_enabled() -> None:
         manager_stats_early,
         write_stat_file,
         _compat,
+        _rating_matrix,
+        _season_summary,
     ) = ro
     assert sorted_tokens == ["main_only", "manager_stats_only"]
     assert write_main is True
@@ -47,6 +49,8 @@ def test_full_combo_tokens() -> None:
                 "consistency_only",
                 "manager_stats_only",
                 "stat_file_only",
+                "rating_item_matrix",
+                "season_order_summary",
             ]
         }
     )
@@ -56,3 +60,20 @@ def test_full_combo_tokens() -> None:
     assert ro[6] is True  # write_manager_stats
     assert ro[7] is False  # manager_stats_early
     assert ro[8] is True  # write_stat_file
+    assert ro[10] is True  # run_rating_item_matrix
+    assert ro[11] is True  # run_season_order_summary
+
+
+def test_manager_stats_only_skips_rating_and_season_tokens() -> None:
+    ro = parse_run_outputs_config({"run_outputs": ["manager_stats_only"]})
+    assert ro[10] is False
+    assert ro[11] is False
+
+
+def test_rating_and_season_tokens_alone() -> None:
+    ro = parse_run_outputs_config(
+        {"run_outputs": ["main_only", "rating_item_matrix", "season_order_summary"]}
+    )
+    assert ro[3] is True
+    assert ro[10] is True
+    assert ro[11] is True

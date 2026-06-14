@@ -86,6 +86,7 @@ SPOD_PROM/
 - `Docs/RATING_MATRIX_COLORS_AND_LOGIC.md` — лист RATING: подсчёт заказов, доступность, 4 цвета ячеек, шапка itemAmount.
 - `Docs/SEASON_ORDER_SUMMARY.md` — лист **ORDER-SEASON-SUMMARY**: сводка по группам **SEASON_***, заказано/остаток, признак **ЗАКОНЧИЛСЯ**, счётчики менеджеров.
 - `Docs/АНАЛИЗ_ПРОВЕРОК_КОНСИСТЕНТНОСТИ.md` — аналитика покрытия и предложения по новым правилам.
+- `Docs/CODEBASE_ANALYTICS.md` — статистика кодовой базы (файлы, LOC, классы, функции, зависимости, диаграммы). Пересборка: `python src/Tools/build_codebase_analytics.py`.
 - `Docs/PERFORMANCE_AND_PARALLELIZATION_HISTORY.md` — консолидированная история оптимизации и распараллеливания.
 - `Docs/SUMMARY_GROUP_FIX_HISTORY.md` — история исправлений логики `SUMMARY` и связки `GROUP`.
 - `Docs/JSON/` — **каталог входных данных и примеров JSON:** `SPOD_INPUT_DATA_CATALOG.md`, папка `examples/` с реальными JSON из `IN/SPOD`; см. `Docs/JSON/README.md`. Пересборка каталога: `python src/Tools/build_spod_input_catalog.py`; примеры JSON: `python src/Tools/export_spod_json_examples.py`.
@@ -131,7 +132,7 @@ SPOD_PROM/
 
 | Секция | Назначение |
 |--------|------------|
-| `run_outputs` | Массив строк: `source_only`, `main_only`, `consistency_only`, **`manager_stats_only`**, **`stat_file_only`** — какие выходные файлы создавать (**все перечисленные**). Эквивалент старого `full`: `source_only` + `main_only` + `consistency_only`. Устаревшее поле **`run_mode`** читается, если **`run_outputs`** отсутствует. |
+| `run_outputs` | Массив строк: `source_only`, `main_only`, `consistency_only`, **`manager_stats_only`**, **`stat_file_only`**, **`rating_item_matrix`**, **`season_order_summary`** — какие выходные артефакты и шаги выполнять (**все перечисленные**). Матрица ITEM и лист ORDER-SEASON-SUMMARY — только при соответствующих токенах. Эквивалент старого `full`: `source_only` + `main_only` + `consistency_only`. Устаревшее поле **`run_mode`** читается, если **`run_outputs`** отсутствует. |
 | `output_filenames` | Имена выходных файлов без расширения: main, source, consistency. |
 | `apply_sort_to_source` | Применять ли сортировку из `input_files.sort_columns` при записи source Excel. |
 | `apply_sort_to_main` | Применять ли сортировку из `input_files.sort_columns` при записи основного Excel. |
@@ -201,6 +202,8 @@ SPOD_PROM/
 | `consistency_only` | Отдельная книга **консистентности**. Если **нет** `main_only`, но есть `consistency_only` — выполняется бывший режим «только консистентность» (без merge/gender). Если **есть** и `main_only`, и `consistency_only` — после основной книги дополнительно пишется файл consistency (как в старом `full`). |
 | `manager_stats_only` | Книга **`SPOD_PROM MANAGER_STATS`**: уникальные табельные и enrich-колонки (**`Docs/MANAGER_STATS.md`**). Без `main_only` — ранний выход после merge; с `main_only` — обе книги. |
 | `stat_file_only` | Отдельный **`STAT_FILE <timestamp>.xlsx`** (время этапов и функций). |
+| `rating_item_matrix` | Колонки **ITEM** на листе **RATING** (счётчики заказов, подсветка; секция **`rating_item_matrix`**). Без токена шаг не выполняется, даже если `enabled: true`. |
+| `season_order_summary` | Лист **ORDER-SEASON-SUMMARY** (сводка по группам SEASON; секция **`season_order_summary`**). Без токена лист не создаётся. |
 
 **Примеры:**
 ```json
@@ -208,6 +211,9 @@ SPOD_PROM/
 ```
 ```json
 "run_outputs": ["source_only", "main_only", "consistency_only"]
+```
+```json
+"run_outputs": ["main_only", "rating_item_matrix", "season_order_summary"]
 ```
 
 **Обратная совместимость:** при отсутствии **`run_outputs`** используется **`run_mode`**: `full` → все три токена; `source_only` / `main_only` / `consistency_only` — один токен. Разбор в **`config_loader.parse_run_outputs_config`**. Файлы пишутся в подкаталог по дате. Для **source** включён перенос по словам.
@@ -695,7 +701,7 @@ SPOD_PROM/
 
 ### rating_item_matrix
 
-**Назначение:** после **merge_fields_advanced** на лист **RATING** добавляются столбцы по каждой награде с **REWARD_TYPE = ITEM** (имя столбца — **`REWARD_CODE`**, при необходимости с **`seasonCode`**). В ячейке: **число заказов** (если заказан), иначе **`Y`** / **`N`** по доступности. Заказы с **ORDER** учитываются только если **«Статус заказа»** не **Отклонён** / **Отменён** (если колонки статуса нет — все строки ORDER).
+**Назначение:** после **merge_fields_advanced** на лист **RATING** добавляются столбцы по каждой награде с **REWARD_TYPE = ITEM** (имя столбца — **`REWARD_CODE`**, при необходимости с **`seasonCode`**). Шаг выполняется **только** если в **`run_outputs`** указан токен **`rating_item_matrix`** (дополнительно к **`enabled`** в этой секции). В ячейке: **число заказов** (если заказан), иначе **`Y`** / **`N`** по доступности. Заказы с **ORDER** учитываются только если **«Статус заказа»** не **Отклонён** / **Отменён** (если колонки статуса нет — все строки ORDER).
 
 **Подсветка** (после записи Excel): четыре состояния — доступен+заказан (салатовый), недоступен+заказан (светло-розовый), доступен+не заказан (зелёный, **Y**), недоступен+не заказан (тёмно-розовый, **N**). Заголовок колонки красный, если у менеджера число заказов по коду ≥ **`itemAmount`** из **`REWARD_ADD_DATA`**. Лимит **не более N заказов в группе кодов** (`item_order_groups`) делает все коды группы недоступными для строки.
 
@@ -735,7 +741,7 @@ SPOD_PROM/
 
 ### season_order_summary
 
-**Назначение:** после обогащения матрицы RATING формируется отдельный лист **ORDER-SEASON-SUMMARY** — по одной строке на каждый **REWARD_CODE** из **`rating_item_matrix.item_order_groups`** (группы **SEASON_m_2025_2**, **SEASON_2025_2** и т.д.).
+**Назначение:** после обогащения матрицы RATING формируется отдельный лист **ORDER-SEASON-SUMMARY** — по одной строке на каждый **REWARD_CODE** из **`rating_item_matrix.item_order_groups`** (группы **SEASON_m_2025_2**, **SEASON_2025_2** и т.д.). Лист создаётся **только** при токене **`season_order_summary`** в **`run_outputs`** (дополнительно к **`enabled`**).
 
 **Данные по товару:** наименование из REWARD; **Всего** = `itemAmount`; **Заказано** = сумма строк агрегата **ORDER** по коду (статусы **Отменён** / **Отклонён** исключаются, как в матрице); **Остаток** = Всего − Заказано; **Статус наличия** = **ЗАКОНЧИЛСЯ**, если заказано ≥ itemAmount.
 
@@ -1207,6 +1213,12 @@ python main.py
 ---
 
 ## История версий
+
+### Версия 1.7.47 — run_outputs: rating_item_matrix и season_order_summary; аналитика кодовой базы
+
+- **`run_outputs`**: токены **`rating_item_matrix`** (колонки ITEM на RATING) и **`season_order_summary`** (лист ORDER-SEASON-SUMMARY) — шаги выполняются только при наличии токена в массиве; разбор в **`config_loader.parse_run_outputs_config`**, ветвление в **`main_impl.py`**. Тесты **`test_run_outputs.py`**.
+- **`Docs/CODEBASE_ANALYTICS.md`**, скрипт **`src/Tools/build_codebase_analytics.py`** — статистика проекта (LOC, классы, функции, зависимости, Mermaid-диаграммы).
+- Документация: **`README.md`**, **`Docs/INPUT_DATA_AND_CONFIG_FULL.md`**, **`Docs/RATING_MATRIX_COLORS_AND_LOGIC.md`**, **`Docs/SEASON_ORDER_SUMMARY.md`**, **`Docs/DOCS_INDEX.md`**.
 
 ### Версия 1.7.46 — MANAGER_STATS: каталог PROM_TOURNAMENTS и динамические колонки НАГРАДА/ТУРНИР
 

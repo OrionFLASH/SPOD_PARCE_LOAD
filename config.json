@@ -1,15 +1,17 @@
 {
   "run_outputs": [
-    "manager_stats_only"
+    "manager_stats_only", "main_only"
   ],
   "_run_outputs_allowed": [
     "source_only",
     "main_only",
     "consistency_only",
     "manager_stats_only",
-    "stat_file_only"
+    "stat_file_only",
+    "rating_item_matrix",
+    "season_order_summary"
   ],
-  "_run_outputs_note": "Перечислите нужные выходы — выполняются ВСЕ перечисленные токены. Полный набор как раньше full: [\"source_only\",\"main_only\",\"consistency_only\"]. manager_stats_only + main_only — обе книги (без раннего выхода). Только manager_stats_only — ранний выход после merge. stat_file_only — отдельный STAT_FILE <таймштамп>.xlsx. Устаревшее run_mode читается, если run_outputs отсутствует.",
+  "_run_outputs_note": "Перечислите нужные выходы — выполняются ВСЕ перечисленные токены. Полный набор как раньше full: [\"source_only\",\"main_only\",\"consistency_only\"]. Матрица ITEM на RATING — токен rating_item_matrix; лист ORDER-SEASON-SUMMARY — season_order_summary (только если токен в массиве). manager_stats_only + main_only — обе книги (без раннего выхода). Только manager_stats_only — ранний выход после merge. stat_file_only — отдельный STAT_FILE <таймштамп>.xlsx. Устаревшее run_mode читается, если run_outputs отсутствует.",
   "apply_sort_to_source": true,
   "apply_sort_to_main": false,
   "output_filenames": {

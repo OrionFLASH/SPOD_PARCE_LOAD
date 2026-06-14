@@ -32,7 +32,7 @@
 }
 ```
 
-Колонки ORDER/RATING/группы берутся из `rating_item_matrix`. Модуль: `src/season_order_summary.py`, вызов после обогащения RATING в `main_impl.py`.
+Колонки ORDER/RATING/группы берутся из `rating_item_matrix`. Модуль: `src/season_order_summary.py`, вызов после обогащения RATING в `main_impl.py` — **только** если в **`run_outputs`** указан токен **`season_order_summary`** (дополнительно к `enabled` в конфиге).
 
 ## Логика колонок «КМ:»
 

@@ -27,7 +27,7 @@
 ```text
 1. Чтение CSV → merge в лист RATING (aggregate_into_sheet).
 2. merge_fields_advanced, сводка REWARD (getCondition) — без раскраски RATING.
-3. apply_rating_item_matrix_enrichment(sheets_data)
+3. apply_rating_item_matrix_enrichment(sheets_data) — **только** если в `run_outputs` есть токен **`rating_item_matrix`** (и `rating_item_matrix.enabled` не `false`).
    → в DataFrame RATING добавляются колонки ITEM;
    → в памяти строится meta: matrix_cells, header_stock_out_columns, fills.
 4. write_to_excel → для каждого листа apply_color_scheme (на RATING почти ничего не красит).

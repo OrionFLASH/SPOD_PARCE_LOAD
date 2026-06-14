@@ -16,11 +16,13 @@ _RUN_OUTPUT_TOKENS: Set[str] = frozenset(
         "consistency_only",
         "manager_stats_only",
         "stat_file_only",
+        "rating_item_matrix",
+        "season_order_summary",
     }
 )
 
 
-def parse_run_outputs_config(cfg: Dict[str, Any]) -> Tuple[List[str], bool, bool, bool, bool, bool, bool, bool, bool, int]:
+def parse_run_outputs_config(cfg: Dict[str, Any]) -> Tuple[List[str], bool, bool, bool, bool, bool, bool, bool, bool, int, bool, bool]:
     """
     Разбор режима запуска: приоритет у run_outputs (массив строк).
     Возвращает:
@@ -33,6 +35,8 @@ def parse_run_outputs_config(cfg: Dict[str, Any]) -> Tuple[List[str], bool, bool
       write_manager_stats — отдельная книга статистики менеджеров (табельные и др.);
       manager_stats_early — только manager_stats без main (выход после merge);
       write_stat_file — отдельный Excel STAT_FILE <таймштамп>.xlsx (время этапов и функций);
+      run_rating_item_matrix — колонки ITEM на листе RATING (rating_item_matrix);
+      run_season_order_summary — лист ORDER-SEASON-SUMMARY (season_order_summary);
       run_mode_compat — число 1–4 для обратной совместимости и логов.
     """
     ro_raw = cfg.get("run_outputs")
@@ -48,7 +52,8 @@ def parse_run_outputs_config(cfg: Dict[str, Any]) -> Tuple[List[str], bool, bool
         if not tokens:
             raise ValueError(
                 "run_outputs: укажите хотя бы одно из значений: "
-                "source_only, main_only, consistency_only, manager_stats_only, stat_file_only"
+                "source_only, main_only, consistency_only, manager_stats_only, "
+                "stat_file_only, rating_item_matrix, season_order_summary"
             )
     else:
         # Обратная совместимость: run_mode full | source_only | main_only | consistency_only | 1–4
@@ -75,6 +80,8 @@ def parse_run_outputs_config(cfg: Dict[str, Any]) -> Tuple[List[str], bool, bool
     write_consistency_file = "consistency_only" in tokens
     write_manager_stats = "manager_stats_only" in tokens
     write_stat_file = "stat_file_only" in tokens
+    run_rating_item_matrix = "rating_item_matrix" in tokens
+    run_season_order_summary = "season_order_summary" in tokens
     # Ранний «только консистентность» без основной книги — как старый режим 4
     consistency_early = write_consistency_file and not write_main
     # Только статистика менеджеров без основной книги — выход после merge
@@ -104,6 +111,8 @@ def parse_run_outputs_config(cfg: Dict[str, Any]) -> Tuple[List[str], bool, bool
         manager_stats_early,
         write_stat_file,
         run_mode_compat,
+        run_rating_item_matrix,
+        run_season_order_summary,
     )
 
 
@@ -213,6 +222,8 @@ class Config:
             self.run_manager_stats_early,
             self.run_write_stat_file,
             self.run_mode,
+            self.run_rating_item_matrix,
+            self.run_season_order_summary,
         ) = parse_run_outputs_config(self._cfg)
 
         # Применять ли сортировку (sort_columns из input_files): к source — да по умолчанию, к main — нет по умолчанию

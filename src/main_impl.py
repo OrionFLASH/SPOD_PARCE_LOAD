@@ -172,6 +172,7 @@ def _load_config_globals():
     global RUN_WRITE_CONSISTENCY_FILE, RUN_CONSISTENCY_EARLY
     global RUN_WRITE_MANAGER_STATS, MANAGER_STATS_EARLY
     global RUN_WRITE_STAT_FILE
+    global RUN_RATING_ITEM_MATRIX, RUN_SEASON_ORDER_SUMMARY
     global OUTPUT_FILENAME_MAIN, OUTPUT_FILENAME_SOURCE, OUTPUT_FILENAME_CONSISTENCY
     global OUTPUT_FILENAME_MANAGER_STATS
     global APPLY_SORT_TO_SOURCE, APPLY_SORT_TO_MAIN
@@ -219,6 +220,8 @@ def _load_config_globals():
                 RUN_WRITE_MANAGER_STATS = bool(getattr(_c, "run_write_manager_stats", False))
                 MANAGER_STATS_EARLY = bool(getattr(_c, "run_manager_stats_early", False))
                 RUN_WRITE_STAT_FILE = bool(getattr(_c, "run_write_stat_file", False))
+                RUN_RATING_ITEM_MATRIX = bool(getattr(_c, "run_rating_item_matrix", False))
+                RUN_SEASON_ORDER_SUMMARY = bool(getattr(_c, "run_season_order_summary", False))
             else:
                 _ro = parse_run_outputs_config({"run_mode": RUN_MODE})
                 RUN_OUTPUTS = list(_ro[0])
@@ -230,6 +233,8 @@ def _load_config_globals():
                 RUN_WRITE_MANAGER_STATS = _ro[6]
                 MANAGER_STATS_EARLY = _ro[7]
                 RUN_WRITE_STAT_FILE = _ro[8]
+                RUN_RATING_ITEM_MATRIX = _ro[10]
+                RUN_SEASON_ORDER_SUMMARY = _ro[11]
                 RUN_MODE = _ro[9]
             OUTPUT_FILENAME_MAIN = getattr(_c, "output_filename_main", "SPOD_ALL_IN_ONE")
             OUTPUT_FILENAME_SOURCE = getattr(_c, "output_filename_source", "SPOD_PROM source")
@@ -302,6 +307,8 @@ def _load_config_globals():
     RUN_WRITE_MANAGER_STATS = _ro[6]
     MANAGER_STATS_EARLY = _ro[7]
     RUN_WRITE_STAT_FILE = _ro[8]
+    RUN_RATING_ITEM_MATRIX = _ro[10]
+    RUN_SEASON_ORDER_SUMMARY = _ro[11]
     RUN_MODE = _ro[9]
     _of = _cfg.get("output_filenames") or {}
     OUTPUT_FILENAME_MAIN = _of.get("main", "SPOD_ALL_IN_ONE")
@@ -4810,22 +4817,27 @@ def main():
                 )
 
             # Матрица наград ITEM на листе RATING (после merge и сводки REWARD)
-            if RATING_ITEM_MATRIX.get("enabled"):
+            if RUN_RATING_ITEM_MATRIX and RATING_ITEM_MATRIX.get("enabled", True):
                 from src.rating_item_matrix import apply_rating_item_matrix_enrichment
 
                 _rating_matrix_meta = apply_rating_item_matrix_enrichment(sheets_data, RATING_ITEM_MATRIX)
+            elif not RUN_RATING_ITEM_MATRIX:
+                logging.info(
+                    "[rating_item_matrix] Пропуск — в run_outputs нет токена rating_item_matrix"
+                )
 
             _sos = SEASON_ORDER_SUMMARY or {}
-            if _sos.get("enabled", True):
+            if RUN_SEASON_ORDER_SUMMARY and _sos.get("enabled", True):
                 from src.season_order_summary import apply_season_order_summary
 
                 _sos_cfg = {"season_order_summary": _sos, "rating_item_matrix": RATING_ITEM_MATRIX}
                 _summary_sheet = apply_season_order_summary(sheets_data, _sos_cfg)
                 if _summary_sheet and _summary_sheet not in SHEET_ORDER:
                     SHEET_ORDER.append(_summary_sheet)
-
-                if _summary_sheet and _summary_sheet not in SHEET_ORDER:
-                    SHEET_ORDER.append(_summary_sheet)
+            elif not RUN_SEASON_ORDER_SUMMARY:
+                logging.info(
+                    "[season_order_summary] Пропуск — в run_outputs нет токена season_order_summary"
+                )
 
     # Только статистика менеджеров без main (manager_stats_only без main_only)
     if MANAGER_STATS_EARLY:
