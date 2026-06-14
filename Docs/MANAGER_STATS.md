@@ -33,6 +33,7 @@
 | `sources` | Откуда собирать **уникальные** табельные |
 | `enrich_columns` | Дополнительные колонки с приоритетным забором значений |
 | `prom_tournament_catalog` | Каталог турниров/наград ПРОМ и динамические колонки на TAB_NUMBERS (см. ниже) |
+| `profile_gp_load` | Дозаполнение из JSON профилей и автовыгрузка `Profile_GP_LOAD_AutoRun.js` (см. ниже) |
 
 ### `sources[]`
 
@@ -277,6 +278,255 @@
 | `date_year` | `2026` | Год в датах / `Дата создания` |
 | `contest_vid` | `ПРОМ` | Фильтр vid в CONTEST_FEATURE |
 | `rewards_received_column` | `получено наград` | Имя колонки счётчика на PROM_TOURNAMENTS |
+| `leaders_for_admin_column` | `запрос leadersForAdmin` | Признак турниров для скрипта `OUT/Tournament_LeadersForAdmin_AutoRun.js` |
+| `leaders_for_admin_value_yes` | `ДА` | Значение, если турнир попадает в выгрузку leadersForAdmin |
+| `leaders_for_admin_contest_type` | `ТУРНИРНЫЙ` | Фильтр CONTEST-DATA по `CONTEST_CODE` (вместе со статусом расписания) |
+
+### Колонка «запрос leadersForAdmin»
+
+`ДА` — `TOURNAMENT_CODE` входит в список автовыгрузки leadersForAdmin:
+
+1. `TOURNAMENT_STATUS` ∈ `active_statuses` (АКТИВНЫЙ / ПОДВЕДЕНИЕ ИТОГОВ);
+2. связанный `CONTEST_CODE` в CONTEST-DATA с `vid = ПРОМ` и `CONTEST_TYPE = ТУРНИРНЫЙ`.
+
+Иначе — `-`. Список кодов для браузерного скрипта собирается той же логикой:
+
+```bash
+python src/Tools/build_tournament_leaders_auto_js.py
+```
+
+## Порядок обогащения TAB_NUMBERS (enrich pipeline)
+
+Колонки на листе **TAB_NUMBERS** заполняются **строго в три этапа**. Это важно для полей **ТБ** / **ГОСБ** и последующего lookup в **ORG_UNIT_V20**.
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│ 1. CSV-enrich (enrich_columns без lookup_row_key)                       │
+│    RATING, STATISTICS, EMPLOYEE, ORDER, … по табельному номеру        │
+└───────────────────────────────┬─────────────────────────────────────────┘
+                                ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│ 2. JSON профилей (profile_gp_load.json_file / json_files)               │
+│    Дозаполнение пустых / «-» из IN/JS/profiles_*.json                   │
+│    Сопоставление: employeeNumber ↔ Табельный номер (20 знаков)         │
+└───────────────────────────────┬─────────────────────────────────────────┘
+                                ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│ 3. Составной lookup (enrich_columns с lookup_row_key)                   │
+│    TB_FULL_NAME, GOSB_NAME ← ORG_UNIT_V20 по ключу ТБ + ГОСБ строки    │
+│    (коды ТБ/ГОСБ могли появиться только на шаге 2)                      │
+└───────────────────────────────┬─────────────────────────────────────────┘
+                                ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│ 4. PROM-колонки (НАГРАДА / ТУРНИР / претендент из leadersForAdmin JSON) │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+Реализация: `enrich_tab_dataframe()` в `src/manager_stats.py`; JSON — `apply_profile_gp_json_enrich()` в `src/profile_gp_json.py`.
+
+В логе прогона:
+
+```
+[manager_stats] profile GP JSON enrich: N ячеек, M табельных
+[manager_stats] Profile AutoRun: K табельных с пустыми полями после CSV+JSON enrich
+```
+
+---
+
+## Браузерные скрипты AutoRun (OUT/YYYY/DD-MM)
+
+При `run_outputs` с **`manager_stats_only`** рядом с Excel в каталоге прогона создаются два JS-файла (вставить целиком в DevTools → Console на странице стенда).
+
+| Файл | Назначение | Эталон |
+|------|------------|--------|
+| `Tournament_LeadersForAdmin_AutoRun.js` | GET leadersForAdmin по кодам турниров из PROM_TOURNAMENTS | `IN/JS/Tournament_LeadersForAdmin.js` |
+| `Profile_GP_LOAD_AutoRun.js` | POST профиля по табельным, у которых после CSV+JSON остались дыры | `IN/JS/Profile_GP_LOAD_file.js` |
+
+Оба скрипта запускаются **сразу** после вставки (без панели). Подробный журнал — в **Console** (запрос N/M, размеры ответов в bytes, итог).
+
+CLI пересборки (без полного прогона `main.py`):
+
+```bash
+python src/Tools/build_tournament_leaders_auto_js.py
+python src/Tools/build_profile_gp_auto_js.py
+```
+
+---
+
+## Tournament_LeadersForAdmin AutoRun
+
+### Отбор кодов турниров
+
+Список `TOURNAMENT_CODES` в JS совпадает с колонкой **`запрос leadersForAdmin = ДА`** на листе PROM_TOURNAMENTS:
+
+1. `TOURNAMENT_STATUS` ∈ `active_statuses` (АКТИВНЫЙ / ПОДВЕДЕНИЕ ИТОГОВ);
+2. связанный `CONTEST_CODE` в CONTEST-DATA с `vid = ПРОМ` и `CONTEST_TYPE = ТУРНИРНЫЙ`.
+
+### JSON претендентов на TAB_NUMBERS
+
+Файл **`IN/JS/<leaders_for_admin_json_file>`** — ответ leadersForAdmin. Для турниров с `запрос leadersForAdmin = ДА`:
+
+1. Обычные колонки **`ТУРНИР …`** (count LIST-REWARDS) **не создаются**.
+2. В конце листа — колонки **`ТУРНИР (претендент) FULL_NAME (START_DT) [PRODUCT]`**.
+3. Значение — сумма по табельному, если в JSON у `employeeNumber` в `divisionRatings` есть `ratingCategoryName` из списка претендента.
+
+| Категория | Смысл |
+|-----------|--------|
+| Серебро | претендент на серебро |
+| Бронза | претендент на золото |
+| Вы в лидерах | претендент на золото |
+
+Уровни группировки в JSON: `BANK`, `TB`, `GOSB`, `GROUPING` — учитываются все блоки `divisionRatings`.
+
+| Ключ config | По умолчанию |
+|-------------|--------------|
+| `leaders_for_admin_js_enabled` | `true` |
+| `leaders_for_admin_js_file` | `Tournament_LeadersForAdmin_AutoRun.js` |
+| `leaders_for_admin_json_enabled` | `true` |
+| `leaders_for_admin_json_file` | имя файла в `IN/JS/` |
+| `leaders_for_admin_json_subdir` | `JS` |
+| `leaders_for_admin_pretender_categories` | Серебро, Бронза, Вы в лидерах |
+| `tab_columns_pretender_prefix` | `ТУРНИР (претендент)` |
+| `tab_columns_total_pretender` | `ТУРНИР (претендент) всего` |
+
+При вставке `Tournament_LeadersForAdmin_AutoRun.js` в Console: `Запрос N/M — GET leadersForAdmin`, HTTP-статус, размер ответа/записи в bytes, leaders/employeeNumber, итог с размером скачанного JSON.
+
+---
+
+## Profile GP: JSON-дозаполнение и AutoRun
+
+Двухэтапная схема для полей, которые не находятся в CSV-листах на первом проходе enrich.
+
+### Этап A — выгрузка профилей в браузере (один раз или по мере появления дыр)
+
+1. Прогон `main.py` с `manager_stats_only` → в `OUT/YYYY/DD-MM/` появляются Excel и **`Profile_GP_LOAD_AutoRun.js`**.
+2. Открыть стенд (omega / salesheroes), DevTools → Console, вставить весь JS, Enter.
+3. Скрипт вызывает `runCollectProfiles` без панели; JSON скачивается батчами: `profiles_<STAND>_<CONTOUR>_part<N>_<timestamp>.json`.
+4. Положить файлы в **`IN/JS/`**, указать имя в `profile_gp_load.json_file` или список в `json_files`.
+
+### Этап B — подстановка из JSON при следующем прогоне
+
+Модуль `src/profile_gp_json.py` читает массив записей из JSON (формат выгрузки Profile_GP_LOAD):
+
+```json
+{
+  "tn": "00007713",
+  "processed": {
+    "success": true,
+    "body": {
+      "employeeNumber": "00007713",
+      "lastName": "Радыгина",
+      "firstName": "Светлана",
+      "tbCode": "38",
+      "gosbCode": "0"
+    }
+  }
+}
+```
+
+| Колонка TAB_NUMBERS | Поле в `processed.body` | Примечание |
+|---------------------|-------------------------|------------|
+| Фамилия | `lastName` | |
+| Имя | `firstName` | |
+| ТБ | `tbCode` | После подстановки участвует в lookup ORG_UNIT |
+| ГОСБ | `gosbCode` | После подстановки участвует в lookup ORG_UNIT |
+| Код роли | `roleCode` | В текущих выгрузках SIGMA поле часто отсутствует → остаётся `-` |
+
+Правила подстановки:
+
+- Сопоставление по `employeeNumber` / `tn` с нормализацией до `normalize_pad_width` (20 знаков).
+- Заполняется **только** если после CSV-enrich значение пусто или равно `enrich_default` (`-`).
+- Если в JSON поля нет или запись с ошибкой (`error`, `success: false`) — значение не меняется.
+- Несколько part-файлов (`json_files`): индекс строится по всем файлам; при дубликате табельного побеждает последний файл в списке.
+
+### Этап C — формирование списка для Profile AutoRun JS
+
+**Критично:** список табельных в `Profile_GP_LOAD_AutoRun.js` формируется **после** CSV-enrich **и** JSON-дозаполнения.
+
+В `write_profile_gp_auto_js()` вызывается `prepare_tabs_for_profile_js()`:
+
+1. Повторно применяет JSON к переданному DataFrame (идемпотентно — только пустые ячейки).
+2. Отбирает табельные, у которых хотя бы одно поле из **`js_missing_columns`** всё ещё пусто или `-`.
+
+| Список config | Назначение |
+|---------------|------------|
+| `js_missing_columns` | **Для AutoRun JS** — поля профиля API: Фамилия, Имя, ТБ, ГОСБ, Код роли |
+| `missing_columns` | Расширенный справочный список (включая Email, Наименование Роли); **не** используется для отбора в JS |
+
+Email Sigma / Email Alpha / Наименование Роли **не** входят в `js_missing_columns`: API профиля их не отдаёт, иначе почти все табельные оставались бы в JS даже после успешной подстановки ФИО из JSON.
+
+Пример: после JSON у 680 табельных заполнены ФИО и ТБ/ГОСБ, но `Код роли` остаётся `-` (нет `roleCode` в JSON) — все 680 **попадут** в следующий AutoRun.
+
+### Секция `profile_gp_load` в config.json
+
+```json
+"profile_gp_load": {
+  "js_enabled": true,
+  "js_file": "Profile_GP_LOAD_AutoRun.js",
+  "js_template": "Profile_GP_LOAD_file.js",
+  "js_template_subdir": "JS",
+  "json_enabled": true,
+  "json_subdir": "JS",
+  "json_file": "profiles_PROM_SIGMA_part1_20260614_204856.json",
+  "json_files": [],
+  "json_field_map": {
+    "Фамилия": "lastName",
+    "Имя": "firstName",
+    "ТБ": "tbCode",
+    "ГОСБ": "gosbCode",
+    "Код роли": "roleCode"
+  },
+  "js_missing_columns": [
+    "Фамилия", "Имя", "ТБ", "ГОСБ", "Код роли"
+  ],
+  "missing_columns": [
+    "Фамилия", "Имя", "ТБ", "ГОСБ", "Код роли",
+    "Наименование Роли", "Email Sigma", "Email Alpha"
+  ],
+  "request_delay_ms": 2,
+  "enable_retry": true,
+  "max_retries": 1,
+  "retry_delay_on_error_ms": 1500,
+  "output_base_name": "profiles",
+  "batch_size": 12000,
+  "enable_photo_download": false,
+  "enable_photo_strip": true
+}
+```
+
+| Ключ | По умолчанию | Назначение |
+|------|--------------|------------|
+| `js_enabled` | `true` | Генерировать `Profile_GP_LOAD_AutoRun.js` |
+| `js_file` | `Profile_GP_LOAD_AutoRun.js` | Имя файла в OUT |
+| `js_template` | `Profile_GP_LOAD_file.js` | Эталон в `IN/JS/` |
+| `json_enabled` | `true` | Читать JSON при enrich |
+| `json_file` | — | Один файл в `IN/JS/` |
+| `json_files` | `[]` | Несколько part-файлов (приоритет над `json_file`, если непустой) |
+| `json_field_map` | lastName, firstName, … | Маппинг колонка → поле body |
+| `js_missing_columns` | 5 полей профиля | Критерий отбора ТН для AutoRun **после JSON** |
+| `request_delay_ms` | `2` | Пауза между POST в JS |
+| `batch_size` | `12000` | Размер батча при сохранении JSON в браузере |
+| `enable_photo_strip` | `true` | Удалять base64 фото из JSON (меньше размер файла) |
+
+### Console при работе Profile AutoRun
+
+В DevTools выводится журнал (как «Журнал работы» эталона):
+
+- `——— Старт сбора ———`, стенд/контур, URL, параметры
+- `Запрос N/M — ТН …`
+- `OK | size before: … bytes | size after: … bytes` (или ERROR с кодом)
+- сохранение батчей с размером файла
+- `==== ИТОГ ====` с суммарными размерами
+
+---
+
+## Колонки (претендент) на TAB_NUMBERS — сводка
+
+(См. также раздел **Tournament_LeadersForAdmin AutoRun** выше.)
+
+Для турниров с `запрос leadersForAdmin = ДА` обычные колонки `ТУРНИР …` не создаются; вместо них — `ТУРНИР (претендент) …` из JSON leadersForAdmin.
+
+---
 
 ## Динамические колонки PROM на TAB_NUMBERS
 
@@ -347,12 +597,20 @@
 
 | Модуль | Назначение |
 |--------|------------|
-| `src/manager_stats.py` | Сбор табельных, индексы enrich, каталог PROM, динамические колонки TAB_NUMBERS |
-| `src/main_impl.py` | `_write_manager_stats_excel`, ветвления `run_outputs` |
+| `src/manager_stats.py` | Сбор табельных, enrich pipeline (CSV → JSON → ORG_UNIT), каталог PROM, динамические колонки TAB_NUMBERS |
+| `src/profile_gp_json.py` | Парсинг `profiles_*.json`, `apply_profile_gp_json_enrich()` |
+| `src/profile_gp_auto_js.py` | `Profile_GP_LOAD_AutoRun.js`: `prepare_tabs_for_profile_js()`, отбор по `js_missing_columns` |
+| `src/leaders_for_admin_json.py` | Парсинг leadersForAdmin JSON, колонки «претендент» |
+| `src/leaders_for_admin_auto_js.py` | `Tournament_LeadersForAdmin_AutoRun.js` |
+| `src/main_impl.py` | `_write_manager_stats_excel`, запись обоих AutoRun JS |
+| `src/Tools/build_profile_gp_auto_js.py` | CLI пересборки Profile AutoRun |
+| `src/Tools/build_tournament_leaders_auto_js.py` | CLI пересборки leadersForAdmin AutoRun |
 | `src/config_loader.py` | `parse_run_outputs_config` |
 | `src/console_ui.py` | `print_manager_stats_summary`, фазы прогресса |
-| `src/Tests/test_manager_stats.py` | Тесты enrich и sources |
+| `src/Tests/test_manager_stats.py` | Тесты enrich, profile JSON, profile JS, pretender |
 | `src/Tests/test_run_outputs.py` | Тесты комбинаций `run_outputs` |
+| `IN/JS/Profile_GP_LOAD_file.js` | Эталон панели загрузки профилей |
+| `IN/JS/Tournament_LeadersForAdmin.js` | Эталон панели leadersForAdmin |
 
 ## Производительность
 

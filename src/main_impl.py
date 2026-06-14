@@ -4490,7 +4490,12 @@ def _write_manager_stats_excel(
         return None
     from src.manager_stats import build_manager_stats_workbook_data
 
-    ms_data = build_manager_stats_workbook_data(sheets_data, INPUT_FILES, MANAGER_STATS)
+    ms_data = build_manager_stats_workbook_data(
+        sheets_data,
+        INPUT_FILES,
+        MANAGER_STATS,
+        paths_cfg={"input": DIR_INPUT, "output": DIR_OUTPUT},
+    )
     out_path = os.path.join(run_output_dir, f"{OUTPUT_FILENAME_MANAGER_STATS} {timestamp}.xlsx")
     logging.info(f"[START] write_to_excel (manager_stats) ({out_path})")
     with debug_phase("08_write_manager_stats_excel"):
@@ -4501,6 +4506,38 @@ def _write_manager_stats_excel(
         n_tabs = len(ms_data[tab_sheet][0])
     logging.info(f"[END] write_to_excel (manager_stats): {n_tabs} уникальных табельных ({out_path})")
     console_ui.print_manager_stats_summary(n_tabs, out_path)
+    from src.leaders_for_admin_auto_js import write_tournament_leaders_auto_js
+
+    js_path = write_tournament_leaders_auto_js(
+        run_output_dir,
+        sheets_data=sheets_data,
+        manager_stats_cfg=MANAGER_STATS,
+        full_cfg={
+            "run_outputs": RUN_OUTPUTS,
+            "paths": {"input": DIR_INPUT, "output": DIR_OUTPUT},
+            "input_files": INPUT_FILES,
+        },
+    )
+    if js_path:
+        logging.info(f"[main] leadersForAdmin JS: {js_path}")
+    from src.profile_gp_auto_js import write_profile_gp_auto_js
+
+    tab_sheet = (MANAGER_STATS or {}).get("output_sheet") or "TAB_NUMBERS"
+    df_tabs_ms = None
+    if tab_sheet in ms_data and ms_data[tab_sheet][0] is not None:
+        df_tabs_ms = ms_data[tab_sheet][0]
+    profile_js_path = write_profile_gp_auto_js(
+        run_output_dir,
+        df_tabs=df_tabs_ms,
+        manager_stats_cfg={**(MANAGER_STATS or {}), "_paths": {"input": DIR_INPUT, "output": DIR_OUTPUT}},
+        full_cfg={
+            "run_outputs": RUN_OUTPUTS,
+            "paths": {"input": DIR_INPUT, "output": DIR_OUTPUT},
+            "input_files": INPUT_FILES,
+        },
+    )
+    if profile_js_path:
+        logging.info(f"[main] profile GP JS: {profile_js_path}")
     return out_path
 
 

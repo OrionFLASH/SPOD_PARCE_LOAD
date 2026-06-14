@@ -3,6 +3,9 @@
 
 from __future__ import annotations
 
+import json
+from pathlib import Path
+
 import pandas as pd
 
 from src.manager_stats import (
@@ -12,6 +15,7 @@ from src.manager_stats import (
     build_manager_stats_summary_dataframe,
     build_manager_stats_workbook_data,
     build_prom_tournament_catalog_dataframe,
+    collect_leaders_for_admin_tournament_codes,
     collect_tab_numbers_from_sheets,
     enrich_tab_dataframe,
     merge_manager_stats_config,
@@ -1611,6 +1615,7 @@ def test_prom_tournament_catalog_sheet() -> None:
     assert pd.Timestamp(row_a1["END_DT"]) == pd.Timestamp("2025-12-31")
     assert row_a1["TOURNAMENT_STATUS"] == "АКТИВНЫЙ"
     assert row_a1["CONTEST_TYPE"] == "ТУРНИР"
+    assert row_a1["запрос leadersForAdmin"] == "ДА"
     assert row_a1["PRODUCT_GROUP"] == "Статусные"
     assert row_a1["PRODUCT"] == "Рейтинг"
     assert row_a1["получено наград"] == 1
@@ -1618,6 +1623,7 @@ def test_prom_tournament_catalog_sheet() -> None:
     assert row_a2["получено наград"] == 0
     row_b = df[df["CONTEST_CODE"] == "c_prom_b"].iloc[0]
     assert row_b["CONTEST_TYPE"] == "НАГРАДА"
+    assert row_b["запрос leadersForAdmin"] == "-"
     assert row_b["PRODUCT_GROUP"] == "Эффективность"
     assert row_b["PRODUCT"] == "Эффективность КМ"
     assert row_b["получено наград"] == 0
@@ -1631,6 +1637,15 @@ def test_prom_tournament_catalog_sheet() -> None:
     assert df.iloc[1]["REWARD_CODE"] == "r_a2"
     assert df.iloc[2]["TOURNAMENT_CODE"] == "t_lr_only"
     assert df.iloc[-1]["TOURNAMENT_CODE"] == "t_2026"
+
+    leaders_codes = collect_leaders_for_admin_tournament_codes(
+        sheets["TOURNAMENT-SCHEDULE"][0],
+        sheets["CONTEST-DATA"][0],
+        active_statuses=["АКТИВНЫЙ", "ПОДВЕДЕНИЕ ИТОГОВ"],
+        contest_vid="ПРОМ",
+        contest_type_raw="ТУРНИРНЫЙ",
+    )
+    assert leaders_codes == ["t_active"]
 
     wb = build_manager_stats_workbook_data({}, cfg={"sources": [], "enrich_columns": []})
     assert "PROM_TOURNAMENTS" not in wb
@@ -1724,3 +1739,470 @@ def test_prom_tournament_tab_columns_enrich() -> None:
     assert out.loc[0, col_turdir] == 2
     assert out.loc[1, col_turdir] == 0
     assert out.loc[0, col_nagrada] == 0
+
+
+def test_pretender_tab_columns_from_leaders_json(tmp_path: Path) -> None:
+    """TAB_NUMBERS: (претендент) из JSON вместо ТУРНИР LIST-REWARDS для leadersForAdmin турниров."""
+    tab1 = "1467917".zfill(20)
+    tab2 = "2".zfill(20)
+    json_dir = tmp_path / "IN" / "JS"
+    json_dir.mkdir(parents=True)
+    json_name = "test_leaders_pretender.json"
+    json_path = json_dir / json_name
+    json_path.write_text(
+        json.dumps(
+            {
+                "t_active": [
+                    {
+                        "success": True,
+                        "body": {
+                            "tournament": {
+                                "tournamentId": "t_active",
+                                "leaders": [
+                                    {
+                                        "employeeNumber": "01467917",
+                                        "divisionRatings": [
+                                            {
+                                                "groupCode": "GROUPING",
+                                                "ratingCategoryName": "Серебро",
+                                            },
+                                            {
+                                                "groupCode": "BANK",
+                                                "ratingCategoryName": "Вы в лидерах",
+                                            },
+                                        ],
+                                    }
+                                ],
+                            }
+                        },
+                    }
+                ]
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+
+    sheets = {
+        "TOURNAMENT-SCHEDULE": (
+            pd.DataFrame(
+                {
+                    "TOURNAMENT_CODE": ["t_active"],
+                    "CONTEST_CODE": ["c_prom_a"],
+                    "TOURNAMENT_STATUS": ["АКТИВНЫЙ"],
+                    "PERIOD_TYPE": ["Месяц"],
+                    "START_DT": ["2025-01-01"],
+                    "END_DT": ["2025-12-31"],
+                }
+            ),
+            {},
+        ),
+        "CONTEST-DATA": (
+            pd.DataFrame(
+                {
+                    "CONTEST_CODE": ["c_prom_a"],
+                    "FULL_NAME": ["Конкурс A"],
+                    "CONTEST_TYPE": ["ТУРНИРНЫЙ"],
+                    "PRODUCT_GROUP": ["Статусные"],
+                    "PRODUCT": ["Рейтинг"],
+                    "CONTEST_FEATURE": ['{"vid":"ПРОМ"}'],
+                }
+            ),
+            {},
+        ),
+        "REWARD-LINK": (
+            pd.DataFrame(
+                {
+                    "CONTEST_CODE": ["c_prom_a"],
+                    "GROUP_CODE": ["g1"],
+                    "REWARD_CODE": ["r_a1"],
+                }
+            ),
+            {},
+        ),
+        "REWARD": (
+            pd.DataFrame(
+                {
+                    "REWARD_CODE": ["r_a1"],
+                    "FULL_NAME": ["Награда A1"],
+                }
+            ),
+            {},
+        ),
+        "LIST-REWARDS": (
+            pd.DataFrame(
+                {
+                    "Код турнира": ["t_active", "t_active"],
+                    "Код награды": ["r_a1", "r_a1"],
+                    "Дата создания": ["2026-01-15", "2026-02-10"],
+                    "Табельный номер сотрудника": [tab1, tab2],
+                }
+            ),
+            {},
+        ),
+    }
+    df_tabs = pd.DataFrame(
+        {
+            "№": [1, 2],
+            "Табельный номер": [tab1, tab2],
+            "Источники": ["TEST", "TEST"],
+            "Число источников": [1, 1],
+        }
+    )
+
+    import src.leaders_for_admin_json as lfj
+
+    original_root = lfj._project_root
+    lfj._project_root = lambda: tmp_path  # type: ignore[method-assign]
+    try:
+        cfg = {
+            "sources": [],
+            "enrich_columns": [],
+            "prom_tournament_catalog": {
+                "leaders_for_admin_json_file": json_name,
+                "leaders_for_admin_json_subdir": "JS",
+            },
+        }
+        out = enrich_tab_dataframe(df_tabs, sheets, cfg=cfg)
+    finally:
+        lfj._project_root = original_root  # type: ignore[method-assign]
+
+    col_turdir = "ТУРНИР Конкурс A (2025-01-01) [Рейтинг]"
+    col_pret = "ТУРНИР (претендент) Конкурс A (2025-01-01) [Рейтинг]"
+    assert col_turdir not in out.columns
+    assert col_pret in out.columns
+    assert "ТУРНИР (претендент) всего" in out.columns
+    assert out.loc[0, col_pret] == 2
+    assert out.loc[1, col_pret] == 0
+    assert list(out.columns).index("Источники") > list(out.columns).index(col_pret)
+
+
+def test_collect_tabs_missing_profile_fields() -> None:
+    from src.profile_gp_auto_js import (
+        DEFAULT_PROFILE_JS_MISSING_COLUMNS,
+        collect_tabs_missing_profile_fields,
+        tab_for_profile_js,
+    )
+
+    tab_full = normalize_tab_number("673892", 20)
+    tab_ok = normalize_tab_number("11111111", 20)
+    tab_role_gap = normalize_tab_number("22222222", 20)
+    df = pd.DataFrame(
+        {
+            "Табельный номер": [tab_full, tab_ok, tab_full, tab_role_gap],
+            "Фамилия": ["-", "Иванов", "-", "Петров"],
+            "Имя": ["Пётр", "Пётр", "-", "Сидор"],
+            "ТБ": ["-", "52", "-", "52"],
+            "ГОСБ": ["9038", "9038", "9038", "9038"],
+            "Код роли": ["KM", "KM", "KM", "-"],
+            "Наименование Роли": ["Клиентский менеджер"] * 4,
+            "Email Sigma": ["a@b.ru", "a@b.ru", "a@b.ru", "a@b.ru"],
+            "Email Alpha": ["a@b.ru", "a@b.ru", "a@b.ru", "a@b.ru"],
+        }
+    )
+    mcfg = merge_manager_stats_config(
+        {
+            "enrich_default": "-",
+            "profile_gp_load": {
+                "js_missing_columns": DEFAULT_PROFILE_JS_MISSING_COLUMNS,
+            },
+        }
+    )
+    tabs = collect_tabs_missing_profile_fields(df, mcfg)
+    assert tabs == [tab_for_profile_js(tab_full), tab_for_profile_js(tab_role_gap)]
+    assert tab_for_profile_js("00000000000000673892") == "00673892"
+
+
+def test_profile_js_excludes_email_only_gaps() -> None:
+    """В AutoRun только js_missing_columns — Email/Наименование Роли не учитываются."""
+    from src.profile_gp_auto_js import collect_tabs_missing_profile_fields
+
+    tab = normalize_tab_number("99999999", 20)
+    df = pd.DataFrame(
+        {
+            "Табельный номер": [tab],
+            "Фамилия": ["Иванов"],
+            "Имя": ["Пётр"],
+            "ТБ": ["52"],
+            "ГОСБ": ["9038"],
+            "Код роли": ["KM"],
+            "Наименование Роли": ["-"],
+            "Email Sigma": ["-"],
+            "Email Alpha": ["-"],
+        }
+    )
+    mcfg = merge_manager_stats_config({"enrich_default": "-"})
+    assert collect_tabs_missing_profile_fields(df, mcfg) == []
+
+
+def test_prepare_tabs_for_profile_js_applies_json(tmp_path: Path) -> None:
+    from src.profile_gp_auto_js import prepare_tabs_for_profile_js
+
+    tab = normalize_tab_number("7713", 20)
+    json_path = tmp_path / "JS" / "profiles_test.json"
+    json_path.parent.mkdir(parents=True)
+    json_path.write_text(
+        json.dumps(
+            [
+                {
+                    "tn": "00007713",
+                    "processed": {
+                        "success": True,
+                        "body": {
+                            "employeeNumber": "00007713",
+                            "lastName": "Радыгина",
+                            "firstName": "Светлана",
+                            "tbCode": "38",
+                            "gosbCode": "0",
+                        },
+                    },
+                }
+            ]
+        ),
+        encoding="utf-8",
+    )
+    df = pd.DataFrame(
+        {
+            "Табельный номер": [tab],
+            "Фамилия": ["-"],
+            "Имя": ["-"],
+            "ТБ": ["-"],
+            "ГОСБ": ["-"],
+            "Код роли": ["-"],
+        }
+    )
+    mcfg = merge_manager_stats_config(
+        {
+            "enrich_default": "-",
+            "profile_gp_load": {
+                "json_enabled": True,
+                "json_file": "profiles_test.json",
+                "json_subdir": "JS",
+            },
+        }
+    )
+    df_ready, tabs = prepare_tabs_for_profile_js(df, mcfg, paths_cfg={"input": str(tmp_path)})
+    from src.profile_gp_auto_js import tab_for_profile_js
+
+    assert df_ready.iloc[0]["Фамилия"] == "Радыгина"
+    assert df_ready.iloc[0]["ТБ"] == "38"
+    # roleCode в JSON нет — Код роли остаётся «-», табельный всё ещё в списке AutoRun
+    assert tabs == [tab_for_profile_js(tab)]
+
+
+def test_build_profile_auto_js_contains_tab_nums(tmp_path: Path) -> None:
+    from src.profile_gp_auto_js import build_js_content
+
+    template = tmp_path / "Profile_GP_LOAD_file.js"
+    template.write_text(
+        "(function () {\n"
+        'const TAB_NUMS = ["00000001"];\n'
+        "function profileGpPanelEcho(level) {\n"
+        "  if (level === 'error') console.error(arguments);\n"
+        "}\n"
+        "async function runCollectProfiles() {\n"
+        "  var list = [];\n"
+        "  var totalOk = 0;\n"
+        "  var totalErr = 0;\n"
+        "  var totalCount = 0;\n"
+        "  var totalSizeBefore = 0;\n"
+        "  var totalSizeAfter = 0;\n"
+        "  console.log(\n"
+        '    "[Профили героев] Сбор завершён. Всего ТН: " +\n'
+        "      list.length +\n"
+        '      " | успешно: " +\n'
+        "      totalOk +\n"
+        '      " | ошибок: " +\n'
+        "      totalErr +\n"
+        '      " | обработано записей: " +\n'
+        "      totalCount\n"
+        "  );\n"
+        "}\n"
+        + "// =============================================================================\n"
+        + "// ЗАГРУЗКА ТН ИЗ ФАЙЛА И ЗАПУСК СБОРА\n"
+        + "function startWithChoice() {}\n"
+        "startWithChoice();\n"
+        "})();\n",
+        encoding="utf-8",
+    )
+    content = build_js_content(
+        ["00673892", "01515739"],
+        missing_columns=["Фамилия", "Имя", "ТБ", "ГОСБ"],
+        pg_cfg=merge_manager_stats_config({})["profile_gp_load"],
+        template_path=template,
+    )
+    assert "Profile_GP_LOAD_AutoRun.js" in content
+    assert '"00673892"' in content
+    assert '"01515739"' in content
+    assert "void runCollectProfiles" in content
+    assert "startWithChoice" not in content
+    assert "console.log(tag, s)" in content
+    assert "[Profile Auto] ==== ИТОГ ====" in content
+
+
+def test_apply_profile_gp_json_enrich_fills_missing(tmp_path: Path) -> None:
+    from src.profile_gp_json import apply_profile_gp_json_enrich
+
+    tab = normalize_tab_number("7713", 20)
+    json_path = tmp_path / "JS" / "profiles_test.json"
+    json_path.parent.mkdir(parents=True)
+    json_path.write_text(
+        json.dumps(
+            [
+                {
+                    "tn": "00007713",
+                    "processed": {
+                        "success": True,
+                        "body": {
+                            "employeeNumber": "00007713",
+                            "lastName": "Радыгина",
+                            "firstName": "Светлана",
+                            "tbCode": "38",
+                            "gosbCode": "0",
+                        },
+                    },
+                }
+            ],
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+
+    df = pd.DataFrame(
+        {
+            "Табельный номер": [tab],
+            "Фамилия": ["-"],
+            "Имя": ["-"],
+            "ТБ": ["-"],
+            "ГОСБ": ["-"],
+            "Код роли": ["-"],
+        }
+    )
+    mcfg = merge_manager_stats_config(
+        {
+            "enrich_default": "-",
+            "profile_gp_load": {
+                "json_enabled": True,
+                "json_file": "profiles_test.json",
+                "json_subdir": "JS",
+            },
+            "_paths": {"input": str(tmp_path)},
+        }
+    )
+    out = apply_profile_gp_json_enrich(df, mcfg, paths_cfg={"input": str(tmp_path)})
+    assert out.iloc[0]["Фамилия"] == "Радыгина"
+    assert out.iloc[0]["Имя"] == "Светлана"
+    assert out.iloc[0]["ТБ"] == "38"
+    assert out.iloc[0]["ГОСБ"] == "0"
+    assert out.iloc[0]["Код роли"] == "-"
+
+
+def test_profile_json_before_org_unit_lookup(tmp_path: Path) -> None:
+    """ORG_UNIT lookup использует ТБ/ГОСБ после подстановки из JSON."""
+    tab = normalize_tab_number("7713", 20)
+    json_path = tmp_path / "JS" / "profiles_test.json"
+    json_path.parent.mkdir(parents=True)
+    json_path.write_text(
+        json.dumps(
+            [
+                {
+                    "tn": "00007713",
+                    "processed": {
+                        "success": True,
+                        "body": {
+                            "employeeNumber": "00007713",
+                            "tbCode": "38",
+                            "gosbCode": "0",
+                        },
+                    },
+                }
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    sheets = {
+        "ORG_UNIT_V20": (
+            pd.DataFrame(
+                {
+                    "TB_CODE": ["38"],
+                    "GOSB_CODE": ["0"],
+                    "TB_FULL_NAME": ["Московский банк"],
+                    "GOSB_NAME": ["Аппарат территориального банка"],
+                }
+            ),
+            {},
+        ),
+    }
+    df_tabs = pd.DataFrame(
+        {
+            "№": [1],
+            "Табельный номер": [tab],
+            "Источники": ["TEST"],
+            "Число источников": [1],
+        }
+    )
+    cfg = {
+        "sources": [],
+        "enrich_columns": [
+            {
+                "id": "tb_code",
+                "enabled": True,
+                "output_column": "ТБ",
+                "mode": "value",
+                "multi_row": "first",
+                "default": "-",
+                "sources": [
+                    {
+                        "priority": 1,
+                        "sheet": "STATISTICS",
+                        "tab_column": "Табельный номер",
+                        "value_column": "ТБ",
+                    }
+                ],
+            },
+            {
+                "id": "gosb_code",
+                "enabled": True,
+                "output_column": "ГОСБ",
+                "mode": "value",
+                "multi_row": "first",
+                "default": "-",
+                "sources": [
+                    {
+                        "priority": 1,
+                        "sheet": "STATISTICS",
+                        "tab_column": "Табельный номер",
+                        "value_column": "ГОСБ",
+                    }
+                ],
+            },
+            {
+                "id": "tb_full_name",
+                "enabled": True,
+                "output_column": "TB_FULL_NAME",
+                "mode": "value",
+                "multi_row": "first",
+                "default": "-",
+                "lookup_row_key": ["ТБ", "ГОСБ"],
+                "sources": [
+                    {
+                        "priority": 1,
+                        "sheet": "ORG_UNIT_V20",
+                        "key_columns": ["TB_CODE", "GOSB_CODE"],
+                        "value_column": "TB_FULL_NAME",
+                    }
+                ],
+            },
+        ],
+        "profile_gp_load": {
+            "json_enabled": True,
+            "json_file": "profiles_test.json",
+            "json_subdir": "JS",
+        },
+        "_paths": {"input": str(tmp_path)},
+    }
+    out = enrich_tab_dataframe(df_tabs, sheets, cfg=cfg)
+    assert out.iloc[0]["ТБ"] == "38"
+    assert out.iloc[0]["ГОСБ"] == "0"
+    assert out.iloc[0]["TB_FULL_NAME"] == "Московский банк"

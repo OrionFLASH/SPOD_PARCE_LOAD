@@ -16,7 +16,7 @@
 - `RATING_MATRIX_COLORS_AND_LOGIC.md` — лист RATING: подсчёт, доступность, раскраска матрицы ITEM (в т.ч. itemAmount и шапка колонки).
 - `SEASON_ORDER_SUMMARY.md` — лист **ORDER-SEASON-SUMMARY**: сводка заказов по группам **SEASON_***, прочие ITEM, формат Excel.
 - `SEASON_ORDER_SUMMARY_KM_LOGIC.md` — логика колонок **«КМ:»** на сводке (как в коде, расхождения с ТЗ, чеклист правки).
-- `MANAGER_STATS.md` — отдельная книга табельных: `sources`, фильтры EMPLOYEE, `employee_placeholder_exclusion`, `enrich_columns` (ФИО, ТБ/ГОСБ, коды ролей в рейтинге `exists+join`, Email, дни/входы по месяцам из STATISTICS, метрики RATING), лист **PROM_TOURNAMENTS** и динамические колонки **НАГРАДА**/**ТУРНИР** на TAB_NUMBERS (`prom_tournament_catalog`), `column_formats`, сводка `MANAGER_STATS_SUMMARY`, `run_outputs` (`manager_stats_only`), производительность enrich и PROM.
+- `MANAGER_STATS.md` — отдельная книга табельных: `sources`, фильтры EMPLOYEE, `employee_placeholder_exclusion`, **enrich pipeline** (CSV → profile JSON → ORG_UNIT), `enrich_columns` (ФИО, ТБ/ГОСБ, коды ролей в рейтинге `exists+join`, Email, дни/входы по месяцам из STATISTICS, метрики RATING), **`profile_gp_load`** (дозаполнение из `profiles_*.json`, `Profile_GP_LOAD_AutoRun.js` после CSV+JSON), **leadersForAdmin** (претендент, `Tournament_LeadersForAdmin_AutoRun.js`), лист **PROM_TOURNAMENTS** и динамические колонки **НАГРАДА**/**ТУРНИР** на TAB_NUMBERS, `column_formats`, сводка `MANAGER_STATS_SUMMARY`, `run_outputs` (`manager_stats_only`), производительность enrich и PROM.
 - `АНАЛИЗ_ПРОВЕРОК_КОНСИСТЕНТНОСТИ.md` — аналитика покрытия проверок и предложения по расширению.
 
 ## Консолидированные исторические документы

@@ -5872,6 +5872,49 @@
     ],
     "_rating_enrich_groups_format": "Группы RATING (роль КМККСБ + период): для каждой пары «Наименование Роли»+«Период» отдельные колонки «метрика | период» — кристаллы и места в рейтинге; default «-».",
     "_statistics_activity_format": "STATISTICS: сумма по табельному из колонок «<месяц> дней/входов» → «MM_YYYY (дней/входы)»; mode sum.",
+    "profile_gp_load": {
+      "js_enabled": true,
+      "js_file": "Profile_GP_LOAD_AutoRun.js",
+      "js_template": "Profile_GP_LOAD_file.js",
+      "js_template_subdir": "JS",
+      "json_subdir": "JS",
+      "json_file": "profiles_PROM_SIGMA_part1_20260614_204856.json",
+      "json_files": [],
+      "json_enabled": true,
+      "json_field_map": {
+        "Фамилия": "lastName",
+        "Имя": "firstName",
+        "ТБ": "tbCode",
+        "ГОСБ": "gosbCode",
+        "Код роли": "roleCode"
+      },
+      "js_missing_columns": [
+        "Фамилия",
+        "Имя",
+        "ТБ",
+        "ГОСБ",
+        "Код роли"
+      ],
+      "missing_columns": [
+        "Фамилия",
+        "Имя",
+        "ТБ",
+        "ГОСБ",
+        "Код роли",
+        "Наименование Роли",
+        "Email Sigma",
+        "Email Alpha"
+      ],
+      "request_delay_ms": 2,
+      "enable_retry": true,
+      "max_retries": 1,
+      "retry_delay_on_error_ms": 1500,
+      "output_base_name": "profiles",
+      "batch_size": 12000,
+      "enable_photo_download": false,
+      "enable_photo_strip": true
+    },
+    "_profile_gp_load_format": "1) CSV enrich → 2) profile GP JSON (json_field_map) → 3) ORG_UNIT lookup по ТБ+ГОСБ; Profile_GP_LOAD_AutoRun.js — только табельные, у которых после шагов 1–2 всё ещё пусто missing_columns.",
     "prom_tournament_catalog": {
       "enabled": true,
       "sheet_name": "PROM_TOURNAMENTS",
@@ -5892,6 +5935,21 @@
       "tab_columns_width": 7,
       "tab_columns_total_nagrada": "НАГРАДА всего",
       "tab_columns_total_tournament": "ТУРНИР всего",
+      "leaders_for_admin_column": "запрос leadersForAdmin",
+      "leaders_for_admin_value_yes": "ДА",
+      "leaders_for_admin_contest_type": "ТУРНИРНЫЙ",
+      "leaders_for_admin_js_enabled": true,
+      "leaders_for_admin_js_file": "Tournament_LeadersForAdmin_AutoRun.js",
+      "leaders_for_admin_json_enabled": true,
+      "leaders_for_admin_json_subdir": "JS",
+      "leaders_for_admin_json_file": "leadersForAdmin_PROM_SIGMA_20260614-195359.json",
+      "leaders_for_admin_pretender_categories": [
+        "Серебро",
+        "Бронза",
+        "Вы в лидерах"
+      ],
+      "tab_columns_pretender_prefix": "ТУРНИР (претендент)",
+      "tab_columns_total_pretender": "ТУРНИР (претендент) всего",
       "tab_columns_format": {
         "data_type": "number",
         "decimal_places": 0,
@@ -5915,7 +5973,7 @@
         }
       ]
     },
-    "_prom_tournament_catalog_format": "PROM_TOURNAMENTS + TAB_NUMBERS: динамические колонки НАГРАДА/ТУРНИР (count LIST-REWARDS 2026 по табельному); каталог — расписание/LIST-REWARDS, vid=ПРОМ."
+    "_prom_tournament_catalog_format": "PROM_TOURNAMENTS + TAB_NUMBERS: НАГРАДА/ТУРНИР (LIST-REWARDS); турниры leadersForAdmin → колонки ТУРНИР (претендент) из IN/JS JSON; JS в OUT/YYYY/DD-MM при manager_stats_only."
   },
   "json_columns": {
     "CONTEST-DATA": [

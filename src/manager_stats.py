@@ -122,6 +122,21 @@ def merge_manager_stats_config(raw: Optional[Mapping[str, Any]]) -> Dict[str, An
             "tab_columns_width": 7,
             "tab_columns_total_nagrada": "НАГРАДА всего",
             "tab_columns_total_tournament": "ТУРНИР всего",
+            "leaders_for_admin_column": "запрос leadersForAdmin",
+            "leaders_for_admin_value_yes": "ДА",
+            "leaders_for_admin_contest_type": "ТУРНИРНЫЙ",
+            "leaders_for_admin_js_enabled": True,
+            "leaders_for_admin_js_file": "Tournament_LeadersForAdmin_AutoRun.js",
+            "leaders_for_admin_json_enabled": True,
+            "leaders_for_admin_json_subdir": "JS",
+            "leaders_for_admin_json_file": "",
+            "leaders_for_admin_pretender_categories": [
+                "Серебро",
+                "Бронза",
+                "Вы в лидерах",
+            ],
+            "tab_columns_pretender_prefix": "ТУРНИР (претендент)",
+            "tab_columns_total_pretender": "ТУРНИР (претендент) всего",
             "column_formats": [
                 {
                     "columns": ["START_DT", "END_DT"],
@@ -132,6 +147,48 @@ def merge_manager_stats_config(raw: Optional[Mapping[str, Any]]) -> Dict[str, An
                     "wrap_text": False,
                 }
             ],
+        },
+        "profile_gp_load": {
+            "js_enabled": True,
+            "js_file": "Profile_GP_LOAD_AutoRun.js",
+            "js_template": "Profile_GP_LOAD_file.js",
+            "js_template_subdir": "JS",
+            "json_subdir": "JS",
+            "json_file": "",
+            "json_files": [],
+            "json_enabled": True,
+            "json_field_map": {
+                "Фамилия": "lastName",
+                "Имя": "firstName",
+                "ТБ": "tbCode",
+                "ГОСБ": "gosbCode",
+                "Код роли": "roleCode",
+            },
+            "js_missing_columns": [
+                "Фамилия",
+                "Имя",
+                "ТБ",
+                "ГОСБ",
+                "Код роли",
+            ],
+            "missing_columns": [
+                "Фамилия",
+                "Имя",
+                "ТБ",
+                "ГОСБ",
+                "Код роли",
+                "Наименование Роли",
+                "Email Sigma",
+                "Email Alpha",
+            ],
+            "request_delay_ms": 2,
+            "enable_retry": True,
+            "max_retries": 1,
+            "retry_delay_on_error_ms": 1500,
+            "output_base_name": "profiles",
+            "batch_size": 12000,
+            "enable_photo_download": False,
+            "enable_photo_strip": True,
         },
     }
     if not raw:
@@ -149,6 +206,7 @@ def merge_manager_stats_config(raw: Optional[Mapping[str, Any]]) -> Dict[str, An
         "column_widths",
         "column_formats",
         "prom_tournament_catalog",
+        "profile_gp_load",
     ):
         if k in raw:
             out[k] = raw[k]
@@ -164,6 +222,11 @@ def merge_manager_stats_config(raw: Optional[Mapping[str, Any]]) -> Dict[str, An
         out["prom_tournament_catalog"] = {**defaults["prom_tournament_catalog"], **ptc_raw}
     else:
         out["prom_tournament_catalog"] = dict(defaults["prom_tournament_catalog"])
+    pgl_raw = out.get("profile_gp_load")
+    if isinstance(pgl_raw, dict):
+        out["profile_gp_load"] = {**defaults["profile_gp_load"], **pgl_raw}
+    else:
+        out["profile_gp_load"] = dict(defaults["profile_gp_load"])
     cw_raw = out.get("column_widths")
     if isinstance(cw_raw, dict):
         merged_cw = {**_DEFAULT_COLUMN_WIDTHS}
@@ -241,6 +304,13 @@ def _cell_str(x: Any) -> str:
     if x is None or (isinstance(x, float) and pd.isna(x)):
         return ""
     return str(x).strip()
+
+
+def is_enrich_value_missing(val: Any, default: str = "-") -> bool:
+    """Пустое enrich-значение: пустая строка или default («-»)."""
+    s = _cell_str(val)
+    default_s = str(default or "-").strip()
+    return not s or s == default_s or s == "-"
 
 
 def _parse_catalog_date_value(x: Any) -> pd.Timestamp:
@@ -1385,6 +1455,8 @@ def enrich_tab_dataframe(
     if df_tabs is None or df_tabs.empty:
         return df_tabs
     mcfg = merge_manager_stats_config(cfg)
+    if isinstance(cfg, Mapping) and cfg.get("_paths"):
+        mcfg = {**mcfg, "_paths": dict(cfg["_paths"])}
     pad_width = int(mcfg.get("normalize_pad_width") or 20)
     parallel_cfg = _merge_parallel_config(mcfg.get("enrich_parallel"))
     fields = _normalized_enrich_fields_from_config(mcfg)
@@ -1464,6 +1536,15 @@ def enrich_tab_dataframe(
                     n_tabs,
                 )
 
+        t_lookup_tab = time.perf_counter() - t1
+
+        from src.profile_gp_json import apply_profile_gp_json_enrich
+
+        paths_cfg = mcfg.get("_paths")
+        out = apply_profile_gp_json_enrich(out, mcfg, paths_cfg=paths_cfg)
+        t_json = time.perf_counter()
+
+        t2 = time.perf_counter()
         for fld, ctx in composite_pairs:
             col_name = fld["output_column"]
             lookup_keys = _build_lookup_keys_for_field(out, fld, tabs)
@@ -1476,18 +1557,21 @@ def enrich_tab_dataframe(
                 len(ctx.sources),
                 n_tabs,
             )
+        t_lookup_composite = time.perf_counter() - t2
 
-        t_lookup = time.perf_counter() - t1
         logging.info(
-            "[manager_stats] enrich: индексы %s за %.2f с; lookup %s таб. за %.2f с (workers=%s)",
+            "[manager_stats] enrich: индексы %s за %.2f с; lookup tab %s за %.2f с; "
+            "profile JSON за %.2f с; lookup составной за %.2f с (workers=%s)",
             total_index_entries,
             t_index,
             n_tabs,
-            t_lookup,
+            t_lookup_tab - t1,
+            t_json - t_lookup_tab,
+            t_lookup_composite - t2,
             lookup_workers,
         )
 
-    out, prom_cols = _append_prom_tournament_tab_columns(
+    out, prom_cols, pretender_cols = _append_prom_tournament_tab_columns(
         out,
         sheets_data,
         mcfg,
@@ -1498,7 +1582,7 @@ def enrich_tab_dataframe(
     tail = ["Источники", "Число источников"]
     enrich_names = [f["output_column"] for f in fields]
     head = ["№", "Табельный номер"]
-    ordered = head + enrich_names + prom_cols + [c for c in tail if c in out.columns]
+    ordered = head + enrich_names + prom_cols + pretender_cols + [c for c in tail if c in out.columns]
     extra = [c for c in out.columns if c not in ordered]
     return out[ordered + extra]
 
@@ -1927,6 +2011,55 @@ def _build_contest_prom_index(
     return prom_codes, names, types, product_groups, products
 
 
+def collect_leaders_for_admin_tournament_codes(
+    df_schedule: pd.DataFrame,
+    df_contest: pd.DataFrame,
+    *,
+    active_statuses: Sequence[str],
+    contest_vid: str = "ПРОМ",
+    contest_type_raw: str = "ТУРНИРНЫЙ",
+) -> List[str]:
+    """
+    Уникальные TOURNAMENT_CODE для скрипта leadersForAdmin.
+
+    Условия: TOURNAMENT_STATUS из active_statuses и CONTEST_CODE с vid=ПРОМ,
+    у которого CONTEST_TYPE = contest_type_raw (по умолчанию ТУРНИРНЫЙ).
+    """
+    if df_schedule is None or df_schedule.empty or df_contest is None or df_contest.empty:
+        return []
+
+    prom_codes, _, contest_types, _, _ = _build_contest_prom_index(
+        df_contest,
+        contest_vid=contest_vid,
+    )
+    target_label = _map_contest_type_label(contest_type_raw)
+    tournament_contest_codes = {c for c in prom_codes if contest_types.get(c) == target_label}
+    if not tournament_contest_codes:
+        return []
+
+    status_col = _resolve_df_column(df_schedule, "TOURNAMENT_STATUS")
+    t_col = _resolve_df_column(df_schedule, "TOURNAMENT_CODE")
+    c_col = _resolve_df_column(df_schedule, "CONTEST_CODE")
+    if not status_col or not t_col or not c_col:
+        return []
+
+    active_set = {_cell_str(s) for s in active_statuses if _cell_str(s)}
+    codes: List[str] = []
+    seen: Set[str] = set()
+    for _, row in df_schedule.iterrows():
+        if _cell_str(row.get(status_col)) not in active_set:
+            continue
+        contest_code = _cell_str(row.get(c_col))
+        if contest_code not in tournament_contest_codes:
+            continue
+        tournament_code = _cell_str(row.get(t_col))
+        if tournament_code and tournament_code not in seen:
+            seen.add(tournament_code)
+            codes.append(tournament_code)
+    codes.sort()
+    return codes
+
+
 def _schedule_selection_mask(
     df_schedule: pd.DataFrame,
     *,
@@ -2181,9 +2314,11 @@ def _finalize_prom_catalog_dataframe(
     out: pd.DataFrame,
     *,
     rewards_received_column: str = "получено наград",
+    leaders_for_admin_column: Optional[str] = None,
 ) -> pd.DataFrame:
     """Сортировка, нумерация и порядок колонок листа PROM_TOURNAMENTS."""
     received_col = str(rewards_received_column or "получено наград").strip() or "получено наград"
+    leaders_col = str(leaders_for_admin_column or "").strip()
     work = out.copy()
     sorted_df = _sort_prom_catalog_dataframe(work).reset_index(drop=True)
     for col in ("START_DT", "END_DT"):
@@ -2199,13 +2334,19 @@ def _finalize_prom_catalog_dataframe(
         "TOURNAMENT_STATUS",
         "CONTEST_CODE",
         "CONTEST_TYPE",
-        "PRODUCT",
-        "PRODUCT_GROUP",
-        "REWARD_CODE",
-        "FULL_NAME",
-        "REWARD_FULL_NAME",
-        received_col,
     ]
+    if leaders_col and leaders_col in sorted_df.columns:
+        ordered.append(leaders_col)
+    ordered.extend(
+        [
+            "PRODUCT",
+            "PRODUCT_GROUP",
+            "REWARD_CODE",
+            "FULL_NAME",
+            "REWARD_FULL_NAME",
+            received_col,
+        ]
+    )
     present = [c for c in ordered if c in sorted_df.columns]
     extra = [c for c in sorted_df.columns if c not in present]
     return sorted_df[present + extra]
@@ -2222,6 +2363,7 @@ class _PromTabColumnSpec:
     contest_code: str
     sort_start_dt: pd.Timestamp
     pairs: List[Tuple[str, str]] = field(default_factory=list)
+    tournament_code: str = ""
 
 
 def _format_prom_tab_column_start_dt(value: Any) -> str:
@@ -2246,15 +2388,21 @@ def _prom_tab_column_sort_key(spec: _PromTabColumnSpec) -> Tuple[Any, ...]:
     )
 
 
-def _build_prom_tab_column_specs(df_catalog: pd.DataFrame) -> List[_PromTabColumnSpec]:
+def _build_prom_tab_column_specs(
+    df_catalog: pd.DataFrame,
+    *,
+    exclude_tournament_codes: Optional[Set[str]] = None,
+) -> List[_PromTabColumnSpec]:
     """
     Колонки TAB_NUMBERS по каталогу PROM_TOURNAMENTS.
 
     НАГРАДА: НАГРАДА REWARD_FULL_NAME (START_DT) [PRODUCT]
     ТУРНИР: ТУРНИР FULL_NAME (START_DT) [PRODUCT]
+    Турниры из exclude_tournament_codes (leadersForAdmin JSON) не включаются.
     """
     if df_catalog is None or df_catalog.empty:
         return []
+    exclude = exclude_tournament_codes or set()
     buckets: Dict[str, _PromTabColumnSpec] = {}
     for _, row in df_catalog.iterrows():
         contest_type = _cell_str(row.get("CONTEST_TYPE"))
@@ -2264,6 +2412,8 @@ def _build_prom_tab_column_specs(df_catalog: pd.DataFrame) -> List[_PromTabColum
         product = _cell_str(row.get("PRODUCT")) or "-"
         contest_code = _cell_str(row.get("CONTEST_CODE"))
         tournament_code = _cell_str(row.get("TOURNAMENT_CODE"))
+        if contest_type == "ТУРНИР" and tournament_code in exclude:
+            continue
         reward_code = _cell_str(row.get("REWARD_CODE"))
         if reward_code == "-":
             reward_code = ""
@@ -2292,6 +2442,7 @@ def _build_prom_tab_column_specs(df_catalog: pd.DataFrame) -> List[_PromTabColum
                 product=product,
                 contest_code=contest_code,
                 sort_start_dt=start_dt,
+                tournament_code=tournament_code if contest_type == "ТУРНИР" else "",
             )
         spec = buckets[column_name]
         if pair[0] and pair[1] and pair not in spec.pairs:
@@ -2299,6 +2450,95 @@ def _build_prom_tab_column_specs(df_catalog: pd.DataFrame) -> List[_PromTabColum
     specs = list(buckets.values())
     specs.sort(key=_prom_tab_column_sort_key)
     return specs
+
+
+def _pretender_tab_column_sort_key(spec: _PromTabColumnSpec) -> Tuple[Any, ...]:
+    """Порядок колонок претендентов: PRODUCT_GROUP → PRODUCT → CONTEST_CODE → START_DT."""
+    start = spec.sort_start_dt if not pd.isna(spec.sort_start_dt) else pd.Timestamp.max
+    return (
+        _prom_catalog_sort_text_value(spec.product_group),
+        _prom_catalog_sort_text_value(spec.product),
+        _prom_catalog_sort_text_value(spec.contest_code),
+        start,
+        spec.column_name,
+    )
+
+
+def _build_pretender_tab_column_specs(
+    df_catalog: pd.DataFrame,
+    tournament_codes: Sequence[str],
+    *,
+    pretender_prefix: str,
+) -> List[_PromTabColumnSpec]:
+    """Колонки TAB_NUMBERS (претендент) по TOURNAMENT_CODE из leadersForAdmin JSON."""
+    if df_catalog is None or df_catalog.empty or not tournament_codes:
+        return []
+    prefix = str(pretender_prefix or "ТУРНИР (претендент)").strip() or "ТУРНИР (претендент)"
+    buckets: Dict[str, _PromTabColumnSpec] = {}
+    wanted = {_cell_str(c) for c in tournament_codes if _cell_str(c)}
+    for _, row in df_catalog.iterrows():
+        if _cell_str(row.get("CONTEST_TYPE")) != "ТУРНИР":
+            continue
+        tournament_code = _cell_str(row.get("TOURNAMENT_CODE"))
+        if tournament_code not in wanted:
+            continue
+        product_group = _cell_str(row.get("PRODUCT_GROUP")) or "-"
+        product = _cell_str(row.get("PRODUCT")) or "-"
+        contest_code = _cell_str(row.get("CONTEST_CODE"))
+        contest_full_name = _cell_str(row.get("FULL_NAME")) or tournament_code
+        if contest_full_name == "-":
+            contest_full_name = tournament_code
+        start_dt = _parse_catalog_date_value(row.get("START_DT"))
+        start_fmt = _format_prom_tab_column_start_dt(start_dt)
+        column_name = f"{prefix} {contest_full_name} ({start_fmt}) [{product}]"
+        if column_name not in buckets:
+            buckets[column_name] = _PromTabColumnSpec(
+                column_name=column_name,
+                contest_type="ТУРНИР_ПРЕТЕНДЕНТ",
+                product_group=product_group,
+                product=product,
+                contest_code=contest_code,
+                sort_start_dt=start_dt,
+                tournament_code=tournament_code,
+            )
+    specs = list(buckets.values())
+    specs.sort(key=_pretender_tab_column_sort_key)
+    return specs
+
+
+def _build_pretender_tab_columns_matrix(
+    tabs: Sequence[str],
+    specs: Sequence[_PromTabColumnSpec],
+    counts_by_tournament: Mapping[str, Mapping[str, int]],
+    *,
+    default_num: int,
+    summary_col: str,
+) -> Tuple[pd.DataFrame, List[str]]:
+    """Колонки (претендент): сумма попаданий в JSON по табельному и TOURNAMENT_CODE."""
+    if not specs:
+        return pd.DataFrame(index=range(len(tabs))), []
+    detail_cols = [s.column_name for s in specs]
+    col_names: List[str] = []
+    if summary_col:
+        col_names.append(summary_col)
+    col_names.extend(detail_cols)
+
+    detail = pd.DataFrame(default_num, index=list(tabs), columns=detail_cols)
+    for spec in specs:
+        t_code = _cell_str(spec.tournament_code)
+        if not t_code:
+            continue
+        per_tab = counts_by_tournament.get(t_code) or {}
+        for tab, cnt in per_tab.items():
+            if tab in detail.index:
+                detail.at[tab, spec.column_name] = int(cnt)
+
+    out_cols: Dict[str, pd.Series] = {}
+    if summary_col:
+        out_cols[summary_col] = detail[detail_cols].sum(axis=1).astype(int)
+    for name in detail_cols:
+        out_cols[name] = detail[name].astype(int)
+    return pd.DataFrame(out_cols, index=list(tabs))[col_names], col_names
 
 
 def _list_rewards_counts_long_df(
@@ -2440,19 +2680,65 @@ def _append_prom_tournament_tab_columns(
     tabs: Sequence[str],
     *,
     df_catalog: Optional[pd.DataFrame] = None,
-) -> Tuple[pd.DataFrame, List[str]]:
-    """Добавляет на TAB_NUMBERS колонки-счётчики LIST-REWARDS 2026 по каталогу PROM."""
+) -> Tuple[pd.DataFrame, List[str], List[str]]:
+    """Добавляет на TAB_NUMBERS колонки LIST-REWARDS и (претендент) из leadersForAdmin JSON."""
     catalog_cfg = dict(mcfg.get("prom_tournament_catalog") or {})
     if catalog_cfg.get("tab_columns_enabled") is False:
-        return df_tabs, []
+        return df_tabs, [], []
     t0 = time.perf_counter()
     if df_catalog is None:
         df_catalog = build_prom_tournament_catalog_dataframe(sheets_data, mcfg)
     if df_catalog is None or df_catalog.empty:
-        return df_tabs, []
-    specs = _build_prom_tab_column_specs(df_catalog)
-    if not specs:
-        return df_tabs, []
+        return df_tabs, [], []
+
+    df_schedule = _get_sheet_df(
+        sheets_data,
+        str(catalog_cfg.get("schedule_sheet") or "TOURNAMENT-SCHEDULE").strip(),
+    )
+    df_contest = _get_sheet_df(
+        sheets_data,
+        str(catalog_cfg.get("contest_sheet") or "CONTEST-DATA").strip(),
+    )
+    js_tournament_codes: Set[str] = set()
+    pretender_counts: Dict[str, Dict[str, int]] = {}
+    if df_schedule is not None and df_contest is not None:
+        leaders_codes = collect_leaders_for_admin_tournament_codes(
+            df_schedule,
+            df_contest,
+            active_statuses=list(
+                catalog_cfg.get("active_statuses") or ["АКТИВНЫЙ", "ПОДВЕДЕНИЕ ИТОГОВ"]
+            ),
+            contest_vid=str(catalog_cfg.get("contest_vid") or "ПРОМ").strip(),
+            contest_type_raw=str(
+                catalog_cfg.get("leaders_for_admin_contest_type") or "ТУРНИРНЫЙ"
+            ).strip(),
+        )
+        from src.leaders_for_admin_json import (
+            parse_leaders_for_admin_pretender_counts,
+            pretender_categories_from_config,
+            resolve_leaders_for_admin_json_path,
+        )
+
+        json_path = resolve_leaders_for_admin_json_path(
+            catalog_cfg,
+            paths_cfg=mcfg.get("_paths") if isinstance(mcfg.get("_paths"), dict) else None,
+        )
+        if json_path is not None:
+            pad_width = int(mcfg.get("normalize_pad_width") or 20)
+            pretender_counts = parse_leaders_for_admin_pretender_counts(
+                json_path,
+                tournament_codes=set(leaders_codes),
+                pretender_categories=pretender_categories_from_config(catalog_cfg),
+                pad_width=pad_width,
+            )
+            js_tournament_codes = set(pretender_counts.keys())
+
+    specs = _build_prom_tab_column_specs(
+        df_catalog,
+        exclude_tournament_codes=js_tournament_codes,
+    )
+    prom_col_names: List[str] = []
+    out = df_tabs.copy()
 
     list_rewards_sheet = str(catalog_cfg.get("list_rewards_sheet") or "LIST-REWARDS").strip()
     date_year = str(catalog_cfg.get("date_year") or "2026").strip()
@@ -2465,36 +2751,64 @@ def _append_prom_tournament_tab_columns(
     except (TypeError, ValueError):
         default_num = 0
 
-    df_lr = _get_sheet_df(sheets_data, list_rewards_sheet)
-    counts_long = _list_rewards_counts_long_df(
-        df_lr,
-        date_year=date_year,
-        pad_width=pad_width,
-    )
-    summary_nagrada_col = str(catalog_cfg.get("tab_columns_total_nagrada") or "НАГРАДА всего").strip()
-    summary_turdir_col = str(
-        catalog_cfg.get("tab_columns_total_tournament") or "ТУРНИР всего"
+    if specs:
+        df_lr = _get_sheet_df(sheets_data, list_rewards_sheet)
+        counts_long = _list_rewards_counts_long_df(
+            df_lr,
+            date_year=date_year,
+            pad_width=pad_width,
+        )
+        summary_nagrada_col = str(
+            catalog_cfg.get("tab_columns_total_nagrada") or "НАГРАДА всего"
+        ).strip()
+        summary_turdir_col = str(
+            catalog_cfg.get("tab_columns_total_tournament") or "ТУРНИР всего"
+        ).strip()
+        prom_df, prom_col_names = _build_prom_tab_columns_matrix(
+            tabs,
+            specs,
+            counts_long,
+            default_num=default_num,
+            summary_nagrada_col=summary_nagrada_col,
+            summary_turdir_col=summary_turdir_col,
+        )
+        if not prom_df.empty:
+            out = pd.concat([out, prom_df.set_index(out.index)], axis=1)
+
+    pretender_prefix = str(
+        catalog_cfg.get("tab_columns_pretender_prefix") or "ТУРНИР (претендент)"
     ).strip()
-    prom_df, col_names = _build_prom_tab_columns_matrix(
-        tabs,
-        specs,
-        counts_long,
-        default_num=default_num,
-        summary_nagrada_col=summary_nagrada_col,
-        summary_turdir_col=summary_turdir_col,
+    summary_pretender_col = str(
+        catalog_cfg.get("tab_columns_total_pretender") or "ТУРНИР (претендент) всего"
+    ).strip()
+    pretender_specs = _build_pretender_tab_column_specs(
+        df_catalog,
+        sorted(js_tournament_codes),
+        pretender_prefix=pretender_prefix,
     )
-    out = pd.concat([df_tabs, prom_df.set_index(df_tabs.index)], axis=1) if not prom_df.empty else df_tabs.copy()
+    pretender_col_names: List[str] = []
+    if pretender_specs:
+        pretender_df, pretender_col_names = _build_pretender_tab_columns_matrix(
+            tabs,
+            pretender_specs,
+            pretender_counts,
+            default_num=default_num,
+            summary_col=summary_pretender_col,
+        )
+        if not pretender_df.empty:
+            out = pd.concat([out, pretender_df.set_index(out.index)], axis=1)
 
     logging.info(
-        "[manager_stats] PROM колонки TAB_NUMBERS: %s колонок за %.2f с "
-        "(LIST-REWARDS %s, строк индекса=%s, vid=%s)",
-        len(col_names),
+        "[manager_stats] PROM колонки TAB_NUMBERS: %s + претендент %s за %.2f с "
+        "(LIST-REWARDS %s, JSON турниров=%s, vid=%s)",
+        len(prom_col_names),
+        len(pretender_col_names),
         time.perf_counter() - t0,
         date_year,
-        len(counts_long),
+        len(js_tournament_codes),
         catalog_cfg.get("contest_vid") or "ПРОМ",
     )
-    return out, col_names
+    return out, prom_col_names, pretender_col_names
 
 
 def _prom_tab_columns_summary_rows(
@@ -2562,6 +2876,11 @@ def _prom_tab_columns_format_rules(catalog_cfg: Mapping[str, Any]) -> List[Dict[
             "wrap_text": False,
         }
     rule["column_prefixes"] = ["НАГРАДА ", "ТУРНИР "]
+    pretender_prefix = str(
+        catalog_cfg.get("tab_columns_pretender_prefix") or "ТУРНИР (претендент)"
+    ).strip()
+    if pretender_prefix and pretender_prefix not in rule["column_prefixes"]:
+        rule["column_prefixes"].append(pretender_prefix + " ")
     return [rule]
 
 
@@ -2673,17 +2992,39 @@ def build_prom_tournament_catalog_dataframe(
         received_counts=received_counts,
         rewards_received_column=rewards_received_column,
     )
+    leaders_col = str(
+        catalog_cfg.get("leaders_for_admin_column") or "запрос leadersForAdmin"
+    ).strip()
+    leaders_yes = str(catalog_cfg.get("leaders_for_admin_value_yes") or "ДА").strip() or "ДА"
+    leaders_contest_type = str(
+        catalog_cfg.get("leaders_for_admin_contest_type") or "ТУРНИРНЫЙ"
+    ).strip()
+    leaders_codes = set(
+        collect_leaders_for_admin_tournament_codes(
+            df_schedule,
+            df_contest,
+            active_statuses=active_statuses,
+            contest_vid=contest_vid,
+            contest_type_raw=leaders_contest_type,
+        )
+    )
+    if leaders_col:
+        out[leaders_col] = out["TOURNAMENT_CODE"].map(
+            lambda t: leaders_yes if _cell_str(t) in leaders_codes else "-"
+        )
     out = _finalize_prom_catalog_dataframe(
         out,
         rewards_received_column=rewards_received_column,
+        leaders_for_admin_column=leaders_col,
     )
 
     logging.info(
-        "[manager_stats] PROM_TOURNAMENTS: %s строк (расписание+REWARD-LINK: %s, LIST-REWARDS 2026: %s, vid=%s)",
+        "[manager_stats] PROM_TOURNAMENTS: %s строк (расписание+REWARD-LINK: %s, LIST-REWARDS 2026: %s, vid=%s, leadersForAdmin: %s)",
         len(out),
         n_schedule,
         n_list_rewards,
         contest_vid,
+        len(leaders_codes),
     )
     return out
 
@@ -2692,9 +3033,13 @@ def build_manager_stats_workbook_data(
     sheets_data: Mapping[str, Any],
     input_files: Optional[Sequence[Mapping[str, Any]]] = None,
     cfg: Optional[Mapping[str, Any]] = None,
+    *,
+    paths_cfg: Optional[Mapping[str, Any]] = None,
 ) -> Dict[str, Tuple[pd.DataFrame, Dict[str, Any]]]:
     """Данные для write_to_excel: табельные (с enrich) и сводка по sources/enrich."""
     mcfg = merge_manager_stats_config(cfg)
+    if paths_cfg:
+        mcfg = {**mcfg, "_paths": dict(paths_cfg)}
     catalog_cfg = dict(mcfg.get("prom_tournament_catalog") or {})
     df_catalog: Optional[pd.DataFrame] = None
     if catalog_cfg.get("enabled") is not False:
@@ -2702,6 +3047,19 @@ def build_manager_stats_workbook_data(
 
     df_tabs, df_sources_summary = collect_tab_numbers_from_sheets(sheets_data, input_files, mcfg)
     df_tabs = enrich_tab_dataframe(df_tabs, sheets_data, mcfg, df_catalog=df_catalog)
+
+    from src.profile_gp_auto_js import prepare_tabs_for_profile_js
+
+    _, profile_js_tab_count = prepare_tabs_for_profile_js(
+        df_tabs,
+        mcfg,
+        paths_cfg=mcfg.get("_paths"),
+    )
+    logging.info(
+        "[manager_stats] Profile AutoRun: %s табельных с пустыми полями после CSV+JSON enrich",
+        len(profile_js_tab_count),
+    )
+
     df_summary = build_manager_stats_summary_dataframe(
         df_sources_summary,
         mcfg,
@@ -2713,7 +3071,14 @@ def build_manager_stats_workbook_data(
     prom_tab_cols = [
         str(c)
         for c in df_tabs.columns
-        if str(c).startswith("НАГРАДА ") or str(c).startswith("ТУРНИР ")
+        if str(c).startswith("НАГРАДА ")
+        or str(c).startswith("ТУРНИР ")
+        or str(c).startswith(
+            str(
+                (catalog_cfg.get("tab_columns_pretender_prefix") or "ТУРНИР (претендент)")
+            ).strip()
+            + " "
+        )
     ]
     base_params: Dict[str, Any] = {
         "max_col_width": 80,
