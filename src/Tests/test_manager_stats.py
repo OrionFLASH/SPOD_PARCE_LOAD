@@ -1909,8 +1909,27 @@ def test_collect_tabs_missing_profile_fields() -> None:
         }
     )
     tabs = collect_tabs_missing_profile_fields(df, mcfg)
-    assert tabs == [tab_for_profile_js(tab_full), tab_for_profile_js(tab_role_gap)]
+    assert tabs == [tab_for_profile_js(tab_full)]
     assert tab_for_profile_js("00000000000000673892") == "00673892"
+
+
+def test_profile_js_excludes_role_code_only_gap() -> None:
+    """Код роли «-» при заполненных ФИО/ТБ/ГОСБ — не повод для AutoRun."""
+    from src.profile_gp_auto_js import collect_tabs_missing_profile_fields
+
+    tab = normalize_tab_number("22222222", 20)
+    df = pd.DataFrame(
+        {
+            "Табельный номер": [tab],
+            "Фамилия": ["Петров"],
+            "Имя": ["Сидор"],
+            "ТБ": ["52"],
+            "ГОСБ": ["9038"],
+            "Код роли": ["-"],
+        }
+    )
+    mcfg = merge_manager_stats_config({"enrich_default": "-"})
+    assert collect_tabs_missing_profile_fields(df, mcfg) == []
 
 
 def test_profile_js_excludes_email_only_gaps() -> None:
@@ -1962,7 +1981,6 @@ def test_profile_js_ignores_extra_columns_in_js_missing_columns_config() -> None
                     "ГОСБ",
                     "Код роли",
                     "Email Sigma",
-                    "Email Alpha",
                 ],
             },
         }
@@ -2029,12 +2047,9 @@ def test_prepare_tabs_for_profile_js_applies_json(tmp_path: Path) -> None:
         }
     )
     df_ready, tabs = prepare_tabs_for_profile_js(df, mcfg, paths_cfg={"input": str(tmp_path)})
-    from src.profile_gp_auto_js import tab_for_profile_js
-
     assert df_ready.iloc[0]["Фамилия"] == "Радыгина"
     assert df_ready.iloc[0]["ТБ"] == "38"
-    # roleCode в JSON нет — Код роли остаётся «-», табельный всё ещё в списке AutoRun
-    assert tabs == [tab_for_profile_js(tab)]
+    assert tabs == []
 
 
 def test_build_profile_auto_js_contains_tab_nums(tmp_path: Path) -> None:

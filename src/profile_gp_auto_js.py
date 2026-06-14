@@ -2,7 +2,7 @@
 """
 Генерация Profile_GP_LOAD_AutoRun.js рядом с Excel (OUT/YYYY/DD-MM).
 Табельные — из MANAGER_STATS TAB_NUMBERS для Profile AutoRun: только если пусты
-Фамилия / Имя / ТБ / ГОСБ / Код роли (после CSV-enrich и JSON).
+Фамилия / Имя / ТБ / ГОСБ (после CSV-enrich и JSON). Код роли не учитывается.
 """
 from __future__ import annotations
 
@@ -36,7 +36,6 @@ DEFAULT_PROFILE_JS_MISSING_COLUMNS: List[str] = [
     "Имя",
     "ТБ",
     "ГОСБ",
-    "Код роли",
 ]
 PANEL_SECTION_MARKER = (
     "// =============================================================================\n"
@@ -230,7 +229,7 @@ def collect_tabs_missing_profile_fields(
 ) -> List[str]:
     """
     Табельные, у которых хотя бы одно из js_missing_columns отсутствует
-    (пусто, NULL/NaN или «-»). Только Фамилия, Имя, ТБ, ГОСБ, Код роли.
+    (пусто, NULL/NaN или «-»). Только Фамилия, Имя, ТБ, ГОСБ (не Код роли).
     Вызывать после CSV-enrich и apply_profile_gp_json_enrich.
     """
     if df_tabs is None or df_tabs.empty:

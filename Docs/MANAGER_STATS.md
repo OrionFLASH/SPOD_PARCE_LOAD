@@ -430,7 +430,7 @@ python src/Tools/build_profile_gp_auto_js.py
 | Имя | `firstName` | |
 | ТБ | `tbCode` | После подстановки участвует в lookup ORG_UNIT |
 | ГОСБ | `gosbCode` | После подстановки участвует в lookup ORG_UNIT |
-| Код роли | `roleCode` | В текущих выгрузках SIGMA поле часто отсутствует → остаётся `-` |
+| Код роли | `roleCode` | Только для Excel (enrich из JSON); **не** влияет на отбор AutoRun JS |
 
 Правила подстановки:
 
@@ -446,7 +446,7 @@ python src/Tools/build_profile_gp_auto_js.py
 В `write_profile_gp_auto_js()` вызывается `prepare_tabs_for_profile_js()`:
 
 1. Повторно применяет JSON к DataFrame (идемпотентно — только пустые ячейки).
-2. Отбирает табельные, у которых **хотя бы одно** из пяти полей профиля **отсутствует**.
+2. Отбирает табельные, у которых **хотя бы одно** из четырёх полей **Фамилия / Имя / ТБ / ГОСБ** отсутствует.
 
 #### Повод включить табельный в AutoRun JS
 
@@ -458,26 +458,25 @@ python src/Tools/build_profile_gp_auto_js.py
 | Имя |
 | ТБ |
 | ГОСБ |
-| Код роли |
 
 **Отсутствие** = значение **пустое**, **NULL/NaN** (в т.ч. пустая ячейка Excel) или строка **`"-"`**.
 
 #### Не повод для AutoRun JS
 
-Следующие поля **не учитываются** при формировании списка табельных, даже если они пустые или `-`:
-
-| Поле | Источник |
-|------|----------|
+| Поле | Примечание |
+|------|------------|
+| **Код роли** | В JSON часто нет `roleCode`; не влияет на список JS |
 | Email Sigma | STATISTICS / ORDER |
 | Email Alpha | STATISTICS / ORDER |
 | Наименование Роли | STATISTICS |
 
-Проверка реализована через **`js_missing_columns`** (только 5 полей профиля). Ключ `missing_columns` в config — справочный, **на отбор JS не влияет**.
+Проверка через **`js_missing_columns`** — только **4 поля**: Фамилия, Имя, ТБ, ГОСБ. Ключ `missing_columns` на отбор JS **не влияет**.
 
 | Список config | Назначение |
 |---------------|------------|
-| `js_missing_columns` | **Единственный критерий AutoRun JS** — Фамилия, Имя, ТБ, ГОСБ, Код роли |
-| `missing_columns` | Справочный расширенный список; **не используется** для отбора в JS |
+| `js_missing_columns` | **Критерий AutoRun JS** — Фамилия, Имя, ТБ, ГОСБ |
+| `json_field_map` | Подстановка из JSON (включая Код роли → `roleCode`, если есть в ответе) |
+| `missing_columns` | Справочный; **не** для отбора JS |
 
 ### Секция `profile_gp_load` в config.json
 
@@ -499,7 +498,7 @@ python src/Tools/build_profile_gp_auto_js.py
     "Код роли": "roleCode"
   },
   "js_missing_columns": [
-    "Фамилия", "Имя", "ТБ", "ГОСБ", "Код роли"
+    "Фамилия", "Имя", "ТБ", "ГОСБ"
   ],
   "missing_columns": [
     "Фамилия", "Имя", "ТБ", "ГОСБ", "Код роли",
@@ -525,7 +524,7 @@ python src/Tools/build_profile_gp_auto_js.py
 | `json_file` | — | Один файл в `IN/JS/` |
 | `json_files` | `[]` | Несколько part-файлов (приоритет над `json_file`, если непустой) |
 | `json_field_map` | lastName, firstName, … | Маппинг колонка → поле body |
-| `js_missing_columns` | 5 полей профиля | Единственный критерий отбора ТН для AutoRun |
+| `js_missing_columns` | 4 поля | Критерий отбора ТН для AutoRun |
 | `missing_columns` | справочно | **Не** влияет на AutoRun JS |
 | `request_delay_ms` | `2` | Пауза между POST в JS |
 | `batch_size` | `12000` | Размер батча при сохранении JSON в браузере |

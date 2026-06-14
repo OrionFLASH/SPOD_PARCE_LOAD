@@ -169,7 +169,6 @@ def merge_manager_stats_config(raw: Optional[Mapping[str, Any]]) -> Dict[str, An
                 "Имя",
                 "ТБ",
                 "ГОСБ",
-                "Код роли",
             ],
             "missing_columns": [
                 "Фамилия",
