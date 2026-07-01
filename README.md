@@ -1214,6 +1214,12 @@ python main.py
 
 ## История версий
 
+### Версия 1.7.48 — Устранение PerformanceWarning DataFrame fragmentation
+
+- **`flatten_json_column_recursive`**: пакетный `pd.concat` вместо цикла `df[col]=values` при развороте JSON (`01_parallel_csv_read_and_json_flatten`).
+- **`merge_fields_across_sheets`**: параллельный merge — `pd.concat` для новых колонок.
+- Тест **`src/Tests/test_flatten_json_batch.py`**; роудмап **`TODO_dataframe_fragmentation_roadmap.md`**.
+
 ### Версия 1.7.47 — run_outputs: rating_item_matrix и season_order_summary; аналитика кодовой базы
 
 - **`run_outputs`**: токены **`rating_item_matrix`** (колонки ITEM на RATING) и **`season_order_summary`** (лист ORDER-SEASON-SUMMARY) — шаги выполняются только при наличии токена в массиве; разбор в **`config_loader.parse_run_outputs_config`**, ветвление в **`main_impl.py`**. Тесты **`test_run_outputs.py`**.

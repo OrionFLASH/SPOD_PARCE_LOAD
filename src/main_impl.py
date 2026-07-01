@@ -1985,10 +1985,24 @@ def flatten_json_column_recursive(df, column, prefix=None, sheet=None, sep="; ")
                 if k not in new_cols:
                     new_cols[k] = [None] * n_rows
                 new_cols[k][idx] = v
-    # Оставлять только реально созданные колонки (не пустые)
-    for col_name, values in new_cols.items():
-        if any(x is not None for x in values):
+    # Оставлять только реально созданные колонки (не пустые); пакетная вставка — без фрагментации DataFrame
+    cols_to_add = {
+        col_name: values
+        for col_name, values in new_cols.items()
+        if any(x is not None for x in values)
+    }
+    if cols_to_add:
+        cols_new = {k: v for k, v in cols_to_add.items() if k not in df.columns}
+        cols_overwrite = {k: v for k, v in cols_to_add.items() if k in df.columns}
+        if cols_new:
+            new_columns_df = pd.DataFrame(cols_new, index=df.index)
+            df = pd.concat([df, new_columns_df], axis=1)
+        for col_name, values in cols_overwrite.items():
             df[col_name] = values
+        logging.debug(
+            f"[flatten_json] {column}: пакетно добавлено {len(cols_new)} колонок, "
+            f"перезаписано {len(cols_overwrite)}"
+        )
     
     # Для CONTEST_FEATURE восстанавливаем исходную колонку с тройными кавычками
     if original_column_data is not None:
@@ -3347,13 +3361,14 @@ def merge_fields_across_sheets(sheets_data, merge_fields, count_column_prefix="C
                                 if sheet_name in sheets_data and sheets_data[sheet_name] is not None:
                                     existing_df, existing_params = sheets_data[sheet_name]
                                     if existing_df is not None and isinstance(existing_df, pd.DataFrame):
-                                        # Дополняем существующий df новыми колонками (по позиции); затем copy() для дефрагментации
-                                        with warnings.catch_warnings():
-                                            warnings.simplefilter("ignore", pd.errors.PerformanceWarning)
-                                            for col in new_df.columns:
-                                                if col not in existing_df.columns:
-                                                    existing_df[col] = new_df[col].values
-                                        existing_df = existing_df.copy()
+                                        # Дополняем существующий df новыми колонками (pd.concat — без фрагментации)
+                                        added_cols = [c for c in new_df.columns if c not in existing_df.columns]
+                                        if added_cols:
+                                            existing_df = pd.concat(
+                                                [existing_df, new_df[added_cols].copy()], axis=1
+                                            )
+                                        else:
+                                            existing_df = existing_df.copy()
                                         # Объединяем params (в т.ч. added_columns_width)
                                         merged_params = existing_params.copy() if isinstance(existing_params, dict) else {}
                                         new_added = new_params.get("added_columns_width", {}) if isinstance(new_params, dict) else {}

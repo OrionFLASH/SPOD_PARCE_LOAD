@@ -53,3 +53,17 @@
 | 3.8 | BOM в заголовках gamification-CSV, ключ STATISTICS без «Период» (`csv_headers.py`) | [v] |
 
 Подробности параллелизации: **`Docs/INPUT_ARCHIVE_ROW_LEVEL_PLAN.md`**, раздел **11**. Заголовки CSV: **`Docs/INPUT_ARCHIVE_ROW_LEVEL.md`**, п. **5.0**.
+
+---
+
+## Пункт 4 — PerformanceWarning: фрагментация DataFrame при развороте JSON
+
+**Документ:** `TODO_dataframe_fragmentation_roadmap.md` (корень проекта). Версия **1.7.48**.
+
+| # | Задача | Статус |
+|---|--------|--------|
+| 4.1 | Пакетный `pd.concat` в `flatten_json_column_recursive` (этап `01_parallel_csv_read_and_json_flatten`) | [v] |
+| 4.2 | Пакетный `pd.concat` в параллельном `merge_fields_across_sheets` | [v] |
+| 4.3 | Тест `src/Tests/test_flatten_json_batch.py` | [v] |
+| 4.4 | Документация: README, ROADMAP, `PERFORMANCE_AND_PARALLELIZATION_HISTORY.md` | [v] |
+| 4.5 | Полный прогон `main.py` с замером времени этапа 01 (baseline до/после) | [ ] |

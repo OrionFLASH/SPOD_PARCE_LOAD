@@ -22,9 +22,14 @@
 
 ## Консолидированные исторические документы
 
-- `PERFORMANCE_AND_PARALLELIZATION_HISTORY.md` — единая история оптимизаций/параллелизации и сравнения производительности (вместо множества версионных отчетов).
+- `PERFORMANCE_AND_PARALLELIZATION_HISTORY.md` — единая история оптимизаций/параллелизации и сравнения производительности (в т.ч. устранение **PerformanceWarning** фрагментации DataFrame, v1.7.48).
 - `PERFORMANCE_OPTIMIZATION_PROPOSALS.md` — анализ узких мест пайплайна, предложения по ускорению (Excel, архив v2, JSON, RATING), оценки эффекта и трудозатрат.
 - `SUMMARY_GROUP_FIX_HISTORY.md` — история исправлений логики формирования `SUMMARY` и связки `GROUP_CODE`/`GROUP_VALUE`.
+
+## Роудмапы и TODO (корень проекта)
+
+- `ROADMAP.md` — сводный ToDo по пунктам 1–4 (консистентность, RATING, архив v2, фрагментация DataFrame).
+- `TODO_dataframe_fragmentation_roadmap.md` — [v] выполнено: план и критерии устранения **PerformanceWarning** при развороте JSON (`flatten_json_column_recursive`).
 
 ## Каталог CSV и JSON `IN/SPOD` — папка `Docs/JSON/`
 

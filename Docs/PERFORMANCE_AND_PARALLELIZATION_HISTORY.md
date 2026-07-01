@@ -19,6 +19,11 @@
    - Отказ от небезопасных/невыгодных вариантов параллелизации.
    - Дополнительная точечная векторизация и оптимизация форматирования.
 
+4. **Устранение фрагментации DataFrame (v1.7.48, 2026-06):**
+   - `flatten_json_column_recursive`: пакетное добавление колонок через `pd.concat` вместо цикла `df[col]=values` (этап `01_parallel_csv_read_and_json_flatten`).
+   - Параллельный `merge_fields_across_sheets`: `pd.concat` для новых колонок вместо поштучного присваивания с подавлением `PerformanceWarning`.
+   - Тест: `src/Tests/test_flatten_json_batch.py`. Подробный план: **`TODO_dataframe_fragmentation_roadmap.md`** (корень), статус в **`ROADMAP.md`** п. **4**.
+
 ## Актуальные выводы
 
 - Параллелизация полезна не везде: для быстрых участков I/O overhead может “съедать” выигрыш.
