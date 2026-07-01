@@ -1,6 +1,6 @@
 {
   "run_outputs": [
-    "manager_stats_only", "main_only"
+    "main_only"
   ],
   "_run_outputs_allowed": [
     "source_only",
@@ -141,7 +141,7 @@
   ],
   "input_files": [
     {
-      "file": "CONTEST (PROM) 11-06 v0.csv",
+      "file": "CONTEST (PROM) 01-07 v0.csv",
       "sheet": "CONTEST-DATA",
       "subdir": "SPOD",
       "archive_to_db": true,
@@ -159,7 +159,7 @@
       "archive_db_path": "OUT/DB/spod_input_archive.sqlite"
     },
     {
-      "file": "GROUP (PROM) 11-06 v0.csv",
+      "file": "GROUP (PROM) 30-06 v0.csv",
       "sheet": "GROUP",
       "subdir": "SPOD",
       "archive_to_db": true,
@@ -185,7 +185,7 @@
       "archive_db_path": "OUT/DB/spod_input_archive.sqlite"
     },
     {
-      "file": "INDICATOR (PROM) 11-06 v0.csv",
+      "file": "INDICATOR (PROM) 29-06 v1.csv",
       "sheet": "INDICATOR",
       "subdir": "SPOD",
       "archive_to_db": true,
@@ -211,7 +211,7 @@
       "archive_db_path": "OUT/DB/spod_input_archive.sqlite"
     },
     {
-      "file": "REPORT (PROM) 11-06 v0.csv",
+      "file": "REPORT (PROM) 01-07 v0.csv",
       "sheet": "REPORT",
       "subdir": "SPOD",
       "archive_to_db": true,
@@ -229,7 +229,7 @@
       "archive_db_path": "OUT/DB/spod_input_archive.sqlite"
     },
     {
-      "file": "REWARD (PROM) 11-06 v0.csv",
+      "file": "REWARD (PROM) 01-07 v0.csv",
       "sheet": "REWARD",
       "subdir": "SPOD",
       "archive_to_db": true,
@@ -251,7 +251,7 @@
       "archive_db_path": "OUT/DB/spod_input_archive.sqlite"
     },
     {
-      "file": "REWARD-LINK (PROM) 11-06 v0.csv",
+      "file": "REWARD-LINK (PROM) 30-06 v0.csv",
       "sheet": "REWARD-LINK",
       "subdir": "SPOD",
       "archive_to_db": true,
@@ -273,7 +273,7 @@
       "archive_db_path": "OUT/DB/spod_input_archive.sqlite"
     },
     {
-      "file": "SCHEDULE (PROM) 11-06 v0.csv",
+      "file": "SCHEDULE (PROM) 01-07 v0.csv",
       "sheet": "TOURNAMENT-SCHEDULE",
       "subdir": "SPOD",
       "archive_to_db": true,
@@ -1620,13 +1620,7 @@
         "CONTEST_FEATURE => tournamentEndMailing",
         "CONTEST_FEATURE => tournamentRewardingMailing",
         "CONTEST_FEATURE => tournamentLikeMailing",
-        "CONTEST_FEATURE => tournamentListMailing",
         "CONTEST_FEATURE => persomanNumberVisible",
-        "CONTEST_FEATURE => persomanNumberHidden",
-        "CONTEST_FEATURE => gosbVisible",
-        "CONTEST_FEATURE => gosbHidden",
-        "CONTEST_FEATURE => tbVisible",
-        "CONTEST_FEATURE => tbHidden",
         "CREATE_DT",
         "CLOSE_DT",
         "BUSINESS_STATUS",
@@ -1641,7 +1635,6 @@
         "CONTEST_FEATURE => minNumber",
         "CONTEST_FEATURE => capacity",
         "CONTEST_FEATURE => accuracy",
-        "CONTEST_FEATURE => masking",
         "CONTEST_FEATURE => typeRewarding",
         "CONTEST_FEATURE => preferences",
         "CONTEST_FEATURE => tournamentTeam",
@@ -1671,7 +1664,6 @@
         "FULL_NAME",
         "REWARD_DESCRIPTION",
         "REWARD_TYPE",
-        "REWARD_CONDITION",
         "REWARD_COST",
         "ADD_DATA => feature",
         "ADD_DATA => itemFeature",
@@ -1787,7 +1779,6 @@
       "column": [
         "INDICATOR_CALC_TYPE",
         "INDICATOR_ADD_CALC_TYPE",
-        "FULL_NAME",
         "INDICATOR_CODE",
         "INDICATOR_AGG_FUNCTION",
         "INDICATOR_WEIGHT",
@@ -5880,7 +5871,7 @@
       "js_template": "Profile_GP_LOAD_file.js",
       "js_template_subdir": "JS",
       "json_subdir": "JS",
-      "json_file": "profiles_PROM_SIGMA_part1_20260614_204856.json",
+      "json_file": "profiles_PROM_ALPHA_part1_20260701_154328.json",
       "json_files": [],
       "json_enabled": true,
       "json_field_map": {
@@ -5943,7 +5934,7 @@
       "leaders_for_admin_js_file": "Tournament_LeadersForAdmin_AutoRun.js",
       "leaders_for_admin_json_enabled": true,
       "leaders_for_admin_json_subdir": "JS",
-      "leaders_for_admin_json_file": "leadersForAdmin_PROM_SIGMA_20260614-195359.json",
+      "leaders_for_admin_json_file": "leadersForAdmin_PROM_ALPHA_20260630-111442.json",
       "leaders_for_admin_pretender_categories": [
         "Серебро",
         "Бронза",

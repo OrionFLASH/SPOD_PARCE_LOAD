@@ -5,10 +5,9 @@
 Режимы:
   python src/Tools/sync_post_txt.py
       — полный снимок: корень + src (включая Tools, Tests) + Docs + README + requirements.
-  python src/Tools/sync_post_txt.py --main-only
-      — только основная программа: корневые *.py, config.json, src/**/*.py
-        без каталогов src/Tests/ и src/Tools/; без Docs/README/requirements.
-        В корень POST пишется КУДА_ПОЛОЖИТЬ_ФАЙЛЫ.txt с построчной картой размещения.
+  python src/Tools/sync_post_txt.py --program-only
+      — все *.py (корень + src, включая Tests и Tools) и config.json;
+        в корень POST — КУДА_ПОЛОЖИТЬ_ФАЙЛЫ.txt с поимённой картой каталогов.
   python src/Tools/sync_post_txt.py --main-only --changed-only
       — в POST копируются только файлы, изменившиеся с прошлой синхронизации
         (сравнение SHA-256; манифест POST/.sync_manifest.json). POST не очищается.
@@ -216,6 +215,64 @@ def copy_helpers(*, main_only: bool, force_helpers: bool) -> None:
             shutil.copy2(h, dest)
 
 
+def iter_program_sources() -> Iterable[Tuple[Path, Path]]:
+    """Все .py проекта + config.json (корень и src, включая Tests/Tools)."""
+    for p in iter_root_py_files(ROOT):
+        yield p, p.relative_to(ROOT)
+    cfg = ROOT / "config.json"
+    if cfg.is_file():
+        yield cfg, Path("config.json")
+    src_root = ROOT / "src"
+    for p in iter_py_files(src_root, main_only=False):
+        yield p, p.relative_to(ROOT)
+
+
+def write_placement_map_program(copied: List[Tuple[Path, Path]]) -> None:
+    write_placement_map(
+        copied,
+        out_name="КУДА_ПОЛОЖИТЬ_ФАЙЛЫ.txt",
+        title="КУДА ПОЛОЖИТЬ КАЖДЫЙ ФАЙЛ (все .py и config.json)",
+        intro=[
+            "Снимок: все Python-файлы (корень, src/, включая Tests и Tools) и config.json.",
+            "Без документации Docs/, README и requirements.",
+            "",
+            "На целевом ПК: снимите суффикс .txt с каждого файла или запустите restore_names_from_txt.bat.",
+        ],
+    )
+
+
+def build_post_program_only() -> None:
+    """Снимок: все .py + config.json и карта размещения."""
+    if POST.is_dir():
+        shutil.rmtree(POST)
+    POST.mkdir(parents=True, exist_ok=True)
+
+    copy_helpers(main_only=True, force_helpers=True)
+
+    copied: List[Tuple[Path, Path]] = []
+    all_hashes: Dict[str, str] = {}
+
+    for src_path, rel in iter_program_sources():
+        copy_one_txt_suffix(src_path, rel)
+        copied.append((rel, dest_with_txt(rel)))
+        all_hashes[rel.as_posix()] = file_sha256(src_path)
+
+    write_placement_map_program(copied)
+    save_manifest(all_hashes, mode="program-only")
+
+    for garbage in POST.rglob(".DS_Store"):
+        try:
+            garbage.unlink()
+        except OSError:
+            pass
+
+    print(
+        f"Готово [program-only]. Файлов с .txt: {len(copied)}. "
+        f"Карта: POST/КУДА_ПОЛОЖИТЬ_ФАЙЛЫ.txt. Каталог: {POST}",
+        file=sys.stdout,
+    )
+
+
 def build_post_main_only(*, changed_only: bool) -> None:
     """Снимок main-only: полный или только изменённые файлы."""
     if not changed_only:
@@ -340,6 +397,11 @@ def build_post_full() -> None:
 def main() -> None:
     parser = argparse.ArgumentParser(description="Сборка каталога POST/ для переноса без Git.")
     parser.add_argument(
+        "--program-only",
+        action="store_true",
+        help="Все .py + config.json (включая Tests/Tools), карта КУДА_ПОЛОЖИТЬ_ФАЙЛЫ.txt",
+    )
+    parser.add_argument(
         "--main-only",
         action="store_true",
         help="Только основная программа: .py + config.json, без Tests/Tools/Docs",
@@ -355,7 +417,16 @@ def main() -> None:
         print("Ошибка: --changed-only работает только вместе с --main-only", file=sys.stderr)
         sys.exit(1)
 
-    if args.main_only:
+    if args.program_only and args.main_only:
+        print("Ошибка: укажите только один из --program-only или --main-only", file=sys.stderr)
+        sys.exit(1)
+
+    if args.program_only:
+        if args.changed_only:
+            print("Ошибка: --changed-only не поддерживается с --program-only", file=sys.stderr)
+            sys.exit(1)
+        build_post_program_only()
+    elif args.main_only:
         build_post_main_only(changed_only=args.changed_only)
     else:
         if args.changed_only:
