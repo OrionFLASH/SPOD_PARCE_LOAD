@@ -10,7 +10,7 @@ from src.Tools.post_transfer_crypto import (
     encrypt_bytes,
     sanitize_name_part,
     sanitize_project_relpath,
-    storage_relpath_for_target,
+    storage_flat_name_for_target,
 )
 
 
@@ -19,10 +19,13 @@ def test_sanitize_removes_auto_js() -> None:
     assert sanitize_name_part("profile_gp_auto_js") == "profile_gp"
 
 
-def test_storage_path_txt_suffix() -> None:
-    rel = Path("src/leaders_for_admin_auto_js.py")
-    storage = storage_relpath_for_target(rel)
-    assert storage.as_posix() == "src/leaders_for_admin.py.txt"
+def test_storage_flat_name_txt_suffix() -> None:
+    assert storage_flat_name_for_target(Path("main.py")) == "main.py.txt"
+    assert (
+        storage_flat_name_for_target(Path("src/leaders_for_admin_auto_js.py"))
+        == "src__leaders_for_admin.py.txt"
+    )
+    assert storage_flat_name_for_target(Path("config.json")) == "config.json.txt"
 
 
 def test_encrypt_decrypt_roundtrip() -> None:
@@ -34,4 +37,4 @@ def test_encrypt_decrypt_roundtrip() -> None:
 def test_sanitize_keeps_json_in_name() -> None:
     assert "json" in sanitize_name_part("export_spod_json_examples")
     assert sanitize_project_relpath(Path("config.json")) == Path("config.json")
-    assert storage_relpath_for_target(Path("README.md")).name == "README.md.txt"
+    assert storage_flat_name_for_target(Path("README.md")) == "README.md.txt"

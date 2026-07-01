@@ -782,9 +782,9 @@ SPOD_PROM/
 
 #### Режим B — зашифрованный снимок для почты (`pack_post_encrypted_program.py`)
 
-**Упаковка:** **`python src/Tools/pack_post_encrypted_program.py`** — все **`.py`** (корень + **`src/`**), **`config.json`**, **`README.md`** шифруются и кладутся в **POST/** с суффиксом **`.txt`** и санитизацией имён (убираются фрагменты вроде **`_auto_js`**). Плюс **`bundle_manifest.txt`**, открытые копии утилит **`pack_post_encrypted_program.py.txt`**, **`decrypt_post_program.py.txt`**, карта **`КУДА_ПОЛОЖИТЬ_ФАЙЛЫ.txt`**.
+**Упаковка:** **`python src/Tools/pack_post_encrypted_program.py`** — все **`.py`** (корень + **`src/`**), **`config.json`**, **`README.md`** шифруются и кладутся **в корень POST/** плоским списком (без подкаталогов), с суффиксом **`.txt`** и санитизацией имён. Плюс **`bundle_manifest.txt`**, открытые копии утилит, карта **`КУДА_ПОЛОЖИТЬ_ФАЙЛЫ.txt`**.
 
-**Расшифровка на получателе:** файлы в **`IN/POST/`**, из корня **`python decrypt_post_program.py`** → **`OUT/POST/`** с исходной структурой и именами.
+**Расшифровка на получателе:** все **`.txt`** в **`IN/POST/`** (тоже без подкаталогов), из корня **`python decrypt_post_program.py`** → **`OUT/POST/`** с восстановленной структурой **`src/...`** и исходными именами.
 
 Подробно: **`Docs/POST_ENCRYPTED_TRANSFER.md`**.
 
@@ -1226,6 +1226,12 @@ python main.py
 ---
 
 ## История версий
+
+### Версия 1.7.50 — POST: плоский список зашифрованных .txt в корне POST/IN/POST
+
+- **`storage_flat_name_for_target`**: зашифрованные файлы в **POST/** и **IN/POST/** только в корне (без подкаталогов); путь кодируется через **`__`**.
+- **`decrypt_post_program.py`**: восстанавливает структуру подкаталогов только в **OUT/POST/**.
+- Документация: **`Docs/POST_ENCRYPTED_TRANSFER.md`**, раздел **«Каталог POST»** в **README**.
 
 ### Версия 1.7.49 — POST: зашифрованный снимок для пересылки по почте
 

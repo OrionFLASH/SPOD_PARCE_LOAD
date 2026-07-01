@@ -51,7 +51,7 @@
 
 ## Зашифрованный снимок POST для почты
 
-- **`python src/Tools/pack_post_encrypted_program.py`** — шифрованный bundle в **`POST/`** (все **`.py`**, **`config.json`**, **`README.md`**); расшифровка: **`python decrypt_post_program.py`** (**`IN/POST`** → **`OUT/POST`**).
+- **`python src/Tools/pack_post_encrypted_program.py`** — шифрованный bundle в **`POST/`** (все **`.txt`** в корне, без подкаталогов); расшифровка: **`python decrypt_post_program.py`** (**`IN/POST`** → **`OUT/POST`** с подпапками).
 - Подробно: **`Docs/POST_ENCRYPTED_TRANSFER.md`**, **`src/Tools/post_transfer_crypto.py`**, тесты **`src/Tests/test_post_transfer_crypto.py`**.
 
 ## Правила актуализации

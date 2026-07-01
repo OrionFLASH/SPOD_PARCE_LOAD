@@ -6,7 +6,7 @@
   python src/Tools/pack_post_encrypted_program.py
 
 Результат: каталог POST/ (очищается и создаётся заново):
-  - зашифрованные файлы с санитизированными именами (*.txt);
+  - все зашифрованные .txt в корне POST/ (без подкаталогов);
   - bundle_manifest.txt (зашифрованный манифест);
   - pack_post_encrypted_program.py.txt, decrypt_post_program.py.txt (копии утилит);
   - КУДА_ПОЛОЖИТЬ_ФАЙЛЫ.txt — карта «файл в POST → путь в OUT/POST».
@@ -41,7 +41,7 @@ from src.Tools.post_transfer_crypto import (  # noqa: E402
     encrypt_manifest,
     iter_program_source_files,
     manifest_storage_name,
-    storage_relpath_for_target,
+    storage_flat_name_for_target,
 )
 
 
@@ -53,12 +53,13 @@ def _write_placement_map(entries: List[Tuple[str, str]]) -> None:
         "",
         "На отправителе: python src/Tools/pack_post_encrypted_program.py",
         "Перешлите каталог POST/ по почте.",
-        "На получателе: положите содержимое в IN/POST/, скопируйте decrypt_post_program.py.txt",
-        "в корень (уберите .txt) или используйте уже имеющийся decrypt_post_program.py.",
+        "На получателе: положите все .txt из POST в IN/POST/ (тоже без подкаталогов).",
+        "Скопируйте decrypt_post_program.py.txt в корень (уберите .txt)",
+        "или используйте уже имеющийся decrypt_post_program.py.",
         "Из корня проекта:  python decrypt_post_program.py",
-        "Результат: OUT/POST/ с восстановленной структурой проекта.",
+        "Результат: OUT/POST/ с восстановленной структурой подкаталогов.",
         "",
-        "Формат:  файл в POST  →  OUT/POST/<путь>",
+        "Формат:  файл в POST (плоский список)  →  OUT/POST/<путь с подпапками>",
         "-" * 78,
         "",
     ]
@@ -99,13 +100,11 @@ def main() -> int:
         target_key = target_rel.as_posix()
         if target_key in _SKIP_BUNDLE_TARGETS:
             continue
-        storage_rel = storage_relpath_for_target(target_rel)
-        storage_key = storage_rel.as_posix()
+        storage_key = storage_flat_name_for_target(target_rel)
 
         plaintext = src_path.read_bytes()
         encrypted = encrypt_bytes(plaintext)
-        out_path = POST / storage_rel
-        out_path.parent.mkdir(parents=True, exist_ok=True)
+        out_path = POST / storage_key
         out_path.write_text(encrypted + "\n", encoding="utf-8")
 
         manifest_files.append({"storage": storage_key, "target": target_key})

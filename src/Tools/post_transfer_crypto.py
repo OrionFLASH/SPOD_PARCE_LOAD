@@ -99,10 +99,14 @@ def sanitize_project_relpath(rel: Path) -> Path:
     return Path(*parts)
 
 
-def storage_relpath_for_target(target_rel: Path) -> Path:
-    """Путь внутри POST: санитизированное имя + суффикс .txt."""
+def storage_flat_name_for_target(target_rel: Path) -> str:
+    """Имя файла в корне POST (без подкаталогов): санитизированный путь через __ + .txt."""
     sanitized = sanitize_project_relpath(target_rel)
-    return sanitized.parent / f"{sanitized.name}.txt"
+    if sanitized.parent == Path("."):
+        base = sanitized.name
+    else:
+        base = "__".join(sanitized.parts)
+    return f"{base}.txt"
 
 
 def manifest_storage_name() -> str:
