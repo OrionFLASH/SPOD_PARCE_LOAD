@@ -57,10 +57,11 @@ SPOD_PROM/
 ├── IN/                     # Корень входных данных (paths.input); внутри — subdir (SPOD, FILE и т.д.)
 ├── OUT/                    # Базовый каталог вывода (paths.output); файлы по дате: OUT/YYYY/DD-MM/; опционально OUT/DB/*.sqlite — архив входных CSV (input_archive_sqlite.db_path)
 ├── BACKUP/                 # Резервные копии
-├── POST/                   # Не в Git (.gitignore). Снимок: sync_post_txt.py — код (.py), config, README.md, requirements.txt, дерево Docs/ — всё с суффиксом .txt; шаблоны из Docs/POST_SNAPSHOT/ в корень POST без переименования
+├── POST/                   # Не в Git (.gitignore). Снимок: sync_post_txt.py (открытый .txt) или pack_post_encrypted_program.py (шифрованный bundle для почты)
 ├── LOGS/                   # Файлы логов (paths.logs); по дате: LOGS/YYYY/DD-MM/
 ├── Docs/                   # Дополнительная документация; каталог CSV/JSON — Docs/JSON/ (см. README внутри)
-├── src/Tools/              # Утилиты: build_spod_input_catalog.py, export_spod_json_examples.py, sync_post_txt.py (заполнение POST/)
+├── decrypt_post_program.py # Расшифровка IN/POST → OUT/POST (зашифрованный снимок)
+├── src/Tools/              # Утилиты: sync_post_txt.py, pack_post_encrypted_program.py, export_spod_json_examples.py и др.
 │   └── catalog_glossary/   # Фрагменты пояснений к JSON для каталога
 └── venv/                  # Виртуальное окружение
 ```
@@ -769,15 +770,27 @@ SPOD_PROM/
 
 ### Каталог POST (перенос кода и документации без репозитория)
 
-**Назначение:** локальная папка **POST/** со снимком проекта для переноса на ПК без Git. К имени каждого файла **кода, конфигурации и документов** добавлен суффикс **`.txt`** в конце (**`main.py.txt`**, **`config.json.txt`**, **`README.md.txt`**, **`requirements.txt.txt`**, **`src/…/модуль.py.txt`**, **`Docs/…/документ.md.txt`**) — для обхода ограничений почты и вложений.
+**Назначение:** локальная папка **POST/** со снимком проекта для переноса на ПК без Git.
 
-**Состав снимка:** **`main.py`**, **`config.json`**, **`README.md`**, **`requirements.txt`**, все **`src/**/*.py`**, кроме **`src/Tools/`** и **`src/Tests/`**; дерево **`Docs/`** целиком с сохранением подкаталогов, **кроме** **`Docs/POST_SNAPSHOT/`** (чтобы не дублировать шаблоны с «двойным» именем). В **корень POST** без доп. суффикса копируются из **Docs/POST_SNAPSHOT/**: **`КУДА_ПОЛОЖИТЬ_ФАЙЛЫ.txt`**, **`restore_names_from_txt.bat`**.
+#### Режим A — открытый снимок (`sync_post_txt.py`)
 
-**Каталог POST/ целиком в `.gitignore`** — в репозиторий не попадает; на каждой машине разработчика содержимое создаётся скриптом.
+К имени каждого файла **кода, конфигурации и документов** добавлен суффикс **`.txt`** (**`main.py.txt`**, **`config.json.txt`**, **`README.md.txt`**, **`requirements.txt.txt`**, **`src/…/модуль.py.txt`**, **`Docs/…/документ.md.txt`**) — для обхода ограничений почты и вложений.
 
-**Обновление:** из корня проекта **`python src/Tools/sync_post_txt.py`**. Скрипт **полностью удаляет** прежний **POST/** и создаёт заново. Подробная инструкция и структура после снятия **`.txt`** на Windows — **`Docs/POST_SNAPSHOT/КУДА_ПОЛОЖИТЬ_ФАЙЛЫ.txt`**.
+**Состав:** **`main.py`**, **`config.json`**, **`README.md`**, **`requirements.txt`**, все **`src/**/*.py`**, кроме **`src/Tools/`** и **`src/Tests/`**; дерево **`Docs/`** целиком, **кроме** **`Docs/POST_SNAPSHOT/`**. В **корень POST** копируются из **Docs/POST_SNAPSHOT/**: **`КУДА_ПОЛОЖИТЬ_ФАЙЛЫ.txt`**, **`restore_names_from_txt.bat`**.
 
-**История состава POST:** с **1.7.36** в снимок входили только **`.py`** и **config.json**; с **1.7.43** снова добавлены **README.md**, **requirements.txt** и дерево **Docs/** (кроме **Docs/POST_SNAPSHOT** внутри копии).
+**Обновление:** **`python src/Tools/sync_post_txt.py`** (каталог **POST/** полностью пересоздаётся). Инструкция — **`Docs/POST_SNAPSHOT/КУДА_ПОЛОЖИТЬ_ФАЙЛЫ.txt`**.
+
+#### Режим B — зашифрованный снимок для почты (`pack_post_encrypted_program.py`)
+
+**Упаковка:** **`python src/Tools/pack_post_encrypted_program.py`** — все **`.py`** (корень + **`src/`**), **`config.json`**, **`README.md`** шифруются и кладутся в **POST/** с суффиксом **`.txt`** и санитизацией имён (убираются фрагменты вроде **`_auto_js`**). Плюс **`bundle_manifest.txt`**, открытые копии утилит **`pack_post_encrypted_program.py.txt`**, **`decrypt_post_program.py.txt`**, карта **`КУДА_ПОЛОЖИТЬ_ФАЙЛЫ.txt`**.
+
+**Расшифровка на получателе:** файлы в **`IN/POST/`**, из корня **`python decrypt_post_program.py`** → **`OUT/POST/`** с исходной структурой и именами.
+
+Подробно: **`Docs/POST_ENCRYPTED_TRANSFER.md`**.
+
+**Каталог POST/ целиком в `.gitignore`** — в репозиторий не попадает; на каждой машине содержимое создаётся скриптом.
+
+**История состава POST:** с **1.7.36** — только **`.py`** и **config.json**; с **1.7.43** — **README**, **requirements**, **Docs/**; с **1.7.49** — зашифрованный bundle для почты.
 
 ---
 
@@ -1213,6 +1226,13 @@ python main.py
 ---
 
 ## История версий
+
+### Версия 1.7.49 — POST: зашифрованный снимок для пересылки по почте
+
+- **`src/Tools/post_transfer_crypto.py`**: шифрование **SPODENC1** (PBKDF2 + XOR), санитизация имён (`_auto_js` и т.п.), манифест **SPOD_POST_BUNDLE_V1**.
+- **`src/Tools/pack_post_encrypted_program.py`**: упаковка всех **`.py`**, **`config.json`**, **`README.md`** в **POST/** (зашифрованные **`.txt`** + **`bundle_manifest.txt`** + открытые копии утилит).
+- **`decrypt_post_program.py`**: расшифровка **`IN/POST`** → **`OUT/POST`** по манифесту.
+- **`Docs/POST_ENCRYPTED_TRANSFER.md`**, раздел **«Каталог POST»** в **README**, **`Docs/DOCS_INDEX.md`**. Тесты: **`src/Tests/test_post_transfer_crypto.py`**.
 
 ### Версия 1.7.48 — Устранение PerformanceWarning DataFrame fragmentation
 

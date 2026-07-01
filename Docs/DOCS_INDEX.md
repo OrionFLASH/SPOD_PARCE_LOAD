@@ -19,6 +19,7 @@
 - `MANAGER_STATS.md` — отдельная книга табельных: `sources`, фильтры EMPLOYEE, `employee_placeholder_exclusion`, **enrich pipeline** (CSV → profile JSON → ORG_UNIT), `enrich_columns` (ФИО, ТБ/ГОСБ, коды ролей в рейтинге `exists+join`, Email, дни/входы по месяцам из STATISTICS, метрики RATING), **`profile_gp_load`** (дозаполнение из `profiles_*.json`; **Profile_GP_LOAD_AutoRun.js** — отбор по `js_missing_columns`: только Фамилия, Имя, ТБ, ГОСБ; Код роли/Email/Наименование Роли на JS не влияют), **leadersForAdmin** (претендент, `Tournament_LeadersForAdmin_AutoRun.js`), лист **PROM_TOURNAMENTS** и динамические колонки **НАГРАДА**/**ТУРНИР** на TAB_NUMBERS, `column_formats`, сводка `MANAGER_STATS_SUMMARY`, `run_outputs` (`manager_stats_only`), производительность enrich и PROM.
 - `АНАЛИЗ_ПРОВЕРОК_КОНСИСТЕНТНОСТИ.md` — аналитика покрытия проверок и предложения по расширению.
 - `CODEBASE_ANALYTICS.md` — статистика кодовой базы: файлы, LOC, классы, функции, зависимости, диаграммы. Пересборка: `python src/Tools/build_codebase_analytics.py`.
+- `POST_ENCRYPTED_TRANSFER.md` — зашифрованный снимок **POST/** для пересылки по почте (`pack_post_encrypted_program.py`, `decrypt_post_program.py`).
 
 ## Консолидированные исторические документы
 
@@ -46,7 +47,12 @@
 ## Снимок POST для переноса без Git (`Docs/POST_SNAPSHOT/`)
 
 - Шаблоны **`КУДА_ПОЛОЖИТЬ_ФАЙЛЫ.txt`** и **`restore_names_from_txt.bat`** копируются скриптом **`python src/Tools/sync_post_txt.py`** в корень локального **`POST/`** (каталог **`POST/`** в **`.gitignore`**).
-- В **`POST/`** после синхронизации: **`main.py.txt`**, **`config.json.txt`**, **`README.md.txt`**, **`requirements.txt.txt`**, **`src/**/*.py.txt`** (без **Tools**/**Tests**), дерево **`POST/Docs/**`** (копия **`Docs/`** без **`Docs/POST_SNAPSHOT/`**, у каждого файла суффикс **`.txt`**). Подробности — **`КУДА_ПОЛОЖИТЬ_ФАЙЛЫ.txt`**, **`README.md`** (раздел **«Каталог POST»**).
+- В **`POST/`** после **`sync_post_txt.py`**: **`main.py.txt`**, **`config.json.txt`**, **`README.md.txt`**, **`requirements.txt.txt`**, **`src/**/*.py.txt`** (без **Tools**/**Tests**), дерево **`POST/Docs/**`** (копия **`Docs/`** без **`Docs/POST_SNAPSHOT/`**, у каждого файла суффикс **`.txt`**). Подробности — **`КУДА_ПОЛОЖИТЬ_ФАЙЛЫ.txt`**, **`README.md`** (раздел **«Каталог POST»**).
+
+## Зашифрованный снимок POST для почты
+
+- **`python src/Tools/pack_post_encrypted_program.py`** — шифрованный bundle в **`POST/`** (все **`.py`**, **`config.json`**, **`README.md`**); расшифровка: **`python decrypt_post_program.py`** (**`IN/POST`** → **`OUT/POST`**).
+- Подробно: **`Docs/POST_ENCRYPTED_TRANSFER.md`**, **`src/Tools/post_transfer_crypto.py`**, тесты **`src/Tests/test_post_transfer_crypto.py`**.
 
 ## Правила актуализации
 
@@ -54,6 +60,6 @@
 - После обновления CSV в `IN/SPOD/` пересобрать **`Docs/JSON/SPOD_INPUT_DATA_CATALOG.md`**: `python src/Tools/build_spod_input_catalog.py`; обновить примеры в **`Docs/JSON/examples/`**: `python src/Tools/export_spod_json_examples.py`; при смене схемы JSON править **`src/Tools/catalog_glossary/`**.
 - Справочник **`INPUT_DATA_AND_CONFIG_FULL.md`** держать согласованным с `README.md` по ключевым блокам конфигурации (п. 3), в т.ч. **`run_outputs`** (массив `source_only` / `main_only` / `consistency_only` / **`manager_stats_only`** / **`stat_file_only`** / **`rating_item_matrix`** / **`season_order_summary`**) и при необходимости устаревший **`run_mode`**.
 - Новые изменения по консистентности вносить сначала в `README.md`, затем синхронно в `CONSISTENCY_CHECKS_FORMAT.md`, `CONSISTENCY_SAMPLE_FORMAT.md` и при необходимости **`INPUT_DATA_AND_CONFIG_FULL.md`**. Для **`json_spod_format`** детали поведения и формата сообщений на листе — п. **2.8** в `CONSISTENCY_CHECKS_FORMAT.md`. При добавлении или переименовании правил с типами `referential`, `referential_composite`, `unique`, `field_length` по возможности обновлять комментарии и логику в `SPOD_CONSISTENCY_CHECKS_SQL_MIRROR.sql` (соответствие `rules[].id` / `name`). Правила **`field_format`**, **`json_*`**, **`json_spod_format`** в SQL-зеркале не ведутся — только в Python и конфиге.
-- Снимок для переноса без Git: `python src/Tools/sync_post_txt.py` — полная пересборка **POST/**: код, **config.json**, **README.md**, **requirements.txt**, дерево **Docs/** (без **Docs/POST_SNAPSHOT** внутри копии), суффикс `.txt` к именам; из **`Docs/POST_SNAPSHOT/`** в корень **POST/** — инструкция и **bat**; **POST/** в **`.gitignore`**. Подробно — **`README.md`**, раздел **«Каталог POST»**.
+- Снимок для переноса без Git: **`python src/Tools/sync_post_txt.py`** (открытый **POST/**) или **`python src/Tools/pack_post_encrypted_program.py`** (зашифрованный bundle для почты, см. **`Docs/POST_ENCRYPTED_TRANSFER.md`**). **POST/** в **`.gitignore`**. Подробно — **`README.md`**, раздел **«Каталог POST»**.
 - Для крупных блоков изменений использовать консолидированные документы, а не создавать новые `*_V2`, `*_FINAL`, `*_FULL` файлы.
 - Исторические документы с пересекающимся содержимым объединять и удалять дубли.
