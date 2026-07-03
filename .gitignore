@@ -45,7 +45,10 @@ LOGS/
 *.xls
 OUT/
 
-# Локальная SQLite-архивная БД (по умолчанию OUT/DB/*.sqlite) входит в игнорируемый OUT/
+# Temporary / test work (not IN/OUT data)
+.work/
+
+# Локальная SQLite-архивная БД
 archive/
 
 # Data files (*.csv по умолчанию не в репозитории)

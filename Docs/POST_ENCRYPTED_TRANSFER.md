@@ -26,6 +26,8 @@ python src/Tools/pack_post_encrypted_program.py
 
 Перешлите каталог **POST/** целиком по почте.
 
+**Тест roundtrip (разработчик):** `python src/Tools/safe_post_decrypt_test.py` — только каталог **`.work/post_decrypt_test/`**, **не трогает** `IN/` и `OUT/`. Подробно: **`Docs/IN_OUT_DATA_POLICY.md`**.
+
 ## Получатель
 
 1. Создайте **`IN/POST/`** и положите туда **все** файлы из пересланного **POST/** (тоже плоским списком, без подкаталогов).

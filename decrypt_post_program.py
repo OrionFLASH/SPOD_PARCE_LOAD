@@ -7,6 +7,9 @@
 
   python decrypt_post_program.py
 
+**Важно:** программа **не очищает** каталоги `IN/` и `OUT/`. Тест roundtrip:
+`python src/Tools/safe_post_decrypt_test.py` (работает в `.work/`). См. `Docs/IN_OUT_DATA_POLICY.md`.
+
 Опции:
   --input DIR   каталог с зашифрованными .txt (по умолчанию: IN/POST)
   --output DIR  каталог результата (по умолчанию: OUT/POST)
@@ -17,7 +20,6 @@ import argparse
 import base64
 import hashlib
 import json
-import shutil
 import sys
 from pathlib import Path
 from typing import Any, Dict
@@ -138,12 +140,6 @@ def main() -> int:
         print("Манифест пуст", file=sys.stderr)
         return 1
 
-    if out_dir.exists():
-        for child in out_dir.iterdir():
-            if child.is_file():
-                child.unlink()
-            elif child.is_dir():
-                shutil.rmtree(child)
     out_dir.mkdir(parents=True, exist_ok=True)
 
     restored = 0

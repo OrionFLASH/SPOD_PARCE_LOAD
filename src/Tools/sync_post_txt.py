@@ -241,22 +241,41 @@ def write_placement_map_program(copied: List[Tuple[Path, Path]]) -> None:
     )
 
 
-def build_post_program_only() -> None:
-    """Снимок: все .py + config.json и карта размещения."""
-    if POST.is_dir():
-        shutil.rmtree(POST)
-    POST.mkdir(parents=True, exist_ok=True)
+def prune_obsolete_post_files(prev_keys: Dict[str, str], new_keys: set[str]) -> int:
+    """Удалить из POST файлы, которых больше нет в текущем снимке (по ключам манифеста)."""
+    removed = 0
+    for key in set(prev_keys) - new_keys:
+        target = POST / dest_with_txt(Path(key))
+        if target.is_file():
+            target.unlink()
+            removed += 1
+            parent = target.parent
+            while parent != POST and parent.is_dir() and not any(parent.iterdir()):
+                parent.rmdir()
+                parent = parent.parent
+    return removed
 
-    copy_helpers(main_only=True, force_helpers=True)
+
+def build_post_program_only() -> None:
+    """Снимок: все .py + config.json и карта размещения (без полного удаления POST/)."""
+    POST.mkdir(parents=True, exist_ok=True)
+    prev_manifest = load_manifest()
+    prev_hashes: Dict[str, str] = prev_manifest.get("files") or {}
+
+    copy_helpers(main_only=True, force_helpers=False)
 
     copied: List[Tuple[Path, Path]] = []
     all_hashes: Dict[str, str] = {}
+    new_keys: set[str] = set()
 
     for src_path, rel in iter_program_sources():
+        rel_key = rel.as_posix()
+        new_keys.add(rel_key)
         copy_one_txt_suffix(src_path, rel)
         copied.append((rel, dest_with_txt(rel)))
-        all_hashes[rel.as_posix()] = file_sha256(src_path)
+        all_hashes[rel_key] = file_sha256(src_path)
 
+    n_pruned = prune_obsolete_post_files(prev_hashes, new_keys)
     write_placement_map_program(copied)
     save_manifest(all_hashes, mode="program-only")
 
@@ -268,6 +287,7 @@ def build_post_program_only() -> None:
 
     print(
         f"Готово [program-only]. Файлов с .txt: {len(copied)}. "
+        f"Удалено устаревших: {n_pruned}. "
         f"Карта: POST/КУДА_ПОЛОЖИТЬ_ФАЙЛЫ.txt. Каталог: {POST}",
         file=sys.stdout,
     )
@@ -275,12 +295,7 @@ def build_post_program_only() -> None:
 
 def build_post_main_only(*, changed_only: bool) -> None:
     """Снимок main-only: полный или только изменённые файлы."""
-    if not changed_only:
-        if POST.is_dir():
-            shutil.rmtree(POST)
-        POST.mkdir(parents=True, exist_ok=True)
-    else:
-        POST.mkdir(parents=True, exist_ok=True)
+    POST.mkdir(parents=True, exist_ok=True)
 
     copy_helpers(main_only=True, force_helpers=not changed_only)
 
@@ -318,10 +333,12 @@ def build_post_main_only(*, changed_only: bool) -> None:
             file=sys.stdout,
         )
     else:
+        n_pruned = prune_obsolete_post_files(prev_hashes, set(new_hashes))
         write_placement_map_main_only(copied)
         save_manifest(new_hashes, mode="main-only-full")
         print(
-            f"Готово [main-only, полный]. Файлов с .txt: {len(copied)}. Каталог: {POST}",
+            f"Готово [main-only, полный]. Файлов с .txt: {len(copied)}. "
+            f"Удалено устаревших: {n_pruned}. Каталог: {POST}",
             file=sys.stdout,
         )
 
@@ -333,22 +350,25 @@ def build_post_main_only(*, changed_only: bool) -> None:
 
 
 def build_post_full() -> None:
-    """Полный снимок (как раньше)."""
-    if POST.is_dir():
-        shutil.rmtree(POST)
+    """Полный снимок (без удаления всего POST/)."""
     POST.mkdir(parents=True, exist_ok=True)
+    prev_manifest = load_manifest()
+    prev_hashes: Dict[str, str] = prev_manifest.get("files") or {}
 
-    copy_helpers(main_only=False, force_helpers=True)
+    copy_helpers(main_only=False, force_helpers=False)
 
     copied: List[Tuple[Path, Path]] = []
     n_code = 0
     all_hashes: Dict[str, str] = {}
+    new_keys: set[str] = set()
 
     for p in iter_root_py_files(ROOT):
         rel = p.relative_to(ROOT)
+        rel_key = rel.as_posix()
+        new_keys.add(rel_key)
         copy_one_txt_suffix(p, rel)
         copied.append((rel, dest_with_txt(rel)))
-        all_hashes[rel.as_posix()] = file_sha256(p)
+        all_hashes[rel_key] = file_sha256(p)
         n_code += 1
 
     for name in ("config.json", "README.md", "requirements.txt"):
@@ -357,23 +377,31 @@ def build_post_full() -> None:
             print(f"Пропуск (нет файла): {p}", file=sys.stderr)
             continue
         rel = Path(name)
+        rel_key = rel.as_posix()
+        new_keys.add(rel_key)
         copy_one_txt_suffix(p, rel)
-        all_hashes[rel.as_posix()] = file_sha256(p)
+        all_hashes[rel_key] = file_sha256(p)
         n_code += 1
 
     src_root = ROOT / "src"
     for p in iter_py_files(src_root, main_only=False):
         rel = p.relative_to(ROOT)
+        rel_key = rel.as_posix()
+        new_keys.add(rel_key)
         copy_one_txt_suffix(p, rel)
-        all_hashes[rel.as_posix()] = file_sha256(p)
+        all_hashes[rel_key] = file_sha256(p)
         n_code += 1
 
     n_docs = 0
     for p in iter_docs_files(_DOCS_ROOT):
         rel = p.relative_to(ROOT)
+        rel_key = rel.as_posix()
+        new_keys.add(rel_key)
         copy_one_txt_suffix(p, rel)
-        all_hashes[rel.as_posix()] = file_sha256(p)
+        all_hashes[rel_key] = file_sha256(p)
         n_docs += 1
+
+    n_pruned = prune_obsolete_post_files(prev_hashes, new_keys)
 
     if HELPERS_SRC.is_dir():
         helper = HELPERS_SRC / "КУДА_ПОЛОЖИТЬ_ФАЙЛЫ.txt"
@@ -389,7 +417,8 @@ def build_post_full() -> None:
             pass
 
     print(
-        f"Готово [полный]. Файлов с .txt: {n_code}; Docs: {n_docs}. Каталог: {POST}",
+        f"Готово [полный]. Файлов с .txt: {n_code}; Docs: {n_docs}. "
+        f"Удалено устаревших: {n_pruned}. Каталог: {POST}",
         file=sys.stdout,
     )
 

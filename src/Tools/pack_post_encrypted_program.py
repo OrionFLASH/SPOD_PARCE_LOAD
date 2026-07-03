@@ -5,7 +5,7 @@
 Запуск из корня проекта:
   python src/Tools/pack_post_encrypted_program.py
 
-Результат: каталог POST/ (очищается и создаётся заново):
+Результат: каталог POST/ (обновляется без полного удаления):
   - все зашифрованные .txt в корне POST/ (без подкаталогов);
   - bundle_manifest.txt (зашифрованный манифест);
   - pack_post_encrypted_program.py.txt, decrypt_post_program.py.txt (копии утилит);
@@ -87,14 +87,33 @@ def _copy_utility_scripts() -> None:
         print(f"Предупреждение: нет {DECRYPT_SCRIPT}", file=sys.stderr)
 
 
+def _prune_stale_flat_txt(keep_names: set[str]) -> int:
+    """Удалить устаревшие зашифрованные .txt в корне POST (не трогая утилиты)."""
+    protected = keep_names | {
+        "pack_post_encrypted_program.py.txt",
+        "decrypt_post_program.py.txt",
+        manifest_storage_name(),
+        "КУДА_ПОЛОЖИТЬ_ФАЙЛЫ.txt",
+        ".sync_manifest.json",
+    }
+    removed = 0
+    for item in POST.iterdir():
+        if not item.is_file() or not item.name.endswith(".txt"):
+            continue
+        if item.name in protected:
+            continue
+        item.unlink()
+        removed += 1
+    return removed
+
+
 def main() -> int:
-    if POST.is_dir():
-        shutil.rmtree(POST)
     POST.mkdir(parents=True, exist_ok=True)
 
     manifest_files: List[dict[str, str]] = []
     placement: List[Tuple[str, str]] = []
     n_packed = 0
+    active_names: set[str] = set()
 
     for src_path, target_rel in iter_program_source_files(ROOT):
         target_key = target_rel.as_posix()
@@ -106,6 +125,7 @@ def main() -> int:
         encrypted = encrypt_bytes(plaintext)
         out_path = POST / storage_key
         out_path.write_text(encrypted + "\n", encoding="utf-8")
+        active_names.add(storage_key)
 
         manifest_files.append({"storage": storage_key, "target": target_key})
         placement.append((storage_key, target_key))
@@ -115,14 +135,16 @@ def main() -> int:
     manifest_enc = encrypt_manifest(manifest)
     manifest_name = manifest_storage_name()
     (POST / manifest_name).write_text(manifest_enc + "\n", encoding="utf-8")
+    active_names.add(manifest_name)
     placement.append((manifest_name, "(манифест — не копировать вручную)"))
 
     _copy_utility_scripts()
     _write_placement_map(placement)
+    n_pruned = _prune_stale_flat_txt(active_names)
 
     print(
         f"Готово: POST/ — {n_packed} зашифрованных файлов + манифест + утилиты (.txt). "
-        f"Каталог: {POST}"
+        f"Удалено устаревших .txt: {n_pruned}. Каталог: {POST}"
     )
     return 0
 
