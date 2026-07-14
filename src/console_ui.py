@@ -128,12 +128,20 @@ def _fmt_duration(sec: float) -> str:
 
 
 def print_banner(title: str) -> None:
-    """Заголовок блока в консоли."""
-    w = terminal_width()
-    line = "=" * min(w, 72)
-    print(line, flush=True)
-    print(_truncate(title, w - 4).center(min(w, 72)), flush=True)
-    print(line, flush=True)
+    """Заголовок блока в консоли (с меткой текущего блока PROM/IFT/PSI)."""
+    from src.block_runtime import block_label, locked_console
+
+    label = block_label()
+    shown = f"{label} {title}" if label else title
+
+    def _do() -> None:
+        w = terminal_width()
+        line = "=" * min(w, 72)
+        print(line, flush=True)
+        print(_truncate(shown, w - 4).center(min(w, 72)), flush=True)
+        print(line, flush=True)
+
+    locked_console(_do)
 
 
 def on_phase_start(label: str, depth: int = 0) -> None:
@@ -302,65 +310,82 @@ def _print_consistency_violations(
 def print_consistency_summary(
     results: List[Dict[str, Any]],
     rules: Optional[List[Dict[str, Any]]] = None,
+    block: Optional[str] = None,
 ) -> None:
     """
     Сводка проверок консистентности в консоль.
     При OK — построчно: лист, ключ, суть проверки, итог.
     При нарушениях — только проблемные правила с деталями (лист, ключ, колонка, примеры).
     """
-    w = terminal_width()
-    print("— Консистентность —", flush=True)
-    if not results:
-        print("  Проверки не выполнялись (в конфиге нет правил или блок пропущен).", flush=True)
-        return
+    from src.block_runtime import block_label, locked_console
 
-    rule_by_id = _consistency_rule_map(rules)
-    included = [r for r in results if r.get("include_in_summary", True)]
-    if not included:
-        print("  Нет результатов для свода (все правила с include_in_summary: false).", flush=True)
-        return
+    label = block_label(block)
+    head = f"— Консистентность {label} —" if label else "— Консистентность —"
 
-    n_rules = len(included)
-    total_violations = sum(int(r.get("violations") or 0) for r in included)
-    with_v = [
-        r for r in included
-        if int(r.get("violations") or 0) > 0 or bool(str(r.get("error") or "").strip())
-    ]
+    def _do() -> None:
+        w = terminal_width()
+        print(head, flush=True)
+        if not results:
+            print("  Проверки не выполнялись (в конфиге нет правил или блок пропущен).", flush=True)
+            return
 
-    if not with_v:
+        rule_by_id = _consistency_rule_map(rules)
+        included = [r for r in results if r.get("include_in_summary", True)]
+        if not included:
+            print("  Нет результатов для свода (все правила с include_in_summary: false).", flush=True)
+            return
+
+        n_rules = len(included)
+        total_violations = sum(int(r.get("violations") or 0) for r in included)
+        with_v = [
+            r for r in included
+            if int(r.get("violations") or 0) > 0 or bool(str(r.get("error") or "").strip())
+        ]
+
+        if not with_v:
+            print_wrapped(
+                f"Проблем не обнаружено: {n_rules} проверок, нарушений — 0.",
+                width=w,
+            )
+            _print_consistency_ok_table(included, rule_by_id, w)
+            print_wrapped(
+                "Подробные примеры строк — в debug-логе (logging.level=DEBUG).",
+                width=w,
+            )
+            return
+
         print_wrapped(
-            f"Проблем не обнаружено: {n_rules} проверок, нарушений — 0.",
+            f"Найдены ошибки консистентности: {total_violations} нарушений "
+            f"в {len(with_v)} из {n_rules} проверок.",
             width=w,
         )
-        _print_consistency_ok_table(included, rule_by_id, w)
+        _print_consistency_violations(with_v, rule_by_id, w)
         print_wrapped(
-            "Подробные примеры строк — в debug-логе (logging.level=DEBUG).",
+            "Полный список — лист CONSISTENCY в выходном файле; примеры строк — в debug-логе.",
             width=w,
         )
-        return
 
-    print_wrapped(
-        f"Найдены ошибки консистентности: {total_violations} нарушений "
-        f"в {len(with_v)} из {n_rules} проверок.",
-        width=w,
-    )
-    _print_consistency_violations(with_v, rule_by_id, w)
-    print_wrapped(
-        "Полный список — лист CONSISTENCY в выходном файле; примеры строк — в debug-логе.",
-        width=w,
-    )
+    locked_console(_do)
 
 
 def print_manager_stats_summary(unique_tabs: int, output_path: str) -> None:
     """Краткая сводка по файлу статистики менеджеров (табельные номера)."""
-    w = terminal_width()
-    print("— Статистика менеджеров (табельные) —", flush=True)
-    print_wrapped(
-        f"Уникальных табельных номеров: {unique_tabs}.",
-        width=w,
-    )
-    if output_path:
-        print_wrapped(f"Файл: {output_path}", width=w)
+    from src.block_runtime import block_label, locked_console
+
+    label = block_label()
+    head = f"— Статистика менеджеров (табельные) {label} —" if label else "— Статистика менеджеров (табельные) —"
+
+    def _do() -> None:
+        w = terminal_width()
+        print(head, flush=True)
+        print_wrapped(
+            f"Уникальных табельных номеров: {unique_tabs}.",
+            width=w,
+        )
+        if output_path:
+            print_wrapped(f"Файл: {output_path}", width=w)
+
+    locked_console(_do)
 
 
 def print_phases_table(phases: List[Dict[str, Any]]) -> None:

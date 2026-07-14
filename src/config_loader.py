@@ -190,9 +190,56 @@ def resolve_output_filename_template(template: str, block: str) -> str:
     return tpl
 
 
+def parse_run_blocks_parallel(cfg: Dict[str, Any]) -> bool:
+    """
+    run_blocks_parallel: параллельный прогон нескольких блоков (по умолчанию False).
+
+    При True и len(run_blocks)>1 — блоки считаются параллельно (отдельные процессы),
+    вывод в консоль собирается по блоку и печатается непересекающимися пачками.
+    """
+    return bool(cfg.get("run_blocks_parallel", False))
+
+
+def get_run_outputs_raw_for_block(cfg: Dict[str, Any], block: str) -> Any:
+    """
+    Сырое значение run_outputs для блока.
+
+    - list / отсутствует — глобальный список (или run_mode) на все блоки;
+    - dict — ключ блока (PROM/IFT/PSI), иначе ``default`` / ``*``.
+    """
+    raw = cfg.get("run_outputs")
+    if not isinstance(raw, dict):
+        return raw
+    block_u = str(block).strip().upper()
+    for key, value in raw.items():
+        if str(key).strip().upper() == block_u:
+            return value
+    for fallback in ("default", "*", "ALL"):
+        if fallback in raw:
+            return raw[fallback]
+        for key, value in raw.items():
+            if str(key).strip().upper() == fallback:
+                return value
+    raise ValueError(
+        f"run_outputs: для блока «{block_u}» нет раздела. "
+        f"Укажите ключ {block_u} или default в объекте run_outputs."
+    )
+
+
+def parse_run_outputs_for_block(
+    cfg: Dict[str, Any], block: str
+) -> Tuple[List[str], bool, bool, bool, bool, bool, bool, bool, bool, int, bool, bool]:
+    """Разбор run_outputs применительно к одному блоку (list или раздел объекта)."""
+    raw_for_block = get_run_outputs_raw_for_block(cfg, block)
+    cfg_view = dict(cfg)
+    cfg_view["run_outputs"] = raw_for_block
+    return parse_run_outputs_config(cfg_view)
+
+
 def parse_run_outputs_config(cfg: Dict[str, Any]) -> Tuple[List[str], bool, bool, bool, bool, bool, bool, bool, bool, int, bool, bool]:
     """
-    Разбор режима запуска: приоритет у run_outputs (массив строк).
+    Разбор режима запуска: приоритет у run_outputs (массив строк или уже выбранный список блока).
+    Если передан объект по блокам целиком — берётся default/* или ошибка (используйте parse_run_outputs_for_block).
     Возвращает:
       run_outputs_sorted — нормализованный список для логов;
       source_only_exit — только source и выход (в массиве ровно source_only);
@@ -208,6 +255,30 @@ def parse_run_outputs_config(cfg: Dict[str, Any]) -> Tuple[List[str], bool, bool
       run_mode_compat — число 1–4 для обратной совместимости и логов.
     """
     ro_raw = cfg.get("run_outputs")
+    # Объект по блокам без выбора блока — fallback на default, иначе ошибка с подсказкой
+    if isinstance(ro_raw, dict):
+        for fallback in ("default", "*", "ALL"):
+            if fallback in ro_raw:
+                ro_raw = ro_raw[fallback]
+                break
+            found = False
+            for key, value in ro_raw.items():
+                if str(key).strip().upper() == fallback:
+                    ro_raw = value
+                    found = True
+                    break
+            if found:
+                break
+        else:
+            # Если ровно один раздел — взять его (удобно при тесте одного блока)
+            if len(ro_raw) == 1:
+                ro_raw = next(iter(ro_raw.values()))
+            else:
+                raise ValueError(
+                    "run_outputs задан объектом по блокам: используйте parse_run_outputs_for_block "
+                    "или ключ default. Ключи: PROM, IFT, PSI."
+                )
+
     tokens: Set[str] = set()
 
     if isinstance(ro_raw, list) and len(ro_raw) > 0:
@@ -318,6 +389,8 @@ class Config:
             self._cfg
         )
         self.run_blocks: List[str] = parse_run_blocks_config(self._cfg)
+        self.run_blocks_parallel: bool = parse_run_blocks_parallel(self._cfg)
+        self.config_path: str = config_path
         # Для текущего/первого блока (совместимость со старым кодом, ожидающим список)
         _first_block = self.run_blocks[0] if self.run_blocks else "PROM"
         self.input_files: List[Dict[str, Any]] = get_input_files_for_block(
@@ -386,7 +459,7 @@ class Config:
             self._cfg.get("tournament_status_choices") or _default_statuses
         )
 
-        # Режим запуска: массив run_outputs или устаревший run_mode (см. parse_run_outputs_config)
+        # Режим запуска: run_outputs списка или объекта по блокам (см. parse_run_outputs_for_block)
         (
             self.run_outputs,
             self.run_source_only_exit,
@@ -400,7 +473,7 @@ class Config:
             self.run_mode,
             self.run_rating_item_matrix,
             self.run_season_order_summary,
-        ) = parse_run_outputs_config(self._cfg)
+        ) = parse_run_outputs_for_block(self._cfg, _first_block)
 
         # Применять ли сортировку (sort_columns из input_files): к source — да по умолчанию, к main — нет по умолчанию
         self.apply_sort_to_source: bool = self._cfg.get("apply_sort_to_source", True)

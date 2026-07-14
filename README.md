@@ -54,7 +54,7 @@ SPOD_PROM/
 │   ├── gender.py         # Определение пола (AUTO_GENDER)
 │   └── main_impl.py      # Полный пайплайн: загрузка, merge, summary, Excel, отчёты
 ├── requirements.txt        # Зависимости (pandas, openpyxl и др.) для main.py
-├── IN/                     # Корень входных данных (paths.input); внутри — SPOD/PROM|IFT|PSI, FILE и т.д.
+├── IN/                     # Корень входа: IN/<BLOCK>/{SPOD,FILE,POST,JS}/ (BLOCK=PROM|IFT|PSI)
 ├── OUT/                    # Базовый каталог вывода (paths.output); файлы по блоку и дате: OUT/<BLOCK>/YYYY/DD-MM/ (BLOCK=PROM|IFT|PSI); опционально OUT/DB/*.sqlite — архив входных CSV
 ├── BACKUP/                 # Резервные копии
 ├── POST/                   # Не в Git (.gitignore). Снимок: sync_post_txt.py (открытый .txt) или pack_post_encrypted_program.py (шифрованный bundle для почты)
@@ -133,8 +133,9 @@ SPOD_PROM/
 
 | Секция | Назначение |
 |--------|------------|
-| `run_outputs` | Массив строк: `source_only`, `main_only`, `consistency_only`, **`manager_stats_only`**, **`stat_file_only`**, **`rating_item_matrix`**, **`season_order_summary`** — какие выходные артефакты и шаги выполнять (**все перечисленные**). Матрица ITEM и лист ORDER-SEASON-SUMMARY — только при соответствующих токенах. Эквивалент старого `full`: `source_only` + `main_only` + `consistency_only`. Устаревшее поле **`run_mode`** читается, если **`run_outputs`** отсутствует. |
-| `run_blocks` | Массив блоков SPOD-данных: **`PROM`**, **`IFT`**, **`PSI`** (один, два или все). Для каждого указанного блока — отдельный расчёт. По умолчанию **`["PROM"]`**. Вход: `IN/SPOD/<BLOCK>/`; выход: `OUT/<BLOCK>/YYYY/DD-MM/`. |
+| `run_outputs` | Массив токенов **или объект по блокам** `{ "PROM": [...], "IFT": [...], "PSI": [...] }`: свой набор выходов на каждый блок. Токены: `source_only`, `main_only`, `consistency_only`, **`manager_stats_only`**, **`stat_file_only`**, **`rating_item_matrix`**, **`season_order_summary`**. Плоский массив — одинаково для всех блоков из `run_blocks`. |
+| `run_blocks` | Массив блоков: **`PROM`**, **`IFT`**, **`PSI`**. Для каждого — отдельный расчёт. По умолчанию **`["PROM"]`**. Вход: `IN/<BLOCK>/{SPOD,FILE,…}/`; выход: `OUT/<BLOCK>/YYYY/DD-MM/`; архив: `OUT/DB/<BLOCK>/…`. |
+| `run_blocks_parallel` | `true` — параллельный прогон нескольких блоков (отдельные процессы), вывод в консоль пачками без перемешивания. По умолчанию `false`. |
 | `output_filenames` | Шаблоны имён без расширения: main, source, consistency, manager_stats. Плейсхолдер **`{BLOCK}`** → `SPOD_PROM …` / `SPOD_IFT …` / `SPOD_PSI …`. |
 | `apply_sort_to_source` | Применять ли сортировку из `input_files.sort_columns` при записи source Excel. |
 | `apply_sort_to_main` | Применять ли сортировку из `input_files.sort_columns` при записи основного Excel. |
@@ -230,9 +231,9 @@ SPOD_PROM/
 
 | Значение | Входные SPOD-CSV | Выходной каталог | Префикс имён |
 |----------|------------------|------------------|--------------|
-| `PROM` | `IN/SPOD/PROM/` | `OUT/PROM/YYYY/DD-MM/` | `SPOD_PROM …` |
-| `IFT` | `IN/SPOD/IFT/` | `OUT/IFT/YYYY/DD-MM/` | `SPOD_IFT …` |
-| `PSI` | `IN/SPOD/PSI/` | `OUT/PSI/YYYY/DD-MM/` | `SPOD_PSI …` |
+| `PROM` | `IN/PROM/{SPOD,FILE,…}/` | `OUT/PROM/YYYY/DD-MM/` | `SPOD_PROM …` |
+| `IFT` | `IN/IFT/{SPOD,FILE,…}/` | `OUT/IFT/YYYY/DD-MM/` | `SPOD_IFT …` |
+| `PSI` | `IN/PSI/{SPOD,FILE,…}/` | `OUT/PSI/YYYY/DD-MM/` | `SPOD_PSI …` |
 
 ```json
 "run_blocks": ["PROM"]
@@ -242,7 +243,7 @@ SPOD_PROM/
 "run_blocks": ["PROM", "IFT", "PSI"]
 ```
 
-**По умолчанию** (если ключ отсутствует): `["PROM"]`. **`input_files`** — объект с разделами **`PROM` / `IFT` / `PSI`**: в каждом свой полный список файлов (составы могут различаться; сейчас одинаковые). Разбор: **`parse_run_blocks_config`**, **`parse_input_files_by_block`**. Тесты: **`src/Tests/test_run_blocks.py`**.
+**По умолчанию** (если ключ отсутствует): `["PROM"]`. **`input_files`** — объект с разделами **`PROM` / `IFT` / `PSI`**. **`run_outputs`** — массив или объект по блокам. **`run_blocks_parallel`**: параллельный прогон. Вход: `IN/<BLOCK>/SPOD|FILE|…`. Архив: `OUT/DB/<BLOCK>/…_{BLOCK}….sqlite`. Метка блока в консоли и логах.
 
 ---
 
@@ -394,9 +395,9 @@ SPOD_PROM/
 
 ```json
 "input_files": {
-  "PROM": [ { "file": "...", "sheet": "...", "subdir": "SPOD/PROM", ... }, ... ],
-  "IFT":  [ { "file": "...", "sheet": "...", "subdir": "SPOD/IFT", ... }, ... ],
-  "PSI":  [ { "file": "...", "sheet": "...", "subdir": "SPOD/PSI", ... }, ... ]
+  "PROM": [ { "file": "...", "sheet": "...", "subdir": "PROM/SPOD", ... }, ... ],
+  "IFT":  [ { "file": "...", "sheet": "...", "subdir": "IFT/SPOD", ... }, ... ],
+  "PSI":  [ { "file": "...", "sheet": "...", "subdir": "PSI/SPOD", ... }, ... ]
 }
 ```
 
@@ -407,7 +408,7 @@ SPOD_PROM/
 | `file`              | строка | Имя CSV (с расширением или без). Поиск в каталоге `paths.input/subdir` без учёта регистра (.csv / .CSV). |
 | `sheet`             | строка | Имя листа в выходном Excel, куда попадут данные этого файла. |
 | `expected_columns`  | число  | Ожидаемое число полей в CSV. **0** — АВТО (берётся из заголовка). Если в строке CSV число полей отличается — фиксируется в отчёте и листе CONSISTENCY. |
-| `subdir`            | строка | Подкаталог внутри `paths.input` (например `"SPOD/PROM"`, `"SPOD/IFT"`, `"FILE"`). Итоговый путь: `paths.input/subdir/file`. |
+| `subdir`            | строка | Подкаталог внутри `paths.input` (например `"PROM/SPOD"`, `"IFT/FILE"`). Итоговый путь: `IN/<BLOCK>/SPOD|FILE/…`. |
 | `sort_columns`      | массив | Правила сортировки листа при записи в source/main Excel (если включено `apply_sort_to_source` или `apply_sort_to_main`). Каждый элемент: `{"column": "ИмяКолонки", "order": "asc" \| "desc"}`. Применяются последовательно. Если колонки нет на листе — пропускается; если ни одной нет — сортировка не выполняется. |
 | `max_col_width`     | число  | Максимальная ширина колонки (символов) при авто-ширине. |
 | `freeze`            | строка | Закрепление областей, например `"C2"` — закрепить столбцы A–B и строку 1. |
@@ -421,7 +422,7 @@ SPOD_PROM/
   "file": "CONTEST (PROM) 16-03 v0.csv",
   "sheet": "CONTEST-DATA",
   "expected_columns": 0,
-  "subdir": "SPOD/PROM",
+  "subdir": "PROM/SPOD",
   "sort_columns": [{"column": "CONTEST_CODE", "order": "asc"}],
   "max_col_width": 120,
   "freeze": "C2",
@@ -1262,6 +1263,15 @@ python main.py
 ---
 
 ## История версий
+
+### Версия 1.7.52 — Доработки блоков: run_outputs, IN/<BLOCK>, SQLite, параллель
+
+- **`run_outputs`**: объект по блокам `{PROM,IFT,PSI}` или плоский массив (на все); разбор `parse_run_outputs_for_block`.
+- **Вход:** `IN/<BLOCK>/{SPOD,FILE,POST,JS}/` (`subdir` вида `PROM/SPOD`, `IFT/FILE`).
+- **Архив SQLite:** `OUT/DB/{BLOCK}/spod_input_archive_{BLOCK}_v2.sqlite` (и gamification аналогично).
+- **Консоль/логи:** метка `[PROM]` / `[IFT]` / `[PSI]` (сводка консистентности, баннеры, `BlockLogFilter`).
+- **`run_blocks_parallel`**: опциональный параллельный прогон (ProcessPoolExecutor), вывод пачками по блоку.
+- Модуль **`src/block_runtime.py`**; тесты **`test_run_blocks.py`**.
 
 ### Версия 1.7.51 — Блоки PROM / IFT / PSI (`run_blocks`)
 
