@@ -21,6 +21,7 @@
 - `CODEBASE_ANALYTICS.md` — статистика кодовой базы: файлы, LOC, классы, функции, зависимости, диаграммы. Пересборка: `python src/Tools/build_codebase_analytics.py`.
 - `POST_ENCRYPTED_TRANSFER.md` — зашифрованный снимок **POST/** для пересылки по почте (`pack_post_encrypted_program.py`, `decrypt_post_program.py`).
 - `IN_OUT_DATA_POLICY.md` — защита **`IN/`** и **`OUT/`** от удаления; инцидент 2026-07-02, аудит кода, восстановление.
+- `BLOCKS_MIGRATION.md` — миграция на `IN/<BLOCK>/{SPOD,FILE,…}` и SQLite `OUT/DB/<BLOCK>/` (п. 7 ROADMAP, v1.7.52).
 
 ## Консолидированные исторические документы
 

@@ -12,9 +12,9 @@ rm -rf IN OUT && mkdir -p IN/POST && cp POST/* IN/POST/
 
 | Каталог | Что потеряно |
 |---------|----------------|
-| `IN/SPOD/`, `IN/JS/`, `IN/FILE/` | исходные CSV, JSON, JS |
-| `OUT/2026/*/` (ранее) / `OUT/<BLOCK>/YYYY/DD-MM/` | Excel, JS AutoRun, STAT_FILE, CONSISTENCY |
-| `OUT/DB/` | `spod_input_archive_v2.sqlite` (если был) |
+| `IN/PROM|IFT|PSI/{SPOD,FILE,JS,…}/` | исходные CSV, JSON, JS по средам |
+| `OUT/<BLOCK>/YYYY/DD-MM/` | Excel, JS AutoRun, STAT_FILE, CONSISTENCY |
+| `OUT/DB/<BLOCK>/` | SQLite-архив блока (`spod_input_archive_<BLOCK>_v2.sqlite` и др.) |
 
 **Когда:** ~23:43 02.07.2026.  
 **Последний полный прогон до инцидента:** `LOGS/2026/02-07/LOGS_INFO_20260702_00_27.log` (02.07.2026 00:27).

@@ -22,12 +22,22 @@ import threading  # Для синхронизации потоков
 import copy  # Копия конфигов листов для синтетических агрегированных листов
 
 from src import console_ui  # Краткий вывод этапов и сводок в консоль (stdlib)
+from src.block_runtime import (
+    BlockLogFilter,
+    console_print_lines,
+    get_current_block,
+    prefix_message,
+    resolve_block_placeholders,
+    set_current_block,
+)
 from src.config_loader import (
     filter_input_files_for_block,
     get_input_files_for_block,
     parse_input_files_by_block,
     parse_run_blocks_config,
+    parse_run_blocks_parallel,
     parse_run_outputs_config,
+    parse_run_outputs_for_block,
     resolve_output_filename_template,
 )  # Разбор run_outputs / run_blocks / шаблоны имён
 from src.consistency_checks import run_consistency_checks_and_attach_summary  # Проверки консистентности (отдельный модуль)
@@ -176,6 +186,7 @@ def _load_config_globals():
     """Устанавливает глобальные переменные из Config (внедрённый) или из config.json."""
     global DIR_INPUT, DIR_OUTPUT, DIR_LOGS, LOG_LEVEL, LOG_BASE_NAME, INPUT_FILES, RUN_MODE
     global ALL_INPUT_FILES, INPUT_FILES_BY_BLOCK, RUN_BLOCKS, CURRENT_RUN_BLOCK
+    global RUN_BLOCKS_PARALLEL, CFG_RAW, CONFIG_PATH
     global RUN_OUTPUTS, RUN_SOURCE_ONLY_EXIT, RUN_WRITE_SOURCE, RUN_WRITE_MAIN
     global RUN_WRITE_CONSISTENCY_FILE, RUN_CONSISTENCY_EARLY
     global RUN_WRITE_MANAGER_STATS, MANAGER_STATS_EARLY
@@ -211,6 +222,9 @@ def _load_config_globals():
             )
             ALL_INPUT_FILES = INPUT_FILES_BY_BLOCK  # алиас: разделы по блокам
             RUN_BLOCKS = list(getattr(_c, "run_blocks", None) or ["PROM"])
+            RUN_BLOCKS_PARALLEL = bool(getattr(_c, "run_blocks_parallel", False))
+            CFG_RAW = dict(getattr(_c, "_cfg", {}) or {})
+            CONFIG_PATH = str(getattr(_c, "config_path", "") or "")
             CURRENT_RUN_BLOCK = RUN_BLOCKS[0] if RUN_BLOCKS else "PROM"
             INPUT_FILES = get_input_files_for_block(INPUT_FILES_BY_BLOCK, CURRENT_RUN_BLOCK)
             SUMMARY_SHEET = _c.summary_sheet
@@ -314,6 +328,9 @@ def _load_config_globals():
     INPUT_FILES_BY_BLOCK = parse_input_files_by_block(_cfg)
     ALL_INPUT_FILES = INPUT_FILES_BY_BLOCK
     RUN_BLOCKS = parse_run_blocks_config(_cfg)
+    RUN_BLOCKS_PARALLEL = parse_run_blocks_parallel(_cfg)
+    CFG_RAW = dict(_cfg)
+    CONFIG_PATH = _CONFIG_PATH
     CURRENT_RUN_BLOCK = RUN_BLOCKS[0] if RUN_BLOCKS else "PROM"
     INPUT_FILES = get_input_files_for_block(INPUT_FILES_BY_BLOCK, CURRENT_RUN_BLOCK)
     SUMMARY_SHEET = _cfg["summary_sheet"]
@@ -340,7 +357,7 @@ def _load_config_globals():
     for _cc_k, _cc_v in _cc.items():
         if _cc_k not in CONSISTENCY_CHECKS:
             CONSISTENCY_CHECKS[_cc_k] = _cc_v
-    _ro = parse_run_outputs_config(_cfg)
+    _ro = parse_run_outputs_for_block(_cfg, CURRENT_RUN_BLOCK)
     RUN_OUTPUTS = list(_ro[0])
     RUN_SOURCE_ONLY_EXIT = _ro[1]
     RUN_WRITE_SOURCE = _ro[2]
@@ -395,14 +412,27 @@ def _load_config_globals():
 
 def apply_run_block_context(block: str) -> None:
     """
-    Переключает контекст прогона на блок: список input_files из раздела и имена выходных файлов.
+    Переключает контекст прогона на блок:
+    input_files раздела, имена Excel, run_outputs блока, плейсхолдеры {BLOCK} в путях архива.
     """
-    global INPUT_FILES, CURRENT_RUN_BLOCK
+    global INPUT_FILES, CURRENT_RUN_BLOCK, INPUT_ARCHIVE_SQLITE, MANAGER_STATS
     global OUTPUT_FILENAME_MAIN, OUTPUT_FILENAME_SOURCE
     global OUTPUT_FILENAME_CONSISTENCY, OUTPUT_FILENAME_MANAGER_STATS
+    global RUN_OUTPUTS, RUN_SOURCE_ONLY_EXIT, RUN_WRITE_SOURCE, RUN_WRITE_MAIN
+    global RUN_WRITE_CONSISTENCY_FILE, RUN_CONSISTENCY_EARLY
+    global RUN_WRITE_MANAGER_STATS, MANAGER_STATS_EARLY
+    global RUN_WRITE_STAT_FILE, RUN_MODE
+    global RUN_RATING_ITEM_MATRIX, RUN_SEASON_ORDER_SUMMARY
 
     CURRENT_RUN_BLOCK = str(block).strip().upper()
-    INPUT_FILES = get_input_files_for_block(INPUT_FILES_BY_BLOCK, CURRENT_RUN_BLOCK)
+    set_current_block(CURRENT_RUN_BLOCK)
+
+    # Файлы блока + подстановка {BLOCK} в archive_db_path / subdir на всякий случай
+    raw_files = get_input_files_for_block(INPUT_FILES_BY_BLOCK, CURRENT_RUN_BLOCK)
+    INPUT_FILES = [
+        resolve_block_placeholders(dict(fc), CURRENT_RUN_BLOCK) for fc in raw_files
+    ]
+
     OUTPUT_FILENAME_MAIN = resolve_output_filename_template(
         OUTPUT_FILENAME_MAIN_TEMPLATE, CURRENT_RUN_BLOCK
     )
@@ -415,13 +445,61 @@ def apply_run_block_context(block: str) -> None:
     OUTPUT_FILENAME_MANAGER_STATS = resolve_output_filename_template(
         OUTPUT_FILENAME_MANAGER_STATS_TEMPLATE, CURRENT_RUN_BLOCK
     )
+
+    # run_outputs именно этого блока
+    cfg_for_ro = CFG_RAW if isinstance(CFG_RAW, dict) and CFG_RAW else {}
+    (
+        RUN_OUTPUTS,
+        RUN_SOURCE_ONLY_EXIT,
+        RUN_WRITE_SOURCE,
+        RUN_WRITE_MAIN,
+        RUN_WRITE_CONSISTENCY_FILE,
+        RUN_CONSISTENCY_EARLY,
+        RUN_WRITE_MANAGER_STATS,
+        MANAGER_STATS_EARLY,
+        RUN_WRITE_STAT_FILE,
+        RUN_MODE,
+        RUN_RATING_ITEM_MATRIX,
+        RUN_SEASON_ORDER_SUMMARY,
+    ) = parse_run_outputs_for_block(cfg_for_ro, CURRENT_RUN_BLOCK)
+
+    # Архив SQLite: пути с {BLOCK}
+    base_arch = dict(INPUT_ARCHIVE_SQLITE or {})
+    if cfg_for_ro.get("input_archive_sqlite"):
+        from src.input_archive_sqlite_v2 import merge_archive_v2_config
+
+        base_arch = merge_archive_v2_config(cfg_for_ro.get("input_archive_sqlite"))
+    INPUT_ARCHIVE_SQLITE = resolve_block_placeholders(base_arch, CURRENT_RUN_BLOCK)
+
+    # manager_stats: подкаталоги JS с {BLOCK}
+    if isinstance(MANAGER_STATS, dict) and MANAGER_STATS:
+        MANAGER_STATS = resolve_block_placeholders(dict(MANAGER_STATS), CURRENT_RUN_BLOCK)
+    elif cfg_for_ro.get("manager_stats"):
+        MANAGER_STATS = resolve_block_placeholders(
+            dict(cfg_for_ro.get("manager_stats") or {}), CURRENT_RUN_BLOCK
+        )
+
     logging.info(
-        f"[main] Блок {CURRENT_RUN_BLOCK}: файлов input_files={len(INPUT_FILES)}, "
-        f"main→«{OUTPUT_FILENAME_MAIN}»"
+        f"[main] Блок {CURRENT_RUN_BLOCK}: файлов={len(INPUT_FILES)}, "
+        f"run_outputs={RUN_OUTPUTS}, main→«{OUTPUT_FILENAME_MAIN}», "
+        f"archive_db→«{INPUT_ARCHIVE_SQLITE.get('db_path')}»"
     )
 
 
 _load_config_globals()
+# Инициализация CFG_RAW, если импорт пошёл через Config без _cfg
+try:
+    CFG_RAW
+except NameError:
+    CFG_RAW = {}
+try:
+    RUN_BLOCKS_PARALLEL
+except NameError:
+    RUN_BLOCKS_PARALLEL = False
+try:
+    CONFIG_PATH
+except NameError:
+    CONFIG_PATH = ""
 # === КОНЕЦ ЗАГРУЗКИ КОНФИГА ===
 
 # Выходной файл Excel (шаблон из конфига output_filenames.main)
@@ -540,11 +618,13 @@ def setup_logger():
     file_handler = logging.FileHandler(log_file, encoding="utf-8", mode="a")
     file_handler.setLevel(file_level)
     file_handler.setFormatter(file_formatter)
+    file_handler.addFilter(BlockLogFilter())
     
     # Консольный обработчик: WARNING и ERROR (INFO — только в файл; консоль — console_ui)
     console_handler = logging.StreamHandler(sys.stdout)
     console_handler.setLevel(logging.WARNING)
     console_handler.setFormatter(console_formatter)
+    console_handler.addFilter(BlockLogFilter())
     
     # Добавляем обработчики к логгеру
     logger.addHandler(file_handler)
@@ -4653,20 +4733,96 @@ def _write_manager_stats_excel(
     return out_path
 
 
+def _parallel_block_worker(payload: Tuple[str, str]) -> Tuple[str, str, Optional[str]]:
+    """
+    Воркер процесса: один блок целиком. Возвращает (block, console_text, error_or_None).
+    Вывод stdout/stderr буферизуется — родитель печатает пачками без перемешивания.
+    """
+    import contextlib
+    import io
+    import traceback
+
+    config_path, block = payload
+    buf = io.StringIO()
+    err: Optional[str] = None
+    try:
+        from src.config_holder import set_current_config
+        from src.config_loader import Config
+
+        cfg = Config(config_path)
+        # В дочернем процессе — только этот блок
+        cfg.run_blocks = [block]
+        cfg.run_blocks_parallel = False
+        set_current_config(cfg)
+        with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(buf):
+            _load_config_globals()
+            set_current_block(block)
+            apply_run_block_context(block)
+            log_file = setup_logger()
+            _run_pipeline_for_block(block, log_file)
+    except SystemExit as se:
+        # sys.exit из пайплайна при отсутствии файлов
+        code = se.code
+        err = f"SystemExit({code})"
+        if code not in (0, None):
+            err = f"SystemExit({code})\n{buf.getvalue()[-2000:]}"
+    except Exception:
+        err = traceback.format_exc()
+    return block, buf.getvalue(), err
+
+
 def main():
     # Повторная загрузка глобалов при запуске (подхват внедрённого Config из config_holder)
     _load_config_globals()
     overall_start = datetime.now()
     log_file = setup_logger()
     blocks = list(RUN_BLOCKS) if RUN_BLOCKS else ["PROM"]
+    parallel = bool(RUN_BLOCKS_PARALLEL) and len(blocks) > 1
     logging.info(
         f"=== Старт программы: {overall_start.strftime('%Y-%m-%d %H:%M:%S')}; "
-        f"run_blocks={blocks}; run_outputs={RUN_OUTPUTS} ==="
+        f"run_blocks={blocks}; parallel={parallel} ==="
     )
-    console_ui.print_banner(f"SPOD — старт (блоки: {', '.join(blocks)})")
-    for block in blocks:
-        apply_run_block_context(block)
-        _run_pipeline_for_block(block, log_file)
+    console_ui.print_banner(
+        f"SPOD — старт (блоки: {', '.join(blocks)}"
+        + ("; параллельно" if parallel else "")
+        + ")"
+    )
+
+    if parallel:
+        # Отдельный процесс на блок — изоляция глобалов; консоль — пачками в порядке run_blocks
+        cfg_path = CONFIG_PATH or os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "config.json"
+        )
+        payloads = [(cfg_path, b) for b in blocks]
+        # max_workers <= число блоков; только stdlib
+        from concurrent.futures import ProcessPoolExecutor, as_completed
+
+        results_by_block: Dict[str, Tuple[str, Optional[str]]] = {}
+        with ProcessPoolExecutor(max_workers=len(blocks)) as pool:
+            future_map = {pool.submit(_parallel_block_worker, p): p[1] for p in payloads}
+            for fut in as_completed(future_map):
+                block_done, text, err = fut.result()
+                results_by_block[block_done] = (text, err)
+        # Печать в порядке конфигурации — без перемешивания
+        first_error: Optional[str] = None
+        for b in blocks:
+            text, err = results_by_block.get(b, ("", f"нет результата для блока {b}"))
+            header = f"===== вывод блока {b} ====="
+            console_print_lines(
+                [header] + (text.rstrip("\n").split("\n") if text else ["(нет вывода)"])
+            )
+            if err:
+                console_print_lines([f"===== ошибка блока {b} =====", err])
+                if first_error is None:
+                    first_error = f"{b}: {err}"
+        if first_error:
+            logging.error(f"Параллельный прогон завершился с ошибкой: {first_error}")
+            sys.exit(1)
+    else:
+        for block in blocks:
+            apply_run_block_context(block)
+            _run_pipeline_for_block(block, log_file)
+
     logging.info(
         f"=== Все блоки завершены ({', '.join(blocks)}). "
         f"Общее время: {datetime.now() - overall_start} ==="
@@ -4676,6 +4832,7 @@ def main():
 def _run_pipeline_for_block(block: str, log_file: str) -> None:
     """Полный пайплайн обработки для одного блока (PROM / IFT / PSI)."""
     global _csv_column_mismatches
+    set_current_block(block)
     _csv_column_mismatches.clear()
     start_time = datetime.now()
     reset_run_timing()
@@ -4841,12 +4998,12 @@ def _run_pipeline_for_block(block: str, log_file: str) -> None:
             copy_consistency_results_from_raw_to_processed(raw_sheets_data, sheets_data, summary_sheet_name)
             logging.info("[main] Проверки консистентности завершены, результаты скопированы на обработанные листы")
             console_ui.print_consistency_summary(
-                consistency_results, rules=CONSISTENCY_CHECKS.get("rules")
+                consistency_results, rules=CONSISTENCY_CHECKS.get("rules"), block=block
             )
         else:
             # В логе правила не запускались; в консоли — кратко, чтобы итог был предсказуемым
             console_ui.print_consistency_summary(
-                consistency_results, rules=CONSISTENCY_CHECKS.get("rules")
+                consistency_results, rules=CONSISTENCY_CHECKS.get("rules"), block=block
             )
         append_csv_mismatches_to_consistency(
             sheets_data, list(_csv_column_mismatches),
