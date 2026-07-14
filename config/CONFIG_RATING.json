@@ -1,0 +1,75 @@
+{
+  "rating_item_matrix": {
+    "enabled": true,
+    "sheet_rating": "RATING",
+    "sheet_order": "ORDER",
+    "sheet_reward": "REWARD",
+    "order_employee_col": "Табельный номер",
+    "order_product_col": "Код товара",
+    "order_status_col": "Статус заказа",
+    "order_status_exclude": [
+      "Отклонён",
+      "Отменён"
+    ],
+    "rating_employee_col": "Табельный номер",
+    "rating_role_col": "Наименование Роли",
+    "rating_period_col": "Период",
+    "country_rank_col": "Место в рейтинге по стране",
+    "tb_rank_col": "Место в рейтинге ТБ",
+    "gosb_rank_col": "Место в рейтинге ГОСБ",
+    "reward_type_col": "REWARD_TYPE",
+    "reward_code_col": "REWARD_CODE",
+    "col_season_code": "ADD_DATA => getCondition => employeeRating => seasonCode",
+    "col_min_rating_bank": "ADD_DATA => getCondition => employeeRating => minRatingBANK",
+    "col_min_rating_tb": "ADD_DATA => getCondition => employeeRating => minRatingTB",
+    "col_min_rating_gosb": "ADD_DATA => getCondition => employeeRating => minRatingGOSB",
+    "reward_add_data_col": "REWARD_ADD_DATA",
+    "sheet_list_rewards": "LIST-REWARDS",
+    "list_rewards_employee_col": "Табельный номер сотрудника",
+    "list_rewards_code_col": "Код награды",
+    "crystals_col": "Количество кристаллов",
+    "item_amount_scope": "global",
+    "fill_ordered_available": "E2F0D9",
+    "fill_ordered_unavailable": "F5D6DC",
+    "fill_available_not_ordered": "D9EAD3",
+    "fill_unavailable_not_ordered": "F2D7DC",
+    "fill_header_stock_out": "E8B4B8",
+    "fill_accessibility_ok": "E2F0D9",
+    "fill_accessibility_fail": "F2D7DC",
+    "item_order_groups": [
+      {
+        "id": "SEASON_m_2025_2",
+        "max_orders": 2,
+        "codes": [
+          "ITEM_02_2025-2_01",
+          "ITEM_02_2025-2_02",
+          "ITEM_02_2025-2_03",
+          "ITEM_02_2025-2_04",
+          "ITEM_02_2025-2_06",
+          "ITEM_02_2025-2_07",
+          "ITEM_02_2025-2_08",
+          "ITEM_02_2025-2_09",
+          "ITEM_02_2025-2_10",
+          "ITEM_02_2025-2_11",
+          "ITEM_02_2025-2_12",
+          "ITEM_02_2025-2_13",
+          "ITEM_02_2025-2_14"
+        ]
+      },
+      {
+        "id": "SEASON_2025_2",
+        "max_orders": 2,
+        "codes": [
+          "ITEM_01_2025-2_01",
+          "ITEM_01_2025-2_03",
+          "ITEM_01_2025-2_06",
+          "ITEM_01_2025-2_07",
+          "ITEM_01_2025-2_08",
+          "ITEM_01_2025-2_13",
+          "ITEM_01_2025-2_14",
+          "ITEM_01_2025-2_15"
+        ]
+      }
+    ]
+  }
+}

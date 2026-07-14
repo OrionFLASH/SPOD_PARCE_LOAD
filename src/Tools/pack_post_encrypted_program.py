@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Упаковка программы в POST/: все .py, config.json, README.md — шифрование + .txt.
+Упаковка программы в POST/: все .py, каталог config/, README.md — шифрование + .txt.
 
 Запуск из корня проекта:
   python src/Tools/pack_post_encrypted_program.py

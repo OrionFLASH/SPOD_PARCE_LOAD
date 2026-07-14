@@ -6,7 +6,7 @@
   python src/Tools/sync_post_txt.py
       — полный снимок: корень + src (включая Tools, Tests) + Docs + README + requirements.
   python src/Tools/sync_post_txt.py --program-only
-      — все *.py (корень + src, включая Tests и Tools) и config.json;
+      — все *.py (корень + src, включая Tests и Tools) и каталог config/;
         в корень POST — КУДА_ПОЛОЖИТЬ_ФАЙЛЫ.txt с поимённой картой каталогов.
   python src/Tools/sync_post_txt.py --main-only --changed-only
       — в POST копируются только файлы, изменившиеся с прошлой синхронизации
@@ -96,14 +96,22 @@ def copy_one_txt_suffix(src: Path, rel: Path) -> Path:
     return out
 
 
+def iter_config_dir_files() -> Iterable[Tuple[Path, Path]]:
+    """Все .json из config/ (точка входа и CONFIG_*.json), структура сохраняется."""
+    cfg_dir = ROOT / "config"
+    if not cfg_dir.is_dir():
+        return
+    for p in sorted(cfg_dir.rglob("*.json")):
+        if not p.is_file():
+            continue
+        yield p, p.relative_to(ROOT)
+
+
 def iter_main_only_sources() -> Iterable[Tuple[Path, Path]]:
     """(абсолютный_путь, rel от ROOT) для снимка main-only."""
     for p in iter_root_py_files(ROOT):
         yield p, p.relative_to(ROOT)
-    for name in ("config.json",):
-        p = ROOT / name
-        if p.is_file():
-            yield p, Path(name)
+    yield from iter_config_dir_files()
     src_root = ROOT / "src"
     for p in iter_py_files(src_root, main_only=True):
         yield p, p.relative_to(ROOT)
@@ -178,7 +186,7 @@ def write_placement_map_main_only(copied: List[Tuple[Path, Path]]) -> None:
         out_name="КУДА_ПОЛОЖИТЬ_ФАЙЛЫ.txt",
         title="КУДА ПОЛОЖИТЬ КАЖДЫЙ ФАЙЛ (основная программа, без тестов и Tools)",
         intro=[
-            "Снимок: только Python-модули пайплайна и config.json.",
+            "Снимок: только Python-модули пайплайна и каталог config/.",
             "Исключены: src/Tests/, src/Tools/, документация Docs/, README, requirements.",
             "",
             "На целевом ПК: снимите суффикс .txt или запустите restore_names_from_txt.bat.",
@@ -216,12 +224,10 @@ def copy_helpers(*, main_only: bool, force_helpers: bool) -> None:
 
 
 def iter_program_sources() -> Iterable[Tuple[Path, Path]]:
-    """Все .py проекта + config.json (корень и src, включая Tests/Tools)."""
+    """Все .py проекта + каталог config/ (корень и src, включая Tests/Tools)."""
     for p in iter_root_py_files(ROOT):
         yield p, p.relative_to(ROOT)
-    cfg = ROOT / "config.json"
-    if cfg.is_file():
-        yield cfg, Path("config.json")
+    yield from iter_config_dir_files()
     src_root = ROOT / "src"
     for p in iter_py_files(src_root, main_only=False):
         yield p, p.relative_to(ROOT)
@@ -231,9 +237,9 @@ def write_placement_map_program(copied: List[Tuple[Path, Path]]) -> None:
     write_placement_map(
         copied,
         out_name="КУДА_ПОЛОЖИТЬ_ФАЙЛЫ.txt",
-        title="КУДА ПОЛОЖИТЬ КАЖДЫЙ ФАЙЛ (все .py и config.json)",
+        title="КУДА ПОЛОЖИТЬ КАЖДЫЙ ФАЙЛ (все .py и каталог config/)",
         intro=[
-            "Снимок: все Python-файлы (корень, src/, включая Tests и Tools) и config.json.",
+            "Снимок: все Python-файлы (корень, src/, включая Tests и Tools) и config/*.json.",
             "Без документации Docs/, README и requirements.",
             "",
             "На целевом ПК: снимите суффикс .txt с каждого файла или запустите restore_names_from_txt.bat.",
@@ -257,7 +263,7 @@ def prune_obsolete_post_files(prev_keys: Dict[str, str], new_keys: set[str]) -> 
 
 
 def build_post_program_only() -> None:
-    """Снимок: все .py + config.json и карта размещения (без полного удаления POST/)."""
+    """Снимок: все .py + config/ и карта размещения (без полного удаления POST/)."""
     POST.mkdir(parents=True, exist_ok=True)
     prev_manifest = load_manifest()
     prev_hashes: Dict[str, str] = prev_manifest.get("files") or {}
@@ -371,7 +377,14 @@ def build_post_full() -> None:
         all_hashes[rel_key] = file_sha256(p)
         n_code += 1
 
-    for name in ("config.json", "README.md", "requirements.txt"):
+    for src_path, rel in iter_config_dir_files():
+        rel_key = rel.as_posix()
+        new_keys.add(rel_key)
+        copy_one_txt_suffix(src_path, rel)
+        all_hashes[rel_key] = file_sha256(src_path)
+        n_code += 1
+
+    for name in ("README.md", "requirements.txt"):
         p = ROOT / name
         if not p.is_file():
             print(f"Пропуск (нет файла): {p}", file=sys.stderr)
@@ -428,12 +441,12 @@ def main() -> None:
     parser.add_argument(
         "--program-only",
         action="store_true",
-        help="Все .py + config.json (включая Tests/Tools), карта КУДА_ПОЛОЖИТЬ_ФАЙЛЫ.txt",
+        help="Все .py + config/ (включая Tests/Tools), карта КУДА_ПОЛОЖИТЬ_ФАЙЛЫ.txt",
     )
     parser.add_argument(
         "--main-only",
         action="store_true",
-        help="Только основная программа: .py + config.json, без Tests/Tools/Docs",
+        help="Только основная программа: .py + config/, без Tests/Tools/Docs",
     )
     parser.add_argument(
         "--changed-only",

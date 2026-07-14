@@ -1,0 +1,1518 @@
+{
+  "manager_stats": {
+    "output_sheet": "TAB_NUMBERS",
+    "summary_sheet": "MANAGER_STATS_SUMMARY",
+    "normalize_pad_width": 20,
+    "freeze": "E2",
+    "column_widths": {
+      "Табельный номер": {
+        "width_mode": 24
+      },
+      "Источники": {
+        "width_mode": "AUTO",
+        "min_width": 50,
+        "max_width": 80
+      }
+    },
+    "column_formats": [
+      {
+        "column_prefixes": [
+          "Количество кристаллов |",
+          "Место в рейтинге по стране |",
+          "Место в рейтинге ТБ |",
+          "Место в рейтинге ГОСБ |"
+        ],
+        "data_type": "number",
+        "decimal_places": 0,
+        "decimal_separator": ",",
+        "thousands_separator": true,
+        "horizontal": "center",
+        "vertical": "center",
+        "wrap_text": false
+      },
+      {
+        "columns": [
+          "ТБ",
+          "ГОСБ"
+        ],
+        "data_type": "number",
+        "decimal_places": 0,
+        "decimal_separator": ",",
+        "thousands_separator": false,
+        "horizontal": "center",
+        "vertical": "center",
+        "wrap_text": false
+      },
+      {
+        "columns": [
+          "10_2025 (дней)",
+          "10_2025 (входы)",
+          "11_2025 (дней)",
+          "11_2025 (входы)",
+          "12_2025 (дней)",
+          "12_2025 (входы)",
+          "01_2026 (дней)",
+          "01_2026 (входы)",
+          "02_2026 (дней)",
+          "02_2026 (входы)",
+          "03_2026 (дней)",
+          "03_2026 (входы)",
+          "04_2026 (дней)",
+          "04_2026 (входы)",
+          "05_2026 (дней)",
+          "05_2026 (входы)",
+          "06_2026 (дней)",
+          "06_2026 (входы)"
+        ],
+        "data_type": "number",
+        "decimal_places": 0,
+        "decimal_separator": ",",
+        "thousands_separator": false,
+        "horizontal": "center",
+        "vertical": "center",
+        "wrap_text": false
+      }
+    ],
+    "_column_formats_format": "column_formats[] для листа TAB_NUMBERS: column_prefixes — префиксы enrich-колонок RATING (метрика | период); columns — ТБ, ГОСБ; data_type number — целые.",
+    "_sources_format": "sources[]: sheet (точное имя) ИЛИ sheet_pattern (glob, напр. RATING_*); tab_column — колонка табельного; where_in — объект «колонка → [значения]», строка попадает только если во ВСЕХ перечисленных колонках значение из списка; where_not_in — «колонка → [значения]», строка отбрасывается если значение в списке (логическое И между колонками). enabled: false — пропуск правила.",
+    "sources": [
+      {
+        "id": "report_manager",
+        "enabled": true,
+        "sheet": "REPORT",
+        "tab_column": "MANAGER_PERSON_NUMBER",
+        "where_in": {},
+        "where_not_in": {}
+      },
+      {
+        "id": "employee_person",
+        "enabled": true,
+        "sheet": "EMPLOYEE",
+        "tab_column": "PERSON_NUMBER",
+        "where_in": {},
+        "where_not_in": {
+          "SURNAME": [
+            "…",
+            "..."
+          ],
+          "POSITION_NAME": [
+            "КПК",
+            "ГОСБ",
+            "Управление МБ",
+            "ОСБ",
+            "ТБ",
+            "Центральный аппарат",
+            "Сбер Факторинг",
+            "Сбербанк Лизинг"
+          ]
+        }
+      },
+      {
+        "id": "employee_person_add",
+        "enabled": true,
+        "sheet": "EMPLOYEE",
+        "tab_column": "PERSON_NUMBER_ADD",
+        "where_in": {},
+        "where_not_in": {
+          "SURNAME": [
+            "…",
+            "..."
+          ],
+          "POSITION_NAME": [
+            "КПК",
+            "ГОСБ",
+            "Управление МБ",
+            "ОСБ",
+            "ТБ",
+            "Центральный аппарат",
+            "Сбер Факторинг",
+            "Сбербанк Лизинг"
+          ]
+        }
+      },
+      {
+        "id": "statistics_tab",
+        "enabled": true,
+        "sheet": "STATISTICS",
+        "tab_column": "Табельный номер",
+        "where_in": {},
+        "where_not_in": {}
+      },
+      {
+        "id": "list_rewards_tab",
+        "enabled": true,
+        "sheet": "LIST-REWARDS",
+        "tab_column": "Табельный номер сотрудника",
+        "where_in": {},
+        "where_not_in": {}
+      },
+      {
+        "id": "rating_aggregate",
+        "enabled": true,
+        "sheet": "RATING",
+        "tab_column": "Табельный номер",
+        "where_in": {},
+        "where_not_in": {}
+      },
+      {
+        "id": "rating_files",
+        "enabled": true,
+        "sheet_pattern": "RATING_*",
+        "tab_column": "Табельный номер",
+        "where_in": {},
+        "where_not_in": {}
+      },
+      {
+        "id": "order_aggregate",
+        "enabled": true,
+        "sheet": "ORDER",
+        "tab_column": "Табельный номер",
+        "where_in": {},
+        "where_not_in": {
+          "Статус заказа": [
+            "Отклонён",
+            "Отменён"
+          ]
+        }
+      },
+      {
+        "id": "order_files",
+        "enabled": true,
+        "sheet_pattern": "ORDER_*",
+        "tab_column": "Табельный номер",
+        "where_in": {},
+        "where_not_in": {
+          "Статус заказа": [
+            "Отклонён",
+            "Отменён"
+          ]
+        }
+      }
+    ],
+    "enrich_default": "-",
+    "enrich_parallel": {
+      "enabled": true,
+      "max_workers": 0,
+      "min_tabs_for_parallel": 50,
+      "min_fields_for_parallel": 3,
+      "chunk_size": 500
+    },
+    "_enrich_columns_format": "enrich_columns[]: output_column; lookup_row_key — составной ключ из колонок строки; mode: value | sum | count | exists (exists + present_value у source, напр. «КМ»); multi_row: first | join (для exists+join — все коды ролей через join_separator); sources[]: sheet, tab_column или key_columns, value_column, present_value (exists), where_in, where_not_in.",
+    "enrich_columns": [
+      {
+        "id": "last_name",
+        "enabled": true,
+        "output_column": "Фамилия",
+        "mode": "value",
+        "multi_row": "first",
+        "default": "-",
+        "sources": [
+          {
+            "priority": 1,
+            "sheet": "RATING",
+            "tab_column": "Табельный номер",
+            "value_column": "Фамилия",
+            "where_in": {
+              "Период": [
+                "Сезон 2026"
+              ]
+            },
+            "where_not_in": {}
+          },
+          {
+            "priority": 2,
+            "sheet": "RATING",
+            "tab_column": "Табельный номер",
+            "value_column": "Фамилия",
+            "where_in": {},
+            "where_not_in": {}
+          },
+          {
+            "priority": 3,
+            "sheet": "STATISTICS",
+            "tab_column": "Табельный номер",
+            "value_column": "Фамилия",
+            "where_in": {
+              "Текущая роль": [
+                true
+              ]
+            },
+            "where_not_in": {}
+          },
+          {
+            "priority": 4,
+            "sheet": "EMPLOYEE",
+            "tab_column": "PERSON_NUMBER",
+            "value_column": "SURNAME",
+            "where_in": {},
+            "where_not_in": {}
+          },
+          {
+            "priority": 5,
+            "sheet": "EMPLOYEE",
+            "tab_column": "PERSON_NUMBER_ADD",
+            "value_column": "SURNAME",
+            "where_in": {},
+            "where_not_in": {}
+          }
+        ]
+      },
+      {
+        "id": "first_name",
+        "enabled": true,
+        "output_column": "Имя",
+        "mode": "value",
+        "multi_row": "first",
+        "default": "-",
+        "sources": [
+          {
+            "priority": 1,
+            "sheet": "RATING",
+            "tab_column": "Табельный номер",
+            "value_column": "Имя",
+            "where_in": {
+              "Период": [
+                "Сезон 2026"
+              ]
+            },
+            "where_not_in": {}
+          },
+          {
+            "priority": 2,
+            "sheet": "RATING",
+            "tab_column": "Табельный номер",
+            "value_column": "Имя",
+            "where_in": {},
+            "where_not_in": {}
+          },
+          {
+            "priority": 3,
+            "sheet": "STATISTICS",
+            "tab_column": "Табельный номер",
+            "value_column": "Имя",
+            "where_in": {
+              "Текущая роль": [
+                true
+              ]
+            },
+            "where_not_in": {}
+          },
+          {
+            "priority": 4,
+            "sheet": "EMPLOYEE",
+            "tab_column": "PERSON_NUMBER",
+            "value_column": "FIRST_NAME",
+            "where_in": {},
+            "where_not_in": {}
+          },
+          {
+            "priority": 5,
+            "sheet": "EMPLOYEE",
+            "tab_column": "PERSON_NUMBER_ADD",
+            "value_column": "FIRST_NAME",
+            "where_in": {},
+            "where_not_in": {}
+          }
+        ]
+      },
+      {
+        "id": "tb_code",
+        "enabled": true,
+        "output_column": "ТБ",
+        "mode": "value",
+        "multi_row": "first",
+        "default": "-",
+        "sources": [
+          {
+            "priority": 1,
+            "sheet": "STATISTICS",
+            "tab_column": "Табельный номер",
+            "value_column": "ТБ"
+          },
+          {
+            "priority": 2,
+            "sheet": "EMPLOYEE",
+            "tab_column": "PERSON_NUMBER",
+            "value_column": "TB_CODE"
+          }
+        ]
+      },
+      {
+        "id": "gosb_code",
+        "enabled": true,
+        "output_column": "ГОСБ",
+        "mode": "value",
+        "multi_row": "first",
+        "default": "-",
+        "sources": [
+          {
+            "priority": 1,
+            "sheet": "STATISTICS",
+            "tab_column": "Табельный номер",
+            "value_column": "ГОСБ"
+          },
+          {
+            "priority": 2,
+            "sheet": "EMPLOYEE",
+            "tab_column": "PERSON_NUMBER",
+            "value_column": "GOSB_CODE"
+          }
+        ]
+      },
+      {
+        "id": "tb_full_name",
+        "enabled": true,
+        "output_column": "TB_FULL_NAME",
+        "mode": "value",
+        "multi_row": "first",
+        "default": "-",
+        "lookup_row_key": [
+          "ТБ",
+          "ГОСБ"
+        ],
+        "sources": [
+          {
+            "priority": 1,
+            "sheet": "ORG_UNIT_V20",
+            "key_columns": [
+              "TB_CODE",
+              "GOSB_CODE"
+            ],
+            "value_column": "TB_FULL_NAME",
+            "where_in": {},
+            "where_not_in": {}
+          }
+        ]
+      },
+      {
+        "id": "gosb_name",
+        "enabled": true,
+        "output_column": "GOSB_NAME",
+        "mode": "value",
+        "multi_row": "first",
+        "default": "-",
+        "lookup_row_key": [
+          "ТБ",
+          "ГОСБ"
+        ],
+        "sources": [
+          {
+            "priority": 1,
+            "sheet": "ORG_UNIT_V20",
+            "key_columns": [
+              "TB_CODE",
+              "GOSB_CODE"
+            ],
+            "value_column": "GOSB_NAME",
+            "where_in": {},
+            "where_not_in": {}
+          }
+        ]
+      },
+      {
+        "id": "in_current_rating",
+        "enabled": true,
+        "output_column": "есть в текущем рейтинге",
+        "mode": "exists",
+        "multi_row": "join",
+        "join_separator": "; ",
+        "default": "-",
+        "sources": [
+          {
+            "priority": 1,
+            "sheet": "RATING",
+            "tab_column": "Табельный номер",
+            "present_value": "КМ",
+            "where_in": {
+              "Наименование Роли": [
+                "Клиентский менеджер крупнейшего, крупного и среднего бизнеса"
+              ],
+              "Период": [
+                "Сезон 2026"
+              ]
+            },
+            "where_not_in": {}
+          },
+          {
+            "priority": 2,
+            "sheet": "RATING",
+            "tab_column": "Табельный номер",
+            "present_value": "AKM",
+            "where_in": {
+              "Наименование Роли": [
+                "Ассистент клиентского менеджера ККСБ"
+              ],
+              "Период": [
+                "Сезон 2026"
+              ]
+            },
+            "where_not_in": {}
+          },
+          {
+            "priority": 3,
+            "sheet": "RATING",
+            "tab_column": "Табельный номер",
+            "present_value": "МНС",
+            "where_in": {
+              "Наименование Роли": [
+                "Менеджер нефинансовых сервисов"
+              ],
+              "Период": [
+                "Сезон 2026"
+              ]
+            },
+            "where_not_in": {}
+          },
+          {
+            "priority": 4,
+            "sheet": "RATING",
+            "tab_column": "Табельный номер",
+            "present_value": "CSM",
+            "where_in": {
+              "Наименование Роли": [
+                "Руководитель проектов по технологическому развитию клиентов"
+              ],
+              "Период": [
+                "Сезон 2026"
+              ]
+            },
+            "where_not_in": {}
+          }
+        ]
+      },
+      {
+        "id": "stats_role_code",
+        "enabled": true,
+        "output_column": "Код роли",
+        "mode": "value",
+        "multi_row": "first",
+        "default": "-",
+        "sources": [
+          {
+            "priority": 1,
+            "sheet": "STATISTICS",
+            "tab_column": "Табельный номер",
+            "value_column": "Код роли",
+            "where_in": {
+              "Текущая роль": [
+                true
+              ]
+            },
+            "where_not_in": {}
+          }
+        ]
+      },
+      {
+        "id": "stats_role_name",
+        "enabled": true,
+        "output_column": "Наименование Роли",
+        "mode": "value",
+        "multi_row": "first",
+        "default": "-",
+        "sources": [
+          {
+            "priority": 1,
+            "sheet": "STATISTICS",
+            "tab_column": "Табельный номер",
+            "value_column": "Наименование Роли",
+            "where_in": {
+              "Текущая роль": [
+                true
+              ]
+            },
+            "where_not_in": {}
+          }
+        ]
+      },
+      {
+        "id": "email_sigma",
+        "enabled": true,
+        "output_column": "Email Sigma",
+        "mode": "value",
+        "multi_row": "first",
+        "default": "-",
+        "sources": [
+          {
+            "priority": 1,
+            "sheet": "STATISTICS",
+            "tab_column": "Табельный номер",
+            "value_column": "Почта Сигма",
+            "where_in": {},
+            "where_not_in": {}
+          },
+          {
+            "priority": 2,
+            "sheet": "ORDER",
+            "tab_column": "Табельный номер",
+            "value_column": "Email в домене Sigma",
+            "where_in": {},
+            "where_not_in": {
+              "Статус заказа": [
+                "Отклонён",
+                "Отменён"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "id": "email_alpha",
+        "enabled": true,
+        "output_column": "Email Alpha",
+        "mode": "value",
+        "multi_row": "first",
+        "default": "-",
+        "sources": [
+          {
+            "priority": 1,
+            "sheet": "STATISTICS",
+            "tab_column": "Табельный номер",
+            "value_column": "Почта Альфа",
+            "where_in": {},
+            "where_not_in": {}
+          },
+          {
+            "priority": 2,
+            "sheet": "ORDER",
+            "tab_column": "Табельный номер",
+            "value_column": "Email в домене Alpha",
+            "where_in": {},
+            "where_not_in": {
+              "Статус заказа": [
+                "Отклонён",
+                "Отменён"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "id": "rating_crystals_h1_2025",
+        "enabled": true,
+        "output_column": "Количество кристаллов | 1 полугодие 2025",
+        "mode": "value",
+        "multi_row": "first",
+        "default": "-",
+        "sources": [
+          {
+            "priority": 1,
+            "sheet": "RATING",
+            "tab_column": "Табельный номер",
+            "value_column": "Количество кристаллов",
+            "where_in": {
+              "Наименование Роли": [
+                "Клиентский менеджер крупнейшего, крупного и среднего бизнеса"
+              ],
+              "Период": [
+                "1 полугодие 2025"
+              ]
+            },
+            "where_not_in": {}
+          }
+        ]
+      },
+      {
+        "id": "rating_rank_country_h1_2025",
+        "enabled": true,
+        "output_column": "Место в рейтинге по стране | 1 полугодие 2025",
+        "mode": "value",
+        "multi_row": "first",
+        "default": "-",
+        "sources": [
+          {
+            "priority": 1,
+            "sheet": "RATING",
+            "tab_column": "Табельный номер",
+            "value_column": "Место в рейтинге по стране",
+            "where_in": {
+              "Наименование Роли": [
+                "Клиентский менеджер крупнейшего, крупного и среднего бизнеса"
+              ],
+              "Период": [
+                "1 полугодие 2025"
+              ]
+            },
+            "where_not_in": {}
+          }
+        ]
+      },
+      {
+        "id": "rating_rank_tb_h1_2025",
+        "enabled": true,
+        "output_column": "Место в рейтинге ТБ | 1 полугодие 2025",
+        "mode": "value",
+        "multi_row": "first",
+        "default": "-",
+        "sources": [
+          {
+            "priority": 1,
+            "sheet": "RATING",
+            "tab_column": "Табельный номер",
+            "value_column": "Место в рейтинге ТБ",
+            "where_in": {
+              "Наименование Роли": [
+                "Клиентский менеджер крупнейшего, крупного и среднего бизнеса"
+              ],
+              "Период": [
+                "1 полугодие 2025"
+              ]
+            },
+            "where_not_in": {}
+          }
+        ]
+      },
+      {
+        "id": "rating_rank_gosb_h1_2025",
+        "enabled": true,
+        "output_column": "Место в рейтинге ГОСБ | 1 полугодие 2025",
+        "mode": "value",
+        "multi_row": "first",
+        "default": "-",
+        "sources": [
+          {
+            "priority": 1,
+            "sheet": "RATING",
+            "tab_column": "Табельный номер",
+            "value_column": "Место в рейтинге ГОСБ",
+            "where_in": {
+              "Наименование Роли": [
+                "Клиентский менеджер крупнейшего, крупного и среднего бизнеса"
+              ],
+              "Период": [
+                "1 полугодие 2025"
+              ]
+            },
+            "where_not_in": {}
+          }
+        ]
+      },
+      {
+        "id": "rating_crystals_h2_2025",
+        "enabled": true,
+        "output_column": "Количество кристаллов | 2 полугодие 2025",
+        "mode": "value",
+        "multi_row": "first",
+        "default": "-",
+        "sources": [
+          {
+            "priority": 1,
+            "sheet": "RATING",
+            "tab_column": "Табельный номер",
+            "value_column": "Количество кристаллов",
+            "where_in": {
+              "Наименование Роли": [
+                "Клиентский менеджер крупнейшего, крупного и среднего бизнеса"
+              ],
+              "Период": [
+                "2 полугодие 2025"
+              ]
+            },
+            "where_not_in": {}
+          }
+        ]
+      },
+      {
+        "id": "rating_rank_country_h2_2025",
+        "enabled": true,
+        "output_column": "Место в рейтинге по стране | 2 полугодие 2025",
+        "mode": "value",
+        "multi_row": "first",
+        "default": "-",
+        "sources": [
+          {
+            "priority": 1,
+            "sheet": "RATING",
+            "tab_column": "Табельный номер",
+            "value_column": "Место в рейтинге по стране",
+            "where_in": {
+              "Наименование Роли": [
+                "Клиентский менеджер крупнейшего, крупного и среднего бизнеса"
+              ],
+              "Период": [
+                "2 полугодие 2025"
+              ]
+            },
+            "where_not_in": {}
+          }
+        ]
+      },
+      {
+        "id": "rating_rank_tb_h2_2025",
+        "enabled": true,
+        "output_column": "Место в рейтинге ТБ | 2 полугодие 2025",
+        "mode": "value",
+        "multi_row": "first",
+        "default": "-",
+        "sources": [
+          {
+            "priority": 1,
+            "sheet": "RATING",
+            "tab_column": "Табельный номер",
+            "value_column": "Место в рейтинге ТБ",
+            "where_in": {
+              "Наименование Роли": [
+                "Клиентский менеджер крупнейшего, крупного и среднего бизнеса"
+              ],
+              "Период": [
+                "2 полугодие 2025"
+              ]
+            },
+            "where_not_in": {}
+          }
+        ]
+      },
+      {
+        "id": "rating_rank_gosb_h2_2025",
+        "enabled": true,
+        "output_column": "Место в рейтинге ГОСБ | 2 полугодие 2025",
+        "mode": "value",
+        "multi_row": "first",
+        "default": "-",
+        "sources": [
+          {
+            "priority": 1,
+            "sheet": "RATING",
+            "tab_column": "Табельный номер",
+            "value_column": "Место в рейтинге ГОСБ",
+            "where_in": {
+              "Наименование Роли": [
+                "Клиентский менеджер крупнейшего, крупного и среднего бизнеса"
+              ],
+              "Период": [
+                "2 полугодие 2025"
+              ]
+            },
+            "where_not_in": {}
+          }
+        ]
+      },
+      {
+        "id": "rating_crystals_all_time",
+        "enabled": true,
+        "output_column": "Количество кристаллов | За всё время",
+        "mode": "value",
+        "multi_row": "first",
+        "default": "-",
+        "sources": [
+          {
+            "priority": 1,
+            "sheet": "RATING",
+            "tab_column": "Табельный номер",
+            "value_column": "Количество кристаллов",
+            "where_in": {
+              "Наименование Роли": [
+                "Клиентский менеджер крупнейшего, крупного и среднего бизнеса"
+              ],
+              "Период": [
+                "За всё время"
+              ]
+            },
+            "where_not_in": {}
+          }
+        ]
+      },
+      {
+        "id": "rating_rank_country_all_time",
+        "enabled": true,
+        "output_column": "Место в рейтинге по стране | За всё время",
+        "mode": "value",
+        "multi_row": "first",
+        "default": "-",
+        "sources": [
+          {
+            "priority": 1,
+            "sheet": "RATING",
+            "tab_column": "Табельный номер",
+            "value_column": "Место в рейтинге по стране",
+            "where_in": {
+              "Наименование Роли": [
+                "Клиентский менеджер крупнейшего, крупного и среднего бизнеса"
+              ],
+              "Период": [
+                "За всё время"
+              ]
+            },
+            "where_not_in": {}
+          }
+        ]
+      },
+      {
+        "id": "rating_rank_tb_all_time",
+        "enabled": true,
+        "output_column": "Место в рейтинге ТБ | За всё время",
+        "mode": "value",
+        "multi_row": "first",
+        "default": "-",
+        "sources": [
+          {
+            "priority": 1,
+            "sheet": "RATING",
+            "tab_column": "Табельный номер",
+            "value_column": "Место в рейтинге ТБ",
+            "where_in": {
+              "Наименование Роли": [
+                "Клиентский менеджер крупнейшего, крупного и среднего бизнеса"
+              ],
+              "Период": [
+                "За всё время"
+              ]
+            },
+            "where_not_in": {}
+          }
+        ]
+      },
+      {
+        "id": "rating_rank_gosb_all_time",
+        "enabled": true,
+        "output_column": "Место в рейтинге ГОСБ | За всё время",
+        "mode": "value",
+        "multi_row": "first",
+        "default": "-",
+        "sources": [
+          {
+            "priority": 1,
+            "sheet": "RATING",
+            "tab_column": "Табельный номер",
+            "value_column": "Место в рейтинге ГОСБ",
+            "where_in": {
+              "Наименование Роли": [
+                "Клиентский менеджер крупнейшего, крупного и среднего бизнеса"
+              ],
+              "Период": [
+                "За всё время"
+              ]
+            },
+            "where_not_in": {}
+          }
+        ]
+      },
+      {
+        "id": "rating_crystals_season_2024",
+        "enabled": true,
+        "output_column": "Количество кристаллов | Сезон 2024",
+        "mode": "value",
+        "multi_row": "first",
+        "default": "-",
+        "sources": [
+          {
+            "priority": 1,
+            "sheet": "RATING",
+            "tab_column": "Табельный номер",
+            "value_column": "Количество кристаллов",
+            "where_in": {
+              "Наименование Роли": [
+                "Клиентский менеджер крупнейшего, крупного и среднего бизнеса"
+              ],
+              "Период": [
+                "Сезон 2024"
+              ]
+            },
+            "where_not_in": {}
+          }
+        ]
+      },
+      {
+        "id": "rating_rank_country_season_2024",
+        "enabled": true,
+        "output_column": "Место в рейтинге по стране | Сезон 2024",
+        "mode": "value",
+        "multi_row": "first",
+        "default": "-",
+        "sources": [
+          {
+            "priority": 1,
+            "sheet": "RATING",
+            "tab_column": "Табельный номер",
+            "value_column": "Место в рейтинге по стране",
+            "where_in": {
+              "Наименование Роли": [
+                "Клиентский менеджер крупнейшего, крупного и среднего бизнеса"
+              ],
+              "Период": [
+                "Сезон 2024"
+              ]
+            },
+            "where_not_in": {}
+          }
+        ]
+      },
+      {
+        "id": "rating_rank_tb_season_2024",
+        "enabled": true,
+        "output_column": "Место в рейтинге ТБ | Сезон 2024",
+        "mode": "value",
+        "multi_row": "first",
+        "default": "-",
+        "sources": [
+          {
+            "priority": 1,
+            "sheet": "RATING",
+            "tab_column": "Табельный номер",
+            "value_column": "Место в рейтинге ТБ",
+            "where_in": {
+              "Наименование Роли": [
+                "Клиентский менеджер крупнейшего, крупного и среднего бизнеса"
+              ],
+              "Период": [
+                "Сезон 2024"
+              ]
+            },
+            "where_not_in": {}
+          }
+        ]
+      },
+      {
+        "id": "rating_rank_gosb_season_2024",
+        "enabled": true,
+        "output_column": "Место в рейтинге ГОСБ | Сезон 2024",
+        "mode": "value",
+        "multi_row": "first",
+        "default": "-",
+        "sources": [
+          {
+            "priority": 1,
+            "sheet": "RATING",
+            "tab_column": "Табельный номер",
+            "value_column": "Место в рейтинге ГОСБ",
+            "where_in": {
+              "Наименование Роли": [
+                "Клиентский менеджер крупнейшего, крупного и среднего бизнеса"
+              ],
+              "Период": [
+                "Сезон 2024"
+              ]
+            },
+            "where_not_in": {}
+          }
+        ]
+      },
+      {
+        "id": "rating_crystals_season_2026",
+        "enabled": true,
+        "output_column": "Количество кристаллов | Сезон 2026",
+        "mode": "value",
+        "multi_row": "first",
+        "default": "-",
+        "sources": [
+          {
+            "priority": 1,
+            "sheet": "RATING",
+            "tab_column": "Табельный номер",
+            "value_column": "Количество кристаллов",
+            "where_in": {
+              "Наименование Роли": [
+                "Клиентский менеджер крупнейшего, крупного и среднего бизнеса"
+              ],
+              "Период": [
+                "Сезон 2026"
+              ]
+            },
+            "where_not_in": {}
+          }
+        ]
+      },
+      {
+        "id": "rating_rank_country_season_2026",
+        "enabled": true,
+        "output_column": "Место в рейтинге по стране | Сезон 2026",
+        "mode": "value",
+        "multi_row": "first",
+        "default": "-",
+        "sources": [
+          {
+            "priority": 1,
+            "sheet": "RATING",
+            "tab_column": "Табельный номер",
+            "value_column": "Место в рейтинге по стране",
+            "where_in": {
+              "Наименование Роли": [
+                "Клиентский менеджер крупнейшего, крупного и среднего бизнеса"
+              ],
+              "Период": [
+                "Сезон 2026"
+              ]
+            },
+            "where_not_in": {}
+          }
+        ]
+      },
+      {
+        "id": "rating_rank_tb_season_2026",
+        "enabled": true,
+        "output_column": "Место в рейтинге ТБ | Сезон 2026",
+        "mode": "value",
+        "multi_row": "first",
+        "default": "-",
+        "sources": [
+          {
+            "priority": 1,
+            "sheet": "RATING",
+            "tab_column": "Табельный номер",
+            "value_column": "Место в рейтинге ТБ",
+            "where_in": {
+              "Наименование Роли": [
+                "Клиентский менеджер крупнейшего, крупного и среднего бизнеса"
+              ],
+              "Период": [
+                "Сезон 2026"
+              ]
+            },
+            "where_not_in": {}
+          }
+        ]
+      },
+      {
+        "id": "rating_rank_gosb_season_2026",
+        "enabled": true,
+        "output_column": "Место в рейтинге ГОСБ | Сезон 2026",
+        "mode": "value",
+        "multi_row": "first",
+        "default": "-",
+        "sources": [
+          {
+            "priority": 1,
+            "sheet": "RATING",
+            "tab_column": "Табельный номер",
+            "value_column": "Место в рейтинге ГОСБ",
+            "where_in": {
+              "Наименование Роли": [
+                "Клиентский менеджер крупнейшего, крупного и среднего бизнеса"
+              ],
+              "Период": [
+                "Сезон 2026"
+              ]
+            },
+            "where_not_in": {}
+          }
+        ]
+      },
+      {
+        "id": "stats_102025_дней",
+        "enabled": true,
+        "output_column": "10_2025 (дней)",
+        "mode": "sum",
+        "multi_row": "first",
+        "default": "-",
+        "sources": [
+          {
+            "priority": 1,
+            "sheet": "STATISTICS",
+            "tab_column": "Табельный номер",
+            "value_column": "Октябрь 2025 дней",
+            "where_in": {},
+            "where_not_in": {}
+          }
+        ]
+      },
+      {
+        "id": "stats_102025_входы",
+        "enabled": true,
+        "output_column": "10_2025 (входы)",
+        "mode": "sum",
+        "multi_row": "first",
+        "default": "-",
+        "sources": [
+          {
+            "priority": 1,
+            "sheet": "STATISTICS",
+            "tab_column": "Табельный номер",
+            "value_column": "Октябрь 2025 входов",
+            "where_in": {},
+            "where_not_in": {}
+          }
+        ]
+      },
+      {
+        "id": "stats_112025_дней",
+        "enabled": true,
+        "output_column": "11_2025 (дней)",
+        "mode": "sum",
+        "multi_row": "first",
+        "default": "-",
+        "sources": [
+          {
+            "priority": 1,
+            "sheet": "STATISTICS",
+            "tab_column": "Табельный номер",
+            "value_column": "Ноябрь 2025 дней",
+            "where_in": {},
+            "where_not_in": {}
+          }
+        ]
+      },
+      {
+        "id": "stats_112025_входы",
+        "enabled": true,
+        "output_column": "11_2025 (входы)",
+        "mode": "sum",
+        "multi_row": "first",
+        "default": "-",
+        "sources": [
+          {
+            "priority": 1,
+            "sheet": "STATISTICS",
+            "tab_column": "Табельный номер",
+            "value_column": "Ноябрь 2025 входов",
+            "where_in": {},
+            "where_not_in": {}
+          }
+        ]
+      },
+      {
+        "id": "stats_122025_дней",
+        "enabled": true,
+        "output_column": "12_2025 (дней)",
+        "mode": "sum",
+        "multi_row": "first",
+        "default": "-",
+        "sources": [
+          {
+            "priority": 1,
+            "sheet": "STATISTICS",
+            "tab_column": "Табельный номер",
+            "value_column": "Декабрь 2025 дней",
+            "where_in": {},
+            "where_not_in": {}
+          }
+        ]
+      },
+      {
+        "id": "stats_122025_входы",
+        "enabled": true,
+        "output_column": "12_2025 (входы)",
+        "mode": "sum",
+        "multi_row": "first",
+        "default": "-",
+        "sources": [
+          {
+            "priority": 1,
+            "sheet": "STATISTICS",
+            "tab_column": "Табельный номер",
+            "value_column": "Декабрь 2025 входов",
+            "where_in": {},
+            "where_not_in": {}
+          }
+        ]
+      },
+      {
+        "id": "stats_012026_дней",
+        "enabled": true,
+        "output_column": "01_2026 (дней)",
+        "mode": "sum",
+        "multi_row": "first",
+        "default": "-",
+        "sources": [
+          {
+            "priority": 1,
+            "sheet": "STATISTICS",
+            "tab_column": "Табельный номер",
+            "value_column": "Январь 2026 дней",
+            "where_in": {},
+            "where_not_in": {}
+          }
+        ]
+      },
+      {
+        "id": "stats_012026_входы",
+        "enabled": true,
+        "output_column": "01_2026 (входы)",
+        "mode": "sum",
+        "multi_row": "first",
+        "default": "-",
+        "sources": [
+          {
+            "priority": 1,
+            "sheet": "STATISTICS",
+            "tab_column": "Табельный номер",
+            "value_column": "Январь 2026 входов",
+            "where_in": {},
+            "where_not_in": {}
+          }
+        ]
+      },
+      {
+        "id": "stats_022026_дней",
+        "enabled": true,
+        "output_column": "02_2026 (дней)",
+        "mode": "sum",
+        "multi_row": "first",
+        "default": "-",
+        "sources": [
+          {
+            "priority": 1,
+            "sheet": "STATISTICS",
+            "tab_column": "Табельный номер",
+            "value_column": "Февраль 2026 дней",
+            "where_in": {},
+            "where_not_in": {}
+          }
+        ]
+      },
+      {
+        "id": "stats_022026_входы",
+        "enabled": true,
+        "output_column": "02_2026 (входы)",
+        "mode": "sum",
+        "multi_row": "first",
+        "default": "-",
+        "sources": [
+          {
+            "priority": 1,
+            "sheet": "STATISTICS",
+            "tab_column": "Табельный номер",
+            "value_column": "Февраль 2026 входов",
+            "where_in": {},
+            "where_not_in": {}
+          }
+        ]
+      },
+      {
+        "id": "stats_032026_дней",
+        "enabled": true,
+        "output_column": "03_2026 (дней)",
+        "mode": "sum",
+        "multi_row": "first",
+        "default": "-",
+        "sources": [
+          {
+            "priority": 1,
+            "sheet": "STATISTICS",
+            "tab_column": "Табельный номер",
+            "value_column": "Март 2026 дней",
+            "where_in": {},
+            "where_not_in": {}
+          }
+        ]
+      },
+      {
+        "id": "stats_032026_входы",
+        "enabled": true,
+        "output_column": "03_2026 (входы)",
+        "mode": "sum",
+        "multi_row": "first",
+        "default": "-",
+        "sources": [
+          {
+            "priority": 1,
+            "sheet": "STATISTICS",
+            "tab_column": "Табельный номер",
+            "value_column": "Март 2026 входов",
+            "where_in": {},
+            "where_not_in": {}
+          }
+        ]
+      },
+      {
+        "id": "stats_042026_дней",
+        "enabled": true,
+        "output_column": "04_2026 (дней)",
+        "mode": "sum",
+        "multi_row": "first",
+        "default": "-",
+        "sources": [
+          {
+            "priority": 1,
+            "sheet": "STATISTICS",
+            "tab_column": "Табельный номер",
+            "value_column": "Апрель 2026 дней",
+            "where_in": {},
+            "where_not_in": {}
+          }
+        ]
+      },
+      {
+        "id": "stats_042026_входы",
+        "enabled": true,
+        "output_column": "04_2026 (входы)",
+        "mode": "sum",
+        "multi_row": "first",
+        "default": "-",
+        "sources": [
+          {
+            "priority": 1,
+            "sheet": "STATISTICS",
+            "tab_column": "Табельный номер",
+            "value_column": "Апрель 2026 входов",
+            "where_in": {},
+            "where_not_in": {}
+          }
+        ]
+      },
+      {
+        "id": "stats_052026_дней",
+        "enabled": true,
+        "output_column": "05_2026 (дней)",
+        "mode": "sum",
+        "multi_row": "first",
+        "default": "-",
+        "sources": [
+          {
+            "priority": 1,
+            "sheet": "STATISTICS",
+            "tab_column": "Табельный номер",
+            "value_column": "Май 2026 дней",
+            "where_in": {},
+            "where_not_in": {}
+          }
+        ]
+      },
+      {
+        "id": "stats_052026_входы",
+        "enabled": true,
+        "output_column": "05_2026 (входы)",
+        "mode": "sum",
+        "multi_row": "first",
+        "default": "-",
+        "sources": [
+          {
+            "priority": 1,
+            "sheet": "STATISTICS",
+            "tab_column": "Табельный номер",
+            "value_column": "Май 2026 входов",
+            "where_in": {},
+            "where_not_in": {}
+          }
+        ]
+      },
+      {
+        "id": "stats_062026_дней",
+        "enabled": true,
+        "output_column": "06_2026 (дней)",
+        "mode": "sum",
+        "multi_row": "first",
+        "default": "-",
+        "sources": [
+          {
+            "priority": 1,
+            "sheet": "STATISTICS",
+            "tab_column": "Табельный номер",
+            "value_column": "Июнь 2026 дней",
+            "where_in": {},
+            "where_not_in": {}
+          }
+        ]
+      },
+      {
+        "id": "stats_062026_входы",
+        "enabled": true,
+        "output_column": "06_2026 (входы)",
+        "mode": "sum",
+        "multi_row": "first",
+        "default": "-",
+        "sources": [
+          {
+            "priority": 1,
+            "sheet": "STATISTICS",
+            "tab_column": "Табельный номер",
+            "value_column": "Июнь 2026 входов",
+            "where_in": {},
+            "where_not_in": {}
+          }
+        ]
+      }
+    ],
+    "_rating_enrich_groups_format": "Группы RATING (роль КМККСБ + период): для каждой пары «Наименование Роли»+«Период» отдельные колонки «метрика | период» — кристаллы и места в рейтинге; default «-».",
+    "_statistics_activity_format": "STATISTICS: сумма по табельному из колонок «<месяц> дней/входов» → «MM_YYYY (дней/входы)»; mode sum.",
+    "profile_gp_load": {
+      "js_enabled": true,
+      "js_file": "Profile_GP_LOAD_AutoRun.js",
+      "js_template": "Profile_GP_LOAD_file.js",
+      "js_template_subdir": "JS",
+      "json_subdir": "JS",
+      "json_file": "profiles_PROM_ALPHA_part1_20260701_154328.json",
+      "json_files": [],
+      "json_enabled": true,
+      "json_field_map": {
+        "Фамилия": "lastName",
+        "Имя": "firstName",
+        "ТБ": "tbCode",
+        "ГОСБ": "gosbCode",
+        "Код роли": "roleCode"
+      },
+      "js_missing_columns": [
+        "Фамилия",
+        "Имя",
+        "ТБ",
+        "ГОСБ"
+      ],
+      "missing_columns": [
+        "Фамилия",
+        "Имя",
+        "ТБ",
+        "ГОСБ",
+        "Код роли",
+        "Наименование Роли",
+        "Email Sigma",
+        "Email Alpha"
+      ],
+      "request_delay_ms": 2,
+      "enable_retry": true,
+      "max_retries": 1,
+      "retry_delay_on_error_ms": 1500,
+      "output_base_name": "profiles",
+      "batch_size": 12000,
+      "enable_photo_download": false,
+      "enable_photo_strip": true
+    },
+    "_profile_gp_load_format": "1) CSV enrich → 2) profile GP JSON → 3) ORG_UNIT; Profile AutoRun JS — табельные с пустым/NULL/«-» в любом из: Фамилия, Имя, ТБ, ГОСБ (не Код роли, не Email, не Наименование Роли).",
+    "prom_tournament_catalog": {
+      "enabled": true,
+      "sheet_name": "PROM_TOURNAMENTS",
+      "schedule_sheet": "TOURNAMENT-SCHEDULE",
+      "reward_link_sheet": "REWARD-LINK",
+      "contest_sheet": "CONTEST-DATA",
+      "reward_sheet": "REWARD",
+      "list_rewards_sheet": "LIST-REWARDS",
+      "rewards_received_column": "получено наград",
+      "active_statuses": [
+        "АКТИВНЫЙ",
+        "ПОДВЕДЕНИЕ ИТОГОВ"
+      ],
+      "date_year": "2026",
+      "contest_vid": "ПРОМ",
+      "tab_columns_enabled": true,
+      "tab_columns_default": 0,
+      "tab_columns_width": 7,
+      "tab_columns_total_nagrada": "НАГРАДА всего",
+      "tab_columns_total_tournament": "ТУРНИР всего",
+      "leaders_for_admin_column": "запрос leadersForAdmin",
+      "leaders_for_admin_value_yes": "ДА",
+      "leaders_for_admin_contest_type": "ТУРНИРНЫЙ",
+      "leaders_for_admin_js_enabled": true,
+      "leaders_for_admin_js_file": "Tournament_LeadersForAdmin_AutoRun.js",
+      "leaders_for_admin_json_enabled": true,
+      "leaders_for_admin_json_subdir": "JS",
+      "leaders_for_admin_json_file": "leadersForAdmin_PROM_ALPHA_20260630-111442.json",
+      "leaders_for_admin_pretender_categories": [
+        "Серебро",
+        "Бронза",
+        "Вы в лидерах"
+      ],
+      "tab_columns_pretender_prefix": "ТУРНИР (претендент)",
+      "tab_columns_total_pretender": "ТУРНИР (претендент) всего",
+      "tab_columns_format": {
+        "data_type": "number",
+        "decimal_places": 0,
+        "decimal_separator": ",",
+        "thousands_separator": false,
+        "horizontal": "center",
+        "vertical": "center",
+        "wrap_text": false
+      },
+      "column_formats": [
+        {
+          "columns": [
+            "START_DT",
+            "END_DT"
+          ],
+          "data_type": "date",
+          "date_format": "YYYY-MM-DD",
+          "horizontal": "center",
+          "vertical": "center",
+          "wrap_text": false
+        }
+      ]
+    },
+    "_prom_tournament_catalog_format": "PROM_TOURNAMENTS + TAB_NUMBERS: НАГРАДА/ТУРНИР (LIST-REWARDS); турниры leadersForAdmin → колонки ТУРНИР (претендент) из IN/JS JSON; JS в OUT/YYYY/DD-MM при manager_stats_only."
+  }
+}

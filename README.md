@@ -6,7 +6,7 @@
 2. [Структура проекта](#структура-проекта)
 3. [Навигация по документации](#навигация-по-документации)
 4. [Модули src/ (описание и назначение)](#модули-src-описание-и-назначение)
-5. [Конфигурация config.json](#конфигурация-configjson)
+5. [Конфигурация (`config/`)](#конфигурация-config)
 6. [Программа main.py - Обработка данных](#программа-mainpy---обработка-данных)
 7. [Техническое задание](#техническое-задание)
 8. [Анализ входных данных](#анализ-входных-данных)
@@ -31,11 +31,19 @@
 ```
 SPOD_PROM/
 ├── main.py                 # Точка входа: загрузка Config, запуск пайплайна (код в src/)
-├── config.json             # Конфигурация (пути, файлы, правила merge, цвета, форматы и т.д.)
-├── README.md               # Документация проекта (в т.ч. полное описание config.json)
+├── config/                 # Конфигурация (точка входа config.json + CONFIG_*.json)
+│   ├── config.json         # $include + опциональные оверрайды
+│   ├── CONFIG_RUN_INPUT.json
+│   ├── CONFIG_CHECKS.json
+│   ├── CONFIG_FORMATS.json
+│   ├── CONFIG_MERGE.json
+│   ├── CONFIG_RATING.json
+│   ├── CONFIG_ORDER.json
+│   └── CONFIG_MANAGER.json
+├── README.md               # Документация проекта
 ├── src/                    # Исходный код обработки (модули и классы)
 │   ├── __init__.py
-│   ├── config_loader.py   # Класс Config — загрузка config.json
+│   ├── config_loader.py   # Класс Config — загрузка config/ ($include)
 │   ├── config_holder.py    # Внедрение конфига для main_impl
 │   ├── logging_setup.py   # Форматтер логов, настройка логгера
 │   ├── debug_timing.py    # DEBUG [PERF]; отдельный xlsx STAT_FILE <таймштамп> (этапы и функции)
@@ -55,13 +63,13 @@ SPOD_PROM/
 │   └── main_impl.py      # Полный пайплайн: загрузка, merge, summary, Excel, отчёты
 ├── requirements.txt        # Зависимости (pandas, openpyxl и др.) для main.py
 ├── IN/                     # Корень входа: IN/<BLOCK>/{SPOD,FILE,POST,JS}/ (BLOCK=PROM|IFT|PSI)
-├── OUT/                    # Базовый каталог вывода (paths.output); файлы по блоку и дате: OUT/<BLOCK>/YYYY/DD-MM/ (BLOCK=PROM|IFT|PSI); опционально OUT/DB/*.sqlite — архив входных CSV
+├── OUT/                    # Базовый каталог вывода (paths.output); файлы по блоку и дате: OUT/<BLOCK>/YYYY/DD-MM/
 ├── BACKUP/                 # Резервные копии
-├── POST/                   # Не в Git (.gitignore). Снимок: sync_post_txt.py (открытый .txt) или pack_post_encrypted_program.py (шифрованный bundle для почты)
+├── POST/                   # Не в Git (.gitignore). Снимок включает каталог config/
 ├── LOGS/                   # Файлы логов (paths.logs); по дате: LOGS/YYYY/DD-MM/
-├── Docs/                   # Дополнительная документация; каталог CSV/JSON — Docs/JSON/ (см. README внутри)
+├── Docs/                   # Дополнительная документация; каталог CSV/JSON — Docs/JSON/
 ├── decrypt_post_program.py # Расшифровка IN/POST → OUT/POST (зашифрованный снимок)
-├── src/Tools/              # Утилиты: sync_post_txt.py, pack_post_encrypted_program.py, export_spod_json_examples.py и др.
+├── src/Tools/              # Утилиты: sync_post_txt.py, pack_post_encrypted_program.py и др.
 │   └── catalog_glossary/   # Фрагменты пояснений к JSON для каталога
 └── venv/                  # Виртуальное окружение
 ```
@@ -121,44 +129,48 @@ SPOD_PROM/
 | **console_ui.py** | Краткий вывод в **stdout** при работе **main** | Этапы, сводки, **`print_consistency_summary`**, **`print_input_archive_sqlite_report`** (v1), **`print_input_archive_row_report`** (v2). Только stdlib. |
 | **main_impl.py** | Полный пайплайн обработки | При импорте вызывается `_load_config_globals()`. Функция `main()`: хуки консоли и прогресс по этапам → параллельная загрузка CSV и разворот JSON → **выгрузка source** (`SPOD_PROM source …`) только в режимах **`full`** и отдельно в **`source_only`** (до выхода); в **`main_only`** и **`consistency_only`** source не создаётся → проверка наличия файлов → проверки консистентности на сырых данных и перенос на обработанные листы → добавление AUTO_GENDER (EMPLOYEE) → расчёт статуса турнира → merge (кроме SUMMARY) → **сводка getCondition на REWARD** (`reward_getcondition_summary`, если не `consistency_only`) → **проверки консистентности** (модуль `consistency_checks`) → формирование SUMMARY → лист STAT_FILE → запись основного Excel → **файл статистики времени** `STAT_FILE <таймштамп>.xlsx` (`write_performance_statistics_excel` из `debug_timing`) → итоговый отчёт по отклонениям длины полей и расхождениям CSV (**полный текст в лог**, в консоль — **`console_ui`**). Режим **`consistency_only`**: без merge, gender, турнира и основного Excel — только файл консистентности. Файл **source**: для всех ячеек включён перенос по словам (`write_source_excel`). Запись основного Excel: **`write_to_excel`**, подготовка типов **`apply_column_format_conversion`**, пост-оформление листа **`_format_sheet`** (ширины **`calculate_column_width`** с выборкой **`_AUTO_COLUMN_WIDTH_MAX_DATA_ROWS`**, цвета **`apply_color_scheme`**, выравнивание и форматы **`apply_column_formats`**, вспомогательно **`_column_indices_covered_by_column_formats`**). |
 
-**Запуск:** из корня проекта выполняется `python main.py`. При этом создаётся `Config()` (путь к config.json — корень проекта), конфиг передаётся в `set_current_config(config)`, затем вызывается `main_impl.main()`. В начале `main_impl.main()` снова вызывается `_load_config_globals()`, поэтому все глобальные переменные в main_impl берутся из внедрённого конфига.
+**Запуск:** из корня проекта выполняется `python main.py`. При этом создаётся `Config()` (путь по умолчанию — `config/config.json`), конфиг передаётся в `set_current_config(config)`, затем вызывается `main_impl.main()`. В начале `main_impl.main()` снова вызывается `_load_config_globals()`, поэтому все глобальные переменные в main_impl берутся из внедрённого конфига.
 
 ---
 
-## Конфигурация config.json
+## Конфигурация (`config/`)
 
-Все параметры обработки данных задаются в файле **config.json** в корне проекта. Программа `main.py` при запуске загружает конфиг и использует его значения. Изменение настроек не требует правки кода.
+Все параметры обработки задаются в каталоге **`config/`** (точка входа **`config/config.json`** + доменные **`CONFIG_*.json`**).  
+Подробно с примерами по каждому файлу и параметру: **[`Docs/CONFIG_FILES.md`](Docs/CONFIG_FILES.md)**.  
+`main.py` загружает конфиг через `Config()` (`$include` → единый dict в памяти). Пути `IN`/`OUT`/`LOGS` — относительно **корня репозитория**.
 
-### Полный перечень секций config.json
+### Полный перечень секций (после слияния файлов)
 
-| Секция | Назначение |
-|--------|------------|
-| `run_outputs` | Массив токенов **или объект по блокам** `{ "PROM": [...], "IFT": [...], "PSI": [...] }`: свой набор выходов на каждый блок. Токены: `source_only`, `main_only`, `consistency_only`, **`manager_stats_only`**, **`stat_file_only`**, **`rating_item_matrix`**, **`season_order_summary`**. Плоский массив — одинаково для всех блоков из `run_blocks`. |
-| `run_blocks` | Массив блоков: **`PROM`**, **`IFT`**, **`PSI`**. Для каждого — отдельный расчёт. По умолчанию **`["PROM"]`**. Вход: `IN/<BLOCK>/{SPOD,FILE,…}/`; выход: `OUT/<BLOCK>/YYYY/DD-MM/`; архив: `OUT/DB/<BLOCK>/…`. |
-| `run_blocks_parallel` | `true` — параллельный прогон нескольких блоков (отдельные процессы), вывод в консоль пачками без перемешивания. По умолчанию `false`. |
-| `output_filenames` | Шаблоны имён без расширения: main, source, consistency, manager_stats. Плейсхолдер **`{BLOCK}`** → `SPOD_PROM …` / `SPOD_IFT …` / `SPOD_PSI …`. |
-| `apply_sort_to_source` | Применять ли сортировку из `input_files.sort_columns` при записи source Excel. |
-| `apply_sort_to_main` | Применять ли сортировку из `input_files.sort_columns` при записи основного Excel. |
-| `paths` | Каталоги: вход (`IN`), выход (`OUT`), логи (`LOGS`). Выходные файлы: `OUT/<BLOCK>/YYYY/DD-MM/`. |
-| `logging` | Уровень (INFO/DEBUG) и базовое имя файла логов. |
-| `performance` | Количество потоков: max_workers_io, max_workers_cpu. |
-| `tournament_status_choices` | Подписи статусов турнира (расчёт CALC_TOURNAMENT_STATUS). |
-| `input_files` | Объект разделов **`PROM` / `IFT` / `PSI`**: в каждом — полный список CSV (`file`, `sheet`, `subdir` напр. `SPOD/PROM` / `FILE`, **`aggregate_into_sheet`**, **`archive_db_path`**, **`archive_to_db`**, sort_columns, ширина, freeze, include_in_source). Составы разделов могут отличаться; сейчас заполнены одинаково. |
-| `summary_sheet` | Параметры сводного листа SUMMARY (ширина, закрепление). |
-| `sheet_order` | Порядок листов в выходном Excel (если задан). |
-| `summary_key_defs` | Ключевые колонки по листам для каркаса SUMMARY (в т.ч. INDICATOR: INDICATOR_CODE, INDICATOR_ADD_CALC_TYPE, CONTEST_CODE). |
-| `gender` | Правила автоопределения пола (паттерны отчества/имени/фамилии). |
-| `derived_columns` | Производные колонки (pad_left и т.д.). |
-| `merge_fields_advanced` | Правила переноса/подсчёта полей между листами. |
-| `color_scheme` | Цвета заголовков и ячеек по листам и колонкам. |
-| `column_formats` | Формат ячеек: число, дата, выравнивание по листам и колонкам; режимы `columns` и `except_columns` (см. раздел **column_formats**). |
-| `consistency_checks` | Единый конфиг проверок: **summary_sheet_name**, **rules**, **csv_columns_count**; опционально **`spod_todo_config_guide`** (текст-подсказка где искать правила SPOD-JSON и фильтры referential). Типы правил: **unique**, **field_length**, **field_format**, **referential**, **referential_composite**, **json_field_***, **json_priority_unique_per_contest_link**, **json_spod_format**. |
-| `json_columns` | Колонки с JSON для разворота по листам (column, prefix). |
-| `reward_getcondition_summary` | Сводная колонка на листе REWARD по кодам `getCondition` (nonRewards/rewards); `enabled`, `column_name`. |
-| `rating_item_matrix` | Матрица ITEM на листе **RATING**: счётчики заказов по **ORDER** и подсветка доступности товара (зелёный/красный) по **`REWARD_ADD_DATA`**, **LIST-REWARDS**, кристаллам; см. раздел **rating_item_matrix**. |
-| `season_order_summary` | Лист **ORDER-SEASON-SUMMARY**: сводка по кодам из **`item_order_groups`**; см. раздел **season_order_summary**. |
-| `manager_stats` | Отдельная книга **MANAGER_STATS** (табельные, enrich-колонки: ФИО, ТБ/ГОСБ, коды ролей в рейтинге, Email, дни/входы по месяцам из STATISTICS, метрики RATING; лист **PROM_TOURNAMENTS** и динамические колонки **НАГРАДА**/**ТУРНИР** на TAB_NUMBERS — **`prom_tournament_catalog`**; `column_formats`); фильтры EMPLOYEE в `sources` и итоговое исключение заглушек; см. **`Docs/MANAGER_STATS.md`**. |
-| `input_archive_sqlite` | Архив сырых CSV в SQLite: **`enabled`**, **`row_level_archive`** (v2 / v1), **`db_path`**, **`legacy_db_path`**, **`default_row_key_by_sheet`**, **`parallel_row_processing`**, **`reporting`**, **`archive_to_db`** в **`input_files`**. v1: **`Docs/INPUT_ARCHIVE_SQLITE_DESIGN.md`**; v2: **`Docs/INPUT_ARCHIVE_ROW_LEVEL.md`**. |
+| Секция | Файл-владелец | Назначение |
+|--------|---------------|------------|
+| `run_outputs` | `CONFIG_RUN_INPUT.json` | Массив токенов **или объект по блокам** `{ "PROM": [...], "IFT": [...], "PSI": [...] }`. Токены: `source_only`, `main_only`, `consistency_only`, **`manager_stats_only`**, **`stat_file_only`**, **`rating_item_matrix`**, **`season_order_summary`**. |
+| `run_blocks` | `CONFIG_RUN_INPUT.json` | Массив блоков: **`PROM`**, **`IFT`**, **`PSI`**. По умолчанию **`["PROM"]`**. Вход: `IN/<BLOCK>/{SPOD,FILE,…}/`; выход: `OUT/<BLOCK>/YYYY/DD-MM/`; архив: `OUT/DB/<BLOCK>/…`. |
+| `run_blocks_parallel` | `CONFIG_RUN_INPUT.json` | `true` — параллельный прогон нескольких блоков; вывод пачками. По умолчанию `false`. |
+| `output_filenames` | `CONFIG_RUN_INPUT.json` | Шаблоны имён; плейсхолдер **`{BLOCK}`**. |
+| `apply_sort_to_source` | `CONFIG_RUN_INPUT.json` | Сортировка из `input_files.sort_columns` для source Excel. |
+| `apply_sort_to_main` | `CONFIG_RUN_INPUT.json` | То же для основного Excel. |
+| `paths` | `CONFIG_RUN_INPUT.json` | Каталоги: вход (`IN`), выход (`OUT`), логи (`LOGS`). |
+| `logging` | `CONFIG_RUN_INPUT.json` | Уровень (INFO/DEBUG) и базовое имя файла логов. |
+| `performance` | `CONFIG_RUN_INPUT.json` | max_workers_io, max_workers_cpu. |
+| `input_archive_sqlite` | `CONFIG_RUN_INPUT.json` | Архив SQLite v2, пути с `{BLOCK}`. |
+| `input_files` | `CONFIG_RUN_INPUT.json` | Разделы **`PROM` / `IFT` / `PSI`**: CSV, `subdir` вида `PROM/SPOD`, `archive_*`. |
+| `tournament_status_choices` | `CONFIG_CHECKS.json` | Подписи статусов турнира. |
+| `summary_sheet` | `CONFIG_MERGE.json` | Параметры сводного листа SUMMARY. |
+| `sheet_order` | `CONFIG_MERGE.json` | Порядок листов в выходном Excel. |
+| `summary_key_defs` | `CONFIG_MERGE.json` | Ключевые колонки для каркаса SUMMARY. |
+| `gender` | `CONFIG_MERGE.json` | Автоопределение пола. |
+| `derived_columns` | `CONFIG_MERGE.json` | Производные колонки (pad_left и т.д.). |
+| `merge_fields_advanced` | `CONFIG_MERGE.json` | Правила переноса полей между листами. |
+| `json_columns` | `CONFIG_MERGE.json` | Разворот JSON-колонок при загрузке. |
+| `reward_getcondition_summary` | `CONFIG_MERGE.json` | Сводная колонка getCondition на REWARD. |
+| `color_scheme` | `CONFIG_FORMATS.json` | Цвета заголовков и ячеек. |
+| `column_formats` | `CONFIG_FORMATS.json` | Формат ячеек основной книги (не MANAGER_STATS). |
+| `consistency_checks` | `CONFIG_CHECKS.json` | Правила unique / field_* / referential / json_*. |
+| `rating_item_matrix` | `CONFIG_RATING.json` | Матрица ITEM на RATING; токен `rating_item_matrix`. |
+| `season_order_summary` | `CONFIG_ORDER.json` | Лист ORDER-SEASON-SUMMARY; токен `season_order_summary`. |
+| `manager_stats` | `CONFIG_MANAGER.json` | Книга MANAGER_STATS; см. **`Docs/MANAGER_STATS.md`**. |
+
+Полные примеры и описание `$include`: **`Docs/CONFIG_FILES.md`**.
 
 ### Общая структура файла
 
@@ -1263,6 +1275,13 @@ python main.py
 ---
 
 ## История версий
+
+### Версия 1.7.53 — Разбиение конфигурации на `config/` + `CONFIG_*.json`
+
+- Вместо корневого монолита **`config.json`** — каталог **`config/`**: точка входа **`config/config.json`** (`$include`) и доменные файлы **`CONFIG_RUN_INPUT`**, **`CONFIG_CHECKS`**, **`CONFIG_FORMATS`**, **`CONFIG_MERGE`**, **`CONFIG_RATING`**, **`CONFIG_ORDER`**, **`CONFIG_MANAGER`**.
+- **`config_loader`**: `load_config_dict`, deep-merge, запрет дублей top-level ключей между include; `_base_dir` = корень репозитория.
+- POST/sync копируют весь **`config/`** с сохранением структуры.
+- Документация: **`Docs/CONFIG_FILES.md`**, анализ — **`Docs/CONFIG_SPLIT_ANALYSIS.md`**, ROADMAP п. **8**.
 
 ### Версия 1.7.52 — Доработки блоков: run_outputs, IN/<BLOCK>, SQLite, параллель
 

@@ -1,0 +1,766 @@
+{
+  "color_scheme": [
+    {
+      "group": "Исходные данные",
+      "header_bg": "E6F3FF",
+      "header_fg": "2C3E50",
+      "column_bg": null,
+      "column_fg": null,
+      "style_scope": "header",
+      "sheets": [
+        "CONTEST-DATA",
+        "GROUP",
+        "INDICATOR",
+        "REPORT",
+        "REWARD",
+        "REWARD-LINK",
+        "TOURNAMENT-SCHEDULE",
+        "ORG_UNIT_V20",
+        "USER_ROLE",
+        "USER_ROLE SB",
+        "EMPLOYEE"
+      ],
+      "columns": []
+    },
+    {
+      "group": "JSON source columns",
+      "header_bg": "FF8C42",
+      "header_fg": "FFFFFF",
+      "column_bg": null,
+      "column_fg": null,
+      "style_scope": "header",
+      "sheets": [
+        "CONTEST-DATA",
+        "REWARD"
+      ],
+      "columns": [
+        "CONTEST_FEATURE",
+        "REWARD_ADD_DATA"
+      ]
+    },
+    {
+      "group": "JSON expanded level 1",
+      "header_bg": "FFB366",
+      "header_fg": "2C3E50",
+      "column_bg": null,
+      "column_fg": null,
+      "style_scope": "header",
+      "sheets": [
+        "CONTEST-DATA",
+        "REWARD"
+      ],
+      "columns": [
+        "CONTEST_FEATURE => momentRewarding",
+        "CONTEST_FEATURE => tournamentStartMailing",
+        "CONTEST_FEATURE => tournamentEndMailing",
+        "CONTEST_FEATURE => tournamentRewardingMailing",
+        "CONTEST_FEATURE => tournamentLikeMailing",
+        "CONTEST_FEATURE => capacity",
+        "CONTEST_FEATURE => tournamentListMailing",
+        "CONTEST_FEATURE => vid",
+        "CONTEST_FEATURE => tbVisible",
+        "CONTEST_FEATURE => tbHidden",
+        "CONTEST_FEATURE => persomanNumberVisible",
+        "CONTEST_FEATURE => typeRewarding",
+        "CONTEST_FEATURE => masking",
+        "CONTEST_FEATURE => minNumber",
+        "CONTEST_FEATURE => businessBlock",
+        "CONTEST_FEATURE => accuracy",
+        "CONTEST_FEATURE => gosbHidden",
+        "CONTEST_FEATURE => preferences",
+        "CONTEST_FEATURE => persomanNumberHidden",
+        "CONTEST_FEATURE => gosbVisible",
+        "CONTEST_FEATURE => feature",
+        "ADD_DATA => refreshOldNews",
+        "ADD_DATA => fileName",
+        "ADD_DATA => rewardRule",
+        "ADD_DATA => bookingRequired",
+        "ADD_DATA => outstanding",
+        "ADD_DATA => teamNews",
+        "ADD_DATA => singleNews",
+        "ADD_DATA => rewardAgainGlobal",
+        "ADD_DATA => rewardAgainTournament",
+        "ADD_DATA => isGrouping",
+        "ADD_DATA => tagEndDT",
+        "ADD_DATA => itemAmount",
+        "ADD_DATA => isGroupingTitle",
+        "ADD_DATA => itemLimitCount",
+        "ADD_DATA => recommendationLevel",
+        "ADD_DATA => isGroupingName",
+        "ADD_DATA => ignoreConditions",
+        "ADD_DATA => masterBadge",
+        "ADD_DATA => priority",
+        "ADD_DATA => nftFlg",
+        "ADD_DATA => itemMinShow",
+        "ADD_DATA => itemFeature",
+        "ADD_DATA => itemLimitPeriod",
+        "ADD_DATA => businessBlock",
+        "ADD_DATA => parentRewardCode",
+        "ADD_DATA => deliveryRequired"
+      ]
+    },
+    {
+      "group": "JSON expanded level 2",
+      "header_bg": "E67E22",
+      "header_fg": "FFFFFF",
+      "column_bg": null,
+      "column_fg": null,
+      "style_scope": "header",
+      "sheets": [
+        "CONTEST-DATA",
+        "REWARD"
+      ],
+      "columns": [
+        "ADD_DATA => getCondition => nonRewards",
+        "ADD_DATA => getCondition => rewards",
+        "ADD_DATA => getCondition => employeeRating => minRatingTB",
+        "ADD_DATA => getCondition => employeeRating => minRatingGOSB",
+        "ADD_DATA => getCondition => employeeRating => minRatingBANK",
+        "ADD_DATA => getCondition => employeeRating => seasonCode",
+        "ADD_DATA => getCondition => employeeRating => minCrystalEarnedTotal"
+      ]
+    },
+    {
+      "group": "Process added fields",
+      "header_bg": "FFE6F2",
+      "header_fg": "2C3E50",
+      "column_bg": null,
+      "column_fg": null,
+      "style_scope": "header",
+      "sheets": [
+        "REWARD",
+        "REPORT",
+        "TOURNAMENT-SCHEDULE",
+        "EMPLOYEE",
+        "CONTEST-DATA",
+        "GROUP",
+        "INDICATOR",
+        "REWARD-LINK"
+      ],
+      "columns": [
+        "REWARD_LINK => CONTEST_CODE",
+        "CONTEST-DATA=>CONTEST_TYPE",
+        "CONTEST-DATA=>FULL_NAME",
+        "CONTEST-DATA=>BUSINESS_BLOCK",
+        "CONTEST-DATA=>BUSINESS_STATUS",
+        "TOURNAMENT-SCHEDULE=>END_DT",
+        "TOURNAMENT-SCHEDULE=>RESULT_DT",
+        "TOURNAMENT-SCHEDULE=>TOURNAMENT_STATUS",
+        "REPORT=>CONTEST_DATE",
+        "REPORT=>COUNT_CONTEST_DATE",
+        "AUTO_GENDER",
+        "CALC_TOURNAMENT_STATUS",
+        "FIELD_LENGTH_CHECK"
+      ]
+    },
+    {
+      "group": "SUMMARY KEYS",
+      "header_bg": "E6F3FF",
+      "header_fg": "2C3E50",
+      "column_bg": null,
+      "column_fg": null,
+      "style_scope": "header",
+      "sheets": [
+        "SUMMARY"
+      ],
+      "columns": [
+        "CONTEST_CODE",
+        "TOURNAMENT_CODE",
+        "REWARD_CODE",
+        "GROUP_CODE",
+        "GROUP_VALUE",
+        "INDICATOR_ADD_CALC_TYPE"
+      ]
+    },
+    {
+      "group": "SUMMARY FIELDS: CONTEST-DATA",
+      "header_bg": "CCE5FF",
+      "header_fg": "2C3E50",
+      "column_bg": null,
+      "column_fg": null,
+      "style_scope": "header",
+      "sheets": [
+        "SUMMARY"
+      ],
+      "columns": [
+        "CONTEST-DATA=>FULL_NAME",
+        "CONTEST-DATA=>CONTEST_FEATURE => momentRewarding",
+        "CONTEST-DATA=>FACTOR_MATCH",
+        "CONTEST-DATA=>PLAN_MOD_VALUE",
+        "CONTEST-DATA=>BUSINESS_BLOCK",
+        "CONTEST-DATA=>CONTEST_FEATURE => tournamentStartMailing",
+        "CONTEST-DATA=>CONTEST_FEATURE => tournamentEndMailing",
+        "CONTEST-DATA=>CONTEST_FEATURE => tournamentRewardingMailing",
+        "CONTEST-DATA=>CONTEST_FEATURE => tournamentLikeMailing"
+      ]
+    },
+    {
+      "group": "SUMMARY FIELDS: GROUP",
+      "header_bg": "E8F5E8",
+      "header_fg": "2C3E50",
+      "column_bg": null,
+      "column_fg": null,
+      "style_scope": "header",
+      "sheets": [
+        "SUMMARY"
+      ],
+      "columns": [
+        "GROUP=>GET_CALC_CRITERION",
+        "GROUP=>ADD_CALC_CRITERION",
+        "GROUP=>ADD_CALC_CRITERION_2"
+      ]
+    },
+    {
+      "group": "SUMMARY FIELDS: INDICATOR",
+      "header_bg": "FFF8E1",
+      "header_fg": "2C3E50",
+      "column_bg": null,
+      "column_fg": null,
+      "style_scope": "header",
+      "sheets": [
+        "SUMMARY"
+      ],
+      "columns": [
+        "INDICATOR=>INDICATOR_MARK_TYPE",
+        "INDICATOR=>INDICATOR_MATCH",
+        "INDICATOR=>INDICATOR_VALUE"
+      ]
+    },
+    {
+      "group": "SUMMARY FIELDS: TOURNAMENT-SCHEDULE",
+      "header_bg": "E1F5FE",
+      "header_fg": "2C3E50",
+      "column_bg": null,
+      "column_fg": null,
+      "style_scope": "header",
+      "sheets": [
+        "SUMMARY"
+      ],
+      "columns": [
+        "TOURNAMENT-SCHEDULE=>START_DT",
+        "TOURNAMENT-SCHEDULE=>END_DT",
+        "TOURNAMENT-SCHEDULE=>RESULT_DT",
+        "TOURNAMENT-SCHEDULE=>TOURNAMENT_STATUS",
+        "TOURNAMENT-SCHEDULE=>TARGET_TYPE"
+      ]
+    },
+    {
+      "group": "SUMMARY FIELDS: REPORT",
+      "header_bg": "E8F5E8",
+      "header_fg": "2C3E50",
+      "column_bg": null,
+      "column_fg": null,
+      "style_scope": "header",
+      "sheets": [
+        "SUMMARY"
+      ],
+      "columns": [
+        "REPORT=>CONTEST_DATE",
+        "REPORT=>COUNT_CONTEST_DATE"
+      ]
+    },
+    {
+      "group": "SUMMARY FIELDS: REWARD",
+      "header_bg": "FFE8CC",
+      "header_fg": "2C3E50",
+      "column_bg": null,
+      "column_fg": null,
+      "style_scope": "header",
+      "sheets": [
+        "SUMMARY"
+      ],
+      "columns": [
+        "REWARD=>ADD_DATA => rewardAgainGlobal",
+        "REWARD=>ADD_DATA => rewardAgainTournament",
+        "REWARD=>ADD_DATA => outstanding",
+        "REWARD=>ADD_DATA => teamNews",
+        "REWARD=>ADD_DATA => singleNews"
+      ]
+    }
+  ],
+  "column_formats": [
+    {
+      "sheet": "INDICATOR",
+      "columns": [
+        "N",
+        "CALC_TYPE",
+        "INDICATOR_WEIGHT",
+        "INDICATOR_CALC_TYPE"
+      ],
+      "data_type": "number",
+      "decimal_places": 0,
+      "decimal_separator": ",",
+      "thousands_separator": false,
+      "date_format": "YYYY-MM-DD",
+      "horizontal": "center",
+      "vertical": "center",
+      "wrap_text": false
+    },
+    {
+      "sheet": "ORG_UNIT_V20",
+      "columns": [
+        "GOSB_CODE",
+        "TB_CODE",
+        "CLUSTER_CODE",
+        "GROUPING_CODE",
+        "GOSB_CNT",
+        "GROUPING_CNT"
+      ],
+      "data_type": "number",
+      "decimal_places": 0,
+      "decimal_separator": ",",
+      "thousands_separator": false,
+      "date_format": "YYYY-MM-DD",
+      "horizontal": "center",
+      "vertical": "center",
+      "wrap_text": false
+    },
+    {
+      "sheet": "REWARD",
+      "columns": [
+        "REWARD_CONDITION",
+        "REWARD_COST",
+        "REWARD_CONDITION",
+        "ADD_DATA => itemMinShow"
+      ],
+      "data_type": "number",
+      "decimal_places": 0,
+      "decimal_separator": ",",
+      "thousands_separator": false,
+      "date_format": "YYYY-MM-DD",
+      "horizontal": "center",
+      "vertical": "center",
+      "wrap_text": false
+    },
+    {
+      "sheet": "EMPLOYEE",
+      "columns": [
+        "TB_CODE",
+        "GOSB_CODE",
+        "UCH_CODE",
+        "GENDER",
+        "PRIORITY_TYPE"
+      ],
+      "data_type": "number",
+      "decimal_places": 0,
+      "decimal_separator": ",",
+      "thousands_separator": false,
+      "date_format": "YYYY-MM-DD",
+      "horizontal": "center",
+      "vertical": "center",
+      "wrap_text": false
+    },
+    {
+      "sheet": "TOURNAMENT-SCHEDULE",
+      "columns": [
+        "START_DT",
+        "END_DT",
+        "RESULT_DT"
+      ],
+      "data_type": "date",
+      "decimal_places": 0,
+      "decimal_separator": ",",
+      "thousands_separator": false,
+      "date_format": "YYYY-MM-DD",
+      "horizontal": "center",
+      "vertical": "center",
+      "wrap_text": false
+    },
+    {
+      "sheet": "CONTEST-DATA",
+      "columns": [
+        "CREATE_DT",
+        "CLOSE_DT"
+      ],
+      "data_type": "date",
+      "decimal_places": 0,
+      "decimal_separator": ",",
+      "thousands_separator": false,
+      "date_format": "YYYY-MM-DD",
+      "horizontal": "center",
+      "vertical": "center",
+      "wrap_text": false
+    },
+    {
+      "sheet": "CONTEST-DATA",
+      "columns": [
+        "CALC_TYPE",
+        "SOURCE_UPD_FREQUENCY"
+      ],
+      "data_type": "number",
+      "decimal_places": 0,
+      "decimal_separator": ",",
+      "thousands_separator": false,
+      "date_format": "YYYY-MM-DD",
+      "horizontal": "center",
+      "vertical": "center",
+      "wrap_text": false
+    },
+    {
+      "sheet": "REPORT",
+      "columns": [
+        "CONTEST_DATE"
+      ],
+      "data_type": "date",
+      "decimal_places": 0,
+      "decimal_separator": ",",
+      "thousands_separator": false,
+      "date_format": "YYYY-MM-DD",
+      "horizontal": "center",
+      "vertical": "center",
+      "wrap_text": false
+    },
+    {
+      "sheet": "REPORT",
+      "columns": [
+        "priority_type"
+      ],
+      "data_type": "number",
+      "decimal_places": 0,
+      "decimal_separator": ",",
+      "thousands_separator": false,
+      "date_format": "YYYY-MM-DD",
+      "horizontal": "center",
+      "vertical": "center",
+      "wrap_text": false
+    },
+    {
+      "sheet": "RATING_2025_2 (KMKKSB)",
+      "columns": [
+        "Количество кристаллов",
+        "Место в рейтинге по стране",
+        "Место в рейтинге ТБ",
+        "Место в рейтинге ГОСБ",
+        "ТБ",
+        "ГОСБ"
+      ],
+      "data_type": "number",
+      "decimal_places": 0,
+      "decimal_separator": ",",
+      "thousands_separator": true,
+      "date_format": "YYYY-MM-DD",
+      "horizontal": "center",
+      "vertical": "center",
+      "wrap_text": false
+    },
+    {
+      "sheet": "RATING_2024 (KMKKSB)",
+      "columns": [
+        "Количество кристаллов",
+        "Место в рейтинге по стране",
+        "Место в рейтинге ТБ",
+        "Место в рейтинге ГОСБ",
+        "ТБ",
+        "ГОСБ"
+      ],
+      "data_type": "number",
+      "decimal_places": 0,
+      "decimal_separator": ",",
+      "thousands_separator": true,
+      "date_format": "YYYY-MM-DD",
+      "horizontal": "center",
+      "vertical": "center",
+      "wrap_text": false
+    },
+    {
+      "sheet": "RATING_2025_1 (KMKKSB)",
+      "columns": [
+        "Количество кристаллов",
+        "Место в рейтинге по стране",
+        "Место в рейтинге ТБ",
+        "Место в рейтинге ГОСБ",
+        "ТБ",
+        "ГОСБ"
+      ],
+      "data_type": "number",
+      "decimal_places": 0,
+      "decimal_separator": ",",
+      "thousands_separator": true,
+      "date_format": "YYYY-MM-DD",
+      "horizontal": "center",
+      "vertical": "center",
+      "wrap_text": false
+    },
+    {
+      "sheet": "YEAR_STATA",
+      "columns": [
+        "Общее количество разыгранных наград (badgeAmount)",
+        "Количество разыгранных золотых наград (amountGold)",
+        "Количество разыгранных серебряных наград (amountSilver)",
+        "Количество разыгранных бронзовых наград (amountBronze)",
+        "Количество турниров, в которых участвовал сотрудник (amountTournament)",
+        "Количество полученных золотых наград (amountEarnedGold)",
+        "Количество полученных серебряных наград (amountEarnedSilver)",
+        "Количество полученных бронзовых наград (amountEarnedBronze)",
+        "Общее количество полученных турнирных наград",
+        "Процентиль полученных турнирных наград (amountEarnedBadgePercentile)",
+        "Максимальное количество золотых наград (maxAmountEarnedGold)",
+        "Версия записи",
+        "ТБ",
+        "ГОСБ"
+      ],
+      "data_type": "number",
+      "decimal_places": 0,
+      "decimal_separator": ",",
+      "thousands_separator": true,
+      "date_format": "YYYY-MM-DD",
+      "horizontal": "center",
+      "vertical": "center",
+      "wrap_text": false
+    },
+    {
+      "sheet": "RATING_2026_1 (KMKKSB)",
+      "columns": [
+        "Количество кристаллов",
+        "Место в рейтинге по стране",
+        "Место в рейтинге ТБ",
+        "Место в рейтинге ГОСБ",
+        "ТБ",
+        "ГОСБ"
+      ],
+      "data_type": "number",
+      "decimal_places": 0,
+      "decimal_separator": ",",
+      "thousands_separator": true,
+      "date_format": "YYYY-MM-DD",
+      "horizontal": "center",
+      "vertical": "center",
+      "wrap_text": false
+    },
+    {
+      "sheet": "RATING_2026_1 (AKMKKSB)",
+      "columns": [
+        "Количество кристаллов",
+        "Место в рейтинге по стране",
+        "Место в рейтинге ТБ",
+        "Место в рейтинге ГОСБ",
+        "ТБ",
+        "ГОСБ"
+      ],
+      "data_type": "number",
+      "decimal_places": 0,
+      "decimal_separator": ",",
+      "thousands_separator": true,
+      "date_format": "YYYY-MM-DD",
+      "horizontal": "center",
+      "vertical": "center",
+      "wrap_text": false
+    },
+    {
+      "sheet": "RATING_2026_1 (MNS)",
+      "columns": [
+        "Количество кристаллов",
+        "Место в рейтинге по стране",
+        "Место в рейтинге ТБ",
+        "Место в рейтинге ГОСБ",
+        "ТБ",
+        "ГОСБ"
+      ],
+      "data_type": "number",
+      "decimal_places": 0,
+      "decimal_separator": ",",
+      "thousands_separator": true,
+      "date_format": "YYYY-MM-DD",
+      "horizontal": "center",
+      "vertical": "center",
+      "wrap_text": false
+    },
+    {
+      "sheet": "RATING_2026_1 (CSM)",
+      "columns": [
+        "Количество кристаллов",
+        "Место в рейтинге по стране",
+        "Место в рейтинге ТБ",
+        "Место в рейтинге ГОСБ",
+        "ТБ",
+        "ГОСБ"
+      ],
+      "data_type": "number",
+      "decimal_places": 0,
+      "decimal_separator": ",",
+      "thousands_separator": true,
+      "date_format": "YYYY-MM-DD",
+      "horizontal": "center",
+      "vertical": "center",
+      "wrap_text": false
+    },
+    {
+      "sheet": "RATING_ALLTIME (KMKKSB)",
+      "columns": [
+        "Количество кристаллов",
+        "Место в рейтинге по стране",
+        "Место в рейтинге ТБ",
+        "Место в рейтинге ГОСБ",
+        "ТБ",
+        "ГОСБ"
+      ],
+      "data_type": "number",
+      "decimal_places": 0,
+      "decimal_separator": ",",
+      "thousands_separator": true,
+      "date_format": "YYYY-MM-DD",
+      "horizontal": "center",
+      "vertical": "center",
+      "wrap_text": false
+    },
+    {
+      "sheet": "RATING_ALLTIME (MNS)",
+      "columns": [
+        "Количество кристаллов",
+        "Место в рейтинге по стране",
+        "Место в рейтинге ТБ",
+        "Место в рейтинге ГОСБ",
+        "ТБ",
+        "ГОСБ"
+      ],
+      "data_type": "number",
+      "decimal_places": 0,
+      "decimal_separator": ",",
+      "thousands_separator": true,
+      "date_format": "YYYY-MM-DD",
+      "horizontal": "center",
+      "vertical": "center",
+      "wrap_text": false
+    },
+    {
+      "sheet": "RATING_ALLTIME (AKMKKSB)",
+      "columns": [
+        "Количество кристаллов",
+        "Место в рейтинге по стране",
+        "Место в рейтинге ТБ",
+        "Место в рейтинге ГОСБ",
+        "ТБ",
+        "ГОСБ"
+      ],
+      "data_type": "number",
+      "decimal_places": 0,
+      "decimal_separator": ",",
+      "thousands_separator": true,
+      "date_format": "YYYY-MM-DD",
+      "horizontal": "center",
+      "vertical": "center",
+      "wrap_text": false
+    },
+    {
+      "sheet": "RATING_ALLTIME (CSM)",
+      "columns": [
+        "Количество кристаллов",
+        "Место в рейтинге по стране",
+        "Место в рейтинге ТБ",
+        "Место в рейтинге ГОСБ",
+        "ТБ",
+        "ГОСБ"
+      ],
+      "data_type": "number",
+      "decimal_places": 0,
+      "decimal_separator": ",",
+      "thousands_separator": true,
+      "date_format": "YYYY-MM-DD",
+      "horizontal": "center",
+      "vertical": "center",
+      "wrap_text": false
+    },
+    {
+      "sheet": "RATING_2025_2 (MNS)",
+      "columns": [
+        "Количество кристаллов",
+        "Место в рейтинге по стране",
+        "Место в рейтинге ТБ",
+        "Место в рейтинге ГОСБ",
+        "ТБ",
+        "ГОСБ"
+      ],
+      "data_type": "number",
+      "decimal_places": 0,
+      "decimal_separator": ",",
+      "thousands_separator": true,
+      "date_format": "YYYY-MM-DD",
+      "horizontal": "center",
+      "vertical": "center",
+      "wrap_text": false
+    },
+    {
+      "sheet": "RATING_2024 (MNS)",
+      "columns": [
+        "Количество кристаллов",
+        "Место в рейтинге по стране",
+        "Место в рейтинге ТБ",
+        "Место в рейтинге ГОСБ",
+        "ТБ",
+        "ГОСБ"
+      ],
+      "data_type": "number",
+      "decimal_places": 0,
+      "decimal_separator": ",",
+      "thousands_separator": true,
+      "date_format": "YYYY-MM-DD",
+      "horizontal": "center",
+      "vertical": "center",
+      "wrap_text": false
+    },
+    {
+      "sheet": "RATING_2025_1 (MNS)",
+      "columns": [
+        "Количество кристаллов",
+        "Место в рейтинге по стране",
+        "Место в рейтинге ТБ",
+        "Место в рейтинге ГОСБ",
+        "ТБ",
+        "ГОСБ"
+      ],
+      "data_type": "number",
+      "decimal_places": 0,
+      "decimal_separator": ",",
+      "thousands_separator": true,
+      "date_format": "YYYY-MM-DD",
+      "horizontal": "center",
+      "vertical": "center",
+      "wrap_text": false
+    },
+    {
+      "sheet": "RATING",
+      "columns": [
+        "Количество кристаллов",
+        "Место в рейтинге по стране",
+        "Место в рейтинге ТБ",
+        "Место в рейтинге ГОСБ",
+        "ТБ",
+        "ГОСБ"
+      ],
+      "data_type": "number",
+      "decimal_places": 0,
+      "decimal_separator": ",",
+      "thousands_separator": true,
+      "date_format": "YYYY-MM-DD",
+      "horizontal": "center",
+      "vertical": "center",
+      "wrap_text": false
+    },
+    {
+      "sheet": "STATISTICS",
+      "except_columns": [
+        "Табельный номер",
+        "Фамилия",
+        "Имя",
+        "Код роли",
+        "Наименование Роли",
+        "Текущая роль",
+        "Дата вступления в роль",
+        "Дата смены роли",
+        "Почта Альфа",
+        "Почта Сигма",
+        "Статус текущий",
+        "Статус предыдущий",
+        "Динамика статуса"
+      ],
+      "data_type": "number",
+      "decimal_places": 0,
+      "decimal_separator": ",",
+      "thousands_separator": true,
+      "date_format": "YYYY-MM-DD",
+      "horizontal": "center",
+      "vertical": "center",
+      "wrap_text": false
+    }
+  ]
+}

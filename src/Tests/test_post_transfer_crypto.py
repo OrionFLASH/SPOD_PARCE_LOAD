@@ -26,6 +26,7 @@ def test_storage_flat_name_txt_suffix() -> None:
         == "src__leaders_for_admin.py.txt"
     )
     assert storage_flat_name_for_target(Path("config.json")) == "config.json.txt"
+    assert storage_flat_name_for_target(Path("config/config.json")) == "config__config.json.txt"
 
 
 def test_encrypt_decrypt_roundtrip() -> None:

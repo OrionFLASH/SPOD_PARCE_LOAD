@@ -2,6 +2,8 @@
 
 Единый справочник по структуре входных файлов, связям и ключевым параметрам конфигурации.
 
+**Раскладка файлов конфигурации (с v1.7.53):** каталог **`config/`** — точка входа **`config/config.json`** и доменные **`CONFIG_*.json`**. Подробно: **`Docs/CONFIG_FILES.md`**.
+
 ## 1. Входные данные
 
 - Источник: CSV-файлы из каталога входных данных (путь задается в конфигурации).
@@ -37,7 +39,7 @@
 
 ### 3.1. Локальный снимок POST (без коммита в Git)
 
-- Каталог **`POST/`** в **`.gitignore`**. Команда **`python src/Tools/sync_post_txt.py`** (из корня репозитория) полностью пересоздаёт **POST/**: копии **`main.py`**, **`config.json`** и **`src/**/*.py`** (без **`Tools`** и **`Tests`**) с добавлением **`.txt`** к имени файла (**`main.py.txt`**, **`src/main_impl.py.txt`** и т.д.); из **`Docs/POST_SNAPSHOT/`** — **`КУДА_ПОЛОЖИТЬ_ФАЙЛЫ.txt`** и **`restore_names_from_txt.bat`**. **README**, **requirements**, **Docs/** в снимок не входят. Подробно: **README.md**, раздел **«Каталог POST»**, **`Docs/DOCS_INDEX.md`** (§ POST_SNAPSHOT).
+- Каталог **`POST/`** в **`.gitignore`**. Команда **`python src/Tools/sync_post_txt.py`** копирует **`main.py`**, каталог **`config/*.json`** (структура сохраняется) и **`src/**/*.py`** (без **`Tools`** / **`Tests`** в main-only) с суффиксом **`.txt`**. Подробно: **README.md**, **`Docs/CONFIG_FILES.md`** §11.
 
 ## 4. JSON-поля
 

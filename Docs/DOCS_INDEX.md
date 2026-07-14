@@ -22,6 +22,8 @@
 - `POST_ENCRYPTED_TRANSFER.md` — зашифрованный снимок **POST/** для пересылки по почте (`pack_post_encrypted_program.py`, `decrypt_post_program.py`).
 - `IN_OUT_DATA_POLICY.md` — защита **`IN/`** и **`OUT/`** от удаления; инцидент 2026-07-02, аудит кода, восстановление.
 - `BLOCKS_MIGRATION.md` — миграция на `IN/<BLOCK>/{SPOD,FILE,…}` и SQLite `OUT/DB/<BLOCK>/` (п. 7 ROADMAP, v1.7.52).
+- `CONFIG_FILES.md` — **актуальная** раскладка `config/`: `$include`, все `CONFIG_*.json`, параметры, примеры, POST/sync (п. 8 ROADMAP, v1.7.53).
+- `CONFIG_SPLIT_ANALYSIS.md` — анализ вариантов разбиения (A–D) и решения диалога; реализация — по `CONFIG_FILES.md`.
 
 ## Консолидированные исторические документы
 
@@ -31,7 +33,7 @@
 
 ## Роудмапы и TODO (корень проекта)
 
-- `ROADMAP.md` — сводный ToDo по пунктам 1–4 (консистентность, RATING, архив v2, фрагментация DataFrame).
+- `ROADMAP.md` — сводный ToDo (п. 1–8: консистентность, RATING, архив, блоки, разбиение config).
 - `TODO_dataframe_fragmentation_roadmap.md` — [v] выполнено: план и критерии устранения **PerformanceWarning** при развороте JSON (`flatten_json_column_recursive`).
 
 ## Каталог CSV и JSON `IN/SPOD` — папка `Docs/JSON/`

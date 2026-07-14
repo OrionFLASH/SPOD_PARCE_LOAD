@@ -136,16 +136,20 @@ def decrypt_manifest(blob_b64: str, password: str = PACK_PASSWORD) -> Dict[str, 
 
 def iter_program_source_files(root: Path) -> Iterable[Tuple[Path, Path]]:
     """
-    Все .py (корень + src), config.json, README.md.
+    Все .py (корень + src), каталог config/*.json, README.md.
     Возвращает (абсолютный путь, rel от root).
     """
     for p in sorted(root.glob("*.py")):
         if not p.name.startswith("."):
             yield p, Path(p.name)
-    for name in ("config.json", "README.md"):
-        fp = root / name
-        if fp.is_file():
-            yield fp, Path(name)
+    cfg_dir = root / "config"
+    if cfg_dir.is_dir():
+        for p in sorted(cfg_dir.rglob("*.json")):
+            if p.is_file():
+                yield p, p.relative_to(root)
+    readme = root / "README.md"
+    if readme.is_file():
+        yield readme, Path("README.md")
     src_root = root / "src"
     if src_root.is_dir():
         for p in sorted(src_root.rglob("*.py")):

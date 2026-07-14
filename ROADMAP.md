@@ -2,7 +2,7 @@
 
 Статусы: `[v]` сделано · `[w]` в работе · `[ ]` не сделано · `[x]` отменено
 
-Согласование: пункты **2** и **3** — реализованы (см. планы в `Docs/`).
+Согласование: пункты **2**, **3**, **6**, **7** — реализованы (см. планы в `Docs/`). Пункт **8** — анализ разбиения конфига (реализация после выбора варианта).
 
 ---
 
@@ -184,4 +184,38 @@ IN/
 | 7.5.1 | Разнести archive SQLite по каталогам блоков; имя файла с кодом блока | [v] |
 | 7.5.2 | Конфиг: шаблоны/разделы `db_path` и `archive_db_path` под блоки | [v] |
 | 7.5.3 | Документация + миграция/пояснение для уже существующей общей БД | [v] |
+
+---
+
+## Пункт 8 — Разбиение `config.json` на доменные `CONFIG_*.json`
+
+**Мотив:** монолит ~200 KB / ~6900 строк неудобен для правок; риск смешения доменов (INPUT / CHECKS / FORMAT / MERGE / RATING / ORDER).
+
+**Документ анализа (схемы, варианты A–D, распределение ключей):** [`Docs/CONFIG_SPLIT_ANALYSIS.md`](Docs/CONFIG_SPLIT_ANALYSIS.md).
+
+**Имена:** `CONFIG_<бизнес_смысл>.json` (например `CONFIG_CHECKS.json`, `CONFIG_RATING.json`).  
+**Совместимость:** `config/config.json` + `$include` → в памяти единый dict; API `Config` без ломающих изменений для остального пайплайна. `_base_dir` = корень репозитория.
+
+**Утверждено (2026-07-15):** вариант **B** + каталог **`config/`**; детали — §9 в [`Docs/CONFIG_SPLIT_ANALYSIS.md`](Docs/CONFIG_SPLIT_ANALYSIS.md).
+
+| Файл | Смысл |
+|------|--------|
+| `config/config.json` | Точка входа, `$include`, оверрайды запуска |
+| `config/CONFIG_RUN_INPUT.json` | `run_*`, paths, logging, performance, `input_files`, `input_archive_sqlite` |
+| `config/CONFIG_CHECKS.json` | `consistency_checks` и связанное |
+| `config/CONFIG_FORMATS.json` | `color_scheme`, `column_formats` |
+| `config/CONFIG_MERGE.json` | merge / SUMMARY / sheet_order / … |
+| `config/CONFIG_RATING.json` | `rating_item_matrix` |
+| `config/CONFIG_ORDER.json` | `season_order_summary` |
+| `config/CONFIG_MANAGER.json` | `manager_stats` |
+
+| # | Задача | Статус |
+|---|--------|--------|
+| 8.0 | Анализ и схемы в `Docs/CONFIG_SPLIT_ANALYSIS.md` | [v] |
+| 8.1 | Согласование: вариант B + `config/` + ответы диалога (§9 анализа) | [v] |
+| 8.2 | `config_loader`: путь `config/config.json`, `$include`, deep-merge, запрет дублей, тесты | [v] |
+| 8.3 | Вынос доменов в `CONFIG_*.json`; удаление корневого монолита | [v] |
+| 8.4 | README / `INPUT_DATA_AND_CONFIG_FULL` / `Docs/CONFIG_FILES.md` | [v] |
+| 8.5 | POST/sync: весь каталог `config/` как есть | [v] |
+| 8.6 | Проверка загрузки Config + тесты include/blocks | [v] |
 

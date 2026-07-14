@@ -29,7 +29,7 @@ from src.leaders_for_admin_auto_js import (  # noqa: E402
 from src.manager_stats import merge_manager_stats_config  # noqa: E402
 from src.profile_gp_auto_js import write_profile_gp_auto_js  # noqa: E402
 
-CONFIG_PATH = ROOT / "config.json"
+CONFIG_PATH = ROOT / "config" / "config.json"
 
 
 def _find_latest_manager_stats_xlsx(output_dir: Path) -> Path | None:
@@ -57,12 +57,13 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    with CONFIG_PATH.open(encoding="utf-8") as fh:
-        cfg = json.load(fh)
+    from src.config_loader import load_config_dict
+
+    cfg = load_config_dict(str(CONFIG_PATH))
 
     if not manager_stats_only_in_run_outputs(cfg):
         raise SystemExit(
-            "JS не создан: в config.json run_outputs должен содержать manager_stats_only."
+            "JS не создан: в config/ (run_outputs) должен быть токен manager_stats_only."
         )
 
     mcfg = merge_manager_stats_config(cfg.get("manager_stats"))

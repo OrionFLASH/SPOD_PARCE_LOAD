@@ -313,12 +313,13 @@ def _load_config_globals():
     except Exception:
         pass
 
-    # Загрузка из config.json (корень проекта = родитель каталога src)
-    _BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    # Загрузка из config/config.json (корень проекта = родитель каталога src)
+    from src.config_loader import default_config_path, load_config_dict, resolve_project_base_dir
+
+    _CONFIG_PATH = default_config_path()
+    _cfg = load_config_dict(_CONFIG_PATH)
+    _BASE_DIR = resolve_project_base_dir(_CONFIG_PATH)
     PROJECT_BASE_DIR = _BASE_DIR
-    _CONFIG_PATH = os.path.join(_BASE_DIR, "config.json")
-    with open(_CONFIG_PATH, "r", encoding="utf-8") as _f:
-        _cfg = json.load(_f)
 
     DIR_INPUT = os.path.join(_BASE_DIR, _cfg["paths"]["input"])
     DIR_OUTPUT = os.path.join(_BASE_DIR, _cfg["paths"]["output"])

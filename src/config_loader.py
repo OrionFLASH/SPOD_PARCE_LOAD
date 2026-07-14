@@ -1,14 +1,21 @@
 # -*- coding: utf-8 -*-
 """
-Загрузка и хранение конфигурации из config.json.
-Все параметры обработки доступны через атрибуты класса Config.
+Загрузка и хранение конфигурации из каталога config/ (точка входа config/config.json).
+
+Поддержка ``$include``: доменные файлы CONFIG_*.json объединяются в один dict в памяти.
+Пути IN/OUT/LOGS вычисляются относительно корня репозитория (родитель ``config/``).
+Документация: Docs/CONFIG_FILES.md.
 """
 
 import json
 import os
 from typing import Any, Dict, List, Optional, Set, Tuple
 
-# Допустимые элементы массива run_outputs в config.json (какие выходные файлы формировать)
+# Имя каталога и файла входа относительно корня проекта
+_CONFIG_DIR_NAME: str = "config"
+_CONFIG_ENTRY_NAME: str = "config.json"
+
+# Допустимые элементы массива run_outputs (какие выходные файлы формировать)
 _RUN_OUTPUT_TOKENS: Set[str] = frozenset(
     {
         "source_only",
@@ -24,6 +31,110 @@ _RUN_OUTPUT_TOKENS: Set[str] = frozenset(
 # Допустимые блоки входных SPOD-данных (среды PROM / IFT / PSI)
 _RUN_BLOCK_TOKENS: Set[str] = frozenset({"PROM", "IFT", "PSI"})
 _DEFAULT_RUN_BLOCKS: List[str] = ["PROM"]
+
+
+def project_root_dir() -> str:
+    """Корень репозитория (родитель каталога src/)."""
+    return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+
+def default_config_path(project_root: Optional[str] = None) -> str:
+    """Путь к точке входа: <root>/config/config.json."""
+    root = project_root if project_root is not None else project_root_dir()
+    return os.path.join(root, _CONFIG_DIR_NAME, _CONFIG_ENTRY_NAME)
+
+
+def resolve_project_base_dir(config_path: str) -> str:
+    """
+    Корень проекта для путей IN/OUT/LOGS.
+
+    Если конфиг лежит в …/config/config.json — корень = родитель каталога config/.
+    Иначе (устаревший одиночный файл) — каталог, где лежит файл.
+    """
+    config_dir = os.path.dirname(os.path.abspath(config_path))
+    if os.path.basename(config_dir) == _CONFIG_DIR_NAME:
+        return os.path.dirname(config_dir)
+    return config_dir
+
+
+def _deep_merge_dict(base: Dict[str, Any], overlay: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Deep-merge: вложенные dict сливаются; списки и скаляры из overlay заменяют целиком.
+    """
+    result: Dict[str, Any] = dict(base)
+    for key, value in overlay.items():
+        if (
+            key in result
+            and isinstance(result[key], dict)
+            and isinstance(value, dict)
+        ):
+            result[key] = _deep_merge_dict(result[key], value)
+        else:
+            result[key] = value
+    return result
+
+
+def load_config_dict(config_path: str) -> Dict[str, Any]:
+    """
+    Загрузить точку входа и все файлы из ``$include`` (относительно каталога входа).
+
+    Правила:
+    - includes по порядку; top-level ключ не должен повторяться в двух include (ошибка);
+    - внутри одного файла — как есть;
+    - ключи точки входа (кроме ``$include``) перекрывают результат includes (deep-merge).
+    """
+    abs_path = os.path.abspath(config_path)
+    if not os.path.isfile(abs_path):
+        raise FileNotFoundError(f"Файл конфигурации не найден: {abs_path}")
+
+    config_dir = os.path.dirname(abs_path)
+    with open(abs_path, "r", encoding="utf-8") as f:
+        entry: Any = json.load(f)
+    if not isinstance(entry, dict):
+        raise ValueError(f"Корень конфигурации должен быть объектом JSON: {abs_path}")
+
+    include_raw = entry.get("$include")
+    merged: Dict[str, Any] = {}
+    owned_by: Dict[str, str] = {}
+
+    if include_raw is not None:
+        if not isinstance(include_raw, list):
+            raise ValueError("$include: ожидается массив имён файлов")
+        for item in include_raw:
+            if not isinstance(item, str) or not item.strip():
+                raise ValueError(f"$include: недопустимый элемент {item!r}")
+            rel = item.strip().replace("\\", "/")
+            if rel.startswith("/") or ".." in rel.split("/"):
+                raise ValueError(
+                    f"$include: запрещён путь вне каталога конфига: {rel!r}"
+                )
+            inc_path = os.path.normpath(os.path.join(config_dir, rel))
+            if not inc_path.startswith(os.path.normpath(config_dir) + os.sep) and inc_path != os.path.normpath(config_dir):
+                raise ValueError(f"$include: путь вне каталога конфигурации: {rel}")
+            if not os.path.isfile(inc_path):
+                raise FileNotFoundError(f"$include: файл не найден: {inc_path}")
+            with open(inc_path, "r", encoding="utf-8") as f:
+                part_raw = json.load(f)
+            if not isinstance(part_raw, dict):
+                raise ValueError(f"$include: {rel} должен быть объектом JSON")
+            if "$include" in part_raw:
+                raise ValueError(
+                    f"$include: вложенные include не поддерживаются ({rel})"
+                )
+            for key in part_raw:
+                if key in owned_by:
+                    raise ValueError(
+                        f"Дублирующий ключ конфигурации «{key}»: "
+                        f"уже в {owned_by[key]}, повтор в {rel}"
+                    )
+                owned_by[key] = rel
+            # deep-merge на случай вложенности; дубли top-level уже запрещены
+            merged = _deep_merge_dict(merged, part_raw)
+
+    overlays = {k: v for k, v in entry.items() if k != "$include"}
+    if overlays:
+        merged = _deep_merge_dict(merged, overlays)
+    return merged
 
 
 def parse_run_blocks_config(cfg: Dict[str, Any]) -> List[str]:
@@ -357,8 +468,9 @@ def parse_run_outputs_config(cfg: Dict[str, Any]) -> Tuple[List[str], bool, bool
 
 class Config:
     """
-    Конфигурация приложения из config.json.
-    Пути вычисляются относительно каталога, в котором лежит config.json (корень проекта).
+    Конфигурация приложения из каталога config/ (см. Docs/CONFIG_FILES.md).
+
+    Пути IN/OUT/LOGS — относительно корня репозитория (не каталога config/).
     """
 
     # Имя колонки связи наград (константа для сравнения/переименования)
@@ -366,14 +478,15 @@ class Config:
 
     def __init__(self, config_path: Optional[str] = None) -> None:
         """
-        Загружает config.json. Путь по умолчанию — config.json в каталоге выше src/ (корень проекта).
+        Загружает точку входа и файлы из ``$include``.
+
+        По умолчанию: ``<корень_проекта>/config/config.json``.
         """
         if config_path is None:
-            _base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-            config_path = os.path.join(_base_dir, "config.json")
-        self._base_dir = os.path.dirname(config_path)
-        with open(config_path, "r", encoding="utf-8") as f:
-            self._cfg: Dict[str, Any] = json.load(f)
+            config_path = default_config_path()
+        self.config_path: str = os.path.abspath(config_path)
+        self._base_dir = resolve_project_base_dir(self.config_path)
+        self._cfg: Dict[str, Any] = load_config_dict(self.config_path)
 
         # Пути
         self.dir_input: str = os.path.join(self._base_dir, self._cfg["paths"]["input"])
@@ -390,7 +503,6 @@ class Config:
         )
         self.run_blocks: List[str] = parse_run_blocks_config(self._cfg)
         self.run_blocks_parallel: bool = parse_run_blocks_parallel(self._cfg)
-        self.config_path: str = config_path
         # Для текущего/первого блока (совместимость со старым кодом, ожидающим список)
         _first_block = self.run_blocks[0] if self.run_blocks else "PROM"
         self.input_files: List[Dict[str, Any]] = get_input_files_for_block(
@@ -513,7 +625,7 @@ class Config:
 
     @property
     def base_dir(self) -> str:
-        """Корень проекта (каталог с config.json)."""
+        """Корень репозитория (родитель каталога config/)."""
         return self._base_dir
 
     def get_output_filename(self) -> str:

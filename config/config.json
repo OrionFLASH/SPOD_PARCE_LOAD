@@ -1,0 +1,12 @@
+{
+  "$include": [
+    "CONFIG_RUN_INPUT.json",
+    "CONFIG_CHECKS.json",
+    "CONFIG_FORMATS.json",
+    "CONFIG_MERGE.json",
+    "CONFIG_RATING.json",
+    "CONFIG_ORDER.json",
+    "CONFIG_MANAGER.json"
+  ],
+  "_config_layout_note": "Точка входа конфигурации SPOD. Файлы из $include объединяются по порядку (deep-merge для объектов; списки верхнего уровня заменяются целиком). Ключи этого файла перекрывают includes. Пути IN/OUT/LOGS — относительно корня репозитория (родитель каталога config/). Подробно: Docs/CONFIG_FILES.md"
+}

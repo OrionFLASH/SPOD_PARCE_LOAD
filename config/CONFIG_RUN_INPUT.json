@@ -1,0 +1,1636 @@
+{
+  "run_outputs": {
+    "PROM": [
+      "main_only"
+    ],
+    "IFT": [
+      "consistency_only"
+    ],
+    "PSI": [
+      "consistency_only"
+    ]
+  },
+  "_run_outputs_allowed": [
+    "source_only",
+    "main_only",
+    "consistency_only",
+    "manager_stats_only",
+    "stat_file_only",
+    "rating_item_matrix",
+    "season_order_summary"
+  ],
+  "_run_outputs_note": "Либо массив токенов (одинаково для всех блоков), либо объект {\"PROM\":[...],\"IFT\":[...],\"PSI\":[...]} — свой набор обработок на блок. Ключ default — запасной. Токены: source_only, main_only, consistency_only, manager_stats_only, stat_file_only, rating_item_matrix, season_order_summary.",
+  "run_blocks": [
+    "PROM"
+  ],
+  "_run_blocks_allowed": [
+    "PROM",
+    "IFT",
+    "PSI"
+  ],
+  "_run_blocks_note": "Какие блоки обрабатывать: PROM, IFT, PSI. input_files — разделы PROM/IFT/PSI с полным списком файлов. Вход: IN/<BLOCK>/{SPOD,FILE,POST,JS}/. Выход: OUT/<BLOCK>/YYYY/DD-MM/, имена SPOD_<BLOCK>. Архив SQLite: OUT/DB/<BLOCK>/…_{BLOCK}….sqlite. run_outputs — объект по блокам (или плоский список на все). run_blocks_parallel — параллельный прогон. По умолчанию run_blocks=[\"PROM\"].",
+  "run_blocks_parallel": false,
+  "_run_blocks_parallel_note": "true — параллельный прогон нескольких блоков из run_blocks (отдельные процессы); вывод в консоль печатается пачками по блоку без перемешивания. По умолчанию false.",
+  "apply_sort_to_source": true,
+  "apply_sort_to_main": false,
+  "output_filenames": {
+    "main": "SPOD_{BLOCK} main",
+    "source": "SPOD_{BLOCK} source",
+    "consistency": "SPOD_{BLOCK} consistency",
+    "manager_stats": "SPOD_{BLOCK} MANAGER_STATS"
+  },
+  "paths": {
+    "input": "IN",
+    "output": "OUT",
+    "logs": "LOGS"
+  },
+  "input_archive_sqlite": {
+    "enabled": true,
+    "row_level_archive": true,
+    "schema_version": 2,
+    "db_path": "OUT/DB/{BLOCK}/spod_input_archive_{BLOCK}_v2.sqlite",
+    "legacy_db_path": "OUT/DB/{BLOCK}/spod_input_archive_{BLOCK}.sqlite",
+    "use_sha256_for_identity": true,
+    "compute_sha256": true,
+    "default_archive_to_db": false,
+    "append_on_content_change": true,
+    "reuse_matching_historical_snapshot": true,
+    "skip_ingest_if_file_unchanged": true,
+    "row_hash_columns": null,
+    "parallel_row_processing": {
+      "enabled": true,
+      "max_workers": 0,
+      "chunk_size": 2000,
+      "min_rows_for_parallel": 500
+    },
+    "default_row_key_by_sheet": {
+      "CONTEST-DATA": [
+        "CONTEST_CODE"
+      ],
+      "GROUP": [
+        "CONTEST_CODE",
+        "GROUP_CODE",
+        "GROUP_VALUE"
+      ],
+      "INDICATOR": [
+        "CONTEST_CODE",
+        "INDICATOR_ADD_CALC_TYPE",
+        "INDICATOR_CODE"
+      ],
+      "REPORT": [
+        "MANAGER_PERSON_NUMBER",
+        "TOURNAMENT_CODE",
+        "CONTEST_CODE"
+      ],
+      "REWARD": [
+        "REWARD_CODE"
+      ],
+      "REWARD-LINK": [
+        "CONTEST_CODE",
+        "GROUP_CODE",
+        "REWARD_CODE"
+      ],
+      "TOURNAMENT-SCHEDULE": [
+        "TOURNAMENT_CODE"
+      ],
+      "ORG_UNIT_V20": [
+        "ORG_UNIT_CODE"
+      ],
+      "USER_ROLE": [
+        "RULE_NUM"
+      ],
+      "USER_ROLE SB": [
+        "RULE_NUM"
+      ],
+      "EMPLOYEE": [
+        "PERSON_NUMBER"
+      ],
+      "LIST-REWARDS": [
+        "Уникальный идентификатор записи"
+      ],
+      "LIST-TOURNAMENT": [
+        "Код турнира"
+      ],
+      "STATISTICS": [
+        "Табельный номер",
+        "Код роли",
+        "Дата вступления в роль"
+      ],
+      "RATING_*": [
+        "Табельный номер",
+        "Наименование Роли",
+        "Период"
+      ],
+      "ORDER_*": [
+        "Уникальный идентификатор транзакции"
+      ],
+      "ORDER_ALL (MNS)": [
+        "Уникальный идентификатор транзакции"
+      ],
+      "YEAR_STATA": [
+        "Уникальный идентификатор записи"
+      ]
+    },
+    "reporting": {
+      "console": "normal",
+      "log": "normal"
+    },
+    "system_columns": {
+      "snapshot_id": "__snapshot_id",
+      "row_index": "__row_ix",
+      "loaded_at": "__loaded_at"
+    }
+  },
+  "logging": {
+    "level": "INFO",
+    "base_name": "LOGS"
+  },
+  "performance": {
+    "max_workers_io": 16,
+    "max_workers_cpu": 8
+  },
+  "input_files": {
+    "PROM": [
+      {
+        "file": "CONTEST (PROM) 03-07 v0.csv",
+        "sheet": "CONTEST-DATA",
+        "subdir": "PROM/SPOD",
+        "archive_to_db": true,
+        "sort_columns": [
+          {
+            "column": "CONTEST_CODE",
+            "order": "asc"
+          }
+        ],
+        "max_col_width": 120,
+        "freeze": "C2",
+        "col_width_mode": "AUTO",
+        "min_col_width": 12,
+        "include_in_source": true,
+        "archive_db_path": "OUT/DB/{BLOCK}/spod_input_archive_{BLOCK}.sqlite"
+      },
+      {
+        "file": "GROUP (PROM) 03-07 v0.csv",
+        "sheet": "GROUP",
+        "subdir": "PROM/SPOD",
+        "archive_to_db": true,
+        "sort_columns": [
+          {
+            "column": "GROUP_VALUE",
+            "order": "asc"
+          },
+          {
+            "column": "GROUP_CODE",
+            "order": "asc"
+          },
+          {
+            "column": "CONTEST_CODE",
+            "order": "asc"
+          }
+        ],
+        "max_col_width": 20,
+        "freeze": "C2",
+        "col_width_mode": "AUTO",
+        "min_col_width": 8,
+        "include_in_source": true,
+        "archive_db_path": "OUT/DB/{BLOCK}/spod_input_archive_{BLOCK}.sqlite"
+      },
+      {
+        "file": "INDICATOR (PROM) 03-07 v0.csv",
+        "sheet": "INDICATOR",
+        "subdir": "PROM/SPOD",
+        "archive_to_db": true,
+        "sort_columns": [
+          {
+            "column": "INDICATOR_CODE",
+            "order": "asc"
+          },
+          {
+            "column": "INDICATOR_ADD_CALC_TYPE",
+            "order": "asc"
+          },
+          {
+            "column": "CONTEST_CODE",
+            "order": "asc"
+          }
+        ],
+        "max_col_width": 100,
+        "freeze": "B2",
+        "col_width_mode": "AUTO",
+        "min_col_width": 8,
+        "include_in_source": true,
+        "archive_db_path": "OUT/DB/{BLOCK}/spod_input_archive_{BLOCK}.sqlite"
+      },
+      {
+        "file": "REPORT (PROM) 14-07 v0.csv",
+        "sheet": "REPORT",
+        "subdir": "PROM/SPOD",
+        "archive_to_db": true,
+        "sort_columns": [
+          {
+            "column": "CONTEST_CODE",
+            "order": "asc"
+          }
+        ],
+        "max_col_width": 25,
+        "freeze": "D2",
+        "col_width_mode": "AUTO",
+        "min_col_width": 10,
+        "include_in_source": true,
+        "archive_db_path": "OUT/DB/{BLOCK}/spod_input_archive_{BLOCK}.sqlite"
+      },
+      {
+        "file": "REWARD (PROM) 03-07 v0.csv",
+        "sheet": "REWARD",
+        "subdir": "PROM/SPOD",
+        "archive_to_db": true,
+        "sort_columns": [
+          {
+            "column": "REWARD_CODE",
+            "order": "asc"
+          },
+          {
+            "column": "REWARD_TYPE",
+            "order": "asc"
+          }
+        ],
+        "max_col_width": 200,
+        "freeze": "D2",
+        "col_width_mode": "AUTO",
+        "min_col_width": 10,
+        "include_in_source": true,
+        "archive_db_path": "OUT/DB/{BLOCK}/spod_input_archive_{BLOCK}.sqlite"
+      },
+      {
+        "file": "REWARD-LINK (PROM) 03-07 v0.csv",
+        "sheet": "REWARD-LINK",
+        "subdir": "PROM/SPOD",
+        "archive_to_db": true,
+        "sort_columns": [
+          {
+            "column": "GROUP_CODE",
+            "order": "asc"
+          },
+          {
+            "column": "REWARD_CODE",
+            "order": "asc"
+          }
+        ],
+        "max_col_width": 30,
+        "freeze": "A2",
+        "col_width_mode": "AUTO",
+        "min_col_width": 10,
+        "include_in_source": true,
+        "archive_db_path": "OUT/DB/{BLOCK}/spod_input_archive_{BLOCK}.sqlite"
+      },
+      {
+        "file": "SCHEDULE (PROM) 09-07 v0.csv",
+        "sheet": "TOURNAMENT-SCHEDULE",
+        "subdir": "PROM/SPOD",
+        "archive_to_db": true,
+        "sort_columns": [
+          {
+            "column": "TOURNAMENT_CODE",
+            "order": "asc"
+          },
+          {
+            "column": "CONTEST_CODE",
+            "order": "asc"
+          }
+        ],
+        "max_col_width": 120,
+        "freeze": "B2",
+        "col_width_mode": "AUTO",
+        "min_col_width": 10,
+        "include_in_source": true,
+        "archive_db_path": "OUT/DB/{BLOCK}/spod_input_archive_{BLOCK}.sqlite"
+      },
+      {
+        "file": "ORG_UNIT_V20 04-06 v2.csv",
+        "sheet": "ORG_UNIT_V20",
+        "subdir": "PROM/SPOD",
+        "archive_to_db": true,
+        "sort_columns": [
+          {
+            "column": "GOSB_CODE",
+            "order": "asc"
+          },
+          {
+            "column": "TB_CODE",
+            "order": "asc"
+          }
+        ],
+        "max_col_width": 60,
+        "freeze": "A2",
+        "col_width_mode": "AUTO",
+        "min_col_width": 10,
+        "include_in_source": true,
+        "archive_db_path": "OUT/DB/{BLOCK}/spod_input_archive_{BLOCK}.sqlite"
+      },
+      {
+        "file": "USER_ROLE (PROM) 08-06 v0.csv",
+        "sheet": "USER_ROLE",
+        "subdir": "PROM/SPOD",
+        "archive_to_db": true,
+        "sort_columns": [
+          {
+            "column": "RULE_NUM",
+            "order": "asc"
+          }
+        ],
+        "max_col_width": 65,
+        "freeze": "D2",
+        "col_width_mode": "AUTO",
+        "min_col_width": 12,
+        "include_in_source": true,
+        "archive_db_path": "OUT/DB/{BLOCK}/spod_input_archive_{BLOCK}.sqlite"
+      },
+      {
+        "file": "USER_ROLE_SB (PROM) 08-06 v0.csv",
+        "sheet": "USER_ROLE SB",
+        "subdir": "PROM/SPOD",
+        "archive_to_db": true,
+        "sort_columns": [
+          {
+            "column": "RULE_NUM",
+            "order": "asc"
+          }
+        ],
+        "max_col_width": 65,
+        "freeze": "D2",
+        "col_width_mode": "AUTO",
+        "min_col_width": 12,
+        "include_in_source": true,
+        "archive_db_path": "OUT/DB/{BLOCK}/spod_input_archive_{BLOCK}.sqlite"
+      },
+      {
+        "file": "EMPLOYEE (PROM) 02-07 v0.csv",
+        "sheet": "EMPLOYEE",
+        "subdir": "PROM/SPOD",
+        "archive_to_db": true,
+        "sort_columns": [
+          {
+            "column": "PERSON_NUMBER",
+            "order": "asc"
+          }
+        ],
+        "max_col_width": 80,
+        "freeze": "F2",
+        "col_width_mode": "AUTO",
+        "min_col_width": 15,
+        "include_in_source": true,
+        "archive_db_path": "OUT/DB/{BLOCK}/spod_input_archive_{BLOCK}.sqlite"
+      },
+      {
+        "file": "PROM_ALPHA_gamification-employeeRewards.csv",
+        "sheet": "LIST-REWARDS",
+        "subdir": "PROM/FILE",
+        "archive_to_db": true,
+        "sort_columns": [],
+        "max_col_width": 40,
+        "freeze": "E2",
+        "col_width_mode": "AUTO",
+        "min_col_width": 12,
+        "include_in_source": false,
+        "archive_db_path": "OUT/DB/{BLOCK}/spod_gamification_archive_{BLOCK}.sqlite"
+      },
+      {
+        "file": "PROM_ALPHA_gamification-statistics.csv",
+        "sheet": "STATISTICS",
+        "subdir": "PROM/FILE",
+        "archive_to_db": true,
+        "sort_columns": [],
+        "max_col_width": 40,
+        "freeze": "E2",
+        "col_width_mode": "AUTO",
+        "min_col_width": 10,
+        "include_in_source": false,
+        "archive_db_path": "OUT/DB/{BLOCK}/spod_gamification_archive_{BLOCK}.sqlite"
+      },
+      {
+        "file": "PROM_ALPHA_gamification-tournamentList.csv",
+        "sheet": "LIST-TOURNAMENT",
+        "subdir": "PROM/FILE",
+        "archive_to_db": true,
+        "sort_columns": [],
+        "max_col_width": 80,
+        "freeze": "C2",
+        "col_width_mode": "AUTO",
+        "min_col_width": 12,
+        "include_in_source": false,
+        "archive_db_path": "OUT/DB/{BLOCK}/spod_gamification_archive_{BLOCK}.sqlite"
+      },
+      {
+        "file": "PROM_ALPHA_gamification-ratingList_KMKKSB_SEASON_2025_2.csv",
+        "sheet": "RATING_2025_2 (KMKKSB)",
+        "subdir": "PROM/FILE",
+        "archive_to_db": true,
+        "aggregate_into_sheet": "RATING",
+        "sort_columns": [],
+        "max_col_width": 80,
+        "freeze": "D2",
+        "col_width_mode": "AUTO",
+        "min_col_width": 12,
+        "include_in_source": false,
+        "archive_db_path": "OUT/DB/{BLOCK}/spod_gamification_archive_{BLOCK}.sqlite"
+      },
+      {
+        "file": "PROM_ALPHA_gamification-ratingList_KMKKSB_SEASON_2024.csv",
+        "sheet": "RATING_2024 (KMKKSB)",
+        "subdir": "PROM/FILE",
+        "archive_to_db": true,
+        "aggregate_into_sheet": "RATING",
+        "sort_columns": [],
+        "max_col_width": 80,
+        "freeze": "D2",
+        "col_width_mode": "AUTO",
+        "min_col_width": 12,
+        "include_in_source": false,
+        "archive_db_path": "OUT/DB/{BLOCK}/spod_gamification_archive_{BLOCK}.sqlite"
+      },
+      {
+        "file": "PROM_ALPHA_gamification-ratingList_KMKKSB_SEASON_2025_1.csv",
+        "sheet": "RATING_2025_1 (KMKKSB)",
+        "subdir": "PROM/FILE",
+        "archive_to_db": true,
+        "aggregate_into_sheet": "RATING",
+        "sort_columns": [],
+        "max_col_width": 80,
+        "freeze": "D2",
+        "col_width_mode": "AUTO",
+        "min_col_width": 12,
+        "include_in_source": false,
+        "archive_db_path": "OUT/DB/{BLOCK}/spod_gamification_archive_{BLOCK}.sqlite"
+      },
+      {
+        "file": "PROM_ALPHA_gamification-ratingList_KMKKSB_ACTIVESEASON.csv",
+        "sheet": "RATING_2026_1 (KMKKSB)",
+        "subdir": "PROM/FILE",
+        "archive_to_db": true,
+        "aggregate_into_sheet": "RATING",
+        "sort_columns": [],
+        "max_col_width": 80,
+        "freeze": "D2",
+        "col_width_mode": "AUTO",
+        "min_col_width": 12,
+        "include_in_source": false,
+        "archive_db_path": "OUT/DB/{BLOCK}/spod_gamification_archive_{BLOCK}.sqlite"
+      },
+      {
+        "file": "PROM_ALPHA_gamification-ratingList_AKMKKSB_ACTIVESEASON.csv",
+        "sheet": "RATING_2026_1 (AKMKKSB)",
+        "subdir": "PROM/FILE",
+        "archive_to_db": true,
+        "aggregate_into_sheet": "RATING",
+        "sort_columns": [],
+        "max_col_width": 80,
+        "freeze": "D2",
+        "col_width_mode": "AUTO",
+        "min_col_width": 12,
+        "include_in_source": false,
+        "archive_db_path": "OUT/DB/{BLOCK}/spod_gamification_archive_{BLOCK}.sqlite"
+      },
+      {
+        "file": "PROM_ALPHA_gamification-ratingList_CSM_ACTIVESEASON.csv",
+        "sheet": "RATING_2026_1 (CSM)",
+        "subdir": "PROM/FILE",
+        "archive_to_db": true,
+        "aggregate_into_sheet": "RATING",
+        "sort_columns": [],
+        "max_col_width": 80,
+        "freeze": "D2",
+        "col_width_mode": "AUTO",
+        "min_col_width": 12,
+        "include_in_source": false,
+        "archive_db_path": "OUT/DB/{BLOCK}/spod_gamification_archive_{BLOCK}.sqlite"
+      },
+      {
+        "file": "PROM_ALPHA_gamification-ratingList_AKMKKSB_ALLTHETIME.csv",
+        "sheet": "RATING_ALLTIME (AKMKKSB)",
+        "subdir": "PROM/FILE",
+        "archive_to_db": true,
+        "aggregate_into_sheet": "RATING",
+        "sort_columns": [],
+        "max_col_width": 80,
+        "freeze": "D2",
+        "col_width_mode": "AUTO",
+        "min_col_width": 12,
+        "include_in_source": false,
+        "archive_db_path": "OUT/DB/{BLOCK}/spod_gamification_archive_{BLOCK}.sqlite"
+      },
+      {
+        "file": "PROM_ALPHA_gamification-ratingList_KMKKSB_ALLTHETIME.csv",
+        "sheet": "RATING_ALLTIME (KMKKSB)",
+        "subdir": "PROM/FILE",
+        "archive_to_db": true,
+        "aggregate_into_sheet": "RATING",
+        "sort_columns": [],
+        "max_col_width": 80,
+        "freeze": "D2",
+        "col_width_mode": "AUTO",
+        "min_col_width": 12,
+        "include_in_source": false,
+        "archive_db_path": "OUT/DB/{BLOCK}/spod_gamification_archive_{BLOCK}.sqlite"
+      },
+      {
+        "file": "PROM_ALPHA_gamification-ratingList_CSM_ALLTHETIME.csv",
+        "sheet": "RATING_ALLTIME (CSM)",
+        "subdir": "PROM/FILE",
+        "archive_to_db": true,
+        "aggregate_into_sheet": "RATING",
+        "sort_columns": [],
+        "max_col_width": 80,
+        "freeze": "D2",
+        "col_width_mode": "AUTO",
+        "min_col_width": 12,
+        "include_in_source": false,
+        "archive_db_path": "OUT/DB/{BLOCK}/spod_gamification_archive_{BLOCK}.sqlite"
+      },
+      {
+        "file": "PROM_ALPHA_gamification-orderList_MNS_SEASON_m_2025_1.csv",
+        "sheet": "ORDER_2025_1 (MNS)",
+        "subdir": "PROM/FILE",
+        "archive_to_db": true,
+        "aggregate_into_sheet": "ORDER",
+        "sort_columns": [],
+        "max_col_width": 80,
+        "freeze": "E2",
+        "col_width_mode": "AUTO",
+        "min_col_width": 12,
+        "include_in_source": false,
+        "archive_db_path": "OUT/DB/{BLOCK}/spod_gamification_archive_{BLOCK}.sqlite"
+      },
+      {
+        "file": "PROM_ALPHA_gamification-orderList_MNS_ALLSEASONS.csv",
+        "sheet": "ORDER_ALL (MNS)",
+        "subdir": "PROM/FILE",
+        "archive_to_db": true,
+        "aggregate_into_sheet": "",
+        "sort_columns": [],
+        "max_col_width": 80,
+        "freeze": "E2",
+        "col_width_mode": "AUTO",
+        "min_col_width": 12,
+        "include_in_source": false,
+        "archive_db_path": "OUT/DB/{BLOCK}/spod_gamification_archive_{BLOCK}.sqlite"
+      },
+      {
+        "file": "PROM_ALPHA_gamification-orderList_MNS_SEASON_m_2024.csv",
+        "sheet": "ORDER_2024 (MNS)",
+        "subdir": "PROM/FILE",
+        "archive_to_db": true,
+        "aggregate_into_sheet": "ORDER",
+        "sort_columns": [],
+        "max_col_width": 80,
+        "freeze": "E2",
+        "col_width_mode": "AUTO",
+        "min_col_width": 12,
+        "include_in_source": false,
+        "archive_db_path": "OUT/DB/{BLOCK}/spod_gamification_archive_{BLOCK}.sqlite"
+      },
+      {
+        "file": "PROM_ALPHA_gamification-orderList_KMKKSB_SEASON_2025_2.csv",
+        "sheet": "ORDER_2025_2 (KMKKSB)",
+        "subdir": "PROM/FILE",
+        "archive_to_db": true,
+        "aggregate_into_sheet": "ORDER",
+        "sort_columns": [],
+        "max_col_width": 80,
+        "freeze": "E2",
+        "col_width_mode": "AUTO",
+        "min_col_width": 12,
+        "include_in_source": false,
+        "archive_db_path": "OUT/DB/{BLOCK}/spod_gamification_archive_{BLOCK}.sqlite"
+      },
+      {
+        "file": "PROM_ALPHA_gamification-orderList_KMKKSB_NONSEASON.csv",
+        "sheet": "ORDER_NA (KMKKSB)",
+        "subdir": "PROM/FILE",
+        "archive_to_db": true,
+        "aggregate_into_sheet": "ORDER",
+        "sort_columns": [],
+        "max_col_width": 80,
+        "freeze": "E2",
+        "col_width_mode": "AUTO",
+        "min_col_width": 12,
+        "include_in_source": false,
+        "archive_db_path": "OUT/DB/{BLOCK}/spod_gamification_archive_{BLOCK}.sqlite"
+      },
+      {
+        "file": "PROM_ALPHA_gamification-orderList_MNS_SEASON_m_2025_2.csv",
+        "sheet": "ORDER_2025_2 (MNS)",
+        "subdir": "PROM/FILE",
+        "archive_to_db": true,
+        "aggregate_into_sheet": "ORDER",
+        "sort_columns": [],
+        "max_col_width": 80,
+        "freeze": "E2",
+        "col_width_mode": "AUTO",
+        "min_col_width": 12,
+        "include_in_source": false,
+        "archive_db_path": "OUT/DB/{BLOCK}/spod_gamification_archive_{BLOCK}.sqlite"
+      },
+      {
+        "file": "PROM_ALPHA_gamification-yearResults.csv",
+        "sheet": "YEAR_STATA",
+        "subdir": "PROM/FILE",
+        "archive_to_db": true,
+        "sort_columns": [],
+        "max_col_width": 80,
+        "freeze": "E2",
+        "col_width_mode": "AUTO",
+        "min_col_width": 12,
+        "include_in_source": false,
+        "archive_db_path": "OUT/DB/{BLOCK}/spod_gamification_archive_{BLOCK}.sqlite"
+      }
+    ],
+    "IFT": [
+      {
+        "file": "CONTEST (PROM) 03-07 v0.csv",
+        "sheet": "CONTEST-DATA",
+        "subdir": "IFT/SPOD",
+        "archive_to_db": true,
+        "sort_columns": [
+          {
+            "column": "CONTEST_CODE",
+            "order": "asc"
+          }
+        ],
+        "max_col_width": 120,
+        "freeze": "C2",
+        "col_width_mode": "AUTO",
+        "min_col_width": 12,
+        "include_in_source": true,
+        "archive_db_path": "OUT/DB/{BLOCK}/spod_input_archive_{BLOCK}.sqlite"
+      },
+      {
+        "file": "GROUP (PROM) 03-07 v0.csv",
+        "sheet": "GROUP",
+        "subdir": "IFT/SPOD",
+        "archive_to_db": true,
+        "sort_columns": [
+          {
+            "column": "GROUP_VALUE",
+            "order": "asc"
+          },
+          {
+            "column": "GROUP_CODE",
+            "order": "asc"
+          },
+          {
+            "column": "CONTEST_CODE",
+            "order": "asc"
+          }
+        ],
+        "max_col_width": 20,
+        "freeze": "C2",
+        "col_width_mode": "AUTO",
+        "min_col_width": 8,
+        "include_in_source": true,
+        "archive_db_path": "OUT/DB/{BLOCK}/spod_input_archive_{BLOCK}.sqlite"
+      },
+      {
+        "file": "INDICATOR (PROM) 03-07 v0.csv",
+        "sheet": "INDICATOR",
+        "subdir": "IFT/SPOD",
+        "archive_to_db": true,
+        "sort_columns": [
+          {
+            "column": "INDICATOR_CODE",
+            "order": "asc"
+          },
+          {
+            "column": "INDICATOR_ADD_CALC_TYPE",
+            "order": "asc"
+          },
+          {
+            "column": "CONTEST_CODE",
+            "order": "asc"
+          }
+        ],
+        "max_col_width": 100,
+        "freeze": "B2",
+        "col_width_mode": "AUTO",
+        "min_col_width": 8,
+        "include_in_source": true,
+        "archive_db_path": "OUT/DB/{BLOCK}/spod_input_archive_{BLOCK}.sqlite"
+      },
+      {
+        "file": "REPORT (PROM) 03-07 v0.csv",
+        "sheet": "REPORT",
+        "subdir": "IFT/SPOD",
+        "archive_to_db": true,
+        "sort_columns": [
+          {
+            "column": "CONTEST_CODE",
+            "order": "asc"
+          }
+        ],
+        "max_col_width": 25,
+        "freeze": "D2",
+        "col_width_mode": "AUTO",
+        "min_col_width": 10,
+        "include_in_source": true,
+        "archive_db_path": "OUT/DB/{BLOCK}/spod_input_archive_{BLOCK}.sqlite"
+      },
+      {
+        "file": "REWARD (PROM) 03-07 v0.csv",
+        "sheet": "REWARD",
+        "subdir": "IFT/SPOD",
+        "archive_to_db": true,
+        "sort_columns": [
+          {
+            "column": "REWARD_CODE",
+            "order": "asc"
+          },
+          {
+            "column": "REWARD_TYPE",
+            "order": "asc"
+          }
+        ],
+        "max_col_width": 200,
+        "freeze": "D2",
+        "col_width_mode": "AUTO",
+        "min_col_width": 10,
+        "include_in_source": true,
+        "archive_db_path": "OUT/DB/{BLOCK}/spod_input_archive_{BLOCK}.sqlite"
+      },
+      {
+        "file": "REWARD-LINK (PROM) 03-07 v0.csv",
+        "sheet": "REWARD-LINK",
+        "subdir": "IFT/SPOD",
+        "archive_to_db": true,
+        "sort_columns": [
+          {
+            "column": "GROUP_CODE",
+            "order": "asc"
+          },
+          {
+            "column": "REWARD_CODE",
+            "order": "asc"
+          }
+        ],
+        "max_col_width": 30,
+        "freeze": "A2",
+        "col_width_mode": "AUTO",
+        "min_col_width": 10,
+        "include_in_source": true,
+        "archive_db_path": "OUT/DB/{BLOCK}/spod_input_archive_{BLOCK}.sqlite"
+      },
+      {
+        "file": "SCHEDULE (PROM) 03-07 v0.csv",
+        "sheet": "TOURNAMENT-SCHEDULE",
+        "subdir": "IFT/SPOD",
+        "archive_to_db": true,
+        "sort_columns": [
+          {
+            "column": "TOURNAMENT_CODE",
+            "order": "asc"
+          },
+          {
+            "column": "CONTEST_CODE",
+            "order": "asc"
+          }
+        ],
+        "max_col_width": 120,
+        "freeze": "B2",
+        "col_width_mode": "AUTO",
+        "min_col_width": 10,
+        "include_in_source": true,
+        "archive_db_path": "OUT/DB/{BLOCK}/spod_input_archive_{BLOCK}.sqlite"
+      },
+      {
+        "file": "ORG_UNIT_V20 04-06 v2.csv",
+        "sheet": "ORG_UNIT_V20",
+        "subdir": "IFT/SPOD",
+        "archive_to_db": true,
+        "sort_columns": [
+          {
+            "column": "GOSB_CODE",
+            "order": "asc"
+          },
+          {
+            "column": "TB_CODE",
+            "order": "asc"
+          }
+        ],
+        "max_col_width": 60,
+        "freeze": "A2",
+        "col_width_mode": "AUTO",
+        "min_col_width": 10,
+        "include_in_source": true,
+        "archive_db_path": "OUT/DB/{BLOCK}/spod_input_archive_{BLOCK}.sqlite"
+      },
+      {
+        "file": "USER_ROLE (PROM) 08-06 v0.csv",
+        "sheet": "USER_ROLE",
+        "subdir": "IFT/SPOD",
+        "archive_to_db": true,
+        "sort_columns": [
+          {
+            "column": "RULE_NUM",
+            "order": "asc"
+          }
+        ],
+        "max_col_width": 65,
+        "freeze": "D2",
+        "col_width_mode": "AUTO",
+        "min_col_width": 12,
+        "include_in_source": true,
+        "archive_db_path": "OUT/DB/{BLOCK}/spod_input_archive_{BLOCK}.sqlite"
+      },
+      {
+        "file": "USER_ROLE_SB (PROM) 08-06 v0.csv",
+        "sheet": "USER_ROLE SB",
+        "subdir": "IFT/SPOD",
+        "archive_to_db": true,
+        "sort_columns": [
+          {
+            "column": "RULE_NUM",
+            "order": "asc"
+          }
+        ],
+        "max_col_width": 65,
+        "freeze": "D2",
+        "col_width_mode": "AUTO",
+        "min_col_width": 12,
+        "include_in_source": true,
+        "archive_db_path": "OUT/DB/{BLOCK}/spod_input_archive_{BLOCK}.sqlite"
+      },
+      {
+        "file": "EMPLOYEE (PROM) 02-07 v0.csv",
+        "sheet": "EMPLOYEE",
+        "subdir": "IFT/SPOD",
+        "archive_to_db": true,
+        "sort_columns": [
+          {
+            "column": "PERSON_NUMBER",
+            "order": "asc"
+          }
+        ],
+        "max_col_width": 80,
+        "freeze": "F2",
+        "col_width_mode": "AUTO",
+        "min_col_width": 15,
+        "include_in_source": true,
+        "archive_db_path": "OUT/DB/{BLOCK}/spod_input_archive_{BLOCK}.sqlite"
+      },
+      {
+        "file": "PROM_ALPHA_gamification-employeeRewards.csv",
+        "sheet": "LIST-REWARDS",
+        "subdir": "IFT/FILE",
+        "archive_to_db": true,
+        "sort_columns": [],
+        "max_col_width": 40,
+        "freeze": "E2",
+        "col_width_mode": "AUTO",
+        "min_col_width": 12,
+        "include_in_source": false,
+        "archive_db_path": "OUT/DB/{BLOCK}/spod_gamification_archive_{BLOCK}.sqlite"
+      },
+      {
+        "file": "PROM_ALPHA_gamification-statistics.csv",
+        "sheet": "STATISTICS",
+        "subdir": "IFT/FILE",
+        "archive_to_db": true,
+        "sort_columns": [],
+        "max_col_width": 40,
+        "freeze": "E2",
+        "col_width_mode": "AUTO",
+        "min_col_width": 10,
+        "include_in_source": false,
+        "archive_db_path": "OUT/DB/{BLOCK}/spod_gamification_archive_{BLOCK}.sqlite"
+      },
+      {
+        "file": "PROM_ALPHA_gamification-tournamentList.csv",
+        "sheet": "LIST-TOURNAMENT",
+        "subdir": "IFT/FILE",
+        "archive_to_db": true,
+        "sort_columns": [],
+        "max_col_width": 80,
+        "freeze": "C2",
+        "col_width_mode": "AUTO",
+        "min_col_width": 12,
+        "include_in_source": false,
+        "archive_db_path": "OUT/DB/{BLOCK}/spod_gamification_archive_{BLOCK}.sqlite"
+      },
+      {
+        "file": "PROM_ALPHA_gamification-ratingList_KMKKSB_SEASON_2025_2.csv",
+        "sheet": "RATING_2025_2 (KMKKSB)",
+        "subdir": "IFT/FILE",
+        "archive_to_db": true,
+        "aggregate_into_sheet": "RATING",
+        "sort_columns": [],
+        "max_col_width": 80,
+        "freeze": "D2",
+        "col_width_mode": "AUTO",
+        "min_col_width": 12,
+        "include_in_source": false,
+        "archive_db_path": "OUT/DB/{BLOCK}/spod_gamification_archive_{BLOCK}.sqlite"
+      },
+      {
+        "file": "PROM_ALPHA_gamification-ratingList_KMKKSB_SEASON_2024.csv",
+        "sheet": "RATING_2024 (KMKKSB)",
+        "subdir": "IFT/FILE",
+        "archive_to_db": true,
+        "aggregate_into_sheet": "RATING",
+        "sort_columns": [],
+        "max_col_width": 80,
+        "freeze": "D2",
+        "col_width_mode": "AUTO",
+        "min_col_width": 12,
+        "include_in_source": false,
+        "archive_db_path": "OUT/DB/{BLOCK}/spod_gamification_archive_{BLOCK}.sqlite"
+      },
+      {
+        "file": "PROM_ALPHA_gamification-ratingList_KMKKSB_SEASON_2025_1.csv",
+        "sheet": "RATING_2025_1 (KMKKSB)",
+        "subdir": "IFT/FILE",
+        "archive_to_db": true,
+        "aggregate_into_sheet": "RATING",
+        "sort_columns": [],
+        "max_col_width": 80,
+        "freeze": "D2",
+        "col_width_mode": "AUTO",
+        "min_col_width": 12,
+        "include_in_source": false,
+        "archive_db_path": "OUT/DB/{BLOCK}/spod_gamification_archive_{BLOCK}.sqlite"
+      },
+      {
+        "file": "PROM_ALPHA_gamification-ratingList_KMKKSB_ACTIVESEASON.csv",
+        "sheet": "RATING_2026_1 (KMKKSB)",
+        "subdir": "IFT/FILE",
+        "archive_to_db": true,
+        "aggregate_into_sheet": "RATING",
+        "sort_columns": [],
+        "max_col_width": 80,
+        "freeze": "D2",
+        "col_width_mode": "AUTO",
+        "min_col_width": 12,
+        "include_in_source": false,
+        "archive_db_path": "OUT/DB/{BLOCK}/spod_gamification_archive_{BLOCK}.sqlite"
+      },
+      {
+        "file": "PROM_ALPHA_gamification-ratingList_AKMKKSB_ACTIVESEASON.csv",
+        "sheet": "RATING_2026_1 (AKMKKSB)",
+        "subdir": "IFT/FILE",
+        "archive_to_db": true,
+        "aggregate_into_sheet": "RATING",
+        "sort_columns": [],
+        "max_col_width": 80,
+        "freeze": "D2",
+        "col_width_mode": "AUTO",
+        "min_col_width": 12,
+        "include_in_source": false,
+        "archive_db_path": "OUT/DB/{BLOCK}/spod_gamification_archive_{BLOCK}.sqlite"
+      },
+      {
+        "file": "PROM_ALPHA_gamification-ratingList_CSM_ACTIVESEASON.csv",
+        "sheet": "RATING_2026_1 (CSM)",
+        "subdir": "IFT/FILE",
+        "archive_to_db": true,
+        "aggregate_into_sheet": "RATING",
+        "sort_columns": [],
+        "max_col_width": 80,
+        "freeze": "D2",
+        "col_width_mode": "AUTO",
+        "min_col_width": 12,
+        "include_in_source": false,
+        "archive_db_path": "OUT/DB/{BLOCK}/spod_gamification_archive_{BLOCK}.sqlite"
+      },
+      {
+        "file": "PROM_ALPHA_gamification-ratingList_AKMKKSB_ALLTHETIME.csv",
+        "sheet": "RATING_ALLTIME (AKMKKSB)",
+        "subdir": "IFT/FILE",
+        "archive_to_db": true,
+        "aggregate_into_sheet": "RATING",
+        "sort_columns": [],
+        "max_col_width": 80,
+        "freeze": "D2",
+        "col_width_mode": "AUTO",
+        "min_col_width": 12,
+        "include_in_source": false,
+        "archive_db_path": "OUT/DB/{BLOCK}/spod_gamification_archive_{BLOCK}.sqlite"
+      },
+      {
+        "file": "PROM_ALPHA_gamification-ratingList_KMKKSB_ALLTHETIME.csv",
+        "sheet": "RATING_ALLTIME (KMKKSB)",
+        "subdir": "IFT/FILE",
+        "archive_to_db": true,
+        "aggregate_into_sheet": "RATING",
+        "sort_columns": [],
+        "max_col_width": 80,
+        "freeze": "D2",
+        "col_width_mode": "AUTO",
+        "min_col_width": 12,
+        "include_in_source": false,
+        "archive_db_path": "OUT/DB/{BLOCK}/spod_gamification_archive_{BLOCK}.sqlite"
+      },
+      {
+        "file": "PROM_ALPHA_gamification-ratingList_CSM_ALLTHETIME.csv",
+        "sheet": "RATING_ALLTIME (CSM)",
+        "subdir": "IFT/FILE",
+        "archive_to_db": true,
+        "aggregate_into_sheet": "RATING",
+        "sort_columns": [],
+        "max_col_width": 80,
+        "freeze": "D2",
+        "col_width_mode": "AUTO",
+        "min_col_width": 12,
+        "include_in_source": false,
+        "archive_db_path": "OUT/DB/{BLOCK}/spod_gamification_archive_{BLOCK}.sqlite"
+      },
+      {
+        "file": "PROM_ALPHA_gamification-orderList_MNS_SEASON_m_2025_1.csv",
+        "sheet": "ORDER_2025_1 (MNS)",
+        "subdir": "IFT/FILE",
+        "archive_to_db": true,
+        "aggregate_into_sheet": "ORDER",
+        "sort_columns": [],
+        "max_col_width": 80,
+        "freeze": "E2",
+        "col_width_mode": "AUTO",
+        "min_col_width": 12,
+        "include_in_source": false,
+        "archive_db_path": "OUT/DB/{BLOCK}/spod_gamification_archive_{BLOCK}.sqlite"
+      },
+      {
+        "file": "PROM_ALPHA_gamification-orderList_MNS_ALLSEASONS.csv",
+        "sheet": "ORDER_ALL (MNS)",
+        "subdir": "IFT/FILE",
+        "archive_to_db": true,
+        "aggregate_into_sheet": "",
+        "sort_columns": [],
+        "max_col_width": 80,
+        "freeze": "E2",
+        "col_width_mode": "AUTO",
+        "min_col_width": 12,
+        "include_in_source": false,
+        "archive_db_path": "OUT/DB/{BLOCK}/spod_gamification_archive_{BLOCK}.sqlite"
+      },
+      {
+        "file": "PROM_ALPHA_gamification-orderList_MNS_SEASON_m_2024.csv",
+        "sheet": "ORDER_2024 (MNS)",
+        "subdir": "IFT/FILE",
+        "archive_to_db": true,
+        "aggregate_into_sheet": "ORDER",
+        "sort_columns": [],
+        "max_col_width": 80,
+        "freeze": "E2",
+        "col_width_mode": "AUTO",
+        "min_col_width": 12,
+        "include_in_source": false,
+        "archive_db_path": "OUT/DB/{BLOCK}/spod_gamification_archive_{BLOCK}.sqlite"
+      },
+      {
+        "file": "PROM_ALPHA_gamification-orderList_KMKKSB_SEASON_2025_2.csv",
+        "sheet": "ORDER_2025_2 (KMKKSB)",
+        "subdir": "IFT/FILE",
+        "archive_to_db": true,
+        "aggregate_into_sheet": "ORDER",
+        "sort_columns": [],
+        "max_col_width": 80,
+        "freeze": "E2",
+        "col_width_mode": "AUTO",
+        "min_col_width": 12,
+        "include_in_source": false,
+        "archive_db_path": "OUT/DB/{BLOCK}/spod_gamification_archive_{BLOCK}.sqlite"
+      },
+      {
+        "file": "PROM_ALPHA_gamification-orderList_KMKKSB_NONSEASON.csv",
+        "sheet": "ORDER_NA (KMKKSB)",
+        "subdir": "IFT/FILE",
+        "archive_to_db": true,
+        "aggregate_into_sheet": "ORDER",
+        "sort_columns": [],
+        "max_col_width": 80,
+        "freeze": "E2",
+        "col_width_mode": "AUTO",
+        "min_col_width": 12,
+        "include_in_source": false,
+        "archive_db_path": "OUT/DB/{BLOCK}/spod_gamification_archive_{BLOCK}.sqlite"
+      },
+      {
+        "file": "PROM_ALPHA_gamification-orderList_MNS_SEASON_m_2025_2.csv",
+        "sheet": "ORDER_2025_2 (MNS)",
+        "subdir": "IFT/FILE",
+        "archive_to_db": true,
+        "aggregate_into_sheet": "ORDER",
+        "sort_columns": [],
+        "max_col_width": 80,
+        "freeze": "E2",
+        "col_width_mode": "AUTO",
+        "min_col_width": 12,
+        "include_in_source": false,
+        "archive_db_path": "OUT/DB/{BLOCK}/spod_gamification_archive_{BLOCK}.sqlite"
+      },
+      {
+        "file": "PROM_ALPHA_gamification-yearResults.csv",
+        "sheet": "YEAR_STATA",
+        "subdir": "IFT/FILE",
+        "archive_to_db": true,
+        "sort_columns": [],
+        "max_col_width": 80,
+        "freeze": "E2",
+        "col_width_mode": "AUTO",
+        "min_col_width": 12,
+        "include_in_source": false,
+        "archive_db_path": "OUT/DB/{BLOCK}/spod_gamification_archive_{BLOCK}.sqlite"
+      }
+    ],
+    "PSI": [
+      {
+        "file": "contest_data_IFT_2026-07-14.csv",
+        "sheet": "CONTEST-DATA",
+        "subdir": "PSI/SPOD",
+        "archive_to_db": true,
+        "sort_columns": [
+          {
+            "column": "CONTEST_CODE",
+            "order": "asc"
+          }
+        ],
+        "max_col_width": 120,
+        "freeze": "C2",
+        "col_width_mode": "AUTO",
+        "min_col_width": 12,
+        "include_in_source": true,
+        "archive_db_path": "OUT/DB/{BLOCK}/spod_input_archive_{BLOCK}.sqlite"
+      },
+      {
+        "file": "contest_group_IFT_2026-07-09.csv",
+        "sheet": "GROUP",
+        "subdir": "PSI/SPOD",
+        "archive_to_db": true,
+        "sort_columns": [
+          {
+            "column": "GROUP_VALUE",
+            "order": "asc"
+          },
+          {
+            "column": "GROUP_CODE",
+            "order": "asc"
+          },
+          {
+            "column": "CONTEST_CODE",
+            "order": "asc"
+          }
+        ],
+        "max_col_width": 20,
+        "freeze": "C2",
+        "col_width_mode": "AUTO",
+        "min_col_width": 8,
+        "include_in_source": true,
+        "archive_db_path": "OUT/DB/{BLOCK}/spod_input_archive_{BLOCK}.sqlite"
+      },
+      {
+        "file": "contest_indicator_V20_IFT_2026-07-09.csv",
+        "sheet": "INDICATOR",
+        "subdir": "PSI/SPOD",
+        "archive_to_db": true,
+        "sort_columns": [
+          {
+            "column": "INDICATOR_CODE",
+            "order": "asc"
+          },
+          {
+            "column": "INDICATOR_ADD_CALC_TYPE",
+            "order": "asc"
+          },
+          {
+            "column": "CONTEST_CODE",
+            "order": "asc"
+          }
+        ],
+        "max_col_width": 100,
+        "freeze": "B2",
+        "col_width_mode": "AUTO",
+        "min_col_width": 8,
+        "include_in_source": true,
+        "archive_db_path": "OUT/DB/{BLOCK}/spod_input_archive_{BLOCK}.sqlite"
+      },
+      {
+        "file": "REPORT (PROM) 03-07 v0.csv",
+        "sheet": "REPORT",
+        "subdir": "PSI/SPOD",
+        "archive_to_db": true,
+        "sort_columns": [
+          {
+            "column": "CONTEST_CODE",
+            "order": "asc"
+          }
+        ],
+        "max_col_width": 25,
+        "freeze": "D2",
+        "col_width_mode": "AUTO",
+        "min_col_width": 10,
+        "include_in_source": true,
+        "archive_db_path": "OUT/DB/{BLOCK}/spod_input_archive_{BLOCK}.sqlite"
+      },
+      {
+        "file": "contest_reward_IFT_2026-07-09.csv",
+        "sheet": "REWARD",
+        "subdir": "PSI/SPOD",
+        "archive_to_db": true,
+        "sort_columns": [
+          {
+            "column": "REWARD_CODE",
+            "order": "asc"
+          },
+          {
+            "column": "REWARD_TYPE",
+            "order": "asc"
+          }
+        ],
+        "max_col_width": 200,
+        "freeze": "D2",
+        "col_width_mode": "AUTO",
+        "min_col_width": 10,
+        "include_in_source": true,
+        "archive_db_path": "OUT/DB/{BLOCK}/spod_input_archive_{BLOCK}.sqlite"
+      },
+      {
+        "file": "contest_reward_link_IFT_2026-07-09.csv",
+        "sheet": "REWARD-LINK",
+        "subdir": "PSI/SPOD",
+        "archive_to_db": true,
+        "sort_columns": [
+          {
+            "column": "GROUP_CODE",
+            "order": "asc"
+          },
+          {
+            "column": "REWARD_CODE",
+            "order": "asc"
+          }
+        ],
+        "max_col_width": 30,
+        "freeze": "A2",
+        "col_width_mode": "AUTO",
+        "min_col_width": 10,
+        "include_in_source": true,
+        "archive_db_path": "OUT/DB/{BLOCK}/spod_input_archive_{BLOCK}.sqlite"
+      },
+      {
+        "file": "tournament_schedule_IFT_2026-07-09.csv",
+        "sheet": "TOURNAMENT-SCHEDULE",
+        "subdir": "PSI/SPOD",
+        "archive_to_db": true,
+        "sort_columns": [
+          {
+            "column": "TOURNAMENT_CODE",
+            "order": "asc"
+          },
+          {
+            "column": "CONTEST_CODE",
+            "order": "asc"
+          }
+        ],
+        "max_col_width": 120,
+        "freeze": "B2",
+        "col_width_mode": "AUTO",
+        "min_col_width": 10,
+        "include_in_source": true,
+        "archive_db_path": "OUT/DB/{BLOCK}/spod_input_archive_{BLOCK}.sqlite"
+      },
+      {
+        "file": "ORG_UNIT_V20 04-06 v2.csv",
+        "sheet": "ORG_UNIT_V20",
+        "subdir": "PSI/SPOD",
+        "archive_to_db": true,
+        "sort_columns": [
+          {
+            "column": "GOSB_CODE",
+            "order": "asc"
+          },
+          {
+            "column": "TB_CODE",
+            "order": "asc"
+          }
+        ],
+        "max_col_width": 60,
+        "freeze": "A2",
+        "col_width_mode": "AUTO",
+        "min_col_width": 10,
+        "include_in_source": true,
+        "archive_db_path": "OUT/DB/{BLOCK}/spod_input_archive_{BLOCK}.sqlite"
+      },
+      {
+        "file": "USER_ROLE (PROM) 08-06 v0.csv",
+        "sheet": "USER_ROLE",
+        "subdir": "PSI/SPOD",
+        "archive_to_db": true,
+        "sort_columns": [
+          {
+            "column": "RULE_NUM",
+            "order": "asc"
+          }
+        ],
+        "max_col_width": 65,
+        "freeze": "D2",
+        "col_width_mode": "AUTO",
+        "min_col_width": 12,
+        "include_in_source": true,
+        "archive_db_path": "OUT/DB/{BLOCK}/spod_input_archive_{BLOCK}.sqlite"
+      },
+      {
+        "file": "USER_ROLE_SB (PROM) 08-06 v0.csv",
+        "sheet": "USER_ROLE SB",
+        "subdir": "PSI/SPOD",
+        "archive_to_db": true,
+        "sort_columns": [
+          {
+            "column": "RULE_NUM",
+            "order": "asc"
+          }
+        ],
+        "max_col_width": 65,
+        "freeze": "D2",
+        "col_width_mode": "AUTO",
+        "min_col_width": 12,
+        "include_in_source": true,
+        "archive_db_path": "OUT/DB/{BLOCK}/spod_input_archive_{BLOCK}.sqlite"
+      },
+      {
+        "file": "EMPLOYEE (PROM) 02-07 v0.csv",
+        "sheet": "EMPLOYEE",
+        "subdir": "PSI/SPOD",
+        "archive_to_db": true,
+        "sort_columns": [
+          {
+            "column": "PERSON_NUMBER",
+            "order": "asc"
+          }
+        ],
+        "max_col_width": 80,
+        "freeze": "F2",
+        "col_width_mode": "AUTO",
+        "min_col_width": 15,
+        "include_in_source": true,
+        "archive_db_path": "OUT/DB/{BLOCK}/spod_input_archive_{BLOCK}.sqlite"
+      },
+      {
+        "file": "PROM_ALPHA_gamification-employeeRewards.csv",
+        "sheet": "LIST-REWARDS",
+        "subdir": "PSI/FILE",
+        "archive_to_db": true,
+        "sort_columns": [],
+        "max_col_width": 40,
+        "freeze": "E2",
+        "col_width_mode": "AUTO",
+        "min_col_width": 12,
+        "include_in_source": false,
+        "archive_db_path": "OUT/DB/{BLOCK}/spod_gamification_archive_{BLOCK}.sqlite"
+      },
+      {
+        "file": "PROM_ALPHA_gamification-statistics.csv",
+        "sheet": "STATISTICS",
+        "subdir": "PSI/FILE",
+        "archive_to_db": true,
+        "sort_columns": [],
+        "max_col_width": 40,
+        "freeze": "E2",
+        "col_width_mode": "AUTO",
+        "min_col_width": 10,
+        "include_in_source": false,
+        "archive_db_path": "OUT/DB/{BLOCK}/spod_gamification_archive_{BLOCK}.sqlite"
+      },
+      {
+        "file": "PROM_ALPHA_gamification-tournamentList.csv",
+        "sheet": "LIST-TOURNAMENT",
+        "subdir": "PSI/FILE",
+        "archive_to_db": true,
+        "sort_columns": [],
+        "max_col_width": 80,
+        "freeze": "C2",
+        "col_width_mode": "AUTO",
+        "min_col_width": 12,
+        "include_in_source": false,
+        "archive_db_path": "OUT/DB/{BLOCK}/spod_gamification_archive_{BLOCK}.sqlite"
+      },
+      {
+        "file": "PROM_ALPHA_gamification-ratingList_KMKKSB_SEASON_2025_2.csv",
+        "sheet": "RATING_2025_2 (KMKKSB)",
+        "subdir": "PSI/FILE",
+        "archive_to_db": true,
+        "aggregate_into_sheet": "RATING",
+        "sort_columns": [],
+        "max_col_width": 80,
+        "freeze": "D2",
+        "col_width_mode": "AUTO",
+        "min_col_width": 12,
+        "include_in_source": false,
+        "archive_db_path": "OUT/DB/{BLOCK}/spod_gamification_archive_{BLOCK}.sqlite"
+      },
+      {
+        "file": "PROM_ALPHA_gamification-ratingList_KMKKSB_SEASON_2024.csv",
+        "sheet": "RATING_2024 (KMKKSB)",
+        "subdir": "PSI/FILE",
+        "archive_to_db": true,
+        "aggregate_into_sheet": "RATING",
+        "sort_columns": [],
+        "max_col_width": 80,
+        "freeze": "D2",
+        "col_width_mode": "AUTO",
+        "min_col_width": 12,
+        "include_in_source": false,
+        "archive_db_path": "OUT/DB/{BLOCK}/spod_gamification_archive_{BLOCK}.sqlite"
+      },
+      {
+        "file": "PROM_ALPHA_gamification-ratingList_KMKKSB_SEASON_2025_1.csv",
+        "sheet": "RATING_2025_1 (KMKKSB)",
+        "subdir": "PSI/FILE",
+        "archive_to_db": true,
+        "aggregate_into_sheet": "RATING",
+        "sort_columns": [],
+        "max_col_width": 80,
+        "freeze": "D2",
+        "col_width_mode": "AUTO",
+        "min_col_width": 12,
+        "include_in_source": false,
+        "archive_db_path": "OUT/DB/{BLOCK}/spod_gamification_archive_{BLOCK}.sqlite"
+      },
+      {
+        "file": "PROM_ALPHA_gamification-ratingList_KMKKSB_ACTIVESEASON.csv",
+        "sheet": "RATING_2026_1 (KMKKSB)",
+        "subdir": "PSI/FILE",
+        "archive_to_db": true,
+        "aggregate_into_sheet": "RATING",
+        "sort_columns": [],
+        "max_col_width": 80,
+        "freeze": "D2",
+        "col_width_mode": "AUTO",
+        "min_col_width": 12,
+        "include_in_source": false,
+        "archive_db_path": "OUT/DB/{BLOCK}/spod_gamification_archive_{BLOCK}.sqlite"
+      },
+      {
+        "file": "PROM_ALPHA_gamification-ratingList_AKMKKSB_ACTIVESEASON.csv",
+        "sheet": "RATING_2026_1 (AKMKKSB)",
+        "subdir": "PSI/FILE",
+        "archive_to_db": true,
+        "aggregate_into_sheet": "RATING",
+        "sort_columns": [],
+        "max_col_width": 80,
+        "freeze": "D2",
+        "col_width_mode": "AUTO",
+        "min_col_width": 12,
+        "include_in_source": false,
+        "archive_db_path": "OUT/DB/{BLOCK}/spod_gamification_archive_{BLOCK}.sqlite"
+      },
+      {
+        "file": "PROM_ALPHA_gamification-ratingList_CSM_ACTIVESEASON.csv",
+        "sheet": "RATING_2026_1 (CSM)",
+        "subdir": "PSI/FILE",
+        "archive_to_db": true,
+        "aggregate_into_sheet": "RATING",
+        "sort_columns": [],
+        "max_col_width": 80,
+        "freeze": "D2",
+        "col_width_mode": "AUTO",
+        "min_col_width": 12,
+        "include_in_source": false,
+        "archive_db_path": "OUT/DB/{BLOCK}/spod_gamification_archive_{BLOCK}.sqlite"
+      },
+      {
+        "file": "PROM_ALPHA_gamification-ratingList_AKMKKSB_ALLTHETIME.csv",
+        "sheet": "RATING_ALLTIME (AKMKKSB)",
+        "subdir": "PSI/FILE",
+        "archive_to_db": true,
+        "aggregate_into_sheet": "RATING",
+        "sort_columns": [],
+        "max_col_width": 80,
+        "freeze": "D2",
+        "col_width_mode": "AUTO",
+        "min_col_width": 12,
+        "include_in_source": false,
+        "archive_db_path": "OUT/DB/{BLOCK}/spod_gamification_archive_{BLOCK}.sqlite"
+      },
+      {
+        "file": "PROM_ALPHA_gamification-ratingList_KMKKSB_ALLTHETIME.csv",
+        "sheet": "RATING_ALLTIME (KMKKSB)",
+        "subdir": "PSI/FILE",
+        "archive_to_db": true,
+        "aggregate_into_sheet": "RATING",
+        "sort_columns": [],
+        "max_col_width": 80,
+        "freeze": "D2",
+        "col_width_mode": "AUTO",
+        "min_col_width": 12,
+        "include_in_source": false,
+        "archive_db_path": "OUT/DB/{BLOCK}/spod_gamification_archive_{BLOCK}.sqlite"
+      },
+      {
+        "file": "PROM_ALPHA_gamification-ratingList_CSM_ALLTHETIME.csv",
+        "sheet": "RATING_ALLTIME (CSM)",
+        "subdir": "PSI/FILE",
+        "archive_to_db": true,
+        "aggregate_into_sheet": "RATING",
+        "sort_columns": [],
+        "max_col_width": 80,
+        "freeze": "D2",
+        "col_width_mode": "AUTO",
+        "min_col_width": 12,
+        "include_in_source": false,
+        "archive_db_path": "OUT/DB/{BLOCK}/spod_gamification_archive_{BLOCK}.sqlite"
+      },
+      {
+        "file": "PROM_ALPHA_gamification-orderList_MNS_SEASON_m_2025_1.csv",
+        "sheet": "ORDER_2025_1 (MNS)",
+        "subdir": "PSI/FILE",
+        "archive_to_db": true,
+        "aggregate_into_sheet": "ORDER",
+        "sort_columns": [],
+        "max_col_width": 80,
+        "freeze": "E2",
+        "col_width_mode": "AUTO",
+        "min_col_width": 12,
+        "include_in_source": false,
+        "archive_db_path": "OUT/DB/{BLOCK}/spod_gamification_archive_{BLOCK}.sqlite"
+      },
+      {
+        "file": "PROM_ALPHA_gamification-orderList_MNS_ALLSEASONS.csv",
+        "sheet": "ORDER_ALL (MNS)",
+        "subdir": "PSI/FILE",
+        "archive_to_db": true,
+        "aggregate_into_sheet": "",
+        "sort_columns": [],
+        "max_col_width": 80,
+        "freeze": "E2",
+        "col_width_mode": "AUTO",
+        "min_col_width": 12,
+        "include_in_source": false,
+        "archive_db_path": "OUT/DB/{BLOCK}/spod_gamification_archive_{BLOCK}.sqlite"
+      },
+      {
+        "file": "PROM_ALPHA_gamification-orderList_MNS_SEASON_m_2024.csv",
+        "sheet": "ORDER_2024 (MNS)",
+        "subdir": "PSI/FILE",
+        "archive_to_db": true,
+        "aggregate_into_sheet": "ORDER",
+        "sort_columns": [],
+        "max_col_width": 80,
+        "freeze": "E2",
+        "col_width_mode": "AUTO",
+        "min_col_width": 12,
+        "include_in_source": false,
+        "archive_db_path": "OUT/DB/{BLOCK}/spod_gamification_archive_{BLOCK}.sqlite"
+      },
+      {
+        "file": "PROM_ALPHA_gamification-orderList_KMKKSB_SEASON_2025_2.csv",
+        "sheet": "ORDER_2025_2 (KMKKSB)",
+        "subdir": "PSI/FILE",
+        "archive_to_db": true,
+        "aggregate_into_sheet": "ORDER",
+        "sort_columns": [],
+        "max_col_width": 80,
+        "freeze": "E2",
+        "col_width_mode": "AUTO",
+        "min_col_width": 12,
+        "include_in_source": false,
+        "archive_db_path": "OUT/DB/{BLOCK}/spod_gamification_archive_{BLOCK}.sqlite"
+      },
+      {
+        "file": "PROM_ALPHA_gamification-orderList_KMKKSB_NONSEASON.csv",
+        "sheet": "ORDER_NA (KMKKSB)",
+        "subdir": "PSI/FILE",
+        "archive_to_db": true,
+        "aggregate_into_sheet": "ORDER",
+        "sort_columns": [],
+        "max_col_width": 80,
+        "freeze": "E2",
+        "col_width_mode": "AUTO",
+        "min_col_width": 12,
+        "include_in_source": false,
+        "archive_db_path": "OUT/DB/{BLOCK}/spod_gamification_archive_{BLOCK}.sqlite"
+      },
+      {
+        "file": "PROM_ALPHA_gamification-orderList_MNS_SEASON_m_2025_2.csv",
+        "sheet": "ORDER_2025_2 (MNS)",
+        "subdir": "PSI/FILE",
+        "archive_to_db": true,
+        "aggregate_into_sheet": "ORDER",
+        "sort_columns": [],
+        "max_col_width": 80,
+        "freeze": "E2",
+        "col_width_mode": "AUTO",
+        "min_col_width": 12,
+        "include_in_source": false,
+        "archive_db_path": "OUT/DB/{BLOCK}/spod_gamification_archive_{BLOCK}.sqlite"
+      },
+      {
+        "file": "PROM_ALPHA_gamification-yearResults.csv",
+        "sheet": "YEAR_STATA",
+        "subdir": "PSI/FILE",
+        "archive_to_db": true,
+        "sort_columns": [],
+        "max_col_width": 80,
+        "freeze": "E2",
+        "col_width_mode": "AUTO",
+        "min_col_width": 12,
+        "include_in_source": false,
+        "archive_db_path": "OUT/DB/{BLOCK}/spod_gamification_archive_{BLOCK}.sqlite"
+      }
+    ]
+  }
+}

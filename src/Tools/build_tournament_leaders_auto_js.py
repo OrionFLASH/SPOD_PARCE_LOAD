@@ -20,15 +20,16 @@ from src.leaders_for_admin_auto_js import (  # noqa: E402
     write_tournament_leaders_auto_js,
 )
 
-CONFIG_PATH = ROOT / "config.json"
+CONFIG_PATH = ROOT / "config" / "config.json"
 
 
 def main() -> None:
-    with CONFIG_PATH.open(encoding="utf-8") as fh:
-        cfg = json.load(fh)
+    from src.config_loader import load_config_dict
+
+    cfg = load_config_dict(str(CONFIG_PATH))
     if not manager_stats_only_in_run_outputs(cfg):
         raise SystemExit(
-            "JS не создан: в config.json run_outputs должен содержать manager_stats_only."
+            "JS не создан: в config/ (run_outputs) должен быть токен manager_stats_only."
         )
     base_out = str((cfg.get("paths") or {}).get("output") or "OUT")
     output_dir = get_run_output_dir(base_out)
