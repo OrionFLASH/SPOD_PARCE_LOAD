@@ -2,7 +2,7 @@
 
 Документ описывает **фактическое** поведение кода на дату реализации: `src/rating_item_matrix.py`, `src/reward_item_catalog.py`, секция **`rating_item_matrix`** в `config.json`, этапы в **`src/main_impl.py`**.
 
-Связанные материалы: `Docs/RATING_MATRIX_ENRICHMENT_PLAN.md` (план), `README.md` (кратко).
+Связанные материалы: `README.md` (кратко), `Docs/CONFIG_FILES.md` §7 (`CONFIG_RATING.json`).
 
 ---
 

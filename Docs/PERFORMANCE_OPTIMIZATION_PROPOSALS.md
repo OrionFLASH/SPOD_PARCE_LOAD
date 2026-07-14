@@ -55,7 +55,7 @@ flowchart TD
 |---------|-------------------|--------|-------------------|
 | 01 | `01_parallel_csv_read_and_json_flatten` | `process_single_file`, `read_csv_file`, `flatten_json_column_recursive` | `ThreadPoolExecutor`, `max_workers_io` (16) |
 
-**Реализовано (v1.7.48):** в `flatten_json_column_recursive` и параллельном merge — пакетный `pd.concat` вместо поштучного `df[col]=values`; предупреждение **PerformanceWarning** о фрагментации устранено. См. **`TODO_dataframe_fragmentation_roadmap.md`**, тест **`test_flatten_json_batch.py`**.
+**Реализовано (v1.7.48):** в `flatten_json_column_recursive` и параллельном merge — пакетный `pd.concat` вместо поштучного `df[col]=values`; предупреждение **PerformanceWarning** о фрагментации устранено. См. **`PERFORMANCE_AND_PARALLELIZATION_HISTORY.md`**, тест **`test_flatten_json_batch.py`**.
 | — | *(нет фазы)* | `run_input_archive_sqlite_v2` | `ProcessPoolExecutor` для хешей/классификации; SQLite — один поток |
 | 02 | `02_consistency_pipeline_raw_and_csv_mismatch` | `consistency_checks` | 2 фазы правил, `ThreadPoolExecutor`, блокировка по листу |
 | 03 | `03_gender_tournament_merge_reward_summary` | merge, `rating_item_matrix`, `season_order_summary` | merge: потоки по независимым правилам |

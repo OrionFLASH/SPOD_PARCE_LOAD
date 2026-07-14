@@ -1,69 +1,55 @@
 # Каталог документации SPOD
 
-Документ фиксирует актуальную структуру `Docs/` после консолидации и удаления устаревших отчетов.
+Актуальная карта `Docs/` после ревизии (2026-07-15). Устаревшие планы, дубли и черновики удалены.
 
-## Основные документы
+## Источник истины
 
-- `INPUT_DATA_AND_CONFIG_FULL.md` — единый справочник по входным данным, структуре листов и параметрам конфигурации.
-- `CONSISTENCY_CHECKS_FORMAT.md` — формат правил `consistency_checks` и структура сводного листа `CONSISTENCY`.
-- `SPOD_CONSISTENCY_CHECKS_SQL_MIRROR.sql` — зеркало части `consistency_checks.rules` в одном запросе (Hive/Spark: `WITH`, `RLIKE`, `CONCAT_WS`), подробная версия с комментариями. Не вызывается из Python. Результат: блок **SUMMARY** (`passed`, `violation_count`) и блок **DETAIL** (`detail_key`, `detail_message`) без `check_id` / `check_type`. В начале запроса — CTE **`dim_*`** и **`base_schedule_ref`** (меньше повторных чтений одних и тех же таблиц). Таблицы — плейсхолдеры `spod_dq.t_*` (заменить под витрину). В SQL нет правил **`field_format`** (format_*), **`json_*`**, **`json_spod_format`**, отключённых `ref_contest_data_indicator` / `ref_group_indicator` и **`csv_columns_count`** — см. хвост файла.
-- `SPOD_CONSISTENCY_CHECKS_SQL_MIRROR_PLAIN.sql` — та же логика SQL-зеркала, но без подробных комментариев (только исполняемый код).
-- `SPOD_CONSISTENCY_CHECKS_SQL_MIRROR.md` — отдельное подробное описание скрипта: структура CTE, полный перечень проверок и таблиц/полей, замены схемы и имён, формат вывода, исключения (field_format, json, csv).
-- `CONSISTENCY_SAMPLE_FORMAT.md` — актуальный формат поля `sample` по всем типам проверок.
-- `INPUT_ARCHIVE_SQLITE_DESIGN.md` — архив **v1** (снимки целого файла): `src/input_archive_sqlite.py`, **`JSON_*`** через `src/archive_json_columns.py`, БД **`OUT/DB/spod_input_archive.sqlite`**, отчёт **`print_input_archive_sqlite_report`**.
-- `INPUT_ARCHIVE_ROW_LEVEL.md` — архив **v2 (построчно)**, реализован: `row_level_archive`, `src/input_archive_sqlite_v2.py`, `input_archive_row_hash.py`, `input_archive_row_parallel.py`, **`src/csv_headers.py`** (BOM/сопоставление заголовков), БД **`OUT/DB/spod_input_archive_v2.sqlite`**, отчёт **`print_input_archive_row_report`**.
-- `INPUT_ARCHIVE_ROW_LEVEL_PLAN.md` — план и таблица **`row_key_columns`** по листам (справочник).
-- `RATING_MATRIX_COLORS_AND_LOGIC.md` — лист RATING: подсчёт, доступность, раскраска матрицы ITEM (в т.ч. itemAmount и шапка колонки).
-- `SEASON_ORDER_SUMMARY.md` — лист **ORDER-SEASON-SUMMARY**: сводка заказов по группам **SEASON_***, прочие ITEM, формат Excel.
-- `SEASON_ORDER_SUMMARY_KM_LOGIC.md` — логика колонок **«КМ:»** на сводке (как в коде, расхождения с ТЗ, чеклист правки).
-- `MANAGER_STATS.md` — отдельная книга табельных: `sources`, фильтры EMPLOYEE, `employee_placeholder_exclusion`, **enrich pipeline** (CSV → profile JSON → ORG_UNIT), `enrich_columns` (ФИО, ТБ/ГОСБ, коды ролей в рейтинге `exists+join`, Email, дни/входы по месяцам из STATISTICS, метрики RATING), **`profile_gp_load`** (дозаполнение из `profiles_*.json`; **Profile_GP_LOAD_AutoRun.js** — отбор по `js_missing_columns`: только Фамилия, Имя, ТБ, ГОСБ; Код роли/Email/Наименование Роли на JS не влияют), **leadersForAdmin** (претендент, `Tournament_LeadersForAdmin_AutoRun.js`), лист **PROM_TOURNAMENTS** и динамические колонки **НАГРАДА**/**ТУРНИР** на TAB_NUMBERS, `column_formats`, сводка `MANAGER_STATS_SUMMARY`, `run_outputs` (`manager_stats_only`), производительность enrich и PROM.
-- `АНАЛИЗ_ПРОВЕРОК_КОНСИСТЕНТНОСТИ.md` — аналитика покрытия проверок и предложения по расширению.
-- `CODEBASE_ANALYTICS.md` — статистика кодовой базы: файлы, LOC, классы, функции, зависимости, диаграммы. Пересборка: `python src/Tools/build_codebase_analytics.py`.
-- `POST_ENCRYPTED_TRANSFER.md` — зашифрованный снимок **POST/** для пересылки по почте (`pack_post_encrypted_program.py`, `decrypt_post_program.py`).
-- `IN_OUT_DATA_POLICY.md` — защита **`IN/`** и **`OUT/`** от удаления; инцидент 2026-07-02, аудит кода, восстановление.
-- `BLOCKS_MIGRATION.md` — миграция на `IN/<BLOCK>/{SPOD,FILE,…}` и SQLite `OUT/DB/<BLOCK>/` (п. 7 ROADMAP, v1.7.52).
-- `CONFIG_FILES.md` — **актуальная** раскладка `config/`: `$include`, все `CONFIG_*.json`, параметры, примеры, POST/sync (п. 8 ROADMAP, v1.7.53).
-- `CONFIG_SPLIT_ANALYSIS.md` — анализ вариантов разбиения (A–D) и решения диалога; реализация — по `CONFIG_FILES.md`.
+| Тема | Где смотреть |
+|------|----------------|
+| Продукт, пайплайн, changelog | корневой **`README.md`** |
+| Раскладка и параметры `config/` | **`CONFIG_FILES.md`** |
+| ToDo / статусы работ | **`ROADMAP.md`** (корень) |
 
-## Консолидированные исторические документы
+## Конфигурация и данные
 
-- `PERFORMANCE_AND_PARALLELIZATION_HISTORY.md` — единая история оптимизаций/параллелизации и сравнения производительности (в т.ч. устранение **PerformanceWarning** фрагментации DataFrame, v1.7.48).
-- `PERFORMANCE_OPTIMIZATION_PROPOSALS.md` — анализ узких мест пайплайна, предложения по ускорению (Excel, архив v2, JSON, RATING), оценки эффекта и трудозатрат.
-- `SUMMARY_GROUP_FIX_HISTORY.md` — история исправлений логики формирования `SUMMARY` и связки `GROUP_CODE`/`GROUP_VALUE`.
+- `CONFIG_FILES.md` — каталог `config/`, `$include`, все `CONFIG_*.json`, примеры.
+- `BLOCKS_MIGRATION.md` — шпаргалка переноса `IN/<BLOCK>/…` и SQLite по блокам.
+- `IN_OUT_DATA_POLICY.md` — политика: не удалять `IN/`/`OUT/` без явного разрешения.
+- `JSON/README.md` + `JSON/SPOD_INPUT_DATA_CATALOG.md` — каталог полей входных CSV/JSON (пересборка Tools).
 
-## Роудмапы и TODO (корень проекта)
+## Консистентность
 
-- `ROADMAP.md` — сводный ToDo (п. 1–8: консистентность, RATING, архив, блоки, разбиение config).
-- `TODO_dataframe_fragmentation_roadmap.md` — [v] выполнено: план и критерии устранения **PerformanceWarning** при развороте JSON (`flatten_json_column_recursive`).
+- `CONSISTENCY_CHECKS_FORMAT.md` — типы правил, поля, id, лист CONSISTENCY.
+- `CONSISTENCY_SAMPLE_FORMAT.md` — формат колонки `sample`.
+- `SPOD_CONSISTENCY_CHECKS_SQL_MIRROR.md` + `.sql` (+ `_PLAIN.sql`) — SQL-зеркало части правил (не из Python).
 
-## Каталог CSV и JSON `IN/SPOD` — папка `Docs/JSON/`
+## Архив SQLite
 
-- **`Docs/JSON/README.md`** — назначение каталога, список команд пересборки.
-- **`Docs/JSON/SPOD_INPUT_DATA_CATALOG.md`** — единый документ: оглавление по файлам; для каждого CSV — назначение колонок, статистика значений; для **REWARD** и **CONTEST** — разбор JSON (`REWARD_TYPE` / `CONTEST_TYPE`) и встроенные пояснительные справочники полей.
-- **`Docs/JSON/examples/`** — по одному JSON на каждый соответствующий CSV выгрузки в `IN/SPOD` (те же базовые имена файлов).
+- `INPUT_ARCHIVE_ROW_LEVEL.md` — **v2** построчно (основной режим), таблица `row_key_columns`.
+- `INPUT_ARCHIVE_SQLITE_DESIGN.md` — **v1** снимки файла (legacy).
 
-Пересборка каталога: `python src/Tools/build_spod_input_catalog.py`. Обновление примеров JSON: `python src/Tools/export_spod_json_examples.py`. Тексты глоссариев: `src/Tools/catalog_glossary/`.
+## RATING / ORDER / MANAGER_STATS
 
-## Специализированные материалы
+- `RATING_MATRIX_COLORS_AND_LOGIC.md` — матрица ITEM, цвета, itemAmount.
+- `SEASON_ORDER_SUMMARY.md` — обзор листа ORDER-SEASON-SUMMARY.
+- `SEASON_ORDER_SUMMARY_KM_LOGIC.md` — колонки «КМ:».
+- `MANAGER_STATS.md` — отдельная книга табельных / enrich / JS.
 
-- `EXCEL_FEATURES_EXAMPLES.md` — примеры работы с валидациями/формулами в Excel.
+## POST / перенос
 
-## Снимок POST для переноса без Git (`Docs/POST_SNAPSHOT/`)
+- `POST_ENCRYPTED_TRANSFER.md` — шифрованный bundle для почты.
+- `POST_SNAPSHOT/` — шаблоны `КУДА_ПОЛОЖИТЬ_ФАЙЛЫ.txt`, `restore_names_from_txt.bat` (копируются в `POST/`).
 
-- Шаблоны **`КУДА_ПОЛОЖИТЬ_ФАЙЛЫ.txt`** и **`restore_names_from_txt.bat`** копируются скриптом **`python src/Tools/sync_post_txt.py`** в корень локального **`POST/`** (каталог **`POST/`** в **`.gitignore`**).
-- В **`POST/`** после **`sync_post_txt.py`**: **`main.py.txt`**, **`config.json.txt`**, **`README.md.txt`**, **`requirements.txt.txt`**, **`src/**/*.py.txt`** (без **Tools**/**Tests**), дерево **`POST/Docs/**`** (копия **`Docs/`** без **`Docs/POST_SNAPSHOT/`**, у каждого файла суффикс **`.txt`**). Подробности — **`КУДА_ПОЛОЖИТЬ_ФАЙЛЫ.txt`**, **`README.md`** (раздел **«Каталог POST»**).
+## Прочее (живой / генерируемый)
 
-## Зашифрованный снимок POST для почты
-
-- **`python src/Tools/pack_post_encrypted_program.py`** — шифрованный bundle в **`POST/`** (все **`.txt`** в корне, без подкаталогов); расшифровка: **`python decrypt_post_program.py`** (**`IN/POST`** → **`OUT/POST`** с подпапками).
-- Подробно: **`Docs/POST_ENCRYPTED_TRANSFER.md`**, **`src/Tools/post_transfer_crypto.py`**, тесты **`src/Tests/test_post_transfer_crypto.py`**.
+- `PERFORMANCE_OPTIMIZATION_PROPOSALS.md` — бэклог ускорения (часть пунктов ещё открыта).
+- `PERFORMANCE_AND_PARALLELIZATION_HISTORY.md` — краткая история уже сделанных оптимизаций.
+- `CODEBASE_ANALYTICS.md` — снимок метрик кода (`build_codebase_analytics.py`).
 
 ## Правила актуализации
 
-- **Источник истины по продукту:** корневой **`README.md`** (ТЗ, пайплайн, `config.json`, логирование, история версий). Разделы **`column_formats`** (в т.ч. `except_columns`, лист **STATISTICS**), **`reward_getcondition_summary`**, **`rating_item_matrix`** (в т.ч. **`ignoreConditions`**), **`season_order_summary`** (лист **ORDER-SEASON-SUMMARY**), **`manager_stats`** (книга MANAGER_STATS, **`Docs/MANAGER_STATS.md`**), **`consistency_checks`** (в т.ч. **`json_spod_format`**, фильтры **referential**, **`enabled: false`**, смысловые **`id`**) и **«Каталог POST»** описывают актуальное поведение Excel, листов REWARD/RATING и снимка для переноса без Git.
-- После обновления CSV в `IN/SPOD/` пересобрать **`Docs/JSON/SPOD_INPUT_DATA_CATALOG.md`**: `python src/Tools/build_spod_input_catalog.py`; обновить примеры в **`Docs/JSON/examples/`**: `python src/Tools/export_spod_json_examples.py`; при смене схемы JSON править **`src/Tools/catalog_glossary/`**.
-- Справочник **`INPUT_DATA_AND_CONFIG_FULL.md`** держать согласованным с `README.md` по ключевым блокам конфигурации (п. 3), в т.ч. **`run_outputs`** (массив `source_only` / `main_only` / `consistency_only` / **`manager_stats_only`** / **`stat_file_only`** / **`rating_item_matrix`** / **`season_order_summary`**) и при необходимости устаревший **`run_mode`**.
-- Новые изменения по консистентности вносить сначала в `README.md`, затем синхронно в `CONSISTENCY_CHECKS_FORMAT.md`, `CONSISTENCY_SAMPLE_FORMAT.md` и при необходимости **`INPUT_DATA_AND_CONFIG_FULL.md`**. Для **`json_spod_format`** детали поведения и формата сообщений на листе — п. **2.8** в `CONSISTENCY_CHECKS_FORMAT.md`. При добавлении или переименовании правил с типами `referential`, `referential_composite`, `unique`, `field_length` по возможности обновлять комментарии и логику в `SPOD_CONSISTENCY_CHECKS_SQL_MIRROR.sql` (соответствие `rules[].id` / `name`). Правила **`field_format`**, **`json_*`**, **`json_spod_format`** в SQL-зеркале не ведутся — только в Python и конфиге.
-- Снимок для переноса без Git: **`python src/Tools/sync_post_txt.py`** (открытый **POST/**) или **`python src/Tools/pack_post_encrypted_program.py`** (зашифрованный bundle для почты, см. **`Docs/POST_ENCRYPTED_TRANSFER.md`**). **POST/** в **`.gitignore`**. Подробно — **`README.md`**, раздел **«Каталог POST»**.
-- Для крупных блоков изменений использовать консолидированные документы, а не создавать новые `*_V2`, `*_FINAL`, `*_FULL` файлы.
-- Исторические документы с пересекающимся содержимым объединять и удалять дубли.
+1. Поведение Excel / пайплайна — сначала **`README.md`**, затем узкий Docs по теме.
+2. Формат `consistency_checks` — **`CONSISTENCY_CHECKS_FORMAT.md`** (+ sample); SQL-зеркало обновлять при новых referential/unique/field_length.
+3. Конфиг — править файлы в **`config/`**, описание — **`CONFIG_FILES.md`**.
+4. После смены CSV в `IN/` — пересобрать `Docs/JSON/SPOD_INPUT_DATA_CATALOG.md`.
+5. Не плодить `*_V2` / `*_FINAL`; историю багов — в changelog README, не отдельными файлами.

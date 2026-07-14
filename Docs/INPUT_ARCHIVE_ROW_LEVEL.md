@@ -1,6 +1,6 @@
 # Построчный архив входных CSV в SQLite (v2)
 
-Документ описывает **реализованный** режим **`row_level_archive`** в секции **`input_archive_sqlite`** (`config.json`). План согласования: **`Docs/INPUT_ARCHIVE_ROW_LEVEL_PLAN.md`**. Режим **v1** (снимки целого файла) — **`Docs/INPUT_ARCHIVE_SQLITE_DESIGN.md`**.
+Документ описывает **реализованный** режим **`row_level_archive`** в секции **`input_archive_sqlite`** (`config/CONFIG_RUN_INPUT.json`). Режим **v1** (снимки целого файла) — **`Docs/INPUT_ARCHIVE_SQLITE_DESIGN.md`**.
 
 ---
 
@@ -120,7 +120,29 @@ enabled && !row_level_archive →  run_input_archive_sqlite(..., db_path=legacy_
 2. **`input_archive_sqlite.default_row_key_by_sheet[sheet]`** — глобальная таблица в config;
 3. Шаблоны: листы **`RATING_*`** → ключ **`RATING_*`**; **`ORDER_*`** → **`ORDER_*`**.
 
-Полная таблица ключей по листам — **`Docs/INPUT_ARCHIVE_ROW_LEVEL_PLAN.md`**, п. 9.2.
+Полная таблица ключей (актуально с `config/CONFIG_RUN_INPUT.json` → `default_row_key_by_sheet`):
+
+| Лист (`sheet`) | `row_key_columns` |
+|----------------|-------------------|
+| CONTEST-DATA | `CONTEST_CODE` |
+| GROUP | `CONTEST_CODE`, `GROUP_CODE`, `GROUP_VALUE` |
+| INDICATOR | `CONTEST_CODE`, `INDICATOR_ADD_CALC_TYPE`, `INDICATOR_CODE` |
+| REPORT | `MANAGER_PERSON_NUMBER`, `TOURNAMENT_CODE`, `CONTEST_CODE` |
+| REWARD | `REWARD_CODE` |
+| REWARD-LINK | `CONTEST_CODE`, `GROUP_CODE`, `REWARD_CODE` |
+| TOURNAMENT-SCHEDULE | `TOURNAMENT_CODE` |
+| ORG_UNIT_V20 | `ORG_UNIT_CODE` |
+| USER_ROLE | `RULE_NUM` |
+| USER_ROLE SB | `RULE_NUM` |
+| EMPLOYEE | `PERSON_NUMBER` |
+| LIST-REWARDS | `Уникальный идентификатор записи` |
+| LIST-TOURNAMENT | `Код турнира` |
+| STATISTICS | `Табельный номер`, `Код роли`, `Дата вступления в роль` |
+| RATING_* | `Табельный номер`, `Наименование Роли`, `Период` |
+| ORDER_* / ORDER_ALL (MNS) | `Уникальный идентификатор транзакции` |
+| YEAR_STATA | `Уникальный идентификатор записи` |
+
+Дубликаты ключа в одном CSV: WARNING, политика **последняя строка побеждает**.
 
 ### 5.2. Канонизация
 

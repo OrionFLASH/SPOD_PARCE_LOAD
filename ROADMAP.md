@@ -20,7 +20,7 @@
 
 ## Пункт 2 — RATING: заказы, доступность, лимиты групп, itemAmount
 
-**Документ плана:** `Docs/RATING_MATRIX_ENRICHMENT_PLAN.md` (решения по вопросам — п. 9 документа, 2026-05-22)
+**Документ:** `Docs/RATING_MATRIX_COLORS_AND_LOGIC.md`. Решения по вопросам — в конфиге `rating_item_matrix` и коде (план выполнен, 2026-05).
 
 | # | Задача | Статус |
 |---|--------|--------|
@@ -38,7 +38,7 @@
 
 ## Пункт 3 — Архив SQLite: история по строкам, не по файлу
 
-**Документ плана:** `Docs/INPUT_ARCHIVE_ROW_LEVEL_PLAN.md`. Код: **`src/input_archive_sqlite_v2.py`**, **`src/input_archive_row_hash.py`**, **`src/input_archive_row_parallel.py`**. БД: **`OUT/DB/spod_input_archive_v2.sqlite`** при **`row_level_archive`: true**.
+**Документ:** `Docs/INPUT_ARCHIVE_ROW_LEVEL.md` (таблица `row_key_columns`). Код: **`src/input_archive_sqlite_v2.py`**, **`src/input_archive_row_hash.py`**, **`src/input_archive_row_parallel.py`**. БД: **`OUT/DB/{BLOCK}/spod_input_archive_{BLOCK}_v2.sqlite`** при **`row_level_archive`: true**.
 
 | # | Задача | Статус |
 |---|--------|--------|
@@ -52,13 +52,13 @@
 | 3.5 | Отчёт в консоль (`print_input_archive_row_report`), README/ROADMAP | [v] |
 | 3.8 | BOM в заголовках gamification-CSV, ключ STATISTICS без «Период» (`csv_headers.py`) | [v] |
 
-Подробности параллелизации: **`Docs/INPUT_ARCHIVE_ROW_LEVEL_PLAN.md`**, раздел **11**. Заголовки CSV: **`Docs/INPUT_ARCHIVE_ROW_LEVEL.md`**, п. **5.0**.
+Подробности параллелизации и заголовков CSV: **`Docs/INPUT_ARCHIVE_ROW_LEVEL.md`**.
 
 ---
 
 ## Пункт 4 — PerformanceWarning: фрагментация DataFrame при развороте JSON
 
-**Документ:** `TODO_dataframe_fragmentation_roadmap.md` (корень проекта). Версия **1.7.48**.
+**Документ:** `Docs/PERFORMANCE_AND_PARALLELIZATION_HISTORY.md` (§4). Версия **1.7.48**.
 
 | # | Задача | Статус |
 |---|--------|--------|
@@ -191,12 +191,12 @@ IN/
 
 **Мотив:** монолит ~200 KB / ~6900 строк неудобен для правок; риск смешения доменов (INPUT / CHECKS / FORMAT / MERGE / RATING / ORDER).
 
-**Документ анализа (схемы, варианты A–D, распределение ключей):** [`Docs/CONFIG_SPLIT_ANALYSIS.md`](Docs/CONFIG_SPLIT_ANALYSIS.md).
+**Документ:** [`Docs/CONFIG_FILES.md`](Docs/CONFIG_FILES.md) (реализация) + ROADMAP ниже.
 
 **Имена:** `CONFIG_<бизнес_смысл>.json` (например `CONFIG_CHECKS.json`, `CONFIG_RATING.json`).  
 **Совместимость:** `config/config.json` + `$include` → в памяти единый dict; API `Config` без ломающих изменений для остального пайплайна. `_base_dir` = корень репозитория.
 
-**Утверждено (2026-07-15):** вариант **B** + каталог **`config/`**; детали — §9 в [`Docs/CONFIG_SPLIT_ANALYSIS.md`](Docs/CONFIG_SPLIT_ANALYSIS.md).
+**Утверждено (2026-07-15):** вариант **B** + каталог **`config/`**; детали и параметры — [`Docs/CONFIG_FILES.md`](Docs/CONFIG_FILES.md).
 
 | Файл | Смысл |
 |------|--------|
@@ -211,11 +211,11 @@ IN/
 
 | # | Задача | Статус |
 |---|--------|--------|
-| 8.0 | Анализ и схемы в `Docs/CONFIG_SPLIT_ANALYSIS.md` | [v] |
+| 8.0 | Анализ и утверждение варианта B + `config/` (зафиксировано в CONFIG_FILES / ROADMAP) | [v] |
 | 8.1 | Согласование: вариант B + `config/` + ответы диалога (§9 анализа) | [v] |
 | 8.2 | `config_loader`: путь `config/config.json`, `$include`, deep-merge, запрет дублей, тесты | [v] |
 | 8.3 | Вынос доменов в `CONFIG_*.json`; удаление корневого монолита | [v] |
-| 8.4 | README / `INPUT_DATA_AND_CONFIG_FULL` / `Docs/CONFIG_FILES.md` | [v] |
+| 8.4 | README / `Docs/CONFIG_FILES.md` / DOCS_INDEX | [v] |
 | 8.5 | POST/sync: весь каталог `config/` как есть | [v] |
 | 8.6 | Проверка загрузки Config + тесты include/blocks | [v] |
 

@@ -5,7 +5,7 @@ setlocal EnableDelayedExpansion
 rem Каталог скрипта = каталог с файлами *.txt (распаковка POST). Права администратора не нужны.
 cd /d "%~dp0"
 
-echo Снятие суффикса .txt: main.py, config.json, README.md, requirements.txt, src\*.py, Docs\*\*.*
+echo Снятие суффикса .txt: main.py, config\*.json, README.md, requirements.txt, src\*.py, Docs\*\*.*
 echo Пропуск: базовое имя без точки перед последним .txt (справки вроде КУДА_ПОЛОЖИТЬ_ФАЙЛЫ.txt).
 echo.
 

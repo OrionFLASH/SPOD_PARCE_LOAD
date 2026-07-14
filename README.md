@@ -14,7 +14,7 @@
 10. [Логирование](#логирование)
 11. [История версий](#история-версий)
 
-> **Актуальность:** описание пайплайна, `config.json` и ведение вспомогательных файлов в **`Docs/`** синхронизированы; индекс: **`Docs/DOCS_INDEX.md`**. Краткий справочник входных данных и конфигурации: **`Docs/INPUT_DATA_AND_CONFIG_FULL.md`**.
+> **Актуальность:** пайплайн и changelog — этот README; карта Docs — **`Docs/DOCS_INDEX.md`**; конфигурация — **`Docs/CONFIG_FILES.md`**.
 
 > **Панель администрирования турниров и конкурсов** (просмотр и правка CSV в SQLite, веб-UI): вынесена в отдельный репозиторий **[SPOD_GAME_Admin_UI](https://github.com/OrionFLASH/SPOD_GAME_Admin_UI)**. Каталог `spod_tournament_admin/` из этого репозитория удалён; история работы с панелью сохранена там в виде цепочки коммитов `git subtree split`.
 
@@ -84,21 +84,17 @@ SPOD_PROM/
 
 Ключевые документы по темам:
 
-- `Docs/INPUT_DATA_AND_CONFIG_FULL.md` — структура входных данных и конфигурация.
+- `Docs/CONFIG_FILES.md` — каталог `config/`, параметры, примеры.
 - `Docs/CONSISTENCY_CHECKS_FORMAT.md` — формат правил `consistency_checks`.
-- `Docs/SPOD_CONSISTENCY_CHECKS_SQL_MIRROR.sql` — SQL-зеркало правил `referential` / `referential_composite` / `unique` / `field_length` для СУБД (подробная версия с комментариями). Результат: блок **SUMMARY** (`passed` 1/0, `violation_count`) и блок **DETAIL** (`detail_key`, `detail_message`) без колонок `check_id` / `check_type`; правила **`field_format`** в SQL не дублируются (только Python). CTE **`dim_*`** / **`base_schedule_ref`** снижают повторные сканы таблиц; в файле — глоссарий SQL и пояснения к коду на русском, связь с **`consistency_checks.py`**.
-- `Docs/SPOD_CONSISTENCY_CHECKS_SQL_MIRROR.md` — подробная документация по SQL-зеркалу: одна команда `WITH`…`SELECT`, все CTE и проверки, таблицы и поля витрины, что заменять под реальную БД, формат результата SUMMARY/DETAIL, плюс соглашение по двум версиям SQL-файла (подробная и `*_PLAIN.sql`).
-- `Docs/CONSISTENCY_SAMPLE_FORMAT.md` — формат заполнения колонки `sample`.
-- `Docs/INPUT_ARCHIVE_SQLITE_DESIGN.md` — архив v1: снимки целого CSV в SQLite; **`JSON_*`** для CONTEST-DATA / REWARD.
-- `Docs/INPUT_ARCHIVE_ROW_LEVEL.md` — архив **v2 (построчно)**: `row_key_hash`, `row_hash`, `active`/`inactive`, параллельный расчёт хешей; модули **`input_archive_sqlite_v2.py`**, **`input_archive_row_hash.py`**, **`input_archive_row_parallel.py`**.
-- `Docs/INPUT_ARCHIVE_ROW_LEVEL_PLAN.md` — план и согласованные `row_key_columns` по листам (справочник).
-- `Docs/RATING_MATRIX_COLORS_AND_LOGIC.md` — лист RATING: подсчёт заказов, доступность, 4 цвета ячеек, шапка itemAmount.
-- `Docs/SEASON_ORDER_SUMMARY.md` — лист **ORDER-SEASON-SUMMARY**: сводка по группам **SEASON_***, заказано/остаток, признак **ЗАКОНЧИЛСЯ**, счётчики менеджеров.
-- `Docs/АНАЛИЗ_ПРОВЕРОК_КОНСИСТЕНТНОСТИ.md` — аналитика покрытия и предложения по новым правилам.
-- `Docs/CODEBASE_ANALYTICS.md` — статистика кодовой базы (файлы, LOC, классы, функции, зависимости, диаграммы). Пересборка: `python src/Tools/build_codebase_analytics.py`.
-- `Docs/PERFORMANCE_AND_PARALLELIZATION_HISTORY.md` — консолидированная история оптимизации и распараллеливания.
-- `Docs/SUMMARY_GROUP_FIX_HISTORY.md` — история исправлений логики `SUMMARY` и связки `GROUP`.
-- `Docs/JSON/` — **каталог входных данных и примеров JSON:** `SPOD_INPUT_DATA_CATALOG.md`, папка `examples/` с реальными JSON из `IN/SPOD`; см. `Docs/JSON/README.md`. Пересборка каталога: `python src/Tools/build_spod_input_catalog.py`; примеры JSON: `python src/Tools/export_spod_json_examples.py`.
+- `Docs/SPOD_CONSISTENCY_CHECKS_SQL_MIRROR.sql` — SQL-зеркало части правил (Hive/Spark); описание — `.md` рядом; `_PLAIN.sql` — без длинных комментариев.
+- `Docs/CONSISTENCY_SAMPLE_FORMAT.md` — формат колонки `sample`.
+- `Docs/INPUT_ARCHIVE_ROW_LEVEL.md` — архив **v2** (построчно) + таблица `row_key_columns`.
+- `Docs/INPUT_ARCHIVE_SQLITE_DESIGN.md` — архив **v1** (снимки файла).
+- `Docs/RATING_MATRIX_COLORS_AND_LOGIC.md` — матрица ITEM на RATING.
+- `Docs/SEASON_ORDER_SUMMARY.md` / `SEASON_ORDER_SUMMARY_KM_LOGIC.md` — сводка заказов сезона.
+- `Docs/MANAGER_STATS.md` — книга MANAGER_STATS.
+- `Docs/CODEBASE_ANALYTICS.md` — метрики кода (`build_codebase_analytics.py`).
+- `Docs/JSON/` — каталог входных CSV/JSON (`SPOD_INPUT_DATA_CATALOG.md`, `examples/`).
 
 ---
 
@@ -108,7 +104,7 @@ SPOD_PROM/
 
 | Модуль | Назначение | Основные сущности |
 |--------|------------|-------------------|
-| **config_loader.py** | Загрузка и хранение настроек из config.json | Класс `Config`: атрибуты `dir_input`, `dir_output`, `dir_logs`, `input_files`, `run_outputs`, **`run_blocks`**, `run_source_only_exit`, …, **`parse_run_outputs_config`**, **`parse_run_blocks_config`**, **`filter_input_files_for_block`**, **`resolve_output_filename_template`**; метод `get_output_filename()`. |
+| **config_loader.py** | Загрузка настроек из **`config/`** (`$include`) | Класс `Config`: атрибуты `dir_input`, `dir_output`, `dir_logs`, `input_files`, `run_outputs`, **`run_blocks`**, …; **`load_config_dict`**, **`parse_run_outputs_config`**, **`parse_run_blocks_config`**; метод `get_output_filename()`. |
 | **config_holder.py** | Внедрение текущего конфига для кода, работающего с глобальными переменными | `set_current_config(config)`, `get_current_config()`. |
 | **logging_setup.py** | Настройка логирования | Класс `CallerFormatter` (добавляет имя вызывающей функции в текст сообщения); **`_logging_level_from_config`**, **`setup_logger(config)`** — путь к лог-файлу; **уровень записи в файл** = **`logging.level`** из **config.json** (при **INFO** в файл не попадают строки **DEBUG**). В **`main_impl.setup_logger()`** — то же для файла; консольный handler — **WARNING** и выше; краткий ход — **`console_ui`**. |
 | **json_utils.py** | Разбор и разворот JSON-полей в DataFrame | `safe_json_loads(s)` — парсинг строки в JSON с поправкой типичных ошибок; `safe_json_loads_preserve_triple_quotes(s)`; `flatten_json_column_recursive(df, column, prefix=..., sheet=..., sep=..., max_workers_io=...)` — рекурсивный разворот колонки в несколько колонок, при большом объёме — параллельно. |
@@ -1281,7 +1277,7 @@ python main.py
 - Вместо корневого монолита **`config.json`** — каталог **`config/`**: точка входа **`config/config.json`** (`$include`) и доменные файлы **`CONFIG_RUN_INPUT`**, **`CONFIG_CHECKS`**, **`CONFIG_FORMATS`**, **`CONFIG_MERGE`**, **`CONFIG_RATING`**, **`CONFIG_ORDER`**, **`CONFIG_MANAGER`**.
 - **`config_loader`**: `load_config_dict`, deep-merge, запрет дублей top-level ключей между include; `_base_dir` = корень репозитория.
 - POST/sync копируют весь **`config/`** с сохранением структуры.
-- Документация: **`Docs/CONFIG_FILES.md`**, анализ — **`Docs/CONFIG_SPLIT_ANALYSIS.md`**, ROADMAP п. **8**.
+- Документация: **`Docs/CONFIG_FILES.md`**, ROADMAP п. **8**.
 
 ### Версия 1.7.52 — Доработки блоков: run_outputs, IN/<BLOCK>, SQLite, параллель
 
@@ -1317,7 +1313,7 @@ python main.py
 
 - **`flatten_json_column_recursive`**: пакетный `pd.concat` вместо цикла `df[col]=values` при развороте JSON (`01_parallel_csv_read_and_json_flatten`).
 - **`merge_fields_across_sheets`**: параллельный merge — `pd.concat` для новых колонок.
-- Тест **`src/Tests/test_flatten_json_batch.py`**; роудмап **`TODO_dataframe_fragmentation_roadmap.md`**.
+- Тест **`src/Tests/test_flatten_json_batch.py`**; статус — ROADMAP п. **4**, **`Docs/PERFORMANCE_AND_PARALLELIZATION_HISTORY.md`**.
 
 ### Версия 1.7.47 — run_outputs: rating_item_matrix и season_order_summary; аналитика кодовой базы
 

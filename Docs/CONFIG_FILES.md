@@ -5,9 +5,11 @@
 
 Связанные документы:
 
-- анализ вариантов разбиения — [`CONFIG_SPLIT_ANALYSIS.md`](CONFIG_SPLIT_ANALYSIS.md);
-- справочник данных и секций — [`INPUT_DATA_AND_CONFIG_FULL.md`](INPUT_DATA_AND_CONFIG_FULL.md);
-- ROADMAP п. **8**.
+- справочник каталога конфигурации: этот файл;
+- входные CSV/JSON-каталог: [`JSON/SPOD_INPUT_DATA_CATALOG.md`](JSON/SPOD_INPUT_DATA_CATALOG.md);
+- ROADMAP п. **8** (решение: вариант **B**, каталог `config/`, без fallback монолита).
+
+**Утверждённые решения по раскладке (2026-07-15):** вход `config/config.json`; домены `CONFIG_RUN_INPUT` / `CHECKS` / `FORMATS` / `MERGE` / `RATING` / `ORDER` / `MANAGER`; архив SQLite внутри RUN_INPUT; POST копирует весь `config/`; корневого `config.json` нет.
 
 ---
 
