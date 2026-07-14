@@ -22,7 +22,14 @@ import threading  # Для синхронизации потоков
 import copy  # Копия конфигов листов для синтетических агрегированных листов
 
 from src import console_ui  # Краткий вывод этапов и сводок в консоль (stdlib)
-from src.config_loader import parse_run_outputs_config  # Разбор run_outputs / run_mode
+from src.config_loader import (
+    filter_input_files_for_block,
+    get_input_files_for_block,
+    parse_input_files_by_block,
+    parse_run_blocks_config,
+    parse_run_outputs_config,
+    resolve_output_filename_template,
+)  # Разбор run_outputs / run_blocks / шаблоны имён
 from src.consistency_checks import run_consistency_checks_and_attach_summary  # Проверки консистентности (отдельный модуль)
 from src.debug_timing import (
     debug_phase,
@@ -168,6 +175,7 @@ class CallerFormatter(logging.Formatter):
 def _load_config_globals():
     """Устанавливает глобальные переменные из Config (внедрённый) или из config.json."""
     global DIR_INPUT, DIR_OUTPUT, DIR_LOGS, LOG_LEVEL, LOG_BASE_NAME, INPUT_FILES, RUN_MODE
+    global ALL_INPUT_FILES, INPUT_FILES_BY_BLOCK, RUN_BLOCKS, CURRENT_RUN_BLOCK
     global RUN_OUTPUTS, RUN_SOURCE_ONLY_EXIT, RUN_WRITE_SOURCE, RUN_WRITE_MAIN
     global RUN_WRITE_CONSISTENCY_FILE, RUN_CONSISTENCY_EARLY
     global RUN_WRITE_MANAGER_STATS, MANAGER_STATS_EARLY
@@ -175,6 +183,8 @@ def _load_config_globals():
     global RUN_RATING_ITEM_MATRIX, RUN_SEASON_ORDER_SUMMARY
     global OUTPUT_FILENAME_MAIN, OUTPUT_FILENAME_SOURCE, OUTPUT_FILENAME_CONSISTENCY
     global OUTPUT_FILENAME_MANAGER_STATS
+    global OUTPUT_FILENAME_MAIN_TEMPLATE, OUTPUT_FILENAME_SOURCE_TEMPLATE
+    global OUTPUT_FILENAME_CONSISTENCY_TEMPLATE, OUTPUT_FILENAME_MANAGER_STATS_TEMPLATE
     global APPLY_SORT_TO_SOURCE, APPLY_SORT_TO_MAIN
     global SUMMARY_SHEET, SHEET_ORDER, SUMMARY_KEY_DEFS, SUMMARY_KEY_COLUMNS
     global GENDER_PATTERNS, GENDER_PROGRESS_STEP, FIELD_LENGTH_VALIDATIONS
@@ -195,7 +205,14 @@ def _load_config_globals():
             DIR_LOGS = _c.dir_logs
             LOG_LEVEL = _c.log_level
             LOG_BASE_NAME = _c.log_base_name
-            INPUT_FILES = _c.input_files
+            INPUT_FILES_BY_BLOCK = dict(
+                getattr(_c, "input_files_by_block", None)
+                or parse_input_files_by_block({"input_files": _c.input_files})
+            )
+            ALL_INPUT_FILES = INPUT_FILES_BY_BLOCK  # алиас: разделы по блокам
+            RUN_BLOCKS = list(getattr(_c, "run_blocks", None) or ["PROM"])
+            CURRENT_RUN_BLOCK = RUN_BLOCKS[0] if RUN_BLOCKS else "PROM"
+            INPUT_FILES = get_input_files_for_block(INPUT_FILES_BY_BLOCK, CURRENT_RUN_BLOCK)
             SUMMARY_SHEET = _c.summary_sheet
             SHEET_ORDER = _c.sheet_order
             SUMMARY_KEY_DEFS = _c.summary_key_defs
@@ -236,11 +253,33 @@ def _load_config_globals():
                 RUN_RATING_ITEM_MATRIX = _ro[10]
                 RUN_SEASON_ORDER_SUMMARY = _ro[11]
                 RUN_MODE = _ro[9]
-            OUTPUT_FILENAME_MAIN = getattr(_c, "output_filename_main", "SPOD_ALL_IN_ONE")
-            OUTPUT_FILENAME_SOURCE = getattr(_c, "output_filename_source", "SPOD_PROM source")
-            OUTPUT_FILENAME_CONSISTENCY = getattr(_c, "output_filename_consistency", "SPOD_PROM CONSISTENCY")
-            OUTPUT_FILENAME_MANAGER_STATS = getattr(
-                _c, "output_filename_manager_stats", "SPOD_PROM MANAGER_STATS"
+            OUTPUT_FILENAME_MAIN_TEMPLATE = getattr(
+                _c, "output_filename_main_template", getattr(_c, "output_filename_main", "SPOD_{BLOCK} main")
+            )
+            OUTPUT_FILENAME_SOURCE_TEMPLATE = getattr(
+                _c, "output_filename_source_template", getattr(_c, "output_filename_source", "SPOD_{BLOCK} source")
+            )
+            OUTPUT_FILENAME_CONSISTENCY_TEMPLATE = getattr(
+                _c,
+                "output_filename_consistency_template",
+                getattr(_c, "output_filename_consistency", "SPOD_{BLOCK} consistency"),
+            )
+            OUTPUT_FILENAME_MANAGER_STATS_TEMPLATE = getattr(
+                _c,
+                "output_filename_manager_stats_template",
+                getattr(_c, "output_filename_manager_stats", "SPOD_{BLOCK} MANAGER_STATS"),
+            )
+            OUTPUT_FILENAME_MAIN = resolve_output_filename_template(
+                OUTPUT_FILENAME_MAIN_TEMPLATE, CURRENT_RUN_BLOCK
+            )
+            OUTPUT_FILENAME_SOURCE = resolve_output_filename_template(
+                OUTPUT_FILENAME_SOURCE_TEMPLATE, CURRENT_RUN_BLOCK
+            )
+            OUTPUT_FILENAME_CONSISTENCY = resolve_output_filename_template(
+                OUTPUT_FILENAME_CONSISTENCY_TEMPLATE, CURRENT_RUN_BLOCK
+            )
+            OUTPUT_FILENAME_MANAGER_STATS = resolve_output_filename_template(
+                OUTPUT_FILENAME_MANAGER_STATS_TEMPLATE, CURRENT_RUN_BLOCK
             )
             APPLY_SORT_TO_SOURCE = getattr(_c, "apply_sort_to_source", True)
             APPLY_SORT_TO_MAIN = getattr(_c, "apply_sort_to_main", False)
@@ -272,7 +311,11 @@ def _load_config_globals():
     DIR_LOGS = os.path.join(_BASE_DIR, _cfg["paths"]["logs"])
     LOG_LEVEL = _cfg["logging"]["level"]
     LOG_BASE_NAME = _cfg["logging"]["base_name"]
-    INPUT_FILES = _cfg["input_files"]
+    INPUT_FILES_BY_BLOCK = parse_input_files_by_block(_cfg)
+    ALL_INPUT_FILES = INPUT_FILES_BY_BLOCK
+    RUN_BLOCKS = parse_run_blocks_config(_cfg)
+    CURRENT_RUN_BLOCK = RUN_BLOCKS[0] if RUN_BLOCKS else "PROM"
+    INPUT_FILES = get_input_files_for_block(INPUT_FILES_BY_BLOCK, CURRENT_RUN_BLOCK)
     SUMMARY_SHEET = _cfg["summary_sheet"]
     SHEET_ORDER = _cfg.get("sheet_order") or []
     SUMMARY_KEY_DEFS = _cfg["summary_key_defs"]
@@ -311,10 +354,24 @@ def _load_config_globals():
     RUN_SEASON_ORDER_SUMMARY = _ro[11]
     RUN_MODE = _ro[9]
     _of = _cfg.get("output_filenames") or {}
-    OUTPUT_FILENAME_MAIN = _of.get("main", "SPOD_ALL_IN_ONE")
-    OUTPUT_FILENAME_SOURCE = _of.get("source", "SPOD_PROM source")
-    OUTPUT_FILENAME_CONSISTENCY = _of.get("consistency", "SPOD_PROM CONSISTENCY")
-    OUTPUT_FILENAME_MANAGER_STATS = _of.get("manager_stats", "SPOD_PROM MANAGER_STATS")
+    OUTPUT_FILENAME_MAIN_TEMPLATE = _of.get("main", "SPOD_{BLOCK} main")
+    OUTPUT_FILENAME_SOURCE_TEMPLATE = _of.get("source", "SPOD_{BLOCK} source")
+    OUTPUT_FILENAME_CONSISTENCY_TEMPLATE = _of.get("consistency", "SPOD_{BLOCK} consistency")
+    OUTPUT_FILENAME_MANAGER_STATS_TEMPLATE = _of.get(
+        "manager_stats", "SPOD_{BLOCK} MANAGER_STATS"
+    )
+    OUTPUT_FILENAME_MAIN = resolve_output_filename_template(
+        OUTPUT_FILENAME_MAIN_TEMPLATE, CURRENT_RUN_BLOCK
+    )
+    OUTPUT_FILENAME_SOURCE = resolve_output_filename_template(
+        OUTPUT_FILENAME_SOURCE_TEMPLATE, CURRENT_RUN_BLOCK
+    )
+    OUTPUT_FILENAME_CONSISTENCY = resolve_output_filename_template(
+        OUTPUT_FILENAME_CONSISTENCY_TEMPLATE, CURRENT_RUN_BLOCK
+    )
+    OUTPUT_FILENAME_MANAGER_STATS = resolve_output_filename_template(
+        OUTPUT_FILENAME_MANAGER_STATS_TEMPLATE, CURRENT_RUN_BLOCK
+    )
     APPLY_SORT_TO_SOURCE = _cfg.get("apply_sort_to_source", True)
     APPLY_SORT_TO_MAIN = _cfg.get("apply_sort_to_main", False)
     JSON_COLUMNS = _cfg.get("json_columns") or {}
@@ -336,6 +393,34 @@ def _load_config_globals():
     MANAGER_STATS = _cfg.get("manager_stats") or {}
 
 
+def apply_run_block_context(block: str) -> None:
+    """
+    Переключает контекст прогона на блок: список input_files из раздела и имена выходных файлов.
+    """
+    global INPUT_FILES, CURRENT_RUN_BLOCK
+    global OUTPUT_FILENAME_MAIN, OUTPUT_FILENAME_SOURCE
+    global OUTPUT_FILENAME_CONSISTENCY, OUTPUT_FILENAME_MANAGER_STATS
+
+    CURRENT_RUN_BLOCK = str(block).strip().upper()
+    INPUT_FILES = get_input_files_for_block(INPUT_FILES_BY_BLOCK, CURRENT_RUN_BLOCK)
+    OUTPUT_FILENAME_MAIN = resolve_output_filename_template(
+        OUTPUT_FILENAME_MAIN_TEMPLATE, CURRENT_RUN_BLOCK
+    )
+    OUTPUT_FILENAME_SOURCE = resolve_output_filename_template(
+        OUTPUT_FILENAME_SOURCE_TEMPLATE, CURRENT_RUN_BLOCK
+    )
+    OUTPUT_FILENAME_CONSISTENCY = resolve_output_filename_template(
+        OUTPUT_FILENAME_CONSISTENCY_TEMPLATE, CURRENT_RUN_BLOCK
+    )
+    OUTPUT_FILENAME_MANAGER_STATS = resolve_output_filename_template(
+        OUTPUT_FILENAME_MANAGER_STATS_TEMPLATE, CURRENT_RUN_BLOCK
+    )
+    logging.info(
+        f"[main] Блок {CURRENT_RUN_BLOCK}: файлов input_files={len(INPUT_FILES)}, "
+        f"main→«{OUTPUT_FILENAME_MAIN}»"
+    )
+
+
 _load_config_globals()
 # === КОНЕЦ ЗАГРУЗКИ КОНФИГА ===
 
@@ -350,22 +435,27 @@ def get_output_filename() -> str:
     return f"{OUTPUT_FILENAME_MAIN}_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.xlsx"
 
 
-def get_output_dir_for_run(base_dir: str) -> str:
+def get_output_dir_for_run(base_dir: str, block: Optional[str] = None) -> str:
     """
-    Возвращает подкаталог для выходных файлов по дате формирования: base_dir/YYYY/DD-MM.
-    Год — 4 цифры, день и месяц — по 2 цифры (например 01-01 для 1 января, 16-03 для 16 марта).
+    Возвращает подкаталог для выходных файлов: base_dir/<BLOCK>/YYYY/DD-MM.
+    Без block — прежний вид base_dir/YYYY/DD-MM (обратная совместимость).
+    Год — 4 цифры, день и месяц — по 2 цифры (например 01-01 для 1 января).
     Каталог создаётся при необходимости.
 
     Args:
         base_dir: Базовый каталог вывода (из config paths.output, например OUT).
+        block: Код блока (PROM / IFT / PSI); при наличии — первый уровень под OUT.
 
     Returns:
-        Путь вида OUT/2026/16-03 для файлов, сформированных 16.03.2026.
+        Путь вида OUT/PROM/2026/16-03 для файлов блока PROM от 16.03.2026.
     """
     now = datetime.now()
     year = now.strftime("%Y")
     day_month = now.strftime("%d-%m")
-    path = os.path.join(base_dir, year, day_month)
+    if block:
+        path = os.path.join(base_dir, str(block).strip().upper(), year, day_month)
+    else:
+        path = os.path.join(base_dir, year, day_month)
     os.makedirs(path, exist_ok=True)
     return path
 
@@ -4566,14 +4656,32 @@ def _write_manager_stats_excel(
 def main():
     # Повторная загрузка глобалов при запуске (подхват внедрённого Config из config_holder)
     _load_config_globals()
+    overall_start = datetime.now()
+    log_file = setup_logger()
+    blocks = list(RUN_BLOCKS) if RUN_BLOCKS else ["PROM"]
+    logging.info(
+        f"=== Старт программы: {overall_start.strftime('%Y-%m-%d %H:%M:%S')}; "
+        f"run_blocks={blocks}; run_outputs={RUN_OUTPUTS} ==="
+    )
+    console_ui.print_banner(f"SPOD — старт (блоки: {', '.join(blocks)})")
+    for block in blocks:
+        apply_run_block_context(block)
+        _run_pipeline_for_block(block, log_file)
+    logging.info(
+        f"=== Все блоки завершены ({', '.join(blocks)}). "
+        f"Общее время: {datetime.now() - overall_start} ==="
+    )
+
+
+def _run_pipeline_for_block(block: str, log_file: str) -> None:
+    """Полный пайплайн обработки для одного блока (PROM / IFT / PSI)."""
     global _csv_column_mismatches
     _csv_column_mismatches.clear()
     start_time = datetime.now()
-    log_file = setup_logger()
     reset_run_timing()
     console_ui.reset_phase_counter()
     set_debug_phase_console_hooks(console_ui.on_phase_start, console_ui.on_phase_end)
-    console_ui.print_banner("SPOD_PROM — старт")
+    console_ui.print_banner(f"SPOD_{block} — старт")
     # До первой фазы — число шагов прогресс-бара от набора run_outputs (или устаревшего run_mode)
     console_ui.set_phase_progress_total(
         console_ui.expected_phases_for_run_flags(
@@ -4586,7 +4694,9 @@ def main():
             MANAGER_STATS_EARLY,
         )
     )
-    logging.info(f"=== Старт работы программы: {start_time.strftime('%Y-%m-%d %H:%M:%S')} ===")
+    logging.info(
+        f"=== Старт блока {block}: {start_time.strftime('%Y-%m-%d %H:%M:%S')} ==="
+    )
     logging.debug(
         "[PERF] Логирование: файл — DEBUG/INFO; консоль — WARNING+ и краткие этапы (console_ui). "
         "Итоговая таблица [PERF] в лог-файле при завершении процесса."
@@ -4661,14 +4771,16 @@ def main():
             )
 
     run_mode = int(RUN_MODE) if RUN_MODE is not None else 1
-    _run_mode_label = f"run_outputs={RUN_OUTPUTS} (compat_mode={run_mode})"
+    _run_mode_label = (
+        f"block={block}; run_outputs={RUN_OUTPUTS} (compat_mode={run_mode})"
+    )
     logging.info(f"[main] Режим запуска: {_run_mode_label}")
 
-    # Подкаталог вывода по дате: OUT/YYYY/DD-MM (файлы за одну дату в одной папке)
-    run_output_dir = get_output_dir_for_run(DIR_OUTPUT)
-    logging.info(f"[main] Выходной каталог по дате: {run_output_dir}")
+    # Подкаталог вывода: OUT/<BLOCK>/YYYY/DD-MM
+    run_output_dir = get_output_dir_for_run(DIR_OUTPUT, block=block)
+    logging.info(f"[main] Выходной каталог блока {block}: {run_output_dir}")
 
-    # Только source (в массиве ровно source_only) — проверка файлов, запись source, выход
+    # Только source (в массиве ровно source_only) — проверка файлов, запись source, выход из блока
     if RUN_SOURCE_ONLY_EXIT:
         missing_files = check_input_files_exist()
         if missing_files:
@@ -4685,8 +4797,11 @@ def main():
         with debug_phase("mode2_source_only_excel"):
             write_source_excel(raw_sheets, run_output_dir)
         _write_stat_file_perf_excel(run_output_dir, start_time, _run_mode_label)
-        logging.info(f"=== Режим 2 завершён. Выгружен только source. Время: {datetime.now() - start_time} ===")
-        _console_footer(log_file, banner="Режим 2: готово (только source)")
+        logging.info(
+            f"=== Блок {block}, режим 2 завершён. Выгружен только source. "
+            f"Время: {datetime.now() - start_time} ==="
+        )
+        _console_footer(log_file, banner=f"Блок {block}: готово (только source)")
         return
 
     # 1.1. Выгрузка source Excel — если в run_outputs указан source_only (и это не «только source» с выходом выше).
@@ -4996,7 +5111,8 @@ def main():
 
     time_elapsed = datetime.now() - start_time
     logging.info(
-        f"=== Завершение работы. Обработано файлов: {files_processed}, строк всего: {rows_total}. Время выполнения: {time_elapsed} ==="
+        f"=== Завершение блока {block}. Обработано файлов: {files_processed}, "
+        f"строк всего: {rows_total}. Время выполнения: {time_elapsed} ==="
     )
     logging.info(f"Summary: {'; '.join(summary)}")
     if output_excel:
@@ -5008,7 +5124,7 @@ def main():
     _console_footer(
         log_file,
         output_excel=output_excel or manager_stats_path or "",
-        banner="Обработка завершена",
+        banner=f"Блок {block}: обработка завершена",
         files_processed=files_processed,
         rows_total=rows_total,
         summary_parts=summary,

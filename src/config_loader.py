@@ -21,6 +21,174 @@ _RUN_OUTPUT_TOKENS: Set[str] = frozenset(
     }
 )
 
+# Допустимые блоки входных SPOD-данных (среды PROM / IFT / PSI)
+_RUN_BLOCK_TOKENS: Set[str] = frozenset({"PROM", "IFT", "PSI"})
+_DEFAULT_RUN_BLOCKS: List[str] = ["PROM"]
+
+
+def parse_run_blocks_config(cfg: Dict[str, Any]) -> List[str]:
+    """
+    Разбор run_blocks: какие блоки (PROM / IFT / PSI) обрабатывать в одном запуске.
+
+    По умолчанию — только PROM. Порядок в массиве сохраняется (без дублей).
+    """
+    raw = cfg.get("run_blocks")
+    if raw is None:
+        return list(_DEFAULT_RUN_BLOCKS)
+    if not isinstance(raw, list):
+        raise ValueError(
+            "run_blocks: ожидается массив строк (например [\"PROM\"] или [\"PROM\", \"IFT\", \"PSI\"])"
+        )
+    result: List[str] = []
+    seen: Set[str] = set()
+    for item in raw:
+        if not isinstance(item, str):
+            continue
+        token = item.strip().upper()
+        if not token:
+            continue
+        if token not in _RUN_BLOCK_TOKENS:
+            raise ValueError(
+                f"run_blocks: неизвестный блок «{item}». "
+                f"Допустимо: {', '.join(sorted(_RUN_BLOCK_TOKENS))}"
+            )
+        if token in seen:
+            continue
+        seen.add(token)
+        result.append(token)
+    if not result:
+        raise ValueError(
+            "run_blocks: укажите хотя бы одно из значений: PROM, IFT, PSI "
+            "(по умолчанию используется [\"PROM\"])"
+        )
+    return result
+
+
+def parse_input_files_by_block(cfg: Dict[str, Any]) -> Dict[str, List[Dict[str, Any]]]:
+    """
+    Разбор input_files: объект с разделами PROM / IFT / PSI (полный список файлов в каждом).
+
+    Обратная совместимость: если input_files — плоский список (старый формат),
+    он считается списком блока PROM; записи с полем block раскладываются по разделам.
+    """
+    raw = cfg.get("input_files")
+    result: Dict[str, List[Dict[str, Any]]] = {b: [] for b in sorted(_RUN_BLOCK_TOKENS)}
+
+    if isinstance(raw, dict):
+        for key, value in raw.items():
+            if not isinstance(key, str):
+                continue
+            block = key.strip().upper()
+            if block not in _RUN_BLOCK_TOKENS:
+                raise ValueError(
+                    f"input_files: неизвестный раздел «{key}». "
+                    f"Допустимо: {', '.join(sorted(_RUN_BLOCK_TOKENS))}"
+                )
+            if value is None:
+                result[block] = []
+                continue
+            if not isinstance(value, list):
+                raise ValueError(
+                    f"input_files.{block}: ожидается массив записей файлов, получено {type(value).__name__}"
+                )
+            result[block] = [dict(item) for item in value if isinstance(item, dict)]
+        return result
+
+    if isinstance(raw, list):
+        # Старый плоский список: разложить по полю block или целиком в PROM
+        for item in raw:
+            if not isinstance(item, dict):
+                continue
+            rec = dict(item)
+            raw_block = rec.pop("block", None)
+            if raw_block is None or (isinstance(raw_block, str) and not str(raw_block).strip()):
+                # без block — добавить во все разделы (общие FILE в старой схеме)
+                for b in result:
+                    result[b].append(dict(rec))
+                continue
+            token = str(raw_block).strip().upper()
+            if token in ("*", "ALL", "SHARED"):
+                for b in result:
+                    result[b].append(dict(rec))
+                continue
+            if token not in _RUN_BLOCK_TOKENS:
+                raise ValueError(
+                    f"input_files[].block: неизвестный блок «{raw_block}». "
+                    f"Допустимо: {', '.join(sorted(_RUN_BLOCK_TOKENS))}"
+                )
+            result[token].append(rec)
+        return result
+
+    if raw is None:
+        return result
+
+    raise ValueError(
+        "input_files: ожидается объект {\"PROM\": [...], \"IFT\": [...], \"PSI\": [...]} "
+        "или устаревший плоский массив"
+    )
+
+
+def get_input_files_for_block(
+    input_files_by_block: Dict[str, List[Dict[str, Any]]], block: str
+) -> List[Dict[str, Any]]:
+    """Список input_files для одного блока (копия списка раздела)."""
+    block_u = str(block).strip().upper()
+    if block_u not in _RUN_BLOCK_TOKENS:
+        raise ValueError(
+            f"Неизвестный блок «{block}». Допустимо: {', '.join(sorted(_RUN_BLOCK_TOKENS))}"
+        )
+    files = input_files_by_block.get(block_u) or []
+    return list(files)
+
+
+def filter_input_files_for_block(
+    input_files: Any, block: str
+) -> List[Dict[str, Any]]:
+    """
+    Получить список файлов блока.
+
+    - Если input_files — dict разделов PROM/IFT/PSI — вернуть раздел блока.
+    - Если плоский list — устаревшая фильтрация по полю block (совместимость).
+    """
+    if isinstance(input_files, dict):
+        return get_input_files_for_block(input_files, block)
+
+    if not isinstance(input_files, list):
+        return []
+
+    block_u = str(block).strip().upper()
+    selected: List[Dict[str, Any]] = []
+    for file_conf in input_files:
+        if not isinstance(file_conf, dict):
+            continue
+        raw_block = file_conf.get("block")
+        if raw_block is None or (isinstance(raw_block, str) and not raw_block.strip()):
+            selected.append(file_conf)
+            continue
+        token = str(raw_block).strip().upper()
+        if token in ("*", "ALL", "SHARED"):
+            selected.append(file_conf)
+            continue
+        if token == block_u:
+            selected.append(file_conf)
+    return selected
+
+
+def resolve_output_filename_template(template: str, block: str) -> str:
+    """
+    Подставляет имя блока в шаблон output_filenames.
+
+    Плейсхолдеры: {BLOCK} / {block}. Если их нет — замена устаревшего префикса SPOD_PROM
+    на SPOD_<BLOCK> (обратная совместимость со старым конфигом).
+    """
+    block_u = str(block).strip().upper()
+    tpl = str(template or "")
+    if "{BLOCK}" in tpl or "{block}" in tpl:
+        return tpl.replace("{BLOCK}", block_u).replace("{block}", block_u)
+    if "SPOD_PROM" in tpl:
+        return tpl.replace("SPOD_PROM", f"SPOD_{block_u}")
+    return tpl
+
 
 def parse_run_outputs_config(cfg: Dict[str, Any]) -> Tuple[List[str], bool, bool, bool, bool, bool, bool, bool, bool, int, bool, bool]:
     """
@@ -145,8 +313,16 @@ class Config:
         self.log_level: str = self._cfg["logging"]["level"]
         self.log_base_name: str = self._cfg["logging"]["base_name"]
 
-        # Входные файлы и сводный лист
-        self.input_files: List[Dict[str, Any]] = self._cfg["input_files"]
+        # Входные файлы по блокам: input_files = { "PROM": [...], "IFT": [...], "PSI": [...] }
+        self.input_files_by_block: Dict[str, List[Dict[str, Any]]] = parse_input_files_by_block(
+            self._cfg
+        )
+        self.run_blocks: List[str] = parse_run_blocks_config(self._cfg)
+        # Для текущего/первого блока (совместимость со старым кодом, ожидающим список)
+        _first_block = self.run_blocks[0] if self.run_blocks else "PROM"
+        self.input_files: List[Dict[str, Any]] = get_input_files_for_block(
+            self.input_files_by_block, _first_block
+        )
         self.summary_sheet: Dict[str, Any] = self._cfg["summary_sheet"]
         self.sheet_order: List[str] = self._cfg.get("sheet_order") or []
 
@@ -230,13 +406,29 @@ class Config:
         self.apply_sort_to_source: bool = self._cfg.get("apply_sort_to_source", True)
         self.apply_sort_to_main: bool = self._cfg.get("apply_sort_to_main", False)
 
-        # Имена/шаблоны выходных файлов (без расширения и без timestamp; дата подставляется при записи)
+        # Имена/шаблоны выходных файлов (без расширения и без timestamp; плейсхолдер {BLOCK})
         _of = self._cfg.get("output_filenames") or {}
-        self.output_filename_main: str = _of.get("main", "SPOD_ALL_IN_ONE")
-        self.output_filename_source: str = _of.get("source", "SPOD_PROM source")
-        self.output_filename_consistency: str = _of.get("consistency", "SPOD_PROM CONSISTENCY")
-        self.output_filename_manager_stats: str = _of.get(
-            "manager_stats", "SPOD_PROM MANAGER_STATS"
+        self.output_filename_main_template: str = _of.get("main", "SPOD_{BLOCK} main")
+        self.output_filename_source_template: str = _of.get("source", "SPOD_{BLOCK} source")
+        self.output_filename_consistency_template: str = _of.get(
+            "consistency", "SPOD_{BLOCK} consistency"
+        )
+        self.output_filename_manager_stats_template: str = _of.get(
+            "manager_stats", "SPOD_{BLOCK} MANAGER_STATS"
+        )
+        # Значения по умолчанию для первого блока (совместимость со старым кодом)
+        _default_block = self.run_blocks[0] if self.run_blocks else "PROM"
+        self.output_filename_main: str = resolve_output_filename_template(
+            self.output_filename_main_template, _default_block
+        )
+        self.output_filename_source: str = resolve_output_filename_template(
+            self.output_filename_source_template, _default_block
+        )
+        self.output_filename_consistency: str = resolve_output_filename_template(
+            self.output_filename_consistency_template, _default_block
+        )
+        self.output_filename_manager_stats: str = resolve_output_filename_template(
+            self.output_filename_manager_stats_template, _default_block
         )
 
         # Архив входных CSV в SQLite (см. src/input_archive_sqlite.py, Docs/INPUT_ARCHIVE_SQLITE_DESIGN.md)
