@@ -13,7 +13,7 @@ rm -rf IN OUT && mkdir -p IN/POST && cp POST/* IN/POST/
 | Каталог | Что потеряно |
 |---------|----------------|
 | `IN/SPOD/`, `IN/JS/`, `IN/FILE/` | исходные CSV, JSON, JS |
-| `OUT/2026/*/` | Excel, JS AutoRun, STAT_FILE, CONSISTENCY |
+| `OUT/2026/*/` (ранее) / `OUT/<BLOCK>/YYYY/DD-MM/` | Excel, JS AutoRun, STAT_FILE, CONSISTENCY |
 | `OUT/DB/` | `spod_input_archive_v2.sqlite` (если был) |
 
 **Когда:** ~23:43 02.07.2026.  
@@ -49,7 +49,7 @@ rm -rf IN OUT && mkdir -p IN/POST && cp POST/* IN/POST/
 |-------|------------|-------|
 | `src/Tools/pack_post_encrypted_program.py` | Обновление **POST/** | ~~`shutil.rmtree(POST)`~~ | **Исправлено:** перезапись + удаление только устаревших `.txt` в корне POST |
 | `src/Tools/sync_post_txt.py` | Обновление **POST/** | ~~`shutil.rmtree(POST)`~~ в полном/program режимах | **Исправлено:** инкрементально; устаревшие — по манифесту `.sync_manifest.json` |
-| `src/main_impl.py` | `os.makedirs(run_output_dir)` | **Создаёт** `OUT/YYYY/DD-MM/`, **не удаляет** старые |
+| `src/main_impl.py` | `os.makedirs(run_output_dir)` | **Создаёт** `OUT/<BLOCK>/YYYY/DD-MM/` (BLOCK из `run_blocks`), **не удаляет** старые |
 | `src/input_archive_sqlite*.py` | Пишет в `OUT/DB/*.sqlite` | Дополняет БД, не чистит OUT |
 | `src/Tests/*.py` | Нет rmtree IN/OUT | — |
 
