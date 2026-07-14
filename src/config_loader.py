@@ -64,17 +64,103 @@ def parse_run_blocks_config(cfg: Dict[str, Any]) -> List[str]:
     return result
 
 
+def parse_input_files_by_block(cfg: Dict[str, Any]) -> Dict[str, List[Dict[str, Any]]]:
+    """
+    Разбор input_files: объект с разделами PROM / IFT / PSI (полный список файлов в каждом).
+
+    Обратная совместимость: если input_files — плоский список (старый формат),
+    он считается списком блока PROM; записи с полем block раскладываются по разделам.
+    """
+    raw = cfg.get("input_files")
+    result: Dict[str, List[Dict[str, Any]]] = {b: [] for b in sorted(_RUN_BLOCK_TOKENS)}
+
+    if isinstance(raw, dict):
+        for key, value in raw.items():
+            if not isinstance(key, str):
+                continue
+            block = key.strip().upper()
+            if block not in _RUN_BLOCK_TOKENS:
+                raise ValueError(
+                    f"input_files: неизвестный раздел «{key}». "
+                    f"Допустимо: {', '.join(sorted(_RUN_BLOCK_TOKENS))}"
+                )
+            if value is None:
+                result[block] = []
+                continue
+            if not isinstance(value, list):
+                raise ValueError(
+                    f"input_files.{block}: ожидается массив записей файлов, получено {type(value).__name__}"
+                )
+            result[block] = [dict(item) for item in value if isinstance(item, dict)]
+        return result
+
+    if isinstance(raw, list):
+        # Старый плоский список: разложить по полю block или целиком в PROM
+        for item in raw:
+            if not isinstance(item, dict):
+                continue
+            rec = dict(item)
+            raw_block = rec.pop("block", None)
+            if raw_block is None or (isinstance(raw_block, str) and not str(raw_block).strip()):
+                # без block — добавить во все разделы (общие FILE в старой схеме)
+                for b in result:
+                    result[b].append(dict(rec))
+                continue
+            token = str(raw_block).strip().upper()
+            if token in ("*", "ALL", "SHARED"):
+                for b in result:
+                    result[b].append(dict(rec))
+                continue
+            if token not in _RUN_BLOCK_TOKENS:
+                raise ValueError(
+                    f"input_files[].block: неизвестный блок «{raw_block}». "
+                    f"Допустимо: {', '.join(sorted(_RUN_BLOCK_TOKENS))}"
+                )
+            result[token].append(rec)
+        return result
+
+    if raw is None:
+        return result
+
+    raise ValueError(
+        "input_files: ожидается объект {\"PROM\": [...], \"IFT\": [...], \"PSI\": [...]} "
+        "или устаревший плоский массив"
+    )
+
+
+def get_input_files_for_block(
+    input_files_by_block: Dict[str, List[Dict[str, Any]]], block: str
+) -> List[Dict[str, Any]]:
+    """Список input_files для одного блока (копия списка раздела)."""
+    block_u = str(block).strip().upper()
+    if block_u not in _RUN_BLOCK_TOKENS:
+        raise ValueError(
+            f"Неизвестный блок «{block}». Допустимо: {', '.join(sorted(_RUN_BLOCK_TOKENS))}"
+        )
+    files = input_files_by_block.get(block_u) or []
+    return list(files)
+
+
 def filter_input_files_for_block(
-    input_files: List[Dict[str, Any]], block: str
+    input_files: Any, block: str
 ) -> List[Dict[str, Any]]:
     """
-    Файлы для одного блока: записи с block=<BLOCK> плюс общие (без block / block=\"*\").
+    Получить список файлов блока.
 
-    Общие обычно — gamification из subdir FILE; блоковые — SPOD в IN/SPOD/<BLOCK>/.
+    - Если input_files — dict разделов PROM/IFT/PSI — вернуть раздел блока.
+    - Если плоский list — устаревшая фильтрация по полю block (совместимость).
     """
+    if isinstance(input_files, dict):
+        return get_input_files_for_block(input_files, block)
+
+    if not isinstance(input_files, list):
+        return []
+
     block_u = str(block).strip().upper()
     selected: List[Dict[str, Any]] = []
     for file_conf in input_files:
+        if not isinstance(file_conf, dict):
+            continue
         raw_block = file_conf.get("block")
         if raw_block is None or (isinstance(raw_block, str) and not raw_block.strip()):
             selected.append(file_conf)
@@ -227,9 +313,16 @@ class Config:
         self.log_level: str = self._cfg["logging"]["level"]
         self.log_base_name: str = self._cfg["logging"]["base_name"]
 
-        # Входные файлы и сводный лист (полный список; для прогона — filter_input_files_for_block)
-        self.input_files: List[Dict[str, Any]] = self._cfg["input_files"]
+        # Входные файлы по блокам: input_files = { "PROM": [...], "IFT": [...], "PSI": [...] }
+        self.input_files_by_block: Dict[str, List[Dict[str, Any]]] = parse_input_files_by_block(
+            self._cfg
+        )
         self.run_blocks: List[str] = parse_run_blocks_config(self._cfg)
+        # Для текущего/первого блока (совместимость со старым кодом, ожидающим список)
+        _first_block = self.run_blocks[0] if self.run_blocks else "PROM"
+        self.input_files: List[Dict[str, Any]] = get_input_files_for_block(
+            self.input_files_by_block, _first_block
+        )
         self.summary_sheet: Dict[str, Any] = self._cfg["summary_sheet"]
         self.sheet_order: List[str] = self._cfg.get("sheet_order") or []
 

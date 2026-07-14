@@ -54,7 +54,7 @@ SPOD_PROM/
 │   ├── gender.py         # Определение пола (AUTO_GENDER)
 │   └── main_impl.py      # Полный пайплайн: загрузка, merge, summary, Excel, отчёты
 ├── requirements.txt        # Зависимости (pandas, openpyxl и др.) для main.py
-├── IN/                     # Корень входных данных (paths.input); внутри — subdir (SPOD, FILE и т.д.)
+├── IN/                     # Корень входных данных (paths.input); внутри — SPOD/PROM|IFT|PSI, FILE и т.д.
 ├── OUT/                    # Базовый каталог вывода (paths.output); файлы по блоку и дате: OUT/<BLOCK>/YYYY/DD-MM/ (BLOCK=PROM|IFT|PSI); опционально OUT/DB/*.sqlite — архив входных CSV
 ├── BACKUP/                 # Резервные копии
 ├── POST/                   # Не в Git (.gitignore). Снимок: sync_post_txt.py (открытый .txt) или pack_post_encrypted_program.py (шифрованный bundle для почты)
@@ -142,7 +142,7 @@ SPOD_PROM/
 | `logging` | Уровень (INFO/DEBUG) и базовое имя файла логов. |
 | `performance` | Количество потоков: max_workers_io, max_workers_cpu. |
 | `tournament_status_choices` | Подписи статусов турнира (расчёт CALC_TOURNAMENT_STATUS). |
-| `input_files` | Список CSV: file, sheet, expected_columns (0=АВТО), subdir (напр. `SPOD/PROM`, `FILE`), **`block`** (опц.: `PROM`/`IFT`/`PSI`; без поля — общий файл для всех блоков), **`aggregate_into_sheet`** (опц.), **`archive_db_path`** (опц.), **`archive_to_db`**, sort_columns, ширина, freeze, include_in_source. |
+| `input_files` | Объект разделов **`PROM` / `IFT` / `PSI`**: в каждом — полный список CSV (`file`, `sheet`, `subdir` напр. `SPOD/PROM` / `FILE`, **`aggregate_into_sheet`**, **`archive_db_path`**, **`archive_to_db`**, sort_columns, ширина, freeze, include_in_source). Составы разделов могут отличаться; сейчас заполнены одинаково. |
 | `summary_sheet` | Параметры сводного листа SUMMARY (ширина, закрепление). |
 | `sheet_order` | Порядок листов в выходном Excel (если задан). |
 | `summary_key_defs` | Ключевые колонки по листам для каркаса SUMMARY (в т.ч. INDICATOR: INDICATOR_CODE, INDICATOR_ADD_CALC_TYPE, CONTEST_CODE). |
@@ -242,7 +242,7 @@ SPOD_PROM/
 "run_blocks": ["PROM", "IFT", "PSI"]
 ```
 
-**По умолчанию** (если ключ отсутствует): `["PROM"]`. Записи **`input_files`** с полем **`block`** относятся к блоку; без **`block`** (обычно `subdir: "FILE"`) — общие для всех блоков. Разбор: **`parse_run_blocks_config`**, фильтр: **`filter_input_files_for_block`**. Тесты: **`src/Tests/test_run_blocks.py`**.
+**По умолчанию** (если ключ отсутствует): `["PROM"]`. **`input_files`** — объект с разделами **`PROM` / `IFT` / `PSI`**: в каждом свой полный список файлов (составы могут различаться; сейчас одинаковые). Разбор: **`parse_run_blocks_config`**, **`parse_input_files_by_block`**. Тесты: **`src/Tests/test_run_blocks.py`**.
 
 ---
 
@@ -390,7 +390,17 @@ SPOD_PROM/
 
 ### input_files
 
-**Назначение:** список CSV-файлов и настроек листов Excel. Каждый элемент описывает один файл и один лист в итоговой книге.
+**Назначение:** входные CSV **по блокам** (разделам) `PROM` / `IFT` / `PSI`. Каждый раздел — полный список файлов для отдельного расчёта. Составы могут отличаться (например, в IFT нет ORDER/RATING); сейчас все три раздела заполнены одинаково.
+
+```json
+"input_files": {
+  "PROM": [ { "file": "...", "sheet": "...", "subdir": "SPOD/PROM", ... }, ... ],
+  "IFT":  [ { "file": "...", "sheet": "...", "subdir": "SPOD/IFT", ... }, ... ],
+  "PSI":  [ { "file": "...", "sheet": "...", "subdir": "SPOD/PSI", ... }, ... ]
+}
+```
+
+Элемент списка в разделе:
 
 | Ключ                | Тип    | Описание |
 |---------------------|--------|----------|
@@ -398,7 +408,6 @@ SPOD_PROM/
 | `sheet`             | строка | Имя листа в выходном Excel, куда попадут данные этого файла. |
 | `expected_columns`  | число  | Ожидаемое число полей в CSV. **0** — АВТО (берётся из заголовка). Если в строке CSV число полей отличается — фиксируется в отчёте и листе CONSISTENCY. |
 | `subdir`            | строка | Подкаталог внутри `paths.input` (например `"SPOD/PROM"`, `"SPOD/IFT"`, `"FILE"`). Итоговый путь: `paths.input/subdir/file`. |
-| `block`             | строка | Опционально. Блок `PROM` / `IFT` / `PSI`: файл участвует только в прогоне этого блока. Без поля (или `*`) — общий файл для всех блоков из `run_blocks`. |
 | `sort_columns`      | массив | Правила сортировки листа при записи в source/main Excel (если включено `apply_sort_to_source` или `apply_sort_to_main`). Каждый элемент: `{"column": "ИмяКолонки", "order": "asc" \| "desc"}`. Применяются последовательно. Если колонки нет на листе — пропускается; если ни одной нет — сортировка не выполняется. |
 | `max_col_width`     | число  | Максимальная ширина колонки (символов) при авто-ширине. |
 | `freeze`            | строка | Закрепление областей, например `"C2"` — закрепить столбцы A–B и строку 1. |
@@ -406,13 +415,13 @@ SPOD_PROM/
 | `min_col_width`     | число  | Минимальная ширина колонки. |
 | `include_in_source` | bool   | Включать ли лист в выгрузку сырых данных (файл «SPOD_PROM source …»). По умолчанию `true`. |
 
-**Пример:**
+**Пример элемента:**
 ```json
 {
   "file": "CONTEST (PROM) 16-03 v0.csv",
   "sheet": "CONTEST-DATA",
   "expected_columns": 0,
-  "subdir": "SPOD",
+  "subdir": "SPOD/PROM",
   "sort_columns": [{"column": "CONTEST_CODE", "order": "asc"}],
   "max_col_width": 120,
   "freeze": "C2",
@@ -422,7 +431,7 @@ SPOD_PROM/
 }
 ```
 
-**Логика:** программа перебирает `input_files`, для каждого ищет файл в `paths.input/subdir/` (например `IN/SPOD/`), читает CSV, проверяет число полей по `expected_columns` (0 = по заголовку), разворачивает JSON по `json_columns`, записывает лист с именем `sheet` и применяет ширины, закрепление и при необходимости сортировку из `sort_columns`. Результаты проверки числа полей CSV выводятся в лист CONSISTENCY.
+**Логика:** для каждого блока из `run_blocks` берётся раздел `input_files.<BLOCK>`, файлы ищутся в `paths.input/subdir/` (например `IN/SPOD/PROM/`), читается CSV, проверяется число полей, разворачивается JSON, формируется Excel блока. Результаты проверки числа полей CSV выводятся в лист CONSISTENCY.
 
 ---
 
@@ -1256,10 +1265,11 @@ python main.py
 
 ### Версия 1.7.51 — Блоки PROM / IFT / PSI (`run_blocks`)
 
-- **`run_blocks`**: `PROM`, `IFT`, `PSI` — какие наборы SPOD-данных обрабатывать; по умолчанию `["PROM"]`. Для каждого блока — отдельный полный расчёт.
-- **Вход:** `IN/SPOD/<BLOCK>/`; у SPOD-записей `input_files` — поле **`block`** и `subdir` вида `SPOD/PROM` (IFT/PSI — те же имена файлов). Записи без `block` (обычно `FILE`) — общие.
-- **Выход:** `OUT/<BLOCK>/YYYY/DD-MM/`; имена `SPOD_{BLOCK} main_…`, `SPOD_{BLOCK} MANAGER_STATS …` и т.д. (`output_filenames` с плейсхолдером `{BLOCK}`).
-- Код: **`parse_run_blocks_config`**, **`filter_input_files_for_block`**, **`resolve_output_filename_template`**, цикл в **`main_impl.main`**. Тесты: **`src/Tests/test_run_blocks.py`**.
+- **`run_blocks`**: `PROM`, `IFT`, `PSI` — какие наборы данных обрабатывать; по умолчанию `["PROM"]`. Для каждого блока — отдельный полный расчёт.
+- **`input_files`**: объект с разделами **`PROM` / `IFT` / `PSI`**; в каждом — полный список CSV (сейчас три раздела заполнены одинаково; составы могут различаться).
+- **Вход:** SPOD → `IN/SPOD/<BLOCK>/`; FILE → `IN/FILE/` (пока общий путь в каждом разделе).
+- **Выход:** `OUT/<BLOCK>/YYYY/DD-MM/`; имена `SPOD_{BLOCK} main_…`, `SPOD_{BLOCK} MANAGER_STATS …` и т.д.
+- Код: **`parse_run_blocks_config`**, **`parse_input_files_by_block`**, **`get_input_files_for_block`**, цикл в **`main_impl.main`**. Тесты: **`src/Tests/test_run_blocks.py`**.
 
 ### Версия 1.7.50 — POST: плоский список зашифрованных .txt в корне POST/IN/POST
 
