@@ -6,8 +6,10 @@ from __future__ import annotations
 import os
 from datetime import datetime
 
+import pandas as pd
 import pytest
 
+from src.consistency_checks import run_all_consistency_checks
 from src.block_runtime import (
     block_label,
     resolve_block_placeholders,
@@ -190,3 +192,70 @@ def test_real_config_sections_and_new_layout() -> None:
         for f in files:
             ap = f.get("archive_db_path") or ""
             assert "{BLOCK}" in ap
+
+
+def test_consistency_rule_blocks_filtering_by_current_block() -> None:
+    sheets_data = {
+        "CONTEST-DATA": (pd.DataFrame({"CONTEST_CODE": ["A", "A"]}), {}),
+    }
+    cfg = {
+        "rules": [
+            {
+                "id": "unique_all_blocks",
+                "type": "unique",
+                "enabled": True,
+                "sheet": "CONTEST-DATA",
+                "key_columns": ["CONTEST_CODE"],
+                "output": {"column_on_sheet": "DUP_ALL", "include_in_summary": True},
+            },
+            {
+                "id": "unique_only_psi",
+                "type": "unique",
+                "enabled": True,
+                "sheet": "CONTEST-DATA",
+                "key_columns": ["CONTEST_CODE"],
+                "blocks": ["PSI"],
+                "output": {"column_on_sheet": "DUP_PSI", "include_in_summary": True},
+            },
+            {
+                "id": "unique_ift_alias",
+                "type": "unique",
+                "enabled": True,
+                "sheet": "CONTEST-DATA",
+                "key_columns": ["CONTEST_CODE"],
+                "apply_blocks": ["IFT"],
+                "output": {"column_on_sheet": "DUP_IFT", "include_in_summary": True},
+            },
+        ]
+    }
+
+    results = run_all_consistency_checks(sheets_data, cfg, current_block="PROM", max_workers=1)
+    by_id = {r["check_id"]: r for r in results}
+
+    assert by_id["unique_all_blocks"]["violations"] == 2
+    assert by_id["unique_only_psi"]["violations"] == 0
+    assert "пропущено для блока PROM" in "; ".join(by_id["unique_only_psi"]["sample"])
+    assert by_id["unique_ift_alias"]["violations"] == 0
+    assert "пропущено для блока PROM" in "; ".join(by_id["unique_ift_alias"]["sample"])
+
+
+def test_consistency_rule_without_blocks_applies_everywhere() -> None:
+    sheets_data = {
+        "CONTEST-DATA": (pd.DataFrame({"CONTEST_CODE": ["A", "A"]}), {}),
+    }
+    cfg = {
+        "rules": [
+            {
+                "id": "unique_default_scope",
+                "type": "unique",
+                "enabled": True,
+                "sheet": "CONTEST-DATA",
+                "key_columns": ["CONTEST_CODE"],
+                "output": {"column_on_sheet": "DUP_DEFAULT", "include_in_summary": True},
+            }
+        ]
+    }
+    for block in ("PROM", "IFT", "PSI"):
+        out = run_all_consistency_checks(sheets_data, cfg, current_block=block, max_workers=1)
+        assert out[0]["check_id"] == "unique_default_scope"
+        assert out[0]["violations"] == 2

@@ -24,6 +24,9 @@ import pandas as pd
 from src.debug_timing import debug_timed
 
 
+_BLOCK_TOKENS: Set[str] = {"PROM", "IFT", "PSI"}
+
+
 def _get_sheet_df(sheets_data: Dict[str, Any], sheet_name: str) -> Optional[pd.DataFrame]:
     """Возвращает DataFrame листа или None."""
     if sheet_name not in sheets_data or sheets_data[sheet_name] is None:
@@ -1679,9 +1682,81 @@ def _disabled_rule_summary(
     }
 
 
+def _normalize_rule_blocks(raw_blocks: Any) -> Optional[Set[str]]:
+    """
+    Нормализует список блоков правила.
+    Возвращает None, если ограничение блоков не задано (правило для всех блоков).
+    """
+    if raw_blocks is None:
+        return None
+    if isinstance(raw_blocks, str):
+        token = raw_blocks.strip().upper()
+        if token in ("", "ALL", "*"):
+            return None
+        raw_blocks = [raw_blocks]
+    if not isinstance(raw_blocks, list):
+        return None
+    out: Set[str] = set()
+    for item in raw_blocks:
+        if not isinstance(item, str):
+            continue
+        token = item.strip().upper()
+        if token in ("", "ALL", "*"):
+            return None
+        if token in _BLOCK_TOKENS:
+            out.add(token)
+    return out if out else None
+
+
+def consistency_rule_applies_to_block(rule: Dict[str, Any], current_block: Optional[str]) -> bool:
+    """
+    Проверяет, применяется ли правило к текущему блоку.
+    Параметр правила: blocks (основной) или apply_blocks (алиас совместимости).
+    При отсутствии параметра правило применяется ко всем блокам.
+    """
+    if not current_block:
+        return True
+    block_u = str(current_block).strip().upper()
+    if block_u not in _BLOCK_TOKENS:
+        return True
+    raw_blocks = rule.get("blocks", rule.get("apply_blocks"))
+    blocks = _normalize_rule_blocks(raw_blocks)
+    if blocks is None:
+        return True
+    return block_u in blocks
+
+
+def _skipped_by_block_rule_summary(
+    rule: Dict[str, Any],
+    current_block: Optional[str],
+) -> Dict[str, Any]:
+    """Строка свода CONSISTENCY для правила, пропущенного из-за filters по blocks."""
+    t = str(rule.get("type", ""))
+    if t in ("referential", "referential_composite", "cross_sheet_date_lte_today"):
+        sheet = rule.get("sheet_src") or ""
+    else:
+        sheet = rule.get("sheet") or rule.get("sheet_src") or ""
+    out = rule.get("output") or {}
+    col = out.get("column_on_sheet", "")
+    block_u = str(current_block or "").strip().upper()
+    return {
+        "check_id": rule.get("id", ""),
+        "sheet": sheet,
+        "name": rule.get("name", ""),
+        "column_on_sheet": col,
+        "type": t,
+        "total_rows": 0,
+        "violations": 0,
+        "sample": [f"правило пропущено для блока {block_u} (blocks/apply_blocks)"],
+        "include_in_summary": out.get("include_in_summary", True),
+        "disabled": True,
+    }
+
+
 def run_all_consistency_checks(
     sheets_data: Dict[str, Any],
     config: Dict[str, Any],
+    current_block: Optional[str] = None,
     max_workers: Optional[int] = None,
 ) -> List[Dict[str, Any]]:
     """
@@ -1695,15 +1770,21 @@ def run_all_consistency_checks(
     if not rules:
         return []
 
-    enabled_pairs: List[Tuple[int, Dict[str, Any]]] = [
-        (i, r) for i, r in enumerate(rules) if r.get("enabled", True)
-    ]
+    enabled_pairs: List[Tuple[int, Dict[str, Any]]] = []
+    skipped_by_block: Dict[int, Dict[str, Any]] = {}
+    for i, r in enumerate(rules):
+        if not r.get("enabled", True):
+            continue
+        if consistency_rule_applies_to_block(r, current_block):
+            enabled_pairs.append((i, r))
+        else:
+            skipped_by_block[i] = r
 
     n_workers = max_workers if max_workers is not None and max_workers > 0 else min(8, (os.cpu_count() or 8), max(1, len(enabled_pairs)))
     n_workers = max(1, n_workers)
     logging.debug(
         f"[consistency] Параллельный запуск проверок: потоков={n_workers}, "
-        f"включённых правил={len(enabled_pairs)} из {len(rules)}"
+        f"включённых правил={len(enabled_pairs)} из {len(rules)}, блок={current_block or '-'}"
     )
 
     # Листы, в которые что-то пишется — по одному Lock на лист (только для включённых правил)
@@ -1846,6 +1927,8 @@ def run_all_consistency_checks(
     for i, rule in enumerate(rules):
         if slot[i] is not None:
             out.append(slot[i])  # type: ignore[arg-type]
+        elif i in skipped_by_block:
+            out.append(_skipped_by_block_rule_summary(skipped_by_block[i], current_block))
         else:
             out.append(_disabled_rule_summary(rule, sheets_data))
     return out
@@ -2183,6 +2266,7 @@ def log_and_console_consistency_report(results: List[Dict[str, Any]]) -> None:
 def run_consistency_checks_and_attach_summary(
     sheets_data: Dict[str, Any],
     config: Dict[str, Any],
+    current_block: Optional[str] = None,
     max_workers: Optional[int] = None,
 ) -> List[Dict[str, Any]]:
     """
@@ -2190,7 +2274,12 @@ def run_consistency_checks_and_attach_summary(
     записать отчёт в лог-файл. Возвращает список результатов правил (для краткой сводки в консоли).
     """
     summary_sheet_name = config.get("summary_sheet_name", "CONSISTENCY")
-    results = run_all_consistency_checks(sheets_data, config, max_workers=max_workers)
+    results = run_all_consistency_checks(
+        sheets_data,
+        config,
+        current_block=current_block,
+        max_workers=max_workers,
+    )
     # config здесь — секция consistency_checks (summary_sheet_name + rules), а не весь config.json
     rules = config.get("rules") or []
     df_summary = build_consistency_summary_df(results, rules=rules)
