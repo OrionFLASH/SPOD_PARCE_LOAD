@@ -4994,7 +4994,10 @@ def _run_pipeline_for_block(block: str, log_file: str) -> None:
         if CONSISTENCY_CHECKS and (CONSISTENCY_CHECKS.get("rules")):
             logging.info("[main] Запуск проверок консистентности на сырых данных (до обработки)")
             consistency_results = run_consistency_checks_and_attach_summary(
-                raw_sheets_data, CONSISTENCY_CHECKS, max_workers=MAX_WORKERS
+                raw_sheets_data,
+                CONSISTENCY_CHECKS,
+                current_block=block,
+                max_workers=MAX_WORKERS,
             )
             copy_consistency_results_from_raw_to_processed(raw_sheets_data, sheets_data, summary_sheet_name)
             logging.info("[main] Проверки консистентности завершены, результаты скопированы на обработанные листы")

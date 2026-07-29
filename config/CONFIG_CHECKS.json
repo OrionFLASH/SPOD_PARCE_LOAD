@@ -1,7 +1,7 @@
 {
   "consistency_checks": {
     "summary_sheet_name": "CONSISTENCY",
-    "spod_todo_config_guide": "П.1 ToDo SPOD: проверки SPOD-JSON — в rules ниже, type \"json_spod_format\", id с префиксом spod_json_ (лист, json_column, json_required, numeric_value_keys). П.2: фильтр строк referential/referential_composite — поля src_row_conditions и ref_row_conditions (массив {column, op, value}, op = или <>); полный пример см. правило example_referential_row_filters.",
+    "spod_todo_config_guide": "П.1 ToDo SPOD: проверки SPOD-JSON — в rules ниже, type \"json_spod_format\", id с префиксом spod_json_ (лист, json_column, json_required, numeric_value_keys). П.2: фильтр строк referential/referential_composite — поля src_row_conditions и ref_row_conditions (массив {column, op, value}, op = или <>); полный пример см. правило example_referential_row_filters. П.9: ограничение правила по блокам — поле blocks (или apply_blocks) со значениями [\"PROM\",\"IFT\",\"PSI\"]; если поле не задано, правило применяется ко всем блокам.",
     "csv_columns_count": {
       "_default": {
         "ТИП ПРОВЕРКИ": "число полей в CSV",
