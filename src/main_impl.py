@@ -580,6 +580,60 @@ def _logging_level_from_config(name: str) -> int:
     return mapping.get((name or "INFO").strip().upper(), logging.INFO)
 
 
+class _QuietExpectedMergeConsoleFilter(logging.Filter):
+    """
+    Не выводит в консоль ожидаемые INFO merge (пустой результат фильтра, сопоставление регистра).
+    В лог-файл эти сообщения по-прежнему пишутся.
+    """
+
+    _SKIP_MARKERS: Tuple[str, ...] = (
+        "Не ошибка: после фильтра",
+        "после фильтра на листе-источнике",
+        "ожидаемо: нет строк с нужным статусом",
+        "сопоставлена с",
+        "сопоставлен с",
+        "без учёта регистра",
+        "контекст фильтра не передан",
+    )
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        if record.levelno >= logging.WARNING:
+            return True
+        try:
+            msg = record.getMessage()
+        except Exception:
+            return True
+        return not any(m in msg for m in self._SKIP_MARKERS)
+
+
+def _log_info_file_only(msg: str) -> None:
+    """
+    Пишет INFO только в FileHandler (не в консоль).
+    Для ожидаемых ситуаций merge, которые не являются ошибками.
+    """
+    logger = logging.getLogger()
+    emitted = False
+    for handler in logger.handlers:
+        if isinstance(handler, logging.FileHandler):
+            record = logging.LogRecord(
+                name=logger.name,
+                level=logging.INFO,
+                pathname=__file__,
+                lineno=0,
+                msg=msg,
+                args=(),
+                exc_info=None,
+                func="add_fields_to_sheet",
+            )
+            # Учитываем фильтры хендлера (BlockLogFilter и т.п.)
+            if handler.level <= logging.INFO and (not handler.filters or all(f.filter(record) for f in handler.filters)):
+                handler.emit(record)
+                emitted = True
+    if not emitted:
+        # Fallback: обычный INFO (консоль отфильтрует Quiet-фильтром)
+        logging.info(msg)
+
+
 def setup_logger():
     """
     Настраивает систему логирования для программы.
@@ -593,15 +647,21 @@ def setup_logger():
     """
     log_file = get_log_filename()
     # get_log_filename() уже создаёт каталог LOGS/YYYY/DD-MM через get_log_dir_for_run()
-    # Если логгер уже инициализирован, не добавляем обработчики ещё раз
-    if logging.getLogger().hasHandlers():
+    logger = logging.getLogger()
+    # Если логгер уже инициализирован — всё равно вешаем Quiet-фильтр на консольные хендлеры
+    if logger.hasHandlers():
+        for h in logger.handlers:
+            if isinstance(h, logging.StreamHandler) and not isinstance(h, logging.FileHandler):
+                if not any(isinstance(f, _QuietExpectedMergeConsoleFilter) for f in h.filters):
+                    h.addFilter(_QuietExpectedMergeConsoleFilter())
+                # Консоль только WARNING+: ожидаемые INFO merge не должны светиться
+                if h.level < logging.WARNING:
+                    h.setLevel(logging.WARNING)
         return log_file
 
     # Уровень файла совпадает с config: при level=INFO в лог-файл не попадают записи DEBUG
     file_level = _logging_level_from_config(LOG_LEVEL)
 
-    # Получаем корневой логгер
-    logger = logging.getLogger()
     logger.setLevel(logging.DEBUG)
 
     # Форматтер для файла (с именем функции)
@@ -626,6 +686,7 @@ def setup_logger():
     console_handler.setLevel(logging.WARNING)
     console_handler.setFormatter(console_formatter)
     console_handler.addFilter(BlockLogFilter())
+    console_handler.addFilter(_QuietExpectedMergeConsoleFilter())
     
     # Добавляем обработчики к логгеру
     logger.addHandler(file_handler)
@@ -2834,22 +2895,27 @@ def add_fields_to_sheet(df_base, df_ref, src_keys, dst_keys, columns, sheet_name
         before = source_rows_before_filter
         filters_txt = applied_filters
         if before is not None and before > 0:
-            # INFO: не ошибка; не светится красным WARNING в консоли
-            logging.info(
-                f"[add_fields_to_sheet] После фильтрации из «{ref_sheet_name}» осталось 0 строк "
-                f"(было {before}; фильтр: {filters_txt}). "
-                f"Сам лист не пуст — для «{sheet_name}» по этому правилу ставим дефолт "
-                f"(часто так, если нет строк с нужным статусом)."
+            # Ожидаемо (нет строк нужного статуса) — понятный текст только в лог-файл, не в консоль
+            _log_info_file_only(
+                f"[add_fields_to_sheet] Не ошибка: после фильтра на листе-источнике "
+                f"«{ref_sheet_name}» осталось 0 строк из {before}. "
+                f"Условие фильтра: {filters_txt}. "
+                f"Сам лист «{ref_sheet_name}» не пуст — просто нет строк, подходящих под фильтр "
+                f"(например, нет турниров со статусом из фильтра). "
+                f"Для листа «{sheet_name}» по этому правилу ставим дефолт "
+                f"(ожидаемо: нет строк с нужным статусом)."
             )
         elif before == 0:
-            logging.info(
+            _log_info_file_only(
                 f"[add_fields_to_sheet] Лист-источник «{ref_sheet_name}» содержит 0 строк — "
                 f"поля для «{sheet_name}» не подтягиваем (дефолт)."
             )
         else:
-            logging.info(
-                f"[add_fields_to_sheet] Передан пустой набор строк из «{ref_sheet_name}» "
-                f"(0 строк) — поля для «{sheet_name}» не подтягиваем (дефолт)."
+            _log_info_file_only(
+                f"[add_fields_to_sheet] В merge передан пустой набор из «{ref_sheet_name}» "
+                f"(0 строк; контекст фильтра не передан). "
+                f"Часто это результат status_filters без совпадений — сам CSV-лист при этом "
+                f"может быть непустым. Поля для «{sheet_name}» — дефолт."
             )
         _fill_empty_result_columns()
         logging.info(
@@ -2858,20 +2924,20 @@ def add_fields_to_sheet(df_base, df_ref, src_keys, dst_keys, columns, sheet_name
         )
         return df_base
 
-    # Сопоставление имён колонок без учёта регистра (calc_type ↔ CALC_TYPE)
+    # Сопоставление имён колонок: регистр + суффикс после «=>» (calc_type, CONTEST-DATA=>calc_type)
     from src.csv_headers import align_dataframe_columns
 
     names_to_align = list(dict.fromkeys(list(columns) + list(src_keys)))
     df_ref, _missing_aligned, renames = align_dataframe_columns(df_ref, names_to_align)
     for old_n, new_n in renames:
-        logging.info(
+        _log_info_file_only(
             f"[add_fields_to_sheet] Колонка «{old_n}» на листе «{ref_sheet_name}» "
-            f"сопоставлена с «{new_n}» (без учёта регистра)"
+            f"сопоставлена с «{new_n}» (без учёта регистра / суффикс после =>)"
         )
     if df_base is not None and isinstance(df_base, pd.DataFrame):
         df_base, _, dst_renames = align_dataframe_columns(df_base, list(dst_keys))
         for old_n, new_n in dst_renames:
-            logging.info(
+            _log_info_file_only(
                 f"[add_fields_to_sheet] Ключ «{old_n}» на листе «{sheet_name}» "
                 f"сопоставлен с «{new_n}» (без учёта регистра)"
             )
@@ -3709,6 +3775,14 @@ def apply_filters_to_dataframe(df, status_filters, custom_conditions, sheet_name
     
     # Применяем фильтры по статусам
     if status_filters:
+        from src.csv_headers import align_dataframe_columns
+
+        filter_cols = list(status_filters.keys())
+        df_filtered, missing_f, renames_f = align_dataframe_columns(df_filtered, filter_cols)
+        for old_n, new_n in renames_f:
+            logging.info(
+                f"[FILTER] Колонка фильтра «{old_n}» сопоставлена с «{new_n}» (без учёта регистра)"
+            )
         for column, allowed_values in status_filters.items():
             if column in df_filtered.columns:
                 df_filtered = df_filtered[df_filtered[column].isin(allowed_values)]
