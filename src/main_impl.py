@@ -633,6 +633,69 @@ def setup_logger():
     
     return log_file
 
+def _parse_date_column_to_date(series: pd.Series, col_label: str = "") -> pd.Series:
+    """
+    Парсит колонку дат в ``datetime.date`` без шумного pandas UserWarning в консоли.
+
+    Основной формат SPOD — YYYY-MM-DD через ``strptime`` (поддерживает и 4000-01-01,
+    который не влезает в pandas Timestamp). Мягкий fallback — только в лог DEBUG.
+    """
+    from datetime import date as date_cls
+    from datetime import datetime as dt_cls
+
+    label = col_label or str(getattr(series, "name", "") or "date")
+    empty_markers = {"", "-", "None", "null", "nan", "NaT", "<NA>"}
+
+    def _one(val: Any):
+        if val is None:
+            return None
+        try:
+            if pd.isna(val):
+                return None
+        except (TypeError, ValueError):
+            pass
+        if isinstance(val, dt_cls):
+            return val.date()
+        if isinstance(val, date_cls):
+            return val
+        if isinstance(val, pd.Timestamp):
+            return None if pd.isna(val) else val.date()
+        s = str(val).strip()
+        if s in empty_markers or s.lower() == "nat":
+            return None
+        try:
+            return dt_cls.strptime(s[:10], "%Y-%m-%d").date()
+        except ValueError:
+            return False  # маркер: нужен fallback
+
+    primary = series.map(_one)
+    need_fallback = primary.apply(lambda x: x is False)
+    n_fallback = int(need_fallback.sum())
+    out = primary.map(lambda x: None if x is False else x)
+
+    if n_fallback > 0:
+        logging.debug(
+            f"[DATE] {label}: {n_fallback} значений не в формате YYYY-MM-DD — "
+            f"повторный разбор (без UserWarning в консоли)"
+        )
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", UserWarning)
+            fb = pd.to_datetime(series[need_fallback], errors="coerce")
+
+        def _ts_to_date(v: Any):
+            try:
+                if v is None or pd.isna(v):
+                    return None
+            except (TypeError, ValueError):
+                return None
+            if isinstance(v, pd.Timestamp):
+                return v.date()
+            return None
+
+        out.loc[need_fallback] = fb.map(_ts_to_date).values
+    return out
+
+
 @debug_timed()
 def calculate_tournament_status(df_tournament, df_report=None):
     """
@@ -668,35 +731,19 @@ def calculate_tournament_status(df_tournament, df_report=None):
     today = pd.Timestamp.now().date()  # Текущая дата
     df = df_tournament.copy()          # Копируем DataFrame для безопасной работы
 
-    # Вспомогательная функция для безопасного преобразования строк в даты
-    def safe_to_date(date_str):
-        """
-        Безопасно преобразует строку в дату, обрабатывая некорректные значения.
-        
-        Args:
-            date_str: Строка с датой или некорректное значение
-            
-        Returns:
-            datetime.date or None: Преобразованная дата или None при ошибке
-        """
-        try:
-            if pd.isna(date_str) or date_str in ['', '-', 'None', 'null']:
-                return None
-            return pd.to_datetime(date_str).date()
-        except (ValueError, TypeError):
-            return None
-
-    # Преобразуем даты в pandas datetime, обрабатываем ошибки
-    df['START_DT_parsed'] = pd.to_datetime(df['START_DT'], errors='coerce').dt.date      # Парсим дату начала
-    df['END_DT_parsed'] = pd.to_datetime(df['END_DT'], errors='coerce').dt.date          # Парсим дату окончания
-    df['RESULT_DT_parsed'] = pd.to_datetime(df['RESULT_DT'], errors='coerce').dt.date    # Парсим дату результатов
+    # Парсим даты явно (YYYY-MM-DD), без pandas UserWarning в консоль
+    df['START_DT_parsed'] = _parse_date_column_to_date(df['START_DT'], "START_DT")
+    df['END_DT_parsed'] = _parse_date_column_to_date(df['END_DT'], "END_DT")
+    df['RESULT_DT_parsed'] = _parse_date_column_to_date(df['RESULT_DT'], "RESULT_DT")
 
     # Получаем максимальные CONTEST_DATE для каждого TOURNAMENT_CODE из REPORT
     # Это нужно для определения, завершились ли все конкурсы турнира
     max_contest_dates = {}
     if df_report is not None and 'CONTEST_DATE' in df_report.columns and 'TOURNAMENT_CODE' in df_report.columns:
         df_report_dates = df_report.copy()
-        df_report_dates['CONTEST_DATE_parsed'] = pd.to_datetime(df_report_dates['CONTEST_DATE'], errors='coerce').dt.date
+        df_report_dates['CONTEST_DATE_parsed'] = _parse_date_column_to_date(
+            df_report_dates['CONTEST_DATE'], "CONTEST_DATE"
+        )
         df_report_dates = df_report_dates.dropna(subset=['CONTEST_DATE_parsed', 'TOURNAMENT_CODE'])
 
         if not df_report_dates.empty:
@@ -2733,7 +2780,8 @@ def collect_summary_keys_optimized(dfs):
 
 @debug_timed(hot=True, log_args_len=True)
 def add_fields_to_sheet(df_base, df_ref, src_keys, dst_keys, columns, sheet_name, ref_sheet_name, mode="value",
-                        multiply_rows=False, count_prefix="COUNT", count_aggregation="size", count_label=None):
+                        multiply_rows=False, count_prefix="COUNT", count_aggregation="size", count_label=None,
+                        source_rows_before_filter=None, applied_filters=None):
     """
     Добавляет к df_base поля из df_ref по ключам.
     Если mode == "value": подтягивает значения (первого найденного или всех при multiply_rows=True).
@@ -2743,28 +2791,90 @@ def add_fields_to_sheet(df_base, df_ref, src_keys, dst_keys, columns, sheet_name
     Если multiply_rows == True: при множественных совпадениях размножает строки в df_base.
     Если multiply_rows == False: берет первое найденное значение (по умолчанию).
     Если нужной колонки нет — создаёт её с дефолтными значениями "-".
+    source_rows_before_filter / applied_filters: контекст, если df_ref пуст после фильтрации.
     """
     func_start = time()
     logging.info(f"[START] add_fields_to_sheet (лист: {sheet_name}, поля: {columns}, ключ: {dst_keys}->{src_keys}, mode: {mode}, multiply: {multiply_rows})")
     if isinstance(columns, str):
         columns = [columns]
+    if isinstance(src_keys, str):
+        src_keys = [src_keys]
+    if isinstance(dst_keys, str):
+        dst_keys = [dst_keys]
 
-    # ИСПРАВЛЕНИЕ: Проверка на пустой или None df_ref
-    if df_ref is None or (isinstance(df_ref, pd.DataFrame) and df_ref.empty):
-        logging.warning(f"[add_fields_to_sheet] Лист {ref_sheet_name} пустой или None, пропускаем добавление полей")
-        # Добавляем пустые колонки с дефолтными значениями "-"
+    def _fill_empty_result_columns() -> None:
+        """Добавляет дефолтные колонки, когда источник пуст / None."""
         if mode == "count" and count_label is not None:
             new_col_name = f"{ref_sheet_name}=>COUNT_{count_aggregation}_{count_label}"
             if new_col_name not in df_base.columns:
-                df_base[new_col_name] = "-"
+                df_base[new_col_name] = 0
         else:
             for col in columns:
-                new_col_name = f"{ref_sheet_name}=>{count_prefix}_{col}" if mode == "count" else f"{ref_sheet_name}=>{col}"
+                new_col_name = (
+                    f"{ref_sheet_name}=>{count_prefix}_{col}" if mode == "count" else f"{ref_sheet_name}=>{col}"
+                )
                 if new_col_name not in df_base.columns:
-                    df_base[new_col_name] = "-"
-        logging.info(f"[END] add_fields_to_sheet (лист: {sheet_name}, поля: {columns}, ключ: {dst_keys}->{src_keys}, mode: {mode}, multiply: {multiply_rows}) (время: {time() - func_start:.3f}s)")
+                    df_base[new_col_name] = 0 if mode == "count" else "-"
 
+    # Лист-источник отсутствует
+    if df_ref is None:
+        logging.warning(
+            f"[add_fields_to_sheet] Лист-источник «{ref_sheet_name}» отсутствует (None) — "
+            f"поля для «{sheet_name}» не подтягиваем (ставим дефолт)."
+        )
+        _fill_empty_result_columns()
+        logging.info(
+            f"[END] add_fields_to_sheet (лист: {sheet_name}, поля: {columns}, ключ: {dst_keys}->{src_keys}, "
+            f"mode: {mode}, multiply: {multiply_rows}) (время: {time() - func_start:.3f}s)"
+        )
         return df_base
+
+    # Пустой DataFrame: часто это 0 строк после status_filters, а не «лист пустой»
+    if isinstance(df_ref, pd.DataFrame) and df_ref.empty:
+        before = source_rows_before_filter
+        filters_txt = applied_filters
+        if before is not None and before > 0:
+            # INFO: не ошибка; не светится красным WARNING в консоли
+            logging.info(
+                f"[add_fields_to_sheet] После фильтрации из «{ref_sheet_name}» осталось 0 строк "
+                f"(было {before}; фильтр: {filters_txt}). "
+                f"Сам лист не пуст — для «{sheet_name}» по этому правилу ставим дефолт "
+                f"(часто так, если нет строк с нужным статусом)."
+            )
+        elif before == 0:
+            logging.info(
+                f"[add_fields_to_sheet] Лист-источник «{ref_sheet_name}» содержит 0 строк — "
+                f"поля для «{sheet_name}» не подтягиваем (дефолт)."
+            )
+        else:
+            logging.info(
+                f"[add_fields_to_sheet] Передан пустой набор строк из «{ref_sheet_name}» "
+                f"(0 строк) — поля для «{sheet_name}» не подтягиваем (дефолт)."
+            )
+        _fill_empty_result_columns()
+        logging.info(
+            f"[END] add_fields_to_sheet (лист: {sheet_name}, поля: {columns}, ключ: {dst_keys}->{src_keys}, "
+            f"mode: {mode}, multiply: {multiply_rows}) (время: {time() - func_start:.3f}s)"
+        )
+        return df_base
+
+    # Сопоставление имён колонок без учёта регистра (calc_type ↔ CALC_TYPE)
+    from src.csv_headers import align_dataframe_columns
+
+    names_to_align = list(dict.fromkeys(list(columns) + list(src_keys)))
+    df_ref, _missing_aligned, renames = align_dataframe_columns(df_ref, names_to_align)
+    for old_n, new_n in renames:
+        logging.info(
+            f"[add_fields_to_sheet] Колонка «{old_n}» на листе «{ref_sheet_name}» "
+            f"сопоставлена с «{new_n}» (без учёта регистра)"
+        )
+    if df_base is not None and isinstance(df_base, pd.DataFrame):
+        df_base, _, dst_renames = align_dataframe_columns(df_base, list(dst_keys))
+        for old_n, new_n in dst_renames:
+            logging.info(
+                f"[add_fields_to_sheet] Ключ «{old_n}» на листе «{sheet_name}» "
+                f"сопоставлен с «{new_n}» (без учёта регистра)"
+            )
 
     # Подстановка ключа/колонки для LIST-TOURNAMENT во всех путях вызова (MERGE_FIELDS, MERGE_FIELDS_ADVANCED, build_summary_sheet)
     if ref_sheet_name == "LIST-TOURNAMENT":
@@ -3214,6 +3324,8 @@ def _process_single_merge_rule(rule, sheets_data_copy, count_column_prefix="COUN
     df_src, src_keys = _apply_src_key_transforms(df_src, src_keys, src_key_transform, sheet_src)
 
     # Применяем фильтрацию
+    rows_before_filter = len(df_src)
+    filter_ctx = status_filters if status_filters else custom_conditions
     df_src_filtered = apply_filters_to_dataframe(df_src, status_filters, custom_conditions, sheet_src)
     
     # Применяем группировку и агрегацию если необходимо
@@ -3221,9 +3333,12 @@ def _process_single_merge_rule(rule, sheets_data_copy, count_column_prefix="COUN
         df_src_filtered = apply_grouping_and_aggregation(df_src_filtered, group_by, aggregate, sheet_src)
     
     # Вызываем основную функцию добавления полей
-    df_dst = add_fields_to_sheet(df_dst, df_src_filtered, src_keys, dst_keys, col_names, sheet_dst, sheet_src, mode=mode,
-                                 multiply_rows=multiply_rows, count_prefix=count_column_prefix,
-                                 count_aggregation=count_aggregation, count_label=count_label)
+    df_dst = add_fields_to_sheet(
+        df_dst, df_src_filtered, src_keys, dst_keys, col_names, sheet_dst, sheet_src, mode=mode,
+        multiply_rows=multiply_rows, count_prefix=count_column_prefix,
+        count_aggregation=count_aggregation, count_label=count_label,
+        source_rows_before_filter=rows_before_filter, applied_filters=filter_ctx,
+    )
     
     # ИСПРАВЛЕНИЕ: Проверка на None после add_fields_to_sheet
     if df_dst is None or not isinstance(df_dst, pd.DataFrame):
@@ -3464,14 +3579,19 @@ def merge_fields_across_sheets(sheets_data, merge_fields, count_column_prefix="C
             cols_dst_before = set(df_dst.columns) if df_dst is not None and isinstance(df_dst, pd.DataFrame) else set()
             logging.info(f"[MERGE] {name_tag} вызов add_fields_to_sheet: {sheet_src} -> {sheet_dst}, src_keys={src_keys}, dst_keys={dst_keys}, col_names={col_names}")
             
+            rows_before_filter = len(df_src)
+            filter_ctx = status_filters if status_filters else custom_conditions
             df_src_filtered = apply_filters_to_dataframe(df_src, status_filters, custom_conditions, sheet_src)
             
             if group_by or aggregate:
                 df_src_filtered = apply_grouping_and_aggregation(df_src_filtered, group_by, aggregate, sheet_src)
             
-            df_dst = add_fields_to_sheet(df_dst, df_src_filtered, src_keys, dst_keys, col_names, sheet_dst, sheet_src, mode=mode,
-                                         multiply_rows=multiply_rows, count_prefix=count_column_prefix,
-                                         count_aggregation=count_aggregation, count_label=count_label)
+            df_dst = add_fields_to_sheet(
+                df_dst, df_src_filtered, src_keys, dst_keys, col_names, sheet_dst, sheet_src, mode=mode,
+                multiply_rows=multiply_rows, count_prefix=count_column_prefix,
+                count_aggregation=count_aggregation, count_label=count_label,
+                source_rows_before_filter=rows_before_filter, applied_filters=filter_ctx,
+            )
             
             # ИСПРАВЛЕНИЕ: Проверка на None после add_fields_to_sheet
             if df_dst is None or not isinstance(df_dst, pd.DataFrame):
