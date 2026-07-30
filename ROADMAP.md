@@ -255,5 +255,5 @@ IN/
 | 11.1 | `performance.skip_data_alignment_sheets` + fnmatch; дефолт в конфиге и коде | [v] |
 | 11.2 | `_format_sheet` / `apply_column_formats`: пропуск Alignment данных; заголовок без изменений | [v] |
 | 11.3 | Документация (README, CONFIG_FILES, PERFORMANCE) + тесты | [v] |
-| 11.4 | Контрольный полный прогон main и сравнение этапов до/после | [w] |
+| 11.4 | Контрольный полный прогон main и сравнение этапов до/после | [v] |
 
