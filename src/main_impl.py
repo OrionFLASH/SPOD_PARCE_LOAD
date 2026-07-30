@@ -38,8 +38,10 @@ from src.config_loader import (
     parse_run_blocks_parallel,
     parse_run_outputs_config,
     parse_run_outputs_for_block,
+    parse_skip_data_alignment_sheets,
     resolve_output_filename_template,
-)  # Разбор run_outputs / run_blocks / шаблоны имён
+    sheet_skips_data_alignment,
+)  # Разбор run_outputs / run_blocks / шаблоны имён / skip Alignment
 from src.consistency_checks import run_consistency_checks_and_attach_summary  # Проверки консистентности (отдельный модуль)
 from src.debug_timing import (
     debug_phase,
@@ -205,6 +207,7 @@ def _load_config_globals():
     global SOURCE_EXPORT_SORT
     global INPUT_ARCHIVE_SQLITE, PROJECT_BASE_DIR, RATING_ITEM_MATRIX, SEASON_ORDER_SUMMARY
     global MANAGER_STATS
+    global SKIP_DATA_ALIGNMENT_SHEETS
 
     try:
         from src.config_holder import get_current_config
@@ -303,6 +306,13 @@ def _load_config_globals():
             MAX_WORKERS_IO = _c.max_workers_io
             MAX_WORKERS_CPU = _c.max_workers_cpu
             MAX_WORKERS = _c.max_workers_cpu
+            _skip_align = getattr(_c, "skip_data_alignment_sheets", None)
+            if _skip_align is None:
+                SKIP_DATA_ALIGNMENT_SHEETS = parse_skip_data_alignment_sheets(
+                    getattr(_c, "_cfg", {}) or {}
+                )
+            else:
+                SKIP_DATA_ALIGNMENT_SHEETS = list(_skip_align)
             TOURNAMENT_STATUS_CHOICES = _c.tournament_status_choices
             PROJECT_BASE_DIR = _c.base_dir
             INPUT_ARCHIVE_SQLITE = getattr(_c, "input_archive_sqlite", None) or {"enabled": False}
@@ -398,6 +408,7 @@ def _load_config_globals():
     MAX_WORKERS_IO = _cfg["performance"]["max_workers_io"]
     MAX_WORKERS_CPU = _cfg["performance"]["max_workers_cpu"]
     MAX_WORKERS = MAX_WORKERS_CPU
+    SKIP_DATA_ALIGNMENT_SHEETS = parse_skip_data_alignment_sheets(_cfg)
     _TOURNAMENT_STATUS_DEFAULT = [
         "НЕОПРЕДЕЛЕН", "АКТИВНЫЙ", "ЗАПЛАНИРОВАН",
         "ПОДВЕДЕНИЕ ИТОГОВ", "ПОДВЕДЕНИЕ ИТОГОВ", "ПОДВЕДЕНИЕ ИТОГОВ", "ЗАВЕРШЕН",
@@ -501,6 +512,10 @@ try:
     CONFIG_PATH
 except NameError:
     CONFIG_PATH = ""
+try:
+    SKIP_DATA_ALIGNMENT_SHEETS
+except NameError:
+    SKIP_DATA_ALIGNMENT_SHEETS = parse_skip_data_alignment_sheets({})
 # === КОНЕЦ ЗАГРУЗКИ КОНФИГА ===
 
 # Выходной файл Excel (шаблон из конфига output_filenames.main)
@@ -1922,6 +1937,13 @@ def apply_column_formats(
     if not rules_for_sheet:
         return
 
+    # На листах из skip_data_alignment_sheets: number_format остаётся, Alignment данных — нет
+    try:
+        _skip_pats = SKIP_DATA_ALIGNMENT_SHEETS
+    except NameError:
+        _skip_pats = None
+    skip_data_align = sheet_skips_data_alignment(sheet_name, _skip_pats)
+
     for rule in rules_for_sheet:
         if not _format_rule_has_column_selector(rule):
             continue
@@ -1965,7 +1987,8 @@ def apply_column_formats(
                                 cell.value = int(v)
                     except (TypeError, ValueError):
                         pass
-                cell.alignment = alignment
+                if not skip_data_align:
+                    cell.alignment = alignment
             logging.debug(
                 f"[COLUMN_FORMATS] Применён формат к листу {sheet_name}, колонка {col_idx} "
                 f"«{raw_header}» (тип: {data_type})"
@@ -2014,17 +2037,27 @@ def _format_sheet(ws, df, params, use_color_scheme: bool = True):
 
     # Выравнивание и перенос для данных: столбцы из COLUMN_FORMATS обрабатывает только apply_column_formats
     # (там wrap_text и т.д. как в конфиге), остальные — общий стиль с переносом по словам как раньше.
+    # Листы из performance.skip_data_alignment_sheets — без Alignment на данных (ускорение).
+    skip_data_align = sheet_skips_data_alignment(
+        ws.title, SKIP_DATA_ALIGNMENT_SHEETS
+    )
     if ws.max_row > 1:
         col_names_header = [c.value for c in header_cells]
         extra_fmt = params.get("column_format_rules") if isinstance(params, dict) else None
-        cols_covered_by_rules = _column_indices_covered_by_column_formats(
-            ws.title, col_names_header, extra_rules=extra_fmt
-        )
-        for row in ws.iter_rows(min_row=2, max_row=ws.max_row, max_col=ws.max_column):
-            for cell in row:
-                if cell.column in cols_covered_by_rules:
-                    continue
-                cell.alignment = align_data
+        if not skip_data_align:
+            cols_covered_by_rules = _column_indices_covered_by_column_formats(
+                ws.title, col_names_header, extra_rules=extra_fmt
+            )
+            for row in ws.iter_rows(min_row=2, max_row=ws.max_row, max_col=ws.max_column):
+                for cell in row:
+                    if cell.column in cols_covered_by_rules:
+                        continue
+                    cell.alignment = align_data
+        else:
+            logging.debug(
+                f"[_format_sheet] {ws.title}: Alignment данных пропущен "
+                f"(performance.skip_data_alignment_sheets)"
+            )
 
         # Формат чисел/дат и выравнивание по правилам (включая wrap_text из конфига)
         apply_column_formats(ws, ws.title, extra_rules=extra_fmt)

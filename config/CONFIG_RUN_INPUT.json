@@ -147,12 +147,22 @@
   },
   "performance": {
     "max_workers_io": 16,
-    "max_workers_cpu": 8
+    "max_workers_cpu": 8,
+    "_skip_data_alignment_sheets_note": "Шаблоны fnmatch: на этих листах Alignment только у заголовка; данные без выравнивания/переноса (ускорение Excel). Пустой массив [] — Alignment на всех листах. COLUMN_FORMATS: number_format сохраняется, alignment для данных не ставится.",
+    "skip_data_alignment_sheets": [
+      "LIST-REWARDS",
+      "STATISTICS",
+      "RATING",
+      "RATING_*",
+      "ORDER",
+      "ORDER_*",
+      "ORDER-*"
+    ]
   },
   "input_files": {
     "PROM": [
       {
-        "file": "CONTEST (PROM) 03-07 v0.csv",
+        "file": "CONTEST (PROM) 16-07 v0.csv",
         "sheet": "CONTEST-DATA",
         "subdir": "PROM/SPOD",
         "archive_to_db": true,
@@ -222,7 +232,7 @@
         "archive_db_path": "OUT/DB/{BLOCK}/spod_input_archive_{BLOCK}.sqlite"
       },
       {
-        "file": "REPORT (PROM) 14-07 v0.csv",
+        "file": "REPORT (PROM) 17-07 v0.csv",
         "sheet": "REPORT",
         "subdir": "PROM/SPOD",
         "archive_to_db": true,
@@ -284,7 +294,7 @@
         "archive_db_path": "OUT/DB/{BLOCK}/spod_input_archive_{BLOCK}.sqlite"
       },
       {
-        "file": "SCHEDULE (PROM) 09-07 v0.csv",
+        "file": "SCHEDULE (PROM) 16-07 v1.csv",
         "sheet": "TOURNAMENT-SCHEDULE",
         "subdir": "PROM/SPOD",
         "archive_to_db": true,
@@ -1210,7 +1220,7 @@
         "archive_db_path": "OUT/DB/{BLOCK}/spod_input_archive_{BLOCK}.sqlite"
       },
       {
-        "file": "REPORT (PROM) 03-07 v0.csv",
+        "file": "custom_cib_kksb_dvl.dm_gamification_report.csv",
         "sheet": "REPORT",
         "subdir": "PSI/SPOD",
         "archive_to_db": true,
@@ -1352,7 +1362,7 @@
         "archive_db_path": "OUT/DB/{BLOCK}/spod_input_archive_{BLOCK}.sqlite"
       },
       {
-        "file": "EMPLOYEE (PROM) 02-07 v0.csv",
+        "file": "custom_cib_kksb_dvl.dm_gamification_list_employee.csv",
         "sheet": "EMPLOYEE",
         "subdir": "PSI/SPOD",
         "archive_to_db": true,

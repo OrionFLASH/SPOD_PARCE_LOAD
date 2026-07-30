@@ -147,7 +147,7 @@ SPOD_PROM/
 | `apply_sort_to_main` | `CONFIG_RUN_INPUT.json` | То же для основного Excel. |
 | `paths` | `CONFIG_RUN_INPUT.json` | Каталоги: вход (`IN`), выход (`OUT`), логи (`LOGS`). |
 | `logging` | `CONFIG_RUN_INPUT.json` | Уровень (INFO/DEBUG) и базовое имя файла логов. |
-| `performance` | `CONFIG_RUN_INPUT.json` | max_workers_io, max_workers_cpu. |
+| `performance` | `CONFIG_RUN_INPUT.json` | max_workers_io/cpu; `skip_data_alignment_sheets` (ускорение Excel). |
 | `input_archive_sqlite` | `CONFIG_RUN_INPUT.json` | Архив SQLite v2, пути с `{BLOCK}`. |
 | `input_files` | `CONFIG_RUN_INPUT.json` | Разделы **`PROM` / `IFT` / `PSI`**: CSV, `subdir` вида `PROM/SPOD`, `archive_*`. |
 | `tournament_status_choices` | `CONFIG_CHECKS.json` | Подписи статусов турнира. |
@@ -343,22 +343,32 @@ SPOD_PROM/
 
 ### performance
 
-**Назначение:** число потоков для параллельных операций.
+**Назначение:** число потоков для параллельных операций и ускорение оформления Excel.
 
 | Ключ             | Тип    | Описание |
 |------------------|--------|----------|
 | `max_workers_io` | число  | Потоки для I/O: чтение CSV, подготовка к записи в Excel. Рекомендуется 8–16. |
 | `max_workers_cpu` | число | Потоки для CPU: проверка длины полей, дубликатов и т.п. Обычно до числа ядер. |
+| `skip_data_alignment_sheets` | массив строк | Имена листов или шаблоны **fnmatch** (`RATING_*`, `ORDER_*`, `ORDER-*`). На совпавших листах **Alignment только у заголовка**; ячейки данных без выравнивания/переноса. Правила `COLUMN_FORMATS` по-прежнему ставят `number_format`, но не Alignment на данных. Пустой массив `[]` — Alignment на всех листах. Если ключ **отсутствует** — дефолт (LIST-REWARDS, STATISTICS, RATING/ORDER и отдельные `RATING_*` / `ORDER_*` / `ORDER-*`). |
 
 **Пример:**
 ```json
 "performance": {
   "max_workers_io": 16,
-  "max_workers_cpu": 8
+  "max_workers_cpu": 8,
+  "skip_data_alignment_sheets": [
+    "LIST-REWARDS",
+    "STATISTICS",
+    "RATING",
+    "RATING_*",
+    "ORDER",
+    "ORDER_*",
+    "ORDER-*"
+  ]
 }
 ```
 
-**Логика:** чтение файлов и разворот JSON идут в пуле с `max_workers_io`. Проверки консистентности выполняются **параллельно** в пуле с `max_workers_cpu` потоков (блокировка по листу при записи). Слишком большие значения могут замедлить из-за накладных расходов.
+**Логика:** чтение файлов и разворот JSON идут в пуле с `max_workers_io`. Проверки консистентности выполняются **параллельно** в пуле с `max_workers_cpu` потоков (блокировка по листу при записи). Слишком большие значения могут замедлить из-за накладных расходов. Skip Alignment снижает стоимость этапа `06_write_main_excel` на крупных листах.
 
 ---
 
@@ -1271,6 +1281,12 @@ python main.py
 ---
 
 ## История версий
+
+### Версия 1.7.54 — Skip Alignment данных на тяжёлых листах Excel
+
+- `performance.skip_data_alignment_sheets` (fnmatch): по умолчанию LIST-REWARDS, STATISTICS, RATING/ORDER (агрегаты и `RATING_*` / `ORDER_*` / `ORDER-*`).
+- На этих листах заголовок с Alignment как раньше; данные без массового `iter_rows` Alignment (ускорение этапа 06).
+- Документация: README, `Docs/CONFIG_FILES.md`, `Docs/PERFORMANCE_OPTIMIZATION_PROPOSALS.md`.
 
 ### Версия 1.7.53 — Разбиение конфигурации на `config/` + `CONFIG_*.json`
 

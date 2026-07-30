@@ -211,8 +211,17 @@ config/
   "base_name": "LOGS"
 },
 "performance": {
-  "max_workers_io": 8,
-  "max_workers_cpu": 4
+  "max_workers_io": 16,
+  "max_workers_cpu": 8,
+  "skip_data_alignment_sheets": [
+    "LIST-REWARDS",
+    "STATISTICS",
+    "RATING",
+    "RATING_*",
+    "ORDER",
+    "ORDER_*",
+    "ORDER-*"
+  ]
 }
 ```
 
@@ -222,6 +231,7 @@ config/
 | `logging.base_name` | Префикс имени лог-файла |
 | `max_workers_io` | Параллельное чтение CSV |
 | `max_workers_cpu` | CPU-этапы (merge и др.) |
+| `skip_data_alignment_sheets` | Шаблоны **fnmatch**: листы без Alignment на ячейках данных (только заголовок). Пустой `[]` — Alignment везде. Ключ отсутствует → дефолт (тяжёлые LIST-REWARDS / STATISTICS / RATING / ORDER). |
 
 ### 3.7. `apply_sort_to_source` / `apply_sort_to_main`
 

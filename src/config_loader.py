@@ -7,9 +7,22 @@
 Документация: Docs/CONFIG_FILES.md.
 """
 
+import fnmatch
 import json
 import os
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional, Sequence, Set, Tuple
+
+# Листы, где по умолчанию не ставим Alignment на ячейки данных (только заголовок).
+# Шаблоны — fnmatch (RATING_*, ORDER_*, ORDER-* для ORDER-SEASON-SUMMARY).
+DEFAULT_SKIP_DATA_ALIGNMENT_SHEETS: List[str] = [
+    "LIST-REWARDS",
+    "STATISTICS",
+    "RATING",
+    "RATING_*",
+    "ORDER",
+    "ORDER_*",
+    "ORDER-*",
+]
 
 # Имя каталога и файла входа относительно корня проекта
 _CONFIG_DIR_NAME: str = "config"
@@ -135,6 +148,52 @@ def load_config_dict(config_path: str) -> Dict[str, Any]:
     if overlays:
         merged = _deep_merge_dict(merged, overlays)
     return merged
+
+
+def parse_skip_data_alignment_sheets(cfg: Dict[str, Any]) -> List[str]:
+    """
+    Список шаблонов листов без Alignment на ячейках данных.
+
+    Берётся из ``performance.skip_data_alignment_sheets``.
+    Если ключа нет — ``DEFAULT_SKIP_DATA_ALIGNMENT_SHEETS``.
+    Явный пустой массив ``[]`` — ни один лист не пропускает Alignment.
+    """
+    perf = cfg.get("performance")
+    if not isinstance(perf, dict) or "skip_data_alignment_sheets" not in perf:
+        return list(DEFAULT_SKIP_DATA_ALIGNMENT_SHEETS)
+    raw = perf.get("skip_data_alignment_sheets")
+    if raw is None:
+        return list(DEFAULT_SKIP_DATA_ALIGNMENT_SHEETS)
+    if not isinstance(raw, list):
+        raise ValueError(
+            "performance.skip_data_alignment_sheets: ожидается массив строк "
+            "(имена листов или шаблоны fnmatch, напр. RATING_*)"
+        )
+    result: List[str] = []
+    for item in raw:
+        if isinstance(item, str) and item.strip():
+            result.append(item.strip())
+    return result
+
+
+def sheet_skips_data_alignment(
+    sheet_name: str,
+    patterns: Optional[Sequence[str]] = None,
+) -> bool:
+    """
+    True, если для листа не нужно ставить Alignment на ячейки данных
+    (заголовок оформляется как обычно).
+    """
+    pats: Sequence[str] = (
+        patterns if patterns is not None else DEFAULT_SKIP_DATA_ALIGNMENT_SHEETS
+    )
+    name = str(sheet_name or "")
+    for pat in pats:
+        if not pat:
+            continue
+        if name == pat or fnmatch.fnmatch(name, pat):
+            return True
+    return False
 
 
 def parse_run_blocks_config(cfg: Dict[str, Any]) -> List[str]:
@@ -553,10 +612,14 @@ class Config:
         self.season_order_summary: Dict[str, Any] = self._cfg.get("season_order_summary") or {}
         self.manager_stats: Dict[str, Any] = self._cfg.get("manager_stats") or {}
 
-        # Параллелизм
-        self.max_workers_io: int = self._cfg["performance"]["max_workers_io"]
-        self.max_workers_cpu: int = self._cfg["performance"]["max_workers_cpu"]
+        # Параллелизм и ускорение оформления Excel
+        _perf = self._cfg.get("performance") or {}
+        self.max_workers_io: int = int(_perf["max_workers_io"])
+        self.max_workers_cpu: int = int(_perf["max_workers_cpu"])
         self.max_workers: int = self.max_workers_cpu
+        self.skip_data_alignment_sheets: List[str] = parse_skip_data_alignment_sheets(
+            self._cfg
+        )
 
         # Выгрузка сырых данных (source): сортировка листов при записи в SPOD_PROM source *.xlsx
         _source = self._cfg.get("source_export") or {}
