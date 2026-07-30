@@ -356,35 +356,56 @@
 | Поле | Описание |
 |------|----------|
 | `sheet` | Лист проверки |
-| `source` | `column` (по умолчанию) — поле **`field`** (или **`column`**); `json` — **`json_column`** + **`json_key`** (разбор как в json_field_*) |
+| `source` | `column` (по умолчанию) — поле **`field`** (или **`column`**); `json` / `json_field` — **`json_column`** + **`json_key`** (разбор SPOD-JSON: `"""` → `"`, затем `json.loads`, как в json_field_*) |
 | `allowed_values` | Массив допустимых строк (сравнение после `strip`) |
-| `allow_empty` | `true` — пустая ячейка не нарушение; `false` — пустые недопустимы |
+| `allow_empty` | `true` — пустая ячейка / пустой массив / отсутствующий ключ не нарушение; `false` — пустые недопустимы |
 | `row_conditions` | Опционально: фильтр строк (как **`src_row_conditions`** у referential); вне области — **«—»** |
 | `output.column_on_sheet` | Колонка результата на листе |
 
-В ячейках: **OK**, **Пустое значение**, **не в списке: …**, **Ошибка разбора JSON** (для source=json), **—** (строка вне фильтра).
+**Формы значения (колонка и JSON-ключ):**
 
-**Пример (TOURNAMENT-SCHEDULE / TOURNAMENT_STATUS):**
+- скаляр: `"KMKKSB"`;
+- массив из JSON: `"businessBlock": ["KMKKSB"]` — **каждый** элемент проверяется на IN;
+- строка-массив в колонке (SPOD): `["""KMKKSB"""]` — разбор как JSON-массив, затем IN по элементам;
+- пустой массив `[]` / отсутствующий ключ — как пустое значение.
+
+В ячейках: **OK**, **Пустое значение**, **не в списке: …**, **Ошибка разбора JSON** (для source=json или битой строки-массива), **—** (строка вне фильтра).
+
+**Пример (колонка):**
 
 ```json
 {
-  "id": "in_schedule_tournament_status",
-  "name": "TOURNAMENT-SCHEDULE: TOURNAMENT_STATUS — допустимые значения (IN, NOT NULL)",
+  "id": "in_contest_business_block_column",
   "type": "field_in_values",
-  "enabled": true,
-  "sheet": "TOURNAMENT-SCHEDULE",
+  "sheet": "CONTEST-DATA",
   "source": "column",
-  "field": "TOURNAMENT_STATUS",
-  "allowed_values": ["УДАЛЕН", "ЗАВЕРШЕН", "АКТИВНЫЙ", "ПОДВЕДЕНИЕ ИТОГОВ", "ОТМЕНЕН"],
-  "allow_empty": false,
+  "field": "BUSINESS_BLOCK",
+  "allowed_values": ["CSM", "KMKKSB", "MNS"],
+  "allow_empty": true,
+  "output": { "column_on_sheet": "ПРОВЕРКА: BUSINESS_BLOCK IN", "include_in_summary": true }
+}
+```
+
+**Пример (ключ внутри JSON):**
+
+```json
+{
+  "id": "in_contest_feature_businessblock",
+  "type": "field_in_values",
+  "sheet": "CONTEST-DATA",
+  "source": "json",
+  "json_column": "CONTEST_FEATURE",
+  "json_key": "businessBlock",
+  "allowed_values": ["CSM", "KMKKSB", "MNS"],
+  "allow_empty": true,
   "output": {
-    "column_on_sheet": "ПРОВЕРКА: TOURNAMENT_STATUS IN",
+    "column_on_sheet": "ПРОВЕРКА: CONTEST_FEATURE.businessBlock IN",
     "include_in_summary": true
   }
 }
 ```
 
-Реализация: **`src/consistency_checks.py`** — **`_run_field_in_values_check`**, **`collect_field_in_values_result`**.
+Реализация: **`src/consistency_checks.py`** — **`_run_field_in_values_check`**, **`_field_in_values_coerce_to_items`**, **`collect_field_in_values_result`**.
 
 ---
 

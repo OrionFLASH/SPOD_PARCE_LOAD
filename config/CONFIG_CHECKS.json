@@ -1205,7 +1205,7 @@
       },
       {
         "id": "in_employee_businessblock",
-        "name": "EMPLOYEE: BUSINESS_BLOCK — допустимые значения (IN, NOT NULL)",
+        "name": "EMPLOYEE: BUSINESS_BLOCK — допустимые значения (IN)",
         "type": "field_in_values",
         "enabled": true,
         "sheet": "EMPLOYEE",
@@ -1227,6 +1227,89 @@
         "allow_empty": true,
         "output": {
           "column_on_sheet": "ПРОВЕРКА: BUSINESS_BLOCK IN",
+          "include_in_summary": true
+        }
+      },
+      {
+        "id": "in_contest_business_block_column",
+        "name": "CONTEST-DATA: BUSINESS_BLOCK — допустимые значения (IN, массив SPOD)",
+        "type": "field_in_values",
+        "enabled": true,
+        "sheet": "CONTEST-DATA",
+        "source": "column",
+        "field": "BUSINESS_BLOCK",
+        "allowed_values": [
+          "CSM",
+          "KMKKSB",
+          "AKMKKSB",
+          "MNS",
+          "SERVICEMEN",
+          "KMFACTORING",
+          "KMSB1",
+          "IMUB",
+          "RNUB",
+          "RSB1",
+          "сбросить"
+        ],
+        "allow_empty": true,
+        "output": {
+          "column_on_sheet": "ПРОВЕРКА: BUSINESS_BLOCK IN",
+          "include_in_summary": true
+        }
+      },
+      {
+        "id": "in_contest_feature_businessblock",
+        "name": "CONTEST-DATA: CONTEST_FEATURE.businessBlock — допустимые значения (IN)",
+        "type": "field_in_values",
+        "enabled": true,
+        "sheet": "CONTEST-DATA",
+        "source": "json",
+        "json_column": "CONTEST_FEATURE",
+        "json_key": "businessBlock",
+        "allowed_values": [
+          "CSM",
+          "KMKKSB",
+          "AKMKKSB",
+          "MNS",
+          "SERVICEMEN",
+          "KMFACTORING",
+          "KMSB1",
+          "IMUB",
+          "RNUB",
+          "RSB1",
+          "сбросить"
+        ],
+        "allow_empty": true,
+        "output": {
+          "column_on_sheet": "ПРОВЕРКА: CONTEST_FEATURE.businessBlock IN",
+          "include_in_summary": true
+        }
+      },
+      {
+        "id": "in_reward_add_data_businessblock",
+        "name": "REWARD: REWARD_ADD_DATA.businessBlock — допустимые значения (IN)",
+        "type": "field_in_values",
+        "enabled": true,
+        "sheet": "REWARD",
+        "source": "json",
+        "json_column": "REWARD_ADD_DATA",
+        "json_key": "businessBlock",
+        "allowed_values": [
+          "CSM",
+          "KMKKSB",
+          "AKMKKSB",
+          "MNS",
+          "SERVICEMEN",
+          "KMFACTORING",
+          "KMSB1",
+          "IMUB",
+          "RNUB",
+          "RSB1",
+          "сбросить"
+        ],
+        "allow_empty": true,
+        "output": {
+          "column_on_sheet": "ПРОВЕРКА: REWARD_ADD_DATA.businessBlock IN",
           "include_in_summary": true
         }
       },

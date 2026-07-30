@@ -324,7 +324,7 @@ config/
 | `unique` | Уникальность ключа | `sheet`, `key_columns`, `unique_*` |
 | `field_length` | Длина поля | `sheet`, `column`, `max_length` |
 | `referential` / `referential_composite` | Ссылки между листами | `sheet`/`sheet_src`, ключи, фильтры |
-| `field_in_values` | Значение ∈ списку | `allowed_values`, `allow_empty` |
+| `field_in_values` | Значение ∈ списку (скаляр / массив JSON / `["""…"""]`) | `allowed_values`, `allow_empty`, `source`=`column`\|`json` |
 | `field_format` | Формат | шаблоны дат/чисел |
 | `json_*` / `json_spod_format` | JSON в ячейках | `json_column`, … |
 

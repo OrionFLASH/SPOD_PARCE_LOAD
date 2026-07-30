@@ -8,6 +8,10 @@
   python src/Tools/sync_post_txt.py --program-only
       — все *.py (корень + src, включая Tests и Tools) и каталог config/;
         в корень POST — КУДА_ПОЛОЖИТЬ_ФАЙЛЫ.txt с поимённой картой каталогов.
+  python src/Tools/sync_post_txt.py --main-only
+      — .py + config/ без Tests/Tools.
+  python src/Tools/sync_post_txt.py --main-only --with-docs
+      — то же + README, ROADMAP, requirements, Docs/ (без Tests/Tools).
   python src/Tools/sync_post_txt.py --main-only --changed-only
       — в POST копируются только файлы, изменившиеся с прошлой синхронизации
         (сравнение SHA-256; манифест POST/.sync_manifest.json). POST не очищается.
@@ -107,14 +111,21 @@ def iter_config_dir_files() -> Iterable[Tuple[Path, Path]]:
         yield p, p.relative_to(ROOT)
 
 
-def iter_main_only_sources() -> Iterable[Tuple[Path, Path]]:
-    """(абсолютный_путь, rel от ROOT) для снимка main-only."""
+def iter_main_only_sources(*, with_docs: bool = False) -> Iterable[Tuple[Path, Path]]:
+    """(абсолютный_путь, rel от ROOT) для снимка main-only (+ опционально Docs/README/ROADMAP)."""
     for p in iter_root_py_files(ROOT):
         yield p, p.relative_to(ROOT)
     yield from iter_config_dir_files()
     src_root = ROOT / "src"
     for p in iter_py_files(src_root, main_only=True):
         yield p, p.relative_to(ROOT)
+    if with_docs:
+        for name in ("README.md", "ROADMAP.md", "requirements.txt"):
+            p = ROOT / name
+            if p.is_file():
+                yield p, Path(name)
+        for p in iter_docs_files(_DOCS_ROOT):
+            yield p, p.relative_to(ROOT)
 
 
 def load_manifest() -> Dict[str, Any]:
@@ -180,17 +191,32 @@ def write_placement_map(
     (POST / out_name).write_text("\n".join(lines), encoding="utf-8")
 
 
-def write_placement_map_main_only(copied: List[Tuple[Path, Path]]) -> None:
-    write_placement_map(
-        copied,
-        out_name="КУДА_ПОЛОЖИТЬ_ФАЙЛЫ.txt",
-        title="КУДА ПОЛОЖИТЬ КАЖДЫЙ ФАЙЛ (основная программа, без тестов и Tools)",
-        intro=[
+def write_placement_map_main_only(
+    copied: List[Tuple[Path, Path]],
+    *,
+    with_docs: bool = False,
+) -> None:
+    if with_docs:
+        intro = [
+            "Снимок: Python-модули пайплайна + config/ + документация (README, ROADMAP, Docs/).",
+            "Исключены: src/Tests/, src/Tools/.",
+            "",
+            "На целевом ПК: снимите суффикс .txt или запустите restore_names_from_txt.bat.",
+        ]
+        title = "КУДА ПОЛОЖИТЬ КАЖДЫЙ ФАЙЛ (программа + docs, без Tests/Tools)"
+    else:
+        intro = [
             "Снимок: только Python-модули пайплайна и каталог config/.",
             "Исключены: src/Tests/, src/Tools/, документация Docs/, README, requirements.",
             "",
             "На целевом ПК: снимите суффикс .txt или запустите restore_names_from_txt.bat.",
-        ],
+        ]
+        title = "КУДА ПОЛОЖИТЬ КАЖДЫЙ ФАЙЛ (основная программа, без тестов и Tools)"
+    write_placement_map(
+        copied,
+        out_name="КУДА_ПОЛОЖИТЬ_ФАЙЛЫ.txt",
+        title=title,
+        intro=intro,
     )
 
 
@@ -299,8 +325,8 @@ def build_post_program_only() -> None:
     )
 
 
-def build_post_main_only(*, changed_only: bool) -> None:
-    """Снимок main-only: полный или только изменённые файлы."""
+def build_post_main_only(*, changed_only: bool, with_docs: bool = False) -> None:
+    """Снимок main-only: полный или только изменённые файлы (+ опционально Docs)."""
     POST.mkdir(parents=True, exist_ok=True)
 
     copy_helpers(main_only=True, force_helpers=not changed_only)
@@ -311,7 +337,7 @@ def build_post_main_only(*, changed_only: bool) -> None:
     copied: List[Tuple[Path, Path]] = []
     skipped = 0
 
-    for src_path, rel in iter_main_only_sources():
+    for src_path, rel in iter_main_only_sources(with_docs=with_docs):
         rel_key = rel.as_posix()
         try:
             digest = file_sha256(src_path)
@@ -330,20 +356,21 @@ def build_post_main_only(*, changed_only: bool) -> None:
         copy_one_txt_suffix(src_path, rel)
         copied.append((rel, dest_with_txt(rel)))
 
+    mode_suffix = "+docs" if with_docs else ""
     if changed_only:
         write_placement_map_changed_only(copied)
-        save_manifest(new_hashes, mode="main-only-changed")
+        save_manifest(new_hashes, mode=f"main-only-changed{mode_suffix}")
         print(
-            f"Готово [main-only, только изменения]. Обновлено: {len(copied)}, "
+            f"Готово [main-only{mode_suffix}, только изменения]. Обновлено: {len(copied)}, "
             f"без изменений: {skipped}. Список: POST/ОБНОВЛЁННЫЕ_ФАЙЛЫ.txt. Каталог: {POST}",
             file=sys.stdout,
         )
     else:
         n_pruned = prune_obsolete_post_files(prev_hashes, set(new_hashes))
-        write_placement_map_main_only(copied)
-        save_manifest(new_hashes, mode="main-only-full")
+        write_placement_map_main_only(copied, with_docs=with_docs)
+        save_manifest(new_hashes, mode=f"main-only-full{mode_suffix}")
         print(
-            f"Готово [main-only, полный]. Файлов с .txt: {len(copied)}. "
+            f"Готово [main-only{mode_suffix}, полный]. Файлов с .txt: {len(copied)}. "
             f"Удалено устаревших: {n_pruned}. Каталог: {POST}",
             file=sys.stdout,
         )
@@ -446,7 +473,12 @@ def main() -> None:
     parser.add_argument(
         "--main-only",
         action="store_true",
-        help="Только основная программа: .py + config/, без Tests/Tools/Docs",
+        help="Только основная программа: .py + config/, без Tests/Tools",
+    )
+    parser.add_argument(
+        "--with-docs",
+        action="store_true",
+        help="С --main-only: также README, ROADMAP, requirements и Docs/",
     )
     parser.add_argument(
         "--changed-only",
@@ -459,6 +491,10 @@ def main() -> None:
         print("Ошибка: --changed-only работает только вместе с --main-only", file=sys.stderr)
         sys.exit(1)
 
+    if args.with_docs and not args.main_only:
+        print("Ошибка: --with-docs работает только вместе с --main-only", file=sys.stderr)
+        sys.exit(1)
+
     if args.program_only and args.main_only:
         print("Ошибка: укажите только один из --program-only или --main-only", file=sys.stderr)
         sys.exit(1)
@@ -469,7 +505,7 @@ def main() -> None:
             sys.exit(1)
         build_post_program_only()
     elif args.main_only:
-        build_post_main_only(changed_only=args.changed_only)
+        build_post_main_only(changed_only=args.changed_only, with_docs=args.with_docs)
     else:
         if args.changed_only:
             print("Ошибка: --changed-only без --main-only не поддерживается", file=sys.stderr)

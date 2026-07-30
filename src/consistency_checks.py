@@ -840,8 +840,46 @@ def _field_in_values_cell_empty(val: Any) -> bool:
         return True
     if isinstance(val, float) and pd.isna(val):
         return True
+    if isinstance(val, (list, tuple)):
+        return len(val) == 0
     s = str(val).strip()
-    return s == "" or s in ("-", "None", "null")
+    return s == "" or s in ("-", "None", "null", "[]")
+
+
+def _field_in_values_coerce_to_items(val: Any) -> Tuple[Optional[List[Any]], Optional[str]]:
+    """
+    Приводит значение к списку элементов для проверки IN.
+
+    Поддерживает:
+    - скаляр (строка/число);
+    - list/tuple из JSON-ключа (например businessBlock: [\"KMKKSB\"]);
+    - строку ячейки в виде SPOD/JSON-массива ``[\"\"\"KMKKSB\"\"\"]`` / ``[\"KMKKSB\"]``.
+
+    Returns:
+        (items, error): items — список элементов; error — текст ошибки разбора или None.
+        Пустое значение → ([], None).
+    """
+    if _field_in_values_cell_empty(val):
+        return [], None
+    if isinstance(val, (list, tuple)):
+        return list(val), None
+    if isinstance(val, dict):
+        return None, "ожидается скаляр или массив, получен объект"
+    s = str(val).strip()
+    # Массив в ячейке (колонка BUSINESS_BLOCK и т.п.): ["""…"""] или ["…"]
+    if s.startswith("["):
+        normalized = s.replace('"""', '"')
+        try:
+            parsed = json.loads(normalized)
+        except (json.JSONDecodeError, TypeError):
+            return None, "Ошибка разбора JSON"
+        if parsed is None or (isinstance(parsed, (list, tuple)) and len(parsed) == 0):
+            return [], None
+        if isinstance(parsed, (list, tuple)):
+            return list(parsed), None
+        # json.loads вернул скаляр в скобках — маловероятно; как один элемент
+        return [parsed], None
+    return [val], None
 
 
 def _validate_field_in_values_scalar(
@@ -849,20 +887,34 @@ def _validate_field_in_values_scalar(
     allowed: Set[str],
     allow_empty: bool,
 ) -> str:
-    """OK или текст нарушения для одного скалярного значения."""
-    if _field_in_values_cell_empty(val):
+    """
+    OK или текст нарушения для скаляра, массива Python или строки-массива SPOD-JSON.
+    Все элементы массива должны входить в allowed_values.
+    """
+    items, err = _field_in_values_coerce_to_items(val)
+    if err is not None:
+        return err
+    assert items is not None
+    non_empty = [x for x in items if not _field_in_values_cell_empty(x)]
+    if not non_empty:
         return "OK" if allow_empty else "Пустое значение"
-    s = str(val).strip()
-    if s in allowed:
+    bad: List[str] = []
+    for item in non_empty:
+        s = str(item).strip()
+        if s not in allowed:
+            short = s[:50] + ("…" if len(s) > 50 else "")
+            if short not in bad:
+                bad.append(short)
+    if not bad:
         return "OK"
-    short = s[:50] + ("…" if len(s) > 50 else "")
-    return f"не в списке: {short}"
+    return f"не в списке: {', '.join(bad)}"
 
 
 def _run_field_in_values_check(sheets_data: Dict[str, Any], rule: Dict[str, Any]) -> None:
     """
     Проверка: значение колонки или ключа JSON должно входить в allowed_values (IN).
     source: column (поле field) | json (json_column + json_key).
+    Для JSON-ключа и для колонки допускаются массивы (в т.ч. SPOD с тройными кавычками).
     allow_empty: false — обязательное заполнение (NOT NULL).
     Опционально row_conditions — как у referential (И по column/op/value).
     """
@@ -916,7 +968,12 @@ def _run_field_in_values_check(sheets_data: Dict[str, Any], rule: Dict[str, Any]
             raw_val = row.get(json_column)
             add_data, _, _ = _parse_add_data_cell_with_normalized(raw_val)
             if add_data is None:
+                # Пустая JSON-ячейка при allow_empty
+                if _field_in_values_cell_empty(raw_val):
+                    return "OK" if allow_empty else "Пустое значение"
                 return "Ошибка разбора JSON"
+            if json_key not in add_data:
+                return "OK" if allow_empty else "Пустое значение"
             return _validate_field_in_values_scalar(
                 add_data.get(json_key),
                 allowed,
