@@ -54,3 +54,36 @@ def resolve_columns_in_dataframe(
         else:
             missing.append(str(want))
     return resolved, missing
+
+
+def align_dataframe_columns(
+    df: pd.DataFrame,
+    logical_names: Sequence[str],
+) -> tuple[pd.DataFrame, List[str], List[tuple[str, str]]]:
+    """
+    Переименовывает столбцы DataFrame к именам из config при совпадении без учёта регистра
+    (например ``calc_type`` → ``CALC_TYPE``).
+
+    Returns:
+        (df, missing, renames): missing — логические имена без пары;
+        renames — список (старое_имя, новое_имя).
+    """
+    if df is None or not isinstance(df, pd.DataFrame):
+        return df, [str(x) for x in logical_names], []
+    resolved, missing = resolve_columns_in_dataframe(df, logical_names)
+    rename_map: dict[str, str] = {}
+    renames: List[tuple[str, str]] = []
+    # resolved соответствует logical_names без missing — восстанавливаем пары
+    want_ok = [w for w in logical_names if str(w) not in missing]
+    for want, actual in zip(want_ok, resolved):
+        want_s = str(want)
+        actual_s = str(actual)
+        if actual_s != want_s and actual_s not in rename_map:
+            # не перезаписываем уже существующую целевую колонку
+            if want_s in df.columns and actual_s != want_s:
+                continue
+            rename_map[actual_s] = want_s
+            renames.append((actual_s, want_s))
+    if rename_map:
+        df = df.rename(columns=rename_map)
+    return df, missing, renames
