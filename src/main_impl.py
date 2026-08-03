@@ -4206,6 +4206,7 @@ def build_summary_sheet(dfs, params_summary, merge_fields):
     logging.debug(f"{params_summary['sheet']}: первые строки после разворачивания:\n{summary.head(5).to_string()}")
 
     # Универсально добавляем все поля по merge_fields
+    # (как merge_fields_across_sheets: status_filters, count_label, count_aggregation)
     for field_idx, field in enumerate(merge_fields):
         col_names = field["column"]
         if isinstance(col_names, str):
@@ -4214,13 +4215,29 @@ def build_summary_sheet(dfs, params_summary, merge_fields):
         src_keys = field["src_key"] if isinstance(field["src_key"], list) else [field["src_key"]]
         dst_keys = field["dst_key"] if isinstance(field["dst_key"], list) else [field["dst_key"]]
         mode = field.get("mode", "value")
-        params_str = f"(лист-источник: {sheet_src}, поля: {col_names}, ключ: {dst_keys}->{src_keys}, mode: {mode})"
+        status_filters = field.get("status_filters", None)
+        custom_conditions = field.get("custom_conditions", None)
+        group_by = field.get("group_by", None)
+        aggregate = field.get("aggregate", None)
+        count_aggregation = field.get("count_aggregation", "size")
+        count_label = field.get("count_label", None)
+        params_str = (
+            f"(лист-источник: {sheet_src}, поля: {col_names}, ключ: {dst_keys}->{src_keys}, mode: {mode}"
+        )
+        if status_filters:
+            params_str += f", status_filters: {status_filters}"
+        if mode == "count" and count_label is not None:
+            params_str += f", count_aggregation: {count_aggregation}, count_label: {count_label}"
+        params_str += ")"
         logging.info(f"[START] add_fields_to_sheet {params_str}")
-        
+
         logging.debug(f"[build_summary_sheet] === MERGE {field_idx+1}/{len(merge_fields)} ===")
-        logging.debug(f"[build_summary_sheet] Правило: sheet_src={sheet_src}, sheet_dst={params_summary["sheet"]}")
+        logging.debug(f"[build_summary_sheet] Правило: sheet_src={sheet_src}, sheet_dst={params_summary['sheet']}")
         logging.debug(f"[build_summary_sheet] Поля: {col_names}, ключи: {dst_keys}->{src_keys}, mode={mode}")
-        logging.debug(f"[build_summary_sheet] summary ДО merge: shape={summary.shape if summary is not None and isinstance(summary, pd.DataFrame) else "None"}")
+        logging.debug(
+            f"[build_summary_sheet] summary ДО merge: shape="
+            f"{summary.shape if summary is not None and isinstance(summary, pd.DataFrame) else 'None'}"
+        )
         if summary is not None and isinstance(summary, pd.DataFrame) and len(summary) > 0:
             logging.debug(f"[build_summary_sheet] summary ДО merge первые 3 строки:\n{summary.head(3).to_string()}")
 
@@ -4233,44 +4250,119 @@ def build_summary_sheet(dfs, params_summary, merge_fields):
                     logging.debug(f"[SUMMARY] Строк в Summary: {len(debug_rows_before)}")
                     logging.debug(f"[SUMMARY] GROUP_CODE: {debug_rows_before['GROUP_CODE'].unique().tolist()}")
                     logging.debug(f"[SUMMARY] GROUP_VALUE: {debug_rows_before['GROUP_VALUE'].unique().tolist()}")
-        
+
         ref_df = dfs.get(sheet_src)
         if ref_df is not None and isinstance(ref_df, pd.DataFrame):
-            logging.debug(f"[build_summary_sheet] ref_df ({sheet_src}): shape={ref_df.shape}, колонки={list(ref_df.columns)[:10]}...")
+            logging.debug(
+                f"[build_summary_sheet] ref_df ({sheet_src}): shape={ref_df.shape}, "
+                f"колонки={list(ref_df.columns)[:10]}..."
+            )
         else:
             logging.warning(f"[build_summary_sheet] ⚠️  ref_df ({sheet_src}) равен None!")
         if ref_df is None:
             logging.warning(f"Колонка {col_names} не добавлена: нет листа {sheet_src} или ключей {src_keys}")
             continue
 
+        # Копия источника: фильтры и transform не должны менять dfs
+        ref_df = ref_df.copy()
+
+        # Подстановка ключа/колонки для LIST-TOURNAMENT (как в merge_fields_across_sheets)
+        if sheet_src == "LIST-TOURNAMENT":
+            if src_keys == ["Код турнира"] and "Код турнира" not in ref_df.columns and "TOURNAMENT_CODE" in ref_df.columns:
+                src_keys = ["TOURNAMENT_CODE"]
+                logging.info(
+                    "[build_summary_sheet] LIST-TOURNAMENT: подстановка ключа TOURNAMENT_CODE вместо 'Код турнира'"
+                )
+            for col in col_names:
+                if col not in ref_df.columns and col == "Бизнес-статус турнира" and "Бизнес-статус" in ref_df.columns:
+                    ref_df["Бизнес-статус турнира"] = ref_df["Бизнес-статус"]
+                    logging.info(
+                        "[build_summary_sheet] LIST-TOURNAMENT: подстановка колонки "
+                        "'Бизнес-статус' для 'Бизнес-статус турнира'"
+                    )
+                    break
+
+        src_key_transform = field.get("src_key_transform")
+        ref_df, src_keys = _apply_src_key_transforms(ref_df, src_keys, src_key_transform, sheet_src)
+
         multiply_rows = field.get("multiply_rows", False)
         try:
-            # ИСПРАВЛЕНИЕ: Сохраняем исходный summary перед merge
-            summary_before_merge = summary.copy() if summary is not None and isinstance(summary, pd.DataFrame) else None
-            
-            summary = add_fields_to_sheet(summary, ref_df, src_keys, dst_keys, col_names, params_summary["sheet"],
-                                          sheet_src, mode=mode, multiply_rows=multiply_rows)
-            
-            # ИСПРАВЛЕНИЕ: Логирование размера summary после каждого merge
+            # Сохраняем исходный summary перед merge
+            summary_before_merge = (
+                summary.copy() if summary is not None and isinstance(summary, pd.DataFrame) else None
+            )
+
+            rows_before_filter = len(ref_df)
+            filter_ctx = status_filters if status_filters else custom_conditions
+            ref_df_filtered = apply_filters_to_dataframe(
+                ref_df, status_filters, custom_conditions, sheet_src
+            )
+            if group_by or aggregate:
+                ref_df_filtered = apply_grouping_and_aggregation(
+                    ref_df_filtered, group_by, aggregate, sheet_src
+                )
+
+            summary = add_fields_to_sheet(
+                summary,
+                ref_df_filtered,
+                src_keys,
+                dst_keys,
+                col_names,
+                params_summary["sheet"],
+                sheet_src,
+                mode=mode,
+                multiply_rows=multiply_rows,
+                count_aggregation=count_aggregation,
+                count_label=count_label,
+                source_rows_before_filter=rows_before_filter,
+                applied_filters=filter_ctx,
+            )
+
             if summary is None:
-                logging.error(f"[build_summary_sheet] КРИТИЧЕСКАЯ ОШИБКА: summary стал None после merge {field_idx+1}/{len(merge_fields)} с {sheet_src}!")
-                logging.error(f"[build_summary_sheet] Параметры merge: поля={col_names}, ключи={dst_keys}->{src_keys}, mode={mode}")
-                summary = summary_before_merge.copy() if summary_before_merge is not None else pd.DataFrame(columns=SUMMARY_KEY_COLUMNS)  # Восстанавливаем исходный summary
+                logging.error(
+                    f"[build_summary_sheet] КРИТИЧЕСКАЯ ОШИБКА: summary стал None после merge "
+                    f"{field_idx+1}/{len(merge_fields)} с {sheet_src}!"
+                )
+                logging.error(
+                    f"[build_summary_sheet] Параметры merge: поля={col_names}, "
+                    f"ключи={dst_keys}->{src_keys}, mode={mode}"
+                )
+                summary = (
+                    summary_before_merge.copy()
+                    if summary_before_merge is not None
+                    else pd.DataFrame(columns=SUMMARY_KEY_COLUMNS)
+                )
 
-            logging.debug(f"[build_summary_sheet] summary ПОСЛЕ merge: shape={summary.shape if summary is not None and isinstance(summary, pd.DataFrame) else "None"}")
+            logging.debug(
+                f"[build_summary_sheet] summary ПОСЛЕ merge: shape="
+                f"{summary.shape if summary is not None and isinstance(summary, pd.DataFrame) else 'None'}"
+            )
             if summary is not None and isinstance(summary, pd.DataFrame) and len(summary) > 0:
-                logging.debug(f"[build_summary_sheet] summary ПОСЛЕ merge первые 3 строки:\n{summary.head(3).to_string()}")
+                logging.debug(
+                    f"[build_summary_sheet] summary ПОСЛЕ merge первые 3 строки:\n{summary.head(3).to_string()}"
+                )
             else:
-                logging.error(f"[build_summary_sheet] ❌ КРИТИЧЕСКАЯ ОШИБКА: summary стал None или пустым после merge!")
-
-                logging.warning(f"[build_summary_sheet] Восстановлен исходный summary ({len(summary)} строк) после None merge с {sheet_src}")
+                logging.error(
+                    "[build_summary_sheet] ❌ КРИТИЧЕСКАЯ ОШИБКА: summary стал None или пустым после merge!"
+                )
+                logging.warning(
+                    f"[build_summary_sheet] Восстановлен исходный summary ({len(summary)} строк) "
+                    f"после None merge с {sheet_src}"
+                )
         except Exception as e:
             logging.error(f"[build_summary_sheet] ОШИБКА при merge с {sheet_src}: {e}")
-            logging.error(f"[build_summary_sheet] Параметры: поля={col_names}, ключи={dst_keys}->{src_keys}, mode={mode}")
-            # Восстанавливаем исходный summary из сохраненной копии
-            summary = summary_before_merge.copy() if summary_before_merge is not None else pd.DataFrame(columns=SUMMARY_KEY_COLUMNS)
-            logging.warning(f"[build_summary_sheet] Восстановлен исходный summary ({len(summary)} строк) после ошибки merge с {sheet_src}")
-            # Продолжаем работу с остальными merge_fields
+            logging.error(
+                f"[build_summary_sheet] Параметры: поля={col_names}, ключи={dst_keys}->{src_keys}, mode={mode}"
+            )
+            summary = (
+                summary_before_merge.copy()
+                if summary_before_merge is not None
+                else pd.DataFrame(columns=SUMMARY_KEY_COLUMNS)
+            )
+            logging.warning(
+                f"[build_summary_sheet] Восстановлен исходный summary ({len(summary)} строк) "
+                f"после ошибки merge с {sheet_src}"
+            )
             continue
         # Детальное логирование после merge_fields с GROUP
         if sheet_src == "GROUP":
@@ -4284,9 +4376,10 @@ def build_summary_sheet(dfs, params_summary, merge_fields):
                     logging.debug("[SUMMARY] Комбинации (GROUP_CODE, GROUP_VALUE):")
                     for _, row in debug_rows_after.iterrows():
                         logging.debug(
-                            f"[SUMMARY]   CONTEST={row.get('CONTEST_CODE', '')}, GROUP_CODE={row.get('GROUP_CODE', '')}, GROUP_VALUE={row.get('GROUP_VALUE', '')}"
+                            f"[SUMMARY]   CONTEST={row.get('CONTEST_CODE', '')}, "
+                            f"GROUP_CODE={row.get('GROUP_CODE', '')}, "
+                            f"GROUP_VALUE={row.get('GROUP_VALUE', '')}"
                         )
-        
 
     return summary
 

@@ -257,3 +257,16 @@ IN/
 | 11.3 | Документация (README, CONFIG_FILES, PERFORMANCE) + тесты | [v] |
 | 11.4 | Контрольный полный прогон main и сравнение этапов до/после | [v] |
 
+---
+
+## Пункт 12 — SUMMARY: status_filters / count_label / count_aggregation
+
+Цель: правила `merge_fields_advanced` с `sheet_dst: SUMMARY` обрабатывают фильтры и именованные счётчики так же, как обычные листы (`merge_fields_across_sheets`).
+
+| # | Задача | Статус |
+|---|--------|--------|
+| 12.1 | `build_summary_sheet`: применять `status_filters` / `custom_conditions` / `group_by` / `aggregate`, передавать `count_aggregation` и `count_label` | [v] |
+| 12.2 | 5 правил count по статусам турнира на SUMMARY в `CONFIG_MERGE.json` | [v] |
+| 12.3 | Тест: на SUMMARY появляются `COUNT_nunique_ACTIVE` … `DELETED` | [v] |
+| 12.4 | Добить недостающие правила из пользовательского конфига: status-count на TOURNAMENT-SCHEDULE, count без фильтра, даты LIST-TOURNAMENT | [v] |
+
