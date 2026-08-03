@@ -1583,6 +1583,146 @@
       "custom_conditions": null,
       "group_by": null,
       "aggregate": null
+    },
+    {
+      "sheet_src": "TOURNAMENT-SCHEDULE",
+      "sheet_dst": "SUMMARY",
+      "src_key": [
+        "CONTEST_CODE"
+      ],
+      "dst_key": [
+        "CONTEST_CODE"
+      ],
+      "column": [
+        "TOURNAMENT_CODE"
+      ],
+      "mode": "count",
+      "multiply_rows": false,
+      "col_max_width": 15,
+      "col_width_mode": "AUTO",
+      "col_min_width": 8,
+      "count_aggregation": "nunique",
+      "count_label": "ACTIVE",
+      "status_filters": {
+        "TOURNAMENT_STATUS": [
+          "АКТИВНЫЙ"
+        ]
+      },
+      "custom_conditions": null,
+      "group_by": null,
+      "aggregate": null
+    },
+    {
+      "sheet_src": "TOURNAMENT-SCHEDULE",
+      "sheet_dst": "SUMMARY",
+      "src_key": [
+        "CONTEST_CODE"
+      ],
+      "dst_key": [
+        "CONTEST_CODE"
+      ],
+      "column": [
+        "TOURNAMENT_CODE"
+      ],
+      "mode": "count",
+      "multiply_rows": false,
+      "col_max_width": 15,
+      "col_width_mode": "AUTO",
+      "col_min_width": 8,
+      "count_aggregation": "nunique",
+      "count_label": "COMPLETED",
+      "status_filters": {
+        "TOURNAMENT_STATUS": [
+          "ЗАВЕРШЕН"
+        ]
+      },
+      "custom_conditions": null,
+      "group_by": null,
+      "aggregate": null
+    },
+    {
+      "sheet_src": "TOURNAMENT-SCHEDULE",
+      "sheet_dst": "SUMMARY",
+      "src_key": [
+        "CONTEST_CODE"
+      ],
+      "dst_key": [
+        "CONTEST_CODE"
+      ],
+      "column": [
+        "TOURNAMENT_CODE"
+      ],
+      "mode": "count",
+      "multiply_rows": false,
+      "col_max_width": 15,
+      "col_width_mode": "AUTO",
+      "col_min_width": 8,
+      "count_aggregation": "nunique",
+      "count_label": "CANCELLED",
+      "status_filters": {
+        "TOURNAMENT_STATUS": [
+          "ОТМЕНЕН"
+        ]
+      },
+      "custom_conditions": null,
+      "group_by": null,
+      "aggregate": null
+    },
+    {
+      "sheet_src": "TOURNAMENT-SCHEDULE",
+      "sheet_dst": "SUMMARY",
+      "src_key": [
+        "CONTEST_CODE"
+      ],
+      "dst_key": [
+        "CONTEST_CODE"
+      ],
+      "column": [
+        "TOURNAMENT_CODE"
+      ],
+      "mode": "count",
+      "multiply_rows": false,
+      "col_max_width": 15,
+      "col_width_mode": "AUTO",
+      "col_min_width": 8,
+      "count_aggregation": "nunique",
+      "count_label": "SUMMING_UP",
+      "status_filters": {
+        "TOURNAMENT_STATUS": [
+          "ПОДВЕДЕНИЕ ИТОГОВ"
+        ]
+      },
+      "custom_conditions": null,
+      "group_by": null,
+      "aggregate": null
+    },
+    {
+      "sheet_src": "TOURNAMENT-SCHEDULE",
+      "sheet_dst": "SUMMARY",
+      "src_key": [
+        "CONTEST_CODE"
+      ],
+      "dst_key": [
+        "CONTEST_CODE"
+      ],
+      "column": [
+        "TOURNAMENT_CODE"
+      ],
+      "mode": "count",
+      "multiply_rows": false,
+      "col_max_width": 15,
+      "col_width_mode": "AUTO",
+      "col_min_width": 8,
+      "count_aggregation": "nunique",
+      "count_label": "DELETED",
+      "status_filters": {
+        "TOURNAMENT_STATUS": [
+          "УДАЛЕН"
+        ]
+      },
+      "custom_conditions": null,
+      "group_by": null,
+      "aggregate": null
     }
   ],
   "reward_getcondition_summary": {
