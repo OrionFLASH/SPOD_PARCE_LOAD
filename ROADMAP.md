@@ -270,3 +270,17 @@ IN/
 | 12.3 | Тест: на SUMMARY появляются `COUNT_nunique_ACTIVE` … `DELETED` | [v] |
 | 12.4 | Добить недостающие правила из пользовательского конфига: status-count на TOURNAMENT-SCHEDULE, count без фильтра, даты LIST-TOURNAMENT | [v] |
 
+---
+
+## Пункт 13 — Утилита folder_parce (REPORT из папки)
+
+Цель: отдельный скрипт + `config_folder_parce.json` — сбор строк REPORT по `TOURNAMENT_CODE` из `IN/REPORT` (рекурсивно) с выбором файла по max `CONTEST_DATE` / mtime.
+
+| # | Задача | Статус |
+|---|--------|--------|
+| 13.1 | `config_folder_parce.json` | [v] |
+| 13.2 | `folder_parce.py`: Pass1/Pass2, ThreadPool, Excel, консоль | [v] |
+| 13.3 | README + ROADMAP | [v] |
+| 13.4 | Smoke-прогон на `IN/REPORT` | [v] |
+| 13.5 | Ненайденные коды: строка с `НЕ ОБНАРУЖЕН REPORT` и `-` в прочих полях | [v] |
+

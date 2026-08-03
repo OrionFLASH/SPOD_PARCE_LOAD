@@ -8,11 +8,12 @@
 4. [Модули src/ (описание и назначение)](#модули-src-описание-и-назначение)
 5. [Конфигурация (`config/`)](#конфигурация-config)
 6. [Программа main.py - Обработка данных](#программа-mainpy---обработка-данных)
-7. [Техническое задание](#техническое-задание)
-8. [Анализ входных данных](#анализ-входных-данных)
-9. [Установка и запуск](#установка-и-запуск)
-10. [Логирование](#логирование)
-11. [История версий](#история-версий)
+7. [Утилита folder_parce.py](#утилита-folder_parcepy)
+8. [Техническое задание](#техническое-задание)
+9. [Анализ входных данных](#анализ-входных-данных)
+10. [Установка и запуск](#установка-и-запуск)
+11. [Логирование](#логирование)
+12. [История версий](#история-версий)
 
 > **Актуальность:** пайплайн и changelog — этот README; карта Docs — **`Docs/DOCS_INDEX.md`**; конфигурация — **`Docs/CONFIG_FILES.md`**.
 
@@ -31,6 +32,8 @@
 ```
 SPOD_PROM/
 ├── main.py                 # Точка входа: загрузка Config, запуск пайплайна (код в src/)
+├── folder_parce.py         # Отдельная утилита: сбор REPORT по TOURNAMENT_CODE из IN/REPORT
+├── config_folder_parce.json # Конфиг для folder_parce.py (не связан с config/)
 ├── config/                 # Конфигурация (точка входа config.json + CONFIG_*.json)
 │   ├── config.json         # $include + опциональные оверрайды
 │   ├── CONFIG_RUN_INPUT.json
@@ -1137,6 +1140,25 @@ def write_to_excel(sheets_data, output_path):
 
 ---
 
+## Утилита folder_parce.py
+
+Отдельный однофайловый скрипт (не использует `config/` и не запускает `main.py`). Собирает строки REPORT по списку **`TOURNAMENT_CODE`** из каталога **`IN/REPORT`** (рекурсивно, любые имена CSV).
+
+**Конфиг:** [`config_folder_parce.json`](config_folder_parce.json) в корне репозитория.
+
+**Логика:** для каждого кода — максимальная непустая **`CONTEST_DATE`** (`YYYY-MM-DD`) среди всех CSV; при нескольких файлах с одной датой берётся файл с наибольшим **mtime**; в Excel пишутся **все** строки этого турнира из файла-победителя. Служебные колонки: `PARCE_FILES_FOUND`, `PARCE_FILES_WITH_MAX_DATE`, `PARCE_SOURCE_FILE`. Если код из конфига не встретился ни в одном файле — одна строка: в `TOURNAMENT_CODE` код, в `PARCE_SOURCE_FILE` текст **`НЕ ОБНАРУЖЕН REPORT`**, в остальных полях **`-`**.
+
+**Запуск:**
+
+```bash
+python folder_parce.py
+python folder_parce.py --config config_folder_parce.json
+```
+
+Выход: **`OUT/REPORT_FOLDER_PARCE/REPORT_folder_parce_<timestamp>.xlsx`** (пути задаются в конфиге).
+
+---
+
 ## Техническое задание
 
 ### Требования к main.py
@@ -1282,6 +1304,13 @@ python main.py
 ---
 
 ## История версий
+
+### Версия 1.7.56 — Утилита folder_parce (REPORT из IN/REPORT)
+
+- Корневые **`folder_parce.py`** + **`config_folder_parce.json`**: рекурсивный поиск CSV, выбор файла по max `CONTEST_DATE` (при равенстве — mtime), Excel со служебными колонками `PARCE_*`.
+- Не зависит от `main.py` / `config/`.
+- Код из конфига, не найденный ни в одном CSV: одна строка с `PARCE_SOURCE_FILE` = **`НЕ ОБНАРУЖЕН REPORT`**, остальные поля **`-`**.
+- ROADMAP п. **13**.
 
 ### Версия 1.7.55 — field_in_values: IN для JSON-ключей и массивов SPOD
 
