@@ -1146,7 +1146,7 @@ def write_to_excel(sheets_data, output_path):
 
 **Конфиг:** [`config_folder_parce.json`](config_folder_parce.json) в корне репозитория.
 
-**Логика:** для каждого кода — максимальная непустая **`CONTEST_DATE`** (`YYYY-MM-DD`) среди всех CSV; при нескольких файлах с одной датой берётся файл с наибольшим **mtime**; в Excel пишутся **все** строки этого турнира из файла-победителя. Служебные колонки: `PARCE_FILES_FOUND`, `PARCE_FILES_WITH_MAX_DATE`, `PARCE_SOURCE_FILE`. Если код из конфига не встретился ни в одном файле — одна строка: в `TOURNAMENT_CODE` код, в `PARCE_SOURCE_FILE` текст **`НЕ ОБНАРУЖЕН REPORT`**, в остальных полях **`-`**.
+**Логика:** для каждого кода — максимальная непустая **`CONTEST_DATE`** (`YYYY-MM-DD`) среди всех CSV; при нескольких файлах с одной датой берётся файл с наибольшим **mtime**; в Excel пишутся **все** строки этого турнира из файла-победителя. Служебные колонки: `PARCE_FILES_FOUND`, `PARCE_FILES_WITH_MAX_DATE`, `PARCE_SOURCE_FILE`, **`PARCE_FILES_LIST`** (все файлы с кодом, через `;\n`), **`PARCE_FILES_MAX_DATE_LIST`** (файлы с максимальной датой, через `;\n`). Если код из конфига не встретился ни в одном файле — одна строка: в `TOURNAMENT_CODE` код, в `PARCE_SOURCE_FILE` текст **`НЕ ОБНАРУЖЕН REPORT`**, в остальных полях **`-`**.
 
 **Запуск:**
 
@@ -1155,7 +1155,7 @@ python folder_parce.py
 python folder_parce.py --config config_folder_parce.json
 ```
 
-Выход: **`OUT/REPORT_FOLDER_PARCE/REPORT_folder_parce_<timestamp>.xlsx`** (пути задаются в конфиге).
+Выход: **`OUT/REPORT_FOLDER_PARCE/REPORT_folder_parce_<timestamp>.xlsx`** (пути задаются в конфиге). Лист оформляется как REPORT в основной программе: заголовок **жирный + по центру**, **freeze** первой строки, **автофильтр**, ширины колонок AUTO (`min_col_width`/`max_col_width` как у REPORT), центрирование `CONTEST_DATE` / `priority_type` / счётчиков `PARCE_*`; колонки списков файлов (**`PARCE_FILES_LIST`**, **`PARCE_FILES_MAX_DATE_LIST`**) — влево, по центру по вертикали, **перенос по словам** (секция **`excel`** в `config_folder_parce.json`).
 
 ---
 
@@ -1310,6 +1310,8 @@ python main.py
 - Корневые **`folder_parce.py`** + **`config_folder_parce.json`**: рекурсивный поиск CSV, выбор файла по max `CONTEST_DATE` (при равенстве — mtime), Excel со служебными колонками `PARCE_*`.
 - Не зависит от `main.py` / `config/`.
 - Код из конфига, не найденный ни в одном CSV: одна строка с `PARCE_SOURCE_FILE` = **`НЕ ОБНАРУЖЕН REPORT`**, остальные поля **`-`**.
+- Оформление Excel: заголовок bold+center, freeze `A2`, автофильтр, ширины AUTO как у REPORT; секция **`excel`** в конфиге.
+- Колонки **`PARCE_FILES_LIST`** / **`PARCE_FILES_MAX_DATE_LIST`**: все файлы с кодом и файлы с max-датой (разделитель `;\n`), выравнивание влево + wrap.
 - ROADMAP п. **13**.
 
 ### Версия 1.7.55 — field_in_values: IN для JSON-ключей и массивов SPOD

@@ -290,6 +290,65 @@
     "date_column": "CONTEST_DATE",
     "glob": "*.csv"
   },
+  "excel": {
+    "_note": "Как у листа REPORT в основной программе (input_files + COLUMN_FORMATS): AUTO-ширина, freeze первой строки, автофильтр, заголовок bold+center.",
+    "sheet_name": "REPORT",
+    "freeze": "A2",
+    "auto_filter": true,
+    "col_width_mode": "AUTO",
+    "min_col_width": 10,
+    "max_col_width": 25,
+    "auto_width_max_data_rows": 500,
+    "header": {
+      "bold": true,
+      "horizontal": "center",
+      "vertical": "center",
+      "wrap_text": true
+    },
+    "data_default": {
+      "horizontal": "left",
+      "vertical": "center",
+      "wrap_text": true
+    },
+    "columns_center": [
+      "CONTEST_DATE",
+      "priority_type",
+      "PARCE_FILES_FOUND",
+      "PARCE_FILES_WITH_MAX_DATE",
+      "PARCE_SOURCE_FILE"
+    ],
+    "columns_wrap_left": [
+      "PARCE_FILES_LIST",
+      "PARCE_FILES_MAX_DATE_LIST"
+    ],
+    "added_columns_width": {
+      "PARCE_SOURCE_FILE": {
+        "width_mode": "AUTO",
+        "min_width": 20,
+        "max_width": 60
+      },
+      "PARCE_FILES_LIST": {
+        "width_mode": "AUTO",
+        "min_width": 25,
+        "max_width": 50
+      },
+      "PARCE_FILES_MAX_DATE_LIST": {
+        "width_mode": "AUTO",
+        "min_width": 25,
+        "max_width": 50
+      },
+      "MANAGER_PERSON_NUMBER": {
+        "width_mode": 22,
+        "min_width": 10,
+        "max_width": 25
+      },
+      "TOURNAMENT_CODE": {
+        "width_mode": "AUTO",
+        "min_width": 18,
+        "max_width": 40
+      }
+    }
+  },
   "performance": {
     "max_workers": 8
   },

@@ -23,11 +23,67 @@ from typing import Any, Dict, List, Optional, Sequence, Set, Tuple
 
 import pandas as pd
 
+from openpyxl.styles import Alignment, Font
+from openpyxl.utils import get_column_letter
+
 COL_FILES_FOUND = "PARCE_FILES_FOUND"
 COL_FILES_MAX_DATE = "PARCE_FILES_WITH_MAX_DATE"
 COL_SOURCE_FILE = "PARCE_SOURCE_FILE"
+COL_FILES_LIST = "PARCE_FILES_LIST"
+COL_FILES_MAX_DATE_LIST = "PARCE_FILES_MAX_DATE_LIST"
 SOURCE_NOT_FOUND = "НЕ ОБНАРУЖЕН REPORT"
 PLACEHOLDER_DASH = "-"
+_AUTO_COLUMN_WIDTH_MAX_DATA_ROWS = 500
+# Разделитель списка файлов: «;» + перевод строки
+_FILES_LIST_SEP = ";\n"
+
+
+def _join_file_paths(paths: Sequence[str]) -> str:
+    """Уникальные пути, сортировка, склейка через «;» и перевод строки."""
+    uniq = sorted({p for p in paths if p})
+    return _FILES_LIST_SEP.join(uniq) if uniq else PLACEHOLDER_DASH
+
+
+def _default_excel_config() -> Dict[str, Any]:
+    """Параметры оформления как у REPORT в основной программе."""
+    return {
+        "sheet_name": "REPORT",
+        "freeze": "A2",
+        "auto_filter": True,
+        "col_width_mode": "AUTO",
+        "min_col_width": 10,
+        "max_col_width": 25,
+        "auto_width_max_data_rows": _AUTO_COLUMN_WIDTH_MAX_DATA_ROWS,
+        "header": {
+            "bold": True,
+            "horizontal": "center",
+            "vertical": "center",
+            "wrap_text": True,
+        },
+        "data_default": {
+            "horizontal": "left",
+            "vertical": "center",
+            "wrap_text": True,
+        },
+        "columns_center": [
+            "CONTEST_DATE",
+            "priority_type",
+            COL_FILES_FOUND,
+            COL_FILES_MAX_DATE,
+            COL_SOURCE_FILE,
+        ],
+        "columns_wrap_left": [
+            COL_FILES_LIST,
+            COL_FILES_MAX_DATE_LIST,
+        ],
+        "added_columns_width": {
+            COL_SOURCE_FILE: {"width_mode": "AUTO", "min_width": 20, "max_width": 60},
+            COL_FILES_LIST: {"width_mode": "AUTO", "min_width": 25, "max_width": 50},
+            COL_FILES_MAX_DATE_LIST: {"width_mode": "AUTO", "min_width": 25, "max_width": 50},
+            "MANAGER_PERSON_NUMBER": {"width_mode": 22, "min_width": 10, "max_width": 25},
+            "TOURNAMENT_CODE": {"width_mode": "AUTO", "min_width": 18, "max_width": 40},
+        },
+    }
 
 
 @dataclass(frozen=True)
@@ -53,6 +109,8 @@ class WinnerInfo:
     mtime: float
     files_found: int
     files_same_date: int
+    files_list: str
+    files_max_date_list: str
 
 
 def project_root() -> Path:
@@ -108,6 +166,21 @@ def load_config(config_path: Path) -> Dict[str, Any]:
     every = int(log_cfg.get("progress_every_files", 1) or 1)
     cfg["logging"] = {"progress_every_files": max(1, every)}
 
+    excel_cfg = cfg.get("excel")
+    if not isinstance(excel_cfg, dict):
+        excel_cfg = {}
+    merged_excel = _default_excel_config()
+    for key, val in excel_cfg.items():
+        if key.startswith("_"):
+            continue
+        if key in ("header", "data_default", "added_columns_width") and isinstance(val, dict):
+            base = dict(merged_excel.get(key) or {})
+            base.update(val)
+            merged_excel[key] = base
+        else:
+            merged_excel[key] = val
+    cfg["excel"] = merged_excel
+
     return cfg
 
 
@@ -124,6 +197,127 @@ def discover_csv_files(report_root: Path, glob_pat: str) -> List[Path]:
         {p.resolve() for p in report_root.rglob(glob_pat) if p.is_file()},
         key=lambda x: x.as_posix().lower(),
     )
+
+
+def _calc_column_width(
+    ws: Any,
+    col_name: Any,
+    col_num: int,
+    excel_cfg: Dict[str, Any],
+) -> int:
+    """Ширина колонки: как calculate_column_width в main_impl (AUTO / фикс / added_columns_width)."""
+    added = excel_cfg.get("added_columns_width") or {}
+    name = str(col_name) if col_name is not None else ""
+    if name in added and isinstance(added[name], dict):
+        col_params = added[name]
+        max_width = int(col_params.get("max_width") or excel_cfg.get("max_col_width", 25))
+        width_mode = col_params.get("width_mode", excel_cfg.get("col_width_mode", "AUTO"))
+        min_width = int(col_params.get("min_width") or excel_cfg.get("min_col_width", 10))
+    else:
+        max_width = int(excel_cfg.get("max_col_width", 25))
+        width_mode = excel_cfg.get("col_width_mode", "AUTO")
+        min_width = int(excel_cfg.get("min_col_width", 10))
+
+    try:
+        if isinstance(width_mode, (int, float)):
+            return max(1, int(width_mode))
+        if isinstance(width_mode, str) and width_mode.strip() and width_mode.strip().upper() != "AUTO":
+            fixed = float(width_mode.strip())
+            if fixed > 0:
+                return max(1, int(fixed))
+    except (ValueError, TypeError):
+        pass
+
+    scan_rows = int(excel_cfg.get("auto_width_max_data_rows") or _AUTO_COLUMN_WIDTH_MAX_DATA_ROWS)
+    content_width = min_width
+    hval = ws.cell(row=1, column=col_num).value
+    if hval is not None:
+        content_width = max(content_width, len(str(hval)))
+    if ws.max_row >= 2:
+        last_scan = min(ws.max_row, 1 + scan_rows)
+        for row_idx in range(2, last_scan + 1):
+            val = ws.cell(row=row_idx, column=col_num).value
+            if val is not None:
+                content_width = max(content_width, len(str(val)))
+    final_width = min(max(content_width, min_width), max_width)
+    return max(1, int(final_width))
+
+
+def format_output_sheet(ws: Any, excel_cfg: Dict[str, Any]) -> None:
+    """
+    Оформление листа: заголовок bold+center, freeze, auto_filter,
+    ширины (REPORT-параметры), выравнивание данных.
+    """
+    hdr = excel_cfg.get("header") or {}
+    data_def = excel_cfg.get("data_default") or {}
+    center_cols = {
+        str(x).strip()
+        for x in (excel_cfg.get("columns_center") or [])
+        if isinstance(x, str) and x.strip()
+    }
+    wrap_left_cols = {
+        str(x).strip()
+        for x in (excel_cfg.get("columns_wrap_left") or [])
+        if isinstance(x, str) and x.strip()
+    }
+
+    header_font = Font(bold=bool(hdr.get("bold", True)))
+    align_header = Alignment(
+        horizontal=str(hdr.get("horizontal", "center")),
+        vertical=str(hdr.get("vertical", "center")),
+        wrap_text=bool(hdr.get("wrap_text", True)),
+    )
+    align_data = Alignment(
+        horizontal=str(data_def.get("horizontal", "left")),
+        vertical=str(data_def.get("vertical", "center")),
+        wrap_text=bool(data_def.get("wrap_text", True)),
+    )
+    align_center = Alignment(horizontal="center", vertical="center", wrap_text=False)
+    align_wrap_left = Alignment(horizontal="left", vertical="center", wrap_text=True)
+
+    header_cells = list(ws[1])
+    center_col_idx: Set[int] = set()
+    wrap_left_col_idx: Set[int] = set()
+    for col_num, cell in enumerate(header_cells, 1):
+        cell.font = header_font
+        cell.alignment = align_header
+        col_name = cell.value
+        name_s = str(col_name) if col_name is not None else ""
+        if name_s in center_cols:
+            center_col_idx.add(col_num)
+        if name_s in wrap_left_cols:
+            wrap_left_col_idx.add(col_num)
+        width = _calc_column_width(ws, col_name, col_num, excel_cfg)
+        ws.column_dimensions[get_column_letter(col_num)].width = width
+
+    if ws.max_row > 1 and ws.max_column:
+        for row in ws.iter_rows(min_row=2, max_row=ws.max_row, max_col=ws.max_column):
+            for cell in row:
+                if cell.column in wrap_left_col_idx:
+                    cell.alignment = align_wrap_left
+                elif cell.column in center_col_idx:
+                    cell.alignment = align_center
+                else:
+                    cell.alignment = align_data
+
+    freeze = str(excel_cfg.get("freeze") or "A2").strip() or "A2"
+    ws.freeze_panes = freeze
+
+    if excel_cfg.get("auto_filter", True):
+        try:
+            if ws.max_row and ws.max_column and ws.dimensions:
+                ws.auto_filter.ref = ws.dimensions
+        except Exception as ex:  # noqa: BLE001
+            print(f"  WARN: автофильтр не применён: {ex}", flush=True)
+
+
+def write_excel(out_path: Path, df: pd.DataFrame, excel_cfg: Dict[str, Any]) -> None:
+    """Запись DataFrame в xlsx с оформлением листа."""
+    sheet_name = str(excel_cfg.get("sheet_name") or "REPORT")[:31]
+    with pd.ExcelWriter(out_path, engine="openpyxl") as writer:
+        df.to_excel(writer, index=False, sheet_name=sheet_name)
+        ws = writer.sheets[sheet_name]
+        format_output_sheet(ws, excel_cfg)
 
 
 def _is_empty_date(val: Any) -> bool:
@@ -236,6 +430,8 @@ def choose_winners(
             mtime=winner.mtime,
             files_found=len(hits),
             files_same_date=len(same),
+            files_list=_join_file_paths([h.path_rel for h in hits]),
+            files_max_date_list=_join_file_paths([h.path_rel for h in same]),
         )
     return winners
 
@@ -269,6 +465,8 @@ def _not_found_row(code: str, columns: Sequence[str], col_code: str) -> Dict[str
     row[COL_SOURCE_FILE] = SOURCE_NOT_FOUND
     row[COL_FILES_FOUND] = PLACEHOLDER_DASH
     row[COL_FILES_MAX_DATE] = PLACEHOLDER_DASH
+    row[COL_FILES_LIST] = PLACEHOLDER_DASH
+    row[COL_FILES_MAX_DATE_LIST] = PLACEHOLDER_DASH
     return row
 
 
@@ -285,6 +483,8 @@ def _default_columns(col_code: str, col_date: str) -> List[str]:
         COL_FILES_FOUND,
         COL_FILES_MAX_DATE,
         COL_SOURCE_FILE,
+        COL_FILES_LIST,
+        COL_FILES_MAX_DATE_LIST,
     ]
 
 
@@ -349,6 +549,8 @@ def load_winner_rows(
                         COL_FILES_FOUND,
                         COL_FILES_MAX_DATE,
                         COL_SOURCE_FILE,
+                        COL_FILES_LIST,
+                        COL_FILES_MAX_DATE_LIST,
                     ]
                 print(
                     f"  прочитан: {by_file[path][0].path_rel} → коды: {', '.join(codes_here)} "
@@ -391,6 +593,8 @@ def load_winner_rows(
         chunk[COL_FILES_FOUND] = w.files_found
         chunk[COL_FILES_MAX_DATE] = w.files_same_date
         chunk[COL_SOURCE_FILE] = w.path_rel
+        chunk[COL_FILES_LIST] = w.files_list
+        chunk[COL_FILES_MAX_DATE_LIST] = w.files_max_date_list
         # выровнять набор колонок
         for c in columns:
             if c not in chunk.columns:
@@ -508,7 +712,13 @@ def run(config_path: Path) -> int:
     out_name = name_tpl.replace("{timestamp}", ts)
     out_path = output_dir / out_name
     print(f"— Запись Excel: {out_path} ({len(out_df)} строк) —", flush=True)
-    out_df.to_excel(out_path, index=False, engine="openpyxl")
+    write_excel(out_path, out_df, cfg["excel"])
+    print(
+        f"  оформление: freeze={cfg['excel'].get('freeze')}, "
+        f"auto_filter, ширины AUTO "
+        f"[{cfg['excel'].get('min_col_width')}…{cfg['excel'].get('max_col_width')}]",
+        flush=True,
+    )
 
     found_n = len(winners)
     missing_n = len(codes) - found_n

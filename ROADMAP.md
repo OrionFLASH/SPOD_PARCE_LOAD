@@ -283,4 +283,6 @@ IN/
 | 13.3 | README + ROADMAP | [v] |
 | 13.4 | Smoke-прогон на `IN/REPORT` | [v] |
 | 13.5 | Ненайденные коды: строка с `НЕ ОБНАРУЖЕН REPORT` и `-` в прочих полях | [v] |
+| 13.6 | Оформление Excel: заголовок, freeze, auto_filter, ширины/центрирование как REPORT | [v] |
+| 13.7 | Колонки `PARCE_FILES_LIST` / `PARCE_FILES_MAX_DATE_LIST` (списки файлов, wrap left) | [v] |
 
