@@ -9,6 +9,7 @@
 | Продукт, пайплайн, changelog | корневой **`README.md`** |
 | Раскладка и параметры `config/` | **`CONFIG_FILES.md`** |
 | ToDo / статусы работ | **`ROADMAP.md`** (корень) |
+| Утилита сбора REPORT из `IN/REPORT` | **`folder_parce.py`** + **`config_folder_parce.json`** (описание — README, раздел «Утилита folder_parce.py») |
 
 ## Конфигурация и данные
 
