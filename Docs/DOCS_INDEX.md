@@ -17,6 +17,7 @@
 - `BLOCKS_MIGRATION.md` — шпаргалка переноса `IN/<BLOCK>/…` и SQLite по блокам.
 - `IN_OUT_DATA_POLICY.md` — политика: не удалять `IN/`/`OUT/` без явного разрешения.
 - `JSON/README.md` + `JSON/SPOD_INPUT_DATA_CATALOG.md` — каталог полей входных CSV/JSON (пересборка Tools).
+- `params_catalog/README.md` + `params_catalog/SPOD_PARAMS_CATALOG.xlsx` — полный Excel-перечень колонок и JSON-ключей (зависимости, примеры, консистентность).
 
 ## Консистентность
 

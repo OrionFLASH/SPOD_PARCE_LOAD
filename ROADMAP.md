@@ -286,3 +286,17 @@ IN/
 | 13.6 | Оформление Excel: заголовок, freeze, auto_filter, ширины/центрирование как REPORT | [v] |
 | 13.7 | Колонки `PARCE_FILES_LIST` / `PARCE_FILES_MAX_DATE_LIST` (списки файлов, wrap left) | [v] |
 
+---
+
+## Пункт 14 — Excel-каталог всех настраиваемых параметров PROM/SPOD
+
+Цель: по полному разбору всех строк выгрузок (CONTEST-DATA, REWARD, REWARD-LINK, GROUP, INDICATOR, TOURNAMENT-SCHEDULE, REPORT, ORG_UNIT_V20, EMPLOYEE, USER_ROLE) собрать Excel с перечнем колонок и JSON-ключей: типы, пути, зависимости, описания, id, дубли, примеры, правила консистентности.
+
+| # | Задача | Статус |
+|---|--------|--------|
+| 14.1 | Roadmap и ветка `orionflash/spod-params-excel-catalog-7a68` | [v] |
+| 14.2 | Утилита `src/Tools/build_spod_params_excel.py` (полный обход CSV + JSON) | [v] |
+| 14.3 | Связка с глоссариями, COLUMN_HINTS и `CONFIG_CHECKS.json` | [v] |
+| 14.4 | Excel-артефакт + краткая документация | [v] |
+| 14.5 | Прогон на выгрузках 05-08 / 02-07 / 27-07 / 04-06 | [v] |
+

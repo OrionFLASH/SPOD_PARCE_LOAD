@@ -98,6 +98,7 @@ SPOD_PROM/
 - `Docs/MANAGER_STATS.md` — книга MANAGER_STATS.
 - `Docs/CODEBASE_ANALYTICS.md` — метрики кода (`build_codebase_analytics.py`).
 - `Docs/JSON/` — каталог входных CSV/JSON (`SPOD_INPUT_DATA_CATALOG.md`, `examples/`).
+- `Docs/params_catalog/` — Excel-перечень всех настраиваемых параметров (`SPOD_PARAMS_CATALOG.xlsx`, сборка: `src/Tools/build_spod_params_excel.py`).
 
 ---
 
@@ -1305,7 +1306,14 @@ python main.py
 
 ## История версий
 
+### Версия 1.7.57 — Excel-каталог всех параметров PROM/SPOD
+
+- Утилита **`src/Tools/build_spod_params_excel.py`**: полный обход строк CSV (CONTEST-DATA, REWARD, REWARD-LINK, GROUP, INDICATOR, TOURNAMENT-SCHEDULE, REPORT, ORG_UNIT_V20, EMPLOYEE, USER_ROLE) с разворотом JSON-ключей.
+- Артефакт **`Docs/params_catalog/SPOD_PARAMS_CATALOG.xlsx`**: типы, пути, зависимости (`REWARD_TYPE` / `CONTEST_TYPE` и др.), описания, id, дубли, 3 примера, правила из **`CONFIG_CHECKS.json`**.
+- Документация: **`Docs/params_catalog/README.md`**, пункт 14 в **`ROADMAP.md`**; тест **`src/Tests/test_build_spod_params_excel.py`**.
+
 ### Версия 1.7.56 — Утилита folder_parce (REPORT из IN/REPORT)
+
 
 - Корневые **`folder_parce.py`** + **`config_folder_parce.json`**: рекурсивный поиск CSV, выбор файла по max `CONTEST_DATE` (при равенстве — mtime), Excel со служебными колонками `PARCE_*`.
 - Не зависит от `main.py` / `config/`.

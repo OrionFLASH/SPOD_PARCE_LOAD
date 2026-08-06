@@ -43,6 +43,8 @@ LOGS/
 # Output files
 *.xlsx
 *.xls
+# Каталог параметров SPOD (исключение из *.xlsx)
+!Docs/params_catalog/*.xlsx
 OUT/
 
 # Temporary / test work (not IN/OUT data)
