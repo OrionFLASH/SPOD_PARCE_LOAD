@@ -43,16 +43,22 @@ class TestSpodParamsExcel(unittest.TestCase):
         self.assertFalse(normalize_json_cell(raw).endswith('"'))
 
     def test_rel_json_path_root_and_nested(self) -> None:
+        # корень: путь '-', имя ключа
         self.assertEqual(rel_json_path_fields("hidden"), ("-", "hidden"))
+        # вложенность: полный путь от начала
         self.assertEqual(
             rel_json_path_fields("getCondition.employeeRating.minRatingGOSB"),
-            ("getCondition.employeeRating", "minRatingGOSB"),
+            ("getCondition.employeeRating.minRatingGOSB", "minRatingGOSB"),
         )
-        self.assertEqual(rel_json_path_fields("feature[]"), ("-", "feature[]"))
+        # массив в корне: путь с [], имя без голого []
+        self.assertEqual(rel_json_path_fields("feature[]"), ("feature[]", "feature"))
         self.assertEqual(
             rel_json_path_fields("getCondition.rewards[]"),
-            ("getCondition", "rewards[]"),
+            ("getCondition.rewards[]", "rewards"),
         )
+        # голый [] запрещён как имя
+        self.assertEqual(rel_json_path_fields("[]"), ("[]", "(элемент массива)"))
+        self.assertNotEqual(rel_json_path_fields("[]")[1], "[]")
 
     def test_param_id_unique_shape(self) -> None:
         a = make_param_id("REWARD", "REWARD_CODE", "-", False)
