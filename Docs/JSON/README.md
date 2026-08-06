@@ -16,7 +16,7 @@
 
 После смены файлов в `IN/SPOD/` имеет смысл выполнить **обе** команды.
 
-См. также Excel-каталог параметров: **`Docs/params_catalog/SPOD_PARAMS_CATALOG.xlsx`** (`python src/Tools/build_spod_params_excel.py`).
+См. также Excel-каталог параметров: **`Docs/params_catalog/SPOD_PARAMS_CATALOG_LEAF_v2.xlsx`** (`python src/Tools/build_spod_params_excel.py`).
 
 ## Файлы в `examples/`
 

@@ -98,7 +98,7 @@ SPOD_PROM/
 - `Docs/MANAGER_STATS.md` — книга MANAGER_STATS.
 - `Docs/CODEBASE_ANALYTICS.md` — метрики кода (`build_codebase_analytics.py`).
 - `Docs/JSON/` — каталог входных CSV/JSON (`SPOD_INPUT_DATA_CATALOG.md`, `examples/`).
-- `Docs/params_catalog/` — Excel-перечень всех настраиваемых параметров (`SPOD_PARAMS_CATALOG.xlsx`, сборка: `src/Tools/build_spod_params_excel.py`).
+- `Docs/params_catalog/` — Excel-перечень параметров (`SPOD_PARAMS_CATALOG_LEAF_v2.xlsx`, сборка: `src/Tools/build_spod_params_excel.py`).
 
 ---
 
@@ -1305,6 +1305,12 @@ python main.py
 ---
 
 ## История версий
+
+### Версия 1.7.59 — Каталог параметров: только колонки и конечные JSON-ключи
+
+- В Excel только **КОЛОНКА** или **JSON-КЛЮЧ** (листья со значениями, в т.ч. пустыми).
+- Для JSON-ключа указана **колонка CSV**; полный путь `ключ1.ключ2.ключ` (с `[]` для полей в массиве объектов).
+- Промежуточные объекты/«элемент массива» не включаются.
 
 ### Версия 1.7.58 — Доработка Excel-каталога параметров
 
