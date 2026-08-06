@@ -16,6 +16,8 @@
 
 После смены файлов в `IN/SPOD/` имеет смысл выполнить **обе** команды.
 
+См. также Excel-каталог параметров: **`Docs/params_catalog/SPOD_PARAMS_CATALOG.xlsx`** (`python src/Tools/build_spod_params_excel.py`).
+
 ## Файлы в `examples/`
 
 Имена совпадают с именами соответствующих CSV (см. `CSV_EXAMPLES_ORDER` в скрипте).
