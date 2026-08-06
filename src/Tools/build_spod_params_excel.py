@@ -221,10 +221,12 @@ COLUMN_DESCRIPTIONS: Dict[str, Dict[str, str]] = {
 
 EXCEL_HEADERS: List[str] = [
     "Название таблицы",
-    "ТИП колонки (JSON / -)",
+    "Вид параметра",
+    "Колонка CSV",
+    "Тип ячейки (JSON / -)",
+    "Полный путь ключа",
+    "Имя параметра",
     "Тип данных",
-    "Путь до ключа JSON",
-    "Наименование колонки / ключа",
     "Зависимости",
     "Описание параметра",
     "Идентификатор (EN)",
@@ -458,6 +460,7 @@ class PathAccumulator:
     empty_string_count: int = 0
     null_count: int = 0
     empty_array_count: int = 0
+    touched_rows: Set[int] = field(default_factory=set)
 
     def _value_key(self, v: Any) -> str:
         if v is None:
@@ -505,156 +508,138 @@ class PathAccumulator:
         self.types[label] += 1
 
 
-def rel_json_path_fields(path_from_root: str) -> Tuple[str, str]:
-    """
-    path_from_root — относительный путь от корня JSON (без имени колонки).
+def leaf_key_name(full_path: str) -> str:
+    """Последний сегмент пути: getCondition.rewards[].rewardCode → rewardCode."""
+    p = (full_path or "").strip()
+    if not p or p == "[]":
+        return ""
+    # убрать хвостовой [] у массива скаляров: feature[] → feature
+    if p.endswith("[]") and p.count("[]") == 1 and "." not in p[:-2]:
+        return p[:-2]
+    core = p[:-2] if p.endswith("[]") and not p.endswith("[].") else p
+    # путь вида a.b[].c или [].c
+    seg = core.split(".")[-1]
+    seg = seg.replace("[]", "")
+    return seg or ""
 
-    Возвращает (полный_путь_для_колонки, имя_ключа):
-    - ключ в корне без вложенности → путь '-', имя ключа
-    - вложенный → полный путь от корня (включая имя), имя = leaf
-    - имя никогда не равно ровно '[]': для корневого элемента массива → '(элемент массива)'
-    - суффикс '[]' в имени убирается: 'feature[]' → имя 'feature' (массив), путь 'feature[]'
-    """
+
+def display_full_path(path_from_root: str) -> str:
+    """Полный путь ключа1.ключ2.…ключ (с [] для контекста массива объектов)."""
     p = (path_from_root or "").strip()
-    if not p:
-        return "-", ""
-
-    is_arr_suffix = p.endswith("[]")
-    core = p[:-2] if is_arr_suffix else p
-
-    if p == "[]" or (is_arr_suffix and core == ""):
-        return "[]", "(элемент массива)"
-
-    if "." not in core:
-        # корень JSON
-        name = core if core else "(элемент массива)"
-        # путь: для корневого ключа '-' ; для массива в корне — полный 'feature[]'
-        if is_arr_suffix:
-            return p, name
-        return "-", name
-
-    leaf = core.rsplit(".", 1)[-1]
-    name = leaf if leaf else "(элемент массива)"
-    # полный путь от начала (с [] если это узел массива)
-    return p, name
+    return p if p else "-"
 
 
-def walk_json(
+def is_scalar_or_null(v: Any) -> bool:
+    return not isinstance(v, (dict, list))
+
+
+def is_array_of_scalars(v: Any) -> bool:
+    if not isinstance(v, list):
+        return False
+    if not v:
+        return True
+    return all(is_scalar_or_null(x) for x in v)
+
+
+def ensure_leaf_acc(
+    acc: Dict[str, PathAccumulator],
+    path: str,
+    column: str,
+    table: str,
+) -> PathAccumulator:
+    if path not in acc:
+        acc[path] = PathAccumulator(
+            table=table,
+            column=column,
+            json_path=display_full_path(path),
+            is_json_column=True,
+        )
+    return acc[path]
+
+
+def register_leaf(
+    acc: Dict[str, PathAccumulator],
+    path: str,
+    value: Any,
+    column: str,
+    table: str,
+    dep_ctx: Dict[str, str],
+    row_idx: int,
+) -> None:
+    """Регистрирует конечный параметр (скаляр или массив скаляров)."""
+    node = ensure_leaf_acc(acc, path, column, table)
+    if row_idx not in node.touched_rows:
+        node.touched_rows.add(row_idx)
+        node.present_rows += 1
+        for dk, dv in dep_ctx.items():
+            if dv:
+                node.dep_presence[dk][dv] += 1
+    if isinstance(value, list):
+        node.note_type("массив")
+        node.add_example(value if len(value) <= 5 else list(value[:5]) + ["…"])
+        for item in value:
+            lab = type_label_scalar(item)
+            node.array_elem_types[lab] += 1
+            if len(node.scalar_for_array) < 50:
+                node.scalar_for_array.append(item)
+            vk = node._value_key(item)
+            if len(node.value_counter) < 5000 or vk in node.value_counter:
+                node.value_counter[vk] += 1
+    else:
+        node.note_type(type_label_scalar(value))
+        node.add_example(value)
+
+
+def walk_json_leaves(
     obj: Any,
     path: str,
     column: str,
     table: str,
     acc: Dict[str, PathAccumulator],
     dep_ctx: Dict[str, str],
+    row_idx: int,
 ) -> None:
-    """Обход JSON; path — относительный путь от корня JSON ('' = корень колонки)."""
-    key = path if path else "__ROOT__"
-    if key not in acc:
-        jp, _nm = rel_json_path_fields(path)
-        acc[key] = PathAccumulator(
-            table=table,
-            column=column,
-            json_path=jp if path else "-",
-            is_json_column=True,
-        )
-    node = acc[key]
-    node.present_rows += 1
-    for dk, dv in dep_ctx.items():
-        if dv:
-            node.dep_presence[dk][dv] += 1
+    """
+    Обход только конечных параметров (как в плоских каталогах полей / BigQuery field path).
 
+    - объект-контейнер не регистрируется, только спуск внутрь;
+    - массив объектов не регистрируется, регистрируются поля элементов (путь с []);
+    - массив скаляров / скаляр — конечный параметр;
+    - корневой массив скаляров не даёт отдельных ключей (это сама колонка).
+    """
     if isinstance(obj, dict):
-        node.note_type("объект")
-        try:
-            dump = json.dumps(obj, ensure_ascii=False)
-        except TypeError:
-            dump = str(obj)
-        node.add_example(obj if len(dump) < 200 else "{…}")
         for k, v in obj.items():
-            child = merge_path(path, k)
+            child = f"{path}.{k}" if path else k
             if isinstance(v, dict):
-                walk_json(v, child, column, table, acc, dep_ctx)
+                walk_json_leaves(v, child, column, table, acc, dep_ctx, row_idx)
             elif isinstance(v, list):
-                walk_json_array(v, child, column, table, acc, dep_ctx)
+                if is_array_of_scalars(v):
+                    register_leaf(acc, child, v, column, table, dep_ctx, row_idx)
+                elif all(isinstance(x, dict) for x in v):
+                    for item in v:
+                        walk_json_leaves(
+                            item, f"{child}[]", column, table, acc, dep_ctx, row_idx
+                        )
+                else:
+                    register_leaf(acc, child, v, column, table, dep_ctx, row_idx)
             else:
-                if child not in acc:
-                    jp, _ = rel_json_path_fields(child)
-                    acc[child] = PathAccumulator(
-                        table=table,
-                        column=column,
-                        json_path=jp,
-                        is_json_column=True,
-                    )
-                ch = acc[child]
-                ch.present_rows += 1
-                for dk, dv in dep_ctx.items():
-                    if dv:
-                        ch.dep_presence[dk][dv] += 1
-                ch.note_type(type_label_scalar(v))
-                ch.add_example(v)
-    elif isinstance(obj, list):
-        walk_json_array(obj, path, column, table, acc, dep_ctx)
-    else:
-        node.note_type(type_label_scalar(obj))
-        node.add_example(obj)
-
-
-def walk_json_array(
-    arr: List[Any],
-    path: str,
-    column: str,
-    table: str,
-    acc: Dict[str, PathAccumulator],
-    dep_ctx: Dict[str, str],
-) -> None:
-    key = path if path else "__ROOT__"
-    if key not in acc:
-        jp, _ = rel_json_path_fields(path)
-        acc[key] = PathAccumulator(
-            table=table,
-            column=column,
-            json_path=jp if path else "-",
-            is_json_column=True,
-        )
-    node = acc[key]
-    node.present_rows += 1
-    node.note_type("массив")
-    for dk, dv in dep_ctx.items():
-        if dv:
-            node.dep_presence[dk][dv] += 1
-    node.add_example(arr if len(arr) <= 5 else list(arr[:5]) + ["…"])
-
-    if not arr:
+                register_leaf(acc, child, v, column, table, dep_ctx, row_idx)
         return
 
-    elem_path = f"{path}[]" if path else "[]"
-    if all(isinstance(x, dict) for x in arr):
-        for item in arr:
-            walk_json(item, elem_path, column, table, acc, dep_ctx)
-    elif all(isinstance(x, list) for x in arr):
-        for item in arr:
-            walk_json_array(item, elem_path, column, table, acc, dep_ctx)
-    else:
-        if elem_path not in acc:
-            jp, _ = rel_json_path_fields(elem_path)
-            acc[elem_path] = PathAccumulator(
-                table=table,
-                column=column,
-                json_path=jp,
-                is_json_column=True,
-            )
-        el = acc[elem_path]
-        for item in arr:
-            el.present_rows += 1
-            for dk, dv in dep_ctx.items():
-                if dv:
-                    el.dep_presence[dk][dv] += 1
-            lab = type_label_scalar(item)
-            el.note_type(lab)
-            el.array_elem_types[lab] += 1
-            el.add_example(item)
-            if len(el.scalar_for_array) < 50:
-                el.scalar_for_array.append(item)
+    if isinstance(obj, list):
+        if not path:
+            if is_array_of_scalars(obj):
+                return
+            if all(isinstance(x, dict) for x in obj):
+                for item in obj:
+                    walk_json_leaves(item, "[]", column, table, acc, dep_ctx, row_idx)
+            return
+        if is_array_of_scalars(obj):
+            register_leaf(acc, path, obj, column, table, dep_ctx, row_idx)
+        return
+
+    if path:
+        register_leaf(acc, path, obj, column, table, dep_ctx, row_idx)
 
 
 def resolve_table_name(filename: str) -> Optional[str]:
@@ -1076,7 +1061,7 @@ def analyze_file(
     json_acc_by_col: Dict[str, Dict[str, PathAccumulator]] = {c: {} for c in json_cols}
     json_ok_by_col: Dict[str, int] = {c: 0 for c in json_cols}
 
-    for row in rows:
+    for row_idx, row in enumerate(rows):
         dep_ctx = {d: (row.get(d) or "").strip() for d in disc_names}
         for col in json_cols:
             raw = row.get(col) or ""
@@ -1084,9 +1069,9 @@ def analyze_file(
             if not ok:
                 continue
             json_ok_by_col[col] += 1
-            walk_json(obj, "", col, table, json_acc_by_col[col], dep_ctx)
+            walk_json_leaves(obj, "", col, table, json_acc_by_col[col], dep_ctx, row_idx)
 
-    # сбор строк результата
+    # сбор строк результата: только КОЛОНКИ и конечные JSON-ключи
     out_rows: List[Dict[str, Any]] = []
 
     for col in columns:
@@ -1147,17 +1132,17 @@ def analyze_file(
         if is_json:
             desc = COLUMN_DESCRIPTIONS.get(table, {}).get(
                 col,
-                "Колонка содержит JSON; детали ключей — в отдельных строках каталога.",
+                "Колонка содержит JSON; конечные ключи — отдельными строками каталога.",
             )
 
         cons = consistency_for_param(consistency_idx, table, col, "-", is_json)
 
         if is_json and disc_names:
-            deps_col = "См. вложенные ключи.\nНабор ключей зависит от:\n" + "\n".join(
+            deps_col = "Колонка JSON.\nНабор вложенных ключей зависит от:\n" + "\n".join(
                 f"  {d}" for d in disc_names
             )
         elif is_json:
-            deps_col = "См. вложенные ключи.\nНабор ключей зависит от контекста строки."
+            deps_col = "Колонка JSON.\nНабор вложенных ключей зависит от контекста строки."
         else:
             deps_col = "-"
 
@@ -1174,10 +1159,12 @@ def analyze_file(
         out_rows.append(
             {
                 "table": table,
+                "param_kind": "КОЛОНКА",
+                "csv_column": col,
                 "col_type": "JSON" if is_json else "-",
-                "data_type": dtype,
                 "json_path": "-",
                 "name": col,
+                "data_type": dtype,
                 "deps": deps_col,
                 "description": desc,
                 "param_id": param_id,
@@ -1203,17 +1190,24 @@ def analyze_file(
 
         json_ok = json_ok_by_col.get(col, 0)
         acc_map = json_acc_by_col[col]
-        for path_key in sorted(
-            acc_map.keys(), key=lambda p: (0 if p == "__ROOT__" else 1, p.count("."), p)
-        ):
-            if path_key == "__ROOT__":
+        paths_set = set(acc_map.keys())
+        skip_paths = {
+            p
+            for p in paths_set
+            if any(ch == f"{p}[]" or ch.startswith(f"{p}[].") for ch in paths_set)
+        }
+        for rel in sorted(acc_map.keys(), key=lambda p: (p.count("."), p.count("[]"), p)):
+            if rel in skip_paths:
                 continue
-            node = acc_map[path_key]
-            rel = path_key
-            jp, nm = rel_json_path_fields(rel)
-            if nm == "[]" or not nm:
-                nm = "(элемент массива)"
+            node = acc_map[rel]
+            full_path = display_full_path(rel)
+            nm = leaf_key_name(rel)
+            if not nm or nm == "[]":
+                continue
             dtype_j = dominant_type(node)
+            # массивы скаляров — тип «массив с …»
+            if "массив" in node.types:
+                dtype_j = dominant_type(node)
 
             deps = format_dependencies(node, disc_totals, True)
             desc_j = description_for_param(table, col, rel, True, glossary)
@@ -1224,20 +1218,9 @@ def analyze_file(
             while len(exs) < 3:
                 exs.append("-")
 
-            filled_k = node.present_rows
-            key_absent: Optional[int] = None
-            empty_est = max(0, total - min(filled_k, total))
-            # для ключей объекта (не «размноженных» элементов массива) оцениваем отсутствие
-            if "[]" not in rel:
-                if filled_k <= json_ok:
-                    key_absent = max(0, json_ok - filled_k)
-                    empty_est = (total - json_ok) + key_absent
-            elif rel.endswith("[]") and rel.count("[]") == 1 and "." not in rel.replace("[]", ""):
-                # массив верхнего уровня: filled = число строк с этим ключом-массивом
-                if filled_k <= json_ok:
-                    key_absent = max(0, json_ok - filled_k)
-                    empty_est = (total - json_ok) + key_absent
-
+            filled_k = len(node.touched_rows) if node.touched_rows else node.present_rows
+            key_absent = max(0, json_ok - filled_k) if filled_k <= json_ok else 0
+            empty_est = (total - json_ok) + key_absent
             uniq_k = len(node.value_counter)
             occ_k = format_occurrence_stats(
                 total=total,
@@ -1256,10 +1239,12 @@ def analyze_file(
             out_rows.append(
                 {
                     "table": table,
+                    "param_kind": "JSON-КЛЮЧ",
+                    "csv_column": col,
                     "col_type": "JSON",
-                    "data_type": dtype_j,
-                    "json_path": jp,
+                    "json_path": full_path,
                     "name": nm,
+                    "data_type": dtype_j,
                     "deps": deps,
                     "description": desc_j,
                     "param_id": pid,
@@ -1271,7 +1256,7 @@ def analyze_file(
                     "rows_total": str(total),
                     "filled": str(filled_k),
                     "empty": str(empty_est),
-                    "fill_pct": f"{(100.0 * min(filled_k, total) / total) if total else 0:.1f}%",
+                    "fill_pct": f"{(100.0 * filled_k / total) if total else 0:.1f}%",
                     "uniq": str(uniq_k),
                     "diversity": diversity_ratio(uniq_k, filled_k),
                     "occurrence": occ_k,
@@ -1285,33 +1270,40 @@ def analyze_file(
 
 
 def mark_duplicates(all_rows: List[Dict[str, Any]]) -> None:
-    """Проставляет признак дублей по имени ключа/колонки между таблицами."""
+    """Проставляет признак дублей по имени / полному пути между таблицами."""
     by_name: Dict[str, List[str]] = defaultdict(list)
+    by_path: Dict[str, List[str]] = defaultdict(list)
     for r in all_rows:
-        by_name[r["name"]].append(f"{r['table']}.{r['name']}" + (f" ({r['json_path']})" if r["json_path"] != "-" else ""))
+        label = f"{r['table']}.{r.get('csv_column', r['name'])}"
+        if r.get("json_path") and r["json_path"] != "-":
+            label += f"::{r['json_path']}"
+        by_name[r["name"]].append(label)
+        if r.get("json_path") and r["json_path"] != "-":
+            by_path[r["json_path"]].append(label)
 
-    # также сравним leaf без []
-    by_leaf: Dict[str, Set[str]] = defaultdict(set)
+    by_leaf_tables: Dict[str, Set[str]] = defaultdict(set)
     for r in all_rows:
-        leaf = r["name"].replace("[]", "")
-        by_leaf[leaf].add(r["table"])
+        by_leaf_tables[r["name"]].add(r["table"])
 
     for r in all_rows:
-        leaf = r["name"].replace("[]", "")
-        tables = sorted(by_leaf.get(leaf, set()))
-        same_name = by_name.get(r["name"], [])
-        others = [x for x in same_name if not x.startswith(r["table"] + ".")]
+        tables = sorted(by_leaf_tables.get(r["name"], set()))
+        same = by_name.get(r["name"], [])
+        others = [x for x in same if not x.startswith(r["table"] + ".")]
+        bits: List[str] = []
         if len(tables) > 1:
-            r["dup_hint"] = (
-                f"Да (предположение): имя `{leaf}` встречается в таблицах: "
-                + ", ".join(tables)
+            bits.append(
+                "имя встречается в таблицах: " + ", ".join(tables)
             )
-            if others:
-                r["dup_hint"] += ". Примеры: " + "; ".join(others[:6])
-        elif others:
-            r["dup_hint"] = "Частично: то же имя в других путях — " + "; ".join(others[:6])
-        else:
-            r["dup_hint"] = "Нет (уникальное имя в каталоге)"
+        if others:
+            bits.append("примеры: " + "; ".join(others[:6]))
+        jp = r.get("json_path") or "-"
+        if jp != "-" and len(by_path.get(jp, [])) > 1:
+            bits.append(f"тот же путь `{jp}` в нескольких местах")
+        r["dup_hint"] = (
+            "Да (предположение): " + "; ".join(bits)
+            if bits
+            else "Нет (уникальное имя в каталоге)"
+        )
 
 
 def write_excel(rows: List[Dict[str, Any]], out_path: Path, meta: Dict[str, str]) -> None:
@@ -1340,9 +1332,10 @@ def write_excel(rows: List[Dict[str, Any]], out_path: Path, meta: Dict[str, str]
         cell.alignment = header_align
 
     key_order = [
-        "table", "col_type", "data_type", "json_path", "name", "deps",
-        "description", "param_id", "dup_hint", "ex1", "ex2", "ex3",
-        "consistency", "rows_total", "filled", "empty", "fill_pct",
+        "table", "param_kind", "csv_column", "col_type", "json_path", "name",
+        "data_type", "deps", "description", "param_id", "dup_hint",
+        "ex1", "ex2", "ex3", "consistency",
+        "rows_total", "filled", "empty", "fill_pct",
         "uniq", "diversity", "occurrence", "source",
     ]
     for r_idx, r in enumerate(rows, start=2):
@@ -1353,11 +1346,14 @@ def write_excel(rows: List[Dict[str, Any]], out_path: Path, meta: Dict[str, str]
             cell.border = thin
             if k == "col_type" and val == "JSON":
                 cell.fill = PatternFill("solid", fgColor="FFF2CC")
+            if k == "param_kind" and val == "JSON-КЛЮЧ":
+                cell.fill = PatternFill("solid", fgColor="E2EFDA")
 
     ws.freeze_panes = "A2"
     ws.auto_filter.ref = f"A1:{get_column_letter(len(EXCEL_HEADERS))}{len(rows) + 1}"
     widths = [
-        16, 12, 28, 40, 28, 42, 48, 36, 36, 28, 28, 28, 48,
+        16, 12, 22, 12, 40, 24, 28, 42, 48, 36, 36,
+        28, 28, 28, 48,
         12, 14, 14, 12, 12, 14, 42, 36,
     ]
     for i, w in enumerate(widths, start=1):
