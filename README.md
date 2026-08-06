@@ -98,7 +98,7 @@ SPOD_PROM/
 - `Docs/MANAGER_STATS.md` — книга MANAGER_STATS.
 - `Docs/CODEBASE_ANALYTICS.md` — метрики кода (`build_codebase_analytics.py`).
 - `Docs/JSON/` — каталог входных CSV/JSON (`SPOD_INPUT_DATA_CATALOG.md`, `examples/`).
-- `Docs/params_catalog/` — Excel-перечень всех настраиваемых параметров (`SPOD_PARAMS_CATALOG.xlsx`, сборка: `src/Tools/build_spod_params_excel.py`).
+- `Docs/params_catalog/` — Excel-перечень параметров (`SPOD_PARAMS_CATALOG_LEAF_v2.xlsx`, сборка: `src/Tools/build_spod_params_excel.py`).
 
 ---
 

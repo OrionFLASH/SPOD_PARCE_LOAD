@@ -8,7 +8,7 @@
 
 Запуск из корня проекта:
   python src/Tools/build_spod_params_excel.py
-  python src/Tools/build_spod_params_excel.py --input-dir IN/SPOD_UPLOAD --out Docs/params_catalog/SPOD_PARAMS_CATALOG.xlsx
+  python src/Tools/build_spod_params_excel.py --input-dir IN/SPOD_UPLOAD --out Docs/params_catalog/SPOD_PARAMS_CATALOG_LEAF_v2.xlsx
 """
 from __future__ import annotations
 
@@ -28,7 +28,7 @@ from openpyxl.utils import get_column_letter
 
 ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_INPUT = ROOT / "IN" / "SPOD_UPLOAD"
-DEFAULT_OUT = ROOT / "Docs" / "params_catalog" / "SPOD_PARAMS_CATALOG.xlsx"
+DEFAULT_OUT = ROOT / "Docs" / "params_catalog" / "SPOD_PARAMS_CATALOG_LEAF_v2.xlsx"
 CHECKS_PATH = ROOT / "config" / "CONFIG_CHECKS.json"
 GLOSSARY_DIR = ROOT / "src" / "Tools" / "catalog_glossary"
 DELIM = ";"

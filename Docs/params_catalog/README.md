@@ -9,7 +9,9 @@
 
 Промежуточные объекты/контейнеры (`getCondition`, `employeeRating`, элемент массива и т.п.) **не** включаются.
 
-Артефакт: **`SPOD_PARAMS_CATALOG.xlsx`**.
+Артефакт: **`SPOD_PARAMS_CATALOG_LEAF_v2.xlsx`** (модель «только колонки + конечные ключи»).
+
+Предыдущий файл `SPOD_PARAMS_CATALOG.xlsx` сохранён для сравнения.
 
 ## Модель (как в каталогах полей / BigQuery field path)
 
