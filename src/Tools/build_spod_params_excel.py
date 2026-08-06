@@ -233,8 +233,13 @@ EXCEL_HEADERS: List[str] = [
     "Пример значения 2",
     "Пример значения 3",
     "Условия консистентности",
-    "Непустых / всего строк",
-    "Уникальных (оценка)",
+    "Строк в таблице",
+    "Заполнено / ключ есть",
+    "Пусто / ключа нет",
+    "% заполнения",
+    "Уникальных значений",
+    "Разнообразие (уник./заполн.)",
+    "Статистика встречаемости",
     "Источник файла",
 ]
 
@@ -439,7 +444,7 @@ class PathAccumulator:
 
     table: str
     column: str
-    json_path: str  # "-" для плоских; для JSON — путь, для корня колонки — "-"
+    json_path: str  # "-" для плоских; для JSON — полный путь от корня
     is_json_column: bool
     types: Counter = field(default_factory=Counter)
     examples: List[str] = field(default_factory=list)
@@ -447,13 +452,37 @@ class PathAccumulator:
     present_rows: int = 0
     # dependency_key -> Counter of values where this path appeared
     dep_presence: Dict[str, Counter] = field(default_factory=lambda: defaultdict(Counter))
-    # dependency_key -> total rows of that discriminator value in file (filled later)
     array_elem_types: Counter = field(default_factory=Counter)
     scalar_for_array: List[Any] = field(default_factory=list)
+    value_counter: Counter = field(default_factory=Counter)
+    empty_string_count: int = 0
+    null_count: int = 0
+    empty_array_count: int = 0
+
+    def _value_key(self, v: Any) -> str:
+        if v is None:
+            return "null"
+        if isinstance(v, (dict, list)):
+            try:
+                s = json.dumps(v, ensure_ascii=False, separators=(",", ":"), sort_keys=True)
+            except TypeError:
+                s = str(v)
+        else:
+            s = str(v)
+        if len(s) > 200:
+            s = s[:197] + "…"
+        return s
 
     def add_example(self, v: Any) -> None:
         if v is None:
+            self.null_count += 1
             s = "null"
+        elif isinstance(v, str) and v.strip() == "":
+            self.empty_string_count += 1
+            s = '""'
+        elif isinstance(v, list) and len(v) == 0:
+            self.empty_array_count += 1
+            s = "[]"
         elif isinstance(v, (dict, list)):
             try:
                 s = json.dumps(v, ensure_ascii=False, separators=(",", ":"))
@@ -461,14 +490,14 @@ class PathAccumulator:
                 s = str(v)
         else:
             s = str(v)
+        vk = self._value_key(v)
+        if len(self.value_counter) < 5000 or vk in self.value_counter:
+            self.value_counter[vk] += 1
         if len(s) > 300:
             s = s[:297] + "…"
         if s not in self.example_set and len(self.examples) < 3:
             self.example_set.add(s)
             self.examples.append(s)
-        elif s not in self.example_set and len(self.examples) >= 3:
-            # попытаться заменить если все примеры одинаковы по сути — уже 3 разных
-            pass
         elif len(self.examples) < 3:
             self.examples.append(s)
 
@@ -478,25 +507,36 @@ class PathAccumulator:
 
 def rel_json_path_fields(path_from_root: str) -> Tuple[str, str]:
     """
-    path_from_root — относительный путь от корня JSON (без имени колонки),
-    например '' (корень), 'hidden', 'getCondition.employeeRating', 'feature[]'.
+    path_from_root — относительный путь от корня JSON (без имени колонки).
 
-    Возвращает (путь_до_ключа, имя):
-    - корень объекта/массива колонки → ('-', '<column later>')
-    - ключ в корне → ('-', 'key' или 'key[]')
-    - вложенный → ('parent.path', 'leaf' или 'leaf[]')
+    Возвращает (полный_путь_для_колонки, имя_ключа):
+    - ключ в корне без вложенности → путь '-', имя ключа
+    - вложенный → полный путь от корня (включая имя), имя = leaf
+    - имя никогда не равно ровно '[]': для корневого элемента массива → '(элемент массива)'
+    - суффикс '[]' в имени убирается: 'feature[]' → имя 'feature' (массив), путь 'feature[]'
     """
     p = (path_from_root or "").strip()
     if not p:
         return "-", ""
-    is_arr = p.endswith("[]")
-    core = p[:-2] if is_arr else p
+
+    is_arr_suffix = p.endswith("[]")
+    core = p[:-2] if is_arr_suffix else p
+
+    if p == "[]" or (is_arr_suffix and core == ""):
+        return "[]", "(элемент массива)"
+
     if "." not in core:
-        name = core + ("[]" if is_arr else "")
+        # корень JSON
+        name = core if core else "(элемент массива)"
+        # путь: для корневого ключа '-' ; для массива в корне — полный 'feature[]'
+        if is_arr_suffix:
+            return p, name
         return "-", name
-    parent, leaf = core.rsplit(".", 1)
-    name = leaf + ("[]" if is_arr else "")
-    return parent, name
+
+    leaf = core.rsplit(".", 1)[-1]
+    name = leaf if leaf else "(элемент массива)"
+    # полный путь от начала (с [] если это узел массива)
+    return p, name
 
 
 def walk_json(
@@ -671,33 +711,80 @@ def format_dependencies(
     disc_totals: Dict[str, Counter],
     is_json: bool,
 ) -> str:
-    parts: List[str] = []
+    """Каждая зависимость — с новой строки внутри ячейки."""
+    lines: List[str] = []
     if not is_json:
         return "-"
     for disc, counter in sorted(node.dep_presence.items()):
         totals = disc_totals.get(disc, Counter())
         present_vals = sorted(counter.keys())
-        # значения дискриминатора, при которых путь НЕ встречается
         all_vals = sorted(totals.keys())
         missing = [v for v in all_vals if v not in counter]
-        only = []
+        lines.append(f"Дискриминатор: {disc}")
         for v in present_vals:
-            # почти всегда при этом значении?
             tot = totals.get(v, 0)
             cnt = counter[v]
             if tot and cnt / tot >= 0.95:
-                only.append(f"{disc}={v} (почти всегда, {cnt}/{tot})")
+                lines.append(f"  есть при {disc}={v}: {cnt}/{tot} (почти всегда)")
             elif tot:
-                only.append(f"{disc}={v} ({cnt}/{tot} строк)")
+                lines.append(f"  есть при {disc}={v}: {cnt}/{tot} строк")
             else:
-                only.append(f"{disc}={v} ({cnt})")
-        line = "Присутствует при: " + "; ".join(only)
-        if missing and len(missing) <= 12:
-            line += ". Нет при: " + ", ".join(f"{disc}={v}" for v in missing)
-        elif missing:
-            line += f". Нет при {len(missing)} др. значениях {disc}"
-        parts.append(line)
-    return "\n".join(parts) if parts else "-"
+                lines.append(f"  есть при {disc}={v}: {cnt}")
+        for v in missing:
+            tot = totals.get(v, 0)
+            lines.append(f"  нет при {disc}={v} (таких строк дискриминатора: {tot})")
+    return "\n".join(lines) if lines else "-"
+
+
+def diversity_ratio(unique_n: int, filled_n: int) -> str:
+    if filled_n <= 0:
+        return "-"
+    return f"{unique_n / filled_n:.2f}"
+
+
+def format_occurrence_stats(
+    *,
+    total: int,
+    filled: int,
+    empty: int,
+    unique_n: int,
+    value_counter: Optional[Counter] = None,
+    empty_string: int = 0,
+    null_n: int = 0,
+    empty_array: int = 0,
+    json_ok: Optional[int] = None,
+    key_absent_in_json: Optional[int] = None,
+    is_json_key: bool = False,
+) -> str:
+    """Текстовая сводка встречаемости — каждая метрика с новой строки."""
+    lines: List[str] = [
+        f"строк таблицы: {total}",
+        f"заполнено / ключ встречается: {filled}",
+        f"пусто / ключа нет: {empty}",
+    ]
+    pct = (100.0 * filled / total) if total else 0.0
+    lines.append(f"% заполнения: {pct:.1f}%")
+    lines.append(f"уникальных значений: {unique_n}")
+    if filled:
+        lines.append(f"разнообразие (уник./заполн.): {unique_n / filled:.2f}")
+    if is_json_key and json_ok is not None:
+        lines.append(f"JSON колонки распарсен: {json_ok}/{total}")
+    if key_absent_in_json is not None:
+        lines.append(f"в распарсенном JSON ключ отсутствует: {key_absent_in_json}")
+    if empty_string:
+        lines.append(f"пустая строка \"\": {empty_string}")
+    if null_n:
+        lines.append(f"null: {null_n}")
+    if empty_array:
+        lines.append(f"пустой массив []: {empty_array}")
+    if value_counter:
+        top = value_counter.most_common(5)
+        if top:
+            lines.append("топ значений:")
+            for val, cnt in top:
+                show = val if len(val) <= 80 else val[:77] + "…"
+                lines.append(f"  {cnt}× {show}")
+    return "\n".join(lines)
 
 
 def dominant_type(node: PathAccumulator) -> str:
@@ -987,6 +1074,7 @@ def analyze_file(
 
     # JSON accumulators per column
     json_acc_by_col: Dict[str, Dict[str, PathAccumulator]] = {c: {} for c in json_cols}
+    json_ok_by_col: Dict[str, int] = {c: 0 for c in json_cols}
 
     for row in rows:
         dep_ctx = {d: (row.get(d) or "").strip() for d in disc_names}
@@ -995,17 +1083,24 @@ def analyze_file(
             obj, ok = try_parse_json(raw)
             if not ok:
                 continue
+            json_ok_by_col[col] += 1
             walk_json(obj, "", col, table, json_acc_by_col[col], dep_ctx)
 
     # сбор строк результата
     out_rows: List[Dict[str, Any]] = []
-    name_index: Dict[str, List[str]] = defaultdict(list)  # заполним позже глобально
 
     for col in columns:
         is_json = col in json_cols
         vals = flat_values[col]
         nonempty = [v for v in vals if str(v).strip() != ""]
+        empty_n = total - len(nonempty)
         uniq = len(set(nonempty))
+        flat_counter: Counter = Counter()
+        for v in nonempty:
+            key = v if len(v) <= 200 else v[:197] + "…"
+            if len(flat_counter) < 5000 or key in flat_counter:
+                flat_counter[key] += 1
+
         examples: List[str] = []
         seen_ex: Set[str] = set()
         for v in nonempty:
@@ -1032,7 +1127,6 @@ def analyze_file(
 
         dtype = infer_flat_column_type(vals)
         if is_json:
-            # уточнить по фактически распарсенным корням
             root_kinds: Counter = Counter()
             for v in nonempty[:500]:
                 obj, ok = try_parse_json(v)
@@ -1053,10 +1147,29 @@ def analyze_file(
         if is_json:
             desc = COLUMN_DESCRIPTIONS.get(table, {}).get(
                 col,
-                f"Колонка содержит JSON; детали ключей — в отдельных строках каталога.",
+                "Колонка содержит JSON; детали ключей — в отдельных строках каталога.",
             )
 
         cons = consistency_for_param(consistency_idx, table, col, "-", is_json)
+
+        if is_json and disc_names:
+            deps_col = "См. вложенные ключи.\nНабор ключей зависит от:\n" + "\n".join(
+                f"  {d}" for d in disc_names
+            )
+        elif is_json:
+            deps_col = "См. вложенные ключи.\nНабор ключей зависит от контекста строки."
+        else:
+            deps_col = "-"
+
+        occ = format_occurrence_stats(
+            total=total,
+            filled=len(nonempty),
+            empty=empty_n,
+            unique_n=uniq,
+            value_counter=flat_counter,
+            json_ok=json_ok_by_col.get(col) if is_json else None,
+            is_json_key=False,
+        )
 
         out_rows.append(
             {
@@ -1065,19 +1178,21 @@ def analyze_file(
                 "data_type": dtype,
                 "json_path": "-",
                 "name": col,
-                "deps": "-" if not is_json else (
-                    "См. вложенные ключи; набор ключей зависит от "
-                    + (", ".join(disc_names) if disc_names else "контекста строки")
-                ),
+                "deps": deps_col,
                 "description": desc,
                 "param_id": param_id,
-                "dup_hint": "",  # позже
+                "dup_hint": "",
                 "ex1": examples[0],
                 "ex2": examples[1],
                 "ex3": examples[2],
                 "consistency": cons,
-                "fill": f"{len(nonempty)}/{total}",
+                "rows_total": str(total),
+                "filled": str(len(nonempty)),
+                "empty": str(empty_n),
+                "fill_pct": f"{(100.0 * len(nonempty) / total) if total else 0:.1f}%",
                 "uniq": str(uniq),
+                "diversity": diversity_ratio(uniq, len(nonempty)),
+                "occurrence": occ,
                 "source": path.name,
                 "_sort": (table, col, "", 0),
             }
@@ -1086,15 +1201,18 @@ def analyze_file(
         if not is_json:
             continue
 
-        # JSON-пути
+        json_ok = json_ok_by_col.get(col, 0)
         acc_map = json_acc_by_col[col]
-        for path_key in sorted(acc_map.keys(), key=lambda p: (0 if p == "__ROOT__" else 1, p.count("."), p)):
-            # корень уже описан строкой самой колонки (__COL__)
+        for path_key in sorted(
+            acc_map.keys(), key=lambda p: (0 if p == "__ROOT__" else 1, p.count("."), p)
+        ):
             if path_key == "__ROOT__":
                 continue
             node = acc_map[path_key]
             rel = path_key
             jp, nm = rel_json_path_fields(rel)
+            if nm == "[]" or not nm:
+                nm = "(элемент массива)"
             dtype_j = dominant_type(node)
 
             deps = format_dependencies(node, disc_totals, True)
@@ -1105,6 +1223,35 @@ def analyze_file(
             exs = list(node.examples)
             while len(exs) < 3:
                 exs.append("-")
+
+            filled_k = node.present_rows
+            key_absent: Optional[int] = None
+            empty_est = max(0, total - min(filled_k, total))
+            # для ключей объекта (не «размноженных» элементов массива) оцениваем отсутствие
+            if "[]" not in rel:
+                if filled_k <= json_ok:
+                    key_absent = max(0, json_ok - filled_k)
+                    empty_est = (total - json_ok) + key_absent
+            elif rel.endswith("[]") and rel.count("[]") == 1 and "." not in rel.replace("[]", ""):
+                # массив верхнего уровня: filled = число строк с этим ключом-массивом
+                if filled_k <= json_ok:
+                    key_absent = max(0, json_ok - filled_k)
+                    empty_est = (total - json_ok) + key_absent
+
+            uniq_k = len(node.value_counter)
+            occ_k = format_occurrence_stats(
+                total=total,
+                filled=filled_k,
+                empty=empty_est,
+                unique_n=uniq_k,
+                value_counter=node.value_counter,
+                empty_string=node.empty_string_count,
+                null_n=node.null_count,
+                empty_array=node.empty_array_count,
+                json_ok=json_ok,
+                key_absent_in_json=key_absent,
+                is_json_key=True,
+            )
 
             out_rows.append(
                 {
@@ -1121,14 +1268,20 @@ def analyze_file(
                     "ex2": exs[1],
                     "ex3": exs[2],
                     "consistency": cons_j,
-                    "fill": f"{node.present_rows}/{total}",
-                    "uniq": "-",
+                    "rows_total": str(total),
+                    "filled": str(filled_k),
+                    "empty": str(empty_est),
+                    "fill_pct": f"{(100.0 * min(filled_k, total) / total) if total else 0:.1f}%",
+                    "uniq": str(uniq_k),
+                    "diversity": diversity_ratio(uniq_k, filled_k),
+                    "occurrence": occ_k,
                     "source": path.name,
                     "_sort": (table, col, rel, 1),
                 }
             )
 
     return out_rows
+
 
 
 def mark_duplicates(all_rows: List[Dict[str, Any]]) -> None:
@@ -1176,33 +1329,40 @@ def write_excel(rows: List[Dict[str, Any]], out_path: Path, meta: Dict[str, str]
         top=Side(style="thin", color="D9D9D9"),
         bottom=Side(style="thin", color="D9D9D9"),
     )
-    wrap = Alignment(wrap_text=True, vertical="top")
+    # данные: по высоте по центру; заголовок — по высоте и по ширине
+    data_align = Alignment(wrap_text=True, vertical="center", horizontal="left")
+    header_align = Alignment(wrap_text=True, vertical="center", horizontal="center")
 
     for col_idx, h in enumerate(EXCEL_HEADERS, start=1):
         cell = ws.cell(1, col_idx, h)
         cell.font = header_font
         cell.fill = header_fill
-        cell.alignment = Alignment(wrap_text=True, vertical="center")
+        cell.alignment = header_align
 
     key_order = [
         "table", "col_type", "data_type", "json_path", "name", "deps",
         "description", "param_id", "dup_hint", "ex1", "ex2", "ex3",
-        "consistency", "fill", "uniq", "source",
+        "consistency", "rows_total", "filled", "empty", "fill_pct",
+        "uniq", "diversity", "occurrence", "source",
     ]
     for r_idx, r in enumerate(rows, start=2):
         for c_idx, k in enumerate(key_order, start=1):
             val = r.get(k, "")
             cell = ws.cell(r_idx, c_idx, val)
-            cell.alignment = wrap
+            cell.alignment = data_align
             cell.border = thin
             if k == "col_type" and val == "JSON":
                 cell.fill = PatternFill("solid", fgColor="FFF2CC")
 
     ws.freeze_panes = "A2"
     ws.auto_filter.ref = f"A1:{get_column_letter(len(EXCEL_HEADERS))}{len(rows) + 1}"
-    widths = [16, 12, 28, 36, 28, 40, 48, 36, 36, 28, 28, 28, 48, 14, 12, 36]
+    widths = [
+        16, 12, 28, 40, 28, 42, 48, 36, 36, 28, 28, 28, 48,
+        12, 14, 14, 12, 12, 14, 42, 36,
+    ]
     for i, w in enumerate(widths, start=1):
         ws.column_dimensions[get_column_letter(i)].width = w
+    ws.row_dimensions[1].height = 36
 
     # --- Лист META ---
     ws2 = wb.create_sheet("META")
@@ -1212,6 +1372,8 @@ def write_excel(rows: List[Dict[str, Any]], out_path: Path, meta: Dict[str, str]
     ws2["B1"].font = header_font
     ws2["A1"].fill = header_fill
     ws2["B1"].fill = header_fill
+    ws2["A1"].alignment = header_align
+    ws2["B1"].alignment = header_align
     meta_rows = [
         ("generated_at", meta.get("generated_at", "")),
         ("input_dir", meta.get("input_dir", "")),
@@ -1220,17 +1382,22 @@ def write_excel(rows: List[Dict[str, Any]], out_path: Path, meta: Dict[str, str]
         ("note", "Полный обход всех строк CSV; JSON после замены \"\"\" → \". Описания — из глоссариев/эвристик."),
     ]
     for i, (a, b) in enumerate(meta_rows, start=2):
-        ws2.cell(i, 1, a)
-        ws2.cell(i, 2, b)
+        c1 = ws2.cell(i, 1, a)
+        c2 = ws2.cell(i, 2, b)
+        c1.alignment = data_align
+        c2.alignment = data_align
     ws2.column_dimensions["A"].width = 24
     ws2.column_dimensions["B"].width = 100
 
     # --- Лист TABLES ---
     ws3 = wb.create_sheet("TABLES")
-    for col_idx, h in enumerate(["Таблица", "Файл", "Строк данных", "Колонок", "Параметров в каталоге"], start=1):
+    for col_idx, h in enumerate(
+        ["Таблица", "Файл", "Строк данных", "Колонок", "Параметров в каталоге"], start=1
+    ):
         cell = ws3.cell(1, col_idx, h)
         cell.font = header_font
         cell.fill = header_fill
+        cell.alignment = header_align
     by_table: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
     for r in rows:
         by_table[r["table"]].append(r)
@@ -1238,20 +1405,13 @@ def write_excel(rows: List[Dict[str, Any]], out_path: Path, meta: Dict[str, str]
     for table in sorted(by_table.keys()):
         trs = by_table[table]
         src = trs[0]["source"]
-        # fill вида n/total у колонок
-        total_rows = trs[0]["fill"].split("/")[-1] if trs else ""
-        cols = len({r["name"] for r in trs if r["json_path"] == "-" and r["col_type"] in ("-", "JSON") and not r["param_id"].endswith("__root") or (r["json_path"] == "-" and r["col_type"] == "-")})
-        # проще: число уникальных колонок = строки с json_path=='-' и name == колонка верхнего уровня
-        top_cols = sorted({r["name"] for r in trs if r["json_path"] == "-" and "__COL__" in r["param_id"] or (r["json_path"] == "-" and r["col_type"] in ("JSON", "-") and r["param_id"].count("__") >= 2)})
-        # ещё проще
-        top_cols = [r for r in trs if r["json_path"] == "-" and (r["col_type"] == "-" or (r["col_type"] == "JSON" and r["param_id"].endswith("__" + re.sub(r'[^A-Za-z0-9]+', '_', r['name']).strip('_')) or "__COL__" in r["param_id"]))]
-        # count columns from param_id COL
+        total_rows = trs[0].get("rows_total", "")
         n_cols = sum(1 for r in trs if "__COL__" in r["param_id"])
-        ws3.cell(t_idx, 1, table)
-        ws3.cell(t_idx, 2, src)
-        ws3.cell(t_idx, 3, total_rows)
-        ws3.cell(t_idx, 4, n_cols)
-        ws3.cell(t_idx, 5, len(trs))
+        for c_idx, val in enumerate(
+            [table, src, total_rows, n_cols, len(trs)], start=1
+        ):
+            cell = ws3.cell(t_idx, c_idx, val)
+            cell.alignment = data_align
         t_idx += 1
     for i, w in enumerate([20, 48, 14, 12, 18], start=1):
         ws3.column_dimensions[get_column_letter(i)].width = w
