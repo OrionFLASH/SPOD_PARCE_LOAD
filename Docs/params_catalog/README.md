@@ -29,7 +29,7 @@
 ```bash
 python src/Tools/build_spod_params_excel.py \
   --input-dir IN/SPOD_UPLOAD \
-  --out Docs/params_catalog/SPOD_PARAMS_CATALOG.xlsx
+  --out Docs/params_catalog/SPOD_PARAMS_CATALOG_LEAF_v2.xlsx
 ```
 
 ## Колонки листа PARAMETERS
