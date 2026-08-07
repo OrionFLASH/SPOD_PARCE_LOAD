@@ -355,7 +355,10 @@
       "columns": [
         "START_DT",
         "END_DT",
-        "RESULT_DT"
+        "RESULT_DT",
+        "REPORT=>CONTEST_DATE",
+        "LIST-TOURNAMENT=>Дата, после которой можно закрывать турнир и подводить итоги",
+        "LIST-TOURNAMENT=>Дата обновления данных источника"
       ],
       "data_type": "date",
       "decimal_places": 0,
@@ -471,6 +474,20 @@
         "Место в рейтинге ГОСБ",
         "ТБ",
         "ГОСБ"
+      ],
+      "data_type": "number",
+      "decimal_places": 0,
+      "decimal_separator": ",",
+      "thousands_separator": true,
+      "date_format": "YYYY-MM-DD",
+      "horizontal": "center",
+      "vertical": "center",
+      "wrap_text": false
+    },
+    {
+      "sheet": "LIST-REWARDS",
+      "columns": [
+        "REWARD=>REWARD_COST"
       ],
       "data_type": "number",
       "decimal_places": 0,

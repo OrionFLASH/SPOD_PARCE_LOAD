@@ -292,7 +292,8 @@
         "Код награды"
       ],
       "column": [
-        "FULL_NAME"
+        "FULL_NAME",
+        "REWARD_COST"
       ],
       "mode": "value",
       "multiply_rows": false,

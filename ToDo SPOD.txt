@@ -1,32 +1,270 @@
-1)
-Лист                       Строки    Примечание
-  -----------------------------------------------------------
-  GROUP                      467       файл без изменений (SHA)
-  INDICATOR                  345       файл без изменений (SHA)
-  REWARD-LINK                627       файл без изменений (SHA)
-  TOURNAMENT-SCHEDULE        636       new=636 chg=0 same=0 off=0
-  ORG_UNIT_V20               128       файл без изменений (SHA)
-  USER_ROLE SB               202       файл без изменений (SHA)
+ряд файлов из input_files надо разделить на разделы и формировать отдельные выходные файлы по итогу работы на каждый блок
+файлы которые надо так разделить это
 
-  в TOURNAMENT-SCHEDULE изменил всего 4 строки по коду ключу
-  но мне система пишет каждый раз даже если изменилась 1 строка что изменились все!
+  {
+      "file": "CONTEST (PROM) 03-07 v0.csv",
+      "sheet": "CONTEST-DATA",
+      "subdir": "SPOD",
+      "archive_to_db": true,
+      "sort_columns": [
+        {
+          "column": "CONTEST_CODE",
+          "order": "asc"
+        }
+      ],
+      "max_col_width": 120,
+      "freeze": "C2",
+      "col_width_mode": "AUTO",
+      "min_col_width": 12,
+      "include_in_source": true,
+      "archive_db_path": "OUT/DB/spod_input_archive.sqlite"
+    },
+    {
+      "file": "GROUP (PROM) 03-07 v0.csv",
+      "sheet": "GROUP",
+      "subdir": "SPOD",
+      "archive_to_db": true,
+      "sort_columns": [
+        {
+          "column": "GROUP_VALUE",
+          "order": "asc"
+        },
+        {
+          "column": "GROUP_CODE",
+          "order": "asc"
+        },
+        {
+          "column": "CONTEST_CODE",
+          "order": "asc"
+        }
+      ],
+      "max_col_width": 20,
+      "freeze": "C2",
+      "col_width_mode": "AUTO",
+      "min_col_width": 8,
+      "include_in_source": true,
+      "archive_db_path": "OUT/DB/spod_input_archive.sqlite"
+    },
+    {
+      "file": "INDICATOR (PROM) 03-07 v0.csv",
+      "sheet": "INDICATOR",
+      "subdir": "SPOD",
+      "archive_to_db": true,
+      "sort_columns": [
+        {
+          "column": "INDICATOR_CODE",
+          "order": "asc"
+        },
+        {
+          "column": "INDICATOR_ADD_CALC_TYPE",
+          "order": "asc"
+        },
+        {
+          "column": "CONTEST_CODE",
+          "order": "asc"
+        }
+      ],
+      "max_col_width": 100,
+      "freeze": "B2",
+      "col_width_mode": "AUTO",
+      "min_col_width": 8,
+      "include_in_source": true,
+      "archive_db_path": "OUT/DB/spod_input_archive.sqlite"
+    },
+    {
+      "file": "REPORT (PROM) 03-07 v0.csv",
+      "sheet": "REPORT",
+      "subdir": "SPOD",
+      "archive_to_db": true,
+      "sort_columns": [
+        {
+          "column": "CONTEST_CODE",
+          "order": "asc"
+        }
+      ],
+      "max_col_width": 25,
+      "freeze": "D2",
+      "col_width_mode": "AUTO",
+      "min_col_width": 10,
+      "include_in_source": true,
+      "archive_db_path": "OUT/DB/spod_input_archive.sqlite"
+    },
+    {
+      "file": "REWARD (PROM) 03-07 v0.csv",
+      "sheet": "REWARD",
+      "subdir": "SPOD",
+      "archive_to_db": true,
+      "sort_columns": [
+        {
+          "column": "REWARD_CODE",
+          "order": "asc"
+        },
+        {
+          "column": "REWARD_TYPE",
+          "order": "asc"
+        }
+      ],
+      "max_col_width": 200,
+      "freeze": "D2",
+      "col_width_mode": "AUTO",
+      "min_col_width": 10,
+      "include_in_source": true,
+      "archive_db_path": "OUT/DB/spod_input_archive.sqlite"
+    },
+    {
+      "file": "REWARD-LINK (PROM) 03-07 v0.csv",
+      "sheet": "REWARD-LINK",
+      "subdir": "SPOD",
+      "archive_to_db": true,
+      "sort_columns": [
+        {
+          "column": "GROUP_CODE",
+          "order": "asc"
+        },
+        {
+          "column": "REWARD_CODE",
+          "order": "asc"
+        }
+      ],
+      "max_col_width": 30,
+      "freeze": "A2",
+      "col_width_mode": "AUTO",
+      "min_col_width": 10,
+      "include_in_source": true,
+      "archive_db_path": "OUT/DB/spod_input_archive.sqlite"
+    },
+    {
+      "file": "SCHEDULE (PROM) 09-07 v0.csv",
+      "sheet": "TOURNAMENT-SCHEDULE",
+      "subdir": "SPOD",
+      "archive_to_db": true,
+      "sort_columns": [
+        {
+          "column": "TOURNAMENT_CODE",
+          "order": "asc"
+        },
+        {
+          "column": "CONTEST_CODE",
+          "order": "asc"
+        }
+      ],
+      "max_col_width": 120,
+      "freeze": "B2",
+      "col_width_mode": "AUTO",
+      "min_col_width": 10,
+      "include_in_source": true,
+      "archive_db_path": "OUT/DB/spod_input_archive.sqlite"
+    },
+    {
+      "file": "ORG_UNIT_V20 04-06 v2.csv",
+      "sheet": "ORG_UNIT_V20",
+      "subdir": "SPOD",
+      "archive_to_db": true,
+      "sort_columns": [
+        {
+          "column": "GOSB_CODE",
+          "order": "asc"
+        },
+        {
+          "column": "TB_CODE",
+          "order": "asc"
+        }
+      ],
+      "max_col_width": 60,
+      "freeze": "A2",
+      "col_width_mode": "AUTO",
+      "min_col_width": 10,
+      "include_in_source": true,
+      "archive_db_path": "OUT/DB/spod_input_archive.sqlite"
+    },
+    {
+      "file": "USER_ROLE (PROM) 08-06 v0.csv",
+      "sheet": "USER_ROLE",
+      "subdir": "SPOD",
+      "archive_to_db": true,
+      "sort_columns": [
+        {
+          "column": "RULE_NUM",
+          "order": "asc"
+        }
+      ],
+      "max_col_width": 65,
+      "freeze": "D2",
+      "col_width_mode": "AUTO",
+      "min_col_width": 12,
+      "include_in_source": true,
+      "archive_db_path": "OUT/DB/spod_input_archive.sqlite"
+    },
+    {
+      "file": "USER_ROLE_SB (PROM) 08-06 v0.csv",
+      "sheet": "USER_ROLE SB",
+      "subdir": "SPOD",
+      "archive_to_db": true,
+      "sort_columns": [
+        {
+          "column": "RULE_NUM",
+          "order": "asc"
+        }
+      ],
+      "max_col_width": 65,
+      "freeze": "D2",
+      "col_width_mode": "AUTO",
+      "min_col_width": 12,
+      "include_in_source": true,
+      "archive_db_path": "OUT/DB/spod_input_archive.sqlite"
+    },
+    {
+      "file": "EMPLOYEE (PROM) 02-07 v0.csv",
+      "sheet": "EMPLOYEE",
+      "subdir": "SPOD",
+      "archive_to_db": true,
+      "sort_columns": [
+        {
+          "column": "PERSON_NUMBER",
+          "order": "asc"
+        }
+      ],
+      "max_col_width": 80,
+      "freeze": "F2",
+      "col_width_mode": "AUTO",
+      "min_col_width": 15,
+      "include_in_source": true,
+      "archive_db_path": "OUT/DB/spod_input_archive.sqlite"
+    },
 
-  Проверь работу. напомуинаю что мы сейчас смотрим правки для базы по отдельным строкам
 
-а в следующий запуск уже у другого файла
-Лист                       Строки    Примечание
-  -----------------------------------------------------------
-  GROUP                      467       файл без изменений (SHA)
-  INDICATOR                  345       файл без изменений (SHA)
-  REWARD-LINK                627       файл без изменений (SHA)
-  TOURNAMENT-SCHEDULE        636       new=0 chg=7 same=629 off=0
-  ORG_UNIT_V20               128       файл без изменений (SHA)
-  USER_ROLE                  202       файл без изменений (SHA)
-  USER_ROLE SB               202       файл без изменений (SHA)
-  EMPLOYEE                   716       файл без изменений (SHA)
-  REPORT                     19927     new=19927 chg=0 same=0 off=0
-  REWARD                     627       файл без изменений (SHA)
-  CONTEST-DATA               360       файл без изменений (SHA)
+    вот эти файлы надо делить на блоки (наборы таких файлов)
+    1) блок "PROM" - это текущий набор файлов файлы будут лежать в каталоге IN/SPOD/PROM
+    обработка их такая же как и сейчас те вся логика остается.
+    2) блок "IFT" - это будет новый набор файлов которые будут грузиться из IN/SPOD/IFT
+    обработка их пока такая же как пром просто берутся файлы из IFT каталога
+    3) блок "PSI" - это будет новый набор файлов которые будут грузиться из IN/SPOD/PSI
+    обработка их пока такая же как пром просто берутся файлы из PSI каталога
+
+    надо предусмотреть в конфиге переключатель как run_outputs в котором надо указать какие блоки загружать PSI PROM IFT какой то один два или все
+    перечисляем в новом параметре какие указаны такие и грузим. по умолчанию включи там PROM
+
+    логика такая для каждого набора файлов делаем отдельный расчет. Если указано несколько то несколько расчетов.
+    но выходные файлы должны быть для каждого блока свои. только надо из разделять по каталогам и по именам
+    сейчас имя SPOD_PROM main_2026-07-14_09-21-55.xlsx
+
+    давай для PROM так и оставляем SPOD_PROM main_2026-07-14_09-21-55.xlsx
+    для IFT SPOD_IFT main_2026-07-14_09-21-55.xlsx
+    для PSI SPOD_PSI main_2026-07-14_09-21-55.xlsx
+    те в именах указывать блок
+
+    или SPOD_PROM MANAGER_STATS 2026-06-30_11-20-15.xlsx
+    SPOD_IFT MANAGER_STATS 2026-06-30_11-20-15.xlsx
+    SPOD_PSI MANAGER_STATS 2026-06-30_11-20-15.xlsx соответственно и так для всех блоков и файлов
+
+    каталог сгоответственно выходной: как сейчас: OUT\YYYY\DD-MM  надо сделать так: OUT\PROM\YYYY\DD-MM
+    OUT\IFT\YYYY\DD-MM
+    OUT\PSI\YYYY\DD-MM
+    тоже в соответсвии с блоками
+
+    Сейчас 3 блока заполни одинаковыми именами файлов.
+    сделай доработки
+    если что-то не понятно задай доп вопросы в режиме диалога здесь.
 
 2)
 Задача по конфигу консистентности:
