@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+import pytest
+
 from src.config_loader import parse_run_outputs_config
 
 
@@ -77,3 +79,20 @@ def test_rating_and_season_tokens_alone() -> None:
     assert ro[3] is True
     assert ro[10] is True
     assert ro[11] is True
+
+
+def test_run_outputs_reports_invalid_token_with_position() -> None:
+    with pytest.raises(ValueError) as exc:
+        parse_run_outputs_config({"run_outputs": ["main_only", "bad_token"]})
+    msg = str(exc.value)
+    assert "run_outputs[1]" in msg
+    assert "bad_token" in msg
+    assert "Допустимые значения" in msg
+
+
+def test_run_outputs_reports_non_string_item_with_position() -> None:
+    with pytest.raises(ValueError) as exc:
+        parse_run_outputs_config({"run_outputs": ["main_only", 42]})
+    msg = str(exc.value)
+    assert "run_outputs[1]" in msg
+    assert "ожидается строка" in msg

@@ -43,12 +43,34 @@ def parse_run_outputs_config(cfg: Dict[str, Any]) -> Tuple[List[str], bool, bool
     tokens: Set[str] = set()
 
     if isinstance(ro_raw, list) and len(ro_raw) > 0:
-        for item in ro_raw:
+        invalid_items: List[str] = []
+        allowed_values = ", ".join(sorted(_RUN_OUTPUT_TOKENS))
+        for idx, item in enumerate(ro_raw):
             if not isinstance(item, str):
+                invalid_items.append(
+                    f"run_outputs[{idx}]={item!r}: ожидается строка."
+                )
                 continue
-            t = item.strip().lower().replace("-", "_")
+            raw_token = item.strip()
+            if not raw_token:
+                invalid_items.append(
+                    f"run_outputs[{idx}]={item!r}: пустое значение."
+                )
+                continue
+            t = raw_token.lower().replace("-", "_")
             if t in _RUN_OUTPUT_TOKENS:
                 tokens.add(t)
+                continue
+            invalid_items.append(
+                f"run_outputs[{idx}]={item!r}: неизвестный токен «{t}»."
+            )
+        if invalid_items:
+            raise ValueError(
+                "run_outputs содержит недопустимые элементы:\n- "
+                + "\n- ".join(invalid_items)
+                + "\nДопустимые значения: "
+                + allowed_values
+            )
         if not tokens:
             raise ValueError(
                 "run_outputs: укажите хотя бы одно из значений: "
