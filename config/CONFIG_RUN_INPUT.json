@@ -17,9 +17,12 @@
     "manager_stats_only",
     "stat_file_only",
     "rating_item_matrix",
-    "season_order_summary"
+    "season_order_summary",
+    "contest_badge_form_export",
+    "contest_badge_form_import",
+    "contest_badge_form_blank"
   ],
-  "_run_outputs_note": "Либо массив токенов (одинаково для всех блоков), либо объект {\"PROM\":[...],\"IFT\":[...],\"PSI\":[...]} — свой набор обработок на блок. Ключ default — запасной. Токены: source_only, main_only, consistency_only, manager_stats_only, stat_file_only, rating_item_matrix, season_order_summary.",
+  "_run_outputs_note": "Либо массив токенов (одинаково для всех блоков), либо объект {\"PROM\":[...],\"IFT\":[...],\"PSI\":[...]} — свой набор обработок на блок. Ключ default — запасной. Токены: source_only, main_only, consistency_only, manager_stats_only, stat_file_only, rating_item_matrix, season_order_summary, contest_badge_form_export, contest_badge_form_import, contest_badge_form_blank.",
   "run_blocks": [
     "PROM"
   ],

@@ -17,7 +17,10 @@
 - `BLOCKS_MIGRATION.md` — шпаргалка переноса `IN/<BLOCK>/…` и SQLite по блокам.
 - `IN_OUT_DATA_POLICY.md` — политика: не удалять `IN/`/`OUT/` без явного разрешения.
 - `JSON/README.md` + `JSON/SPOD_INPUT_DATA_CATALOG.md` — каталог полей входных CSV/JSON (пересборка Tools).
-- `params_catalog/README.md` + `params_catalog/SPOD_PARAMS_CATALOG_LEAF_v2.xlsx` — полный Excel-перечень колонок и конечных JSON-ключей.
+- `params_catalog/README.md` + `params_catalog/SPOD_PARAMS_CATALOG_LEAF_v3.xlsx` — Excel-перечень колонок и конечных JSON-ключей + оформление из `CONFIG_FORMATS` (v2 сохранён).
+- `CONTEST_BADGE_FORM.md` — Excel-форма конкурса BADGE (export/import через `run_outputs`).
+- `CONTEST_BADGE_FORM_FILLING.md` — **заполнение шаблона**: цвета, порядок полей, типичные ошибки, цикл export→import.
+- `PLAN_CONTEST_BADGE_FORM.md` — согласованный план формы BADGE.
 
 ## Консистентность
 

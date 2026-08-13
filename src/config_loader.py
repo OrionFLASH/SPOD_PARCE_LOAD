@@ -38,6 +38,9 @@ _RUN_OUTPUT_TOKENS: Set[str] = frozenset(
         "stat_file_only",
         "rating_item_matrix",
         "season_order_summary",
+        "contest_badge_form_export",
+        "contest_badge_form_import",
+        "contest_badge_form_blank",
     }
 )
 
@@ -462,7 +465,9 @@ def parse_run_outputs_config(cfg: Dict[str, Any]) -> Tuple[List[str], bool, bool
             raise ValueError(
                 "run_outputs: укажите хотя бы одно из значений: "
                 "source_only, main_only, consistency_only, manager_stats_only, "
-                "stat_file_only, rating_item_matrix, season_order_summary"
+                "stat_file_only, rating_item_matrix, season_order_summary, "
+                "contest_badge_form_export, contest_badge_form_import, "
+                "contest_badge_form_blank"
             )
     else:
         # Обратная совместимость: run_mode full | source_only | main_only | consistency_only | 1–4

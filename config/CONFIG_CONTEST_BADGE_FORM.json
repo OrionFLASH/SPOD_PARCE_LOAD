@@ -1,0 +1,27 @@
+{
+  "_note": "Excel-форма BADGE. Списки/описания — field_meta.py. Пустой шаблон и пример пишутся в OUT/{BLOCK}/CONTEST_BADGE_FORM/.",
+  "contest_badge_form": {
+    "block": "PROM",
+    "contest_codes": [
+      "01_2025-0_11-1_1",
+      "01_2025-0_00-2_1"
+    ],
+    "export_path": null,
+    "import_form_path": null,
+    "import_output_dir": null,
+    "blank_path": "OUT/PROM/CONTEST_BADGE_FORM/CONTEST_BADGE_FORM_BLANK.xlsx",
+    "blank_sheet_count": 1,
+    "blank_contest_type": "ТУРНИРНЫЙ",
+    "example_path": "OUT/PROM/CONTEST_BADGE_FORM/CONTEST_BADGE_FORM_EXAMPLE.xlsx",
+    "example_contest_codes": [
+      "09_2026-0_23-1_2",
+      "09_2026-0_23-1_3",
+      "09_2026-0_23-1_4",
+      "09_2026-0_23-1_5",
+      "01_2026-1_05-3_1",
+      "10_2026-0_05-3_1"
+    ],
+    "_example_note": "4× ОСВ накопительные (до 5 / 6-10 / 11-15 / >15 задач) + 2 турнира «Зарплатный рывок»",
+    "dropdowns": {}
+  }
+}

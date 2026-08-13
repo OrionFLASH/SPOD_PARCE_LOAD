@@ -25,6 +25,7 @@ config/
   CONFIG_RATING.json          ← rating_item_matrix
   CONFIG_ORDER.json           ← season_order_summary
   CONFIG_MANAGER.json         ← manager_stats
+  CONFIG_CONTEST_BADGE_FORM.json ← Excel-форма BADGE (export/import)
 ```
 
 В **корне репозитория** файла `config.json` **нет**.  
@@ -64,7 +65,8 @@ config/
     "CONFIG_MERGE.json",
     "CONFIG_RATING.json",
     "CONFIG_ORDER.json",
-    "CONFIG_MANAGER.json"
+    "CONFIG_MANAGER.json",
+    "CONFIG_CONTEST_BADGE_FORM.json"
   ]
 }
 ```
@@ -80,7 +82,8 @@ config/
     "CONFIG_MERGE.json",
     "CONFIG_RATING.json",
     "CONFIG_ORDER.json",
-    "CONFIG_MANAGER.json"
+    "CONFIG_MANAGER.json",
+    "CONFIG_CONTEST_BADGE_FORM.json"
   ],
   "run_blocks": ["PROM", "IFT"],
   "run_outputs": {
@@ -558,6 +561,7 @@ POST/config/CONFIG_RUN_INPUT.json.txt
 | Настройка матрицы RATING | `CONFIG_RATING.json` |
 | Сводка ORDER | `CONFIG_ORDER.json` |
 | Enrich менеджеров | `CONFIG_MANAGER.json` |
+| Excel-форма BADGE (коды / пути) | `CONFIG_CONTEST_BADGE_FORM.json` + токены в `run_outputs` |
 
 ---
 

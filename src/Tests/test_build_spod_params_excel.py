@@ -11,8 +11,13 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from src.Tools.build_spod_params_excel import (  # noqa: E402
+    apply_excel_format_fields,
     display_full_path,
+    excel_format_fields_for_row,
+    format_header_candidates,
+    is_native_format_column_entry,
     leaf_key_name,
+    load_formats_config,
     make_param_id,
     normalize_json_cell,
     resolve_table_name,
@@ -95,6 +100,141 @@ class TestSpodParamsExcel(unittest.TestCase):
         self.assertEqual(a, "REWARD__COL__REWARD_CODE")
         self.assertIn("JSON", b)
         self.assertIn("priority", b)
+
+
+class TestExcelFormatEnrichment(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.formats = load_formats_config()
+
+    def test_native_vs_cross_sheet_entries(self) -> None:
+        self.assertTrue(is_native_format_column_entry("START_DT", "TOURNAMENT-SCHEDULE"))
+        self.assertTrue(is_native_format_column_entry("ADD_DATA => itemMinShow", "REWARD"))
+        self.assertFalse(
+            is_native_format_column_entry("REPORT=>CONTEST_DATE", "TOURNAMENT-SCHEDULE")
+        )
+        self.assertFalse(
+            is_native_format_column_entry(
+                "LIST-TOURNAMENT=>Дата обновления данных источника",
+                "TOURNAMENT-SCHEDULE",
+            )
+        )
+
+    def test_close_dt_is_date(self) -> None:
+        row = {
+            "table": "CONTEST-DATA",
+            "param_kind": "КОЛОНКА",
+            "csv_column": "CLOSE_DT",
+            "json_path": "-",
+        }
+        fields = excel_format_fields_for_row(self.formats, row)
+        self.assertEqual(fields["excel_type"], "date")
+        self.assertIn("YYYY-MM-DD", fields["excel_limits"])
+        self.assertIn("гориз=center", fields["excel_align"])
+        self.assertEqual(fields["excel_width"], "-")
+
+    def test_reward_cost_is_number(self) -> None:
+        row = {
+            "table": "REWARD",
+            "param_kind": "КОЛОНКА",
+            "csv_column": "REWARD_COST",
+            "json_path": "-",
+        }
+        fields = excel_format_fields_for_row(self.formats, row)
+        self.assertEqual(fields["excel_type"], "number")
+        self.assertIn("знаки=0", fields["excel_limits"])
+        self.assertEqual(fields["excel_width"], "-")
+
+    def test_json_item_min_show_number(self) -> None:
+        cands = format_header_candidates(
+            "REWARD", "REWARD_ADD_DATA", "itemMinShow", True
+        )
+        self.assertIn("ADD_DATA => itemMinShow", cands)
+        row = {
+            "table": "REWARD",
+            "param_kind": "JSON-КЛЮЧ",
+            "csv_column": "REWARD_ADD_DATA",
+            "json_path": "itemMinShow",
+        }
+        fields = excel_format_fields_for_row(self.formats, row)
+        self.assertEqual(fields["excel_type"], "number")
+
+    def test_schedule_ignores_report_merge_in_same_rule(self) -> None:
+        """Правило SCHEDULE содержит REPORT=>… — на START_DT это не влияет."""
+        row_start = {
+            "table": "TOURNAMENT-SCHEDULE",
+            "param_kind": "КОЛОНКА",
+            "csv_column": "START_DT",
+            "json_path": "-",
+        }
+        fields = excel_format_fields_for_row(self.formats, row_start)
+        self.assertEqual(fields["excel_type"], "date")
+
+        # чужая merge-колонка не матчится как native CSV SCHEDULE
+        row_fake = {
+            "table": "TOURNAMENT-SCHEDULE",
+            "param_kind": "КОЛОНКА",
+            "csv_column": "REPORT=>CONTEST_DATE",
+            "json_path": "-",
+        }
+        fields_fake = excel_format_fields_for_row(self.formats, row_fake)
+        self.assertEqual(fields_fake["excel_type"], "-")
+
+    def test_sheet_width_not_applied(self) -> None:
+        """Листовая ширина из RUN_INPUT не проставляется; без per-column в FORMATS — '-'."""
+        row = {
+            "table": "REPORT",
+            "param_kind": "КОЛОНКА",
+            "csv_column": "CONTEST_DATE",
+            "json_path": "-",
+        }
+        fields = excel_format_fields_for_row(self.formats, row)
+        self.assertEqual(fields["excel_type"], "date")
+        self.assertEqual(fields["excel_width"], "-")
+
+    def test_per_column_width_from_rule(self) -> None:
+        cfg = {
+            "color_scheme": [],
+            "column_formats": [
+                {
+                    "sheet": "REWARD",
+                    "columns": ["REWARD_COST"],
+                    "data_type": "number",
+                    "decimal_places": 0,
+                    "decimal_separator": ",",
+                    "thousands_separator": False,
+                    "horizontal": "center",
+                    "vertical": "center",
+                    "wrap_text": False,
+                    "width_mode": 24,
+                    "min_width": 10,
+                    "max_width": 40,
+                }
+            ],
+        }
+        row = {
+            "table": "REWARD",
+            "param_kind": "КОЛОНКА",
+            "csv_column": "REWARD_COST",
+            "json_path": "-",
+        }
+        fields = excel_format_fields_for_row(cfg, row)
+        self.assertEqual(fields["excel_width"], "mode=24; min=10; max=40")
+
+    def test_apply_does_not_add_rows(self) -> None:
+        rows = [
+            {
+                "table": "GROUP",
+                "param_kind": "КОЛОНКА",
+                "csv_column": "GROUP_CODE",
+                "json_path": "-",
+                "name": "GROUP_CODE",
+            }
+        ]
+        apply_excel_format_fields(rows, self.formats)
+        self.assertEqual(len(rows), 1)
+        self.assertIn("excel_type", rows[0])
+        self.assertEqual(rows[0]["excel_type"], "-")
 
 
 if __name__ == "__main__":

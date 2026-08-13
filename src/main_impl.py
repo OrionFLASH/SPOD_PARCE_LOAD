@@ -5180,6 +5180,23 @@ def _run_pipeline_for_block(block: str, log_file: str) -> None:
         "Итоговая таблица [PERF] в лог-файле при завершении процесса."
     )
 
+    # Excel-форма BADGE: export/import (изолировано от main_only)
+    from src.contest_badge_form.runner import (
+        only_form_tokens,
+        run_contest_badge_form_modes,
+    )
+
+    _cfg_for_form = CFG_RAW if isinstance(CFG_RAW, dict) and CFG_RAW else {}
+    if run_contest_badge_form_modes(
+        PROJECT_BASE_DIR, block, list(RUN_OUTPUTS), _cfg_for_form
+    ):
+        if only_form_tokens(list(RUN_OUTPUTS)):
+            logging.info(
+                "[contest_badge_form] Только токены формы — выход из пайплайна блока %s",
+                block,
+            )
+            return
+
     sheets_data = {}
     archive_payload: Dict[str, Any] = {}
     files_processed = 0

@@ -9,9 +9,9 @@
 
 Промежуточные объекты/контейнеры (`getCondition`, `employeeRating`, элемент массива и т.п.) **не** включаются.
 
-Артефакт: **`SPOD_PARAMS_CATALOG_LEAF_v2.xlsx`** (модель «только колонки + конечные ключи»).
+Артефакт: **`SPOD_PARAMS_CATALOG_LEAF_v3.xlsx`** (колонки + конечные ключи + оформление Excel из `CONFIG_FORMATS`).
 
-Предыдущий файл `SPOD_PARAMS_CATALOG.xlsx` сохранён для сравнения.
+Предыдущие файлы `SPOD_PARAMS_CATALOG_LEAF_v2.xlsx` и `SPOD_PARAMS_CATALOG.xlsx` сохранены для сравнения.
 
 ## Модель (как в каталогах полей / BigQuery field path)
 
@@ -30,9 +30,11 @@
 
 ```bash
 python src/Tools/build_spod_params_excel.py \
-  --input-dir IN/SPOD_UPLOAD \
-  --out Docs/params_catalog/SPOD_PARAMS_CATALOG_LEAF_v2.xlsx
+  --input-dir IN/PROM/SPOD \
+  --out Docs/params_catalog/SPOD_PARAMS_CATALOG_LEAF_v3.xlsx
 ```
+
+Опционально: `--formats config/CONFIG_FORMATS.json` (по умолчанию уже этот путь).
 
 ## Колонки листа PARAMETERS
 
@@ -44,6 +46,13 @@ python src/Tools/build_spod_params_excel.py \
 | Полный путь ключа | `ключ1.ключ2.ключ` (с `[]` для полей в массиве объектов); `-` для колонок |
 | Имя параметра | колонка или последний сегмент пути |
 | … | зависимости, описание, id, дубли, 3 примера, консистентность, статистика |
+| Excel: тип | `number` / `date` / … из `column_formats` на **родном** листе; иначе `-` |
+| Excel: ограничения | знаки/разделители или шаблон даты; иначе `-` |
+| Excel: выравнивание | гориз / верт / перенос |
+| Excel: цвет заголовка | `bg` / `fg` / группа из `color_scheme` |
+| Excel: ширина | только если ширина задана **отдельно для колонки** в правиле; листовой AUTO не пишется |
+
+Набор строк каталога не расширяется колонками из FORMATS, которых нет в CSV (нет LIST-REWARDS / merge `Sheet=>…` как отдельных параметров).
 
 Оформление: заголовок по центру; данные — вертикальный центр + перенос.
 

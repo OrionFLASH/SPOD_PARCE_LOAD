@@ -302,3 +302,18 @@ IN/
 | 14.6 | Доработка Excel: зависимости построчно, полный JSON-путь, имя ≠ `[]`, центрирование, статистика заполненности | [v] |
 | 14.7 | Каталог только колонки + конечные JSON-ключи; колонка CSV-источник; без контейнеров/«элемент массива» | [v] |
 
+---
+
+## Пункт 15 — Excel-форма конкурса BADGE (export / import)
+
+**Документы:** `Docs/CONTEST_BADGE_FORM.md`, заполнение — `Docs/CONTEST_BADGE_FORM_FILLING.md` (план: `Docs/PLAN_CONTEST_BADGE_FORM.md`).
+
+| # | Задача | Статус |
+|---|--------|--------|
+| 15.1 | Пакет `src/contest_badge_form/` + `config/CONFIG_CONTEST_BADGE_FORM.json` | [v] |
+| 15.2 | Токены `contest_badge_form_export` / `contest_badge_form_import` / `blank` в `run_outputs` | [v] |
+| 15.3 | Лимиты BADGE по `CONTEST_TYPE`; не-BADGE → лог | [v] |
+| 15.4 | Round-trip тест `src/Tests/test_contest_badge_form.py` | [v] |
+| 15.5 | Docs / README / ROADMAP | [v] |
+| 15.6 | xlsxwriter, dropdowns, цвета типов ввода, инструкция заполнения | [v] |
+

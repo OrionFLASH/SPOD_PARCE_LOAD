@@ -98,7 +98,7 @@ SPOD_PROM/
 - `Docs/MANAGER_STATS.md` — книга MANAGER_STATS.
 - `Docs/CODEBASE_ANALYTICS.md` — метрики кода (`build_codebase_analytics.py`).
 - `Docs/JSON/` — каталог входных CSV/JSON (`SPOD_INPUT_DATA_CATALOG.md`, `examples/`).
-- `Docs/params_catalog/` — Excel-перечень параметров (`SPOD_PARAMS_CATALOG_LEAF_v2.xlsx`, сборка: `src/Tools/build_spod_params_excel.py`).
+- `Docs/params_catalog/` — Excel-перечень параметров (`SPOD_PARAMS_CATALOG_LEAF_v3.xlsx`, сборка: `src/Tools/build_spod_params_excel.py`).
 
 ---
 
@@ -1305,6 +1305,25 @@ python main.py
 ---
 
 ## История версий
+
+### Версия 1.7.62 — Форма BADGE: цвета типов ввода и инструкция заполнения
+
+- Цвет столбца значения / ячеек таблиц: выбор (зелёный), текст (жёлтый), список через `;` (персик), JSON (розовый), дата (голубой); легенда `#META:LEGEND`.
+- Запись формы через **xlsxwriter** + выпадающие списки; скрытый лист **`Lists`**.
+- Документ для пользователя: **`Docs/CONTEST_BADGE_FORM_FILLING.md`**; обновлены **`Docs/CONTEST_BADGE_FORM.md`**, ROADMAP §15.6.
+
+### Версия 1.7.61 — Excel-форма конкурса BADGE (export / import)
+
+- Пакет **`src/contest_badge_form/`**: форма листов `1,2,3…` для CONTEST / BADGE / REWARD-LINK / GROUP / INDICATOR / SCHEDULE.
+- Токены **`contest_badge_form_export`** / **`contest_badge_form_import`** / **`contest_badge_form_blank`** в `run_outputs` (ранний выход, если только они).
+- Конфиг **`config/CONFIG_CONTEST_BADGE_FORM.json`**; документация **`Docs/CONTEST_BADGE_FORM.md`**.
+- Round-trip: export выбранных `CONTEST_CODE` → import ≈ исходные CSV (нормализация SPOD-JSON).
+
+### Версия 1.7.60 — Каталог параметров LEAF_v3: колонки Excel-формата
+
+- Артефакт **`Docs/params_catalog/SPOD_PARAMS_CATALOG_LEAF_v3.xlsx`**: те же строки, что LEAF_v2, плюс колонки `Excel: тип` / ограничения / выравнивание / цвет заголовка / ширина.
+- Источник оформления — **`config/CONFIG_FORMATS.json`** только на **родном** листе таблицы; производные `Sheet=>…` не добавляют строк.
+- Ширина заполняется лишь при явной per-column настройке в правиле (листовой AUTO не пишется).
 
 ### Версия 1.7.59 — Каталог параметров: только колонки и конечные JSON-ключи
 

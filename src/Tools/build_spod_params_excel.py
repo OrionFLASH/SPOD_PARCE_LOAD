@@ -8,7 +8,7 @@
 
 Запуск из корня проекта:
   python src/Tools/build_spod_params_excel.py
-  python src/Tools/build_spod_params_excel.py --input-dir IN/SPOD_UPLOAD --out Docs/params_catalog/SPOD_PARAMS_CATALOG_LEAF_v2.xlsx
+  python src/Tools/build_spod_params_excel.py --input-dir IN/PROM/SPOD --out Docs/params_catalog/SPOD_PARAMS_CATALOG_LEAF_v3.xlsx
 """
 from __future__ import annotations
 
@@ -16,6 +16,7 @@ import argparse
 import csv
 import json
 import re
+import sys
 from collections import Counter, defaultdict
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -27,12 +28,26 @@ from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
 
 ROOT = Path(__file__).resolve().parents[2]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from src.csv_headers import normalize_csv_column_header  # noqa: E402
+
 DEFAULT_INPUT = ROOT / "IN" / "SPOD_UPLOAD"
-DEFAULT_OUT = ROOT / "Docs" / "params_catalog" / "SPOD_PARAMS_CATALOG_LEAF_v2.xlsx"
+DEFAULT_OUT = ROOT / "Docs" / "params_catalog" / "SPOD_PARAMS_CATALOG_LEAF_v3.xlsx"
 CHECKS_PATH = ROOT / "config" / "CONFIG_CHECKS.json"
+FORMATS_PATH = ROOT / "config" / "CONFIG_FORMATS.json"
 GLOSSARY_DIR = ROOT / "src" / "Tools" / "catalog_glossary"
 DELIM = ";"
 ENC = "utf-8"
+
+# Префиксы развёрнутого JSON на родном листе (не «чужой лист=>колонка»).
+_JSON_EXPAND_PREFIXES: Set[str] = {
+    "ADD_DATA",
+    "CONTEST_FEATURE",
+    "REWARD_ADD_DATA",
+    "FEATURE",
+}
 
 # Соответствие файла выгрузки → имя таблицы (листа) в проекте.
 FILE_TO_TABLE: Dict[str, str] = {
@@ -243,6 +258,11 @@ EXCEL_HEADERS: List[str] = [
     "Разнообразие (уник./заполн.)",
     "Статистика встречаемости",
     "Источник файла",
+    "Excel: тип",
+    "Excel: ограничения",
+    "Excel: выравнивание",
+    "Excel: цвет заголовка",
+    "Excel: ширина",
 ]
 
 
@@ -527,6 +547,254 @@ def display_full_path(path_from_root: str) -> str:
     """Полный путь ключа1.ключ2.…ключ (с [] для контекста массива объектов)."""
     p = (path_from_root or "").strip()
     return p if p else "-"
+
+
+def _norm_fmt_header(name: Optional[str]) -> str:
+    """Нормализация имени колонки для сопоставления с CONFIG_FORMATS."""
+    return normalize_csv_column_header(name)
+
+
+def is_native_format_column_entry(col_entry: str, table: str) -> bool:
+    """
+    True, если запись columns в FORMATS относится к родному листу/развороту JSON,
+    а не к чужой merge-колонке (REPORT=>…, LIST-TOURNAMENT=>…).
+    """
+    s = (col_entry or "").strip()
+    if not s:
+        return False
+    if "=>" not in s:
+        return True
+    # «A => B» с пробелами — разворот JSON; «A=>B» без пробелов вокруг => — часто merge
+    left = s.split("=>", 1)[0].strip()
+    if left in _JSON_EXPAND_PREFIXES:
+        return True
+    # чужой лист: REPORT, LIST-TOURNAMENT, REWARD, CONTEST-DATA, …
+    if left.upper() == table.upper():
+        return True
+    # если слева похоже на имя листа (есть дефис/подчёркивание типичных листов) — не native
+    known_foreign = {
+        "REPORT",
+        "LIST-TOURNAMENT",
+        "LIST-REWARDS",
+        "SUMMARY",
+        "REWARD",
+        "CONTEST-DATA",
+        "GROUP",
+        "INDICATOR",
+        "TOURNAMENT-SCHEDULE",
+        "REWARD-LINK",
+        "ORG_UNIT_V20",
+        "EMPLOYEE",
+        "USER_ROLE",
+        "USER_ROLE SB",
+        "YEAR_STATA",
+    }
+    if left in known_foreign and left.upper() != table.upper():
+        return False
+    # иначе считаем разворотом JSON на листе (напр. ADD_DATA уже покрыт)
+    return True
+
+
+def json_path_to_excel_segments(json_path: str) -> str:
+    """Путь каталога `a.b[].c` → сегменты Excel `a => b[] => c`."""
+    p = (json_path or "").strip()
+    if not p or p == "-":
+        return ""
+    parts = p.split(".")
+    return " => ".join(parts)
+
+
+def format_header_candidates(
+    table: str,
+    csv_column: str,
+    json_path: str,
+    is_json_key: bool,
+) -> List[str]:
+    """Кандидаты имён заголовка Excel для матчинга с CONFIG_FORMATS на родном листе."""
+    out: List[str] = []
+    col = (csv_column or "").strip()
+    if not is_json_key:
+        if col:
+            out.append(col)
+        return out
+    path_seg = json_path_to_excel_segments(json_path if json_path != "-" else "")
+    if not path_seg:
+        return out
+    prefixes = [col] if col else []
+    if col == "REWARD_ADD_DATA":
+        prefixes.append("ADD_DATA")
+    elif col == "CONTEST_FEATURE":
+        prefixes.append("CONTEST_FEATURE")
+    seen: Set[str] = set()
+    for pref in prefixes:
+        cand = f"{pref} => {path_seg}"
+        n = _norm_fmt_header(cand)
+        if n and n not in seen:
+            seen.add(n)
+            out.append(cand)
+    return out
+
+
+def format_constraints_text(rule: Dict[str, Any]) -> str:
+    """Человекочитаемые ограничения из правила column_formats."""
+    dtype = str(rule.get("data_type") or "general").lower()
+    if dtype == "number":
+        places = int(rule.get("decimal_places", 0))
+        dec = rule.get("decimal_separator", ",")
+        thou = "да" if rule.get("thousands_separator", False) else "нет"
+        return f"знаки={places}; дес={dec}; тысячи={thou}"
+    if dtype == "date":
+        return f"шаблон={rule.get('date_format') or 'YYYY-MM-DD'}"
+    if dtype == "text":
+        return "text"
+    return "-"
+
+
+def format_alignment_text(rule: Dict[str, Any]) -> str:
+    h = str(rule.get("horizontal", "left")).lower()
+    v = str(rule.get("vertical", "center")).lower()
+    wrap = "да" if rule.get("wrap_text", False) else "нет"
+    return f"гориз={h}; верт={v}; перенос={wrap}"
+
+
+def format_width_from_rule(rule: Dict[str, Any]) -> str:
+    """
+    Явная ширина колонки из полей правила (не листовой дефолт).
+    Поддерживает width / width_mode / min_width / max_width / col_width и т.п.
+    """
+    parts: List[str] = []
+    mode = rule.get("width_mode", rule.get("width", rule.get("col_width_mode")))
+    if mode is not None and str(mode).strip() != "":
+        parts.append(f"mode={mode}")
+    mn = rule.get("min_width", rule.get("col_min_width"))
+    mx = rule.get("max_width", rule.get("col_max_width"))
+    if mn is not None:
+        parts.append(f"min={mn}")
+    if mx is not None:
+        parts.append(f"max={mx}")
+    return "; ".join(parts) if parts else "-"
+
+
+def load_formats_config(path: Path = FORMATS_PATH) -> Dict[str, Any]:
+    """Читает CONFIG_FORMATS.json."""
+    if not path.is_file():
+        return {"color_scheme": [], "column_formats": []}
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def find_column_format_rule(
+    formats_cfg: Dict[str, Any],
+    table: str,
+    candidates: List[str],
+) -> Optional[Dict[str, Any]]:
+    """Первое правило column_formats на родном листе, совпавшее с кандидатом."""
+    cand_norm = {_norm_fmt_header(c) for c in candidates if c}
+    if not cand_norm:
+        return None
+    for rule in formats_cfg.get("column_formats") or []:
+        if not isinstance(rule, dict):
+            continue
+        if str(rule.get("sheet") or "") != table:
+            continue
+        cols = rule.get("columns") or []
+        for entry in cols:
+            if not is_native_format_column_entry(str(entry), table):
+                continue
+            if _norm_fmt_header(str(entry)) in cand_norm:
+                return rule
+        # column_prefixes
+        for prefix in rule.get("column_prefixes") or []:
+            if not is_native_format_column_entry(str(prefix), table):
+                continue
+            pnorm = _norm_fmt_header(str(prefix))
+            if pnorm and any(c.startswith(pnorm) for c in cand_norm):
+                return rule
+    return None
+
+
+def find_color_scheme_rule(
+    formats_cfg: Dict[str, Any],
+    table: str,
+    candidates: List[str],
+) -> Optional[Dict[str, Any]]:
+    """Наиболее специфичное правило color_scheme для заголовка на родном листе."""
+    cand_norm = {_norm_fmt_header(c) for c in candidates if c}
+    schemes = [
+        g
+        for g in (formats_cfg.get("color_scheme") or [])
+        if isinstance(g, dict) and table in (g.get("sheets") or [])
+    ]
+    # сначала с явным списком columns
+    for g in schemes:
+        cols = g.get("columns") or []
+        if not cols:
+            continue
+        for entry in cols:
+            if not is_native_format_column_entry(str(entry), table):
+                continue
+            if _norm_fmt_header(str(entry)) in cand_norm:
+                return g
+    # затем группа с пустым columns (фон «Исходные данные»)
+    for g in schemes:
+        if not (g.get("columns") or []):
+            return g
+    return None
+
+
+def format_color_text(color_rule: Optional[Dict[str, Any]]) -> str:
+    if not color_rule:
+        return "-"
+    bg = color_rule.get("header_bg") or "-"
+    fg = color_rule.get("header_fg") or "-"
+    group = color_rule.get("group") or "-"
+    return f"bg={bg}; fg={fg}; группа={group}"
+
+
+def excel_format_fields_for_row(
+    formats_cfg: Dict[str, Any],
+    row: Dict[str, Any],
+) -> Dict[str, str]:
+    """Заполняет пять полей Excel:* для строки каталога."""
+    table = str(row.get("table") or "")
+    csv_col = str(row.get("csv_column") or "")
+    jp = str(row.get("json_path") or "-")
+    is_json = str(row.get("param_kind") or "") == "JSON-КЛЮЧ"
+    candidates = format_header_candidates(table, csv_col, jp, is_json)
+    # для цвета у КОЛОНКИ JSON-ячейки также пробуем имя колонки
+    if not is_json and candidates:
+        pass
+    fmt_rule = find_column_format_rule(formats_cfg, table, candidates)
+    color_rule = find_color_scheme_rule(formats_cfg, table, candidates)
+
+    if fmt_rule:
+        dtype = str(fmt_rule.get("data_type") or "general").lower()
+        excel_type = dtype if dtype else "general"
+        excel_limits = format_constraints_text(fmt_rule)
+        excel_align = format_alignment_text(fmt_rule)
+        excel_width = format_width_from_rule(fmt_rule)
+    else:
+        excel_type = "-"
+        excel_limits = "-"
+        excel_align = "-"
+        excel_width = "-"
+
+    return {
+        "excel_type": excel_type,
+        "excel_limits": excel_limits,
+        "excel_align": excel_align,
+        "excel_color": format_color_text(color_rule),
+        "excel_width": excel_width,
+    }
+
+
+def apply_excel_format_fields(
+    rows: List[Dict[str, Any]],
+    formats_cfg: Optional[Dict[str, Any]] = None,
+) -> None:
+    """Проставляет Excel:* поля во все строки каталога (in-place)."""
+    cfg = formats_cfg if formats_cfg is not None else load_formats_config()
+    for r in rows:
+        r.update(excel_format_fields_for_row(cfg, r))
 
 
 def is_scalar_or_null(v: Any) -> bool:
@@ -1337,6 +1605,7 @@ def write_excel(rows: List[Dict[str, Any]], out_path: Path, meta: Dict[str, str]
         "ex1", "ex2", "ex3", "consistency",
         "rows_total", "filled", "empty", "fill_pct",
         "uniq", "diversity", "occurrence", "source",
+        "excel_type", "excel_limits", "excel_align", "excel_color", "excel_width",
     ]
     for r_idx, r in enumerate(rows, start=2):
         for c_idx, k in enumerate(key_order, start=1):
@@ -1355,6 +1624,7 @@ def write_excel(rows: List[Dict[str, Any]], out_path: Path, meta: Dict[str, str]
         16, 12, 22, 12, 40, 24, 28, 42, 48, 36, 36,
         28, 28, 28, 48,
         12, 14, 14, 12, 12, 14, 42, 36,
+        12, 28, 28, 42, 18,
     ]
     for i, w in enumerate(widths, start=1):
         ws.column_dimensions[get_column_letter(i)].width = w
@@ -1375,7 +1645,12 @@ def write_excel(rows: List[Dict[str, Any]], out_path: Path, meta: Dict[str, str]
         ("input_dir", meta.get("input_dir", "")),
         ("files", meta.get("files", "")),
         ("total_parameters", str(len(rows))),
-        ("note", "Полный обход всех строк CSV; JSON после замены \"\"\" → \". Описания — из глоссариев/эвристик."),
+        (
+            "note",
+            "Полный обход всех строк CSV; JSON после замены \"\"\" → \". "
+            "Описания — из глоссариев/эвристик. "
+            "Колонки Excel:* — из config/CONFIG_FORMATS.json (родной лист; ширина только per-column).",
+        ),
     ]
     for i, (a, b) in enumerate(meta_rows, start=2):
         c1 = ws2.cell(i, 1, a)
@@ -1433,10 +1708,14 @@ def list_input_files(input_dir: Path) -> List[Tuple[Path, str]]:
         if not table:
             print(f"SKIP (неизвестная таблица): {p.name}")
             continue
-        # USER_ROLE раньше USER_ROLE_SB уже учтён порядком в FILE_TO_TABLE
         found.append((p, table))
-    # дедуп таблиц: если два файла на одну таблицу — берём все (USER_ROLE и USER_ROLE SB разные)
-    return found
+    # Одна таблица — один файл (новейший по mtime); USER_ROLE и USER_ROLE SB — разные таблицы
+    by_table: Dict[str, Path] = {}
+    for p, table in found:
+        prev = by_table.get(table)
+        if prev is None or p.stat().st_mtime >= prev.stat().st_mtime:
+            by_table[table] = p
+    return [(path, table) for table, path in sorted(by_table.items(), key=lambda x: x[0])]
 
 
 def main() -> int:
@@ -1444,6 +1723,7 @@ def main() -> int:
     parser.add_argument("--input-dir", type=Path, default=DEFAULT_INPUT)
     parser.add_argument("--out", type=Path, default=DEFAULT_OUT)
     parser.add_argument("--checks", type=Path, default=CHECKS_PATH)
+    parser.add_argument("--formats", type=Path, default=FORMATS_PATH)
     args = parser.parse_args()
 
     if not args.input_dir.is_dir():
@@ -1452,6 +1732,7 @@ def main() -> int:
 
     glossary = load_all_glossaries()
     consistency_idx = load_consistency_index(args.checks)
+    formats_cfg = load_formats_config(args.formats)
     files = list_input_files(args.input_dir)
     if not files:
         print("CSV не найдены")
@@ -1465,6 +1746,7 @@ def main() -> int:
         all_rows.extend(part)
 
     mark_duplicates(all_rows)
+    apply_excel_format_fields(all_rows, formats_cfg)
     all_rows.sort(key=lambda r: r.get("_sort", (r["table"], r["name"], r["json_path"], 0)))
 
     meta = {
