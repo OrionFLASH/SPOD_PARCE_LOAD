@@ -21,6 +21,7 @@
 - `CONTEST_BADGE_FORM.md` — Excel-форма конкурса BADGE (export/import через `run_outputs`).
 - `CONTEST_BADGE_FORM_FILLING.md` — **заполнение шаблона**: цвета, порядок полей, типичные ошибки, цикл export→import.
 - `PLAN_CONTEST_BADGE_FORM.md` — согласованный план формы BADGE.
+- `templates/CONTEST_BADGE_FORM/CONTEST_BADGE_FORM_BLANK.xlsx` — **пустой шаблон** в репозитории.
 
 ## Консистентность
 

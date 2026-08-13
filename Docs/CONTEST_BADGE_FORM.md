@@ -36,7 +36,11 @@
 
 ## Пустой шаблон и пример
 
-Каталог: **`OUT/PROM/CONTEST_BADGE_FORM/`**
+**В репозитории (для скачивания):**  
+`Docs/templates/CONTEST_BADGE_FORM/CONTEST_BADGE_FORM_BLANK.xlsx`
+
+Рабочие копии после `contest_badge_form_blank` также пишутся в каталог:  
+**`OUT/PROM/CONTEST_BADGE_FORM/`**
 
 | Файл | Содержимое |
 |------|------------|

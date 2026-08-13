@@ -9,11 +9,11 @@
 
 | Файл | Когда брать |
 |------|-------------|
-| **BLANK** | Новый конкурс «с нуля» |
-| **EXAMPLE** | Образец заполнения (6 реальных конкурсов из SPOD) — смотреть и копировать приёмы |
+| **BLANK** | Новый конкурс «с нуля». В репозитории: `Docs/templates/CONTEST_BADGE_FORM/CONTEST_BADGE_FORM_BLANK.xlsx` |
+| **EXAMPLE** | Образец заполнения (6 реальных конкурсов из SPOD) — смотреть и копировать приёмы; генерируется в `OUT/…` |
 | Свой export | Результат `contest_badge_form_export` по выбранным `CONTEST_CODE` |
 
-Типовые пути после генерации:
+Типовые пути после генерации (`contest_badge_form_blank`):
 
 - `OUT/PROM/CONTEST_BADGE_FORM/CONTEST_BADGE_FORM_BLANK.xlsx`
 - `OUT/PROM/CONTEST_BADGE_FORM/CONTEST_BADGE_FORM_EXAMPLE.xlsx`
