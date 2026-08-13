@@ -1306,6 +1306,11 @@ python main.py
 
 ## История версий
 
+### Версия 1.7.63 — Пустой шаблон BADGE в репозитории
+
+- Файл **`Docs/templates/CONTEST_BADGE_FORM/CONTEST_BADGE_FORM_BLANK.xlsx`** версионируется (исключение в `.gitignore` для `*.xlsx`).
+- Ссылки в **`Docs/CONTEST_BADGE_FORM.md`**, **`CONTEST_BADGE_FORM_FILLING.md`**, **`DOCS_INDEX.md`**.
+
 ### Версия 1.7.62 — Форма BADGE: цвета типов ввода и инструкция заполнения
 
 - Цвет столбца значения / ячеек таблиц: выбор (зелёный), текст (жёлтый), список через `;` (персик), JSON (розовый), дата (голубой); легенда `#META:LEGEND`.
