@@ -1,10 +1,9 @@
-# Зависимости для main.py (чтение CSV, обработка, запись Excel).
+# Зависимости для main.py (чтение CSV, обработка, запись Excel, форма BADGE).
 # Для базового Python 3.10 — обязательны: pip install -r requirements.txt
-# Для Anaconda 3.10 — обычно уже в base (numpy, pandas, openpyxl).
+# Для Anaconda 3.10/3.12 — pandas, openpyxl, numpy обычно уже в base.
 et_xmlfile==2.0.0
 numpy==2.3.3
 openpyxl==3.1.5
-XlsxWriter==3.2.9
 pandas==2.3.3
 python-dateutil==2.9.0.post0
 pytz==2025.2

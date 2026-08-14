@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Запись Excel-формы BADGE через xlsxwriter (+ выпадающие списки)."""
+"""Запись Excel-формы BADGE через openpyxl (+ выпадающие списки)."""
 
 from __future__ import annotations
 
@@ -7,9 +7,11 @@ import logging
 import os
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
-import xlsxwriter
-from xlsxwriter.utility import xl_col_to_name
-from xlsxwriter.worksheet import Worksheet
+from openpyxl import Workbook
+from openpyxl.styles import Alignment, Font, PatternFill
+from openpyxl.utils import get_column_letter
+from openpyxl.worksheet.datavalidation import DataValidation
+from openpyxl.worksheet.worksheet import Worksheet
 
 from src.contest_badge_form import schema
 from src.contest_badge_form.field_meta import (
@@ -23,10 +25,16 @@ from src.contest_badge_form.field_meta import (
     input_kind_for_table_col,
     merge_dropdowns,
 )
+from src.contest_badge_form.form_io import save_workbook
 from src.contest_badge_form.spod_json import form_cell_from_list, list_from_form_cell
 
 _EXCEL_MAX = 32000
 _LISTS_SHEET = "Lists"
+
+
+def _hex(color: str) -> str:
+    """ARGB для openpyxl без символа #."""
+    return color.lstrip("#").upper()
 
 
 def _s(value: Any) -> str:
@@ -71,13 +79,10 @@ def _needs_lists_sheet(values: List[str]) -> bool:
     return len(",".join(values)) > 200
 
 
-def _build_lists_sheet(
-    workbook: Any, dropdown_map: Dict[str, List[str]]
-) -> Dict[str, str]:
+def _build_lists_ranges(dropdown_map: Dict[str, List[str]]) -> Dict[str, str]:
     """
-    Скрытый лист Lists для длинных/с запятыми списков.
-    Возвращает key → формула диапазона (=Lists!$A$2:$A$10).
-    Лист создаётся в конце книги (после листов 1..N).
+    key → формула диапазона (Lists!$A$2:$A$10) для длинных списков.
+    Сам лист создаётся позже.
     """
     to_sheet = {
         k: _clean_list(v)
@@ -87,19 +92,16 @@ def _build_lists_sheet(
     if not to_sheet:
         return {}
 
-    # Только формулы заранее — сам лист добавим после данных.
     ranges: Dict[str, str] = {}
     for col, key in enumerate(sorted(to_sheet.keys())):
         values = to_sheet[key]
-        letter = xl_col_to_name(col)
-        ranges[key] = f"={_LISTS_SHEET}!${letter}$2:${letter}${1 + len(values)}"
+        letter = get_column_letter(col + 1)
+        ranges[key] = f"{_LISTS_SHEET}!${letter}$2:${letter}${1 + len(values)}"
     return ranges
 
 
-def _fill_lists_sheet(
-    workbook: Any, dropdown_map: Dict[str, List[str]]
-) -> None:
-    """Создать и заполнить скрытый лист Lists (вызвать после листов формы)."""
+def _fill_lists_sheet(wb: Workbook, dropdown_map: Dict[str, List[str]]) -> None:
+    """Создать и заполнить скрытый лист Lists (после листов формы)."""
     to_sheet = {
         k: _clean_list(v)
         for k, v in dropdown_map.items()
@@ -107,53 +109,84 @@ def _fill_lists_sheet(
     }
     if not to_sheet:
         return
-    ws = workbook.add_worksheet(_LISTS_SHEET)
-    ws.hide()
-    for col, key in enumerate(sorted(to_sheet.keys())):
+    ws = wb.create_sheet(_LISTS_SHEET)
+    ws.sheet_state = "hidden"
+    for col, key in enumerate(sorted(to_sheet.keys()), start=1):
         values = to_sheet[key]
-        ws.write_string(0, col, key[:80])
-        for i, val in enumerate(values, start=1):
-            ws.write_string(i, col, val)
+        ws.cell(row=1, column=col, value=key[:80])
+        for i, val in enumerate(values, start=2):
+            ws.cell(row=i, column=col, value=val)
 
 
-def _dv_source(
+def _dv_formula(
     key: str, values: List[str], list_ranges: Dict[str, str]
-) -> Any:
-    """source для data_validation: список строк или формула."""
+) -> Optional[str]:
+    """formula1 для DataValidation: inline-список или ссылка на Lists."""
     cleaned = _clean_list(values)
     if not cleaned:
         return None
     if key in list_ranges:
         return list_ranges[key]
     if _needs_lists_sheet(cleaned):
-        # не попали на лист — fallback без запятых
-        return [v.replace(",", " ") for v in cleaned]
-    return cleaned
+        cleaned = [v.replace(",", " ") for v in cleaned]
+    if all("," not in v for v in cleaned) and len(",".join(cleaned)) <= 240:
+        return '"' + ",".join(cleaned) + '"'
+    joined = ",".join(v.replace(",", " ") for v in cleaned)
+    if len(joined) > 240:
+        joined = ",".join(cleaned[:15])
+    return f'"{joined}"'
 
 
 def _apply_list_validation(
     ws: Worksheet,
     cells_a1: List[str],
-    source: Any,
+    formula: Optional[str],
 ) -> None:
-    """Навесить list-validation на ячейки (A1-нотация, API xlsxwriter)."""
-    if not cells_a1 or source is None:
+    """Навесить list-validation на ячейки (A1-нотация)."""
+    if not cells_a1 or not formula:
         return
-    opts: Dict[str, Any] = {
-        "validate": "list",
-        "source": source,
-        "ignore_blank": True,
-        "show_error": False,
-        "show_input": False,
-        "dropdown": True,
-    }
+    dv = DataValidation(
+        type="list",
+        formula1=formula,
+        allow_blank=True,
+        showDropDown=False,
+        showErrorMessage=False,
+        showInputMessage=False,
+    )
+    ws.add_data_validation(dv)
     if len(cells_a1) == 1:
-        ws.data_validation(cells_a1[0], opts)
+        dv.add(cells_a1[0])
         return
-    # Несмежные ячейки одного ключа (слоты BADGE:1..N)
-    primary = cells_a1[0]
-    opts["multi_range"] = " ".join(cells_a1)
-    ws.data_validation(primary, opts)
+    dv.sqref = " ".join(cells_a1)
+
+
+def _value_style(kind: str) -> Dict[str, Any]:
+    """Стили ячейки значения по типу ввода."""
+    color = INPUT_KIND_COLORS.get(kind, INPUT_KIND_COLORS["text"])
+    return {
+        "fill": PatternFill("solid", fgColor=_hex(color)),
+        "alignment": Alignment(wrap_text=True, vertical="center"),
+    }
+
+
+def _apply_cell_style(cell: Any, style: Dict[str, Any]) -> None:
+    for attr, val in style.items():
+        setattr(cell, attr, val)
+
+
+_FILL_SECTION = PatternFill("solid", fgColor=_hex("#1F4E79"))
+_FONT_SECTION = Font(bold=True, color="FFFFFF", size=12)
+_FILL_KV = PatternFill("solid", fgColor=_hex("#D6EAF8"))
+_FONT_KEY = Font(color=_hex("#566573"), size=10)
+_FILL_HEADER = PatternFill("solid", fgColor=_hex("#D6EAF8"))
+_FILL_HEADER_VAL = PatternFill("solid", fgColor=_hex("#FFF2CC"))
+_FILL_HEADER_DESC = PatternFill("solid", fgColor=_hex("#F8F9F9"))
+_FILL_DESC = PatternFill("solid", fgColor=_hex("#F8F9F9"))
+_FONT_DESC = Font(color=_hex("#5D6D7E"), italic=True, size=9)
+_FILL_TABLE = PatternFill("solid", fgColor=_hex("#D5F5E3"))
+_FILL_HINT = PatternFill("solid", fgColor=_hex("#E8F8F5"))
+_FONT_HINT = Font(italic=True, size=8, color=_hex("#1E8449"))
+_FONT_LEGEND = Font(bold=True, size=10)
 
 
 def write_form_xlsx(
@@ -164,112 +197,60 @@ def write_form_xlsx(
     with_dropdowns: bool = True,
 ) -> str:
     """
-    Записать форму (листы 1..N) через xlsxwriter.
+    Записать форму (листы 1..N) через openpyxl.
     with_dropdowns=True — выпадающие списки из field_meta (Y/N, ПРОМ/ТЕСТ и др.).
     """
     parent = os.path.dirname(os.path.abspath(path))
     if parent:
         os.makedirs(parent, exist_ok=True)
 
-    workbook = xlsxwriter.Workbook(
-        path, {"strings_to_urls": False, "nan_inf_to_errors": False}
-    )
-
-    fmt_section = workbook.add_format(
-        {
-            "bold": True,
-            "font_color": "FFFFFF",
-            "bg_color": "#1F4E79",
-            "font_size": 12,
-            "valign": "vcenter",
-        }
-    )
-    fmt_key = workbook.add_format(
-        {"font_color": "#566573", "bg_color": "#D6EAF8", "font_size": 10}
-    )
-    fmt_label = workbook.add_format({"bg_color": "#D6EAF8", "font_size": 11})
-    fmt_value_by_kind: Dict[str, Any] = {}
-    for kind, color in INPUT_KIND_COLORS.items():
-        fmt_value_by_kind[kind] = workbook.add_format(
-            {"bg_color": color, "valign": "vcenter", "text_wrap": True}
-        )
-    fmt_desc = workbook.add_format(
-        {
-            "bg_color": "#F8F9F9",
-            "font_color": "#5D6D7E",
-            "italic": True,
-            "font_size": 9,
-            "text_wrap": True,
-        }
-    )
-    fmt_header = workbook.add_format({"bold": True, "bg_color": "#D6EAF8"})
-    fmt_header_val = workbook.add_format({"bold": True, "bg_color": "#FFF2CC"})
-    fmt_header_desc = workbook.add_format({"bold": True, "bg_color": "#F8F9F9"})
-    fmt_table_h = workbook.add_format({"bold": True, "bg_color": "#D5F5E3"})
-    fmt_hint = workbook.add_format(
-        {
-            "italic": True,
-            "font_size": 8,
-            "font_color": "#1E8449",
-            "bg_color": "#E8F8F5",
-            "text_wrap": True,
-        }
-    )
-    fmt_note = workbook.add_format({"text_wrap": True, "valign": "top"})
-    fmt_legend_label = workbook.add_format(
-        {"bold": True, "font_size": 10, "valign": "vcenter"}
-    )
-    fmt_legend_by_kind: Dict[str, Any] = {}
-    for kind, color in INPUT_KIND_COLORS.items():
-        fmt_legend_by_kind[kind] = workbook.add_format(
-            {
-                "bg_color": color,
-                "bold": True,
-                "font_size": 9,
-                "align": "center",
-                "valign": "vcenter",
-                "border": 1,
-            }
-        )
+    wb = Workbook()
+    default_ws = wb.active
+    assert default_ws is not None
 
     dd_map = merge_dropdowns(dropdowns) if with_dropdowns else {}
-    # табличные списки тоже на Lists при необходимости
     for table_key, col_map in TABLE_DROPDOWNS.items():
         for col_name, values in col_map.items():
             dd_map[f"TBL:{table_key}:{col_name}"] = list(values)
 
-    list_ranges = _build_lists_sheet(workbook, dd_map) if with_dropdowns else {}
+    list_ranges = _build_lists_ranges(dd_map) if with_dropdowns else {}
+
+    value_styles = {kind: _value_style(kind) for kind in INPUT_KIND_COLORS}
+    legend_styles = {
+        kind: {
+            "fill": PatternFill("solid", fgColor=_hex(INPUT_KIND_COLORS[kind])),
+            "font": Font(bold=True, size=9),
+            "alignment": Alignment(horizontal="center", vertical="center"),
+            "border": None,
+        }
+        for kind in INPUT_KIND_COLORS
+    }
 
     use_payloads = payloads if payloads else [{}]
+    first = True
     for idx, payload in enumerate(use_payloads, start=1):
-        ws = workbook.add_worksheet(str(idx))
+        if first:
+            ws = default_ws
+            ws.title = str(idx)
+            first = False
+        else:
+            ws = wb.create_sheet(str(idx))
         _write_sheet(
             ws,
             payload,
-            fmt_section=fmt_section,
-            fmt_key=fmt_key,
-            fmt_label=fmt_label,
-            fmt_value_by_kind=fmt_value_by_kind,
-            fmt_desc=fmt_desc,
-            fmt_header=fmt_header,
-            fmt_header_val=fmt_header_val,
-            fmt_header_desc=fmt_header_desc,
-            fmt_table_h=fmt_table_h,
-            fmt_hint=fmt_hint,
-            fmt_note=fmt_note,
-            fmt_legend_label=fmt_legend_label,
-            fmt_legend_by_kind=fmt_legend_by_kind,
+            value_styles=value_styles,
+            legend_styles=legend_styles,
             dropdown_map=dd_map if with_dropdowns else {},
             list_ranges=list_ranges,
             with_dropdowns=with_dropdowns,
         )
 
     if with_dropdowns:
-        _fill_lists_sheet(workbook, dd_map)
+        _fill_lists_sheet(wb, dd_map)
 
-    workbook.close()
+    save_workbook(wb, path, keep_data_validations=with_dropdowns)
     logging.info(
-        "[contest_badge_form] Форма (xlsxwriter%s): %s",
+        "[contest_badge_form] Форма (openpyxl%s): %s",
         ", dropdowns" if with_dropdowns else "",
         path,
     )
@@ -285,10 +266,7 @@ def _write_kv(
     *,
     in_badge_slot: bool,
     schema_kind: Optional[str],
-    fmt_key: Any,
-    fmt_label: Any,
-    fmt_value_by_kind: Dict[str, Any],
-    fmt_desc: Any,
+    value_styles: Dict[str, Dict[str, Any]],
     kv_cells: Dict[str, List[str]],
     dropdown_map: Dict[str, List[str]],
 ) -> int:
@@ -297,26 +275,40 @@ def _write_kv(
         schema_kind=schema_kind,
         has_dropdown=key in dropdown_map,
     )
-    fmt_value = fmt_value_by_kind.get(kind) or fmt_value_by_kind["text"]
-    ws.write_string(row, 0, _s(key), fmt_key)
-    ws.write_string(row, 1, _s(label), fmt_label)
-    ws.write_string(row, 2, _s(value), fmt_value)
-    ws.write_string(
-        row,
-        3,
-        _s(description_for(key, in_badge_slot=in_badge_slot)),
-        fmt_desc,
+    style = value_styles.get(kind) or value_styles["text"]
+
+    key_cell = ws.cell(row=row, column=1, value=_s(key))
+    key_cell.fill = _FILL_KV
+    key_cell.font = _FONT_KEY
+
+    label_cell = ws.cell(row=row, column=2, value=_s(label))
+    label_cell.fill = _FILL_KV
+
+    val_cell = ws.cell(row=row, column=3, value=_s(value))
+    _apply_cell_style(val_cell, style)
+
+    desc_cell = ws.cell(
+        row=row,
+        column=4,
+        value=_s(description_for(key, in_badge_slot=in_badge_slot)),
     )
-    ws.set_row(row, 28)
-    # Excel A1: столбец C, строка row+1
-    kv_cells.setdefault(key, []).append(f"C{row + 1}")
+    desc_cell.fill = _FILL_DESC
+    desc_cell.font = _FONT_DESC
+    desc_cell.alignment = Alignment(wrap_text=True, vertical="center")
+
+    ws.row_dimensions[row].height = 28
+    kv_cells.setdefault(key, []).append(f"C{row}")
     return row + 1
 
 
-def _write_section(ws: Worksheet, row: int, title: str, fmt_section: Any) -> int:
-    for col in range(4):
-        ws.write_string(row, col, _s(title) if col == 0 else "", fmt_section)
-    ws.set_row(row, 20)
+def _write_section(ws: Worksheet, row: int, title: str) -> int:
+    for col in range(1, 5):
+        cell = ws.cell(row=row, column=col, value=_s(title) if col == 1 else "")
+        cell.fill = _FILL_SECTION
+        if col == 1:
+            cell.font = _FONT_SECTION
+            cell.alignment = Alignment(vertical="center")
+    ws.row_dimensions[row].height = 20
     return row + 1
 
 
@@ -324,17 +316,19 @@ def _write_legend(
     ws: Worksheet,
     row: int,
     *,
-    fmt_legend_label: Any,
-    fmt_legend_by_kind: Dict[str, Any],
+    legend_styles: Dict[str, Dict[str, Any]],
 ) -> int:
     """Строка легенды цветов типов ввода (образцы в C–G)."""
-    ws.write_string(row, 0, "#META:LEGEND", fmt_legend_label)
-    ws.write_string(row, 1, "Цвет значения = тип ввода →", fmt_legend_label)
+    c0 = ws.cell(row=row, column=1, value="#META:LEGEND")
+    c0.font = _FONT_LEGEND
+    c1 = ws.cell(row=row, column=2, value="Цвет значения = тип ввода →")
+    c1.font = _FONT_LEGEND
     for col_idx, kind in enumerate(INPUT_KIND_ORDER):
         label = INPUT_KIND_LABELS.get(kind, kind)
-        fmt = fmt_legend_by_kind.get(kind)
-        ws.write_string(row, 2 + col_idx, _s(label), fmt)
-    ws.set_row(row, 22)
+        cell = ws.cell(row=row, column=3 + col_idx, value=_s(label))
+        style = legend_styles.get(kind, {})
+        _apply_cell_style(cell, {k: v for k, v in style.items() if v is not None})
+    ws.row_dimensions[row].height = 22
     return row + 1
 
 
@@ -345,45 +339,54 @@ def _write_table(
     columns: Sequence[str],
     rows: List[Dict[str, Any]],
     *,
-    fmt_table_h: Any,
-    fmt_hint: Any,
-    fmt_value_by_kind: Dict[str, Any],
+    value_styles: Dict[str, Dict[str, Any]],
     min_empty: int = 3,
 ) -> Tuple[int, str, Sequence[str], int, int]:
-    """Возвращает (next_row, table_key, columns, data_start_excel_row, data_end_excel_row)."""
+    """Возвращает (next_row, table_key, columns, data_start, data_end)."""
     table_key = marker.replace("#TABLE:", "").strip().upper()
     if table_key == "REWARD_LINK":
         table_key = "REWARD-LINK"
     hints = TABLE_COLUMN_HINTS.get(table_key, {})
     col_kinds = [input_kind_for_table_col(table_key, c) for c in columns]
-    col_fmts = [
-        fmt_value_by_kind.get(k) or fmt_value_by_kind["text"] for k in col_kinds
+    col_styles = [
+        value_styles.get(k) or value_styles["text"] for k in col_kinds
     ]
 
-    ws.write_string(row, 0, _s(marker), fmt_table_h)
+    mcell = ws.cell(row=row, column=1, value=_s(marker))
+    mcell.fill = _FILL_TABLE
+    mcell.font = Font(bold=True)
     row += 1
-    for col_idx, col_name in enumerate(columns):
-        ws.write_string(row, col_idx, _s(col_name), fmt_table_h)
+    for col_idx, col_name in enumerate(columns, start=1):
+        cell = ws.cell(row=row, column=col_idx, value=_s(col_name))
+        cell.font = Font(bold=True)
+        cell.fill = _FILL_TABLE
     row += 1
-    for col_idx, col_name in enumerate(columns):
+    for col_idx, col_name in enumerate(columns, start=1):
         hint = hints.get(col_name, "значение")
-        kind_label = INPUT_KIND_LABELS.get(col_kinds[col_idx], "")
+        kind_label = INPUT_KIND_LABELS.get(col_kinds[col_idx - 1], "")
         hint_full = f"{hint} · {kind_label}" if kind_label else hint
-        text = f"#HINT | {hint_full}" if col_idx == 0 else hint_full
-        ws.write_string(row, col_idx, _s(text), fmt_hint)
+        text = f"#HINT | {hint_full}" if col_idx == 1 else hint_full
+        cell = ws.cell(row=row, column=col_idx, value=_s(text))
+        cell.font = _FONT_HINT
+        cell.fill = _FILL_HINT
+        cell.alignment = Alignment(wrap_text=True)
     row += 1
-    data_start = row + 1  # Excel 1-based
+    data_start = row
     for data_row in rows:
-        for col_idx, col_name in enumerate(columns):
-            ws.write_string(
-                row, col_idx, _s(data_row.get(col_name, "")), col_fmts[col_idx]
+        for col_idx, col_name in enumerate(columns, start=1):
+            cell = ws.cell(
+                row=row,
+                column=col_idx,
+                value=_s(data_row.get(col_name, "")),
             )
+            _apply_cell_style(cell, col_styles[col_idx - 1])
         row += 1
     for _ in range(min_empty):
-        for col_idx in range(len(columns)):
-            ws.write_string(row, col_idx, "", col_fmts[col_idx])
+        for col_idx in range(1, len(columns) + 1):
+            cell = ws.cell(row=row, column=col_idx, value="")
+            _apply_cell_style(cell, col_styles[col_idx - 1])
         row += 1
-    data_end = row  # Excel 1-based last row (row is next empty 0-based index)
+    data_end = row - 1
     return row, table_key, columns, data_start, data_end
 
 
@@ -391,58 +394,51 @@ def _write_sheet(
     ws: Worksheet,
     payload: Dict[str, Any],
     *,
-    fmt_section: Any,
-    fmt_key: Any,
-    fmt_label: Any,
-    fmt_value_by_kind: Dict[str, Any],
-    fmt_desc: Any,
-    fmt_header: Any,
-    fmt_header_val: Any,
-    fmt_header_desc: Any,
-    fmt_table_h: Any,
-    fmt_hint: Any,
-    fmt_note: Any,
-    fmt_legend_label: Any,
-    fmt_legend_by_kind: Dict[str, Any],
+    value_styles: Dict[str, Dict[str, Any]],
+    legend_styles: Dict[str, Dict[str, Any]],
     dropdown_map: Dict[str, List[str]],
     list_ranges: Dict[str, str],
     with_dropdowns: bool,
 ) -> None:
-    ws.set_column(0, 0, 30)
-    ws.set_column(1, 1, 34)
-    ws.set_column(2, 2, 42)
-    ws.set_column(3, 3, 62)
-    # легенда использует колонки E–F
-    ws.set_column(4, 6, 22)
+    ws.column_dimensions["A"].width = 30
+    ws.column_dimensions["B"].width = 34
+    ws.column_dimensions["C"].width = 42
+    ws.column_dimensions["D"].width = 62
+    for col_idx in range(5, 8):
+        ws.column_dimensions[get_column_letter(col_idx)].width = 22
 
     kv_cells: Dict[str, List[str]] = {}
 
-    row = 0
-    ws.write_string(row, 0, "#META:FORM_VERSION")
-    ws.write_string(row, 1, "6")
     row = 1
-    ws.write_string(row, 0, "#META:NOTE")
+    ws.cell(row=row, column=1, value="#META:FORM_VERSION")
+    ws.cell(row=row, column=2, value="6")
+    row = 2
+    ws.cell(row=row, column=1, value="#META:NOTE")
     note = (
         "Заполняйте цветные ячейки значений (столбец C и таблицы). "
         "Цвет = тип ввода (легенда ниже). Столбец D — описание. "
         "Где зелёный — выпадающий список. Персик — несколько значений через ; . "
         "Розовый — JSON как в SPOD. Лист = номер конкурса."
     )
-    ws.write_string(row, 1, _s(note), fmt_note)
-    ws.set_row(row, 40)
-    row = 2
-    row = _write_legend(
-        ws,
-        row,
-        fmt_legend_label=fmt_legend_label,
-        fmt_legend_by_kind=fmt_legend_by_kind,
-    )
+    note_cell = ws.cell(row=row, column=2, value=_s(note))
+    note_cell.alignment = Alignment(wrap_text=True, vertical="top")
+    ws.row_dimensions[row].height = 40
     row = 3
-    ws.write_string(row, 0, "Ключ", fmt_header)
-    ws.write_string(row, 1, "Подпись", fmt_header)
-    ws.write_string(row, 2, "Значение (заполнять)", fmt_header_val)
-    ws.write_string(row, 3, "Описание / значения", fmt_header_desc)
-    row = 5
+    row = _write_legend(ws, row, legend_styles=legend_styles)
+    row = 4
+    for col_idx, (title, fill) in enumerate(
+        (
+            ("Ключ", _FILL_HEADER),
+            ("Подпись", _FILL_HEADER),
+            ("Значение (заполнять)", _FILL_HEADER_VAL),
+            ("Описание / значения", _FILL_HEADER_DESC),
+        ),
+        start=1,
+    ):
+        cell = ws.cell(row=row, column=col_idx, value=title)
+        cell.font = Font(bold=True)
+        cell.fill = fill
+    row = 6
 
     contest_flat: Dict[str, Any] = payload.get("contest_flat") or {}
     contest_arrays: Dict[str, Any] = payload.get("contest_arrays") or {}
@@ -465,15 +461,12 @@ def _write_sheet(
             value,
             in_badge_slot=in_badge,
             schema_kind=schema_kind,
-            fmt_key=fmt_key,
-            fmt_label=fmt_label,
-            fmt_value_by_kind=fmt_value_by_kind,
-            fmt_desc=fmt_desc,
+            value_styles=value_styles,
             kv_cells=kv_cells,
             dropdown_map=dropdown_map,
         )
 
-    row = _write_section(ws, row, "#SECTION:CONTEST", fmt_section)
+    row = _write_section(ws, row, "#SECTION:CONTEST")
     for key, label in schema.CONTEST_FLAT_FIELDS:
         row = _kv(row, key, label, contest_flat.get(key, ""), in_badge=False)
     for key, label in schema.CONTEST_ARRAY_FIELDS:
@@ -500,7 +493,7 @@ def _write_sheet(
     contest_type = str(contest_flat.get("CONTEST_TYPE") or "")
     slots = schema.max_badge_slots(contest_type)
     for slot_idx in range(1, slots + 1):
-        row = _write_section(ws, row, f"#SECTION:BADGE:{slot_idx}", fmt_section)
+        row = _write_section(ws, row, f"#SECTION:BADGE:{slot_idx}")
         badge = badges[slot_idx - 1] if slot_idx - 1 < len(badges) else {}
         flat = badge.get("flat") or {}
         add_data = badge.get("add_data") or {}
@@ -537,24 +530,20 @@ def _write_sheet(
             marker,
             cols,
             list(payload.get(payload_key) or []),
-            fmt_table_h=fmt_table_h,
-            fmt_hint=fmt_hint,
-            fmt_value_by_kind=fmt_value_by_kind,
+            value_styles=value_styles,
         )
         table_metas.append((table_key, cols_out, data_start, data_end))
 
     if not with_dropdowns:
         return
 
-    # KV dropdowns
     for key, cells in kv_cells.items():
         values = dropdown_map.get(key)
         if not values:
             continue
-        source = _dv_source(key, values, list_ranges)
-        _apply_list_validation(ws, cells, source)
+        formula = _dv_formula(key, values, list_ranges)
+        _apply_list_validation(ws, cells, formula)
 
-    # Table dropdowns
     for table_key, columns, data_start, data_end in table_metas:
         col_lists = TABLE_DROPDOWNS.get(table_key) or {}
         if not col_lists or data_end < data_start:
@@ -562,9 +551,9 @@ def _write_sheet(
         for col_name, values in col_lists.items():
             if col_name not in columns:
                 continue
-            col_idx = list(columns).index(col_name)
-            letter = xl_col_to_name(col_idx)
+            col_idx = list(columns).index(col_name) + 1
+            letter = get_column_letter(col_idx)
             range_a1 = f"{letter}{data_start}:{letter}{data_end}"
             list_key = f"TBL:{table_key}:{col_name}"
-            source = _dv_source(list_key, values, list_ranges)
-            _apply_list_validation(ws, [range_a1], source)
+            formula = _dv_formula(list_key, values, list_ranges)
+            _apply_list_validation(ws, [range_a1], formula)

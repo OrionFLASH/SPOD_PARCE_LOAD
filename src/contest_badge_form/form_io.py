@@ -465,17 +465,19 @@ def build_workbook(
     return wb
 
 
-def save_workbook(wb: Workbook, path: str) -> None:
+def save_workbook(
+    wb: Workbook, path: str, *, keep_data_validations: bool = False
+) -> None:
     """Сохранить книгу и починить OOXML пустых ячеек (иначе Excel пишет «ошибка содержимого»)."""
     parent = os.path.dirname(os.path.abspath(path))
     if parent:
         os.makedirs(parent, exist_ok=True)
     wb.save(path)
-    _postprocess_xlsx(path)
+    _postprocess_xlsx(path, keep_data_validations=keep_data_validations)
     logging.info("[contest_badge_form] Форма записана: %s", path)
 
 
-def _postprocess_xlsx(path: str) -> None:
+def _postprocess_xlsx(path: str, *, keep_data_validations: bool = False) -> None:
     """
     openpyxl 3.x для пустой строки часто пишет:
       <c r="C6" s="9" t="inlineStr" />
@@ -507,13 +509,14 @@ def _postprocess_xlsx(path: str) -> None:
                     r'<c r="\1" s="\2"/>',
                     text,
                 )
-                # на всякий случай убрать DV/merge, если всплывут
-                text = re.sub(
-                    r"<dataValidations\b[^>]*>.*?</dataValidations>",
-                    "",
-                    text,
-                    flags=re.DOTALL,
-                )
+                if not keep_data_validations:
+                    # DV иногда ломает Excel Mac — убираем только для «простых» книг
+                    text = re.sub(
+                        r"<dataValidations\b[^>]*>.*?</dataValidations>",
+                        "",
+                        text,
+                        flags=re.DOTALL,
+                    )
                 data = text.encode("utf-8")
             elif item.filename == "xl/workbook.xml":
                 text = data.decode("utf-8")
@@ -562,7 +565,7 @@ def create_blank_form(
     contest_type: str = "ТУРНИРНЫЙ",
     dropdowns: Optional[Dict[str, List[str]]] = None,
 ) -> str:
-    """Создать пустую Excel-форму для заполнения (xlsxwriter + dropdowns)."""
+    """Создать пустую Excel-форму для заполнения (openpyxl + dropdowns)."""
     n = max(1, int(sheet_count))
     payloads = [
         empty_contest_payload(contest_type=contest_type) for _ in range(n)

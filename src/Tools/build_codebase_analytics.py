@@ -24,7 +24,7 @@ STD_LIB = {
     "textwrap", "threading", "time", "traceback", "typing", "unittest", "uuid", "warnings",
     "xml", "__future__",
 }
-EXTERNAL = {"pandas", "numpy", "openpyxl", "xlsxwriter", "xlrd", "requests", "tqdm", "colorama", "pytest"}
+EXTERNAL = {"pandas", "numpy", "openpyxl", "xlrd", "requests", "tqdm", "colorama", "pytest"}
 CAT_LABELS = {
     "core": "Ядро (src/)",
     "tests": "Тесты",
