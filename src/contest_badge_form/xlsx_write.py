@@ -1,21 +1,23 @@
 # -*- coding: utf-8 -*-
-"""Запись Excel-формы BADGE через openpyxl (+ выпадающие списки)."""
+"""
+Запись Excel-формы BADGE через stdlib (zipfile + xml).
+
+Без openpyxl/xlsxwriter при записи — корректный OOXML (sharedStrings),
+чтобы Excel/Mac не ругался на «ошибку содержимого».
+Чтение формы по-прежнему через openpyxl (есть в Anaconda).
+"""
 
 from __future__ import annotations
 
 import logging
 import os
+import zipfile
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Sequence, Tuple
-
-from openpyxl import Workbook
-from openpyxl.styles import Alignment, Font, PatternFill
-from openpyxl.utils import get_column_letter
-from openpyxl.worksheet.datavalidation import DataValidation
-from openpyxl.worksheet.worksheet import Worksheet
+from xml.sax.saxutils import escape
 
 from src.contest_badge_form import schema
 from src.contest_badge_form.field_meta import (
-    INPUT_KIND_COLORS,
     INPUT_KIND_LABELS,
     INPUT_KIND_ORDER,
     TABLE_COLUMN_HINTS,
@@ -25,16 +27,39 @@ from src.contest_badge_form.field_meta import (
     input_kind_for_table_col,
     merge_dropdowns,
 )
-from src.contest_badge_form.form_io import save_workbook
 from src.contest_badge_form.spod_json import form_cell_from_list, list_from_form_cell
 
 _EXCEL_MAX = 32000
 _LISTS_SHEET = "Lists"
 
-
-def _hex(color: str) -> str:
-    """ARGB для openpyxl без символа #."""
-    return color.lstrip("#").upper()
+# Индексы стилей в styles.xml (см. _STYLES_XML)
+_S_DEFAULT = 0
+_S_SECTION = 1
+_S_KEY = 2
+_S_LABEL = 3
+_S_DESC = 4
+_S_HEADER = 5
+_S_HEADER_VAL = 6
+_S_HEADER_DESC = 7
+_S_TABLE = 8
+_S_HINT = 9
+_S_NOTE = 10
+_S_LEGEND_LABEL = 11
+# value kinds + legend kinds
+_S_VALUE: Dict[str, int] = {
+    "dropdown": 12,
+    "text": 13,
+    "list": 14,
+    "json": 15,
+    "date": 16,
+}
+_S_LEGEND: Dict[str, int] = {
+    "dropdown": 17,
+    "text": 18,
+    "list": 19,
+    "json": 20,
+    "date": 21,
+}
 
 
 def _s(value: Any) -> str:
@@ -46,6 +71,19 @@ def _s(value: Any) -> str:
     if len(text) > _EXCEL_MAX:
         text = text[: _EXCEL_MAX - 15] + "…[обрезано]"
     return text
+
+
+def _xml(text: str) -> str:
+    return escape(_s(text), {"'": "&apos;", '"': "&quot;"})
+
+
+def _col_letter(col_1based: int) -> str:
+    n = col_1based
+    out = ""
+    while n > 0:
+        n, rem = divmod(n - 1, 26)
+        out = chr(65 + rem) + out
+    return out
 
 
 def _feature_value(feature: Dict[str, Any], key: str, kind: str) -> str:
@@ -71,7 +109,6 @@ def _clean_list(values: Sequence[Any]) -> List[str]:
 
 
 def _needs_lists_sheet(values: List[str]) -> bool:
-    """Длинные списки или значения с запятой — только через лист Lists."""
     if not values:
         return False
     if any("," in v for v in values):
@@ -80,48 +117,22 @@ def _needs_lists_sheet(values: List[str]) -> bool:
 
 
 def _build_lists_ranges(dropdown_map: Dict[str, List[str]]) -> Dict[str, str]:
-    """
-    key → формула диапазона (Lists!$A$2:$A$10) для длинных списков.
-    Сам лист создаётся позже.
-    """
     to_sheet = {
         k: _clean_list(v)
         for k, v in dropdown_map.items()
         if _needs_lists_sheet(_clean_list(v))
     }
-    if not to_sheet:
-        return {}
-
     ranges: Dict[str, str] = {}
     for col, key in enumerate(sorted(to_sheet.keys())):
         values = to_sheet[key]
-        letter = get_column_letter(col + 1)
+        letter = _col_letter(col + 1)
         ranges[key] = f"{_LISTS_SHEET}!${letter}$2:${letter}${1 + len(values)}"
     return ranges
-
-
-def _fill_lists_sheet(wb: Workbook, dropdown_map: Dict[str, List[str]]) -> None:
-    """Создать и заполнить скрытый лист Lists (после листов формы)."""
-    to_sheet = {
-        k: _clean_list(v)
-        for k, v in dropdown_map.items()
-        if _needs_lists_sheet(_clean_list(v))
-    }
-    if not to_sheet:
-        return
-    ws = wb.create_sheet(_LISTS_SHEET)
-    ws.sheet_state = "hidden"
-    for col, key in enumerate(sorted(to_sheet.keys()), start=1):
-        values = to_sheet[key]
-        ws.cell(row=1, column=col, value=key[:80])
-        for i, val in enumerate(values, start=2):
-            ws.cell(row=i, column=col, value=val)
 
 
 def _dv_formula(
     key: str, values: List[str], list_ranges: Dict[str, str]
 ) -> Optional[str]:
-    """formula1 для DataValidation: inline-список или ссылка на Lists."""
     cleaned = _clean_list(values)
     if not cleaned:
         return None
@@ -137,128 +148,379 @@ def _dv_formula(
     return f'"{joined}"'
 
 
-def _apply_list_validation(
-    ws: Worksheet,
-    cells_a1: List[str],
-    formula: Optional[str],
-) -> None:
-    """Навесить list-validation на ячейки (A1-нотация)."""
-    if not cells_a1 or not formula:
-        return
-    dv = DataValidation(
-        type="list",
-        formula1=formula,
-        allow_blank=True,
-        showDropDown=False,
-        showErrorMessage=False,
-        showInputMessage=False,
+class _SheetBuilder:
+    """Сетка ячеек + DV + ширины колонок."""
+
+    def __init__(self, name: str, *, hidden: bool = False) -> None:
+        self.name = name
+        self.hidden = hidden
+        # (row0, col0) -> (text, style_id)
+        self.cells: Dict[Tuple[int, int], Tuple[str, int]] = {}
+        self.row_heights: Dict[int, float] = {}
+        self.col_widths: Dict[int, float] = {}
+        # list of (sqref, formula1)
+        self.validations: List[Tuple[str, str]] = []
+
+    def put(self, row_1: int, col_1: int, value: Any, style: int = _S_DEFAULT) -> None:
+        self.cells[(row_1 - 1, col_1 - 1)] = (_s(value), style)
+
+    def set_row_height(self, row_1: int, height: float) -> None:
+        self.row_heights[row_1 - 1] = height
+
+    def set_col_width(self, col_1: int, width: float) -> None:
+        self.col_widths[col_1 - 1] = width
+
+    def add_dv(self, sqref: str, formula: str) -> None:
+        if sqref and formula:
+            self.validations.append((sqref, formula))
+
+
+def _collect_shared_strings(sheets: List[_SheetBuilder]) -> Tuple[List[str], Dict[str, int]]:
+    order: List[str] = []
+    index: Dict[str, int] = {}
+    for sh in sheets:
+        for text, _style in sh.cells.values():
+            if text not in index:
+                index[text] = len(order)
+                order.append(text)
+    return order, index
+
+
+def _sheet_xml(sh: _SheetBuilder, sst: Dict[str, int]) -> str:
+    if not sh.cells:
+        max_r, max_c = 0, 0
+    else:
+        max_r = max(r for r, _c in sh.cells) + 1
+        max_c = max(c for _r, c in sh.cells) + 1
+    dim = f"A1:{_col_letter(max(max_c, 1))}{max(max_r, 1)}"
+
+    cols_xml = ""
+    if sh.col_widths:
+        parts = []
+        for c0, w in sorted(sh.col_widths.items()):
+            parts.append(
+                f'<col min="{c0 + 1}" max="{c0 + 1}" width="{w}" customWidth="1"/>'
+            )
+        cols_xml = "<cols>" + "".join(parts) + "</cols>"
+
+    # group by row
+    by_row: Dict[int, List[Tuple[int, str, int]]] = {}
+    for (r0, c0), (text, style) in sh.cells.items():
+        by_row.setdefault(r0, []).append((c0, text, style))
+
+    rows_parts: List[str] = []
+    for r0 in sorted(by_row):
+        cells = sorted(by_row[r0], key=lambda x: x[0])
+        ht = sh.row_heights.get(r0)
+        ht_attr = f' ht="{ht}" customHeight="1"' if ht is not None else ""
+        c_xml: List[str] = []
+        for c0, text, style in cells:
+            ref = f"{_col_letter(c0 + 1)}{r0 + 1}"
+            si = sst[text]
+            s_attr = f' s="{style}"' if style else ""
+            c_xml.append(f'<c r="{ref}"{s_attr} t="s"><v>{si}</v></c>')
+        rows_parts.append(
+            f'<row r="{r0 + 1}"{ht_attr}>' + "".join(c_xml) + "</row>"
+        )
+
+    dv_xml = ""
+    if sh.validations:
+        # по одной записи на sqref (без multi_range — надёжнее для Excel Mac)
+        items = []
+        for sqref, formula in sh.validations:
+            items.append(
+                '<dataValidation type="list" allowBlank="1" '
+                'showInputMessage="0" showErrorMessage="0" '
+                f'sqref="{escape(sqref)}">'
+                f"<formula1>{escape(formula)}</formula1>"
+                "</dataValidation>"
+            )
+        dv_xml = (
+            f'<dataValidations count="{len(items)}">'
+            + "".join(items)
+            + "</dataValidations>"
+        )
+
+    return (
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+        '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" '
+        'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">'
+        f'<dimension ref="{dim}"/>'
+        "<sheetViews><sheetView workbookViewId=\"0\"/></sheetViews>"
+        '<sheetFormatPr defaultRowHeight="15"/>'
+        f"{cols_xml}"
+        f'<sheetData>{"".join(rows_parts)}</sheetData>'
+        f"{dv_xml}"
+        "</worksheet>"
     )
-    ws.add_data_validation(dv)
-    if len(cells_a1) == 1:
-        dv.add(cells_a1[0])
-        return
-    dv.sqref = " ".join(cells_a1)
 
 
-def _value_style(kind: str) -> Dict[str, Any]:
-    """Стили ячейки значения по типу ввода."""
-    color = INPUT_KIND_COLORS.get(kind, INPUT_KIND_COLORS["text"])
-    return {
-        "fill": PatternFill("solid", fgColor=_hex(color)),
-        "alignment": Alignment(wrap_text=True, vertical="center"),
-    }
+def _shared_strings_xml(strings: List[str]) -> str:
+    parts = [
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+        '<sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" '
+        f'count="{len(strings)}" uniqueCount="{len(strings)}">'
+    ]
+    for s in strings:
+        # preserve spaces
+        parts.append(f'<si><t xml:space="preserve">{_xml(s)}</t></si>')
+    parts.append("</sst>")
+    return "".join(parts)
 
 
-def _apply_cell_style(cell: Any, style: Dict[str, Any]) -> None:
-    for attr, val in style.items():
-        setattr(cell, attr, val)
+def _styles_xml() -> str:
+    """Фиксированный набор заливок/шрифтов под форму."""
+    # fills: 0 none, 1 gray125, then solids
+    fill_colors = [
+        "1F4E79",  # section
+        "D6EAF8",  # key/label/header
+        "F8F9F9",  # desc / header desc
+        "FFF2CC",  # header val / text
+        "D5F5E3",  # table
+        "E8F8F5",  # hint
+        "C6EFCE",  # dropdown
+        "FCE4D6",  # list
+        "F5B7B1",  # json
+        "DDEBF7",  # date
+    ]
+    fills = [
+        '<fill><patternFill patternType="none"/></fill>',
+        '<fill><patternFill patternType="gray125"/></fill>',
+    ]
+    for rgb in fill_colors:
+        fills.append(
+            f'<fill><patternFill patternType="solid">'
+            f'<fgColor rgb="FF{rgb}"/></patternFill></fill>'
+        )
+
+    # fonts: 0 default, 1 white bold section, 2 key gray, 3 desc italic,
+    # 4 bold, 5 hint green, 6 legend bold
+    fonts = [
+        "<fonts count=\"7\">"
+        '<font><sz val="11"/><color theme="1"/><name val="Calibri"/><family val="2"/></font>'
+        '<font><b/><sz val="12"/><color rgb="FFFFFFFF"/><name val="Calibri"/><family val="2"/></font>'
+        '<font><sz val="10"/><color rgb="FF566573"/><name val="Calibri"/><family val="2"/></font>'
+        '<font><i/><sz val="9"/><color rgb="FF5D6D7E"/><name val="Calibri"/><family val="2"/></font>'
+        '<font><b/><sz val="11"/><name val="Calibri"/><family val="2"/></font>'
+        '<font><i/><sz val="8"/><color rgb="FF1E8449"/><name val="Calibri"/><family val="2"/></font>'
+        '<font><b/><sz val="10"/><name val="Calibri"/><family val="2"/></font>'
+        "</fonts>"
+    ]
+
+    # cellXfs mapping — indices must match _S_* constants
+    # fill index: 0 none, 1 gray, 2 section, 3 kv, 4 desc, 5 headerval/text,
+    # 6 table, 7 hint, 8 dropdown, 9 list, 10 json, 11 date
+    xfs = [
+        # 0 default
+        '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>',
+        # 1 section
+        '<xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1">'
+        '<alignment vertical="center"/></xf>',
+        # 2 key
+        '<xf numFmtId="0" fontId="2" fillId="3" borderId="0" xfId="0" applyFont="1" applyFill="1"/>',
+        # 3 label
+        '<xf numFmtId="0" fontId="0" fillId="3" borderId="0" xfId="0" applyFill="1"/>',
+        # 4 desc
+        '<xf numFmtId="0" fontId="3" fillId="4" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1">'
+        '<alignment wrapText="1" vertical="center"/></xf>',
+        # 5 header
+        '<xf numFmtId="0" fontId="4" fillId="3" borderId="0" xfId="0" applyFont="1" applyFill="1"/>',
+        # 6 header val
+        '<xf numFmtId="0" fontId="4" fillId="5" borderId="0" xfId="0" applyFont="1" applyFill="1"/>',
+        # 7 header desc
+        '<xf numFmtId="0" fontId="4" fillId="4" borderId="0" xfId="0" applyFont="1" applyFill="1"/>',
+        # 8 table
+        '<xf numFmtId="0" fontId="4" fillId="6" borderId="0" xfId="0" applyFont="1" applyFill="1"/>',
+        # 9 hint
+        '<xf numFmtId="0" fontId="5" fillId="7" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1">'
+        '<alignment wrapText="1"/></xf>',
+        # 10 note
+        '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0" applyAlignment="1">'
+        '<alignment wrapText="1" vertical="top"/></xf>',
+        # 11 legend label
+        '<xf numFmtId="0" fontId="6" fillId="0" borderId="0" xfId="0" applyFont="1"/>',
+        # 12-16 value kinds
+        '<xf numFmtId="0" fontId="0" fillId="8" borderId="0" xfId="0" applyFill="1" applyAlignment="1">'
+        '<alignment wrapText="1" vertical="center"/></xf>',
+        '<xf numFmtId="0" fontId="0" fillId="5" borderId="0" xfId="0" applyFill="1" applyAlignment="1">'
+        '<alignment wrapText="1" vertical="center"/></xf>',
+        '<xf numFmtId="0" fontId="0" fillId="9" borderId="0" xfId="0" applyFill="1" applyAlignment="1">'
+        '<alignment wrapText="1" vertical="center"/></xf>',
+        '<xf numFmtId="0" fontId="0" fillId="10" borderId="0" xfId="0" applyFill="1" applyAlignment="1">'
+        '<alignment wrapText="1" vertical="center"/></xf>',
+        '<xf numFmtId="0" fontId="0" fillId="11" borderId="0" xfId="0" applyFill="1" applyAlignment="1">'
+        '<alignment wrapText="1" vertical="center"/></xf>',
+        # 17-21 legend samples (bold + kind fill)
+        '<xf numFmtId="0" fontId="4" fillId="8" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1">'
+        '<alignment horizontal="center" vertical="center"/></xf>',
+        '<xf numFmtId="0" fontId="4" fillId="5" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1">'
+        '<alignment horizontal="center" vertical="center"/></xf>',
+        '<xf numFmtId="0" fontId="4" fillId="9" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1">'
+        '<alignment horizontal="center" vertical="center"/></xf>',
+        '<xf numFmtId="0" fontId="4" fillId="10" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1">'
+        '<alignment horizontal="center" vertical="center"/></xf>',
+        '<xf numFmtId="0" fontId="4" fillId="11" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1">'
+        '<alignment horizontal="center" vertical="center"/></xf>',
+    ]
+
+    return (
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+        '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
+        + fonts[0]
+        + f'<fills count="{len(fills)}">{"".join(fills)}</fills>'
+        '<borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders>'
+        '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>'
+        f'<cellXfs count="{len(xfs)}">{"".join(xfs)}</cellXfs>'
+        '<cellStyles count="1">'
+        '<cellStyle name="Normal" xfId="0" builtinId="0"/>'
+        "</cellStyles>"
+        "</styleSheet>"
+    )
 
 
-_FILL_SECTION = PatternFill("solid", fgColor=_hex("#1F4E79"))
-_FONT_SECTION = Font(bold=True, color="FFFFFF", size=12)
-_FILL_KV = PatternFill("solid", fgColor=_hex("#D6EAF8"))
-_FONT_KEY = Font(color=_hex("#566573"), size=10)
-_FILL_HEADER = PatternFill("solid", fgColor=_hex("#D6EAF8"))
-_FILL_HEADER_VAL = PatternFill("solid", fgColor=_hex("#FFF2CC"))
-_FILL_HEADER_DESC = PatternFill("solid", fgColor=_hex("#F8F9F9"))
-_FILL_DESC = PatternFill("solid", fgColor=_hex("#F8F9F9"))
-_FONT_DESC = Font(color=_hex("#5D6D7E"), italic=True, size=9)
-_FILL_TABLE = PatternFill("solid", fgColor=_hex("#D5F5E3"))
-_FILL_HINT = PatternFill("solid", fgColor=_hex("#E8F8F5"))
-_FONT_HINT = Font(italic=True, size=8, color=_hex("#1E8449"))
-_FONT_LEGEND = Font(bold=True, size=10)
+def _workbook_xml(sheets: List[_SheetBuilder]) -> str:
+    sheet_tags = []
+    for i, sh in enumerate(sheets, start=1):
+        state = ' state="hidden"' if sh.hidden else ""
+        sheet_tags.append(
+            f'<sheet name="{_xml(sh.name)}" sheetId="{i}"{state} r:id="rId{i}"/>'
+        )
+    return (
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+        '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" '
+        'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">'
+        "<sheets>"
+        + "".join(sheet_tags)
+        + "</sheets></workbook>"
+    )
 
 
-def write_form_xlsx(
-    path: str,
-    payloads: List[Dict[str, Any]],
-    *,
-    dropdowns: Optional[Dict[str, List[str]]] = None,
-    with_dropdowns: bool = True,
-) -> str:
-    """
-    Записать форму (листы 1..N) через openpyxl.
-    with_dropdowns=True — выпадающие списки из field_meta (Y/N, ПРОМ/ТЕСТ и др.).
-    """
+def _workbook_rels(n_sheets: int) -> str:
+    rels = []
+    for i in range(1, n_sheets + 1):
+        rels.append(
+            '<Relationship Id="rId{0}" '
+            'Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" '
+            'Target="worksheets/sheet{0}.xml"/>'.format(i)
+        )
+    rid = n_sheets + 1
+    rels.append(
+        f'<Relationship Id="rId{rid}" '
+        'Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" '
+        'Target="styles.xml"/>'
+    )
+    rid += 1
+    rels.append(
+        f'<Relationship Id="rId{rid}" '
+        'Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/sharedStrings" '
+        'Target="sharedStrings.xml"/>'
+    )
+    return (
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+        '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+        + "".join(rels)
+        + "</Relationships>"
+    )
+
+
+def _content_types(n_sheets: int) -> str:
+    overrides = [
+        '<Override PartName="/xl/styles.xml" '
+        'ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>',
+        '<Override PartName="/xl/sharedStrings.xml" '
+        'ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sharedStrings+xml"/>',
+        '<Override PartName="/xl/workbook.xml" '
+        'ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>',
+        '<Override PartName="/docProps/core.xml" '
+        'ContentType="application/vnd.openxmlformats-package.core-properties+xml"/>',
+        '<Override PartName="/docProps/app.xml" '
+        'ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml"/>',
+    ]
+    for i in range(1, n_sheets + 1):
+        overrides.append(
+            f'<Override PartName="/xl/worksheets/sheet{i}.xml" '
+            'ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>'
+        )
+    return (
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+        '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'
+        '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>'
+        '<Default Extension="xml" ContentType="application/xml"/>'
+        + "".join(overrides)
+        + "</Types>"
+    )
+
+
+def _root_rels() -> str:
+    return (
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+        '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+        '<Relationship Id="rId1" '
+        'Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" '
+        'Target="xl/workbook.xml"/>'
+        '<Relationship Id="rId2" '
+        'Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" '
+        'Target="docProps/core.xml"/>'
+        '<Relationship Id="rId3" '
+        'Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties" '
+        'Target="docProps/app.xml"/>'
+        "</Relationships>"
+    )
+
+
+def _core_xml() -> str:
+    now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return (
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+        '<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" '
+        'xmlns:dc="http://purl.org/dc/elements/1.1/" '
+        'xmlns:dcterms="http://purl.org/dc/terms/" '
+        'xmlns:dcmitype="http://purl.org/dc/dcmitype/" '
+        'xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">'
+        "<dc:creator>SPOD_PROM</dc:creator>"
+        f"<dcterms:created xsi:type=\"dcterms:W3CDTF\">{now}</dcterms:created>"
+        f"<dcterms:modified xsi:type=\"dcterms:W3CDTF\">{now}</dcterms:modified>"
+        "</cp:coreProperties>"
+    )
+
+
+def _app_xml(sheet_names: List[str]) -> str:
+    titles = "".join(f"<vt:lpstr>{_xml(n)}</vt:lpstr>" for n in sheet_names)
+    return (
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+        '<Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties" '
+        'xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes">'
+        "<Application>SPOD_PROM</Application>"
+        f"<HeadingPairs><vt:vector size=\"2\" baseType=\"variant\">"
+        "<vt:variant><vt:lpstr>Worksheets</vt:lpstr></vt:variant>"
+        f"<vt:variant><vt:i4>{len(sheet_names)}</vt:i4></vt:variant>"
+        "</vt:vector></HeadingPairs>"
+        f"<TitlesOfParts><vt:vector size=\"{len(sheet_names)}\" baseType=\"lpstr\">"
+        f"{titles}</vt:vector></TitlesOfParts>"
+        "</Properties>"
+    )
+
+
+def _save_xlsx(path: str, sheets: List[_SheetBuilder]) -> None:
+    strings, sst = _collect_shared_strings(sheets)
     parent = os.path.dirname(os.path.abspath(path))
     if parent:
         os.makedirs(parent, exist_ok=True)
-
-    wb = Workbook()
-    default_ws = wb.active
-    assert default_ws is not None
-
-    dd_map = merge_dropdowns(dropdowns) if with_dropdowns else {}
-    for table_key, col_map in TABLE_DROPDOWNS.items():
-        for col_name, values in col_map.items():
-            dd_map[f"TBL:{table_key}:{col_name}"] = list(values)
-
-    list_ranges = _build_lists_ranges(dd_map) if with_dropdowns else {}
-
-    value_styles = {kind: _value_style(kind) for kind in INPUT_KIND_COLORS}
-    legend_styles = {
-        kind: {
-            "fill": PatternFill("solid", fgColor=_hex(INPUT_KIND_COLORS[kind])),
-            "font": Font(bold=True, size=9),
-            "alignment": Alignment(horizontal="center", vertical="center"),
-            "border": None,
-        }
-        for kind in INPUT_KIND_COLORS
-    }
-
-    use_payloads = payloads if payloads else [{}]
-    first = True
-    for idx, payload in enumerate(use_payloads, start=1):
-        if first:
-            ws = default_ws
-            ws.title = str(idx)
-            first = False
-        else:
-            ws = wb.create_sheet(str(idx))
-        _write_sheet(
-            ws,
-            payload,
-            value_styles=value_styles,
-            legend_styles=legend_styles,
-            dropdown_map=dd_map if with_dropdowns else {},
-            list_ranges=list_ranges,
-            with_dropdowns=with_dropdowns,
-        )
-
-    if with_dropdowns:
-        _fill_lists_sheet(wb, dd_map)
-
-    save_workbook(wb, path, keep_data_validations=with_dropdowns)
-    logging.info(
-        "[contest_badge_form] Форма (openpyxl%s): %s",
-        ", dropdowns" if with_dropdowns else "",
-        path,
-    )
-    return path
+    with zipfile.ZipFile(path, "w", compression=zipfile.ZIP_DEFLATED) as z:
+        z.writestr("[Content_Types].xml", _content_types(len(sheets)))
+        z.writestr("_rels/.rels", _root_rels())
+        z.writestr("docProps/core.xml", _core_xml())
+        z.writestr("docProps/app.xml", _app_xml([s.name for s in sheets]))
+        z.writestr("xl/workbook.xml", _workbook_xml(sheets))
+        z.writestr("xl/_rels/workbook.xml.rels", _workbook_rels(len(sheets)))
+        z.writestr("xl/styles.xml", _styles_xml())
+        z.writestr("xl/sharedStrings.xml", _shared_strings_xml(strings))
+        for i, sh in enumerate(sheets, start=1):
+            z.writestr(f"xl/worksheets/sheet{i}.xml", _sheet_xml(sh, sst))
 
 
 def _write_kv(
-    ws: Worksheet,
+    sh: _SheetBuilder,
     row: int,
     key: str,
     label: str,
@@ -266,7 +528,6 @@ def _write_kv(
     *,
     in_badge_slot: bool,
     schema_kind: Optional[str],
-    value_styles: Dict[str, Dict[str, Any]],
     kv_cells: Dict[str, List[str]],
     dropdown_map: Dict[str, List[str]],
 ) -> int:
@@ -275,171 +536,124 @@ def _write_kv(
         schema_kind=schema_kind,
         has_dropdown=key in dropdown_map,
     )
-    style = value_styles.get(kind) or value_styles["text"]
-
-    key_cell = ws.cell(row=row, column=1, value=_s(key))
-    key_cell.fill = _FILL_KV
-    key_cell.font = _FONT_KEY
-
-    label_cell = ws.cell(row=row, column=2, value=_s(label))
-    label_cell.fill = _FILL_KV
-
-    val_cell = ws.cell(row=row, column=3, value=_s(value))
-    _apply_cell_style(val_cell, style)
-
-    desc_cell = ws.cell(
-        row=row,
-        column=4,
-        value=_s(description_for(key, in_badge_slot=in_badge_slot)),
+    sh.put(row, 1, key, _S_KEY)
+    sh.put(row, 2, label, _S_LABEL)
+    sh.put(row, 3, value, _S_VALUE.get(kind, _S_VALUE["text"]))
+    sh.put(
+        row,
+        4,
+        description_for(key, in_badge_slot=in_badge_slot),
+        _S_DESC,
     )
-    desc_cell.fill = _FILL_DESC
-    desc_cell.font = _FONT_DESC
-    desc_cell.alignment = Alignment(wrap_text=True, vertical="center")
-
-    ws.row_dimensions[row].height = 28
+    sh.set_row_height(row, 28)
     kv_cells.setdefault(key, []).append(f"C{row}")
     return row + 1
 
 
-def _write_section(ws: Worksheet, row: int, title: str) -> int:
+def _write_section(sh: _SheetBuilder, row: int, title: str) -> int:
     for col in range(1, 5):
-        cell = ws.cell(row=row, column=col, value=_s(title) if col == 1 else "")
-        cell.fill = _FILL_SECTION
-        if col == 1:
-            cell.font = _FONT_SECTION
-            cell.alignment = Alignment(vertical="center")
-    ws.row_dimensions[row].height = 20
+        sh.put(row, col, title if col == 1 else "", _S_SECTION)
+    sh.set_row_height(row, 20)
     return row + 1
 
 
-def _write_legend(
-    ws: Worksheet,
-    row: int,
-    *,
-    legend_styles: Dict[str, Dict[str, Any]],
-) -> int:
-    """Строка легенды цветов типов ввода (образцы в C–G)."""
-    c0 = ws.cell(row=row, column=1, value="#META:LEGEND")
-    c0.font = _FONT_LEGEND
-    c1 = ws.cell(row=row, column=2, value="Цвет значения = тип ввода →")
-    c1.font = _FONT_LEGEND
+def _write_legend(sh: _SheetBuilder, row: int) -> int:
+    sh.put(row, 1, "#META:LEGEND", _S_LEGEND_LABEL)
+    sh.put(row, 2, "Цвет значения = тип ввода →", _S_LEGEND_LABEL)
     for col_idx, kind in enumerate(INPUT_KIND_ORDER):
-        label = INPUT_KIND_LABELS.get(kind, kind)
-        cell = ws.cell(row=row, column=3 + col_idx, value=_s(label))
-        style = legend_styles.get(kind, {})
-        _apply_cell_style(cell, {k: v for k, v in style.items() if v is not None})
-    ws.row_dimensions[row].height = 22
+        sh.put(
+            row,
+            3 + col_idx,
+            INPUT_KIND_LABELS.get(kind, kind),
+            _S_LEGEND.get(kind, _S_DEFAULT),
+        )
+    sh.set_row_height(row, 22)
     return row + 1
 
 
 def _write_table(
-    ws: Worksheet,
+    sh: _SheetBuilder,
     row: int,
     marker: str,
     columns: Sequence[str],
     rows: List[Dict[str, Any]],
     *,
-    value_styles: Dict[str, Dict[str, Any]],
     min_empty: int = 3,
 ) -> Tuple[int, str, Sequence[str], int, int]:
-    """Возвращает (next_row, table_key, columns, data_start, data_end)."""
     table_key = marker.replace("#TABLE:", "").strip().upper()
     if table_key == "REWARD_LINK":
         table_key = "REWARD-LINK"
     hints = TABLE_COLUMN_HINTS.get(table_key, {})
     col_kinds = [input_kind_for_table_col(table_key, c) for c in columns]
-    col_styles = [
-        value_styles.get(k) or value_styles["text"] for k in col_kinds
-    ]
 
-    mcell = ws.cell(row=row, column=1, value=_s(marker))
-    mcell.fill = _FILL_TABLE
-    mcell.font = Font(bold=True)
+    sh.put(row, 1, marker, _S_TABLE)
     row += 1
     for col_idx, col_name in enumerate(columns, start=1):
-        cell = ws.cell(row=row, column=col_idx, value=_s(col_name))
-        cell.font = Font(bold=True)
-        cell.fill = _FILL_TABLE
+        sh.put(row, col_idx, col_name, _S_TABLE)
     row += 1
     for col_idx, col_name in enumerate(columns, start=1):
         hint = hints.get(col_name, "значение")
         kind_label = INPUT_KIND_LABELS.get(col_kinds[col_idx - 1], "")
         hint_full = f"{hint} · {kind_label}" if kind_label else hint
         text = f"#HINT | {hint_full}" if col_idx == 1 else hint_full
-        cell = ws.cell(row=row, column=col_idx, value=_s(text))
-        cell.font = _FONT_HINT
-        cell.fill = _FILL_HINT
-        cell.alignment = Alignment(wrap_text=True)
+        sh.put(row, col_idx, text, _S_HINT)
     row += 1
     data_start = row
     for data_row in rows:
         for col_idx, col_name in enumerate(columns, start=1):
-            cell = ws.cell(
-                row=row,
-                column=col_idx,
-                value=_s(data_row.get(col_name, "")),
+            kind = col_kinds[col_idx - 1]
+            sh.put(
+                row,
+                col_idx,
+                data_row.get(col_name, ""),
+                _S_VALUE.get(kind, _S_VALUE["text"]),
             )
-            _apply_cell_style(cell, col_styles[col_idx - 1])
         row += 1
     for _ in range(min_empty):
         for col_idx in range(1, len(columns) + 1):
-            cell = ws.cell(row=row, column=col_idx, value="")
-            _apply_cell_style(cell, col_styles[col_idx - 1])
+            kind = col_kinds[col_idx - 1]
+            sh.put(row, col_idx, "", _S_VALUE.get(kind, _S_VALUE["text"]))
         row += 1
     data_end = row - 1
     return row, table_key, columns, data_start, data_end
 
 
 def _write_sheet(
-    ws: Worksheet,
+    sh: _SheetBuilder,
     payload: Dict[str, Any],
     *,
-    value_styles: Dict[str, Dict[str, Any]],
-    legend_styles: Dict[str, Dict[str, Any]],
     dropdown_map: Dict[str, List[str]],
     list_ranges: Dict[str, str],
     with_dropdowns: bool,
 ) -> None:
-    ws.column_dimensions["A"].width = 30
-    ws.column_dimensions["B"].width = 34
-    ws.column_dimensions["C"].width = 42
-    ws.column_dimensions["D"].width = 62
-    for col_idx in range(5, 8):
-        ws.column_dimensions[get_column_letter(col_idx)].width = 22
+    sh.set_col_width(1, 32)   # Ключ
+    sh.set_col_width(2, 48)   # Подпись
+    sh.set_col_width(3, 36)   # Значение
+    sh.set_col_width(4, 96)   # Описание / значения
+    for c in range(5, 8):
+        sh.set_col_width(c, 22)
 
     kv_cells: Dict[str, List[str]] = {}
 
-    row = 1
-    ws.cell(row=row, column=1, value="#META:FORM_VERSION")
-    ws.cell(row=row, column=2, value="6")
-    row = 2
-    ws.cell(row=row, column=1, value="#META:NOTE")
+    sh.put(1, 1, "#META:FORM_VERSION")
+    sh.put(1, 2, "7")
     note = (
         "Заполняйте цветные ячейки значений (столбец C и таблицы). "
         "Цвет = тип ввода (легенда ниже). Столбец D — описание. "
         "Где зелёный — выпадающий список. Персик — несколько значений через ; . "
         "Розовый — JSON как в SPOD. Лист = номер конкурса."
     )
-    note_cell = ws.cell(row=row, column=2, value=_s(note))
-    note_cell.alignment = Alignment(wrap_text=True, vertical="top")
-    ws.row_dimensions[row].height = 40
-    row = 3
-    row = _write_legend(ws, row, legend_styles=legend_styles)
-    row = 4
-    for col_idx, (title, fill) in enumerate(
-        (
-            ("Ключ", _FILL_HEADER),
-            ("Подпись", _FILL_HEADER),
-            ("Значение (заполнять)", _FILL_HEADER_VAL),
-            ("Описание / значения", _FILL_HEADER_DESC),
-        ),
-        start=1,
-    ):
-        cell = ws.cell(row=row, column=col_idx, value=title)
-        cell.font = Font(bold=True)
-        cell.fill = fill
-    row = 6
+    sh.put(2, 1, "#META:NOTE")
+    sh.put(2, 2, note, _S_NOTE)
+    sh.set_row_height(2, 40)
+    _write_legend(sh, 3)
 
+    sh.put(4, 1, "Ключ", _S_HEADER)
+    sh.put(4, 2, "Подпись", _S_HEADER)
+    sh.put(4, 3, "Значение (заполнять)", _S_HEADER_VAL)
+    sh.put(4, 4, "Описание / значения", _S_HEADER_DESC)
+
+    row = 6
     contest_flat: Dict[str, Any] = payload.get("contest_flat") or {}
     contest_arrays: Dict[str, Any] = payload.get("contest_arrays") or {}
     feature: Dict[str, Any] = payload.get("contest_feature") or {}
@@ -454,19 +668,18 @@ def _write_sheet(
         schema_kind: Optional[str] = None,
     ) -> int:
         return _write_kv(
-            ws,
+            sh,
             r,
             key,
             label,
             value,
             in_badge_slot=in_badge,
             schema_kind=schema_kind,
-            value_styles=value_styles,
             kv_cells=kv_cells,
             dropdown_map=dropdown_map,
         )
 
-    row = _write_section(ws, row, "#SECTION:CONTEST")
+    row = _write_section(sh, row, "#SECTION:CONTEST")
     for key, label in schema.CONTEST_FLAT_FIELDS:
         row = _kv(row, key, label, contest_flat.get(key, ""), in_badge=False)
     for key, label in schema.CONTEST_ARRAY_FIELDS:
@@ -493,7 +706,7 @@ def _write_sheet(
     contest_type = str(contest_flat.get("CONTEST_TYPE") or "")
     slots = schema.max_badge_slots(contest_type)
     for slot_idx in range(1, slots + 1):
-        row = _write_section(ws, row, f"#SECTION:BADGE:{slot_idx}")
+        row = _write_section(sh, row, f"#SECTION:BADGE:{slot_idx}")
         badge = badges[slot_idx - 1] if slot_idx - 1 < len(badges) else {}
         flat = badge.get("flat") or {}
         add_data = badge.get("add_data") or {}
@@ -525,12 +738,11 @@ def _write_sheet(
         ("#TABLE:SCHEDULE", schema.SCHEDULE_COLUMNS, "schedule"),
     ):
         row, table_key, cols_out, data_start, data_end = _write_table(
-            ws,
+            sh,
             row,
             marker,
             cols,
             list(payload.get(payload_key) or []),
-            value_styles=value_styles,
         )
         table_metas.append((table_key, cols_out, data_start, data_end))
 
@@ -542,7 +754,11 @@ def _write_sheet(
         if not values:
             continue
         formula = _dv_formula(key, values, list_ranges)
-        _apply_list_validation(ws, cells, formula)
+        if not formula:
+            continue
+        # отдельные DV на каждую ячейку — без multi sqref
+        for cell in cells:
+            sh.add_dv(cell, formula)
 
     for table_key, columns, data_start, data_end in table_metas:
         col_lists = TABLE_DROPDOWNS.get(table_key) or {}
@@ -552,8 +768,71 @@ def _write_sheet(
             if col_name not in columns:
                 continue
             col_idx = list(columns).index(col_name) + 1
-            letter = get_column_letter(col_idx)
+            letter = _col_letter(col_idx)
             range_a1 = f"{letter}{data_start}:{letter}{data_end}"
             list_key = f"TBL:{table_key}:{col_name}"
             formula = _dv_formula(list_key, values, list_ranges)
-            _apply_list_validation(ws, [range_a1], formula)
+            if formula:
+                sh.add_dv(range_a1, formula)
+
+
+def _lists_sheet(dropdown_map: Dict[str, List[str]]) -> Optional[_SheetBuilder]:
+    to_sheet = {
+        k: _clean_list(v)
+        for k, v in dropdown_map.items()
+        if _needs_lists_sheet(_clean_list(v))
+    }
+    if not to_sheet:
+        return None
+    sh = _SheetBuilder(_LISTS_SHEET, hidden=True)
+    for col, key in enumerate(sorted(to_sheet.keys()), start=1):
+        values = to_sheet[key]
+        sh.put(1, col, key[:80])
+        for i, val in enumerate(values, start=2):
+            sh.put(i, col, val)
+    return sh
+
+
+def write_form_xlsx(
+    path: str,
+    payloads: List[Dict[str, Any]],
+    *,
+    dropdowns: Optional[Dict[str, List[str]]] = None,
+    with_dropdowns: bool = True,
+) -> str:
+    """
+    Записать форму (листы 1..N) через stdlib OOXML.
+    with_dropdowns=True — выпадающие списки из field_meta.
+    """
+    dd_map = merge_dropdowns(dropdowns) if with_dropdowns else {}
+    for table_key, col_map in TABLE_DROPDOWNS.items():
+        for col_name, values in col_map.items():
+            dd_map[f"TBL:{table_key}:{col_name}"] = list(values)
+
+    list_ranges = _build_lists_ranges(dd_map) if with_dropdowns else {}
+
+    sheets: List[_SheetBuilder] = []
+    use_payloads = payloads if payloads else [{}]
+    for idx, payload in enumerate(use_payloads, start=1):
+        sh = _SheetBuilder(str(idx))
+        _write_sheet(
+            sh,
+            payload,
+            dropdown_map=dd_map if with_dropdowns else {},
+            list_ranges=list_ranges,
+            with_dropdowns=with_dropdowns,
+        )
+        sheets.append(sh)
+
+    if with_dropdowns:
+        lists = _lists_sheet(dd_map)
+        if lists is not None:
+            sheets.append(lists)
+
+    _save_xlsx(path, sheets)
+    logging.info(
+        "[contest_badge_form] Форма (stdlib OOXML%s): %s",
+        ", dropdowns" if with_dropdowns else "",
+        path,
+    )
+    return path

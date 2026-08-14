@@ -418,10 +418,10 @@ def write_contest_sheet(
                 ws, marker, cols, data_start, data_end, list_ranges
             )
 
-    ws.column_dimensions["A"].width = 30
-    ws.column_dimensions["B"].width = 34
-    ws.column_dimensions["C"].width = 42
-    ws.column_dimensions["D"].width = 62
+    ws.column_dimensions["A"].width = 32
+    ws.column_dimensions["B"].width = 48
+    ws.column_dimensions["C"].width = 36
+    ws.column_dimensions["D"].width = 96
     for col_idx in range(5, 17):
         ws.column_dimensions[get_column_letter(col_idx)].width = 16
 
@@ -532,24 +532,51 @@ def empty_contest_payload(
     *,
     contest_type: str = "ТУРНИРНЫЙ",
 ) -> Dict[str, Any]:
-    """Пустой payload одного листа формы."""
-    contest_flat: Dict[str, str] = {key: "" for key, _ in schema.CONTEST_FLAT_FIELDS}
+    """Пустой payload одного листа формы (с FIELD_DEFAULTS из field_meta)."""
+    from src.contest_badge_form.field_meta import default_for
+
+    contest_flat: Dict[str, str] = {}
+    for key, _ in schema.CONTEST_FLAT_FIELDS:
+        contest_flat[key] = default_for(key)
     contest_flat["CONTEST_TYPE"] = contest_type
-    contest_arrays: Dict[str, str] = {key: "" for key, _ in schema.CONTEST_ARRAY_FIELDS}
+    contest_arrays: Dict[str, str] = {}
+    for key, _ in schema.CONTEST_ARRAY_FIELDS:
+        contest_arrays[key] = default_for(key)
+
+    feature: Dict[str, Any] = schema.empty_feature_template()
+    for leaf, _label, kind in schema.CONTEST_FEATURE_FIELDS:
+        form_key = f"FEATURE.{leaf}"
+        raw = default_for(form_key)
+        if raw == "":
+            continue
+        if kind == "list":
+            feature[leaf] = [p.strip() for p in raw.split(";") if p.strip()]
+        else:
+            feature[leaf] = raw
+
     badges: List[Dict[str, Any]] = []
     for _ in range(schema.max_badge_slots(contest_type)):
         flat = {key: "" for key, _ in schema.REWARD_FLAT_FIELDS}
+        for key, _ in schema.REWARD_FLAT_FIELDS:
+            flat[key] = default_for(key, in_badge_slot=True)
         flat["REWARD_TYPE"] = "BADGE"
-        badges.append(
-            {
-                "flat": flat,
-                "add_data": schema.empty_add_data_template(),
-            }
-        )
+        add_data = schema.empty_add_data_template()
+        for leaf, _label, kind in schema.REWARD_ADD_DATA_FIELDS:
+            form_key = f"ADD.{leaf}"
+            raw = default_for(form_key)
+            if raw == "":
+                continue
+            if kind == "list":
+                add_data[leaf] = [
+                    p.strip() for p in raw.split(";") if p.strip()
+                ]
+            else:
+                add_data[leaf] = raw
+        badges.append({"flat": flat, "add_data": add_data})
     return {
         "contest_flat": contest_flat,
         "contest_arrays": contest_arrays,
-        "contest_feature": schema.empty_feature_template(),
+        "contest_feature": feature,
         "badges": badges,
         "reward_link": [],
         "group": [],
@@ -565,7 +592,7 @@ def create_blank_form(
     contest_type: str = "ТУРНИРНЫЙ",
     dropdowns: Optional[Dict[str, List[str]]] = None,
 ) -> str:
-    """Создать пустую Excel-форму для заполнения (openpyxl + dropdowns)."""
+    """Создать пустую Excel-форму для заполнения (stdlib OOXML + dropdowns)."""
     n = max(1, int(sheet_count))
     payloads = [
         empty_contest_payload(contest_type=contest_type) for _ in range(n)

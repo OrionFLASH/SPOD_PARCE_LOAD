@@ -62,51 +62,23 @@ DROPDOWN_VALUES: Dict[str, List[str]] = {
     ],
     "PLAN_METHOD_CODE": ["DEPENDS_PREVIOUS_PERIOD", "PRESET_VALUE"],
     "PLAN_MOD_METOD": ["MULTIPLIER"],
-    "FACTOR_MATCH": ["=", ">", ">="],
+    "FACTOR_MATCH": ["=", ">", ">=", "<", "<="],
     "TARGET_TYPE": ["ПРОМ", "ТЕСТ"],
     "SOURCE_UPD_FREQUENCY": ["1", "7", "10"],
     "CALC_TYPE": _01,
-    "PRODUCT_GROUP": [
-        "DTaaS",
-        "ВЭД, нац рынки, хедж",
-        "Гарантии",
-        "ДГР кредитные продукты",
-        "ЕФС",
-        "Команда",
-        "Кредиты",
-        "Лизинг",
-        "Пассивы, РКО",
-        "Продукты УБ в канале СБ1",
-        "Сервисные задачи",
-        "Системные",
-        "Спец проекты",
-        "Статусные",
-        "Страхование",
-        "ТФиДО",
-        "ФОТ",
-        "Факторинг",
-        "Эквайринг",
-        "Экосистема",
-        "Эффективность",
-    ],
+    # PRODUCT_GROUP — свободный текст (без выпадающего списка)
     "BUSINESS_BLOCK": [
+        "KMMMB",
         "KMKKSB",
-        "MNS",
-        "KMSB1",
-        "AKMKKSB",
-        "SERVICEMEN",
-        "KMFACTORING",
-        "IMUB",
-        "RNUB",
-        "RSB1",
         "CSM",
+        "AKMKKSB",
     ],
     # FEATURE.*
     "FEATURE.vid": ["ПРОМ", "ТЕСТ"],
-    "FEATURE.accuracy": ["0", "1", "2", "3", "5"],
+    "FEATURE.accuracy": ["0", "1", "2"],
     "FEATURE.capacity": ["MILLIONS", "THOUSANDS"],
     "FEATURE.masking": _YN,
-    "FEATURE.minNumber": ["0", "1", "2", "3"],
+    "FEATURE.minNumber": ["1", "2", "3"],
     "FEATURE.momentRewarding": ["AFTER", "DURIN"],
     "FEATURE.typeRewarding": ["one", "all"],
     "FEATURE.avatarShow": _YN,
@@ -131,16 +103,10 @@ DROPDOWN_VALUES: Dict[str, List[str]] = {
     "ADD.recommendationLevel": ["BANK", "TB", "GOSB", "NON"],
     "ADD.newsType": ["AIPROMPT", "TEMPLATE"],
     "ADD.businessBlock": [
+        "KMMMB",
         "KMKKSB",
-        "MNS",
-        "KMSB1",
-        "AKMKKSB",
-        "SERVICEMEN",
-        "KMFACTORING",
-        "IMUB",
-        "RNUB",
-        "RSB1",
         "CSM",
+        "AKMKKSB",
     ],
 }
 
@@ -149,56 +115,111 @@ FIELD_DESCRIPTIONS: Dict[str, str] = {
     "CONTEST_CODE": (
         "Уникальный код конкурса (ключ связей). Пример: 01_2025-0_11-1_1"
     ),
-    "FULL_NAME": "Отображаемое название конкурса/турнира (на секции CONTEST).",
-    "CREATE_DT": "Дата начала YYYY-MM-DD.",
+    "FULL_NAME": (
+        "Отображаемое название конкурса/турнира "
+        "(на странице Турниры/Детальная карточка турнира)."
+    ),
+    "CREATE_DT": "Дата начала YYYY-MM-DD. Почти всегда начало года",
     "CLOSE_DT": "Дата окончания YYYY-MM-DD; 4000-01-01 = без срока.",
-    "BUSINESS_STATUS": "Статус: АКТИВНЫЙ | АРХИВНЫЙ.",
+    "BUSINESS_STATUS": "Статус: АКТИВНЫЙ | АРХИВНЫЙ. (Всегда ставим АКТИВНЫЙ)",
     "CONTEST_TYPE": (
-        "ТУРНИРНЫЙ (до 3 BADGE) | ИНДИВИДУАЛЬНЫЙ | ИНДИВИДУАЛЬНЫЙ НАКОПИТЕЛЬНЫЙ (1 BADGE)."
+        'ТУРНИРНЫЙ (соревнование "будь лучше других") '
+        "(разыгрываем от 1 до 3 сезонных наград Золото Серебро Бронза) | "
+        "ИНДИВИДУАЛЬНЫЙ | ИНДИВИДУАЛЬНЫЙ НАКОПИТЕЛЬНЫЙ "
+        '(режим "достигни результат", получи одну награду).'
     ),
-    "CONTEST_DESCRIPTION": "Текст описания для UI/админки.",
+    "CONTEST_DESCRIPTION": (
+        "Текст описания для конкурса/турнира "
+        "(на странице Детальная карточка турнира показываем)."
+    ),
     "SHOW_INDICATOR": (
-        "Единица/подпись индикатора: шт. | Факт | % | … (см. выпадающий список)."
+        "Единица/подпись индикатора: шт. | Факт | % | … "
+        "на списке показателей подпись к единицам данных"
     ),
-    "PRODUCT_GROUP": "Группа продукта из классификатора (см. список).",
-    "PRODUCT": "Продукт / тематика конкурса (свободный текст).",
-    "CONTEST_SUBJECT": "Предмет конкурса. Обычно: EMPLOYEE.",
-    "FACTOR_MARK_TYPE": "CRITERION | RATING_MAX | RATING_MIN.",
-    "CONTEST_INDICATOR_METHOD": "INTEGRAL | RELATION.",
-    "CONTEST_FACTOR_METHOD": "FACT | FACT0-FACT1 | FACT0-RUN_RATE1_DOWN | RUN_RATE.",
-    "PLAN_METHOD_CODE": "DEPENDS_PREVIOUS_PERIOD | PRESET_VALUE.",
+    "PRODUCT_GROUP": "Группа продукта (общее направление)",
+    "PRODUCT": "Продукт / тематика конкурса.",
+    "CONTEST_SUBJECT": (
+        "Кто участник конкурса. Обычно: EMPLOYEE (сотрудники)."
+    ),
+    "FACTOR_MARK_TYPE": (
+        "CRITERION | RATING_MAX | RATING_MIN. "
+        "(способ выбора победителей: достиг показателя, сделал больше других "
+        "или меньше других — меньше, например, для ранга)"
+    ),
+    "CONTEST_INDICATOR_METHOD": (
+        "INTEGRAL | RELATION. Метод расчета показателя "
+        "(фактический / расчетный)"
+    ),
+    "CONTEST_FACTOR_METHOD": (
+        "FACT | FACT0-FACT1 | FACT0-RUN_RATE1_DOWN | RUN_RATE. "
+        "(для автоматических турниров способ расчета на данных источников)"
+    ),
+    "PLAN_METHOD_CODE": (
+        "DEPENDS_PREVIOUS_PERIOD | PRESET_VALUE. "
+        "(Метод расчета планового показателя: из прошлого периода / "
+        "фиксированное значение)"
+    ),
     "PLAN_MOD_METOD": "Модификатор плана. Обычно: MULTIPLIER.",
-    "PLAN_MOD_VALUE": "Число модификатора (0, 1, 1000, …).",
-    "FACTOR_MATCH": "Сравнение фактора: = | > | >=.",
+    "PLAN_MOD_VALUE": "Значение планового показателя (0, 1, 1000, …).",
+    "FACTOR_MATCH": "Сравнение фактора: = | > | >= | < | <=.",
     "TARGET_TYPE": "Среда конкурса: ПРОМ | ТЕСТ.",
-    "SOURCE_UPD_FREQUENCY": "Частота обновления источника: 1 | 7 | 10 (дни).",
-    "CALC_TYPE": "Тип расчёта: 0 | 1.",
-    "FACT_POST_PROCESSING": "Постобработка факта (код/флаг; часто пусто).",
+    "SOURCE_UPD_FREQUENCY": (
+        "Частота обновления источника: 1 | 7 | 10 (дни). (не используется)"
+    ),
+    "CALC_TYPE": (
+        "Тип расчёта: 0 | 1. (не используется) "
+        "0 — промышленный расчет / 1 — ручной расчет"
+    ),
+    "FACT_POST_PROCESSING": (
+        "Постобработка факта (код/флаг; часто пусто). "
+        "Правило постобработки показателя конкурса. "
+        "PERCENTILE — вычисление перцентиля от фактического показателя конкурса"
+    ),
     "BUSINESS_BLOCK": (
-        "Бизнес-блок(и) через ; . Примеры: KMKKSB; MNS; KMSB1; AKMKKSB."
+        "Бизнес-блок(и) через ; . Примеры: KMMMB, KMKKSB, CSM, AKMKKSB."
     ),
     "CONTEST_PERIOD": "Периоды через ; или пусто → []. Обычно пусто.",
     # FEATURE
-    "FEATURE.vid": "Среда в фиче: ПРОМ | ТЕСТ (как TARGET_TYPE).",
-    "FEATURE.accuracy": "Точность/разрядность: 0 | 1 | 2 | 3 | 5.",
-    "FEATURE.capacity": "Масштаб: пусто | MILLIONS | THOUSANDS.",
+    "FEATURE.vid": "Среда конкурса: ПРОМ | ТЕСТ (как TARGET_TYPE).",
+    "FEATURE.accuracy": (
+        "Точность/разрядность: 0 | 1 | 2 . "
+        "(число знаков после запятой для отображения)"
+    ),
+    "FEATURE.capacity": (
+        "Масштаб: пусто | MILLIONS | THOUSANDS. "
+        "(приведение отображаемого показателя к млн, к тыс.)"
+    ),
     "FEATURE.masking": "Маскирование: Y | N (часто N).",
-    "FEATURE.minNumber": "Мин. число: 0 | 1 | 2 | 3.",
-    "FEATURE.momentRewarding": "Момент награждения: AFTER | DURIN (как в SPOD).",
-    "FEATURE.typeRewarding": "Кому бейдж: one | all.",
+    "FEATURE.minNumber": (
+        "Мин. число участников чтобы считать победителей "
+        "(исключаем соревнование сам с собой): 1 | 2 | 3."
+    ),
+    "FEATURE.momentRewarding": (
+        "Момент награждения: AFTER | DURIN "
+        "(после закрытия турнира / во время турнира)"
+    ),
+    "FEATURE.typeRewarding": "Вручаем одну из 3 наград или все (one | all).",
     "FEATURE.avatarShow": "Показ аватара: Y | N.",
     "FEATURE.tournamentTeam": "Командный турнир: Y | N.",
-    "FEATURE.persomanNumberVisible": "Табельные видимые через ; (с ведущими нулями).",
-    "FEATURE.persomanNumberHidden": "Табельные скрытые через ; .",
+    "FEATURE.persomanNumberVisible": (
+        "Если указаны табельные, то только эти сотрудники увидят турнир"
+    ),
+    "FEATURE.persomanNumberHidden": (
+        "Если указаны табельные, то эти сотрудники НЕ увидят турнир"
+    ),
     "FEATURE.tournamentStartMailing": "Рассылка старта: Y | N.",
     "FEATURE.tournamentEndMailing": "Рассылка финиша: Y | N.",
     "FEATURE.tournamentLikeMailing": "Рассылка лайков: Y | N.",
     "FEATURE.tournamentListMailing": "Список рассылки через ; .",
     "FEATURE.tournamentRewardingMailing": "Рассылка награждения: Y | N.",
-    "FEATURE.feature": "Тексты фич UI через ; (каждый элемент массива).",
+    "FEATURE.feature": (
+        "Тексты особенностей турнира. Показываем в детальной карточке турнира"
+    ),
     "FEATURE.businessBlock": "Блоки в FEATURE через ; (как BUSINESS_BLOCK).",
-    "FEATURE.helpCodeList": "Коды подсказок через ; .",
-    "FEATURE.preferences": "Предпочтения через ; .",
+    "FEATURE.helpCodeList": "Коды для вывода окна с доп описанием конкурса",
+    "FEATURE.preferences": (
+        "Преференции за получение награды если предусмотрены"
+    ),
     "FEATURE.tbVisible": "Коды ТБ видимые через ; .",
     "FEATURE.tbHidden": "Коды ТБ скрытые через ; .",
     "FEATURE.gosbVisible": "Коды ГОСБ видимые через ; .",
@@ -206,10 +227,10 @@ FIELD_DESCRIPTIONS: Dict[str, str] = {
     # REWARD
     "REWARD_CODE": "Уникальный код награды, напр. r_01_2025-0_11-1_1_1.",
     "REWARD_TYPE": "Для этой формы всегда BADGE.",
-    "REWARD_FULL_NAME": "Краткое название бейджа (колонка FULL_NAME в REWARD).",
+    "REWARD_FULL_NAME": "Краткое название бейджа",
     "REWARD_DESCRIPTION": "Полное описание награды.",
     "REWARD_CONDITION": "Класс/код условия начисления (часто пусто или код).",
-    "REWARD_COST": "Стоимость в у.е. (часто 0…14).",
+    "REWARD_COST": "Стоимость в кристаллах (часто 0…14).",
     "ADD.nftFlg": "NFT-флаг: Y | N (обычно N).",
     "ADD.outstanding": "Выдающийся: Y | N.",
     "ADD.rewardRule": "Текст правила получения бейджа.",
@@ -219,20 +240,62 @@ FIELD_DESCRIPTIONS: Dict[str, str] = {
     "ADD.fileName": "Имя файла арта/иконки (код); часто пусто.",
     "ADD.teamNews": "Текст командной новости (шаблон с [Имя] и т.п.).",
     "ADD.singleNews": "Текст индивидуальной новости.",
-    "ADD.masterBadge": "Мастер-бейдж: Y | N.",
+    "ADD.masterBadge": "Мастер-бейдж: Y | N. (Y — для награды / N — для турнира)",
     "ADD.parentRewardCode": "Код родительской награды (если есть).",
     "ADD.priority": "Приоритет слота: 1 | 2 | 3.",
     "ADD.recommendationLevel": "Уровень: BANK | TB | GOSB | NON.",
     "ADD.refreshOldNews": "Обновлять старые новости: Y | N.",
     "ADD.tournamentTeam": "Командный режим награды: Y | N.",
     "ADD.seasonItem": "Код сезонного ITEM (если связан).",
-    "ADD.newsType": "Тип новости: AIPROMPT | TEMPLATE.",
-    "ADD.winCriterion": "Текст критерия победы.",
-    "ADD.preferences": "Предпочтения (строка).",
-    "ADD.feature": "Фичи награды через ; .",
+    "ADD.newsType": (
+        "Тип новости: AIPROMPT | TEMPLATE. (генерит ИИ / по шаблону)"
+    ),
+    "ADD.winCriterion": "Текст критерия победы для ИИ создания новости",
+    "ADD.preferences": "Преференции если предусмотрены за награду",
+    "ADD.feature": "Особенности награды через ; . (показываем в Награде)",
     "ADD.businessBlock": "Блоки награды через ; .",
     "ADD.helpCodeList": "Коды help через ; .",
     "ADD.hiddenRewardList": "Скрыт в списке наград: Y | N.",
+}
+
+# Значения по умолчанию в BLANK (колонка C / ячейка предзаполнена).
+# Пустая строка в словаре не нужна — отсутствие ключа = не предзаполнять.
+FIELD_DEFAULTS: Dict[str, str] = {
+    "BUSINESS_STATUS": "АКТИВНЫЙ",
+    "CONTEST_TYPE": "ТУРНИРНЫЙ",
+    "CLOSE_DT": "4000-01-01",
+    "CONTEST_SUBJECT": "EMPLOYEE",
+    "TARGET_TYPE": "ПРОМ",
+    "SOURCE_UPD_FREQUENCY": "1",
+    "CALC_TYPE": "0",
+    "PLAN_MOD_METOD": "MULTIPLIER",
+    "FEATURE.vid": "ПРОМ",
+    "FEATURE.masking": "N",
+    "FEATURE.avatarShow": "Y",
+    "FEATURE.tournamentTeam": "N",
+    "REWARD_TYPE": "BADGE",
+    "ADD.nftFlg": "N",
+    "ADD.outstanding": "N",
+    "ADD.rewardAgainGlobal": "N",
+    "ADD.rewardAgainTournament": "N",
+    "ADD.hidden": "N",
+    "ADD.masterBadge": "N",
+    "ADD.refreshOldNews": "N",
+    "ADD.tournamentTeam": "N",
+    "ADD.hiddenRewardList": "N",
+}
+
+# Можно ли оставить пустым при заполнении формы.
+# Если ключа нет — считаем, что пусто допустимо (да).
+FIELD_ALLOW_EMPTY: Dict[str, bool] = {
+    "CONTEST_CODE": False,
+    "FULL_NAME": False,
+    "CREATE_DT": False,
+    "BUSINESS_STATUS": False,
+    "CONTEST_TYPE": False,
+    "REWARD_CODE": False,
+    "REWARD_TYPE": False,
+    "REWARD.FULL_NAME": False,
 }
 
 # Подсказки для колонок таблиц (строка #HINT под заголовком)
@@ -273,9 +336,9 @@ TABLE_COLUMN_HINTS: Dict[str, Dict[str, str]] = {
     "SCHEDULE": {
         "TOURNAMENT_CODE": "Код слота расписания",
         "PERIOD_TYPE": "Текст периода (турнир месяца, …)",
-        "START_DT": "YYYY-MM-DD",
-        "END_DT": "YYYY-MM-DD",
-        "RESULT_DT": "YYYY-MM-DD",
+        "START_DT": "Дата старта турнира",
+        "END_DT": "Дата окончания турнира",
+        "RESULT_DT": "Дата подведения итогов турнира",
         "PLAN_PERIOD_START_DT": "YYYY-MM-DD",
         "PLAN_PERIOD_END_DT": "YYYY-MM-DD",
         "CRITERION_MARK_TYPE": "> | >=",
@@ -448,3 +511,35 @@ def description_for(key: str, *, in_badge_slot: bool = False) -> str:
         "Заполните ячейку значения (цвет = тип ввода, см. легенду). "
         "Если есть список — выберите из выпадающего."
     )
+
+
+def default_for(key: str, *, in_badge_slot: bool = False) -> str:
+    """Значение по умолчанию для BLANK (пусто = не предзаполнять)."""
+    if in_badge_slot and key == "FULL_NAME":
+        return FIELD_DEFAULTS.get("REWARD.FULL_NAME", "")
+    return FIELD_DEFAULTS.get(key, "")
+
+
+def allow_empty_for(key: str, *, in_badge_slot: bool = False) -> bool:
+    """Допустимо ли пустое значение (по умолчанию да)."""
+    if in_badge_slot and key == "FULL_NAME":
+        return FIELD_ALLOW_EMPTY.get("REWARD.FULL_NAME", False)
+    if key in FIELD_ALLOW_EMPTY:
+        return FIELD_ALLOW_EMPTY[key]
+    return True
+
+
+def json_pack_target(form_key: str) -> str:
+    """Куда упаковывается поле при импорте в SPOD; пусто = плоская колонка."""
+    if form_key.startswith("FEATURE."):
+        return "CONTEST_FEATURE"
+    if form_key.startswith("ADD."):
+        return "REWARD_ADD_DATA"
+    return ""
+
+
+def json_pack_target_table(table_key: str, col_name: str) -> str:
+    """Метка JSON для колонки таблицы (ячейка целиком в формате SPOD-JSON)."""
+    if col_name in TABLE_JSON_COLUMNS.get(table_key, frozenset()):
+        return "ячейка JSON"
+    return ""

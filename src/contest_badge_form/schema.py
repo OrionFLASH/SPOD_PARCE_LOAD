@@ -8,24 +8,24 @@ from typing import Any, Dict, List, Sequence, Tuple
 # Плоские колонки CONTEST (без CONTEST_FEATURE — раскрывается в листья)
 CONTEST_FLAT_FIELDS: List[Tuple[str, str]] = [
     ("CONTEST_CODE", "Код конкурса"),
-    ("FULL_NAME", "Название"),
-    ("CREATE_DT", "Дата создания"),
+    ("FULL_NAME", "Название конкурса"),
+    ("CREATE_DT", "Дата создания конкурса"),
     ("CLOSE_DT", "Дата закрытия"),
     ("BUSINESS_STATUS", "Бизнес-статус"),
     ("CONTEST_TYPE", "Тип конкурса"),
-    ("CONTEST_DESCRIPTION", "Описание"),
-    ("SHOW_INDICATOR", "Показывать индикатор"),
+    ("CONTEST_DESCRIPTION", "Описание турнира"),
+    ("SHOW_INDICATOR", "Отображаемое название единиц показателя"),
     ("PRODUCT_GROUP", "Группа продукта"),
     ("PRODUCT", "Продукт"),
-    ("CONTEST_SUBJECT", "Предмет конкурса"),
-    ("FACTOR_MARK_TYPE", "Тип отметки фактора"),
+    ("CONTEST_SUBJECT", "Кто соревнуется"),
+    ("FACTOR_MARK_TYPE", "Принцип отбора победителей"),
     ("CONTEST_INDICATOR_METHOD", "Метод индикатора"),
-    ("CONTEST_FACTOR_METHOD", "Метод фактора"),
-    ("PLAN_METHOD_CODE", "Код метода плана"),
+    ("CONTEST_FACTOR_METHOD", "Метод расчета показателя"),
+    ("PLAN_METHOD_CODE", "Как вычисляется план"),
     ("PLAN_MOD_METOD", "Метод модификации плана"),
-    ("PLAN_MOD_VALUE", "Значение модификации плана"),
-    ("FACTOR_MATCH", "Сопоставление фактора"),
-    ("TARGET_TYPE", "Тип цели"),
+    ("PLAN_MOD_VALUE", "Значение плана"),
+    ("FACTOR_MATCH", "Символ сравнения с планом"),
+    ("TARGET_TYPE", "Среда конкурса"),
     ("SOURCE_UPD_FREQUENCY", "Частота обновления источника"),
     ("CALC_TYPE", "Тип расчёта"),
     ("FACT_POST_PROCESSING", "Постобработка факта"),
@@ -34,15 +34,15 @@ CONTEST_FLAT_FIELDS: List[Tuple[str, str]] = [
 # Массивы на уровне CONTEST (в форме — через ;)
 CONTEST_ARRAY_FIELDS: List[Tuple[str, str]] = [
     ("BUSINESS_BLOCK", "Бизнес-блок (через ;)"),
-    ("CONTEST_PERIOD", "Периоды конкурса (через ;)"),
+    ("CONTEST_PERIOD", "Периоды расчета конкурса (через ;)"),
 ]
 
 # Листья CONTEST_FEATURE (BADGE / турнирный сценарий)
 CONTEST_FEATURE_FIELDS: List[Tuple[str, str, str]] = [
     # key, label, kind: str | list | raw
-    ("vid", "FEATURE.vid", "str"),
-    ("accuracy", "FEATURE.accuracy", "str"),
-    ("capacity", "FEATURE.capacity", "str"),
+    ("vid", "FEATURE.Среда конкурса", "str"),
+    ("accuracy", "FEATURE.Округление до...", "str"),
+    ("capacity", "FEATURE.Приведение к млн / тыс.", "str"),
     ("masking", "FEATURE.masking", "str"),
     ("minNumber", "FEATURE.minNumber", "str"),
     ("momentRewarding", "FEATURE.momentRewarding", "str"),

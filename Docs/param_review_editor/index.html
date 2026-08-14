@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Параметры BADGE — Liquid Glass</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark">
+          <svg class="icon" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2l3 7h7l-5.5 4.2L18.5 22 12 17.8 5.5 22l1.5-8.8L1.5 9h7z"/>
+          </svg>
+          SPOD
+        </div>
+        <div class="brand-title">Параметры BADGE</div>
+        <div class="brand-sub">каталог полей · Liquid Glass</div>
+      </div>
+      <nav id="section-nav" class="section-nav" aria-label="Секции"></nav>
+      <div class="sidebar-stats" id="sidebar-stats"></div>
+      <div class="sidebar-hint">
+        Правки в localStorage браузера.<br />
+        Выгрузка JSON / CSV / MD → «примени каталог».
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div class="topbar-left">
+          <h1 id="section-title">—</h1>
+          <p id="section-intro" class="section-intro"></p>
+        </div>
+        <div class="topbar-actions">
+          <div class="search-wrap">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/>
+            </svg>
+            <input type="search" id="search" placeholder="Поиск по ключу / подписи…" />
+          </div>
+
+          <div class="filter-chip-wrap">
+            <label class="glass-switch" title="Скрыть поля со статусом [v]">
+              <input type="checkbox" id="only-open" role="switch" />
+              <span class="glass-switch__track" aria-hidden="true"><span class="glass-switch__thumb"></span></span>
+              <span class="glass-switch__label">Только не готовые</span>
+            </label>
+          </div>
+
+          <button type="button" class="btn" id="btn-reload" title="Сброс к catalog.js">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15.5-6.4"/><path d="M21 3v6h-6"/><path d="M21 12a9 9 0 0 1-15.5 6.4"/><path d="M3 21v-6h6"/></svg>
+            Сброс
+          </button>
+          <button type="button" class="btn btn-primary" id="btn-export-json">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 21h14"/></svg>
+            JSON
+          </button>
+          <button type="button" class="btn btn-primary" id="btn-export-csv">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/><path d="M9 13h6"/><path d="M9 17h6"/></svg>
+            CSV
+          </button>
+          <button type="button" class="btn btn-primary" id="btn-export-md">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5V5a2 2 0 0 1 2-2h9l5 5v11.5a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/><path d="M14 3v5h5"/></svg>
+            MD
+          </button>
+          <label class="btn btn-ghost file-btn" title="Импорт JSON">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21V9"/><path d="M7 14l5-5 5 5"/><path d="M5 3h14"/></svg>
+            Импорт
+            <input type="file" id="import-json" accept="application/json,.json" hidden />
+          </label>
+        </div>
+      </header>
+
+      <div id="save-toast" class="toast" hidden>
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+        Сохранено локально
+      </div>
+      <div id="fields" class="fields"></div>
+    </main>
+  </div>
+
+  <script src="catalog.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,6 +1,6 @@
 # Excel-форма конкурса BADGE
 
-Статус: **реализовано** (форма v6: openpyxl, dropdowns, цвета типов ввода).  
+Статус: **реализовано** (форма v7: запись stdlib OOXML, dropdowns, цвета типов ввода).  
 План: [`PLAN_CONTEST_BADGE_FORM.md`](PLAN_CONTEST_BADGE_FORM.md).  
 **Заполнение шаблона (для пользователя):** [`CONTEST_BADGE_FORM_FILLING.md`](CONTEST_BADGE_FORM_FILLING.md).
 
@@ -77,7 +77,14 @@
 
 Подробный порядок заполнения и типичные ошибки — в **`CONTEST_BADGE_FORM_FILLING.md`**.
 
-Списки значений — `src/contest_badge_form/field_meta.py`. Скрытый лист `Lists` (в конце книги) — длинные списки и значения с запятыми.
+### Каталог описаний полей (редактор)
+
+- HTML: **`Docs/param_review_editor/index.html`** (Liquid Glass; меню TABLE/JSON как в SPOD).
+- Пересборка данных: `python src/Tools/build_param_review_editor.py`.
+- После правок — экспорт JSON → в чат «примени каталог» → обновляются `field_meta` / подписи / blank.
+- MD-снимок: `Docs/CONTEST_BADGE_FORM_PARAM_REVIEW.md`.
+
+Списки значений — `src/contest_badge_form/field_meta.py` (`DROPDOWN_VALUES`, `FIELD_DEFAULTS`, `FIELD_ALLOW_EMPTY`). Скрытый лист `Lists` (в конце книги) — длинные списки и значения с запятыми.
 
 Пересоздать оба файла: токен `contest_badge_form_blank` в `run_outputs`, затем `python main.py`
 (пишет blank + example в `OUT/PROM/CONTEST_BADGE_FORM/`).
@@ -114,7 +121,7 @@
 Секции `#SECTION:CONTEST`, `#SECTION:BADGE:1..`, таблицы `#TABLE:…` (+ строка `#HINT`).  
 Столбцы: **A** ключ · **B** подпись · **C** значение (цвет по типу) · **D** описание. Массивы — через `;`.
 
-Запись книги: **openpyxl** (`src/contest_badge_form/xlsx_write.py`) — data validation и постобработка OOXML через `form_io.save_workbook`.
+Запись книги: **stdlib** (`zipfile` + `xml`, `src/contest_badge_form/xlsx_write.py`) — sharedStrings + data validation без порчи Excel. Чтение формы — **openpyxl** (есть в Anaconda 3.12).
 
 ## Код
 

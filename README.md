@@ -1306,6 +1306,13 @@ python main.py
 
 ## История версий
 
+### Версия 1.7.64 — Редактор каталога полей BADGE + дефолты формы
+
+- HTML-редактор **`Docs/param_review_editor/`** (Liquid Glass): TABLE/JSON-меню (CONTEST → CONTEST_FEATURE, REWARD → REWARD_ADD_DATA), экспорт JSON/CSV/MD.
+- Сборка каталога: **`src/Tools/build_param_review_editor.py`**; MD-снимок `Docs/CONTEST_BADGE_FORM_PARAM_REVIEW.md`.
+- `field_meta`: `FIELD_DEFAULTS` / `FIELD_ALLOW_EMPTY`, уточнённые подписи и описания; blank предзаполняется дефолтами.
+- Запись xlsx через stdlib OOXML (`xlsx_write`); шире колонки подписи/описания.
+
 ### Версия 1.7.63 — Пустой шаблон BADGE в репозитории
 
 - Файл **`Docs/templates/CONTEST_BADGE_FORM/CONTEST_BADGE_FORM_BLANK.xlsx`** версионируется (исключение в `.gitignore` для `*.xlsx`).

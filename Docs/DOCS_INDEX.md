@@ -20,6 +20,8 @@
 - `params_catalog/README.md` + `params_catalog/SPOD_PARAMS_CATALOG_LEAF_v3.xlsx` — Excel-перечень колонок и конечных JSON-ключей + оформление из `CONFIG_FORMATS` (v2 сохранён).
 - `CONTEST_BADGE_FORM.md` — Excel-форма конкурса BADGE (export/import через `run_outputs`).
 - `CONTEST_BADGE_FORM_FILLING.md` — **заполнение шаблона**: цвета, порядок полей, типичные ошибки, цикл export→import.
+- `CONTEST_BADGE_FORM_PARAM_REVIEW.md` — снимок каталога (MD); **основной ввод** — HTML-редактор `param_review_editor/`.
+- `param_review_editor/` — **редактор описаний/типов/вариантов/дефолтов** (вкладки, экспорт JSON/CSV/MD). Сборка данных: `python src/Tools/build_param_review_editor.py`.
 - `PLAN_CONTEST_BADGE_FORM.md` — согласованный план формы BADGE.
 - `templates/CONTEST_BADGE_FORM/CONTEST_BADGE_FORM_BLANK.xlsx` — **пустой шаблон** в репозитории.
 
