@@ -1244,14 +1244,14 @@ python folder_parce.py --config config_folder_parce.json
 
 Код использует только стандартную библиотеку Python (os, sys, json, re, csv, logging, datetime, typing, concurrent.futures, threading, inspect и др.) плюс **внешние пакеты**:
 
-| Пакет     | Назначение                    | Базовый Python 3.10 | Anaconda 3.10      |
+| Пакет     | Назначение                    | Базовый Python 3.10 | Anaconda 3.10/3.12 |
 |-----------|-------------------------------|----------------------|--------------------|
 | **pandas**| DataFrame, чтение/обработка CSV| ❌ ставить вручную   | ✅ входит в base   |
-| **openpyxl** | Запись Excel, стили, форматирование | ❌ ставить вручную | ✅ обычно в base   |
+| **openpyxl** | Запись Excel, стили, форматирование, форма BADGE | ❌ ставить вручную | ✅ обычно в base   |
 | **numpy** | Векторизованный расчёт статуса турнира (`np.select`) | ❌ (ставится с pandas) | ✅ входит в base |
 
 - **Базовый Python 3.10** (с python.org): внешних библиотек **нет** в поставке. Нужна установка: `pip install -r requirements.txt` (или минимум `pip install pandas openpyxl`).
-- **Anaconda 3.10**: в базовое окружение уже входят numpy, pandas и, как правило, openpyxl. Код **работает без дополнительной установки**. Если чего-то не хватает: `conda install pandas openpyxl`.
+- **Anaconda 3.10/3.12**: в base обычно уже есть numpy, pandas и openpyxl — **дополнительные пакеты не требуются**. Если чего-то не хватает: `conda install pandas openpyxl`.
 
 В `tournament.py` и `main_impl.py` при отсутствии numpy используется запасной вариант на чистом pandas (медленнее, но без numpy).
 
@@ -1314,7 +1314,7 @@ python main.py
 ### Версия 1.7.62 — Форма BADGE: цвета типов ввода и инструкция заполнения
 
 - Цвет столбца значения / ячеек таблиц: выбор (зелёный), текст (жёлтый), список через `;` (персик), JSON (розовый), дата (голубой); легенда `#META:LEGEND`.
-- Запись формы через **xlsxwriter** + выпадающие списки; скрытый лист **`Lists`**.
+- Запись формы через **openpyxl** + выпадающие списки; скрытый лист **`Lists`**.
 - Документ для пользователя: **`Docs/CONTEST_BADGE_FORM_FILLING.md`**; обновлены **`Docs/CONTEST_BADGE_FORM.md`**, ROADMAP §15.6.
 
 ### Версия 1.7.61 — Excel-форма конкурса BADGE (export / import)

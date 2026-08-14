@@ -1,6 +1,6 @@
 # Excel-форма конкурса BADGE
 
-Статус: **реализовано** (форма v6: xlsxwriter, dropdowns, цвета типов ввода).  
+Статус: **реализовано** (форма v6: openpyxl, dropdowns, цвета типов ввода).  
 План: [`PLAN_CONTEST_BADGE_FORM.md`](PLAN_CONTEST_BADGE_FORM.md).  
 **Заполнение шаблона (для пользователя):** [`CONTEST_BADGE_FORM_FILLING.md`](CONTEST_BADGE_FORM_FILLING.md).
 
@@ -114,7 +114,7 @@
 Секции `#SECTION:CONTEST`, `#SECTION:BADGE:1..`, таблицы `#TABLE:…` (+ строка `#HINT`).  
 Столбцы: **A** ключ · **B** подпись · **C** значение (цвет по типу) · **D** описание. Массивы — через `;`.
 
-Запись книги: **xlsxwriter** (`src/contest_badge_form/xlsx_write.py`) — shared strings + data validation без порчи OOXML.
+Запись книги: **openpyxl** (`src/contest_badge_form/xlsx_write.py`) — data validation и постобработка OOXML через `form_io.save_workbook`.
 
 ## Код
 
