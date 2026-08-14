@@ -1,7 +1,8 @@
 # Заполнение Excel-формы конкурса BADGE
 
 Инструкция для работы с шаблонами **`CONTEST_BADGE_FORM_BLANK.xlsx`** и **`CONTEST_BADGE_FORM_EXAMPLE.xlsx`**.  
-Техническое описание режимов export/import: [`CONTEST_BADGE_FORM.md`](CONTEST_BADGE_FORM.md).
+Техническое описание режимов export/import: [`CONTEST_BADGE_FORM.md`](CONTEST_BADGE_FORM.md).  
+Правка подписей/описаний/дефолтов списков: HTML-редактор [`param_review_editor/index.html`](param_review_editor/index.html).
 
 ---
 
