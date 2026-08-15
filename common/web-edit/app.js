@@ -2,9 +2,9 @@
 (function () {
   "use strict";
 
-  const LS_KEY = "spod_param_review_catalog_v4";
-  const LS_BASELINE_KEY = "spod_param_review_baseline_v4";
-  const LS_SOURCE_KEY = "spod_param_review_source_v4";
+  const LS_KEY = "spod_param_review_catalog_v5";
+  const LS_BASELINE_KEY = "spod_param_review_baseline_v5";
+  const LS_SOURCE_KEY = "spod_param_review_source_v5";
   /** Только catalog.json рядом со страницей (без catalog.js и без соседних папок). */
   const CATALOG_URL = "./catalog.json";
   const KINDS = ["dropdown", "dropdown_custom", "text", "number", "list", "json", "date"];
@@ -152,6 +152,7 @@
 
   function applyCatalog(data, { resetBaseline = true, persistDraft = true } = {}) {
     catalog = cloneCatalog(validateCatalog(data));
+    normalizeCatalogFields(catalog);
     sourceStamp = catalogStamp(catalog);
     activeSectionId = catalog.sections[0]?.id || null;
     if (resetBaseline) captureBaseline();
@@ -162,15 +163,21 @@
     renderAll();
   }
 
+  /** Канонический снимок поля для сравнения с baseline (без ложных «правок»). */
   function fieldSnapshot(field) {
+    const variants = Array.isArray(field.variants)
+      ? field.variants.map((x) => String(x).trim()).filter(Boolean)
+      : [];
+    const rawLabs = Array.isArray(field.variant_labels)
+      ? field.variant_labels.map((x) => String(x ?? "").trim())
+      : [];
+    const labels = variants.map((_, i) => (i < rawLabs.length ? rawLabs[i] : ""));
     return {
       status: field.status || "[ ]",
       label: field.label || "",
       kind: field.kind || "text",
-      variants: Array.isArray(field.variants) ? field.variants.slice() : [],
-      variant_labels: Array.isArray(field.variant_labels)
-        ? field.variant_labels.slice()
-        : [],
+      variants,
+      variant_labels: labels.some(Boolean) ? labels : [],
       default: field.default || "",
       allow_empty: !!field.allow_empty,
       description: field.description || "",
@@ -342,6 +349,7 @@
         if (draft) {
           sourceStamp = fileStamp || catalogStamp(draft);
           catalog = draft;
+          normalizeCatalogFields(catalog);
           if (!loadBaseline()) captureBaseline();
           syncWorkspaceMode();
           renderAll();
@@ -358,6 +366,7 @@
         if (draft) {
           sourceStamp = catalogStamp(draft);
           catalog = draft;
+          normalizeCatalogFields(catalog);
           if (!loadBaseline()) captureBaseline();
           syncWorkspaceMode();
           renderAll();
@@ -1195,6 +1204,42 @@
       const cur = String(field.default || "").trim();
       if (!cur || !variants.includes(cur)) {
         field.default = variants[0];
+      }
+    }
+  }
+
+  /**
+   * Привести поля к тому же виду, что после первой отрисовки UI,
+   * чтобы baseline не помечал нормализацию как «отредактировано».
+   */
+  function normalizeCatalogFields(data) {
+    if (!data || !Array.isArray(data.sections)) return;
+    for (const sec of data.sections) {
+      for (const f of sec.fields || []) {
+        if (!kindHasVariants(f.kind)) {
+          if (!Array.isArray(f.variants)) f.variants = [];
+          if (!(f.variants || []).length) delete f.variant_labels;
+          continue;
+        }
+        alignVariantLabels(f, { fillKnownEmpty: true });
+        const variants = Array.isArray(f.variants) ? f.variants.filter(Boolean) : [];
+        f.variants = variants;
+        if (!variants.length) {
+          f.default = "";
+          continue;
+        }
+        const multi = f.kind === "list";
+        ensureDefaultSelection(f, variants, multi);
+        if (multi) {
+          const selected = parseDefaultList(f.default).filter((v) =>
+            variants.includes(v)
+          );
+          f.default = formatDefaultList(selected);
+        } else {
+          const cur = String(f.default || "").trim();
+          f.default = cur && variants.includes(cur) ? cur : "";
+          if (selectionRequired(f) && !f.default) f.default = variants[0] || "";
+        }
       }
     }
   }

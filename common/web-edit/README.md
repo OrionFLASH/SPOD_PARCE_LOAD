@@ -4,10 +4,12 @@ HTML-страница в стиле **Apple Liquid Glass**.
 
 ## Данные
 
-- При **HTTP / Live Server** страница сама читает `catalog.json` рядом с собой.
-- Через **`file://`** автозагрузка недоступна: в левой панели до первого открытия файла — карточка «Откройте catalog.json».
+- Рабочий файл на старте: **`catalog.json`** рядом со страницей (Live Server / HTTP подхватывает сам).
+- Зеркало **`catalog.js`** (`window.PARAM_REVIEW_CATALOG`) — для `file://` и копий.
+- Копия для blank: `../param_catalog_review/catalog.json` (+ `catalog.js`).
+- Актуальный снимок правок из UI можно сохранить как `catalog_ГГГГММДД_ЧЧММ.json`; чтобы сделать его основным — скопируйте содержимое в `catalog.json` и выполните `python src/Tools/sync_web_fill_catalog.py` (сейчас в репозитории — данные из `catalog_20260816_0000.json`).
 
-Копия для blank-генератора: `../param_catalog_review/catalog.json`.
+Через **`file://`** без Live Server автозагрузка `catalog.json` недоступна: выберите файл в сайдбаре.
 
 ## Цикл
 

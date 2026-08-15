@@ -16,7 +16,7 @@ window.PARAM_REVIEW_CATALOG = {
         {
           "n": 1,
           "key": "CONTEST_CODE",
-          "status": "[ ]",
+          "status": "[v]",
           "label": "Код конкурса",
           "description": "Уникальный код конкурса (ключ связей). Пример: 01_2025-0_11-1_1",
           "kind": "text",
@@ -29,9 +29,9 @@ window.PARAM_REVIEW_CATALOG = {
         {
           "n": 2,
           "key": "FULL_NAME",
-          "status": "[ ]",
+          "status": "[v]",
           "label": "Название конкурса",
-          "description": "Отображаемое название конкурса/турнира (на странице Турниры/Детальная карточка турнира).",
+          "description": "Отображаемое название конкурса/турнира (на странице Турниры и Детальная карточка турнира).",
           "kind": "text",
           "variants": [],
           "default": "",
@@ -42,12 +42,12 @@ window.PARAM_REVIEW_CATALOG = {
         {
           "n": 3,
           "key": "CREATE_DT",
-          "status": "[ ]",
+          "status": "[v]",
           "label": "Дата создания конкурса",
-          "description": "Дата начала YYYY-MM-DD. Почти всегда начало года",
+          "description": "Дата начала действия конкурса. Почти всегда = начало года.",
           "kind": "date",
           "variants": [],
-          "default": "",
+          "default": "2026-01-01",
           "allow_empty": false,
           "json_target": "",
           "note": ""
@@ -55,22 +55,22 @@ window.PARAM_REVIEW_CATALOG = {
         {
           "n": 4,
           "key": "CLOSE_DT",
-          "status": "[ ]",
-          "label": "Дата закрытия",
-          "description": "Дата окончания YYYY-MM-DD; 4000-01-01 = без срока.",
+          "status": "[v]",
+          "label": "Срок действия конкурса",
+          "description": "Дата окончания действия конкурса; Почти всегда 4000-01-01 = без срока. формат: YYYY-MM-DD",
           "kind": "date",
           "variants": [],
           "default": "4000-01-01",
-          "allow_empty": true,
+          "allow_empty": false,
           "json_target": "",
           "note": ""
         },
         {
           "n": 5,
           "key": "BUSINESS_STATUS",
-          "status": "[ ]",
+          "status": "[v]",
           "label": "Бизнес-статус",
-          "description": "Статус: АКТИВНЫЙ  |  АРХИВНЫЙ. (Всегда ставим АКТИВНЫЙ)",
+          "description": "Статус работы конкурса Активный или Архивный (значение по умолчанию:АКТИВНЫЙ)",
           "kind": "dropdown",
           "variants": [
             "АКТИВНЫЙ",
@@ -84,7 +84,7 @@ window.PARAM_REVIEW_CATALOG = {
         {
           "n": 6,
           "key": "CONTEST_TYPE",
-          "status": "[ ]",
+          "status": "[v]",
           "label": "Тип конкурса",
           "description": "ТУРНИРНЫЙ (соревнование \"будь лучше других\") (разыгрываем от 1 до 3 сезонных наград Золото Серебро Бронза)  |  ИНДИВИДУАЛЬНЫЙ  |  ИНДИВИДУАЛЬНЫЙ НАКОПИТЕЛЬНЫЙ (режим \"достигни результат\", получи одну награду).",
           "kind": "dropdown",
@@ -101,45 +101,36 @@ window.PARAM_REVIEW_CATALOG = {
         {
           "n": 7,
           "key": "CONTEST_DESCRIPTION",
-          "status": "[ ]",
+          "status": "[v]",
           "label": "Описание турнира",
-          "description": "Текст описания для конкурса/турнира (на странице Детальная карточка турнира показываем).",
+          "description": "Текст описания для конкурса/турнира для траницы Детальная карточка турнира",
           "kind": "text",
           "variants": [],
           "default": "",
-          "allow_empty": true,
+          "allow_empty": false,
           "json_target": "",
           "note": ""
         },
         {
           "n": 8,
           "key": "SHOW_INDICATOR",
-          "status": "[ ]",
-          "label": "Отображаемое название единиц показателя",
+          "status": "[v]",
+          "label": "Единицы измерения показателя",
           "description": "Единица/подпись индикатора: шт.  |  Факт  |  %  |  … на списке показателей подпись к единицам данных",
           "kind": "dropdown_custom",
           "variants": [
             "%",
-            "%%",
-            "пт.",
             "шт.",
             "Факт",
             "балл",
             "Темп %",
             "Ранг %%",
-            "ФЛ, шт.",
-            "клиенты",
             "Ср. балл",
             "млн руб.",
             "К-во, шт.",
             "категория",
             "тыс. руб.",
-            "Анкет, шт.",
             "Сумма, руб.",
-            "Пакеты услуг",
-            "Договора, шт.",
-            "Сумма УС, шт.",
-            "Процент (х100)",
             "Факт, млн руб.",
             "Сумма, млн руб.",
             "сборы, млн руб.",
@@ -148,44 +139,43 @@ window.PARAM_REVIEW_CATALOG = {
             "Прирост, млн руб.",
             "Прирост, тыс. руб.",
             "Комиссия, тыс. руб.",
-            "Прирост ОСЗ, млн руб.",
             "нетто-притоки, млн руб."
           ],
-          "default": "",
-          "allow_empty": true,
+          "default": "Факт",
+          "allow_empty": false,
           "json_target": "",
           "note": ""
         },
         {
           "n": 9,
           "key": "PRODUCT_GROUP",
-          "status": "[ ]",
+          "status": "[v]",
           "label": "Группа продукта",
           "description": "Группа продукта (общее направление)",
           "kind": "text",
           "variants": [],
           "default": "",
-          "allow_empty": true,
+          "allow_empty": false,
           "json_target": "",
           "note": ""
         },
         {
           "n": 10,
           "key": "PRODUCT",
-          "status": "[ ]",
+          "status": "[v]",
           "label": "Продукт",
           "description": "Продукт / тематика конкурса.",
           "kind": "text",
           "variants": [],
           "default": "",
-          "allow_empty": true,
+          "allow_empty": false,
           "json_target": "",
           "note": ""
         },
         {
           "n": 11,
           "key": "CONTEST_SUBJECT",
-          "status": "[ ]",
+          "status": "[v]",
           "label": "Кто соревнуется",
           "description": "Кто участник конкурса. Обычно: EMPLOYEE (сотрудники).",
           "kind": "dropdown",
@@ -193,49 +183,58 @@ window.PARAM_REVIEW_CATALOG = {
             "EMPLOYEE"
           ],
           "default": "EMPLOYEE",
-          "allow_empty": true,
+          "allow_empty": false,
           "json_target": "",
           "note": ""
         },
         {
           "n": 12,
           "key": "FACTOR_MARK_TYPE",
-          "status": "[ ]",
-          "label": "Принцип отбора победителей",
-          "description": "CRITERION  |  RATING_MAX  |  RATING_MIN. (способ выбора победителей: достиг показателя, сделал больше других или меньше других — меньше, например, для ранга)",
+          "status": "[v]",
+          "label": "Как выбираем победителей",
+          "description": "Способ выбора победителей: достиг показателя, сделал больше других или меньше других — меньше, например, для ранга",
           "kind": "dropdown",
           "variants": [
             "CRITERION",
             "RATING_MAX",
             "RATING_MIN"
           ],
-          "default": "",
-          "allow_empty": true,
+          "default": "CRITERION",
+          "allow_empty": false,
           "json_target": "",
-          "note": ""
+          "note": "",
+          "variant_labels": [
+            "Достигни",
+            "Больше - лучше",
+            "Меньше - лучше"
+          ]
         },
         {
           "n": 13,
           "key": "CONTEST_INDICATOR_METHOD",
-          "status": "[ ]",
+          "status": "[v]",
           "label": "Метод индикатора",
-          "description": "INTEGRAL  |  RELATION. Метод расчета показателя (фактический / расчетный)",
+          "description": "Метод расчета показателя конкурса (фактическое значение  / вычисляемое значение)",
           "kind": "dropdown",
           "variants": [
             "INTEGRAL",
             "RELATION"
           ],
-          "default": "",
-          "allow_empty": true,
+          "default": "INTEGRAL",
+          "allow_empty": false,
           "json_target": "",
-          "note": ""
+          "note": "",
+          "variant_labels": [
+            "Фактическое",
+            "Расчетное"
+          ]
         },
         {
           "n": 14,
           "key": "CONTEST_FACTOR_METHOD",
-          "status": "[ ]",
+          "status": "[v]",
           "label": "Метод расчета показателя",
-          "description": "FACT  |  FACT0-FACT1  |  FACT0-RUN_RATE1_DOWN  |  RUN_RATE. (для автоматических турниров способ расчета на данных источников)",
+          "description": "Для автоматических турниров способ расчета на данных по источникам (для ручных данных всегда = FACT",
           "kind": "dropdown",
           "variants": [
             "FACT",
@@ -243,31 +242,35 @@ window.PARAM_REVIEW_CATALOG = {
             "FACT0-RUN_RATE1_DOWN",
             "RUN_RATE"
           ],
-          "default": "",
-          "allow_empty": true,
+          "default": "FACT",
+          "allow_empty": false,
           "json_target": "",
           "note": ""
         },
         {
           "n": 15,
           "key": "PLAN_METHOD_CODE",
-          "status": "[ ]",
+          "status": "[v]",
           "label": "Как вычисляется план",
-          "description": "DEPENDS_PREVIOUS_PERIOD  |  PRESET_VALUE. (Метод расчета планового показателя: из прошлого периода / фиксированное значение)",
+          "description": "Метод расчета планового показателя: из данных прошлого периода (вычисляемое) / фиксированное значение",
           "kind": "dropdown",
           "variants": [
-            "DEPENDS_PREVIOUS_PERIOD",
-            "PRESET_VALUE"
+            "PRESET_VALUE",
+            "DEPENDS_PREVIOUS_PERIOD"
           ],
-          "default": "",
-          "allow_empty": true,
+          "default": "PRESET_VALUE",
+          "allow_empty": false,
           "json_target": "",
-          "note": ""
+          "note": "",
+          "variant_labels": [
+            "Фактическое",
+            "Вычисляемое"
+          ]
         },
         {
           "n": 16,
           "key": "PLAN_MOD_METOD",
-          "status": "[ ]",
+          "status": "[v]",
           "label": "Метод модификации плана",
           "description": "Модификатор плана. Обычно: MULTIPLIER.",
           "kind": "dropdown",
@@ -275,29 +278,29 @@ window.PARAM_REVIEW_CATALOG = {
             "MULTIPLIER"
           ],
           "default": "MULTIPLIER",
-          "allow_empty": true,
+          "allow_empty": false,
           "json_target": "",
           "note": ""
         },
         {
           "n": 17,
           "key": "PLAN_MOD_VALUE",
-          "status": "[ ]",
+          "status": "[v]",
           "label": "Значение плана",
-          "description": "Значение планового показателя (0, 1, 1000, …).",
-          "kind": "text",
+          "description": "Значение планового показателя (0, 1, 1000, …)",
+          "kind": "number",
           "variants": [],
-          "default": "",
-          "allow_empty": true,
+          "default": "0",
+          "allow_empty": false,
           "json_target": "",
           "note": ""
         },
         {
           "n": 18,
           "key": "FACTOR_MATCH",
-          "status": "[ ]",
+          "status": "[v]",
           "label": "Символ сравнения с планом",
-          "description": "Сравнение фактора: =  |  >  |  >=  |  <  |  <=.",
+          "description": "Вид сравнения показателя с планом для определения участников",
           "kind": "dropdown",
           "variants": [
             "=",
@@ -306,79 +309,95 @@ window.PARAM_REVIEW_CATALOG = {
             "<",
             "<="
           ],
-          "default": "",
-          "allow_empty": true,
+          "default": ">=",
+          "allow_empty": false,
           "json_target": "",
-          "note": ""
+          "note": "",
+          "variant_labels": [
+            "Равно",
+            "Больше",
+            "Больше или равно",
+            "Меньше",
+            "Меньше или равно"
+          ]
         },
         {
           "n": 19,
           "key": "TARGET_TYPE",
-          "status": "[ ]",
+          "status": "[v]",
           "label": "Среда конкурса",
-          "description": "Среда конкурса: ПРОМ  |  ТЕСТ.",
+          "description": "Выбор среды конкурсной",
           "kind": "dropdown",
           "variants": [
             "ПРОМ",
             "ТЕСТ"
           ],
           "default": "ПРОМ",
-          "allow_empty": true,
+          "allow_empty": false,
           "json_target": "",
           "note": ""
         },
         {
           "n": 20,
           "key": "SOURCE_UPD_FREQUENCY",
-          "status": "[ ]",
+          "status": "[v]",
           "label": "Частота обновления источника",
-          "description": "Частота обновления источника: 1  |  7  |  10 (дни). (не используется)",
-          "kind": "dropdown",
+          "description": "Частота обновления источника данных в источника (не используется)",
+          "kind": "dropdown_custom",
           "variants": [
             "1",
             "7",
-            "10"
+            "14"
           ],
-          "default": "1",
-          "allow_empty": true,
+          "default": "7",
+          "allow_empty": false,
           "json_target": "",
           "note": ""
         },
         {
           "n": 21,
           "key": "CALC_TYPE",
-          "status": "[ ]",
-          "label": "Тип расчёта",
-          "description": "Тип расчёта: 0  |  1. (не используется) 0 — промышленный расчет / 1 — ручной расчет",
+          "status": "[v]",
+          "label": "Тип расчёта показателя",
+          "description": "Тип расчёта: 0 — промышленный расчет / 1 — ручной расчет (не используется)",
           "kind": "dropdown",
           "variants": [
             "0",
             "1"
           ],
-          "default": "0",
-          "allow_empty": true,
+          "default": "1",
+          "allow_empty": false,
           "json_target": "",
-          "note": ""
+          "note": "",
+          "variant_labels": [
+            "Промышленный расчет",
+            "Ручные данные"
+          ]
         },
         {
           "n": 22,
           "key": "FACT_POST_PROCESSING",
-          "status": "[ ]",
+          "status": "[v]",
           "label": "Постобработка факта",
-          "description": "Постобработка факта (код/флаг; часто пусто). Правило постобработки показателя конкурса. PERCENTILE — вычисление перцентиля от фактического показателя конкурса",
-          "kind": "text",
-          "variants": [],
+          "description": "Постобработка факта для автоматического расчета. Правило постобработки показателя конкурса. PERCENTILE — вычисление перцентиля от фактического показателя конкурса",
+          "kind": "dropdown",
+          "variants": [
+            "PERCENTILE"
+          ],
           "default": "",
           "allow_empty": true,
           "json_target": "",
-          "note": ""
+          "note": "",
+          "variant_labels": [
+            "Процентиль"
+          ]
         },
         {
           "n": 23,
           "key": "BUSINESS_BLOCK",
-          "status": "[ ]",
-          "label": "Бизнес-блок (через ;)",
-          "description": "Бизнес-блок(и) через ; . Варианты: KMMMB, KMKKSB, CSM, AKMKKSB. По умолчанию KMMMB.",
+          "status": "[v]",
+          "label": "Бизнес-блок конкурса",
+          "description": "Бизнес-блок конкурса и его участников",
           "kind": "list",
           "variants": [
             "KMMMB",
@@ -387,19 +406,25 @@ window.PARAM_REVIEW_CATALOG = {
             "AKMKKSB"
           ],
           "default": "KMMMB",
-          "allow_empty": true,
+          "allow_empty": false,
           "json_target": "",
-          "note": ""
+          "note": "",
+          "variant_labels": [
+            "КМ ММБ",
+            "КМ ККСБ",
+            "Руководитель по внедрению проектов",
+            "АКМ ККСБ"
+          ]
         },
         {
           "n": 24,
           "key": "CONTEST_PERIOD",
-          "status": "[ ]",
-          "label": "Периоды расчета конкурса (через ;)",
-          "description": "Периоды через ; или пусто → []. Обычно пусто.",
-          "kind": "list",
+          "status": "[v]",
+          "label": "Периоды расчета конкурса",
+          "description": "Периоды через для расчета показателей конкурса",
+          "kind": "text",
           "variants": [],
-          "default": "",
+          "default": "[]",
           "allow_empty": true,
           "json_target": "",
           "note": ""
@@ -418,24 +443,28 @@ window.PARAM_REVIEW_CATALOG = {
         {
           "n": 25,
           "key": "FEATURE.vid",
-          "status": "[ ]",
+          "status": "[v]",
           "label": "FEATURE.Среда конкурса",
-          "description": "Среда конкурса: ПРОМ  |  ТЕСТ (как TARGET_TYPE).",
+          "description": "Опредедяем среду для конкурса (по умолчанию ПРОМ)",
           "kind": "dropdown",
           "variants": [
             "ПРОМ",
             "ТЕСТ"
           ],
           "default": "ПРОМ",
-          "allow_empty": true,
+          "allow_empty": false,
           "json_target": "CONTEST_FEATURE.vid",
-          "note": "ТЕСТ (как TARGET_TYPE)."
+          "note": "ПРОМ (как TARGET_TYPE).",
+          "variant_labels": [
+            "Промышленный",
+            "Тестовый"
+          ]
         },
         {
           "n": 26,
           "key": "FEATURE.accuracy",
-          "status": "[ ]",
-          "label": "FEATURE.Округление до...",
+          "status": "[v]",
+          "label": "Округление до...",
           "description": "Точность/разрядность: 0  |  1  |  2 . (число знаков после запятой для отображения)",
           "kind": "dropdown",
           "variants": [
@@ -443,17 +472,22 @@ window.PARAM_REVIEW_CATALOG = {
             "1",
             "2"
           ],
-          "default": "",
-          "allow_empty": true,
+          "default": "0",
+          "allow_empty": false,
           "json_target": "CONTEST_FEATURE.accuracy",
-          "note": ""
+          "note": "",
+          "variant_labels": [
+            "# ##",
+            "# ##.#",
+            "# ##.##"
+          ]
         },
         {
           "n": 27,
           "key": "FEATURE.capacity",
-          "status": "[ ]",
-          "label": "FEATURE.Приведение к млн / тыс.",
-          "description": "Масштаб: пусто  |  MILLIONS  |  THOUSANDS. (приведение отображаемого показателя к млн, к тыс.)",
+          "status": "[v]",
+          "label": "Приведение к млн / тыс.",
+          "description": "Приведение отображаемого показателя к млн, к тыс.",
           "kind": "dropdown",
           "variants": [
             "MILLIONS",
@@ -462,21 +496,25 @@ window.PARAM_REVIEW_CATALOG = {
           "default": "",
           "allow_empty": true,
           "json_target": "CONTEST_FEATURE.capacity",
-          "note": ""
+          "note": "",
+          "variant_labels": [
+            "в миллионах",
+            "в тысячах"
+          ]
         },
         {
           "n": 28,
           "key": "FEATURE.masking",
-          "status": "[ ]",
-          "label": "FEATURE.masking",
-          "description": "Маскирование: Y  |  N (часто N).",
+          "status": "[v]",
+          "label": "masking",
+          "description": "Всегда ставами в Нет (N)",
           "kind": "dropdown",
           "variants": [
             "Y",
             "N"
           ],
           "default": "N",
-          "allow_empty": true,
+          "allow_empty": false,
           "json_target": "CONTEST_FEATURE.masking",
           "note": "N (часто N).",
           "variant_labels": [
@@ -487,65 +525,73 @@ window.PARAM_REVIEW_CATALOG = {
         {
           "n": 29,
           "key": "FEATURE.minNumber",
-          "status": "[ ]",
-          "label": "FEATURE.minNumber",
-          "description": "Мин. число участников чтобы считать победителей (исключаем соревнование сам с собой): 1  |  2  |  3.",
+          "status": "[v]",
+          "label": "Минимум участников",
+          "description": "Мин. число участников на уровне чтобы считать победителей (исключаем соревнование сам с собой): 1  |  2  |  3.",
           "kind": "dropdown",
           "variants": [
             "1",
             "2",
             "3"
           ],
-          "default": "",
-          "allow_empty": true,
+          "default": "1",
+          "allow_empty": false,
           "json_target": "CONTEST_FEATURE.minNumber",
           "note": ""
         },
         {
           "n": 30,
           "key": "FEATURE.momentRewarding",
-          "status": "[ ]",
-          "label": "FEATURE.momentRewarding",
-          "description": "Момент награждения: AFTER  |  DURIN (после закрытия турнира / во время турнира)",
+          "status": "[v]",
+          "label": "Когда выбираем победителей",
+          "description": "Момент награждения после закрытия турнира / во время турнира",
           "kind": "dropdown",
           "variants": [
             "AFTER",
             "DURIN"
           ],
-          "default": "",
-          "allow_empty": true,
+          "default": "AFTER",
+          "allow_empty": false,
           "json_target": "CONTEST_FEATURE.momentRewarding",
-          "note": "DURIN (после закрытия турнира / во время турнира)"
+          "note": "DURIN (после закрытия турнира / во время турнира)",
+          "variant_labels": [
+            "По завершению",
+            "Во время"
+          ]
         },
         {
           "n": 31,
           "key": "FEATURE.typeRewarding",
-          "status": "[ ]",
-          "label": "FEATURE.typeRewarding",
-          "description": "Вручаем одну из 3 наград или все (one  |  all).",
+          "status": "[v]",
+          "label": "Сколько наград получает",
+          "description": "Вручаем одну из 3 наград или все",
           "kind": "dropdown",
           "variants": [
             "one",
             "all"
           ],
-          "default": "",
-          "allow_empty": true,
+          "default": "one",
+          "allow_empty": false,
           "json_target": "CONTEST_FEATURE.typeRewarding",
-          "note": "all)."
+          "note": "",
+          "variant_labels": [
+            "Вручаем одну",
+            "Вручаем все"
+          ]
         },
         {
           "n": 32,
           "key": "FEATURE.avatarShow",
-          "status": "[ ]",
-          "label": "FEATURE.avatarShow",
-          "description": "Показ аватара: Y  |  N.",
+          "status": "[v]",
+          "label": "Показывать аватар?",
+          "description": "Управление показом фотографий участников",
           "kind": "dropdown",
           "variants": [
             "Y",
             "N"
           ],
           "default": "Y",
-          "allow_empty": true,
+          "allow_empty": false,
           "json_target": "CONTEST_FEATURE.avatarShow",
           "note": "N.",
           "variant_labels": [
@@ -556,16 +602,16 @@ window.PARAM_REVIEW_CATALOG = {
         {
           "n": 33,
           "key": "FEATURE.tournamentTeam",
-          "status": "[ ]",
-          "label": "FEATURE.tournamentTeam",
-          "description": "Командный турнир: Y  |  N.",
+          "status": "[v]",
+          "label": "Признак командного конкурса",
+          "description": "При выборе командного турнира соревнуются не сотрудники, а команды (КПК/ Отдел/ ГОСБ/ ТБ)",
           "kind": "dropdown",
           "variants": [
             "Y",
             "N"
           ],
           "default": "N",
-          "allow_empty": true,
+          "allow_empty": false,
           "json_target": "CONTEST_FEATURE.tournamentTeam",
           "note": "N.",
           "variant_labels": [
@@ -576,8 +622,8 @@ window.PARAM_REVIEW_CATALOG = {
         {
           "n": 34,
           "key": "FEATURE.persomanNumberVisible",
-          "status": "[ ]",
-          "label": "FEATURE.persomanNumberVisible (через ;)",
+          "status": "[v]",
+          "label": "Видимость для сотрудника",
           "description": "Если указаны табельные, то только эти сотрудники увидят турнир",
           "kind": "list",
           "variants": [],
@@ -589,9 +635,9 @@ window.PARAM_REVIEW_CATALOG = {
         {
           "n": 35,
           "key": "FEATURE.persomanNumberHidden",
-          "status": "[ ]",
-          "label": "FEATURE.persomanNumberHidden (через ;)",
-          "description": "Если указаны табельные, то эти сотрудники НЕ увидят турнир",
+          "status": "[v]",
+          "label": "Скрытие для сотрудников",
+          "description": "Если указаны табельные, то эти сотрудники не увидят турнир",
           "kind": "list",
           "variants": [],
           "default": "",
@@ -602,18 +648,18 @@ window.PARAM_REVIEW_CATALOG = {
         {
           "n": 36,
           "key": "FEATURE.tournamentStartMailing",
-          "status": "[ ]",
-          "label": "FEATURE.tournamentStartMailing",
-          "description": "Рассылка старта: Y  |  N.",
+          "status": "[v]",
+          "label": "Письма о старте турнира",
+          "description": "В дату старта турнира участникам из вертикали придет письмо с уведомлением о старте турнира",
           "kind": "dropdown",
           "variants": [
             "Y",
             "N"
           ],
-          "default": "",
-          "allow_empty": true,
+          "default": "Y",
+          "allow_empty": false,
           "json_target": "CONTEST_FEATURE.tournamentStartMailing",
-          "note": "N.",
+          "note": "",
           "variant_labels": [
             "Да",
             "Нет"
@@ -622,18 +668,18 @@ window.PARAM_REVIEW_CATALOG = {
         {
           "n": 37,
           "key": "FEATURE.tournamentEndMailing",
-          "status": "[ ]",
-          "label": "FEATURE.tournamentEndMailing",
-          "description": "Рассылка финиша: Y  |  N.",
+          "status": "[v]",
+          "label": "Письмо о завершении турнира",
+          "description": "Когда турнир закроется и подведут итоги участникам не победившим придет письмо о закрытии турнира",
           "kind": "dropdown",
           "variants": [
             "Y",
             "N"
           ],
-          "default": "",
-          "allow_empty": true,
+          "default": "Y",
+          "allow_empty": false,
           "json_target": "CONTEST_FEATURE.tournamentEndMailing",
-          "note": "N.",
+          "note": "",
           "variant_labels": [
             "Да",
             "Нет"
@@ -642,18 +688,18 @@ window.PARAM_REVIEW_CATALOG = {
         {
           "n": 38,
           "key": "FEATURE.tournamentLikeMailing",
-          "status": "[ ]",
-          "label": "FEATURE.tournamentLikeMailing",
-          "description": "Рассылка лайков: Y  |  N.",
+          "status": "[v]",
+          "label": "Письмо о лайке",
+          "description": "Рассылка писем о лайках на новости с участием сотрудника",
           "kind": "dropdown",
           "variants": [
             "Y",
             "N"
           ],
-          "default": "",
-          "allow_empty": true,
+          "default": "Y",
+          "allow_empty": false,
           "json_target": "CONTEST_FEATURE.tournamentLikeMailing",
-          "note": "N.",
+          "note": "",
           "variant_labels": [
             "Да",
             "Нет"
@@ -662,9 +708,9 @@ window.PARAM_REVIEW_CATALOG = {
         {
           "n": 39,
           "key": "FEATURE.tournamentListMailing",
-          "status": "[ ]",
-          "label": "FEATURE.tournamentListMailing (через ;)",
-          "description": "Список рассылки через ; .",
+          "status": "[w]",
+          "label": "Письмо о...",
+          "description": "описание готовится (по умолчанию пусто)",
           "kind": "list",
           "variants": [],
           "default": "",
@@ -675,16 +721,16 @@ window.PARAM_REVIEW_CATALOG = {
         {
           "n": 40,
           "key": "FEATURE.tournamentRewardingMailing",
-          "status": "[ ]",
-          "label": "FEATURE.tournamentRewardingMailing",
-          "description": "Рассылка награждения: Y  |  N.",
+          "status": "[v]",
+          "label": "Письмо о награждении",
+          "description": "РАссылка письма получателям награды после ее вручения",
           "kind": "dropdown",
           "variants": [
             "Y",
             "N"
           ],
-          "default": "",
-          "allow_empty": true,
+          "default": "Y",
+          "allow_empty": false,
           "json_target": "CONTEST_FEATURE.tournamentRewardingMailing",
           "note": "N.",
           "variant_labels": [
@@ -695,9 +741,9 @@ window.PARAM_REVIEW_CATALOG = {
         {
           "n": 41,
           "key": "FEATURE.feature",
-          "status": "[ ]",
-          "label": "FEATURE.feature (через ;)",
-          "description": "Тексты особенностей турнира. Показываем в детальной карточке турнира",
+          "status": "[v]",
+          "label": "Особенности конкурса",
+          "description": "Тексты особенностей турнира. Показываем в детальной карточке турнира, можно указать несколько",
           "kind": "list",
           "variants": [],
           "default": "",
@@ -708,9 +754,9 @@ window.PARAM_REVIEW_CATALOG = {
         {
           "n": 42,
           "key": "FEATURE.businessBlock",
-          "status": "[ ]",
-          "label": "FEATURE.businessBlock (через ;)",
-          "description": "Блоки в FEATURE через ; (как BUSINESS_BLOCK). Варианты: KMMMB, KMKKSB, CSM, AKMKKSB. По умолчанию KMMMB.",
+          "status": "[v]",
+          "label": "Бизнес-блок",
+          "description": "Бизнес блок конкурса и его участников",
           "kind": "list",
           "variants": [
             "KMMMB",
@@ -719,16 +765,22 @@ window.PARAM_REVIEW_CATALOG = {
             "AKMKKSB"
           ],
           "default": "KMMMB",
-          "allow_empty": true,
+          "allow_empty": false,
           "json_target": "CONTEST_FEATURE.businessBlock",
-          "note": ""
+          "note": "",
+          "variant_labels": [
+            "КМ ММБ",
+            "КМ ККСБ",
+            "Руководитель по внедрению проектов",
+            "АКМ ККСБ"
+          ]
         },
         {
           "n": 43,
           "key": "FEATURE.helpCodeList",
-          "status": "[ ]",
-          "label": "FEATURE.helpCodeList (через ;)",
-          "description": "Коды для вывода окна с доп описанием конкурса",
+          "status": "[v]",
+          "label": "Код окна с описанием показателя",
+          "description": "Коды для вывода окна с дополнительным описанием конкурса (доступно в детальной карточке турнира)",
           "kind": "list",
           "variants": [],
           "default": "",
@@ -739,8 +791,8 @@ window.PARAM_REVIEW_CATALOG = {
         {
           "n": 44,
           "key": "FEATURE.preferences",
-          "status": "[ ]",
-          "label": "FEATURE.preferences (через ;)",
+          "status": "[v]",
+          "label": "Преференции за победу",
           "description": "Преференции за получение награды если предусмотрены",
           "kind": "list",
           "variants": [],
@@ -752,9 +804,9 @@ window.PARAM_REVIEW_CATALOG = {
         {
           "n": 45,
           "key": "FEATURE.tbVisible",
-          "status": "[ ]",
-          "label": "FEATURE.tbVisible (через ;)",
-          "description": "Коды ТБ видимые через ; .",
+          "status": "[v]",
+          "label": "Видимость для ТБ",
+          "description": "Только эти ТБ (если указаны) увидят конкурс",
           "kind": "list",
           "variants": [],
           "default": "",
@@ -765,9 +817,9 @@ window.PARAM_REVIEW_CATALOG = {
         {
           "n": 46,
           "key": "FEATURE.tbHidden",
-          "status": "[ ]",
-          "label": "FEATURE.tbHidden (через ;)",
-          "description": "Коды ТБ скрытые через ; .",
+          "status": "[v]",
+          "label": "Скрытие для ТБ",
+          "description": "Конкурс видят все ТБ, кроме указанных здесь",
           "kind": "list",
           "variants": [],
           "default": "",
@@ -778,9 +830,9 @@ window.PARAM_REVIEW_CATALOG = {
         {
           "n": 47,
           "key": "FEATURE.gosbVisible",
-          "status": "[ ]",
-          "label": "FEATURE.gosbVisible (через ;)",
-          "description": "Коды ГОСБ видимые через ; .",
+          "status": "[v]",
+          "label": "Видимость для ГОСБ",
+          "description": "Только эти ГОСБ (если указаны) увидят конкурс",
           "kind": "list",
           "variants": [],
           "default": "",
@@ -791,9 +843,9 @@ window.PARAM_REVIEW_CATALOG = {
         {
           "n": 48,
           "key": "FEATURE.gosbHidden",
-          "status": "[ ]",
-          "label": "FEATURE.gosbHidden (через ;)",
-          "description": "Коды ГОСБ скрытые через ; .",
+          "status": "[v]",
+          "label": "Скрытие для ГОСБ",
+          "description": "Конкурс видят все ГОСБ, кроме указанных здесь",
           "kind": "list",
           "variants": [],
           "default": "",
@@ -815,7 +867,7 @@ window.PARAM_REVIEW_CATALOG = {
         {
           "n": 49,
           "key": "REWARD_CODE",
-          "status": "[ ]",
+          "status": "[v]",
           "label": "Код награды",
           "description": "Уникальный код награды, напр. r_01_2025-0_11-1_1_1.",
           "kind": "text",
@@ -828,24 +880,33 @@ window.PARAM_REVIEW_CATALOG = {
         {
           "n": 50,
           "key": "REWARD_TYPE",
-          "status": "[ ]",
-          "label": "Тип награды (BADGE)",
+          "status": "[v]",
+          "label": "Тип награды",
           "description": "Для этой формы всегда BADGE.",
           "kind": "dropdown",
           "variants": [
-            "BADGE"
+            "BADGE",
+            "LABEL",
+            "ITEM",
+            "CRISTAL"
           ],
           "default": "BADGE",
           "allow_empty": false,
           "json_target": "",
-          "note": ""
+          "note": "",
+          "variant_labels": [
+            "Награда",
+            "Метка",
+            "Товар",
+            "Кристалл"
+          ]
         },
         {
           "n": 51,
           "key": "FULL_NAME",
-          "status": "[ ]",
+          "status": "[v]",
           "label": "Название награды",
-          "description": "Краткое название бейджа",
+          "description": "Краткое название бейджа для показа в списке наград и детальной карточке награды (достижения)",
           "kind": "text",
           "variants": [],
           "default": "",
@@ -856,20 +917,20 @@ window.PARAM_REVIEW_CATALOG = {
         {
           "n": 52,
           "key": "REWARD_DESCRIPTION",
-          "status": "[ ]",
+          "status": "[v]",
           "label": "Описание награды",
-          "description": "Полное описание награды.",
+          "description": "Полное описание награды показываем в детальной карточке награды (достижения)",
           "kind": "text",
           "variants": [],
           "default": "",
-          "allow_empty": true,
+          "allow_empty": false,
           "json_target": "",
           "note": ""
         },
         {
           "n": 53,
           "key": "REWARD_CONDITION",
-          "status": "[ ]",
+          "status": "[w]",
           "label": "Условие награды",
           "description": "Класс/код условия начисления (часто пусто или код).",
           "kind": "text",
@@ -882,13 +943,13 @@ window.PARAM_REVIEW_CATALOG = {
         {
           "n": 54,
           "key": "REWARD_COST",
-          "status": "[ ]",
-          "label": "Стоимость",
-          "description": "Стоимость в кристаллах (целое число, по умолчанию 5).",
+          "status": "[v]",
+          "label": "Стоимость награды",
+          "description": "Сколько кристаллов заработает участник за получение награды (целое число, по умолчанию 5).",
           "kind": "number",
           "variants": [],
           "default": "5",
-          "allow_empty": true,
+          "allow_empty": false,
           "json_target": "",
           "note": ""
         }
@@ -1296,22 +1357,22 @@ window.PARAM_REVIEW_CATALOG = {
         {
           "n": 78,
           "key": "CONTEST_CODE",
-          "status": "[ ]",
-          "label": "CONTEST_CODE",
-          "description": "Код конкурса (= CONTEST_CODE на листе)",
+          "status": "[v]",
+          "label": "Код конкурса",
+          "description": "Код конкурса (= CONTEST_CODE на листе CONTEST)",
           "kind": "text",
           "variants": [],
           "default": "",
-          "allow_empty": true,
+          "allow_empty": false,
           "json_target": "",
           "note": ""
         },
         {
           "n": 79,
           "key": "GROUP_CODE",
-          "status": "[ ]",
-          "label": "GROUP_CODE",
-          "description": "BANK  |  TB  |  GOSB  |  GROUPING",
+          "status": "[v]",
+          "label": "Код уровня награды",
+          "description": "Выбор уровня на котором выбираем победителей (среди кого соревнуемся)",
           "kind": "dropdown",
           "variants": [
             "BANK",
@@ -1319,17 +1380,23 @@ window.PARAM_REVIEW_CATALOG = {
             "GOSB",
             "GROUPING"
           ],
-          "default": "",
-          "allow_empty": true,
+          "default": "BANK",
+          "allow_empty": false,
           "json_target": "",
-          "note": ""
+          "note": "",
+          "variant_labels": [
+            "Вся страна",
+            "Тер. банк",
+            "ГОСБ",
+            "Группа"
+          ]
         },
         {
           "n": 80,
           "key": "REWARD_CODE",
-          "status": "[ ]",
-          "label": "REWARD_CODE",
-          "description": "Код BADGE из слота",
+          "status": "[v]",
+          "label": "Код награды",
+          "description": "Код награды для связи конкурса с уровнем",
           "kind": "text",
           "variants": [],
           "default": "",
@@ -1692,18 +1759,22 @@ window.PARAM_REVIEW_CATALOG = {
         {
           "n": 103,
           "key": "CALC_TYPE",
-          "status": "[ ]",
-          "label": "CALC_TYPE",
-          "description": "0  |  1",
+          "status": "[v]",
+          "label": "Тип расчёта показателя",
+          "description": "Тип расчёта: 0 — промышленный расчет / 1 — ручной расчет (не используется)",
           "kind": "dropdown",
           "variants": [
             "0",
             "1"
           ],
-          "default": "",
-          "allow_empty": true,
+          "default": "1",
+          "allow_empty": false,
           "json_target": "",
-          "note": "1"
+          "note": "1",
+          "variant_labels": [
+            "Промышленный расчет",
+            "Ручные данные"
+          ]
         },
         {
           "n": 104,
@@ -1732,13 +1803,13 @@ window.PARAM_REVIEW_CATALOG = {
         {
           "n": 105,
           "key": "TOURNAMENT_CODE",
-          "status": "[ ]",
-          "label": "TOURNAMENT_CODE",
-          "description": "Код слота расписания",
+          "status": "[v]",
+          "label": "Код турнира",
+          "description": "Код для турнира в рамках конкурса",
           "kind": "text",
           "variants": [],
           "default": "",
-          "allow_empty": true,
+          "allow_empty": false,
           "json_target": "",
           "note": ""
         },
@@ -1759,34 +1830,34 @@ window.PARAM_REVIEW_CATALOG = {
           "n": 107,
           "key": "START_DT",
           "status": "[ ]",
-          "label": "START_DT",
+          "label": "Дата начала турнира",
           "description": "Дата старта турнира",
           "kind": "date",
           "variants": [],
           "default": "",
-          "allow_empty": true,
+          "allow_empty": false,
           "json_target": "",
           "note": ""
         },
         {
           "n": 108,
           "key": "END_DT",
-          "status": "[ ]",
-          "label": "END_DT",
+          "status": "[v]",
+          "label": "Дата конца турнира",
           "description": "Дата окончания турнира",
           "kind": "date",
           "variants": [],
           "default": "",
-          "allow_empty": true,
+          "allow_empty": false,
           "json_target": "",
           "note": ""
         },
         {
           "n": 109,
           "key": "RESULT_DT",
-          "status": "[ ]",
-          "label": "RESULT_DT",
-          "description": "Дата подведения итогов турнира",
+          "status": "[v]",
+          "label": "Дата подведения итога",
+          "description": "Дата подведения итогов турнира и вручения наград",
           "kind": "date",
           "variants": [],
           "default": "",
@@ -1797,9 +1868,9 @@ window.PARAM_REVIEW_CATALOG = {
         {
           "n": 110,
           "key": "PLAN_PERIOD_START_DT",
-          "status": "[ ]",
-          "label": "PLAN_PERIOD_START_DT",
-          "description": "YYYY-MM-DD",
+          "status": "[v]",
+          "label": "Дата старта периода плана",
+          "description": "Дата старта для периода, где определяется плановое значение",
           "kind": "date",
           "variants": [],
           "default": "",
@@ -1810,9 +1881,9 @@ window.PARAM_REVIEW_CATALOG = {
         {
           "n": 111,
           "key": "PLAN_PERIOD_END_DT",
-          "status": "[ ]",
-          "label": "PLAN_PERIOD_END_DT",
-          "description": "YYYY-MM-DD",
+          "status": "[v]",
+          "label": "Дата конца периода плана",
+          "description": "Дата конца для периода, где определяется плановое значение",
           "kind": "date",
           "variants": [],
           "default": "",
@@ -1866,7 +1937,7 @@ window.PARAM_REVIEW_CATALOG = {
           "n": 115,
           "key": "TOURNAMENT_STATUS",
           "status": "[ ]",
-          "label": "TOURNAMENT_STATUS",
+          "label": "Статус турнира",
           "description": "АКТИВНЫЙ  |  ЗАВЕРШЕН  |  ОТМЕНЕН  |  ПОДВЕДЕНИЕ ИТОГОВ  |  УДАЛЕН",
           "kind": "dropdown",
           "variants": [
@@ -1876,21 +1947,21 @@ window.PARAM_REVIEW_CATALOG = {
             "ПОДВЕДЕНИЕ ИТОГОВ",
             "УДАЛЕН"
           ],
-          "default": "",
-          "allow_empty": true,
+          "default": "АКТИВНЫЙ",
+          "allow_empty": false,
           "json_target": "",
           "note": ""
         },
         {
           "n": 116,
           "key": "CONTEST_CODE",
-          "status": "[ ]",
-          "label": "CONTEST_CODE",
-          "description": "Код конкурса",
+          "status": "[v]",
+          "label": "Код конкурса",
+          "description": "Код связанного с турниром конкурса",
           "kind": "text",
           "variants": [],
           "default": "",
-          "allow_empty": true,
+          "allow_empty": false,
           "json_target": "",
           "note": ""
         },
@@ -1898,13 +1969,10 @@ window.PARAM_REVIEW_CATALOG = {
           "n": 117,
           "key": "TARGET_TYPE",
           "status": "[ ]",
-          "label": "TARGET_TYPE",
-          "description": "JSON seasonCode или пусто",
+          "label": "Сезон и ...",
+          "description": "В каком сезоне разыгрываем награду (в каком рейтинге делаем расчет полученных кристаллов)",
           "kind": "json",
-          "variants": [
-            "ПРОМ",
-            "ТЕСТ"
-          ],
+          "variants": [],
           "default": "",
           "allow_empty": true,
           "json_target": "TARGET_TYPE",
@@ -1913,18 +1981,22 @@ window.PARAM_REVIEW_CATALOG = {
         {
           "n": 118,
           "key": "CALC_TYPE",
-          "status": "[ ]",
-          "label": "CALC_TYPE",
-          "description": "0  |  1",
+          "status": "[v]",
+          "label": "Тип расчёта показателя",
+          "description": "Тип расчёта: 0 — промышленный расчет / 1 — ручной расчет",
           "kind": "dropdown",
           "variants": [
             "0",
             "1"
           ],
-          "default": "",
-          "allow_empty": true,
+          "default": "1",
+          "allow_empty": false,
           "json_target": "",
-          "note": ""
+          "note": "",
+          "variant_labels": [
+            "Промышленный расчет",
+            "Ручные данные"
+          ]
         },
         {
           "n": 119,
@@ -1942,5 +2014,5 @@ window.PARAM_REVIEW_CATALOG = {
       ]
     }
   ],
-  "exported_at": "2026-08-15T08:30:19Z"
+  "exported_at": "2026-08-15T21:00:40.828Z"
 };
