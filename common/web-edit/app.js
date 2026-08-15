@@ -5,7 +5,9 @@
   const LS_KEY = "spod_param_review_catalog_v3";
   const LS_BASELINE_KEY = "spod_param_review_baseline_v3";
   const LS_SOURCE_KEY = "spod_param_review_source_v3";
-  const CATALOG_URL = "catalog.json";
+  /** Каталог лежит рядом: ../param_catalog_review/ */
+  const CATALOG_DIR = "../param_catalog_review/";
+  const CATALOG_URL = CATALOG_DIR + "catalog.json";
   const KINDS = ["dropdown", "text", "number", "list", "json", "date"];
   const KIND_LABELS = {
     dropdown: "Выбор из списка",
@@ -15,7 +17,56 @@
     json: "JSON формат {[ ]}",
     date: "Дата (формат YYYY-MM-DD)",
   };
+  const KIND_SHORT = {
+    dropdown: "Список",
+    text: "Текст",
+    number: "Число",
+    list: "Массив",
+    json: "JSON",
+    date: "Дата",
+  };
+  /** Иконки типов ввода (inline SVG) */
+  const KIND_ICONS = {
+    dropdown:
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h16"/><path d="M4 12h10"/><path d="M4 18h7"/><path d="M15 14l3 3 3-3"/></svg>',
+    text:
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7V5h16v2"/><path d="M12 5v14"/><path d="M8 19h8"/></svg>',
+    number:
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 8h4"/><path d="M7 8v8"/><path d="M12 16V8l4 8V8"/></svg>',
+    list:
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6h11"/><path d="M9 12h11"/><path d="M9 18h11"/><path d="M4 6h.01"/><path d="M4 12h.01"/><path d="M4 18h.01"/></svg>',
+    json:
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 4c-2 0-3 1.5-3 4s1 4 0 6-3 4-3 4"/><path d="M16 4c2 0 3 1.5 3 4s-1 4 0 6 3 4 3 4"/></svg>',
+    date:
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18"/><path d="M8 3v4"/><path d="M16 3v4"/></svg>',
+  };
   const STATUSES = ["[ ]", "[w]", "[v]"];
+  const STATUS_LABELS = {
+    "[ ]": "Не готово",
+    "[w]": "В работе",
+    "[v]": "Готово",
+  };
+  const STATUS_TIPS = {
+    "[ ]": "Не готово — поле ещё не проверено, описание может быть черновым",
+    "[w]": "В работе — правите или уточняете; ещё не финальный вариант",
+    "[v]": "Готово — подпись, тип и описание согласованы",
+  };
+  const STATUS_ICONS = {
+    "[ ]":
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M9 12h6"/></svg>',
+    "[w]":
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>',
+    "[v]":
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8.5 12.5l2.2 2.2 4.8-5"/></svg>',
+  };
+  const KIND_TIPS = {
+    dropdown: "Выбор из списка — одно значение из вариантов (выпадающий список в Excel)",
+    text: "Свободный текст — произвольная строка без кавычек-ограничений списка",
+    number: "Число — значение без кавычек (в JSON/SPOD как number)",
+    list: "Массив значений — несколько элементов через «;» в Excel; варианты по строкам",
+    json: "JSON формат {[ ]} — структура как в SPOD",
+    date: "Дата в формате YYYY-MM-DD (например 4000-01-01)",
+  };
 
   /** @type {any} */
   let catalog = null;
@@ -23,8 +74,10 @@
   let baseline = {};
   let activeSectionId = null;
   let saveTimer = null;
-  /** @type {"all" | "edited" | "clean"} */
-  let editFilter = "all";
+  /** Выбранные группы правок: edited | clean; обе по умолчанию */
+  let editFilter = new Set(["edited", "clean"]);
+  /** Выбранные статусы готовности для фильтра */
+  let statusFilter = new Set(["[ ]", "[w]", "[v]"]);
   /** @type {string} */
   let sourceStamp = "";
 
@@ -87,22 +140,66 @@
     renderAll();
   }
 
-  function fieldFingerprint(field) {
-    return JSON.stringify({
+  function fieldSnapshot(field) {
+    return {
       status: field.status || "[ ]",
       label: field.label || "",
       kind: field.kind || "text",
-      variants: Array.isArray(field.variants) ? field.variants : [],
+      variants: Array.isArray(field.variants) ? field.variants.slice() : [],
       default: field.default || "",
       allow_empty: !!field.allow_empty,
       description: field.description || "",
       note: field.note || "",
       json_target: field.json_target || "",
-    });
+    };
+  }
+
+  function fieldFingerprint(field) {
+    return JSON.stringify(fieldSnapshot(field));
   }
 
   function fieldBaselineKey(sectionId, fieldKey) {
     return `${sectionId}::${fieldKey}`;
+  }
+
+  function applySnapshotToField(field, snap) {
+    field.status = snap.status || "[ ]";
+    field.label = snap.label || "";
+    field.kind = snap.kind || "text";
+    field.variants = Array.isArray(snap.variants) ? snap.variants.slice() : [];
+    field.default = snap.default || "";
+    field.allow_empty = !!snap.allow_empty;
+    field.description = snap.description || "";
+    field.note = snap.note || "";
+    if (snap.json_target != null) field.json_target = snap.json_target;
+  }
+
+  function getBaselineSnapshot(sectionId, fieldKey) {
+    const raw = baseline[fieldBaselineKey(sectionId, fieldKey)];
+    if (raw == null) return null;
+    try {
+      return typeof raw === "string" ? JSON.parse(raw) : raw;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function restoreFieldFromBaseline(sectionId, field) {
+    const snap = getBaselineSnapshot(sectionId, field.key);
+    if (!snap) return false;
+    applySnapshotToField(field, snap);
+    return true;
+  }
+
+  function restoreAllFromBaseline() {
+    let n = 0;
+    for (const sec of catalog.sections) {
+      for (const f of sec.fields) {
+        if (!isEdited(sec.id, f)) continue;
+        if (restoreFieldFromBaseline(sec.id, f)) n += 1;
+      }
+    }
+    return n;
   }
 
   function captureBaseline() {
@@ -141,6 +238,7 @@
 
   function countEdited() {
     let n = 0;
+    if (!catalog) return 0;
     for (const sec of catalog.sections) {
       for (const f of sec.fields) {
         if (isEdited(sec.id, f)) n += 1;
@@ -149,11 +247,26 @@
     return n;
   }
 
+  function syncRevertAllBtn() {
+    const btn = $("btn-revert-all");
+    if (!btn) return;
+    const n = countEdited();
+    const on = n > 0;
+    btn.disabled = !on;
+    btn.classList.toggle("is-disabled", !on);
+    btn.setAttribute(
+      "data-tip",
+      on
+        ? `Вернуть все отредактированные поля (${n}) к состоянию на момент загрузки или импорта. Черновик в браузере обновится.`
+        : "Нет правок — возвращать нечего. Появится после изменения хотя бы одного поля."
+    );
+  }
+
   async function fetchCatalogJson() {
     const pageUrl = window.location.href;
     const candidates = [
-      new URL("./catalog.json", pageUrl).href,
-      new URL("catalog.json", pageUrl).href,
+      new URL(CATALOG_URL, pageUrl).href,
+      new URL("../param_catalog_review/catalog.json", pageUrl).href,
     ];
     const errors = [];
     for (const url of candidates) {
@@ -177,7 +290,10 @@
     }
     return new Promise((resolve, reject) => {
       const s = document.createElement("script");
-      s.src = new URL("./catalog.js", window.location.href).href + "?t=" + Date.now();
+      s.src =
+        new URL(CATALOG_DIR + "catalog.js", window.location.href).href +
+        "?t=" +
+        Date.now();
       s.onload = () => {
         try {
           if (!window.PARAM_REVIEW_CATALOG) {
@@ -190,7 +306,11 @@
         }
       };
       s.onerror = () =>
-        reject(new Error("Не удалось загрузить catalog.js рядом со страницей"));
+        reject(
+          new Error(
+            "Не удалось загрузить catalog.js из ../param_catalog_review/"
+          )
+        );
       document.head.appendChild(s);
     });
   }
@@ -204,8 +324,8 @@
       } catch (jsErr) {
         const isFile = window.location.protocol === "file:";
         const hint = isFile
-          ? "Открытие через file:// часто блокирует чтение JSON. Нужен Live Server / HTTP, либо импорт файла вручную. Также должен лежать catalog.js (сборка)."
-          : "Проверьте, что catalog.json лежит рядом с index.html.";
+          ? "Открытие через file:// часто блокирует чтение JSON. Нужен Live Server / HTTP, либо импорт файла вручную. Также должен лежать common/param_catalog_review/catalog.js."
+          : "Проверьте, что catalog.json лежит в common/param_catalog_review/ рядом с web-edit.";
         throw new Error(
           `${hint}<br/><br/><span class="gate-error">${escapeHtml(
             String(fetchErr.message || fetchErr)
@@ -230,9 +350,12 @@
   }
 
   async function bootFromFile({ forceFile = false } = {}) {
-    showGate("Загружаем <code>catalog.json</code> рядом со страницей…", {
-      showRetry: false,
-    });
+    showGate(
+      "Загружаем <code>../param_catalog_review/catalog.json</code>…",
+      {
+        showRetry: false,
+      }
+    );
     try {
       const fileData = await loadSourceCatalog();
       const fileStamp = catalogStamp(fileData);
@@ -319,9 +442,13 @@
       btn.innerHTML =
         `<span class="nav-main">${nest}${kindBadge}<span class="nav-label">${label}</span></span>` +
         `<span class="count">${p.done}/${p.total}</span>`;
-      btn.title = sec.sheet
-        ? `${sec.intro || ""}\nЛист: ${sec.sheet}`
-        : sec.intro || "";
+      btn.title = "";
+      const tipParts = [];
+      if (sec.intro) tipParts.push(sec.intro);
+      if (sec.sheet) tipParts.push(`Лист Excel: ${sec.sheet}`);
+      tipParts.push(kind === "json" ? "Тип раздела: JSON" : "Тип раздела: TABLE");
+      tipParts.push(`Готово: ${p.done} из ${p.total}`);
+      btn.setAttribute("data-tip", tipParts.join("\n"));
       btn.addEventListener("click", () => {
         activeSectionId = sec.id;
         const searchEl = $("search");
@@ -344,9 +471,9 @@
     const c = counts();
     const edited = countEdited();
     $("sidebar-stats").innerHTML =
-      `<strong style="color:var(--glass-green)">[v]</strong> ${c.v}` +
-      ` · <strong style="color:var(--glass-orange)">[w]</strong> ${c.w}` +
-      ` · <strong style="color:var(--glass-gray)">[ ]</strong> ${c.open}` +
+      `<strong style="color:var(--glass-green)">готово</strong> ${c.v}` +
+      ` · <strong style="color:var(--glass-orange)">в работе</strong> ${c.w}` +
+      ` · <strong style="color:var(--glass-gray)">не готово</strong> ${c.open}` +
       ` · всего ${c.total}` +
       (edited
         ? ` · <span class="stats-edited">отред. ${edited}</span>`
@@ -358,11 +485,12 @@
   }
 
   function matchesFilter(field, sectionId) {
-    const onlyOpen = $("only-open").checked;
-    if (onlyOpen && field.status === "[v]") return false;
+    if (statusFilter.size > 0 && !statusFilter.has(field.status || "[ ]")) {
+      return false;
+    }
     const dirty = isEdited(sectionId, field);
-    if (editFilter === "edited" && !dirty) return false;
-    if (editFilter === "clean" && dirty) return false;
+    if (dirty && !editFilter.has("edited")) return false;
+    if (!dirty && !editFilter.has("clean")) return false;
     const q = ($("search").value || "").trim().toLowerCase();
     if (!q) return true;
     const variants = Array.isArray(field.variants)
@@ -402,27 +530,40 @@
     card.classList.toggle("is-edited", dirty);
     const badge = card.querySelector("[data-role='edited-badge']");
     if (badge) badge.hidden = !dirty;
+    const revert = card.querySelector("[data-role='revert-field']");
+    if (revert) {
+      revert.disabled = !dirty;
+      revert.classList.toggle("is-disabled", !dirty);
+      revert.setAttribute(
+        "data-tip",
+        dirty
+          ? "Вернуть только это поле к состоянию на момент загрузки / импорта"
+          : "Нет правок — возвращать нечего. Появится после изменения поля."
+      );
+    }
   }
 
   function afterFieldEdit(card, field, sectionId) {
     const dirty = isEdited(sectionId, field);
     applyEditedUi(card, dirty);
-    if (editFilter === "edited" && !dirty) card.hidden = true;
-    if (editFilter === "clean" && dirty) card.hidden = true;
+    if (dirty && !editFilter.has("edited")) card.hidden = true;
+    else if (!dirty && !editFilter.has("clean")) card.hidden = true;
+    else card.hidden = false;
     schedulePersist();
     const edited = countEdited();
     const stats = $("sidebar-stats");
     if (stats) {
       const c = counts();
       stats.innerHTML =
-        `<strong style="color:var(--glass-green)">[v]</strong> ${c.v}` +
-        ` · <strong style="color:var(--glass-orange)">[w]</strong> ${c.w}` +
-        ` · <strong style="color:var(--glass-gray)">[ ]</strong> ${c.open}` +
+        `<strong style="color:var(--glass-green)">готово</strong> ${c.v}` +
+        ` · <strong style="color:var(--glass-orange)">в работе</strong> ${c.w}` +
+        ` · <strong style="color:var(--glass-gray)">не готово</strong> ${c.open}` +
         ` · всего ${c.total}` +
         (edited
           ? ` · <span class="stats-edited">отред. ${edited}</span>`
           : "");
     }
+    syncRevertAllBtn();
   }
 
   function escapeHtml(s) {
@@ -501,7 +642,7 @@
     if (kind === "dropdown") {
       if (!variants.length) {
         host.innerHTML =
-          `<div class="default-empty">Сначала введите варианты слева — появится выпадающий список.</div>`;
+          `<div class="default-empty" data-tip="Заполните блок «Варианты» — здесь появится выбор одного значения">Сначала введите варианты — появится выпадающий список.</div>`;
         if (field.default) {
           field.default = "";
         }
@@ -511,6 +652,10 @@
         }
         const sel = document.createElement("select");
         sel.dataset.role = "default";
+        sel.setAttribute(
+          "data-tip",
+          "Выберите одно значение из вариантов для предзаполнения BLANK"
+        );
         const emptyOpt = document.createElement("option");
         emptyOpt.value = "";
         emptyOpt.textContent = "— не предзаполнять —";
@@ -531,7 +676,7 @@
     } else if (kind === "list") {
       if (!variants.length) {
         host.innerHTML =
-          `<div class="default-empty">Сначала введите варианты слева — появятся галочки для выбора.</div>`;
+          `<div class="default-empty" data-tip="Заполните блок «Варианты» — здесь появятся галочки">Сначала введите варианты — появятся галочки для выбора.</div>`;
         if (field.default) {
           field.default = "";
         }
@@ -545,6 +690,10 @@
         const box = document.createElement("div");
         box.className = "default-checks";
         box.dataset.role = "default";
+        box.setAttribute(
+          "data-tip",
+          "Отметьте одно или несколько значений — в BLANK уйдут через ;"
+        );
         for (const v of variants) {
           const id =
             "def_" +
@@ -553,6 +702,7 @@
             String(v).replace(/\W+/g, "_").slice(0, 40);
           const lab = document.createElement("label");
           lab.className = "default-check";
+          lab.setAttribute("data-tip", `Включить в дефолт: ${v}`);
           const cb = document.createElement("input");
           cb.type = "checkbox";
           cb.value = v;
@@ -578,6 +728,14 @@
       input.type = "text";
       input.dataset.role = "default";
       input.value = field.default || "";
+      input.setAttribute(
+        "data-tip",
+        kind === "number"
+          ? "Число без кавычек для предзаполнения BLANK"
+          : kind === "date"
+            ? "Дата YYYY-MM-DD для предзаполнения BLANK"
+            : "Свободный текст для предзаполнения ячейки в BLANK"
+      );
       input.placeholder =
         kind === "number"
           ? "Например: 0 или 1.5"
@@ -594,6 +752,43 @@
     if (hint) hint.textContent = defaultHint(kind);
   }
 
+  function kindToggleHtml(activeKind) {
+    return (
+      `<div class="kind-toggle" data-role="kind" role="radiogroup" aria-label="Тип ввода" data-tip="Тип ячейки в Excel-форме BADGE">` +
+      KINDS.map((k) => {
+        const active = (activeKind || "text") === k;
+        return (
+          `<button type="button" class="kind-chip kind-chip--${k}${
+            active ? " active" : ""
+          }" data-kind="${k}" role="radio" aria-checked="${active}" data-tip="${escapeHtml(
+            KIND_TIPS[k] || KIND_LABELS[k] || k
+          )}">` +
+          `<span class="kind-chip__icon">${KIND_ICONS[k] || ""}</span>` +
+          `<span class="kind-chip__label">${escapeHtml(KIND_SHORT[k] || k)}</span>` +
+          `</button>`
+        );
+      }).join("") +
+      `</div>`
+    );
+  }
+
+  function applyKindChange(card, field, sectionId, nextKind) {
+    field.kind = nextKind;
+    if (field.kind !== "dropdown" && field.kind !== "list") {
+      field.variants = [];
+      const ta = card.querySelector("[data-role='variants']");
+      if (ta) ta.value = "";
+    }
+    card.querySelectorAll(".kind-chip").forEach((b) => {
+      const on = b.getAttribute("data-kind") === field.kind;
+      b.classList.toggle("active", on);
+      b.setAttribute("aria-checked", on ? "true" : "false");
+    });
+    syncVariantsUi(card, field);
+    syncDefaultUi(card, field, sectionId);
+    afterFieldEdit(card, field, sectionId);
+  }
+
   function fieldCard(field, sectionId) {
     const card = document.createElement("article");
     card.className = "card";
@@ -602,31 +797,59 @@
     const dirty = isEdited(sectionId, field);
     if (dirty) card.classList.add("is-edited");
 
-    const statusBtns = STATUSES.map(
-      (st) =>
-        `<button type="button" class="status-btn${field.status === st ? " active" : ""}" data-st="${st}">${st}</button>`
-    ).join("");
-
-    const kindOpts = KINDS.map(
-      (k) =>
-        `<option value="${k}"${field.kind === k ? " selected" : ""}>${
-          KIND_LABELS[k] || k
-        }</option>`
-    ).join("");
+    const statusBtns = STATUSES.map((st) => {
+      const active = field.status === st;
+      const cls =
+        st === "[v]" ? "ready" : st === "[w]" ? "wip" : "open";
+      return (
+        `<button type="button" class="status-chip status-chip--${cls}${
+          active ? " active" : ""
+        }" data-st="${st}" role="radio" aria-checked="${active}" data-tip="${escapeHtml(
+          STATUS_TIPS[st] || st
+        )}">` +
+        `<span class="status-chip__icon">${STATUS_ICONS[st] || ""}</span>` +
+        `<span class="status-chip__label">${escapeHtml(
+          STATUS_LABELS[st] || st
+        )}</span>` +
+        `</button>`
+      );
+    }).join("");
 
     const variantsText = (field.variants || []).join("\n");
     const variantsActive = field.kind === "dropdown" || field.kind === "list";
+    const jsonFact = (field.json_target || "").trim();
 
     card.innerHTML = `
       <div class="card-head">
         <div class="card-key-wrap">
-          <span class="card-n">#${field.n}</span>
-          <span class="card-key">${escapeHtml(field.key)}</span>
-          <span class="edited-badge" data-role="edited-badge"${dirty ? "" : " hidden"}>отредактировано</span>
+          <span class="card-n" data-tip="Порядковый номер поля в разделе">#${field.n}</span>
+          <span class="card-key" data-tip="Технический ключ параметра в форме / SPOD">${escapeHtml(field.key)}</span>
+          ${
+            jsonFact
+              ? `<span class="json-fact" data-tip="Куда уходит параметр в SPOD (факт раздела, не редактируется): ${escapeHtml(
+                  jsonFact
+                )}">${escapeHtml(jsonFact)}</span>`
+              : ""
+          }
+          <span class="edited-badge" data-role="edited-badge" data-tip="Поле изменено после загрузки или импорта. Можно вернуть исходное кнопкой слева от готовности."${dirty ? "" : " hidden"}>отредактировано</span>
         </div>
         <div class="card-head-actions">
-          <div class="status-group" data-role="status" title="Готовность">${statusBtns}</div>
-          <label class="allow-empty-chip glass-switch${field.allow_empty ? " is-on" : ""}" data-role="allow_empty_wrap" title="Можно ли оставлять поле пустым">
+          <button type="button" class="revert-chip${
+            dirty ? "" : " is-disabled"
+          }" data-role="revert-field"${dirty ? "" : " disabled"} data-tip="${
+            dirty
+              ? "Вернуть только это поле к состоянию на момент загрузки / импорта"
+              : "Нет правок — возвращать нечего. Появится активной после изменения поля."
+          }">
+            <span class="revert-chip__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>
+            </span>
+            <span class="revert-chip__label">Вернуть</span>
+          </button>
+          <div class="status-toggle" data-role="status" role="radiogroup" aria-label="Готовность" data-tip="Готовность описания поля">
+            ${statusBtns}
+          </div>
+          <label class="allow-empty-chip glass-switch${field.allow_empty ? " is-on" : ""}" data-role="allow_empty_wrap" data-tip="Разрешить пустое значение в Excel. Да — можно не заполнять; нет — ожидается значение.">
             <input type="checkbox" data-role="allow_empty" role="switch" ${field.allow_empty ? "checked" : ""} />
             <span class="glass-switch__track" aria-hidden="true"><span class="glass-switch__thumb"></span></span>
             <span class="allow-empty-text">Можно пусто</span>
@@ -634,36 +857,32 @@
           </label>
         </div>
       </div>
-      <div class="grid grid-top">
-        <div class="field">
-          <label>Подпись</label>
-          <input type="text" data-role="label" value="${escapeHtml(field.label)}" />
-        </div>
-        <div class="field">
-          <label>Тип ввода</label>
-          <select data-role="kind">${kindOpts}</select>
-        </div>
+      <div class="field full">
+        <label data-tip="Подпись колонки / строки в Excel-форме">Подпись</label>
+        <input type="text" data-role="label" value="${escapeHtml(field.label)}" data-tip="Человекочитаемое имя поля в форме" />
+      </div>
+      <div class="field full field-kind">
+        <label data-tip="Как пользователь вводит значение в Excel">Тип ввода</label>
+        ${kindToggleHtml(field.kind)}
       </div>
       <div class="field full field-default">
-        <label>Значение по умолчанию</label>
+        <label data-tip="Что попадёт в пустой шаблон BLANK по умолчанию">Значение по умолчанию</label>
         <div class="default-host" data-role="default-host"></div>
         <div class="field-hint" data-role="default-hint"></div>
       </div>
       <div class="field full">
-        <label>Описание</label>
-        <textarea data-role="description">${escapeHtml(field.description || "")}</textarea>
+        <label data-tip="Пояснение для заполняющего форму">Описание</label>
+        <textarea data-role="description" data-tip="Текст подсказки / описания поля">${escapeHtml(field.description || "")}</textarea>
       </div>
       <div class="grid-2">
         <div class="field${variantsActive ? "" : " is-disabled"}" data-role="variants-wrap">
-          <label>Варианты</label>
-          <textarea class="variants" data-role="variants" ${variantsActive ? "" : "disabled"}>${escapeHtml(variantsText)}</textarea>
+          <label data-tip="Список допустимых значений: каждое с новой строки (для Список и Массив)">Варианты</label>
+          <textarea class="variants" data-role="variants" data-tip="По одному значению в строке" ${variantsActive ? "" : "disabled"}>${escapeHtml(variantsText)}</textarea>
           <div class="field-hint" data-role="variants-hint" ${variantsActive ? "" : "hidden"}></div>
         </div>
         <div class="field">
-          <label>JSON-цель</label>
-          <input type="text" data-role="json_target" value="${escapeHtml(field.json_target || "")}" placeholder="CONTEST_FEATURE / REWARD_ADD_DATA / …" />
-          <label style="margin-top:10px">Заметка</label>
-          <textarea data-role="note" style="min-height:64px">${escapeHtml(field.note || "")}</textarea>
+          <label data-tip="Внутренний комментарий к полю (в Excel не попадает)">Заметка</label>
+          <textarea data-role="note" class="note-tall" data-tip="Заметка для себя / для применения каталога">${escapeHtml(field.note || "")}</textarea>
         </div>
       </div>
     `;
@@ -671,15 +890,45 @@
     syncVariantsUi(card, field);
     syncDefaultUi(card, field, sectionId);
 
-    card.querySelectorAll("[data-role='status'] .status-btn").forEach((btn) => {
+    card.querySelectorAll("[data-role='status'] .status-chip").forEach((btn) => {
       btn.addEventListener("click", () => {
         field.status = btn.getAttribute("data-st");
         card.dataset.status = field.status;
-        card.querySelectorAll(".status-btn").forEach((b) => {
-          b.classList.toggle("active", b.getAttribute("data-st") === field.status);
+        card.querySelectorAll(".status-chip").forEach((b) => {
+          const on = b.getAttribute("data-st") === field.status;
+          b.classList.toggle("active", on);
+          b.setAttribute("aria-checked", on ? "true" : "false");
         });
         afterFieldEdit(card, field, sectionId);
         renderNav();
+      });
+    });
+
+    const revertBtn = card.querySelector("[data-role='revert-field']");
+    if (revertBtn) {
+      revertBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (revertBtn.disabled || !isEdited(sectionId, field)) {
+          showToast("Нет правок у этого поля");
+          return;
+        }
+        if (!restoreFieldFromBaseline(sectionId, field)) {
+          alert("Нет исходного снимка для этого поля.");
+          return;
+        }
+        persist();
+        showToast(`«${field.key}» возвращён к исходному`);
+        renderNav();
+        renderFields();
+      });
+    }
+
+    card.querySelectorAll(".kind-chip").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const next = btn.getAttribute("data-kind");
+        if (!next || next === field.kind) return;
+        applyKindChange(card, field, sectionId, next);
       });
     });
 
@@ -692,17 +941,6 @@
 
     bind("label", (e) => {
       field.label = e.target.value;
-      afterFieldEdit(card, field, sectionId);
-    });
-    bind("kind", (e) => {
-      field.kind = e.target.value;
-      if (field.kind !== "dropdown" && field.kind !== "list") {
-        field.variants = [];
-        const ta = card.querySelector("[data-role='variants']");
-        if (ta) ta.value = "";
-      }
-      syncVariantsUi(card, field);
-      syncDefaultUi(card, field, sectionId);
       afterFieldEdit(card, field, sectionId);
     });
     bind("allow_empty", (e) => {
@@ -724,10 +962,6 @@
         .map((x) => x.trim())
         .filter(Boolean);
       syncDefaultUi(card, field, sectionId);
-      afterFieldEdit(card, field, sectionId);
-    });
-    bind("json_target", (e) => {
-      field.json_target = e.target.value.trim();
       afterFieldEdit(card, field, sectionId);
     });
     bind("note", (e) => {
@@ -766,7 +1000,11 @@
         const kind = sec.kind || "table";
         const kindLabel = kind === "json" ? "JSON" : "TABLE";
         head.innerHTML =
-          `<button type="button" class="search-group-jump" data-sec="${escapeHtml(sec.id)}">` +
+          `<button type="button" class="search-group-jump" data-sec="${escapeHtml(
+            sec.id
+          )}" data-tip="Открыть раздел «${escapeHtml(
+            sec.menu_label || sec.title
+          )}» и сбросить поиск">` +
           `<span class="nav-kind nav-kind--${kind === "json" ? "json" : "table"}">${kindLabel}</span>` +
           `<span class="search-group-title">${escapeHtml(sec.menu_label || sec.title)}</span>` +
           `<span class="search-group-count">${fields.length}</span>` +
@@ -815,6 +1053,7 @@
     }
     renderNav();
     renderFields();
+    syncRevertAllBtn();
   }
 
   function download(filename, text, mime) {
@@ -907,7 +1146,7 @@
     const lines = [];
     lines.push("# Каталог параметров формы BADGE");
     lines.push("");
-    lines.push("Выгрузка из HTML-редактора `Docs/param_review_editor/`.");
+    lines.push("Выгрузка из HTML-редактора `common/web-edit/`.");
     lines.push(`Экспорт: ${new Date().toISOString()}`);
     lines.push("");
     lines.push("После правок передайте JSON/CSV/MD в чат: **«примени каталог»**.");
@@ -957,46 +1196,195 @@
     reader.readAsText(file, "utf-8");
   }
 
+  function syncEditFilterUi() {
+    const wrap = $("edit-filter");
+    if (!wrap) return;
+    const tipOn = {
+      edited:
+        "Отредактированные — сейчас в фильтре (поля видны). Нажмите, чтобы скрыть. Экспорт метки не снимает.",
+      clean:
+        "Не отредактированные — сейчас в фильтре (поля видны). Нажмите, чтобы скрыть поля без правок.",
+    };
+    const tipOff = {
+      edited:
+        "Отредактированные — сейчас скрыто. Нажмите, чтобы снова показать изменённые поля.",
+      clean:
+        "Не отредактированные — сейчас скрыто. Нажмите, чтобы снова показать поля без правок.",
+    };
+    wrap.querySelectorAll("[data-edit-filter]").forEach((btn) => {
+      const key = btn.getAttribute("data-edit-filter");
+      const on = editFilter.has(key);
+      btn.classList.toggle("active", on);
+      btn.setAttribute("aria-pressed", on ? "true" : "false");
+      btn.setAttribute("data-tip", (on ? tipOn : tipOff)[key] || "");
+    });
+  }
+
   function resetEditFilterUi() {
-    editFilter = "all";
-    const ef = $("edit-filter");
-    if (ef) {
-      ef.querySelectorAll(".edit-filter-btn").forEach((b) => {
-        b.classList.toggle("active", b.getAttribute("data-edit-filter") === "all");
-      });
+    editFilter = new Set(["edited", "clean"]);
+    syncEditFilterUi();
+  }
+
+  function initGlassTips() {
+    const tip = $("glassTip");
+    if (!tip) return;
+    const OFFSET = 14;
+
+    function show(text, x, y) {
+      const t = String(text || "").trim();
+      if (!t) {
+        hide();
+        return;
+      }
+      tip.textContent = t;
+      tip.classList.add("show");
+      tip.setAttribute("aria-hidden", "false");
+      const rect = tip.getBoundingClientRect();
+      let left = x + OFFSET;
+      let top = y + OFFSET;
+      if (left + rect.width > window.innerWidth - 8) {
+        left = window.innerWidth - rect.width - 8;
+      }
+      if (top + rect.height > window.innerHeight - 8) {
+        top = y - rect.height - 8;
+      }
+      if (left < 8) left = 8;
+      if (top < 8) top = 8;
+      tip.style.left = left + "px";
+      tip.style.top = top + "px";
     }
+
+    function hide() {
+      tip.classList.remove("show");
+      tip.setAttribute("aria-hidden", "true");
+    }
+
+    document.addEventListener(
+      "mousemove",
+      (e) => {
+        const node = e.target.closest("[data-tip]");
+        if (node) {
+          show(node.getAttribute("data-tip") || "", e.clientX, e.clientY);
+          return;
+        }
+        hide();
+      },
+      true
+    );
+
+    window.addEventListener("scroll", hide, true);
+  }
+
+  function syncStatusFilterUi() {
+    const wrap = $("status-filter");
+    if (!wrap) return;
+    const tipOn = {
+      "[ ]":
+        "Не готово — сейчас в фильтре (поля видны). Нажмите, чтобы скрыть. Можно выбрать несколько статусов.",
+      "[w]":
+        "В работе — сейчас в фильтре (поля видны). Нажмите, чтобы скрыть. Можно выбрать несколько статусов.",
+      "[v]":
+        "Готово — сейчас в фильтре (поля видны). Нажмите, чтобы скрыть. Можно выбрать несколько статусов.",
+    };
+    const tipOff = {
+      "[ ]":
+        "Не готово — сейчас скрыто. Нажмите, чтобы снова показать поля с этим статусом.",
+      "[w]":
+        "В работе — сейчас скрыто. Нажмите, чтобы снова показать поля с этим статусом.",
+      "[v]":
+        "Готово — сейчас скрыто. Нажмите, чтобы снова показать поля с этим статусом.",
+    };
+    wrap.querySelectorAll("[data-status-filter]").forEach((btn) => {
+      const st = btn.getAttribute("data-status-filter");
+      const on = statusFilter.has(st);
+      btn.classList.toggle("active", on);
+      btn.setAttribute("aria-pressed", on ? "true" : "false");
+      btn.setAttribute("data-tip", (on ? tipOn : tipOff)[st] || "");
+    });
   }
 
   function wire() {
+    initGlassTips();
     $("search").addEventListener("input", () => {
       if (!catalog) return;
       renderNav();
       renderFields();
     });
-    const onlyOpen = $("only-open");
-    const onlyWrap = onlyOpen && onlyOpen.closest(".glass-switch");
-    const syncOnly = () => {
-      if (onlyWrap) onlyWrap.classList.toggle("is-on", !!onlyOpen.checked);
-    };
-    onlyOpen.addEventListener("change", () => {
-      syncOnly();
-      if (!catalog) return;
-      renderNav();
-      renderFields();
-    });
-    syncOnly();
+
+    const statusFilterEl = $("status-filter");
+    if (statusFilterEl) {
+      statusFilterEl.addEventListener("click", (e) => {
+        const btn = e.target.closest("[data-status-filter]");
+        if (!btn) return;
+        const st = btn.getAttribute("data-status-filter");
+        if (!st) return;
+        if (statusFilter.has(st)) {
+          // не даём снять последний выбранный — иначе пустой список
+          if (statusFilter.size <= 1) {
+            showToast("Оставьте хотя бы один статус");
+            return;
+          }
+          statusFilter.delete(st);
+        } else {
+          statusFilter.add(st);
+        }
+        syncStatusFilterUi();
+        if (!catalog) return;
+        renderNav();
+        renderFields();
+      });
+      syncStatusFilterUi();
+    }
 
     const editFilterEl = $("edit-filter");
     if (editFilterEl) {
       editFilterEl.addEventListener("click", (e) => {
         const btn = e.target.closest("[data-edit-filter]");
-        if (!btn || !catalog) return;
-        editFilter = btn.getAttribute("data-edit-filter") || "all";
-        editFilterEl.querySelectorAll(".edit-filter-btn").forEach((b) => {
-          b.classList.toggle("active", b === btn);
-        });
+        if (!btn) return;
+        const key = btn.getAttribute("data-edit-filter");
+        if (!key) return;
+        if (editFilter.has(key)) {
+          if (editFilter.size <= 1) {
+            showToast("Оставьте хотя бы один фильтр правок");
+            return;
+          }
+          editFilter.delete(key);
+        } else {
+          editFilter.add(key);
+        }
+        syncEditFilterUi();
+        if (!catalog) return;
         renderNav();
         renderFields();
+      });
+      syncEditFilterUi();
+    }
+
+    const revertAllBtn = $("btn-revert-all");
+    if (revertAllBtn) {
+      syncRevertAllBtn();
+      revertAllBtn.addEventListener("click", () => {
+        if (!catalog || revertAllBtn.disabled) return;
+        const n = countEdited();
+        if (!n) {
+          showToast("Нет отредактированных полей");
+          return;
+        }
+        if (
+          !confirm(
+            `Вернуть все отредактированные поля (${n}) к исходному состоянию после загрузки / импорта?`
+          )
+        ) {
+          return;
+        }
+        const restored = restoreAllFromBaseline();
+        persist();
+        showToast(
+          restored
+            ? `Возвращено полей: ${restored}`
+            : "Нечего возвращать"
+        );
+        renderAll();
       });
     }
 
@@ -1019,7 +1407,7 @@
     $("btn-reload").addEventListener("click", () => {
       if (
         !confirm(
-          "Сбросить черновик в браузере и заново прочитать catalog.json рядом со страницей?"
+          "Сбросить черновик в браузере и заново прочитать catalog.json из ../param_catalog_review/?"
         )
       ) {
         return;

@@ -591,17 +591,34 @@ def create_blank_form(
     sheet_count: int = 1,
     contest_type: str = "ТУРНИРНЫЙ",
     dropdowns: Optional[Dict[str, List[str]]] = None,
+    catalog_path: Optional[str] = None,
 ) -> str:
-    """Создать пустую Excel-форму для заполнения (stdlib OOXML + dropdowns)."""
-    n = max(1, int(sheet_count))
-    payloads = [
-        empty_contest_payload(contest_type=contest_type) for _ in range(n)
-    ]
-    from src.contest_badge_form.xlsx_write import write_form_xlsx
-
-    return write_form_xlsx(
-        path, payloads, dropdowns=dropdowns, with_dropdowns=True
+    """
+    Создать пустую Excel-форму для заполнения (stdlib OOXML + dropdowns).
+    Если задан catalog_path — подписи/описания/дефолты/списки из catalog.json.
+    """
+    from src.contest_badge_form.catalog_loader import (
+        clear_param_catalog,
+        load_param_catalog,
     )
+
+    loaded = False
+    if catalog_path:
+        load_param_catalog(catalog_path)
+        loaded = True
+    try:
+        n = max(1, int(sheet_count))
+        payloads = [
+            empty_contest_payload(contest_type=contest_type) for _ in range(n)
+        ]
+        from src.contest_badge_form.xlsx_write import write_form_xlsx
+
+        return write_form_xlsx(
+            path, payloads, dropdowns=dropdowns, with_dropdowns=True
+        )
+    finally:
+        if loaded:
+            clear_param_catalog()
 
 
 def _is_marker(value: Any) -> bool:

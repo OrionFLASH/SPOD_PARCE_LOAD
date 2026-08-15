@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Собрать Docs/param_review_editor/catalog.json из схемы + field_meta + MD-каталога."""
+"""Собрать common/param_catalog_review/catalog.json из схемы + field_meta + MD-каталога."""
 
 from __future__ import annotations
 
@@ -27,8 +27,8 @@ from src.contest_badge_form.field_meta import (  # noqa: E402
     json_pack_target_table,
 )
 
-OUT_DIR = ROOT / "Docs" / "param_review_editor"
-MD_PATH = ROOT / "Docs" / "CONTEST_BADGE_FORM_PARAM_REVIEW.md"
+OUT_DIR = ROOT / "common" / "param_catalog_review"
+MD_PATH = ROOT / "common" / "param_catalog_review" / "CONTEST_BADGE_FORM_PARAM_REVIEW.md"
 
 
 def _clean_html_text(s: str) -> str:

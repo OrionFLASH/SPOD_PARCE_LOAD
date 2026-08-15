@@ -10,7 +10,7 @@
 
 | Токен `run_outputs` | Действие |
 |---------------------|----------|
-| `contest_badge_form_blank` | Пустая форма + пример → `OUT/{BLOCK}/CONTEST_BADGE_FORM/` |
+| `contest_badge_form_blank` | Пустая форма из `catalog.json` → `common/templates/…` (+ пример в OUT) |
 | `contest_badge_form_export` | CSV `IN/{BLOCK}/SPOD` → Excel-форма (листы `1`, `2`, `3`…) |
 | `contest_badge_form_import` | Excel-форма → Excel листов SPOD + CSV (SPOD-JSON с `"""`) |
 
@@ -27,7 +27,8 @@
 | `contest_badge_form.export_path` | Опционально: путь к xlsx export |
 | `contest_badge_form.import_form_path` | Путь к форме для import (обязателен для import) |
 | `contest_badge_form.import_output_dir` | Опционально: каталог результата import |
-| `contest_badge_form.blank_path` | Пустой шаблон (по умолчанию `OUT/{BLOCK}/CONTEST_BADGE_FORM/CONTEST_BADGE_FORM_BLANK.xlsx`) |
+| `contest_badge_form.blank_path` | Пустой шаблон (по умолчанию `common/templates/CONTEST_BADGE_FORM/CONTEST_BADGE_FORM_BLANK.xlsx`) |
+| `contest_badge_form.catalog_path` | JSON каталога из web-edit (`common/param_catalog_review/catalog.json`) — источник подписей/описаний/дефолтов/списков для blank |
 | `contest_badge_form.blank_sheet_count` | Число листов `1..N` в пустой форме |
 | `contest_badge_form.blank_contest_type` | Тип по умолчанию (слоты BADGE: турнир=3, индивид.=1) |
 | `contest_badge_form.example_path` | Пример с заполненными конкурсами |
@@ -36,11 +37,12 @@
 
 ## Пустой шаблон и пример
 
-**В репозитории (для скачивания):**  
-`Docs/templates/CONTEST_BADGE_FORM/CONTEST_BADGE_FORM_BLANK.xlsx`
+**В репозитории (для скачивания / правки описаний):**  
+`common/templates/CONTEST_BADGE_FORM/CONTEST_BADGE_FORM_BLANK.xlsx`
 
-Рабочие копии после `contest_badge_form_blank` также пишутся в каталог:  
-**`OUT/PROM/CONTEST_BADGE_FORM/`**
+Blank собирается из **`common/param_catalog_review/catalog.json`** (экспорт web-edit).  
+Пример после `contest_badge_form_blank` также пишется в:  
+**`OUT/PROM/CONTEST_BADGE_FORM/`** (если задан `example_path`).
 
 | Файл | Содержимое |
 |------|------------|
@@ -79,15 +81,14 @@
 
 ### Каталог описаний полей (редактор)
 
-- HTML: **`Docs/param_review_editor/index.html`** (данные: **`catalog.json`**, зеркало `catalog.js` для `file://`).
-- Пересборка: `python src/Tools/build_param_review_editor.py` → `catalog.json` + `catalog.js`.
-- Цикл: правки → «Сохранить JSON» (`catalog_ГГГГММДД_ЧЧММ.json`) → в чат «примени каталог».
-- MD-снимок: `Docs/CONTEST_BADGE_FORM_PARAM_REVIEW.md`.
+- HTML: **`common/web-edit/index.html`** (данные: **`common/param_catalog_review/catalog.json`**, зеркало `catalog.js`).
+- Пересборка из кода (опционально): `python src/Tools/build_param_review_editor.py`.
+- Цикл: правки в web → «Сохранить JSON» → заменить `catalog.json` → токен `contest_badge_form_blank` пересоберёт BLANK из JSON.
+- MD-снимок: `common/param_catalog_review/CONTEST_BADGE_FORM_PARAM_REVIEW.md`.
 
-Списки значений — `src/contest_badge_form/field_meta.py` (`DROPDOWN_VALUES`, `FIELD_DEFAULTS`, `FIELD_ALLOW_EMPTY`). Скрытый лист `Lists` (в конце книги) — длинные списки и значения с запятыми.
+Fallback списков/описаний — `src/contest_badge_form/field_meta.py`, если `catalog.json` отсутствует. Скрытый лист `Lists` — длинные списки и значения с запятыми.
 
-Пересоздать оба файла: токен `contest_badge_form_blank` в `run_outputs`, затем `python main.py`
-(пишет blank + example в `OUT/PROM/CONTEST_BADGE_FORM/`).
+Пересоздать blank (+ example): токен `contest_badge_form_blank` в `run_outputs`, затем `python main.py`.
 
 ## Запуск
 

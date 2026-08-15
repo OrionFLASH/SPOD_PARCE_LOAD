@@ -20,12 +20,13 @@ from src.contest_badge_form import schema
 from src.contest_badge_form.field_meta import (
     INPUT_KIND_LABELS,
     INPUT_KIND_ORDER,
-    TABLE_COLUMN_HINTS,
     TABLE_DROPDOWNS,
     description_for,
     input_kind_for_kv,
     input_kind_for_table_col,
+    label_for,
     merge_dropdowns,
+    table_hint_for,
 )
 from src.contest_badge_form.spod_json import form_cell_from_list, list_from_form_cell
 
@@ -591,7 +592,6 @@ def _write_table(
     table_key = marker.replace("#TABLE:", "").strip().upper()
     if table_key == "REWARD_LINK":
         table_key = "REWARD-LINK"
-    hints = TABLE_COLUMN_HINTS.get(table_key, {})
     col_kinds = [input_kind_for_table_col(table_key, c) for c in columns]
 
     sh.put(row, 1, marker, _S_TABLE)
@@ -600,7 +600,7 @@ def _write_table(
         sh.put(row, col_idx, col_name, _S_TABLE)
     row += 1
     for col_idx, col_name in enumerate(columns, start=1):
-        hint = hints.get(col_name, "значение")
+        hint = table_hint_for(table_key, col_name)
         kind_label = INPUT_KIND_LABELS.get(col_kinds[col_idx - 1], "")
         hint_full = f"{hint} · {kind_label}" if kind_label else hint
         text = f"#HINT | {hint_full}" if col_idx == 1 else hint_full
@@ -679,7 +679,7 @@ def _write_sheet(
             sh,
             r,
             key,
-            label,
+            label_for(key, label, in_badge_slot=in_badge),
             value,
             in_badge_slot=in_badge,
             schema_kind=schema_kind,
@@ -769,16 +769,19 @@ def _write_sheet(
             sh.add_dv(cell, formula)
 
     for table_key, columns, data_start, data_end in table_metas:
-        col_lists = TABLE_DROPDOWNS.get(table_key) or {}
-        if not col_lists or data_end < data_start:
+        if data_end < data_start:
             continue
-        for col_name, values in col_lists.items():
-            if col_name not in columns:
+        for col_name in columns:
+            list_key = f"TBL:{table_key}:{col_name}"
+            values = dropdown_map.get(list_key)
+            if not values:
+                # fallback на старый словарь без префикса
+                values = (TABLE_DROPDOWNS.get(table_key) or {}).get(col_name)
+            if not values:
                 continue
             col_idx = list(columns).index(col_name) + 1
             letter = _col_letter(col_idx)
             range_a1 = f"{letter}{data_start}:{letter}{data_end}"
-            list_key = f"TBL:{table_key}:{col_name}"
             formula = _dv_formula(list_key, values, list_ranges)
             if formula:
                 sh.add_dv(range_a1, formula)
@@ -813,9 +816,7 @@ def write_form_xlsx(
     with_dropdowns=True — выпадающие списки из field_meta.
     """
     dd_map = merge_dropdowns(dropdowns) if with_dropdowns else {}
-    for table_key, col_map in TABLE_DROPDOWNS.items():
-        for col_name, values in col_map.items():
-            dd_map[f"TBL:{table_key}:{col_name}"] = list(values)
+    # TABLE_DROPDOWNS уже учтены в merge_dropdowns; не перезаписывать catalog
 
     list_ranges = _build_lists_ranges(dd_map) if with_dropdowns else {}
 

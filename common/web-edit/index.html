@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Настройка описания параметров «Героев продаж» (Геймификация)</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app" id="app-root" hidden>
+    <aside class="sidebar">
+      <div class="brand" data-tip="Редактор каталога полей Excel-формы BADGE">
+        <div class="brand-mark">
+          <svg class="icon" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2l3 7h7l-5.5 4.2L18.5 22 12 17.8 5.5 22l1.5-8.8L1.5 9h7z"/>
+          </svg>
+          SPOD
+        </div>
+        <div class="brand-title">Параметры BADGE</div>
+        <div class="brand-sub">каталог · <code>../param_catalog_review/</code></div>
+      </div>
+
+      <div class="sidebar-block">
+        <div class="sidebar-block-title" data-tip="Листы формы: TABLE и вложенные JSON-блоки">Разделы</div>
+        <nav id="section-nav" class="section-nav" aria-label="Секции"></nav>
+        <div class="sidebar-stats" id="sidebar-stats" data-tip="Сводка по статусам готовности и числу правок с момента загрузки / импорта"></div>
+      </div>
+
+      <div class="sidebar-block sidebar-tools">
+        <div class="sidebar-block-title">Готовность</div>
+        <div class="status-filter status-toggle status-toggle--sm" id="status-filter" role="group" aria-label="Фильтр по готовности" data-tip="Фильтр по готовности: три кнопки в ряд. Нажатые статусы видны в списке, отжатые — скрыты. Можно выбрать несколько.">
+          <button type="button" class="status-chip status-chip--open active" data-status-filter="[ ]" aria-pressed="true" aria-label="Не готово" data-tip="Не готово — сейчас в фильтре (поля видны). Нажмите, чтобы скрыть. Можно выбрать несколько статусов.">
+            <span class="status-chip__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><path d="M9 12h6"/></svg></span>
+            <span class="status-chip__label">Не готово</span>
+          </button>
+          <button type="button" class="status-chip status-chip--wip active" data-status-filter="[w]" aria-pressed="true" aria-label="В работе" data-tip="В работе — сейчас в фильтре (поля видны). Нажмите, чтобы скрыть. Можно выбрать несколько статусов.">
+            <span class="status-chip__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></span>
+            <span class="status-chip__label">В работе</span>
+          </button>
+          <button type="button" class="status-chip status-chip--ready active" data-status-filter="[v]" aria-pressed="true" aria-label="Готово" data-tip="Готово — сейчас в фильтре (поля видны). Нажмите, чтобы скрыть. Можно выбрать несколько статусов.">
+            <span class="status-chip__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8.5 12.5l2.2 2.2 4.8-5"/></svg></span>
+            <span class="status-chip__label">Готово</span>
+          </button>
+        </div>
+
+        <div class="sidebar-block-title sidebar-block-title--spaced">Правки</div>
+        <div class="edit-filter status-toggle status-toggle--sm" id="edit-filter" role="group" aria-label="Фильтр по правкам" data-tip="Фильтр по правкам: нажатые группы видны в списке, отжатые — скрыты. По умолчанию обе включены.">
+          <button type="button" class="status-chip status-chip--wip active" data-edit-filter="edited" aria-pressed="true" aria-label="Отредактированные" data-tip="Отредактированные — сейчас в фильтре (поля видны). Нажмите, чтобы скрыть. Экспорт метки не снимает.">
+            <span class="status-chip__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></span>
+            <span class="status-chip__label">Отредактированные</span>
+          </button>
+          <button type="button" class="status-chip status-chip--open active" data-edit-filter="clean" aria-pressed="true" aria-label="Не отредактированные" data-tip="Не отредактированные — сейчас в фильтре (поля видны). Нажмите, чтобы скрыть поля без правок.">
+            <span class="status-chip__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 15l2 2 4-4"/></svg></span>
+            <span class="status-chip__label">Не отредактированные</span>
+          </button>
+        </div>
+        <button type="button" class="btn btn-sidebar btn-revert-all is-disabled" id="btn-revert-all" disabled data-tip="Нет правок — возвращать нечего. Появится после изменения хотя бы одного поля.">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>
+          Вернуть всё как было
+        </button>
+
+        <div class="sidebar-block-title sidebar-block-title--spaced">Файл</div>
+        <label class="btn btn-primary btn-sidebar file-btn" data-tip="Загрузить catalog.json или ранее сохранённую выгрузку. Станет новым исходником — метки «отредактировано» сбросятся.">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21V9"/><path d="M7 14l5-5 5 5"/><path d="M5 3h14"/></svg>
+          Импорт JSON
+          <input type="file" id="import-json" accept="application/json,.json" hidden />
+        </label>
+        <button type="button" class="btn btn-sidebar" id="btn-reload" data-tip="Сбросить черновик в браузере и снова прочитать catalog.json из ../param_catalog_review/">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15.5-6.4"/><path d="M21 3v6h-6"/><path d="M21 12a9 9 0 0 1-15.5 6.4"/><path d="M3 21v-6h6"/></svg>
+          Перечитать catalog.json
+        </button>
+
+        <div class="sidebar-block-title sidebar-block-title--spaced">Выгрузка</div>
+        <button type="button" class="btn btn-primary btn-sidebar" id="btn-export-json" data-tip="Скачать текущий каталог как catalog_ГГГГММДД_ЧЧММ.json — для чата «примени каталог» или замены файла">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 21h14"/></svg>
+          Сохранить JSON
+        </button>
+        <div class="sidebar-btn-row">
+          <button type="button" class="btn btn-sidebar" id="btn-export-csv" data-tip="Выгрузить таблицу полей в CSV (с timestamp в имени)">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v16H4z"/><path d="M4 10h16"/><path d="M4 16h16"/><path d="M10 4v16"/></svg>
+            CSV
+          </button>
+          <button type="button" class="btn btn-sidebar" id="btn-export-md" data-tip="Выгрузить снимок каталога в Markdown">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16"/><path d="M4 12h10"/><path d="M4 18h14"/><path d="M16 9l3 3-3 3"/></svg>
+            MD
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div class="topbar-left">
+          <h1 id="section-title">—</h1>
+          <p id="section-intro" class="section-intro"></p>
+        </div>
+        <div class="search-wrap" data-tip="Поиск по всем разделам: ключ, подпись, описание, варианты, дефолт, заметка">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/>
+          </svg>
+          <input type="search" id="search" placeholder="Поиск по всем разделам: ключ, подпись, описание, варианты…" />
+        </div>
+      </header>
+
+      <div id="save-toast" class="toast" hidden>
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+        <span id="save-toast-text">Сохранено локально</span>
+      </div>
+      <div id="fields" class="fields"></div>
+    </main>
+  </div>
+
+  <div class="gate" id="gate">
+    <div class="gate-card">
+      <div class="gate-mark">SPOD</div>
+      <h1 class="gate-title">Каталог параметров BADGE</h1>
+      <p class="gate-text" id="gate-text">
+        Загружаем <code>../param_catalog_review/catalog.json</code>…
+      </p>
+      <div class="gate-actions">
+        <label class="btn btn-primary file-btn" id="gate-import-label" data-tip="Выберите catalog.json или ранее сохранённую выгрузку — каталог откроется в редакторе">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21V9"/><path d="M7 14l5-5 5 5"/><path d="M5 3h14"/></svg>
+          Импортировать JSON
+          <input type="file" id="gate-import-json" accept="application/json,.json" hidden />
+        </label>
+        <button type="button" class="btn btn-ghost" id="gate-retry" hidden data-tip="Снова попробовать прочитать catalog.json из ../param_catalog_review/">
+          Повторить чтение catalog.json
+        </button>
+      </div>
+      <p class="gate-hint">
+        Данные: <code>common/param_catalog_review/catalog.json</code>.
+        Шаблон Excel: <code>common/templates/CONTEST_BADGE_FORM/</code>.
+        Для автозагрузки нужен Live Server (или любой HTTP), иначе — импорт JSON.
+      </p>
+    </div>
+  </div>
+
+  <div id="glassTip" class="glass-tip" aria-hidden="true"></div>
+
+  <script src="../param_catalog_review/catalog.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

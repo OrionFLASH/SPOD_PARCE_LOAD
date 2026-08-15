@@ -46,7 +46,8 @@ LOGS/
 # Каталог параметров SPOD (исключение из *.xlsx)
 !Docs/params_catalog/*.xlsx
 # Пустой шаблон Excel-формы BADGE (исключение из *.xlsx)
-!Docs/templates/CONTEST_BADGE_FORM/*.xlsx
+!common/templates/CONTEST_BADGE_FORM/*.xlsx
+!Docs/templates/**/*.xlsx
 OUT/
 
 # Temporary / test work (not IN/OUT data)

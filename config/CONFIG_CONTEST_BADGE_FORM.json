@@ -1,5 +1,5 @@
 {
-  "_note": "Excel-форма BADGE. Списки/описания — field_meta.py. Пустой шаблон и пример пишутся в OUT/{BLOCK}/CONTEST_BADGE_FORM/.",
+  "_note": "Excel-форма BADGE. Метаданные blank — common/param_catalog_review/catalog.json (web-edit). Шаблон — common/templates/.",
   "contest_badge_form": {
     "block": "PROM",
     "contest_codes": [
@@ -9,7 +9,8 @@
     "export_path": null,
     "import_form_path": null,
     "import_output_dir": null,
-    "blank_path": "OUT/PROM/CONTEST_BADGE_FORM/CONTEST_BADGE_FORM_BLANK.xlsx",
+    "catalog_path": "common/param_catalog_review/catalog.json",
+    "blank_path": "common/templates/CONTEST_BADGE_FORM/CONTEST_BADGE_FORM_BLANK.xlsx",
     "blank_sheet_count": 1,
     "blank_contest_type": "ТУРНИРНЫЙ",
     "example_path": "OUT/PROM/CONTEST_BADGE_FORM/CONTEST_BADGE_FORM_EXAMPLE.xlsx",

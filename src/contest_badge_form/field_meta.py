@@ -463,6 +463,11 @@ def input_kind_for_kv(
     has_dropdown: bool = False,
 ) -> str:
     """Тип ввода для KV-поля (колонка C)."""
+    from src.contest_badge_form.catalog_loader import field_overlay
+
+    ov = field_overlay(form_key)
+    if ov and ov.get("kind"):
+        return str(ov["kind"])
     if schema_kind == "list" or form_key in _list_form_keys():
         return "list"
     if form_key in _DATE_FORM_KEYS or (
@@ -476,6 +481,11 @@ def input_kind_for_kv(
 
 def input_kind_for_table_col(table_key: str, col_name: str) -> str:
     """Тип ввода для ячейки таблицы."""
+    from src.contest_badge_form.catalog_loader import table_overlay
+
+    ov = table_overlay(table_key, col_name)
+    if ov and ov.get("kind"):
+        return str(ov["kind"])
     if col_name in TABLE_JSON_COLUMNS.get(table_key, frozenset()):
         return "json"
     if col_name in TABLE_DATE_COLUMNS.get(table_key, frozenset()) or (
@@ -491,8 +501,23 @@ def input_kind_for_table_col(table_key: str, col_name: str) -> str:
 def merge_dropdowns(
     config_dropdowns: Optional[Dict[str, List[str]]] = None,
 ) -> Dict[str, List[str]]:
-    """Базовые списки + оверрайд из конфига."""
+    """Базовые списки + таблицы + catalog.json + оверрайд из конфига."""
+    from src.contest_badge_form.catalog_loader import (
+        dropdown_overrides_from_catalog,
+        table_dropdown_overrides_from_catalog,
+    )
+
     out: Dict[str, List[str]] = {k: list(v) for k, v in DROPDOWN_VALUES.items()}
+    for table_key, col_map in TABLE_DROPDOWNS.items():
+        for col_name, values in col_map.items():
+            out[f"TBL:{table_key}:{col_name}"] = list(values)
+    for key, values in dropdown_overrides_from_catalog().items():
+        if values:
+            out[str(key)] = [str(x) for x in values]
+    for table_key, col_map in table_dropdown_overrides_from_catalog().items():
+        for col_name, values in col_map.items():
+            if values:
+                out[f"TBL:{table_key}:{col_name}"] = [str(x) for x in values]
     if config_dropdowns:
         for key, values in config_dropdowns.items():
             if values:
@@ -500,13 +525,36 @@ def merge_dropdowns(
     return out
 
 
+def label_for(key: str, fallback: str = "", *, in_badge_slot: bool = False) -> str:
+    """Подпись поля: catalog.json → fallback (schema)."""
+    from src.contest_badge_form.catalog_loader import field_overlay
+
+    lookup = key
+    if in_badge_slot and key == "FULL_NAME":
+        lookup = "REWARD.FULL_NAME"
+        ov = field_overlay(lookup) or field_overlay("FULL_NAME")
+    else:
+        ov = field_overlay(lookup)
+    if ov and ov.get("label"):
+        return str(ov["label"])
+    return fallback
+
+
 def description_for(key: str, *, in_badge_slot: bool = False) -> str:
     """Текст подсказки для ключа формы."""
+    from src.contest_badge_form.catalog_loader import field_overlay
+
     if in_badge_slot and key == "FULL_NAME":
+        ov = field_overlay("REWARD.FULL_NAME") or field_overlay(key)
+        if ov and ov.get("description"):
+            return str(ov["description"])
         return FIELD_DESCRIPTIONS.get(
             "REWARD_FULL_NAME",
             "Краткое название бейджа.",
         )
+    ov = field_overlay(key)
+    if ov and ov.get("description"):
+        return str(ov["description"])
     if key in FIELD_DESCRIPTIONS:
         return FIELD_DESCRIPTIONS[key]
     return (
@@ -517,18 +565,44 @@ def description_for(key: str, *, in_badge_slot: bool = False) -> str:
 
 def default_for(key: str, *, in_badge_slot: bool = False) -> str:
     """Значение по умолчанию для BLANK (пусто = не предзаполнять)."""
+    from src.contest_badge_form.catalog_loader import field_overlay
+
     if in_badge_slot and key == "FULL_NAME":
+        ov = field_overlay("REWARD.FULL_NAME") or field_overlay(key)
+        if ov is not None:
+            return str(ov.get("default") or "")
         return FIELD_DEFAULTS.get("REWARD.FULL_NAME", "")
+    ov = field_overlay(key)
+    if ov is not None:
+        return str(ov.get("default") or "")
     return FIELD_DEFAULTS.get(key, "")
 
 
 def allow_empty_for(key: str, *, in_badge_slot: bool = False) -> bool:
     """Допустимо ли пустое значение (по умолчанию да)."""
+    from src.contest_badge_form.catalog_loader import field_overlay
+
     if in_badge_slot and key == "FULL_NAME":
+        ov = field_overlay("REWARD.FULL_NAME") or field_overlay(key)
+        if ov is not None and "allow_empty" in ov:
+            return bool(ov["allow_empty"])
         return FIELD_ALLOW_EMPTY.get("REWARD.FULL_NAME", False)
+    ov = field_overlay(key)
+    if ov is not None and "allow_empty" in ov:
+        return bool(ov["allow_empty"])
     if key in FIELD_ALLOW_EMPTY:
         return FIELD_ALLOW_EMPTY[key]
     return True
+
+
+def table_hint_for(table_key: str, col_name: str) -> str:
+    """Подсказка колонки таблицы: catalog → TABLE_COLUMN_HINTS."""
+    from src.contest_badge_form.catalog_loader import table_overlay
+
+    ov = table_overlay(table_key, col_name)
+    if ov and ov.get("description"):
+        return str(ov["description"])
+    return TABLE_COLUMN_HINTS.get(table_key, {}).get(col_name, "значение")
 
 
 def json_pack_target(form_key: str) -> str:

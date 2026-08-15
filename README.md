@@ -64,6 +64,10 @@ SPOD_PROM/
 │   ├── validation.py     # Валидация длины полей, проверка дубликатов
 │   ├── gender.py         # Определение пола (AUTO_GENDER)
 │   └── main_impl.py      # Полный пайплайн: загрузка, merge, summary, Excel, отчёты
+├── common/                 # Общие артефакты формы BADGE / web-edit
+│   ├── web-edit/           # HTML-редактор описаний параметров
+│   ├── param_catalog_review/  # catalog.json (+ MD-снимок)
+│   └── templates/CONTEST_BADGE_FORM/  # CONTEST_BADGE_FORM_BLANK.xlsx
 ├── requirements.txt        # Зависимости (pandas, openpyxl и др.) для main.py
 ├── IN/                     # Корень входа: IN/<BLOCK>/{SPOD,FILE,POST,JS}/ (BLOCK=PROM|IFT|PSI)
 ├── OUT/                    # Базовый каталог вывода (paths.output); файлы по блоку и дате: OUT/<BLOCK>/YYYY/DD-MM/
@@ -1305,6 +1309,13 @@ python main.py
 ---
 
 ## История версий
+
+### Версия 1.7.66 — common/: web-edit, catalog, blank из JSON
+
+- Редактор и данные: **`common/web-edit/`**, **`common/param_catalog_review/`** (catalog.json / catalog.js / MD-снимок).
+- Шаблон: **`common/templates/CONTEST_BADGE_FORM/CONTEST_BADGE_FORM_BLANK.xlsx`**.
+- Blank (`contest_badge_form_blank`) строится из **`catalog.json`** (оверлей поверх `field_meta`); пути в `CONFIG_CONTEST_BADGE_FORM.json`.
+- Модуль **`src/contest_badge_form/catalog_loader.py`**.
 
 ### Версия 1.7.65 — Доработка HTML-редактора каталога BADGE
 

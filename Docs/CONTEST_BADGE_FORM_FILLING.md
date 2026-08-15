@@ -1,8 +1,8 @@
 # Заполнение Excel-формы конкурса BADGE
 
-Инструкция для работы с шаблонами **`CONTEST_BADGE_FORM_BLANK.xlsx`** и **`CONTEST_BADGE_FORM_EXAMPLE.xlsx`**.  
-Техническое описание режимов export/import: [`CONTEST_BADGE_FORM.md`](CONTEST_BADGE_FORM.md).  
-Правка подписей/описаний/дефолтов/типов: HTML-редактор [`param_review_editor/index.html`](param_review_editor/index.html) (`catalog.json`; см. [`param_review_editor/README.md`](param_review_editor/README.md)).
+Инструкция для работы с шаблонами **`CONTEST_BADGE_FORM_BLANK.xlsx`** и **`CONTEST_BADGE_FORM_EXAMPLE.xlsx`**.
+Техническое описание режимов export/import: [`CONTEST_BADGE_FORM.md`](CONTEST_BADGE_FORM.md).
+Правка подписей/описаний/дефолтов/типов: HTML-редактор [`../common/web-edit/index.html`](../common/web-edit/index.html) (`../common/param_catalog_review/catalog.json`; см. [`../common/web-edit/README.md`](../common/web-edit/README.md)).
 
 ---
 
@@ -10,13 +10,13 @@
 
 | Файл | Когда брать |
 |------|-------------|
-| **BLANK** | Новый конкурс «с нуля». В репозитории: `Docs/templates/CONTEST_BADGE_FORM/CONTEST_BADGE_FORM_BLANK.xlsx` |
+| **BLANK** | Новый конкурс «с нуля». В репозитории: `common/templates/CONTEST_BADGE_FORM/CONTEST_BADGE_FORM_BLANK.xlsx` |
 | **EXAMPLE** | Образец заполнения (6 реальных конкурсов из SPOD) — смотреть и копировать приёмы; генерируется в `OUT/…` |
 | Свой export | Результат `contest_badge_form_export` по выбранным `CONTEST_CODE` |
 
-Типовые пути после генерации (`contest_badge_form_blank`):
+Типовые пути:
 
-- `OUT/PROM/CONTEST_BADGE_FORM/CONTEST_BADGE_FORM_BLANK.xlsx`
+- `common/templates/CONTEST_BADGE_FORM/CONTEST_BADGE_FORM_BLANK.xlsx` (из `catalog.json`)
 - `OUT/PROM/CONTEST_BADGE_FORM/CONTEST_BADGE_FORM_EXAMPLE.xlsx`
 
 Пересоздать blank + example: в `run_outputs` для блока указать `contest_badge_form_blank`, затем `python main.py`.

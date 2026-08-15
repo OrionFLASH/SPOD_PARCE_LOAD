@@ -42,15 +42,31 @@ def run_contest_badge_form_modes(
             if not os.path.isabs(blank_path):
                 blank_path = os.path.join(project_base_dir, blank_path)
         else:
-            paths = cfg.get("paths") or {}
-            out_root = str(paths.get("output") or "OUT")
             blank_path = os.path.join(
                 project_base_dir,
-                out_root,
-                form_block,
+                "common",
+                "templates",
                 "CONTEST_BADGE_FORM",
                 "CONTEST_BADGE_FORM_BLANK.xlsx",
             )
+        catalog_override = form_cfg.get("catalog_path")
+        if catalog_override:
+            catalog_path = str(catalog_override)
+            if not os.path.isabs(catalog_path):
+                catalog_path = os.path.join(project_base_dir, catalog_path)
+        else:
+            catalog_path = os.path.join(
+                project_base_dir,
+                "common",
+                "param_catalog_review",
+                "catalog.json",
+            )
+        if not os.path.isfile(catalog_path):
+            logging.warning(
+                "[contest_badge_form] catalog.json не найден (%s) — blank из field_meta",
+                catalog_path,
+            )
+            catalog_path = None
         sheet_count = int(form_cfg.get("blank_sheet_count") or 1)
         contest_type = str(
             form_cfg.get("blank_contest_type") or "ТУРНИРНЫЙ"
@@ -60,8 +76,11 @@ def run_contest_badge_form_modes(
             sheet_count=sheet_count,
             contest_type=contest_type,
             dropdowns=dropdowns,
+            catalog_path=catalog_path,
         )
         logging.info("[contest_badge_form] Пустая форма: %s", path)
+        if catalog_path:
+            logging.info("[contest_badge_form] Источник метаданных: %s", catalog_path)
 
         # Пример с заполненными конкурсами (ОСВ + турниры и т.п.)
         example_codes = [
