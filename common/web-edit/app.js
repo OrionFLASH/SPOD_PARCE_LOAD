@@ -1413,7 +1413,7 @@
     $("btn-reload").addEventListener("click", () => {
       if (
         !confirm(
-          "Сбросить черновик в браузере и заново прочитать catalog.json из ../param_catalog_review/?"
+          "Сбросить черновик в браузере и заново прочитать catalog.json?"
         )
       ) {
         return;
