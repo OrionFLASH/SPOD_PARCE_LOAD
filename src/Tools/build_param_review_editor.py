@@ -28,6 +28,7 @@ from src.contest_badge_form.field_meta import (  # noqa: E402
 )
 
 OUT_DIR = ROOT / "common" / "param_catalog_review"
+WEB_EDIT_DIR = ROOT / "common" / "web-edit"
 MD_PATH = ROOT / "common" / "param_catalog_review" / "CONTEST_BADGE_FORM_PARAM_REVIEW.md"
 
 
@@ -411,19 +412,22 @@ def build_catalog() -> Dict[str, Any]:
 
 def main() -> None:
     OUT_DIR.mkdir(parents=True, exist_ok=True)
+    WEB_EDIT_DIR.mkdir(parents=True, exist_ok=True)
     catalog = build_catalog()
-    json_path = OUT_DIR / "catalog.json"
-    js_path = OUT_DIR / "catalog.js"
-    payload = json.dumps(catalog, ensure_ascii=False, indent=2)
-    json_path.write_text(payload + "\n", encoding="utf-8")
-    # Зеркало для открытия через file:// (fetch JSON браузер блокирует)
-    js_path.write_text(
+    payload = json.dumps(catalog, ensure_ascii=False, indent=2) + "\n"
+    js_body = (
         "/* зеркало catalog.json — собирается build_param_review_editor.py */\n"
-        f"window.PARAM_REVIEW_CATALOG = {payload};\n",
-        encoding="utf-8",
+        f"window.PARAM_REVIEW_CATALOG = {json.dumps(catalog, ensure_ascii=False, indent=2)};\n"
     )
+    targets = [OUT_DIR, WEB_EDIT_DIR]
+    for dest in targets:
+        (dest / "catalog.json").write_text(payload, encoding="utf-8")
+        (dest / "catalog.js").write_text(js_body, encoding="utf-8")
     total = sum(len(s["fields"]) for s in catalog["sections"])
-    print(f"OK: {json_path} + {js_path.name} ({total} полей, {len(catalog['sections'])} секций)")
+    print(
+        f"OK: catalog.json + catalog.js → {OUT_DIR.name}/ и {WEB_EDIT_DIR.name}/ "
+        f"({total} полей, {len(catalog['sections'])} секций)"
+    )
 
 
 if __name__ == "__main__":

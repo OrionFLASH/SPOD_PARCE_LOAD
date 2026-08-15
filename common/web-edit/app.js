@@ -5,9 +5,10 @@
   const LS_KEY = "spod_param_review_catalog_v3";
   const LS_BASELINE_KEY = "spod_param_review_baseline_v3";
   const LS_SOURCE_KEY = "spod_param_review_source_v3";
-  /** Каталог лежит рядом: ../param_catalog_review/ */
-  const CATALOG_DIR = "../param_catalog_review/";
-  const CATALOG_URL = CATALOG_DIR + "catalog.json";
+  /** Сначала рядом со страницей; иначе ../param_catalog_review/ */
+  const CATALOG_DIR_LOCAL = "./";
+  const CATALOG_DIR_SIBLING = "../param_catalog_review/";
+  const CATALOG_URL = CATALOG_DIR_LOCAL + "catalog.json";
   const KINDS = ["dropdown", "text", "number", "list", "json", "date"];
   const KIND_LABELS = {
     dropdown: "Выбор из списка",
@@ -265,8 +266,8 @@
   async function fetchCatalogJson() {
     const pageUrl = window.location.href;
     const candidates = [
-      new URL(CATALOG_URL, pageUrl).href,
-      new URL("../param_catalog_review/catalog.json", pageUrl).href,
+      new URL("./catalog.json", pageUrl).href,
+      new URL(CATALOG_DIR_SIBLING + "catalog.json", pageUrl).href,
     ];
     const errors = [];
     for (const url of candidates) {
@@ -289,29 +290,37 @@
       return Promise.resolve(validateCatalog(window.PARAM_REVIEW_CATALOG));
     }
     return new Promise((resolve, reject) => {
-      const s = document.createElement("script");
-      s.src =
-        new URL(CATALOG_DIR + "catalog.js", window.location.href).href +
-        "?t=" +
-        Date.now();
-      s.onload = () => {
-        try {
-          if (!window.PARAM_REVIEW_CATALOG) {
-            reject(new Error("catalog.js загружен, но PARAM_REVIEW_CATALOG пуст"));
-            return;
-          }
-          resolve(validateCatalog(window.PARAM_REVIEW_CATALOG));
-        } catch (err) {
-          reject(err);
+      const trySrc = [
+        new URL("./catalog.js", window.location.href).href,
+        new URL(CATALOG_DIR_SIBLING + "catalog.js", window.location.href).href,
+      ];
+      let i = 0;
+      const tryNext = () => {
+        if (i >= trySrc.length) {
+          reject(
+            new Error(
+              "Не удалось загрузить catalog.js (web-edit/ и param_catalog_review/)"
+            )
+          );
+          return;
         }
+        const s = document.createElement("script");
+        s.src = trySrc[i++] + "?t=" + Date.now();
+        s.onload = () => {
+          try {
+            if (!window.PARAM_REVIEW_CATALOG) {
+              tryNext();
+              return;
+            }
+            resolve(validateCatalog(window.PARAM_REVIEW_CATALOG));
+          } catch (err) {
+            reject(err);
+          }
+        };
+        s.onerror = () => tryNext();
+        document.head.appendChild(s);
       };
-      s.onerror = () =>
-        reject(
-          new Error(
-            "Не удалось загрузить catalog.js из ../param_catalog_review/"
-          )
-        );
-      document.head.appendChild(s);
+      tryNext();
     });
   }
 
@@ -324,8 +333,8 @@
       } catch (jsErr) {
         const isFile = window.location.protocol === "file:";
         const hint = isFile
-          ? "Открытие через file:// часто блокирует чтение JSON. Нужен Live Server / HTTP, либо импорт файла вручную. Также должен лежать common/param_catalog_review/catalog.js."
-          : "Проверьте, что catalog.json лежит в common/param_catalog_review/ рядом с web-edit.";
+          ? "Открытие через file:// часто блокирует чтение JSON. Нужен Live Server / HTTP, либо импорт файла вручную. Рядом с index.html должны быть catalog.json и catalog.js."
+          : "Проверьте catalog.json в common/web-edit/ (или common/param_catalog_review/).";
         throw new Error(
           `${hint}<br/><br/><span class="gate-error">${escapeHtml(
             String(fetchErr.message || fetchErr)
@@ -350,12 +359,9 @@
   }
 
   async function bootFromFile({ forceFile = false } = {}) {
-    showGate(
-      "Загружаем <code>../param_catalog_review/catalog.json</code>…",
-      {
-        showRetry: false,
-      }
-    );
+    showGate("Загружаем <code>catalog.json</code>…", {
+      showRetry: false,
+    });
     try {
       const fileData = await loadSourceCatalog();
       const fileStamp = catalogStamp(fileData);

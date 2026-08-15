@@ -4,10 +4,8 @@ JSON, экспортируемый из веб-редактора [`../web-edit/
 
 | Файл | Назначение |
 |------|------------|
-| `catalog.json` | Рабочий каталог (читает blank-генератор и web-edit) |
-| `catalog.js` | Зеркало для открытия редактора через `file://` |
+| `catalog.json` | Рабочий каталог (blank + копия в `../web-edit/` для UI) |
+| `catalog.js` | Зеркало для `file://` |
 | `CONTEST_BADGE_FORM_PARAM_REVIEW.md` | MD-снимок (архив / дифф) |
 
-Шаблон Excel: [`../templates/CONTEST_BADGE_FORM/CONTEST_BADGE_FORM_BLANK.xlsx`](../templates/CONTEST_BADGE_FORM/CONTEST_BADGE_FORM_BLANK.xlsx).
-
-Путь в конфиге: `contest_badge_form.catalog_path` → `common/param_catalog_review/catalog.json`.
+После правок в web-edit сохраните JSON и скопируйте в этот каталог (или запустите `build_param_review_editor.py`). Blank читает **этот** `catalog.json`.
