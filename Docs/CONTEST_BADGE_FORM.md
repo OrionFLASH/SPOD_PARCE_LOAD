@@ -87,6 +87,7 @@ Blank собирается из **`common/param_catalog_review/catalog.json`** (
 - Цикл: правки в web → «Сохранить JSON» → заменить `catalog.json` → токен `contest_badge_form_blank` пересоберёт BLANK из JSON.
 - MD-снимок: `common/param_catalog_review/CONTEST_BADGE_FORM_PARAM_REVIEW.md`.
 - Заполнение значений SPOD (Liquid Glass, CSV): **`common/web-fill/`** (синхрон каталога: `python src/Tools/sync_web_fill_catalog.py`).
+- Опциональные **подписи вариантов** (`variant_labels`): в edit — второй столбец рядом с `variants`; в fill на чипах показывается текст, в CSV/SPOD уходит исходное значение (`Y`/`N` → «Да»/«Нет» уже в каталоге).
 
 Fallback списков/описаний — `src/contest_badge_form/field_meta.py`, если `catalog.json` отсутствует. Скрытый лист `Lists` — длинные списки и значения с запятыми.
 

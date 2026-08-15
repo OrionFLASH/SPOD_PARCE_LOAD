@@ -168,6 +168,9 @@
       label: field.label || "",
       kind: field.kind || "text",
       variants: Array.isArray(field.variants) ? field.variants.slice() : [],
+      variant_labels: Array.isArray(field.variant_labels)
+        ? field.variant_labels.slice()
+        : [],
       default: field.default || "",
       allow_empty: !!field.allow_empty,
       description: field.description || "",
@@ -189,11 +192,15 @@
     field.label = snap.label || "";
     field.kind = snap.kind || "text";
     field.variants = Array.isArray(snap.variants) ? snap.variants.slice() : [];
+    field.variant_labels = Array.isArray(snap.variant_labels)
+      ? snap.variant_labels.slice()
+      : [];
     field.default = snap.default || "";
     field.allow_empty = !!snap.allow_empty;
     field.description = snap.description || "";
     field.note = snap.note || "";
     if (snap.json_target != null) field.json_target = snap.json_target;
+    alignVariantLabels(field);
   }
 
   function getBaselineSnapshot(sectionId, fieldKey) {
@@ -475,6 +482,9 @@
     const variants = Array.isArray(field.variants)
       ? field.variants.join(" ")
       : String(field.variants || "");
+    const labels = Array.isArray(field.variant_labels)
+      ? field.variant_labels.join(" ")
+      : "";
     const blob = [
       field.key,
       field.label,
@@ -484,6 +494,7 @@
       field.json_target,
       field.kind,
       variants,
+      labels,
     ]
       .map((x) => String(x ?? ""))
       .join(" ")
@@ -575,7 +586,7 @@
 
   function variantsPlaceholder(kind) {
     if (kind === "dropdown" || kind === "dropdown_custom") {
-      return "Каждое значение с новой строки:\nПРОМ\nТЕСТ";
+      return "Каждое значение с новой строки:\nY\nN";
     }
     if (kind === "list") {
       return "Каждый элемент массива с новой строки:\nKMMMB\nKMKKSB\nCSM";
@@ -583,27 +594,110 @@
     return "";
   }
 
-  function syncVariantsUi(card, field) {
+  function variantLabelsPlaceholder() {
+    return "Подписи в том же порядке (необязательно):\nДа\nНет";
+  }
+
+  /** Краткие подписи по умолчанию для известных кодов. */
+  function defaultVariantLabel(value) {
+    if (value === "Y") return "Да";
+    if (value === "N") return "Нет";
+    return "";
+  }
+
+  /**
+   * Выровнять variant_labels по длине variants.
+   * Лишние подписи отбрасываются; недостающие слоты — пустые
+   * (для новых слотов при fillKnownEmpty — автоподстановка Y/N).
+   */
+  function alignVariantLabels(field, { fillKnownEmpty = true } = {}) {
+    const variants = Array.isArray(field.variants)
+      ? field.variants.map((x) => String(x).trim()).filter(Boolean)
+      : [];
+    field.variants = variants;
+    const prev = Array.isArray(field.variant_labels)
+      ? field.variant_labels.map((x) => String(x ?? "").trim())
+      : [];
+    const next = variants.map((v, i) => {
+      if (i < prev.length) return prev[i];
+      return fillKnownEmpty ? defaultVariantLabel(v) : "";
+    });
+    field.variant_labels = next;
+    return {
+      truncated: prev.length > variants.length,
+      padded: prev.length < variants.length,
+      labels: next,
+    };
+  }
+
+  function labelForVariant(field, value) {
+    const variants = Array.isArray(field.variants) ? field.variants : [];
+    const i = variants.indexOf(value);
+    if (i < 0) return "";
+    const labels = Array.isArray(field.variant_labels) ? field.variant_labels : [];
+    return String(labels[i] || "").trim();
+  }
+
+  function chipFaceNodes(value, label) {
+    const lab = String(label || "").trim();
+    const wrap = document.createElement("span");
+    wrap.className = "default-chip__text";
+    const main = document.createElement("span");
+    main.className = "default-chip__label";
+    main.textContent = lab || value;
+    wrap.appendChild(main);
+    if (lab) {
+      const code = document.createElement("span");
+      code.className = "default-chip__code";
+      code.textContent = value;
+      wrap.appendChild(code);
+    }
+    return wrap;
+  }
+
+  function syncVariantsUi(card, field, { rewriteLabels = true } = {}) {
     const ta = card.querySelector("[data-role='variants']");
+    const taLab = card.querySelector("[data-role='variant-labels']");
     const hint = card.querySelector("[data-role='variants-hint']");
     const wrap = card.querySelector("[data-role='variants-wrap']");
+    const wrapLab = card.querySelector("[data-role='variant-labels-wrap']");
     if (!ta) return;
     const active = kindHasVariants(field.kind);
+    const aligned = alignVariantLabels(field, { fillKnownEmpty: true });
     ta.disabled = !active;
     ta.placeholder = active ? variantsPlaceholder(field.kind) : "";
     if (wrap) wrap.classList.toggle("is-disabled", !active);
+    if (taLab) {
+      taLab.disabled = !active;
+      taLab.placeholder = active ? variantLabelsPlaceholder() : "";
+      if (rewriteLabels) {
+        const labs = aligned.labels.slice();
+        while (labs.length < (field.variants || []).length) labs.push("");
+        taLab.value = labs.join("\n");
+      }
+    }
+    if (wrapLab) wrapLab.classList.toggle("is-disabled", !active);
     if (hint) {
       hint.hidden = !active;
-      hint.textContent =
+      let base =
         field.kind === "list"
-          ? "Массив значений: каждый элемент с новой строки (в Excel потом через ;)."
+          ? "Массив: значения слева, подписи справа — в том же порядке. В CSV уходит значение."
           : field.kind === "dropdown_custom"
-            ? "Список + свой вариант: варианты с новой строки (как у списка). Свой ввод — только в fill."
-            : "Выбор из списка: каждое значение с новой строки.";
+            ? "Список + свой вариант: слева коды, справа подписи (необязательно). В CSV — код."
+            : "Выбор из списка: слева коды SPOD, справа понятные подписи (необязательно).";
+      const nV = (field.variants || []).length;
+      const nFilled = aligned.labels.filter(Boolean).length;
+      if (active && nV) {
+        base += ` Сейчас ${nV} знач. / ${nFilled} подп.`;
+        if (aligned.truncated) {
+          base += " Лишние строки подписей отброшены.";
+        }
+      }
+      hint.textContent = base;
     }
     if (!active) {
-      // неактивно — без подсказок и без редактирования списка
       ta.value = (field.variants || []).join("\n");
+      if (taLab && rewriteLabels) taLab.value = "";
     }
   }
 
@@ -642,6 +736,20 @@
 
   function dateYearEnd() {
     return `${new Date().getFullYear()}-12-31`;
+  }
+
+  function dateToday() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  }
+
+  function dateMonthStart(y, m) {
+    return `${y}-${String(m + 1).padStart(2, "0")}-01`;
+  }
+
+  function dateMonthEnd(y, m) {
+    const last = new Date(y, m + 1, 0).getDate();
+    return `${y}-${String(m + 1).padStart(2, "0")}-${String(last).padStart(2, "0")}`;
   }
 
   function isIsoDate(s) {
@@ -881,7 +989,22 @@
             : "";
         html += `<button type="button" class="date-pop__day${on}${today}" data-day="${iso}">${day}</button>`;
       }
+      const mStart = dateMonthStart(view.y, view.m);
+      const mEnd = dateMonthEnd(view.y, view.m);
+      const todayIso = dateToday();
       html += `</div>`;
+      html +=
+        `<div class="date-pop__quick" role="group" aria-label="Быстрый выбор">` +
+        `<button type="button" class="date-pop__qchip${selected === mStart ? " is-on" : ""}" data-q="month-start" data-tip="Первый день открытого месяца (${mStart})">` +
+        `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12h16"/><path d="M8 8l-4 4 4 4"/></svg>` +
+        `Нач. мес.</button>` +
+        `<button type="button" class="date-pop__qchip${selected === mEnd ? " is-on" : ""}" data-q="month-end" data-tip="Последний день открытого месяца (${mEnd})">` +
+        `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12h16"/><path d="M16 8l4 4-4 4"/></svg>` +
+        `Кон. мес.</button>` +
+        `<button type="button" class="date-pop__qchip${selected === todayIso ? " is-on" : ""}" data-q="today" data-tip="Сегодня (${todayIso})">` +
+        `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l2 2"/></svg>` +
+        `Сегодня</button>` +
+        `</div>`;
       pop.innerHTML = html;
 
       pop.querySelectorAll("[data-nav]").forEach((btn) => {
@@ -905,6 +1028,23 @@
           e.preventDefault();
           e.stopPropagation();
           applyDate(btn.getAttribute("data-day") || "");
+        });
+      });
+      pop.querySelectorAll("[data-q]").forEach((btn) => {
+        btn.addEventListener("click", (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          const q = btn.getAttribute("data-q");
+          let next = "";
+          if (q === "month-start") next = dateMonthStart(view.y, view.m);
+          else if (q === "month-end") next = dateMonthEnd(view.y, view.m);
+          else if (q === "today") {
+            next = dateToday();
+            const d = new Date();
+            view.y = d.getFullYear();
+            view.m = d.getMonth();
+          }
+          applyDate(next, { close: true });
         });
       });
     }
@@ -1113,7 +1253,13 @@
       btn.className = "default-chip";
       btn.setAttribute(
         "data-tip",
-        multi ? `Включить в дефолт: ${v}` : `Выбрать дефолт: ${v}`
+        (() => {
+          const lab = labelForVariant(field, v);
+          const shown = lab ? `${lab} (${v})` : v;
+          return multi
+            ? `Включить в дефолт: ${shown}`
+            : `Выбрать дефолт: ${shown}`;
+        })()
       );
       const on = selected.includes(v);
       btn.setAttribute("aria-pressed", on ? "true" : "false");
@@ -1125,11 +1271,8 @@
       mark.className = "default-chip__mark";
       mark.setAttribute("aria-hidden", "true");
       mark.innerHTML = defaultChipMarkHtml();
-      const text = document.createElement("span");
-      text.className = "default-chip__label";
-      text.textContent = v;
       btn.appendChild(mark);
-      btn.appendChild(text);
+      btn.appendChild(chipFaceNodes(v, labelForVariant(field, v)));
       btn.addEventListener("click", () => {
         if (multi) {
           const wasOn = btn.classList.contains("is-on");
@@ -1200,8 +1343,11 @@
     field.kind = nextKind;
     if (!kindHasVariants(field.kind)) {
       field.variants = [];
+      delete field.variant_labels;
       const ta = card.querySelector("[data-role='variants']");
+      const taLab = card.querySelector("[data-role='variant-labels']");
       if (ta) ta.value = "";
+      if (taLab) taLab.value = "";
     }
     card.querySelectorAll(".kind-chip").forEach((b) => {
       const on = b.getAttribute("data-kind") === field.kind;
@@ -1240,6 +1386,8 @@
     }).join("");
 
     const variantsText = (field.variants || []).join("\n");
+    alignVariantLabels(field, { fillKnownEmpty: true });
+    const labelsText = (field.variant_labels || []).join("\n");
     const variantsActive = kindHasVariants(field.kind);
     const jsonFact = (field.json_target || "").trim();
 
@@ -1300,14 +1448,18 @@
       </div>
       <div class="grid-2">
         <div class="field${variantsActive ? "" : " is-disabled"}" data-role="variants-wrap">
-          <label data-tip="Список допустимых значений: каждое с новой строки (для Список и Массив)">Варианты</label>
-          <textarea class="variants" data-role="variants" data-tip="По одному значению в строке" ${variantsActive ? "" : "disabled"}>${escapeHtml(variantsText)}</textarea>
-          <div class="field-hint" data-role="variants-hint" ${variantsActive ? "" : "hidden"}></div>
+          <label data-tip="Исходные значения для CSV/SPOD: каждое с новой строки">Варианты (значения)</label>
+          <textarea class="variants" data-role="variants" data-tip="Коды SPOD, по одному в строке" ${variantsActive ? "" : "disabled"}>${escapeHtml(variantsText)}</textarea>
         </div>
-        <div class="field">
-          <label data-tip="Внутренний комментарий к полю (в Excel не попадает)">Заметка</label>
-          <textarea data-role="note" class="note-tall" data-tip="Заметка для себя / для применения каталога">${escapeHtml(field.note || "")}</textarea>
+        <div class="field${variantsActive ? "" : " is-disabled"}" data-role="variant-labels-wrap">
+          <label data-tip="Понятные подписи в том же порядке, что и значения слева. Необязательно.">Подписи (текст)</label>
+          <textarea class="variants variants--labels" data-role="variant-labels" data-tip="Строка N — подпись к значению N. Пустая строка = на кнопке только код." ${variantsActive ? "" : "disabled"}>${escapeHtml(labelsText)}</textarea>
         </div>
+      </div>
+      <div class="field-hint" data-role="variants-hint" ${variantsActive ? "" : "hidden"}></div>
+      <div class="field full">
+        <label data-tip="Внутренний комментарий к полю (в Excel не попадает)">Заметка</label>
+        <textarea data-role="note" class="note-tall" data-tip="Заметка для себя / для применения каталога">${escapeHtml(field.note || "")}</textarea>
       </div>
     `;
 
@@ -1385,10 +1537,44 @@
     });
     bind("variants", (e) => {
       if (e.target.disabled) return;
+      const prevLabels = Array.isArray(field.variant_labels)
+        ? field.variant_labels.slice()
+        : [];
       field.variants = e.target.value
         .split(/\r?\n/)
         .map((x) => x.trim())
         .filter(Boolean);
+      field.variant_labels = prevLabels;
+      alignVariantLabels(field, { fillKnownEmpty: true });
+      const taLab = card.querySelector("[data-role='variant-labels']");
+      if (taLab) taLab.value = (field.variant_labels || []).join("\n");
+      syncVariantsUi(card, field, { rewriteLabels: false });
+      syncDefaultUi(card, field, sectionId);
+      afterFieldEdit(card, field, sectionId);
+    });
+    bind("variant-labels", (e) => {
+      if (e.target.disabled) return;
+      const lines = e.target.value.split(/\r?\n/);
+      const n = (field.variants || []).length;
+      const next = [];
+      for (let i = 0; i < n; i += 1) {
+        next.push(i < lines.length ? String(lines[i] || "").trim() : "");
+      }
+      const extra = lines.length > n;
+      field.variant_labels = next;
+      const hint = card.querySelector("[data-role='variants-hint']");
+      if (hint) {
+        const nFilled = next.filter(Boolean).length;
+        let base =
+          "Подписи необязательны. В CSV/SPOD уходит значение слева; на кнопках — текст, если заполнен.";
+        base += ` Сейчас ${n} знач. / ${nFilled} подп.`;
+        if (extra) base += " Лишние строки подписей игнорируются.";
+        if (lines.length < n) {
+          base += " Недостающих подписей нет — на кнопке останется код.";
+        }
+        hint.hidden = false;
+        hint.textContent = base;
+      }
       syncDefaultUi(card, field, sectionId);
       afterFieldEdit(card, field, sectionId);
     });
@@ -1507,6 +1693,18 @@
 
   function exportJson() {
     if (!catalog) return;
+    // Перед выгрузкой выровнять подписи; пустые массивы не пишем
+    for (const sec of catalog.sections || []) {
+      for (const f of sec.fields || []) {
+        if (!kindHasVariants(f.kind)) {
+          f.variants = [];
+          delete f.variant_labels;
+          continue;
+        }
+        alignVariantLabels(f, { fillKnownEmpty: true });
+        if (!(f.variant_labels || []).some(Boolean)) delete f.variant_labels;
+      }
+    }
     const payload = {
       ...catalog,
       exported_at: new Date().toISOString(),
@@ -1535,6 +1733,7 @@
       "label",
       "kind",
       "variants",
+      "variant_labels",
       "default",
       "allow_empty",
       "json_target",
@@ -1553,6 +1752,7 @@
             f.label,
             f.kind,
             (f.variants || []).join(" | "),
+            (f.variant_labels || []).join(" | "),
             f.default || "",
             f.allow_empty ? "да" : "нет",
             f.json_target || "",
@@ -1561,7 +1761,7 @@
           ]
             .map(csvEscape)
             .join(",")
-        );
+          );
       }
     }
     download(`param_review_${stamp()}.csv`, lines.join("\n") + "\n", "text/csv");
@@ -1600,7 +1800,14 @@
       for (const f of sec.fields) {
         const variants =
           f.variants && f.variants.length
-            ? f.variants.map(mdCell).join("<br>")
+            ? f.variants
+                .map((v, i) => {
+                  const lab = Array.isArray(f.variant_labels)
+                    ? String(f.variant_labels[i] || "").trim()
+                    : "";
+                  return lab ? `${mdCell(lab)} (${mdCell(v)})` : mdCell(v);
+                })
+                .join("<br>")
             : "—";
         lines.push(
           `| ${f.n} | \`${f.status}\` | \`${f.key}\` | ${mdCell(f.label)} | ${mdCell(

@@ -477,7 +477,11 @@
           "default": "N",
           "allow_empty": true,
           "json_target": "CONTEST_FEATURE.masking",
-          "note": "N (часто N)."
+          "note": "N (часто N).",
+          "variant_labels": [
+            "Да",
+            "Нет"
+          ]
         },
         {
           "n": 29,
@@ -542,7 +546,11 @@
           "default": "Y",
           "allow_empty": true,
           "json_target": "CONTEST_FEATURE.avatarShow",
-          "note": "N."
+          "note": "N.",
+          "variant_labels": [
+            "Да",
+            "Нет"
+          ]
         },
         {
           "n": 33,
@@ -558,7 +566,11 @@
           "default": "N",
           "allow_empty": true,
           "json_target": "CONTEST_FEATURE.tournamentTeam",
-          "note": "N."
+          "note": "N.",
+          "variant_labels": [
+            "Да",
+            "Нет"
+          ]
         },
         {
           "n": 34,
@@ -600,7 +612,11 @@
           "default": "",
           "allow_empty": true,
           "json_target": "CONTEST_FEATURE.tournamentStartMailing",
-          "note": "N."
+          "note": "N.",
+          "variant_labels": [
+            "Да",
+            "Нет"
+          ]
         },
         {
           "n": 37,
@@ -616,7 +632,11 @@
           "default": "",
           "allow_empty": true,
           "json_target": "CONTEST_FEATURE.tournamentEndMailing",
-          "note": "N."
+          "note": "N.",
+          "variant_labels": [
+            "Да",
+            "Нет"
+          ]
         },
         {
           "n": 38,
@@ -632,7 +652,11 @@
           "default": "",
           "allow_empty": true,
           "json_target": "CONTEST_FEATURE.tournamentLikeMailing",
-          "note": "N."
+          "note": "N.",
+          "variant_labels": [
+            "Да",
+            "Нет"
+          ]
         },
         {
           "n": 39,
@@ -661,7 +685,11 @@
           "default": "",
           "allow_empty": true,
           "json_target": "CONTEST_FEATURE.tournamentRewardingMailing",
-          "note": "N."
+          "note": "N.",
+          "variant_labels": [
+            "Да",
+            "Нет"
+          ]
         },
         {
           "n": 41,
@@ -888,7 +916,11 @@
           "default": "N",
           "allow_empty": true,
           "json_target": "REWARD_ADD_DATA.nftFlg",
-          "note": "N (обычно N)."
+          "note": "N (обычно N).",
+          "variant_labels": [
+            "Да",
+            "Нет"
+          ]
         },
         {
           "n": 56,
@@ -904,7 +936,11 @@
           "default": "N",
           "allow_empty": true,
           "json_target": "REWARD_ADD_DATA.outstanding",
-          "note": "N."
+          "note": "N.",
+          "variant_labels": [
+            "Да",
+            "Нет"
+          ]
         },
         {
           "n": 57,
@@ -933,7 +969,11 @@
           "default": "N",
           "allow_empty": true,
           "json_target": "REWARD_ADD_DATA.rewardAgainGlobal",
-          "note": "N."
+          "note": "N.",
+          "variant_labels": [
+            "Да",
+            "Нет"
+          ]
         },
         {
           "n": 59,
@@ -949,7 +989,11 @@
           "default": "N",
           "allow_empty": true,
           "json_target": "REWARD_ADD_DATA.rewardAgainTournament",
-          "note": "N (часто N)."
+          "note": "N (часто N).",
+          "variant_labels": [
+            "Да",
+            "Нет"
+          ]
         },
         {
           "n": 60,
@@ -965,7 +1009,11 @@
           "default": "N",
           "allow_empty": true,
           "json_target": "REWARD_ADD_DATA.hidden",
-          "note": "N."
+          "note": "N.",
+          "variant_labels": [
+            "Да",
+            "Нет"
+          ]
         },
         {
           "n": 61,
@@ -1020,7 +1068,11 @@
           "default": "N",
           "allow_empty": true,
           "json_target": "REWARD_ADD_DATA.masterBadge",
-          "note": "N. (Y — для награды / N — для турнира)"
+          "note": "N. (Y — для награды / N — для турнира)",
+          "variant_labels": [
+            "Да",
+            "Нет"
+          ]
         },
         {
           "n": 65,
@@ -1084,7 +1136,11 @@
           "default": "N",
           "allow_empty": true,
           "json_target": "REWARD_ADD_DATA.refreshOldNews",
-          "note": "N."
+          "note": "N.",
+          "variant_labels": [
+            "Да",
+            "Нет"
+          ]
         },
         {
           "n": 69,
@@ -1100,7 +1156,11 @@
           "default": "N",
           "allow_empty": true,
           "json_target": "REWARD_ADD_DATA.tournamentTeam",
-          "note": "N."
+          "note": "N.",
+          "variant_labels": [
+            "Да",
+            "Нет"
+          ]
         },
         {
           "n": 70,
@@ -1215,7 +1275,11 @@
           "default": "N",
           "allow_empty": true,
           "json_target": "REWARD_ADD_DATA.hiddenRewardList",
-          "note": "N."
+          "note": "N.",
+          "variant_labels": [
+            "Да",
+            "Нет"
+          ]
         }
       ]
     },

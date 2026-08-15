@@ -37,8 +37,17 @@ def _normalize_field(raw: Dict[str, Any]) -> Dict[str, Any]:
         variants = [v.strip() for v in variants.split(",") if v.strip()]
     else:
         variants = [str(v).strip() for v in variants if str(v).strip()]
+    labels_raw = raw.get("variant_labels") or []
+    if isinstance(labels_raw, str):
+        labels_raw = [x.strip() for x in labels_raw.split("\n")]
+    else:
+        labels_raw = [str(x).strip() if x is not None else "" for x in labels_raw]
+    # Подписи по индексу; лишние отбрасываем, недостающие — пустые
+    variant_labels = [
+        (labels_raw[i] if i < len(labels_raw) else "") for i in range(len(variants))
+    ]
     kind = str(raw.get("kind") or "").strip().lower() or None
-    return {
+    out: Dict[str, Any] = {
         "key": str(raw.get("key") or "").strip(),
         "label": str(raw.get("label") or "").strip(),
         "description": str(raw.get("description") or "").strip(),
@@ -48,6 +57,9 @@ def _normalize_field(raw: Dict[str, Any]) -> Dict[str, Any]:
         "allow_empty": bool(raw.get("allow_empty", True)),
         "note": str(raw.get("note") or "").strip(),
     }
+    if any(variant_labels):
+        out["variant_labels"] = variant_labels
+    return out
 
 
 def load_param_catalog(path: str | Path) -> int:

@@ -321,4 +321,5 @@ IN/
 | 15.8a | Blank формируется из `common/param_catalog_review/catalog.json` → `common/templates/…` | [v] |
 | 15.9 | HTML-заполнение SPOD: `common/web-fill/` (шаги/сетка, тип→BADGE, `dropdown_custom`, JSON save/load, PROM, CSV `;` + UTF-8 BOM) | [v] |
 | 15.10 | Тип ввода `dropdown_custom` (список + свой вариант): edit + fill; `SHOW_INDICATOR` | [v] |
+| 15.11 | Подписи вариантов (`variant_labels`): в edit — два блока; в fill — текст на чипе + код; CSV — исходное значение; Y/N → Да/Нет | [v] |
 

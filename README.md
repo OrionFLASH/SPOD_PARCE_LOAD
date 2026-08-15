@@ -1310,6 +1310,13 @@ python main.py
 
 ## История версий
 
+### Версия 1.7.67 — Подписи вариантов и быстрые даты в календаре
+
+- Каталог: поле **`variant_labels`** (параллельно `variants`); в web-edit два блока ввода; в web-fill на чипах подпись + код, в CSV — исходное значение.
+- Для всех `Y`/`N` в каталоге проставлено «Да» / «Нет».
+- Календарь даты: кнопки «Нач. мес.», «Кон. мес.», «Сегодня» в попапе (edit + fill).
+- `catalog_loader` сохраняет `variant_labels`; ROADMAP §15.11.
+
 ### Версия 1.7.66 — common/: web-edit, catalog, blank из JSON
 
 - Редактор и данные: **`common/web-edit/`**, **`common/param_catalog_review/`** (catalog.json / catalog.js / MD-снимок).
