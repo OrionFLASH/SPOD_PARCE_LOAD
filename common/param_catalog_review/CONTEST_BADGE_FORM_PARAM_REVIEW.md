@@ -16,11 +16,11 @@
 |---------|-------------|
 | **Ст** | `[ ]` · `[v]` · `[w]` |
 | **Подпись** / **Описание** | Широкие колонки (18% + 30%) |
-| **Тип** | Выбор из списка / Свободный текст / Число / Массив значений / JSON / Дата |
+| **Тип** | Выбор из списка / Список+свой / Свободный текст / Число / Массив / JSON / Дата |
 | **Варианты** | Список через запятую; `—` если нет |
 | **Дефолт** | Предзаполнение BLANK; `—` = пусто |
 | **Пусто** | `да` / `нет` |
-| **JSON** | `CONTEST_FEATURE` / `REWARD_ADD_DATA` / `ячейка JSON` / `—` |
+| **JSON** | Полный путь ключа: `CONTEST_FEATURE.vid`, `REWARD_ADD_DATA.rewardRule`, имя колонки-JSON (`GROUP_VALUE`) или `—` |
 | **Заметка** | Комментарий |
 
 Смотрите в **превью** Markdown. Файл в `.prettierignore`.
@@ -64,7 +64,7 @@
 
 <tr>
   <td>1</td>
-  <td><code>[v]</code></td>
+  <td><code>[ ]</code></td>
   <td><code>CONTEST_CODE</code></td>
   <td>Код конкурса</td>
   <td>Уникальный код конкурса (ключ связей). Пример: 01_2025-0_11-1_1</td>
@@ -78,7 +78,7 @@
 
 <tr>
   <td>2</td>
-  <td><code>[w]</code></td>
+  <td><code>[ ]</code></td>
   <td><code>FULL_NAME</code></td>
   <td>Название конкурса</td>
   <td>Отображаемое название конкурса/турнира (на странице Турниры/Детальная карточка турнира).</td>
@@ -92,7 +92,7 @@
 
 <tr>
   <td>3</td>
-  <td><code>[w]</code></td>
+  <td><code>[ ]</code></td>
   <td><code>CREATE_DT</code></td>
   <td>Дата создания конкурса</td>
   <td>Дата начала YYYY-MM-DD. Почти всегда начало года</td>
@@ -106,7 +106,7 @@
 
 <tr>
   <td>4</td>
-  <td><code>[v]</code></td>
+  <td><code>[ ]</code></td>
   <td><code>CLOSE_DT</code></td>
   <td>Дата закрытия</td>
   <td>Дата окончания YYYY-MM-DD; 4000-01-01 = без срока.</td>
@@ -120,7 +120,7 @@
 
 <tr>
   <td>5</td>
-  <td><code>[w]</code></td>
+  <td><code>[ ]</code></td>
   <td><code>BUSINESS_STATUS</code></td>
   <td>Бизнес-статус</td>
   <td>Статус: АКТИВНЫЙ  &#124;  АРХИВНЫЙ. (Всегда ставим АКТИВНЫЙ)</td>
@@ -134,7 +134,7 @@
 
 <tr>
   <td>6</td>
-  <td><code>[w]</code></td>
+  <td><code>[ ]</code></td>
   <td><code>CONTEST_TYPE</code></td>
   <td>Тип конкурса</td>
   <td>ТУРНИРНЫЙ (соревнование "будь лучше других") (разыгрываем от 1 до 3 сезонных наград Золото Серебро Бронза)  &#124;  ИНДИВИДУАЛЬНЫЙ  &#124;  ИНДИВИДУАЛЬНЫЙ НАКОПИТЕЛЬНЫЙ (режим "достигни результат", получи одну награду).</td>
@@ -148,7 +148,7 @@
 
 <tr>
   <td>7</td>
-  <td><code>[w]</code></td>
+  <td><code>[ ]</code></td>
   <td><code>CONTEST_DESCRIPTION</code></td>
   <td>Описание турнира</td>
   <td>Текст описания для конкурса/турнира (на странице Детальная карточка турнира показываем).</td>
@@ -162,11 +162,11 @@
 
 <tr>
   <td>8</td>
-  <td><code>[w]</code></td>
+  <td><code>[ ]</code></td>
   <td><code>SHOW_INDICATOR</code></td>
   <td>Отображаемое название единиц показателя</td>
   <td>Единица/подпись индикатора: шт.  &#124;  Факт  &#124;  %  &#124;  … на списке показателей подпись к единицам данных</td>
-  <td>dropdown</td>
+  <td>dropdown_custom</td>
   <td>%, %%, пт., шт., Факт, балл, Темп %, Ранг %%, ФЛ, шт., клиенты, Ср. балл, млн руб., К-во, шт., категория, тыс. руб., Анкет, шт., Сумма, руб., Пакеты услуг, Договора, шт., Сумма УС, шт., Процент (х100), Факт, млн руб., Сумма, млн руб., сборы, млн руб., Сумма, тыс. руб., Интегральный ранг, Прирост, млн руб., Прирост, тыс. руб., Комиссия, тыс. руб., Прирост ОСЗ, млн руб., нетто-притоки, млн руб.</td>
   <td>—</td>
   <td>да</td>
@@ -176,7 +176,7 @@
 
 <tr>
   <td>9</td>
-  <td><code>[w]</code></td>
+  <td><code>[ ]</code></td>
   <td><code>PRODUCT_GROUP</code></td>
   <td>Группа продукта</td>
   <td>Группа продукта (общее направление)</td>
@@ -190,7 +190,7 @@
 
 <tr>
   <td>10</td>
-  <td><code>[w]</code></td>
+  <td><code>[ ]</code></td>
   <td><code>PRODUCT</code></td>
   <td>Продукт</td>
   <td>Продукт / тематика конкурса.</td>
@@ -204,7 +204,7 @@
 
 <tr>
   <td>11</td>
-  <td><code>[w]</code></td>
+  <td><code>[ ]</code></td>
   <td><code>CONTEST_SUBJECT</code></td>
   <td>Кто соревнуется</td>
   <td>Кто участник конкурса. Обычно: EMPLOYEE (сотрудники).</td>
@@ -218,7 +218,7 @@
 
 <tr>
   <td>12</td>
-  <td><code>[w]</code></td>
+  <td><code>[ ]</code></td>
   <td><code>FACTOR_MARK_TYPE</code></td>
   <td>Принцип отбора победителей</td>
   <td>CRITERION  &#124;  RATING_MAX  &#124;  RATING_MIN. (способ выбора победителей: достиг показателя, сделал больше других или меньше других — меньше, например, для ранга)</td>
@@ -232,7 +232,7 @@
 
 <tr>
   <td>13</td>
-  <td><code>[w]</code></td>
+  <td><code>[ ]</code></td>
   <td><code>CONTEST_INDICATOR_METHOD</code></td>
   <td>Метод индикатора</td>
   <td>INTEGRAL  &#124;  RELATION. Метод расчета показателя (фактический / расчетный)</td>
@@ -246,7 +246,7 @@
 
 <tr>
   <td>14</td>
-  <td><code>[w]</code></td>
+  <td><code>[ ]</code></td>
   <td><code>CONTEST_FACTOR_METHOD</code></td>
   <td>Метод расчета показателя</td>
   <td>FACT  &#124;  FACT0-FACT1  &#124;  FACT0-RUN_RATE1_DOWN  &#124;  RUN_RATE. (для автоматических турниров способ расчета на данных источников)</td>
@@ -260,7 +260,7 @@
 
 <tr>
   <td>15</td>
-  <td><code>[w]</code></td>
+  <td><code>[ ]</code></td>
   <td><code>PLAN_METHOD_CODE</code></td>
   <td>Как вычисляется план</td>
   <td>DEPENDS_PREVIOUS_PERIOD  &#124;  PRESET_VALUE. (Метод расчета планового показателя: из прошлого периода / фиксированное значение)</td>
@@ -274,7 +274,7 @@
 
 <tr>
   <td>16</td>
-  <td><code>[w]</code></td>
+  <td><code>[ ]</code></td>
   <td><code>PLAN_MOD_METOD</code></td>
   <td>Метод модификации плана</td>
   <td>Модификатор плана. Обычно: MULTIPLIER.</td>
@@ -288,7 +288,7 @@
 
 <tr>
   <td>17</td>
-  <td><code>[w]</code></td>
+  <td><code>[ ]</code></td>
   <td><code>PLAN_MOD_VALUE</code></td>
   <td>Значение плана</td>
   <td>Значение планового показателя (0, 1, 1000, …).</td>
@@ -302,7 +302,7 @@
 
 <tr>
   <td>18</td>
-  <td><code>[w]</code></td>
+  <td><code>[ ]</code></td>
   <td><code>FACTOR_MATCH</code></td>
   <td>Символ сравнения с планом</td>
   <td>Сравнение фактора: =  &#124;  &gt;  &#124;  &gt;=  &#124;  &lt;  &#124;  &lt;=.</td>
@@ -316,7 +316,7 @@
 
 <tr>
   <td>19</td>
-  <td><code>[w]</code></td>
+  <td><code>[ ]</code></td>
   <td><code>TARGET_TYPE</code></td>
   <td>Среда конкурса</td>
   <td>Среда конкурса: ПРОМ  &#124;  ТЕСТ.</td>
@@ -330,7 +330,7 @@
 
 <tr>
   <td>20</td>
-  <td><code>[v]</code></td>
+  <td><code>[ ]</code></td>
   <td><code>SOURCE_UPD_FREQUENCY</code></td>
   <td>Частота обновления источника</td>
   <td>Частота обновления источника: 1  &#124;  7  &#124;  10 (дни). (не используется)</td>
@@ -344,7 +344,7 @@
 
 <tr>
   <td>21</td>
-  <td><code>[v]</code></td>
+  <td><code>[ ]</code></td>
   <td><code>CALC_TYPE</code></td>
   <td>Тип расчёта</td>
   <td>Тип расчёта: 0  &#124;  1. (не используется) 0 — промышленный расчет / 1 — ручной расчет</td>
@@ -358,7 +358,7 @@
 
 <tr>
   <td>22</td>
-  <td><code>[v]</code></td>
+  <td><code>[ ]</code></td>
   <td><code>FACT_POST_PROCESSING</code></td>
   <td>Постобработка факта</td>
   <td>Постобработка факта (код/флаг; часто пусто). Правило постобработки показателя конкурса. PERCENTILE — вычисление перцентиля от фактического показателя конкурса</td>
@@ -372,7 +372,7 @@
 
 <tr>
   <td>23</td>
-  <td><code>[w]</code></td>
+  <td><code>[ ]</code></td>
   <td><code>BUSINESS_BLOCK</code></td>
   <td>Бизнес-блок (через ;)</td>
   <td>Бизнес-блок(и) через ; . Примеры: KMMMB, KMKKSB, CSM, AKMKKSB.</td>
@@ -439,7 +439,7 @@
 
 <tr>
   <td>25</td>
-  <td><code>[w]</code></td>
+  <td><code>[ ]</code></td>
   <td><code>FEATURE.vid</code></td>
   <td>FEATURE.Среда конкурса</td>
   <td>Среда конкурса: ПРОМ  &#124;  ТЕСТ (как TARGET_TYPE).</td>
@@ -447,13 +447,13 @@
   <td>ПРОМ, ТЕСТ</td>
   <td>ПРОМ</td>
   <td>да</td>
-  <td>CONTEST_FEATURE</td>
+  <td>CONTEST_FEATURE.vid</td>
   <td>ТЕСТ (как TARGET_TYPE).</td>
 </tr>
 
 <tr>
   <td>26</td>
-  <td><code>[w]</code></td>
+  <td><code>[ ]</code></td>
   <td><code>FEATURE.accuracy</code></td>
   <td>FEATURE.Округление до...</td>
   <td>Точность/разрядность: 0  &#124;  1  &#124;  2 . (число знаков после запятой для отображения)</td>
@@ -461,13 +461,13 @@
   <td>0, 1, 2</td>
   <td>—</td>
   <td>да</td>
-  <td>CONTEST_FEATURE</td>
+  <td>CONTEST_FEATURE.accuracy</td>
   <td></td>
 </tr>
 
 <tr>
   <td>27</td>
-  <td><code>[w]</code></td>
+  <td><code>[ ]</code></td>
   <td><code>FEATURE.capacity</code></td>
   <td>FEATURE.Приведение к млн / тыс.</td>
   <td>Масштаб: пусто  &#124;  MILLIONS  &#124;  THOUSANDS. (приведение отображаемого показателя к млн, к тыс.)</td>
@@ -475,7 +475,7 @@
   <td>MILLIONS, THOUSANDS</td>
   <td>—</td>
   <td>да</td>
-  <td>CONTEST_FEATURE</td>
+  <td>CONTEST_FEATURE.capacity</td>
   <td></td>
 </tr>
 
@@ -489,7 +489,7 @@
   <td>Y, N</td>
   <td>N</td>
   <td>да</td>
-  <td>CONTEST_FEATURE</td>
+  <td>CONTEST_FEATURE.masking</td>
   <td>N (часто N).</td>
 </tr>
 
@@ -503,7 +503,7 @@
   <td>1, 2, 3</td>
   <td>—</td>
   <td>да</td>
-  <td>CONTEST_FEATURE</td>
+  <td>CONTEST_FEATURE.minNumber</td>
   <td></td>
 </tr>
 
@@ -517,7 +517,7 @@
   <td>AFTER, DURIN</td>
   <td>—</td>
   <td>да</td>
-  <td>CONTEST_FEATURE</td>
+  <td>CONTEST_FEATURE.momentRewarding</td>
   <td>DURIN (после закрытия турнира / во время турнира)</td>
 </tr>
 
@@ -531,7 +531,7 @@
   <td>one, all</td>
   <td>—</td>
   <td>да</td>
-  <td>CONTEST_FEATURE</td>
+  <td>CONTEST_FEATURE.typeRewarding</td>
   <td>all).</td>
 </tr>
 
@@ -545,7 +545,7 @@
   <td>Y, N</td>
   <td>Y</td>
   <td>да</td>
-  <td>CONTEST_FEATURE</td>
+  <td>CONTEST_FEATURE.avatarShow</td>
   <td>N.</td>
 </tr>
 
@@ -559,7 +559,7 @@
   <td>Y, N</td>
   <td>N</td>
   <td>да</td>
-  <td>CONTEST_FEATURE</td>
+  <td>CONTEST_FEATURE.tournamentTeam</td>
   <td>N.</td>
 </tr>
 
@@ -573,7 +573,7 @@
   <td>через ;</td>
   <td>—</td>
   <td>да</td>
-  <td>CONTEST_FEATURE</td>
+  <td>CONTEST_FEATURE.persomanNumberVisible</td>
   <td></td>
 </tr>
 
@@ -587,7 +587,7 @@
   <td>через ;</td>
   <td>—</td>
   <td>да</td>
-  <td>CONTEST_FEATURE</td>
+  <td>CONTEST_FEATURE.persomanNumberHidden</td>
   <td></td>
 </tr>
 
@@ -601,7 +601,7 @@
   <td>Y, N</td>
   <td>—</td>
   <td>да</td>
-  <td>CONTEST_FEATURE</td>
+  <td>CONTEST_FEATURE.tournamentStartMailing</td>
   <td>N.</td>
 </tr>
 
@@ -615,7 +615,7 @@
   <td>Y, N</td>
   <td>—</td>
   <td>да</td>
-  <td>CONTEST_FEATURE</td>
+  <td>CONTEST_FEATURE.tournamentEndMailing</td>
   <td>N.</td>
 </tr>
 
@@ -629,7 +629,7 @@
   <td>Y, N</td>
   <td>—</td>
   <td>да</td>
-  <td>CONTEST_FEATURE</td>
+  <td>CONTEST_FEATURE.tournamentLikeMailing</td>
   <td>N.</td>
 </tr>
 
@@ -643,7 +643,7 @@
   <td>через ;</td>
   <td>—</td>
   <td>да</td>
-  <td>CONTEST_FEATURE</td>
+  <td>CONTEST_FEATURE.tournamentListMailing</td>
   <td></td>
 </tr>
 
@@ -657,7 +657,7 @@
   <td>Y, N</td>
   <td>—</td>
   <td>да</td>
-  <td>CONTEST_FEATURE</td>
+  <td>CONTEST_FEATURE.tournamentRewardingMailing</td>
   <td>N.</td>
 </tr>
 
@@ -671,7 +671,7 @@
   <td>через ;</td>
   <td>—</td>
   <td>да</td>
-  <td>CONTEST_FEATURE</td>
+  <td>CONTEST_FEATURE.feature</td>
   <td></td>
 </tr>
 
@@ -685,7 +685,7 @@
   <td>через ;</td>
   <td>—</td>
   <td>да</td>
-  <td>CONTEST_FEATURE</td>
+  <td>CONTEST_FEATURE.businessBlock</td>
   <td></td>
 </tr>
 
@@ -699,7 +699,7 @@
   <td>через ;</td>
   <td>—</td>
   <td>да</td>
-  <td>CONTEST_FEATURE</td>
+  <td>CONTEST_FEATURE.helpCodeList</td>
   <td></td>
 </tr>
 
@@ -713,7 +713,7 @@
   <td>через ;</td>
   <td>—</td>
   <td>да</td>
-  <td>CONTEST_FEATURE</td>
+  <td>CONTEST_FEATURE.preferences</td>
   <td></td>
 </tr>
 
@@ -727,7 +727,7 @@
   <td>через ;</td>
   <td>—</td>
   <td>да</td>
-  <td>CONTEST_FEATURE</td>
+  <td>CONTEST_FEATURE.tbVisible</td>
   <td></td>
 </tr>
 
@@ -741,7 +741,7 @@
   <td>через ;</td>
   <td>—</td>
   <td>да</td>
-  <td>CONTEST_FEATURE</td>
+  <td>CONTEST_FEATURE.tbHidden</td>
   <td></td>
 </tr>
 
@@ -755,7 +755,7 @@
   <td>через ;</td>
   <td>—</td>
   <td>да</td>
-  <td>CONTEST_FEATURE</td>
+  <td>CONTEST_FEATURE.gosbVisible</td>
   <td></td>
 </tr>
 
@@ -769,7 +769,7 @@
   <td>через ;</td>
   <td>—</td>
   <td>да</td>
-  <td>CONTEST_FEATURE</td>
+  <td>CONTEST_FEATURE.gosbHidden</td>
   <td></td>
 </tr>
 
@@ -945,7 +945,7 @@
   <td>Y, N</td>
   <td>N</td>
   <td>да</td>
-  <td>REWARD_ADD_DATA</td>
+  <td>REWARD_ADD_DATA.nftFlg</td>
   <td>N (обычно N).</td>
 </tr>
 
@@ -959,7 +959,7 @@
   <td>Y, N</td>
   <td>N</td>
   <td>да</td>
-  <td>REWARD_ADD_DATA</td>
+  <td>REWARD_ADD_DATA.outstanding</td>
   <td>N.</td>
 </tr>
 
@@ -973,7 +973,7 @@
   <td>—</td>
   <td>—</td>
   <td>да</td>
-  <td>REWARD_ADD_DATA</td>
+  <td>REWARD_ADD_DATA.rewardRule</td>
   <td></td>
 </tr>
 
@@ -987,7 +987,7 @@
   <td>Y, N</td>
   <td>N</td>
   <td>да</td>
-  <td>REWARD_ADD_DATA</td>
+  <td>REWARD_ADD_DATA.rewardAgainGlobal</td>
   <td>N.</td>
 </tr>
 
@@ -1001,7 +1001,7 @@
   <td>Y, N</td>
   <td>N</td>
   <td>да</td>
-  <td>REWARD_ADD_DATA</td>
+  <td>REWARD_ADD_DATA.rewardAgainTournament</td>
   <td>N (часто N).</td>
 </tr>
 
@@ -1015,7 +1015,7 @@
   <td>Y, N</td>
   <td>N</td>
   <td>да</td>
-  <td>REWARD_ADD_DATA</td>
+  <td>REWARD_ADD_DATA.hidden</td>
   <td>N.</td>
 </tr>
 
@@ -1029,7 +1029,7 @@
   <td>—</td>
   <td>—</td>
   <td>да</td>
-  <td>REWARD_ADD_DATA</td>
+  <td>REWARD_ADD_DATA.fileName</td>
   <td></td>
 </tr>
 
@@ -1043,7 +1043,7 @@
   <td>—</td>
   <td>—</td>
   <td>да</td>
-  <td>REWARD_ADD_DATA</td>
+  <td>REWARD_ADD_DATA.teamNews</td>
   <td></td>
 </tr>
 
@@ -1057,7 +1057,7 @@
   <td>—</td>
   <td>—</td>
   <td>да</td>
-  <td>REWARD_ADD_DATA</td>
+  <td>REWARD_ADD_DATA.singleNews</td>
   <td></td>
 </tr>
 
@@ -1071,7 +1071,7 @@
   <td>Y, N</td>
   <td>N</td>
   <td>да</td>
-  <td>REWARD_ADD_DATA</td>
+  <td>REWARD_ADD_DATA.masterBadge</td>
   <td>N. (Y — для награды / N — для турнира)</td>
 </tr>
 
@@ -1085,7 +1085,7 @@
   <td>—</td>
   <td>—</td>
   <td>да</td>
-  <td>REWARD_ADD_DATA</td>
+  <td>REWARD_ADD_DATA.parentRewardCode</td>
   <td></td>
 </tr>
 
@@ -1099,7 +1099,7 @@
   <td>1, 2, 3</td>
   <td>—</td>
   <td>да</td>
-  <td>REWARD_ADD_DATA</td>
+  <td>REWARD_ADD_DATA.priority</td>
   <td></td>
 </tr>
 
@@ -1113,7 +1113,7 @@
   <td>BANK, TB, GOSB, NON</td>
   <td>—</td>
   <td>да</td>
-  <td>REWARD_ADD_DATA</td>
+  <td>REWARD_ADD_DATA.recommendationLevel</td>
   <td></td>
 </tr>
 
@@ -1127,7 +1127,7 @@
   <td>Y, N</td>
   <td>N</td>
   <td>да</td>
-  <td>REWARD_ADD_DATA</td>
+  <td>REWARD_ADD_DATA.refreshOldNews</td>
   <td>N.</td>
 </tr>
 
@@ -1141,7 +1141,7 @@
   <td>Y, N</td>
   <td>N</td>
   <td>да</td>
-  <td>REWARD_ADD_DATA</td>
+  <td>REWARD_ADD_DATA.tournamentTeam</td>
   <td>N.</td>
 </tr>
 
@@ -1155,7 +1155,7 @@
   <td>—</td>
   <td>—</td>
   <td>да</td>
-  <td>REWARD_ADD_DATA</td>
+  <td>REWARD_ADD_DATA.seasonItem</td>
   <td></td>
 </tr>
 
@@ -1169,7 +1169,7 @@
   <td>AIPROMPT, TEMPLATE</td>
   <td>—</td>
   <td>да</td>
-  <td>REWARD_ADD_DATA</td>
+  <td>REWARD_ADD_DATA.newsType</td>
   <td>TEMPLATE. (генерит ИИ / по шаблону)</td>
 </tr>
 
@@ -1183,7 +1183,7 @@
   <td>—</td>
   <td>—</td>
   <td>да</td>
-  <td>REWARD_ADD_DATA</td>
+  <td>REWARD_ADD_DATA.winCriterion</td>
   <td></td>
 </tr>
 
@@ -1197,7 +1197,7 @@
   <td>—</td>
   <td>—</td>
   <td>да</td>
-  <td>REWARD_ADD_DATA</td>
+  <td>REWARD_ADD_DATA.preferences</td>
   <td></td>
 </tr>
 
@@ -1211,7 +1211,7 @@
   <td>через ;</td>
   <td>—</td>
   <td>да</td>
-  <td>REWARD_ADD_DATA</td>
+  <td>REWARD_ADD_DATA.feature</td>
   <td></td>
 </tr>
 
@@ -1225,7 +1225,7 @@
   <td>KMMMB, KMKKSB, CSM, AKMKKSB</td>
   <td>—</td>
   <td>да</td>
-  <td>REWARD_ADD_DATA</td>
+  <td>REWARD_ADD_DATA.businessBlock</td>
   <td></td>
 </tr>
 
@@ -1239,7 +1239,7 @@
   <td>через ;</td>
   <td>—</td>
   <td>да</td>
-  <td>REWARD_ADD_DATA</td>
+  <td>REWARD_ADD_DATA.helpCodeList</td>
   <td></td>
 </tr>
 
@@ -1253,7 +1253,7 @@
   <td>Y, N</td>
   <td>N</td>
   <td>да</td>
-  <td>REWARD_ADD_DATA</td>
+  <td>REWARD_ADD_DATA.hiddenRewardList</td>
   <td>N.</td>
 </tr>
 
@@ -1415,7 +1415,7 @@
   <td>—</td>
   <td>—</td>
   <td>да</td>
-  <td>ячейка JSON</td>
+  <td>GROUP_VALUE</td>
   <td></td>
 </tr>
 
@@ -1706,7 +1706,7 @@
   <td>—</td>
   <td>—</td>
   <td>да</td>
-  <td>ячейка JSON</td>
+  <td>INDICATOR_FILTER</td>
   <td></td>
 </tr>
 
@@ -1927,7 +1927,7 @@
   <td>—</td>
   <td>—</td>
   <td>да</td>
-  <td>ячейка JSON</td>
+  <td>FILTER_PERIOD_ARR</td>
   <td></td>
 </tr>
 
@@ -1969,7 +1969,7 @@
   <td>ПРОМ, ТЕСТ</td>
   <td>—</td>
   <td>да</td>
-  <td>ячейка JSON</td>
+  <td>TARGET_TYPE</td>
   <td></td>
 </tr>
 
@@ -1997,7 +1997,7 @@
   <td>—</td>
   <td>—</td>
   <td>да</td>
-  <td>ячейка JSON</td>
+  <td>TRN_INDICATOR_FILTER</td>
   <td></td>
 </tr>
 

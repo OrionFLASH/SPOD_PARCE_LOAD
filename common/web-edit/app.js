@@ -2,16 +2,15 @@
 (function () {
   "use strict";
 
-  const LS_KEY = "spod_param_review_catalog_v3";
-  const LS_BASELINE_KEY = "spod_param_review_baseline_v3";
-  const LS_SOURCE_KEY = "spod_param_review_source_v3";
-  /** Сначала рядом со страницей; иначе ../param_catalog_review/ */
-  const CATALOG_DIR_LOCAL = "./";
-  const CATALOG_DIR_SIBLING = "../param_catalog_review/";
-  const CATALOG_URL = CATALOG_DIR_LOCAL + "catalog.json";
-  const KINDS = ["dropdown", "text", "number", "list", "json", "date"];
+  const LS_KEY = "spod_param_review_catalog_v4";
+  const LS_BASELINE_KEY = "spod_param_review_baseline_v4";
+  const LS_SOURCE_KEY = "spod_param_review_source_v4";
+  /** Только catalog.json рядом со страницей (без catalog.js и без соседних папок). */
+  const CATALOG_URL = "./catalog.json";
+  const KINDS = ["dropdown", "dropdown_custom", "text", "number", "list", "json", "date"];
   const KIND_LABELS = {
     dropdown: "Выбор из списка",
+    dropdown_custom: "Список + свой вариант",
     text: "Свободный текст",
     number: "Число",
     list: "Массив значений",
@@ -20,6 +19,7 @@
   };
   const KIND_SHORT = {
     dropdown: "Список",
+    dropdown_custom: "Список+",
     text: "Текст",
     number: "Число",
     list: "Массив",
@@ -30,6 +30,8 @@
   const KIND_ICONS = {
     dropdown:
       '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h16"/><path d="M4 12h10"/><path d="M4 18h7"/><path d="M15 14l3 3 3-3"/></svg>',
+    dropdown_custom:
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h16"/><path d="M4 12h10"/><path d="M4 18h7"/><path d="M15 14l3 3 3-3"/><path d="M19 8v4"/><path d="M17 10h4"/></svg>',
     text:
       '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7V5h16v2"/><path d="M12 5v14"/><path d="M8 19h8"/></svg>',
     number:
@@ -62,12 +64,18 @@
   };
   const KIND_TIPS = {
     dropdown: "Выбор из списка — одно значение из вариантов (выпадающий список в Excel)",
+    dropdown_custom:
+      "Список + свой вариант — варианты как у списка; в fill можно выбрать чип или ввести своё значение",
     text: "Свободный текст — произвольная строка без кавычек-ограничений списка",
     number: "Число — значение без кавычек (в JSON/SPOD как number)",
     list: "Массив значений — несколько элементов через «;» в Excel; варианты по строкам",
     json: "JSON формат {[ ]} — структура как в SPOD",
     date: "Дата в формате YYYY-MM-DD (например 4000-01-01)",
   };
+
+  function kindHasVariants(kind) {
+    return kind === "dropdown" || kind === "dropdown_custom" || kind === "list";
+  }
 
   /** @type {any} */
   let catalog = null;
@@ -113,21 +121,33 @@
   }
 
   function showApp() {
-    const gate = $("gate");
     const root = $("app-root");
-    if (gate) gate.hidden = true;
     if (root) root.hidden = false;
   }
 
-  function showGate(message, { showRetry = true } = {}) {
-    const gate = $("gate");
-    const root = $("app-root");
-    const text = $("gate-text");
-    const retry = $("gate-retry");
-    if (root) root.hidden = true;
-    if (gate) gate.hidden = false;
-    if (text) text.innerHTML = message;
-    if (retry) retry.hidden = !showRetry;
+  function hasCatalog() {
+    return !!(catalog && Array.isArray(catalog.sections) && catalog.sections.length);
+  }
+
+  function syncWorkspaceMode() {
+    const empty = $("sidebar-empty");
+    const loaded = $("sidebar-loaded");
+    const searchWrap = $("search-wrap");
+    const on = hasCatalog();
+    if (empty) empty.hidden = on;
+    if (loaded) loaded.hidden = !on;
+    if (searchWrap) searchWrap.hidden = !on;
+    if (!on) {
+      const title = $("section-title");
+      const intro = $("section-intro");
+      const fields = $("fields");
+      if (title) title.textContent = "Настройка описания параметров";
+      if (intro) {
+        intro.textContent =
+          "Выберите catalog.json в панели слева, чтобы начать.";
+      }
+      if (fields) fields.innerHTML = "";
+    }
   }
 
   function applyCatalog(data, { resetBaseline = true, persistDraft = true } = {}) {
@@ -138,6 +158,7 @@
     else if (!loadBaseline()) captureBaseline();
     if (persistDraft) persist();
     showApp();
+    syncWorkspaceMode();
     renderAll();
   }
 
@@ -264,84 +285,21 @@
   }
 
   async function fetchCatalogJson() {
-    const pageUrl = window.location.href;
-    const candidates = [
-      new URL("./catalog.json", pageUrl).href,
-      new URL(CATALOG_DIR_SIBLING + "catalog.json", pageUrl).href,
-    ];
-    const errors = [];
-    for (const url of candidates) {
-      try {
-        const res = await fetch(url, { cache: "no-store" });
-        if (!res.ok) {
-          errors.push(`${url} → HTTP ${res.status}`);
-          continue;
-        }
-        return validateCatalog(await res.json());
-      } catch (err) {
-        errors.push(`${url} → ${err && err.message ? err.message : err}`);
+    const url = new URL(CATALOG_URL, window.location.href).href;
+    try {
+      const res = await fetch(url, { cache: "no-store" });
+      if (!res.ok) {
+        throw new Error(`${url} → HTTP ${res.status}`);
       }
+      return validateCatalog(await res.json());
+    } catch (err) {
+      const msg = err && err.message ? err.message : String(err);
+      throw new Error(msg);
     }
-    throw new Error(errors.join("; ") || "fetch catalog.json не удался");
-  }
-
-  function loadCatalogJsFallback() {
-    if (window.PARAM_REVIEW_CATALOG && window.PARAM_REVIEW_CATALOG.sections) {
-      return Promise.resolve(validateCatalog(window.PARAM_REVIEW_CATALOG));
-    }
-    return new Promise((resolve, reject) => {
-      const trySrc = [
-        new URL("./catalog.js", window.location.href).href,
-        new URL(CATALOG_DIR_SIBLING + "catalog.js", window.location.href).href,
-      ];
-      let i = 0;
-      const tryNext = () => {
-        if (i >= trySrc.length) {
-          reject(
-            new Error(
-              "Не удалось загрузить catalog.js (web-edit/ и param_catalog_review/)"
-            )
-          );
-          return;
-        }
-        const s = document.createElement("script");
-        s.src = trySrc[i++] + "?t=" + Date.now();
-        s.onload = () => {
-          try {
-            if (!window.PARAM_REVIEW_CATALOG) {
-              tryNext();
-              return;
-            }
-            resolve(validateCatalog(window.PARAM_REVIEW_CATALOG));
-          } catch (err) {
-            reject(err);
-          }
-        };
-        s.onerror = () => tryNext();
-        document.head.appendChild(s);
-      };
-      tryNext();
-    });
   }
 
   async function loadSourceCatalog() {
-    try {
-      return await fetchCatalogJson();
-    } catch (fetchErr) {
-      try {
-        return await loadCatalogJsFallback();
-      } catch (jsErr) {
-        const isFile = window.location.protocol === "file:";
-        const hint = isFile
-          ? "Открытие через file:// часто блокирует чтение JSON. Нужен Live Server / HTTP, либо импорт файла вручную. Рядом с index.html должны быть catalog.json и catalog.js."
-          : "Проверьте catalog.json в common/web-edit/ (или common/param_catalog_review/).";
-        throw new Error(
-          `${hint}<br/><br/><span class="gate-error">${escapeHtml(
-            String(fetchErr.message || fetchErr)
-          )}</span>`
-        );
-      }
-    }
+    return fetchCatalogJson();
   }
 
   function tryRestoreDraft(fileStamp) {
@@ -358,10 +316,17 @@
     }
   }
 
+  function enterEmptyWorkspace() {
+    catalog = null;
+    baseline = {};
+    activeSectionId = null;
+    sourceStamp = "";
+    showApp();
+    syncWorkspaceMode();
+  }
+
   async function bootFromFile({ forceFile = false } = {}) {
-    showGate("Загружаем <code>catalog.json</code>…", {
-      showRetry: false,
-    });
+    showApp();
     try {
       const fileData = await loadSourceCatalog();
       const fileStamp = catalogStamp(fileData);
@@ -371,21 +336,29 @@
           sourceStamp = fileStamp || catalogStamp(draft);
           catalog = draft;
           if (!loadBaseline()) captureBaseline();
-          showApp();
+          syncWorkspaceMode();
           renderAll();
           showToast("Черновик из браузера");
           return;
         }
       }
       applyCatalog(fileData, { resetBaseline: true, persistDraft: true });
-      showToast("Загружен каталог");
-    } catch (err) {
-      showGate(
-        `Не удалось автоматически загрузить каталог.<br/><br/>` +
-          (err && err.message ? err.message : escapeHtml(String(err))) +
-          `<br/><br/>Импортируйте JSON вручную (файл рядом со страницей или ранее сохранённую выгрузку).`,
-        { showRetry: true }
-      );
+      showToast("Загружен catalog.json");
+    } catch (_) {
+      if (!forceFile) {
+        // без файла на диске — взять черновик, если уже открывали
+        const draft = tryRestoreDraft("");
+        if (draft) {
+          sourceStamp = catalogStamp(draft);
+          catalog = draft;
+          if (!loadBaseline()) captureBaseline();
+          syncWorkspaceMode();
+          renderAll();
+          showToast("Черновик из браузера");
+          return;
+        }
+      }
+      enterEmptyWorkspace();
     }
   }
 
@@ -549,12 +522,32 @@
     }
   }
 
+  function closeAllDatePops() {
+    document.querySelectorAll(".date-pop").forEach((p) => {
+      p.hidden = true;
+      p.classList.remove("is-open");
+      if (p.parentNode) p.parentNode.removeChild(p);
+    });
+    document.querySelectorAll(".default-date.is-picker-open").forEach((w) => {
+      w.classList.remove("is-picker-open");
+    });
+    window.__spodActiveDateWrap = null;
+    window.__spodActiveDatePop = null;
+  }
+
   function afterFieldEdit(card, field, sectionId) {
     const dirty = isEdited(sectionId, field);
     applyEditedUi(card, dirty);
     if (dirty && !editFilter.has("edited")) card.hidden = true;
     else if (!dirty && !editFilter.has("clean")) card.hidden = true;
     else card.hidden = false;
+    // попап даты в body — при скрытии карточки его нужно закрыть явно
+    if (card.hidden) {
+      const dateWrap = card.querySelector(".default-date");
+      if (dateWrap && window.__spodActiveDateWrap === dateWrap) {
+        closeActiveDatePop();
+      }
+    }
     schedulePersist();
     const edited = countEdited();
     const stats = $("sidebar-stats");
@@ -581,7 +574,7 @@
   }
 
   function variantsPlaceholder(kind) {
-    if (kind === "dropdown") {
+    if (kind === "dropdown" || kind === "dropdown_custom") {
       return "Каждое значение с новой строки:\nПРОМ\nТЕСТ";
     }
     if (kind === "list") {
@@ -595,7 +588,7 @@
     const hint = card.querySelector("[data-role='variants-hint']");
     const wrap = card.querySelector("[data-role='variants-wrap']");
     if (!ta) return;
-    const active = field.kind === "dropdown" || field.kind === "list";
+    const active = kindHasVariants(field.kind);
     ta.disabled = !active;
     ta.placeholder = active ? variantsPlaceholder(field.kind) : "";
     if (wrap) wrap.classList.toggle("is-disabled", !active);
@@ -604,7 +597,9 @@
       hint.textContent =
         field.kind === "list"
           ? "Массив значений: каждый элемент с новой строки (в Excel потом через ;)."
-          : "Выбор из списка: каждое значение с новой строки.";
+          : field.kind === "dropdown_custom"
+            ? "Список + свой вариант: варианты с новой строки (как у списка). Свой ввод — только в fill."
+            : "Выбор из списка: каждое значение с новой строки.";
     }
     if (!active) {
       // неактивно — без подсказок и без редактирования списка
@@ -624,16 +619,366 @@
   }
 
   function defaultHint(kind) {
-    if (kind === "dropdown") {
-      return "Выберите одно значение из вариантов (попадёт в BLANK).";
+    if (kind === "dropdown" || kind === "dropdown_custom") {
+      return "Чип → дефолт в BLANK. «Можно пусто» = да: повторный клик снимает всё (пусто). = нет: снять нельзя.";
     }
     if (kind === "list") {
-      return "Отметьте галочками нужные значения из вариантов (в BLANK через ;).";
+      return "Чипы → дефолт через ;. «Можно пусто» = да: можно снять все. = нет: хотя бы один чип.";
     }
     if (kind === "number") {
       return "Число без кавычек. Пусто = не предзаполнять.";
     }
+    if (kind === "date") {
+      return "Дата только YYYY-MM-DD: поле слева или чипы справа (начало / конец года / бесконечный = 4000-01-01).";
+    }
     return "Предзаполнение ячейки в шаблоне Excel. Пусто = не предзаполнять.";
+  }
+
+  const DATE_INFINITE = "4000-01-01";
+
+  function dateYearStart() {
+    return `${new Date().getFullYear()}-01-01`;
+  }
+
+  function dateYearEnd() {
+    return `${new Date().getFullYear()}-12-31`;
+  }
+
+  function isIsoDate(s) {
+    return /^\d{4}-\d{2}-\d{2}$/.test(String(s || "").trim());
+  }
+
+  function hideDatePopEl(pop) {
+    if (!pop) return;
+    pop.hidden = true;
+    pop.classList.remove("is-open");
+  }
+
+  function closeActiveDatePop() {
+    // попапы висят на document.body, не внутри .default-date
+    document.querySelectorAll(".date-pop.is-open, .date-pop:not([hidden])").forEach((p) => {
+      hideDatePopEl(p);
+    });
+    document.querySelectorAll(".default-date.is-picker-open").forEach((w) => {
+      w.classList.remove("is-picker-open");
+    });
+    window.__spodActiveDateWrap = null;
+    window.__spodActiveDatePop = null;
+  }
+
+  function isDatePickerUiTarget(t) {
+    if (!t || !t.closest) return false;
+    if (t.closest(".date-pop")) return true;
+    if (t.closest(".default-date")) return true;
+    return false;
+  }
+
+  function renderDefaultDateUi(host, field, sectionId, card) {
+    const wrap = document.createElement("div");
+    wrap.className = "default-date";
+    wrap.dataset.role = "default";
+
+    const row = document.createElement("div");
+    row.className = "default-date__row";
+
+    const fieldWrap = document.createElement("div");
+    fieldWrap.className = "default-date__field";
+
+    const text = document.createElement("input");
+    text.type = "text";
+    text.className = "default-date__iso";
+    text.placeholder = "YYYY-MM-DD";
+    text.spellcheck = false;
+    text.setAttribute("inputmode", "numeric");
+    text.setAttribute("autocomplete", "off");
+    text.setAttribute(
+      "data-tip",
+      "Дата в формате YYYY-MM-DD (как в Excel / SPOD)"
+    );
+    text.setAttribute("aria-label", "Дата YYYY-MM-DD");
+
+    const calBtn = document.createElement("button");
+    calBtn.type = "button";
+    calBtn.className = "default-date__cal";
+    calBtn.setAttribute("data-tip", "Открыть календарь");
+    calBtn.setAttribute("aria-label", "Календарь");
+    calBtn.innerHTML =
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18"/><path d="M8 3v4"/><path d="M16 3v4"/></svg>';
+
+    const pop = document.createElement("div");
+    pop.className = "date-pop";
+    pop.hidden = true;
+    pop.setAttribute("role", "dialog");
+    pop.setAttribute("aria-label", "Выбор даты");
+
+    const presets = document.createElement("div");
+    presets.className = "default-date__presets";
+    presets.setAttribute("role", "group");
+    presets.setAttribute("data-tip", "Быстрый выбор даты");
+
+    const presetDefs = [
+      {
+        id: "year-start",
+        label: "Начало года",
+        tip: "1 января текущего года (YYYY-01-01)",
+        value: () => dateYearStart(),
+        icon:
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18"/><path d="M8 14h3"/><path d="M8 3v4"/><path d="M16 3v4"/></svg>',
+      },
+      {
+        id: "year-end",
+        label: "Конец года",
+        tip: "31 декабря текущего года (YYYY-12-31)",
+        value: () => dateYearEnd(),
+        icon:
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18"/><path d="M13 14h3"/><path d="M8 3v4"/><path d="M16 3v4"/></svg>',
+      },
+      {
+        id: "infinite",
+        label: "Бесконечный",
+        tip: "Без срока: 4000-01-01",
+        value: () => DATE_INFINITE,
+        icon:
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18.2 8.2a4.2 4.2 0 0 0-6 0L12 8.4l-.2-.2a4.2 4.2 0 1 0 0 6l.2.2.2-.2a4.2 4.2 0 0 0 6-6z"/><path d="M5.8 8.2a4.2 4.2 0 0 1 6 0L12 8.4l.2-.2a4.2 4.2 0 1 1 0 6l-.2.2-.2-.2a4.2 4.2 0 0 1-6-6z"/></svg>',
+      },
+    ];
+
+    const view = { y: new Date().getFullYear(), m: new Date().getMonth() };
+    const MONTHS = [
+      "январь",
+      "февраль",
+      "март",
+      "апрель",
+      "май",
+      "июнь",
+      "июль",
+      "август",
+      "сентябрь",
+      "октябрь",
+      "ноябрь",
+      "декабрь",
+    ];
+    const DOW = ["пн", "вт", "ср", "чт", "пт", "сб", "вс"];
+
+    function syncPresetActive() {
+      const v = String(field.default || "").trim();
+      presets.querySelectorAll(".default-date__chip").forEach((btn) => {
+        const id = btn.getAttribute("data-preset");
+        let match = false;
+        if (id === "year-start") match = v === dateYearStart();
+        else if (id === "year-end") match = v === dateYearEnd();
+        else if (id === "infinite") match = v === DATE_INFINITE;
+        btn.classList.toggle("is-on", match);
+        btn.setAttribute("aria-pressed", match ? "true" : "false");
+      });
+    }
+
+    function applyDate(next, { close = true } = {}) {
+      const v = String(next || "").trim();
+      field.default = isIsoDate(v) ? v : "";
+      text.value = field.default;
+      if (isIsoDate(field.default)) {
+        const [yy, mm] = field.default.split("-").map(Number);
+        view.y = yy;
+        view.m = mm - 1;
+      }
+      syncPresetActive();
+      if (close) {
+        closePop();
+      } else if (!pop.hidden) {
+        paintPop();
+      }
+      afterFieldEdit(card, field, sectionId);
+    }
+
+    function closePop() {
+      hideDatePopEl(pop);
+      wrap.classList.remove("is-picker-open");
+      if (window.__spodActiveDateWrap === wrap) {
+        window.__spodActiveDateWrap = null;
+      }
+      if (window.__spodActiveDatePop === pop) {
+        window.__spodActiveDatePop = null;
+      }
+    }
+
+    function placePop() {
+      const rect = fieldWrap.getBoundingClientRect();
+      const pad = 8;
+      const width = Math.min(320, Math.max(280, window.innerWidth - pad * 2));
+      let left = rect.left;
+      if (left + width > window.innerWidth - pad) {
+        left = Math.max(pad, window.innerWidth - pad - width);
+      }
+      let top = rect.bottom + 6;
+      pop.style.width = `${width}px`;
+      pop.style.left = `${Math.round(left)}px`;
+      pop.style.top = `${Math.round(top)}px`;
+      // если снизу не влезает — над полем
+      requestAnimationFrame(() => {
+        const h = pop.offsetHeight || 320;
+        if (top + h > window.innerHeight - pad && rect.top > h + pad) {
+          pop.style.top = `${Math.round(rect.top - h - 6)}px`;
+        }
+      });
+    }
+
+    function openPop() {
+      if (isIsoDate(field.default)) {
+        const [yy, mm] = field.default.split("-").map(Number);
+        view.y = yy;
+        view.m = mm - 1;
+      } else {
+        const now = new Date();
+        view.y = now.getFullYear();
+        view.m = now.getMonth();
+      }
+      // закрыть все другие календари (попапы на body)
+      document.querySelectorAll(".date-pop").forEach((p) => {
+        if (p !== pop) hideDatePopEl(p);
+      });
+      document.querySelectorAll(".default-date.is-picker-open").forEach((w) => {
+        if (w !== wrap) w.classList.remove("is-picker-open");
+      });
+      if (!pop.isConnected) document.body.appendChild(pop);
+      paintPop();
+      pop.hidden = false;
+      pop.classList.add("is-open");
+      wrap.classList.add("is-picker-open");
+      window.__spodActiveDateWrap = wrap;
+      window.__spodActiveDatePop = pop;
+      placePop();
+    }
+
+    function paintPop() {
+      const selected = isIsoDate(field.default) ? field.default : "";
+      const first = new Date(view.y, view.m, 1);
+      let startDow = first.getDay(); // 0=вс
+      startDow = startDow === 0 ? 6 : startDow - 1; // пн=0
+      const daysInMonth = new Date(view.y, view.m + 1, 0).getDate();
+
+      let html =
+        `<div class="date-pop__head">` +
+        `<button type="button" class="date-pop__nav" data-nav="-1" aria-label="Предыдущий месяц">‹</button>` +
+        `<div class="date-pop__title">${MONTHS[view.m]} ${view.y}</div>` +
+        `<button type="button" class="date-pop__nav" data-nav="1" aria-label="Следующий месяц">›</button>` +
+        `</div>` +
+        `<div class="date-pop__dow">` +
+        DOW.map((d) => `<span>${d}</span>`).join("") +
+        `</div>` +
+        `<div class="date-pop__grid">`;
+
+      for (let i = 0; i < startDow; i += 1) {
+        html += `<span class="date-pop__empty"></span>`;
+      }
+      for (let day = 1; day <= daysInMonth; day += 1) {
+        const iso = `${view.y}-${String(view.m + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+        const on = iso === selected ? " is-on" : "";
+        const today =
+          iso ===
+          `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, "0")}-${String(new Date().getDate()).padStart(2, "0")}`
+            ? " is-today"
+            : "";
+        html += `<button type="button" class="date-pop__day${on}${today}" data-day="${iso}">${day}</button>`;
+      }
+      html += `</div>`;
+      pop.innerHTML = html;
+
+      pop.querySelectorAll("[data-nav]").forEach((btn) => {
+        btn.addEventListener("click", (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          const delta = Number(btn.getAttribute("data-nav") || 0);
+          view.m += delta;
+          if (view.m < 0) {
+            view.m = 11;
+            view.y -= 1;
+          } else if (view.m > 11) {
+            view.m = 0;
+            view.y += 1;
+          }
+          paintPop();
+        });
+      });
+      pop.querySelectorAll("[data-day]").forEach((btn) => {
+        btn.addEventListener("click", (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          applyDate(btn.getAttribute("data-day") || "");
+        });
+      });
+    }
+
+    const cur = String(field.default || "").trim();
+    if (isIsoDate(cur)) {
+      text.value = cur;
+    } else if (cur) {
+      field.default = "";
+    }
+
+    for (const p of presetDefs) {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "default-date__chip";
+      btn.setAttribute("data-preset", p.id);
+      btn.setAttribute("data-tip", p.tip);
+      btn.setAttribute("aria-pressed", "false");
+      btn.innerHTML =
+        `<span class="default-date__chip-icon" aria-hidden="true">${p.icon}</span>` +
+        `<span class="default-date__chip-label">${escapeHtml(p.label)}</span>`;
+      btn.addEventListener("click", () => {
+        const next = p.value();
+        applyDate(field.default === next ? "" : next, { close: true });
+      });
+      presets.appendChild(btn);
+    }
+
+    text.addEventListener("change", () => {
+      const v = text.value.trim();
+      if (!v) {
+        applyDate("", { close: false });
+        return;
+      }
+      if (!isIsoDate(v)) {
+        showToast("Дата должна быть в формате YYYY-MM-DD");
+        text.value = field.default || "";
+        return;
+      }
+      applyDate(v, { close: true });
+    });
+    text.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        text.dispatchEvent(new Event("change"));
+      }
+      if (e.key === "Escape") closePop();
+    });
+
+    calBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (!pop.hidden && window.__spodActiveDateWrap === wrap) {
+        closePop();
+      } else {
+        openPop();
+      }
+    });
+
+    text.addEventListener("focus", () => {
+      // фокус в текстовом поле — календарь не обязателен; закрываем попап
+      if (!pop.hidden) closePop();
+    });
+
+    fieldWrap.appendChild(text);
+    fieldWrap.appendChild(calBtn);
+    // попап в body — не обрезается карточкой и корректно ловит клик снаружи
+    document.body.appendChild(pop);
+    row.appendChild(fieldWrap);
+    row.appendChild(presets);
+    wrap.appendChild(row);
+    host.appendChild(wrap);
+    syncPresetActive();
+
   }
 
   function syncDefaultUi(card, field, sectionId) {
@@ -641,94 +986,16 @@
     const hint = card.querySelector("[data-role='default-hint']");
     if (!host) return;
 
-    const variants = Array.isArray(field.variants) ? field.variants.filter(Boolean) : [];
     const kind = field.kind || "text";
     host.innerHTML = "";
 
-    if (kind === "dropdown") {
-      if (!variants.length) {
-        host.innerHTML =
-          `<div class="default-empty" data-tip="Заполните блок «Варианты» — здесь появится выбор одного значения">Сначала введите варианты — появится выпадающий список.</div>`;
-        if (field.default) {
-          field.default = "";
-        }
-      } else {
-        if (field.default && !variants.includes(field.default)) {
-          field.default = "";
-        }
-        const sel = document.createElement("select");
-        sel.dataset.role = "default";
-        sel.setAttribute(
-          "data-tip",
-          "Выберите одно значение из вариантов для предзаполнения BLANK"
-        );
-        const emptyOpt = document.createElement("option");
-        emptyOpt.value = "";
-        emptyOpt.textContent = "— не предзаполнять —";
-        sel.appendChild(emptyOpt);
-        for (const v of variants) {
-          const opt = document.createElement("option");
-          opt.value = v;
-          opt.textContent = v;
-          if (field.default === v) opt.selected = true;
-          sel.appendChild(opt);
-        }
-        sel.addEventListener("change", () => {
-          field.default = sel.value;
-          afterFieldEdit(card, field, sectionId);
-        });
-        host.appendChild(sel);
-      }
+    if (kind === "dropdown" || kind === "dropdown_custom") {
+      // Для dropdown_custom дефолт — как у списка (чипы); поле «свой вариант» только в fill
+      renderDefaultChips(host, field, sectionId, card, { multi: false });
     } else if (kind === "list") {
-      if (!variants.length) {
-        host.innerHTML =
-          `<div class="default-empty" data-tip="Заполните блок «Варианты» — здесь появятся галочки">Сначала введите варианты — появятся галочки для выбора.</div>`;
-        if (field.default) {
-          field.default = "";
-        }
-      } else {
-        let selected = parseDefaultList(field.default).filter((v) =>
-          variants.includes(v)
-        );
-        if (formatDefaultList(selected) !== (field.default || "")) {
-          field.default = formatDefaultList(selected);
-        }
-        const box = document.createElement("div");
-        box.className = "default-checks";
-        box.dataset.role = "default";
-        box.setAttribute(
-          "data-tip",
-          "Отметьте одно или несколько значений — в BLANK уйдут через ;"
-        );
-        for (const v of variants) {
-          const id =
-            "def_" +
-            String(field.key || "f").replace(/\W+/g, "_") +
-            "_" +
-            String(v).replace(/\W+/g, "_").slice(0, 40);
-          const lab = document.createElement("label");
-          lab.className = "default-check";
-          lab.setAttribute("data-tip", `Включить в дефолт: ${v}`);
-          const cb = document.createElement("input");
-          cb.type = "checkbox";
-          cb.value = v;
-          cb.id = id;
-          cb.checked = selected.includes(v);
-          cb.addEventListener("change", () => {
-            const vals = Array.from(
-              box.querySelectorAll("input[type='checkbox']:checked")
-            ).map((el) => el.value);
-            field.default = formatDefaultList(vals);
-            afterFieldEdit(card, field, sectionId);
-          });
-          const span = document.createElement("span");
-          span.textContent = v;
-          lab.appendChild(cb);
-          lab.appendChild(span);
-          box.appendChild(lab);
-        }
-        host.appendChild(box);
-      }
+      renderDefaultChips(host, field, sectionId, card, { multi: true });
+    } else if (kind === "date") {
+      renderDefaultDateUi(host, field, sectionId, card);
     } else {
       const input = document.createElement("input");
       input.type = "text";
@@ -738,16 +1005,12 @@
         "data-tip",
         kind === "number"
           ? "Число без кавычек для предзаполнения BLANK"
-          : kind === "date"
-            ? "Дата YYYY-MM-DD для предзаполнения BLANK"
-            : "Свободный текст для предзаполнения ячейки в BLANK"
+          : "Свободный текст для предзаполнения ячейки в BLANK"
       );
       input.placeholder =
         kind === "number"
           ? "Например: 0 или 1.5"
-          : kind === "date"
-            ? "Например: 4000-01-01"
-            : "Свободный текст — попадёт в BLANK";
+          : "Свободный текст — попадёт в BLANK";
       input.addEventListener("input", () => {
         field.default = input.value;
         afterFieldEdit(card, field, sectionId);
@@ -756,6 +1019,161 @@
     }
 
     if (hint) hint.textContent = defaultHint(kind);
+  }
+
+  function defaultChipMarkHtml() {
+    return (
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.2 4.2L19 7"/></svg>'
+    );
+  }
+
+  /**
+   * Чипы выбора дефолта из вариантов.
+   * multi=false — одно значение (Список); multi=true — несколько через ; (Массив).
+   * Если allow_empty=false — нельзя снять всё: всегда остаётся выбор.
+   */
+  function selectionRequired(field) {
+    const kind = field.kind || "text";
+    return (
+      !field.allow_empty &&
+      (kind === "dropdown" ||
+        kind === "dropdown_custom" ||
+        kind === "list")
+    );
+  }
+
+  function ensureDefaultSelection(field, variants, multi) {
+    if (!selectionRequired(field) || !variants.length) return;
+    if (multi) {
+      const cur = parseDefaultList(field.default).filter((v) =>
+        variants.includes(v)
+      );
+      if (!cur.length) {
+        field.default = variants[0];
+      }
+    } else {
+      const cur = String(field.default || "").trim();
+      if (!cur || !variants.includes(cur)) {
+        field.default = variants[0];
+      }
+    }
+  }
+
+  function renderDefaultChips(host, field, sectionId, card, { multi }) {
+    const variants = Array.isArray(field.variants)
+      ? field.variants.filter(Boolean)
+      : [];
+    if (!variants.length) {
+      host.innerHTML = multi
+        ? `<div class="default-empty" data-tip="Заполните блок «Варианты» — здесь появятся чипы выбора">Сначала введите варианты — появятся чипы для выбора.</div>`
+        : `<div class="default-empty" data-tip="Заполните блок «Варианты» — здесь появятся чипы выбора">Сначала введите варианты — появятся чипы для выбора одного значения.</div>`;
+      if (field.default) field.default = "";
+      return;
+    }
+
+    ensureDefaultSelection(field, variants, multi);
+
+    let selected;
+    if (multi) {
+      selected = parseDefaultList(field.default).filter((v) =>
+        variants.includes(v)
+      );
+      if (formatDefaultList(selected) !== (field.default || "")) {
+        field.default = formatDefaultList(selected);
+      }
+    } else {
+      const cur = String(field.default || "").trim();
+      selected = cur && variants.includes(cur) ? [cur] : [];
+      if ((field.default || "") !== (selected[0] || "")) {
+        field.default = selected[0] || "";
+      }
+    }
+
+    const required = selectionRequired(field);
+    const box = document.createElement("div");
+    box.className =
+      "default-checks default-checks--chips" +
+      (multi ? "" : " default-checks--single");
+    box.dataset.role = "default";
+    box.setAttribute(
+      "data-tip",
+      required
+        ? multi
+          ? "«Можно пусто» = нет: должен остаться хотя бы один чип"
+          : "«Можно пусто» = нет: всегда выбран один вариант (снять всё нельзя)"
+        : multi
+          ? "«Можно пусто» = да: можно снять все чипы — тогда дефолт пустой"
+          : "«Можно пусто» = да: повторный клик снимает выбор — дефолт будет пустым"
+    );
+    box.setAttribute("role", multi ? "group" : "radiogroup");
+
+    for (const v of variants) {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "default-chip";
+      btn.setAttribute(
+        "data-tip",
+        multi ? `Включить в дефолт: ${v}` : `Выбрать дефолт: ${v}`
+      );
+      const on = selected.includes(v);
+      btn.setAttribute("aria-pressed", on ? "true" : "false");
+      if (!multi) btn.setAttribute("role", "radio");
+      if (!multi) btn.setAttribute("aria-checked", on ? "true" : "false");
+      btn.classList.toggle("is-on", on);
+      btn.value = v;
+      const mark = document.createElement("span");
+      mark.className = "default-chip__mark";
+      mark.setAttribute("aria-hidden", "true");
+      mark.innerHTML = defaultChipMarkHtml();
+      const text = document.createElement("span");
+      text.className = "default-chip__label";
+      text.textContent = v;
+      btn.appendChild(mark);
+      btn.appendChild(text);
+      btn.addEventListener("click", () => {
+        if (multi) {
+          const wasOn = btn.classList.contains("is-on");
+          if (wasOn) {
+            const onCount = box.querySelectorAll(".default-chip.is-on").length;
+            if (required && onCount <= 1) {
+              showToast("«Можно пусто» = нет — оставьте хотя бы один вариант");
+              return;
+            }
+            btn.classList.remove("is-on");
+            btn.setAttribute("aria-pressed", "false");
+          } else {
+            btn.classList.add("is-on");
+            btn.setAttribute("aria-pressed", "true");
+          }
+          const vals = Array.from(
+            box.querySelectorAll(".default-chip.is-on")
+          ).map((el) => el.value);
+          field.default = formatDefaultList(vals);
+        } else {
+          const wasOn = btn.classList.contains("is-on");
+          if (wasOn && required) {
+            showToast("«Можно пусто» = нет — значение должно быть выбрано");
+            return;
+          }
+          box.querySelectorAll(".default-chip").forEach((el) => {
+            el.classList.remove("is-on");
+            el.setAttribute("aria-pressed", "false");
+            el.setAttribute("aria-checked", "false");
+          });
+          if (!wasOn) {
+            btn.classList.add("is-on");
+            btn.setAttribute("aria-pressed", "true");
+            btn.setAttribute("aria-checked", "true");
+            field.default = v;
+          } else {
+            field.default = "";
+          }
+        }
+        afterFieldEdit(card, field, sectionId);
+      });
+      box.appendChild(btn);
+    }
+    host.appendChild(box);
   }
 
   function kindToggleHtml(activeKind) {
@@ -780,7 +1198,7 @@
 
   function applyKindChange(card, field, sectionId, nextKind) {
     field.kind = nextKind;
-    if (field.kind !== "dropdown" && field.kind !== "list") {
+    if (!kindHasVariants(field.kind)) {
       field.variants = [];
       const ta = card.querySelector("[data-role='variants']");
       if (ta) ta.value = "";
@@ -822,7 +1240,7 @@
     }).join("");
 
     const variantsText = (field.variants || []).join("\n");
-    const variantsActive = field.kind === "dropdown" || field.kind === "list";
+    const variantsActive = kindHasVariants(field.kind);
     const jsonFact = (field.json_target || "").trim();
 
     card.innerHTML = `
@@ -832,7 +1250,7 @@
           <span class="card-key" data-tip="Технический ключ параметра в форме / SPOD">${escapeHtml(field.key)}</span>
           ${
             jsonFact
-              ? `<span class="json-fact" data-tip="Куда уходит параметр в SPOD (факт раздела, не редактируется): ${escapeHtml(
+              ? `<span class="json-fact" data-tip="Полный путь ключа в JSON SPOD (колонка.лист; не редактируется): ${escapeHtml(
                   jsonFact
                 )}">${escapeHtml(jsonFact)}</span>`
               : ""
@@ -855,7 +1273,7 @@
           <div class="status-toggle" data-role="status" role="radiogroup" aria-label="Готовность" data-tip="Готовность описания поля">
             ${statusBtns}
           </div>
-          <label class="allow-empty-chip glass-switch${field.allow_empty ? " is-on" : ""}" data-role="allow_empty_wrap" data-tip="Разрешить пустое значение в Excel. Да — можно не заполнять; нет — ожидается значение.">
+          <label class="allow-empty-chip glass-switch${field.allow_empty ? " is-on" : ""}" data-role="allow_empty_wrap" data-tip="Да — можно оставить пустым (в edit/fill снять все чипы). Нет — для списка/dropdown всегда должен быть выбран вариант.">
             <input type="checkbox" data-role="allow_empty" role="switch" ${field.allow_empty ? "checked" : ""} />
             <span class="glass-switch__track" aria-hidden="true"><span class="glass-switch__thumb"></span></span>
             <span class="allow-empty-text">Можно пусто</span>
@@ -955,6 +1373,10 @@
       const lab = wrap && wrap.querySelector(".glass-switch__label");
       if (wrap) wrap.classList.toggle("is-on", field.allow_empty);
       if (lab) lab.textContent = field.allow_empty ? "да" : "нет";
+      // Нет «можно пусто» + список/dropdown → сразу зафиксировать выбор
+      if (!field.allow_empty && kindHasVariants(field.kind)) {
+        syncDefaultUi(card, field, sectionId);
+      }
       afterFieldEdit(card, field, sectionId);
     });
     bind("description", (e) => {
@@ -979,6 +1401,7 @@
   }
 
   function renderFields() {
+    closeAllDatePops();
     const wrap = $("fields");
     wrap.innerHTML = "";
     const q = searchQuery();
@@ -1054,6 +1477,10 @@
   }
 
   function renderAll() {
+    if (!hasCatalog()) {
+      syncWorkspaceMode();
+      return;
+    }
     if (!activeSectionId && catalog.sections.length) {
       activeSectionId = catalog.sections[0].id;
     }
@@ -1189,17 +1616,40 @@
   }
 
   function importJson(file) {
+    if (!file) return;
+    const name = String(file.name || "");
+    if (name && !/\.json$/i.test(name)) {
+      const ok = confirm(
+        `Файл «${name}» без расширения .json. Всё равно открыть?`
+      );
+      if (!ok) return;
+    }
     const reader = new FileReader();
+    reader.onerror = () => {
+      alert("Не удалось прочитать файл");
+    };
     reader.onload = () => {
       try {
-        const data = JSON.parse(String(reader.result || ""));
+        let raw = String(reader.result || "");
+        if (raw.charCodeAt(0) === 0xfeff) raw = raw.slice(1);
+        const data = JSON.parse(raw);
         applyCatalog(data, { resetBaseline: true, persistDraft: true });
-        showToast("Импортирован JSON");
+        showToast("Открыт catalog.json");
       } catch (err) {
-        alert("Не удалось импортировать JSON: " + err.message);
+        const msg = err && err.message ? err.message : String(err);
+        alert("Не удалось открыть JSON: " + msg);
       }
     };
     reader.readAsText(file, "utf-8");
+  }
+
+  function bindFileImport(inputEl) {
+    if (!inputEl) return;
+    inputEl.addEventListener("change", (e) => {
+      const f = e.target.files && e.target.files[0];
+      if (f) importJson(f);
+      e.target.value = "";
+    });
   }
 
   function syncEditFilterUi() {
@@ -1310,7 +1760,47 @@
   }
 
   function wire() {
+    bindFileImport($("import-json"));
+
     initGlassTips();
+
+    // закрыть календарь при клике / тапе вне блока даты и вне попапа
+    const onOutsideDatePicker = (e) => {
+      const open = document.querySelector(".date-pop.is-open");
+      if (!open) return;
+      if (isDatePickerUiTarget(e.target)) return;
+      closeActiveDatePop();
+    };
+    document.addEventListener("pointerdown", onOutsideDatePicker, true);
+    document.addEventListener("mousedown", onOutsideDatePicker, true);
+    document.addEventListener("touchstart", onOutsideDatePicker, true);
+
+    document.addEventListener(
+      "focusin",
+      (e) => {
+        const open = document.querySelector(".date-pop.is-open");
+        if (!open) return;
+        if (isDatePickerUiTarget(e.target)) return;
+        closeActiveDatePop();
+      },
+      true
+    );
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key !== "Escape") return;
+      if (!document.querySelector(".date-pop.is-open")) return;
+      closeActiveDatePop();
+    });
+
+    window.addEventListener(
+      "scroll",
+      () => {
+        if (!document.querySelector(".date-pop.is-open")) return;
+        closeActiveDatePop();
+      },
+      true
+    );
+
     $("search").addEventListener("input", () => {
       if (!catalog) return;
       renderNav();
@@ -1397,18 +1887,6 @@
     $("btn-export-json").addEventListener("click", exportJson);
     $("btn-export-csv").addEventListener("click", exportCsv);
     $("btn-export-md").addEventListener("click", exportMd);
-
-    const onImportFile = (e) => {
-      const f = e.target.files && e.target.files[0];
-      if (f) importJson(f);
-      e.target.value = "";
-    };
-    $("import-json").addEventListener("change", onImportFile);
-    $("gate-import-json").addEventListener("change", onImportFile);
-
-    $("gate-retry").addEventListener("click", () => {
-      bootFromFile({ forceFile: true });
-    });
 
     $("btn-reload").addEventListener("click", () => {
       if (

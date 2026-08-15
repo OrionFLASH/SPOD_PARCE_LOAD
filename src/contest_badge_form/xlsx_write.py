@@ -49,6 +49,7 @@ _S_LEGEND_LABEL = 11
 # value kinds + legend kinds
 _S_VALUE: Dict[str, int] = {
     "dropdown": 12,
+    "dropdown_custom": 12,  # тот же цвет, что dropdown; свободный ввод без DV
     "text": 13,
     "list": 14,
     "json": 15,
@@ -57,6 +58,7 @@ _S_VALUE: Dict[str, int] = {
 }
 _S_LEGEND: Dict[str, int] = {
     "dropdown": 17,
+    "dropdown_custom": 17,
     "text": 18,
     "list": 19,
     "json": 20,
@@ -760,6 +762,9 @@ def _write_sheet(
     for key, cells in kv_cells.items():
         values = dropdown_map.get(key)
         if not values:
+            continue
+        # Список + свой вариант: подсказки есть в каталоге, DV не ставим — можно ввести своё
+        if input_kind_for_kv(key, has_dropdown=True) == "dropdown_custom":
             continue
         formula = _dv_formula(key, values, list_ranges)
         if not formula:

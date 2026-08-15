@@ -95,7 +95,7 @@ REWARD_ADD_DATA_FIELDS: List[Tuple[str, str, str]] = [
     ("seasonItem", "ADD.seasonItem", "str"),
     ("newsType", "ADD.newsType", "str"),
     ("winCriterion", "ADD.winCriterion", "str"),
-    ("preferences", "ADD.preferences", "str"),
+    ("preferences", "ADD.preferences (через ;)", "list"),
     ("feature", "ADD.feature (через ;)", "list"),
     ("businessBlock", "ADD.businessBlock (через ;)", "list"),
     ("helpCodeList", "ADD.helpCodeList (через ;)", "list"),

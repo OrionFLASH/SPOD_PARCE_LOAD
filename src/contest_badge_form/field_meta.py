@@ -87,9 +87,14 @@ DROPDOWN_VALUES: Dict[str, List[str]] = {
     "FEATURE.tournamentEndMailing": _YN,
     "FEATURE.tournamentLikeMailing": _YN,
     "FEATURE.tournamentRewardingMailing": _YN,
+    "FEATURE.businessBlock": [
+        "KMMMB",
+        "KMKKSB",
+        "CSM",
+        "AKMKKSB",
+    ],
     # REWARD flat / ADD
     "REWARD_TYPE": ["BADGE"],
-    "REWARD_COST": ["0", "2", "3", "4", "5", "6", "7", "8", "10", "14"],
     "ADD.nftFlg": _YN,
     "ADD.outstanding": _YN,
     "ADD.rewardAgainGlobal": _YN,
@@ -176,7 +181,8 @@ FIELD_DESCRIPTIONS: Dict[str, str] = {
         "PERCENTILE — вычисление перцентиля от фактического показателя конкурса"
     ),
     "BUSINESS_BLOCK": (
-        "Бизнес-блок(и) через ; . Примеры: KMMMB, KMKKSB, CSM, AKMKKSB."
+        "Бизнес-блок(и) через ; . Варианты: KMMMB, KMKKSB, CSM, AKMKKSB. "
+        "По умолчанию KMMMB."
     ),
     "CONTEST_PERIOD": "Периоды через ; или пусто → []. Обычно пусто.",
     # FEATURE
@@ -215,7 +221,10 @@ FIELD_DESCRIPTIONS: Dict[str, str] = {
     "FEATURE.feature": (
         "Тексты особенностей турнира. Показываем в детальной карточке турнира"
     ),
-    "FEATURE.businessBlock": "Блоки в FEATURE через ; (как BUSINESS_BLOCK).",
+    "FEATURE.businessBlock": (
+        "Блоки в FEATURE через ; (как BUSINESS_BLOCK). "
+        "Варианты: KMMMB, KMKKSB, CSM, AKMKKSB. По умолчанию KMMMB."
+    ),
     "FEATURE.helpCodeList": "Коды для вывода окна с доп описанием конкурса",
     "FEATURE.preferences": (
         "Преференции за получение награды если предусмотрены"
@@ -230,7 +239,7 @@ FIELD_DESCRIPTIONS: Dict[str, str] = {
     "REWARD_FULL_NAME": "Краткое название бейджа",
     "REWARD_DESCRIPTION": "Полное описание награды.",
     "REWARD_CONDITION": "Класс/код условия начисления (часто пусто или код).",
-    "REWARD_COST": "Стоимость в кристаллах (часто 0…14).",
+    "REWARD_COST": "Стоимость в кристаллах (целое число, по умолчанию 5).",
     "ADD.nftFlg": "NFT-флаг: Y | N (обычно N).",
     "ADD.outstanding": "Выдающийся: Y | N.",
     "ADD.rewardRule": "Текст правила получения бейджа.",
@@ -251,9 +260,14 @@ FIELD_DESCRIPTIONS: Dict[str, str] = {
         "Тип новости: AIPROMPT | TEMPLATE. (генерит ИИ / по шаблону)"
     ),
     "ADD.winCriterion": "Текст критерия победы для ИИ создания новости",
-    "ADD.preferences": "Преференции если предусмотрены за награду",
+    "ADD.preferences": (
+        "Преференции если предусмотрены за награду (через ; → массив в REWARD_ADD_DATA.preferences)."
+    ),
     "ADD.feature": "Особенности награды через ; . (показываем в Награде)",
-    "ADD.businessBlock": "Блоки награды через ; .",
+    "ADD.businessBlock": (
+        "Блоки награды через ; . Варианты: KMMMB, KMKKSB, CSM, AKMKKSB. "
+        "По умолчанию KMMMB."
+    ),
     "ADD.helpCodeList": "Коды help через ; .",
     "ADD.hiddenRewardList": "Скрыт в списке наград: Y | N.",
 }
@@ -264,6 +278,7 @@ FIELD_DEFAULTS: Dict[str, str] = {
     "BUSINESS_STATUS": "АКТИВНЫЙ",
     "CONTEST_TYPE": "ТУРНИРНЫЙ",
     "CLOSE_DT": "4000-01-01",
+    "BUSINESS_BLOCK": "KMMMB",
     "CONTEST_SUBJECT": "EMPLOYEE",
     "TARGET_TYPE": "ПРОМ",
     "SOURCE_UPD_FREQUENCY": "1",
@@ -273,7 +288,9 @@ FIELD_DEFAULTS: Dict[str, str] = {
     "FEATURE.masking": "N",
     "FEATURE.avatarShow": "Y",
     "FEATURE.tournamentTeam": "N",
+    "FEATURE.businessBlock": "KMMMB",
     "REWARD_TYPE": "BADGE",
+    "REWARD_COST": "5",
     "ADD.nftFlg": "N",
     "ADD.outstanding": "N",
     "ADD.rewardAgainGlobal": "N",
@@ -283,6 +300,7 @@ FIELD_DEFAULTS: Dict[str, str] = {
     "ADD.refreshOldNews": "N",
     "ADD.tournamentTeam": "N",
     "ADD.hiddenRewardList": "N",
+    "ADD.businessBlock": "KMMMB",
 }
 
 # Можно ли оставить пустым при заполнении формы.
@@ -393,11 +411,13 @@ TABLE_DROPDOWNS: Dict[str, Dict[str, List[str]]] = {
 
 
 # --- Типы ввода (цвет столбца «Значение») ---
-# dropdown = выбор из списка; text = свободный текст; number = число;
+# dropdown = выбор из списка; dropdown_custom = список + свой вариант;
+# text = свободный текст; number = число;
 # list = массив значений (в форме через ;); json = JSON {[ ]}; date = YYYY-MM-DD
 
 INPUT_KIND_COLORS: Dict[str, str] = {
     "dropdown": "#C6EFCE",
+    "dropdown_custom": "#B2F5EA",
     "text": "#FFF2CC",
     "number": "#E8DAEF",
     "list": "#FCE4D6",
@@ -407,6 +427,7 @@ INPUT_KIND_COLORS: Dict[str, str] = {
 
 INPUT_KIND_LABELS: Dict[str, str] = {
     "dropdown": "Выбор из списка",
+    "dropdown_custom": "Список + свой вариант",
     "text": "Свободный текст",
     "number": "Число",
     "list": "Массив значений",
@@ -415,10 +436,21 @@ INPUT_KIND_LABELS: Dict[str, str] = {
 }
 
 # Порядок легенды на листе
-INPUT_KIND_ORDER: List[str] = ["dropdown", "text", "number", "list", "json", "date"]
+INPUT_KIND_ORDER: List[str] = [
+    "dropdown",
+    "dropdown_custom",
+    "text",
+    "number",
+    "list",
+    "json",
+    "date",
+]
 
 # KV-поля с датой
 _DATE_FORM_KEYS: frozenset = frozenset({"CREATE_DT", "CLOSE_DT"})
+
+# KV-поля с числовым вводом (не dropdown)
+NUMBER_FORM_KEYS: frozenset = frozenset({"REWARD_COST"})
 
 # Табличные колонки с JSON (или смешанным JSON/*/[код])
 TABLE_JSON_COLUMNS: Dict[str, frozenset] = {
@@ -468,6 +500,8 @@ def input_kind_for_kv(
     ov = field_overlay(form_key)
     if ov and ov.get("kind"):
         return str(ov["kind"])
+    if form_key in NUMBER_FORM_KEYS:
+        return "number"
     if schema_kind == "list" or form_key in _list_form_keys():
         return "list"
     if form_key in _DATE_FORM_KEYS or (
@@ -606,16 +640,18 @@ def table_hint_for(table_key: str, col_name: str) -> str:
 
 
 def json_pack_target(form_key: str) -> str:
-    """Куда упаковывается поле при импорте в SPOD; пусто = плоская колонка."""
+    """Полный путь ключа в JSON SPOD: колонка.лист; пусто = плоская колонка."""
     if form_key.startswith("FEATURE."):
-        return "CONTEST_FEATURE"
+        leaf = form_key.split(".", 1)[1]
+        return f"CONTEST_FEATURE.{leaf}" if leaf else "CONTEST_FEATURE"
     if form_key.startswith("ADD."):
-        return "REWARD_ADD_DATA"
+        leaf = form_key.split(".", 1)[1]
+        return f"REWARD_ADD_DATA.{leaf}" if leaf else "REWARD_ADD_DATA"
     return ""
 
 
 def json_pack_target_table(table_key: str, col_name: str) -> str:
-    """Метка JSON для колонки таблицы (ячейка целиком в формате SPOD-JSON)."""
+    """Полное имя колонки, если ячейка целиком — SPOD-JSON."""
     if col_name in TABLE_JSON_COLUMNS.get(table_key, frozenset()):
-        return "ячейка JSON"
+        return col_name
     return ""

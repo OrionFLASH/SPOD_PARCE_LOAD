@@ -263,7 +263,7 @@ def build_catalog() -> Dict[str, Any]:
                 allow_empty=o.get("allow_empty")
                 if "allow_empty" in o
                 else allow_empty_for(key),
-                json_target="CONTEST_FEATURE",
+                json_target=json_pack_target(key),
                 status=o.get("status", "[ ]"),
                 note=o.get("note", ""),
             )
@@ -340,7 +340,7 @@ def build_catalog() -> Dict[str, Any]:
                 allow_empty=o.get("allow_empty")
                 if "allow_empty" in o
                 else allow_empty_for(key),
-                json_target="REWARD_ADD_DATA",
+                json_target=json_pack_target(key),
                 status=o.get("status", "[ ]"),
                 note=o.get("note", ""),
             )
@@ -418,6 +418,7 @@ def main() -> None:
     js_body = (
         "/* зеркало catalog.json — собирается build_param_review_editor.py */\n"
         f"window.PARAM_REVIEW_CATALOG = {json.dumps(catalog, ensure_ascii=False, indent=2)};\n"
+        "window.SPOD_PARAM_CATALOG = window.PARAM_REVIEW_CATALOG;\n"
     )
     targets = [OUT_DIR, WEB_EDIT_DIR]
     for dest in targets:

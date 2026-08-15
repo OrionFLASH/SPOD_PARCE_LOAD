@@ -72,6 +72,7 @@ Blank собирается из **`common/param_catalog_review/catalog.json`** (
 | Цвет | Тип | Как заполнять |
 |------|-----|----------------|
 | Зелёный `#C6EFCE` | Выбор из списка | Выпадающий список (Y/N, ПРОМ/ТЕСТ, статусы…) |
+| Бирюзовый `#B2F5EA` | Список + свой вариант | Варианты из каталога **или** произвольный текст (`SHOW_INDICATOR`) |
 | Жёлтый `#FFF2CC` | Свободный ввод | Текст / число вручную |
 | Персик `#FCE4D6` | Несколько через `;` | Массив → при импорте JSON-массив |
 | Розовый `#F5B7B1` | JSON | Как в SPOD (`INDICATOR_FILTER`, `FILTER_PERIOD_ARR`, `GROUP_VALUE`…) |
@@ -85,6 +86,7 @@ Blank собирается из **`common/param_catalog_review/catalog.json`** (
 - Пересборка из кода (опционально): `python src/Tools/build_param_review_editor.py`.
 - Цикл: правки в web → «Сохранить JSON» → заменить `catalog.json` → токен `contest_badge_form_blank` пересоберёт BLANK из JSON.
 - MD-снимок: `common/param_catalog_review/CONTEST_BADGE_FORM_PARAM_REVIEW.md`.
+- Заполнение значений SPOD (Liquid Glass, CSV): **`common/web-fill/`** (синхрон каталога: `python src/Tools/sync_web_fill_catalog.py`).
 
 Fallback списков/описаний — `src/contest_badge_form/field_meta.py`, если `catalog.json` отсутствует. Скрытый лист `Lists` — длинные списки и значения с запятыми.
 

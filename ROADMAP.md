@@ -319,4 +319,6 @@ IN/
 | 15.7 | HTML-редактор каталога полей (`common/web-edit/` + `common/param_catalog_review/`) | [v] |
 | 15.8 | Blank Excel из `catalog.json` (web); apply → `field_meta.py` (полная синхронизация кода) | [w] |
 | 15.8a | Blank формируется из `common/param_catalog_review/catalog.json` → `common/templates/…` | [v] |
+| 15.9 | HTML-заполнение SPOD: `common/web-fill/` (шаги/сетка, тип→BADGE, `dropdown_custom`, JSON save/load, PROM, CSV `;` + UTF-8 BOM) | [v] |
+| 15.10 | Тип ввода `dropdown_custom` (список + свой вариант): edit + fill; `SHOW_INDICATOR` | [v] |
 

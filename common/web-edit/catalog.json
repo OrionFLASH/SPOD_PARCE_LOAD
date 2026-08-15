@@ -1,7 +1,7 @@
 {
   "version": 2,
-  "generated_at": "2026-08-15T00:24:23Z",
-  "source": "schema + field_meta + CONTEST_BADGE_FORM_PARAM_REVIEW.md",
+  "generated_at": "2026-08-15T09:32:48Z",
+  "source": "schema + field_meta + web-edit (BUSINESS_BLOCK list KMMMB)",
   "sections": [
     {
       "id": "CONTEST",
@@ -15,7 +15,7 @@
         {
           "n": 1,
           "key": "CONTEST_CODE",
-          "status": "[v]",
+          "status": "[ ]",
           "label": "Код конкурса",
           "description": "Уникальный код конкурса (ключ связей). Пример: 01_2025-0_11-1_1",
           "kind": "text",
@@ -28,7 +28,7 @@
         {
           "n": 2,
           "key": "FULL_NAME",
-          "status": "[w]",
+          "status": "[ ]",
           "label": "Название конкурса",
           "description": "Отображаемое название конкурса/турнира (на странице Турниры/Детальная карточка турнира).",
           "kind": "text",
@@ -41,7 +41,7 @@
         {
           "n": 3,
           "key": "CREATE_DT",
-          "status": "[w]",
+          "status": "[ ]",
           "label": "Дата создания конкурса",
           "description": "Дата начала YYYY-MM-DD. Почти всегда начало года",
           "kind": "date",
@@ -54,7 +54,7 @@
         {
           "n": 4,
           "key": "CLOSE_DT",
-          "status": "[v]",
+          "status": "[ ]",
           "label": "Дата закрытия",
           "description": "Дата окончания YYYY-MM-DD; 4000-01-01 = без срока.",
           "kind": "date",
@@ -67,7 +67,7 @@
         {
           "n": 5,
           "key": "BUSINESS_STATUS",
-          "status": "[w]",
+          "status": "[ ]",
           "label": "Бизнес-статус",
           "description": "Статус: АКТИВНЫЙ  |  АРХИВНЫЙ. (Всегда ставим АКТИВНЫЙ)",
           "kind": "dropdown",
@@ -83,7 +83,7 @@
         {
           "n": 6,
           "key": "CONTEST_TYPE",
-          "status": "[w]",
+          "status": "[ ]",
           "label": "Тип конкурса",
           "description": "ТУРНИРНЫЙ (соревнование \"будь лучше других\") (разыгрываем от 1 до 3 сезонных наград Золото Серебро Бронза)  |  ИНДИВИДУАЛЬНЫЙ  |  ИНДИВИДУАЛЬНЫЙ НАКОПИТЕЛЬНЫЙ (режим \"достигни результат\", получи одну награду).",
           "kind": "dropdown",
@@ -100,7 +100,7 @@
         {
           "n": 7,
           "key": "CONTEST_DESCRIPTION",
-          "status": "[w]",
+          "status": "[ ]",
           "label": "Описание турнира",
           "description": "Текст описания для конкурса/турнира (на странице Детальная карточка турнира показываем).",
           "kind": "text",
@@ -113,10 +113,10 @@
         {
           "n": 8,
           "key": "SHOW_INDICATOR",
-          "status": "[w]",
+          "status": "[ ]",
           "label": "Отображаемое название единиц показателя",
           "description": "Единица/подпись индикатора: шт.  |  Факт  |  %  |  … на списке показателей подпись к единицам данных",
-          "kind": "dropdown",
+          "kind": "dropdown_custom",
           "variants": [
             "%",
             "%%",
@@ -158,7 +158,7 @@
         {
           "n": 9,
           "key": "PRODUCT_GROUP",
-          "status": "[w]",
+          "status": "[ ]",
           "label": "Группа продукта",
           "description": "Группа продукта (общее направление)",
           "kind": "text",
@@ -171,7 +171,7 @@
         {
           "n": 10,
           "key": "PRODUCT",
-          "status": "[w]",
+          "status": "[ ]",
           "label": "Продукт",
           "description": "Продукт / тематика конкурса.",
           "kind": "text",
@@ -184,7 +184,7 @@
         {
           "n": 11,
           "key": "CONTEST_SUBJECT",
-          "status": "[w]",
+          "status": "[ ]",
           "label": "Кто соревнуется",
           "description": "Кто участник конкурса. Обычно: EMPLOYEE (сотрудники).",
           "kind": "dropdown",
@@ -199,7 +199,7 @@
         {
           "n": 12,
           "key": "FACTOR_MARK_TYPE",
-          "status": "[w]",
+          "status": "[ ]",
           "label": "Принцип отбора победителей",
           "description": "CRITERION  |  RATING_MAX  |  RATING_MIN. (способ выбора победителей: достиг показателя, сделал больше других или меньше других — меньше, например, для ранга)",
           "kind": "dropdown",
@@ -216,7 +216,7 @@
         {
           "n": 13,
           "key": "CONTEST_INDICATOR_METHOD",
-          "status": "[w]",
+          "status": "[ ]",
           "label": "Метод индикатора",
           "description": "INTEGRAL  |  RELATION. Метод расчета показателя (фактический / расчетный)",
           "kind": "dropdown",
@@ -232,7 +232,7 @@
         {
           "n": 14,
           "key": "CONTEST_FACTOR_METHOD",
-          "status": "[w]",
+          "status": "[ ]",
           "label": "Метод расчета показателя",
           "description": "FACT  |  FACT0-FACT1  |  FACT0-RUN_RATE1_DOWN  |  RUN_RATE. (для автоматических турниров способ расчета на данных источников)",
           "kind": "dropdown",
@@ -250,7 +250,7 @@
         {
           "n": 15,
           "key": "PLAN_METHOD_CODE",
-          "status": "[w]",
+          "status": "[ ]",
           "label": "Как вычисляется план",
           "description": "DEPENDS_PREVIOUS_PERIOD  |  PRESET_VALUE. (Метод расчета планового показателя: из прошлого периода / фиксированное значение)",
           "kind": "dropdown",
@@ -266,7 +266,7 @@
         {
           "n": 16,
           "key": "PLAN_MOD_METOD",
-          "status": "[w]",
+          "status": "[ ]",
           "label": "Метод модификации плана",
           "description": "Модификатор плана. Обычно: MULTIPLIER.",
           "kind": "dropdown",
@@ -281,7 +281,7 @@
         {
           "n": 17,
           "key": "PLAN_MOD_VALUE",
-          "status": "[w]",
+          "status": "[ ]",
           "label": "Значение плана",
           "description": "Значение планового показателя (0, 1, 1000, …).",
           "kind": "text",
@@ -294,7 +294,7 @@
         {
           "n": 18,
           "key": "FACTOR_MATCH",
-          "status": "[w]",
+          "status": "[ ]",
           "label": "Символ сравнения с планом",
           "description": "Сравнение фактора: =  |  >  |  >=  |  <  |  <=.",
           "kind": "dropdown",
@@ -313,7 +313,7 @@
         {
           "n": 19,
           "key": "TARGET_TYPE",
-          "status": "[w]",
+          "status": "[ ]",
           "label": "Среда конкурса",
           "description": "Среда конкурса: ПРОМ  |  ТЕСТ.",
           "kind": "dropdown",
@@ -329,7 +329,7 @@
         {
           "n": 20,
           "key": "SOURCE_UPD_FREQUENCY",
-          "status": "[v]",
+          "status": "[ ]",
           "label": "Частота обновления источника",
           "description": "Частота обновления источника: 1  |  7  |  10 (дни). (не используется)",
           "kind": "dropdown",
@@ -346,7 +346,7 @@
         {
           "n": 21,
           "key": "CALC_TYPE",
-          "status": "[v]",
+          "status": "[ ]",
           "label": "Тип расчёта",
           "description": "Тип расчёта: 0  |  1. (не используется) 0 — промышленный расчет / 1 — ручной расчет",
           "kind": "dropdown",
@@ -362,7 +362,7 @@
         {
           "n": 22,
           "key": "FACT_POST_PROCESSING",
-          "status": "[v]",
+          "status": "[ ]",
           "label": "Постобработка факта",
           "description": "Постобработка факта (код/флаг; часто пусто). Правило постобработки показателя конкурса. PERCENTILE — вычисление перцентиля от фактического показателя конкурса",
           "kind": "text",
@@ -375,17 +375,17 @@
         {
           "n": 23,
           "key": "BUSINESS_BLOCK",
-          "status": "[w]",
+          "status": "[ ]",
           "label": "Бизнес-блок (через ;)",
-          "description": "Бизнес-блок(и) через ; . Примеры: KMMMB, KMKKSB, CSM, AKMKKSB.",
-          "kind": "dropdown",
+          "description": "Бизнес-блок(и) через ; . Варианты: KMMMB, KMKKSB, CSM, AKMKKSB. По умолчанию KMMMB.",
+          "kind": "list",
           "variants": [
             "KMMMB",
             "KMKKSB",
             "CSM",
             "AKMKKSB"
           ],
-          "default": "",
+          "default": "KMMMB",
           "allow_empty": true,
           "json_target": "",
           "note": ""
@@ -417,7 +417,7 @@
         {
           "n": 25,
           "key": "FEATURE.vid",
-          "status": "[w]",
+          "status": "[ ]",
           "label": "FEATURE.Среда конкурса",
           "description": "Среда конкурса: ПРОМ  |  ТЕСТ (как TARGET_TYPE).",
           "kind": "dropdown",
@@ -427,13 +427,13 @@
           ],
           "default": "ПРОМ",
           "allow_empty": true,
-          "json_target": "CONTEST_FEATURE",
+          "json_target": "CONTEST_FEATURE.vid",
           "note": "ТЕСТ (как TARGET_TYPE)."
         },
         {
           "n": 26,
           "key": "FEATURE.accuracy",
-          "status": "[w]",
+          "status": "[ ]",
           "label": "FEATURE.Округление до...",
           "description": "Точность/разрядность: 0  |  1  |  2 . (число знаков после запятой для отображения)",
           "kind": "dropdown",
@@ -444,13 +444,13 @@
           ],
           "default": "",
           "allow_empty": true,
-          "json_target": "CONTEST_FEATURE",
+          "json_target": "CONTEST_FEATURE.accuracy",
           "note": ""
         },
         {
           "n": 27,
           "key": "FEATURE.capacity",
-          "status": "[w]",
+          "status": "[ ]",
           "label": "FEATURE.Приведение к млн / тыс.",
           "description": "Масштаб: пусто  |  MILLIONS  |  THOUSANDS. (приведение отображаемого показателя к млн, к тыс.)",
           "kind": "dropdown",
@@ -460,7 +460,7 @@
           ],
           "default": "",
           "allow_empty": true,
-          "json_target": "CONTEST_FEATURE",
+          "json_target": "CONTEST_FEATURE.capacity",
           "note": ""
         },
         {
@@ -476,7 +476,7 @@
           ],
           "default": "N",
           "allow_empty": true,
-          "json_target": "CONTEST_FEATURE",
+          "json_target": "CONTEST_FEATURE.masking",
           "note": "N (часто N)."
         },
         {
@@ -493,7 +493,7 @@
           ],
           "default": "",
           "allow_empty": true,
-          "json_target": "CONTEST_FEATURE",
+          "json_target": "CONTEST_FEATURE.minNumber",
           "note": ""
         },
         {
@@ -509,7 +509,7 @@
           ],
           "default": "",
           "allow_empty": true,
-          "json_target": "CONTEST_FEATURE",
+          "json_target": "CONTEST_FEATURE.momentRewarding",
           "note": "DURIN (после закрытия турнира / во время турнира)"
         },
         {
@@ -525,7 +525,7 @@
           ],
           "default": "",
           "allow_empty": true,
-          "json_target": "CONTEST_FEATURE",
+          "json_target": "CONTEST_FEATURE.typeRewarding",
           "note": "all)."
         },
         {
@@ -541,7 +541,7 @@
           ],
           "default": "Y",
           "allow_empty": true,
-          "json_target": "CONTEST_FEATURE",
+          "json_target": "CONTEST_FEATURE.avatarShow",
           "note": "N."
         },
         {
@@ -557,7 +557,7 @@
           ],
           "default": "N",
           "allow_empty": true,
-          "json_target": "CONTEST_FEATURE",
+          "json_target": "CONTEST_FEATURE.tournamentTeam",
           "note": "N."
         },
         {
@@ -570,7 +570,7 @@
           "variants": [],
           "default": "",
           "allow_empty": true,
-          "json_target": "CONTEST_FEATURE",
+          "json_target": "CONTEST_FEATURE.persomanNumberVisible",
           "note": ""
         },
         {
@@ -583,7 +583,7 @@
           "variants": [],
           "default": "",
           "allow_empty": true,
-          "json_target": "CONTEST_FEATURE",
+          "json_target": "CONTEST_FEATURE.persomanNumberHidden",
           "note": ""
         },
         {
@@ -599,7 +599,7 @@
           ],
           "default": "",
           "allow_empty": true,
-          "json_target": "CONTEST_FEATURE",
+          "json_target": "CONTEST_FEATURE.tournamentStartMailing",
           "note": "N."
         },
         {
@@ -615,7 +615,7 @@
           ],
           "default": "",
           "allow_empty": true,
-          "json_target": "CONTEST_FEATURE",
+          "json_target": "CONTEST_FEATURE.tournamentEndMailing",
           "note": "N."
         },
         {
@@ -631,7 +631,7 @@
           ],
           "default": "",
           "allow_empty": true,
-          "json_target": "CONTEST_FEATURE",
+          "json_target": "CONTEST_FEATURE.tournamentLikeMailing",
           "note": "N."
         },
         {
@@ -644,7 +644,7 @@
           "variants": [],
           "default": "",
           "allow_empty": true,
-          "json_target": "CONTEST_FEATURE",
+          "json_target": "CONTEST_FEATURE.tournamentListMailing",
           "note": ""
         },
         {
@@ -660,7 +660,7 @@
           ],
           "default": "",
           "allow_empty": true,
-          "json_target": "CONTEST_FEATURE",
+          "json_target": "CONTEST_FEATURE.tournamentRewardingMailing",
           "note": "N."
         },
         {
@@ -673,7 +673,7 @@
           "variants": [],
           "default": "",
           "allow_empty": true,
-          "json_target": "CONTEST_FEATURE",
+          "json_target": "CONTEST_FEATURE.feature",
           "note": ""
         },
         {
@@ -681,12 +681,17 @@
           "key": "FEATURE.businessBlock",
           "status": "[ ]",
           "label": "FEATURE.businessBlock (через ;)",
-          "description": "Блоки в FEATURE через ; (как BUSINESS_BLOCK).",
+          "description": "Блоки в FEATURE через ; (как BUSINESS_BLOCK). Варианты: KMMMB, KMKKSB, CSM, AKMKKSB. По умолчанию KMMMB.",
           "kind": "list",
-          "variants": [],
-          "default": "",
+          "variants": [
+            "KMMMB",
+            "KMKKSB",
+            "CSM",
+            "AKMKKSB"
+          ],
+          "default": "KMMMB",
           "allow_empty": true,
-          "json_target": "CONTEST_FEATURE",
+          "json_target": "CONTEST_FEATURE.businessBlock",
           "note": ""
         },
         {
@@ -699,7 +704,7 @@
           "variants": [],
           "default": "",
           "allow_empty": true,
-          "json_target": "CONTEST_FEATURE",
+          "json_target": "CONTEST_FEATURE.helpCodeList",
           "note": ""
         },
         {
@@ -712,7 +717,7 @@
           "variants": [],
           "default": "",
           "allow_empty": true,
-          "json_target": "CONTEST_FEATURE",
+          "json_target": "CONTEST_FEATURE.preferences",
           "note": ""
         },
         {
@@ -725,7 +730,7 @@
           "variants": [],
           "default": "",
           "allow_empty": true,
-          "json_target": "CONTEST_FEATURE",
+          "json_target": "CONTEST_FEATURE.tbVisible",
           "note": ""
         },
         {
@@ -738,7 +743,7 @@
           "variants": [],
           "default": "",
           "allow_empty": true,
-          "json_target": "CONTEST_FEATURE",
+          "json_target": "CONTEST_FEATURE.tbHidden",
           "note": ""
         },
         {
@@ -751,7 +756,7 @@
           "variants": [],
           "default": "",
           "allow_empty": true,
-          "json_target": "CONTEST_FEATURE",
+          "json_target": "CONTEST_FEATURE.gosbVisible",
           "note": ""
         },
         {
@@ -764,7 +769,7 @@
           "variants": [],
           "default": "",
           "allow_empty": true,
-          "json_target": "CONTEST_FEATURE",
+          "json_target": "CONTEST_FEATURE.gosbHidden",
           "note": ""
         }
       ]
@@ -850,21 +855,10 @@
           "key": "REWARD_COST",
           "status": "[ ]",
           "label": "Стоимость",
-          "description": "Стоимость в кристаллах (часто 0…14).",
-          "kind": "dropdown",
-          "variants": [
-            "0",
-            "2",
-            "3",
-            "4",
-            "5",
-            "6",
-            "7",
-            "8",
-            "10",
-            "14"
-          ],
-          "default": "",
+          "description": "Стоимость в кристаллах (целое число, по умолчанию 5).",
+          "kind": "number",
+          "variants": [],
+          "default": "5",
           "allow_empty": true,
           "json_target": "",
           "note": ""
@@ -893,7 +887,7 @@
           ],
           "default": "N",
           "allow_empty": true,
-          "json_target": "REWARD_ADD_DATA",
+          "json_target": "REWARD_ADD_DATA.nftFlg",
           "note": "N (обычно N)."
         },
         {
@@ -909,7 +903,7 @@
           ],
           "default": "N",
           "allow_empty": true,
-          "json_target": "REWARD_ADD_DATA",
+          "json_target": "REWARD_ADD_DATA.outstanding",
           "note": "N."
         },
         {
@@ -922,7 +916,7 @@
           "variants": [],
           "default": "",
           "allow_empty": true,
-          "json_target": "REWARD_ADD_DATA",
+          "json_target": "REWARD_ADD_DATA.rewardRule",
           "note": ""
         },
         {
@@ -938,7 +932,7 @@
           ],
           "default": "N",
           "allow_empty": true,
-          "json_target": "REWARD_ADD_DATA",
+          "json_target": "REWARD_ADD_DATA.rewardAgainGlobal",
           "note": "N."
         },
         {
@@ -954,7 +948,7 @@
           ],
           "default": "N",
           "allow_empty": true,
-          "json_target": "REWARD_ADD_DATA",
+          "json_target": "REWARD_ADD_DATA.rewardAgainTournament",
           "note": "N (часто N)."
         },
         {
@@ -970,7 +964,7 @@
           ],
           "default": "N",
           "allow_empty": true,
-          "json_target": "REWARD_ADD_DATA",
+          "json_target": "REWARD_ADD_DATA.hidden",
           "note": "N."
         },
         {
@@ -983,7 +977,7 @@
           "variants": [],
           "default": "",
           "allow_empty": true,
-          "json_target": "REWARD_ADD_DATA",
+          "json_target": "REWARD_ADD_DATA.fileName",
           "note": ""
         },
         {
@@ -996,7 +990,7 @@
           "variants": [],
           "default": "",
           "allow_empty": true,
-          "json_target": "REWARD_ADD_DATA",
+          "json_target": "REWARD_ADD_DATA.teamNews",
           "note": ""
         },
         {
@@ -1009,7 +1003,7 @@
           "variants": [],
           "default": "",
           "allow_empty": true,
-          "json_target": "REWARD_ADD_DATA",
+          "json_target": "REWARD_ADD_DATA.singleNews",
           "note": ""
         },
         {
@@ -1025,7 +1019,7 @@
           ],
           "default": "N",
           "allow_empty": true,
-          "json_target": "REWARD_ADD_DATA",
+          "json_target": "REWARD_ADD_DATA.masterBadge",
           "note": "N. (Y — для награды / N — для турнира)"
         },
         {
@@ -1038,7 +1032,7 @@
           "variants": [],
           "default": "",
           "allow_empty": true,
-          "json_target": "REWARD_ADD_DATA",
+          "json_target": "REWARD_ADD_DATA.parentRewardCode",
           "note": ""
         },
         {
@@ -1055,7 +1049,7 @@
           ],
           "default": "",
           "allow_empty": true,
-          "json_target": "REWARD_ADD_DATA",
+          "json_target": "REWARD_ADD_DATA.priority",
           "note": ""
         },
         {
@@ -1073,7 +1067,7 @@
           ],
           "default": "",
           "allow_empty": true,
-          "json_target": "REWARD_ADD_DATA",
+          "json_target": "REWARD_ADD_DATA.recommendationLevel",
           "note": ""
         },
         {
@@ -1089,7 +1083,7 @@
           ],
           "default": "N",
           "allow_empty": true,
-          "json_target": "REWARD_ADD_DATA",
+          "json_target": "REWARD_ADD_DATA.refreshOldNews",
           "note": "N."
         },
         {
@@ -1105,7 +1099,7 @@
           ],
           "default": "N",
           "allow_empty": true,
-          "json_target": "REWARD_ADD_DATA",
+          "json_target": "REWARD_ADD_DATA.tournamentTeam",
           "note": "N."
         },
         {
@@ -1118,7 +1112,7 @@
           "variants": [],
           "default": "",
           "allow_empty": true,
-          "json_target": "REWARD_ADD_DATA",
+          "json_target": "REWARD_ADD_DATA.seasonItem",
           "note": ""
         },
         {
@@ -1134,7 +1128,7 @@
           ],
           "default": "",
           "allow_empty": true,
-          "json_target": "REWARD_ADD_DATA",
+          "json_target": "REWARD_ADD_DATA.newsType",
           "note": "TEMPLATE. (генерит ИИ / по шаблону)"
         },
         {
@@ -1147,20 +1141,20 @@
           "variants": [],
           "default": "",
           "allow_empty": true,
-          "json_target": "REWARD_ADD_DATA",
+          "json_target": "REWARD_ADD_DATA.winCriterion",
           "note": ""
         },
         {
           "n": 73,
           "key": "ADD.preferences",
           "status": "[ ]",
-          "label": "ADD.preferences",
+          "label": "ADD.preferences (через ;)",
           "description": "Преференции если предусмотрены за награду",
-          "kind": "text",
+          "kind": "list",
           "variants": [],
           "default": "",
           "allow_empty": true,
-          "json_target": "REWARD_ADD_DATA",
+          "json_target": "REWARD_ADD_DATA.preferences",
           "note": ""
         },
         {
@@ -1173,7 +1167,7 @@
           "variants": [],
           "default": "",
           "allow_empty": true,
-          "json_target": "REWARD_ADD_DATA",
+          "json_target": "REWARD_ADD_DATA.feature",
           "note": ""
         },
         {
@@ -1181,7 +1175,7 @@
           "key": "ADD.businessBlock",
           "status": "[ ]",
           "label": "ADD.businessBlock (через ;)",
-          "description": "Блоки награды через ; .",
+          "description": "Блоки награды через ; . Варианты: KMMMB, KMKKSB, CSM, AKMKKSB. По умолчанию KMMMB.",
           "kind": "list",
           "variants": [
             "KMMMB",
@@ -1189,9 +1183,9 @@
             "CSM",
             "AKMKKSB"
           ],
-          "default": "",
+          "default": "KMMMB",
           "allow_empty": true,
-          "json_target": "REWARD_ADD_DATA",
+          "json_target": "REWARD_ADD_DATA.businessBlock",
           "note": ""
         },
         {
@@ -1204,7 +1198,7 @@
           "variants": [],
           "default": "",
           "allow_empty": true,
-          "json_target": "REWARD_ADD_DATA",
+          "json_target": "REWARD_ADD_DATA.helpCodeList",
           "note": ""
         },
         {
@@ -1220,7 +1214,7 @@
           ],
           "default": "N",
           "allow_empty": true,
-          "json_target": "REWARD_ADD_DATA",
+          "json_target": "REWARD_ADD_DATA.hiddenRewardList",
           "note": "N."
         }
       ]
@@ -1330,7 +1324,7 @@
           "variants": [],
           "default": "",
           "allow_empty": true,
-          "json_target": "ячейка JSON",
+          "json_target": "GROUP_VALUE",
           "note": ""
         },
         {
@@ -1611,7 +1605,7 @@
           "variants": [],
           "default": "",
           "allow_empty": true,
-          "json_target": "ячейка JSON",
+          "json_target": "INDICATOR_FILTER",
           "note": ""
         },
         {
@@ -1800,7 +1794,7 @@
           "variants": [],
           "default": "",
           "allow_empty": true,
-          "json_target": "ячейка JSON",
+          "json_target": "FILTER_PERIOD_ARR",
           "note": ""
         },
         {
@@ -1848,7 +1842,7 @@
           ],
           "default": "",
           "allow_empty": true,
-          "json_target": "ячейка JSON",
+          "json_target": "TARGET_TYPE",
           "note": ""
         },
         {
@@ -1877,10 +1871,11 @@
           "variants": [],
           "default": "",
           "allow_empty": true,
-          "json_target": "ячейка JSON",
+          "json_target": "TRN_INDICATOR_FILTER",
           "note": ""
         }
       ]
     }
-  ]
+  ],
+  "exported_at": "2026-08-15T08:30:19Z"
 }

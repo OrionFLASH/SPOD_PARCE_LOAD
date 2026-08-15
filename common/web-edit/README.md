@@ -4,23 +4,29 @@ HTML-страница в стиле **Apple Liquid Glass**.
 
 ## Данные
 
-Рядом со страницей (для автозагрузки):
+- При **HTTP / Live Server** страница сама читает `catalog.json` рядом с собой.
+- Через **`file://`** автозагрузка недоступна: в левой панели до первого открытия файла — карточка «Откройте catalog.json».
 
-- `catalog.json`
-- `catalog.js` (зеркало для `file://`)
-
-Та же копия для blank-генератора: `../param_catalog_review/`.
+Копия для blank-генератора: `../param_catalog_review/catalog.json`.
 
 ## Цикл
 
-1. Открыть `index.html` (Live Server / HTTP) или импортировать JSON.
-2. Правки → «Сохранить JSON» → положить/заменить `catalog.json` **и** в `web-edit/`, и в `param_catalog_review/`.
-3. Токен `contest_badge_form_blank` читает `param_catalog_review/catalog.json` и пишет Excel в `../templates/`.
+1. Откройте `index.html` (лучше через Live Server) или выберите `catalog.json` в сайдбаре.
+2. Правки → «Сохранить JSON» → заменить файл в `web-edit/` (и при необходимости в `param_catalog_review/`).
+3. Токен `contest_badge_form_blank` читает `param_catalog_review/catalog.json`.
 
-## Пересборка из кода
+## Пересборка каталога из схемы
 
 ```bash
-./venv/bin/python src/Tools/build_param_review_editor.py
+python src/Tools/build_param_review_editor.py
 ```
 
-Пишет `catalog.json` + `catalog.js` в оба каталога: `web-edit/` и `param_catalog_review/`.
+## Связка с заполнением SPOD
+
+После правок каталога синхронизируйте форму заполнения:
+
+```bash
+python src/Tools/sync_web_fill_catalog.py
+```
+
+Страница: `../web-fill/index.html`.

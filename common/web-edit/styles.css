@@ -39,64 +39,45 @@
 
 * { box-sizing: border-box; }
 
-/* ——— Gate (ожидание catalog.json / импорта) ——— */
-.gate {
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 32px 20px;
-  background: var(--glass-bg-gradient);
+/* ——— Пустой сайдбар до открытия catalog.json ——— */
+.sidebar-empty {
+  padding: 8px 4px 20px;
+  flex: 1;
 }
 
-.gate[hidden] {
+.sidebar-empty[hidden],
+#sidebar-loaded[hidden],
+#search-wrap[hidden] {
   display: none !important;
 }
 
-.gate-card {
-  width: min(560px, 100%);
-  padding: 32px 28px;
-  border-radius: 28px;
-  background: var(--glass-white);
-  backdrop-filter: blur(22px) saturate(170%);
-  -webkit-backdrop-filter: blur(22px) saturate(170%);
-  border: 1px solid var(--glass-white-border);
-  box-shadow: var(--glass-shadow);
+.sidebar-empty__card {
+  padding: 18px 16px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  box-shadow: var(--glass-card-shadow);
+  backdrop-filter: blur(14px) saturate(160%);
+  -webkit-backdrop-filter: blur(14px) saturate(160%);
 }
 
-.gate-mark {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  border-radius: 999px;
-  font-size: 12px;
+.sidebar-empty__title {
+  margin: 0 0 8px;
+  font-size: 15px;
   font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--glass-blue);
-  background: var(--glass-blue-light);
-  border: 1px solid var(--glass-blue-border);
-  margin-bottom: 16px;
-}
-
-.gate-title {
-  margin: 0 0 12px;
-  font-size: 28px;
-  font-weight: 700;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.02em;
   color: var(--glass-text);
 }
 
-.gate-text {
-  margin: 0 0 22px;
-  font-size: 15px;
-  line-height: 1.55;
+.sidebar-empty__text {
+  margin: 0 0 14px;
+  font-size: 13px;
+  line-height: 1.5;
   color: var(--glass-text-secondary);
 }
 
-.gate-text code,
-.gate-hint code,
+.sidebar-empty__text code,
+.sidebar-empty__hint code,
 .brand-sub code {
   font-family: var(--mono);
   font-size: 0.92em;
@@ -105,23 +86,48 @@
   background: rgba(0, 0, 0, 0.06);
 }
 
-.gate-error {
-  color: var(--glass-red);
-  font-weight: 600;
+.sidebar-empty .file-pick {
+  width: 100%;
+  margin-bottom: 12px;
 }
 
-.gate-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-bottom: 18px;
-}
-
-.gate-hint {
+.sidebar-empty__hint {
   margin: 0;
-  font-size: 13px;
-  line-height: 1.5;
+  font-size: 12px;
+  line-height: 1.45;
   color: var(--glass-text-secondary);
+}
+
+/* Кнопка выбора файла: input поверх label (без программного click) */
+.file-pick {
+  position: relative;
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.file-pick__input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  opacity: 0;
+  cursor: pointer;
+  font-size: 0;
+  border: 0;
+  z-index: 2;
+}
+
+.file-pick .icon,
+.file-pick > span {
+  position: relative;
+  z-index: 1;
+  pointer-events: none;
 }
 
 #app-root[hidden] {
@@ -138,7 +144,7 @@ html, body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* ——— Liquid Glass tooltip (как в RESURCE_PANEL) ——— */
+/* ——— Liquid Glass tooltip (как link-info-tooltip в RESURCE_PANEL index.html) ——— */
 .glass-tip {
   position: fixed;
   z-index: 10000;
@@ -146,20 +152,21 @@ html, body {
   top: 0;
   pointer-events: none;
   display: none;
-  max-width: min(380px, 90vw);
-  padding: 10px 12px;
-  background: rgba(255, 255, 255, 0.72);
-  backdrop-filter: blur(14px) saturate(170%);
-  -webkit-backdrop-filter: blur(14px) saturate(170%);
-  border: 1px solid rgba(255, 255, 255, 0.65);
+  max-width: min(420px, 90vw);
+  padding: 10px 12px 12px;
+  /* сильная полупрозрачность — как в RESURCE_PANEL index */
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(12px) saturate(160%);
+  -webkit-backdrop-filter: blur(12px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.55);
   border-radius: 14px;
   box-shadow:
-    0 12px 40px rgba(0, 0, 0, 0.1),
-    0 4px 12px rgba(0, 0, 0, 0.05),
-    inset 0 1px 0 rgba(255, 255, 255, 0.9);
-  font-size: 12.5px;
+    0 12px 40px rgba(0, 0, 0, 0.08),
+    0 4px 12px rgba(0, 0, 0, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 0.88);
+  font-size: 12px;
   font-weight: 500;
-  line-height: 1.45;
+  line-height: 1.5;
   color: var(--glass-text);
   white-space: pre-line;
 }
@@ -170,7 +177,9 @@ html, body {
 
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
   .glass-tip {
-    background: rgba(255, 255, 255, 0.96);
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
   }
 }
 
@@ -741,6 +750,7 @@ body::after {
   display: flex;
   flex-direction: column;
   gap: 14px;
+  padding: 2px 2px 8px;
 }
 
 .search-group-head {
@@ -790,6 +800,7 @@ body::after {
 }
 
 .card {
+  position: relative;
   background: var(--glass-white);
   backdrop-filter: blur(18px) saturate(170%);
   -webkit-backdrop-filter: blur(18px) saturate(170%);
@@ -797,24 +808,69 @@ body::after {
   border-radius: var(--radius-xl);
   padding: 16px 18px 18px;
   box-shadow: var(--glass-card-shadow);
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease,
+    border-color 0.18s ease;
   border-left: 4px solid var(--glass-gray);
+  transform-origin: center top;
 }
 
 .card:hover {
-  transform: translateY(-1px);
+  transform: translateY(-2px) scale(1.015);
   box-shadow: var(--glass-shadow-hover);
+  border-color: rgba(0, 122, 255, 0.22);
+  z-index: 1;
+}
+
+/* 1) Только фокус — синий контур и лёгкий голубой фон */
+.card:focus-within {
+  background: rgba(232, 242, 255, 0.92);
+  border-color: rgba(0, 122, 255, 0.4);
+  box-shadow:
+    0 0 0 2px rgba(0, 122, 255, 0.32),
+    var(--glass-shadow-hover);
+  transform: translateY(-1px) scale(1.01);
+  z-index: 2;
 }
 
 .card[data-status="[v]"] { border-left-color: var(--glass-green); }
 .card[data-status="[w]"] { border-left-color: var(--glass-orange); }
 .card[data-status="[ ]"] { border-left-color: var(--glass-gray); }
 
+/* 2) Только отредактировано — тёплый фон и оранжевый контур */
 .card.is-edited {
+  background: rgba(255, 248, 240, 0.92);
+  border-color: rgba(255, 149, 0, 0.4);
   box-shadow:
-    0 0 0 2px rgba(255, 149, 0, 0.35),
+    0 0 0 2px rgba(255, 149, 0, 0.38),
     var(--glass-card-shadow);
-  background: rgba(255, 248, 240, 0.88);
+}
+
+.card.is-edited:hover {
+  border-color: rgba(255, 149, 0, 0.5);
+  box-shadow:
+    0 0 0 2px rgba(255, 149, 0, 0.45),
+    var(--glass-shadow-hover);
+}
+
+/* 3) Фокус + отредактировано: фон остаётся «отредактировано»,
+   фокус — отдельное синее кольцо снаружи оранжевого */
+.card.is-edited:focus-within {
+  background: rgba(255, 248, 240, 0.96);
+  border-color: rgba(255, 149, 0, 0.55);
+  box-shadow:
+    0 0 0 2px rgba(255, 149, 0, 0.5),
+    0 0 0 5px rgba(0, 122, 255, 0.3),
+    var(--glass-shadow-hover);
+  transform: translateY(-1px) scale(1.01);
+  z-index: 3;
+}
+
+.card.is-edited:focus-within:hover {
+  border-color: rgba(255, 149, 0, 0.6);
+  box-shadow:
+    0 0 0 2px rgba(255, 149, 0, 0.55),
+    0 0 0 5px rgba(0, 122, 255, 0.34),
+    var(--glass-shadow-hover);
 }
 
 .edited-badge {
@@ -1154,7 +1210,7 @@ body::after {
 
 .kind-toggle {
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: 6px;
   padding: 4px;
   border-radius: 16px;
@@ -1214,6 +1270,7 @@ body::after {
 }
 
 .kind-chip--dropdown.active { color: #1e8449; border-color: rgba(52, 199, 89, 0.35); }
+.kind-chip--dropdown_custom.active { color: #0f766e; border-color: rgba(20, 184, 166, 0.45); }
 .kind-chip--text.active { color: #9a7b0a; border-color: rgba(255, 204, 0, 0.45); }
 .kind-chip--number.active { color: #7a3aa0; border-color: rgba(175, 82, 222, 0.35); }
 .kind-chip--list.active { color: #c2410c; border-color: rgba(255, 149, 0, 0.4); }
@@ -1375,6 +1432,17 @@ body::after {
   box-sizing: border-box;
 }
 
+.default-checks--chips {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 6px;
+  max-height: none;
+  overflow: visible;
+  padding: 8px;
+}
+
 .default-check {
   display: flex;
   align-items: flex-start;
@@ -1398,6 +1466,331 @@ body::after {
   height: 16px;
   accent-color: var(--glass-blue);
   flex: 0 0 auto;
+}
+
+.default-chip {
+  appearance: none;
+  flex: 1 1 7.5rem;
+  min-width: min(7.5rem, 100%);
+  max-width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  margin: 0;
+  padding: 6px 10px;
+  border-radius: 11px;
+  border: 1px solid rgba(60, 60, 67, 0.14);
+  background: rgba(255, 255, 255, 0.55);
+  color: var(--glass-text-secondary);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease,
+    box-shadow 0.15s ease, transform 0.12s ease;
+  box-sizing: border-box;
+}
+
+.default-chip:hover {
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--glass-text);
+  border-color: rgba(0, 122, 255, 0.28);
+}
+
+.default-chip__mark {
+  display: none;
+  width: 12px;
+  height: 12px;
+  flex: 0 0 12px;
+  color: var(--glass-blue);
+}
+
+.default-chip__mark svg {
+  width: 12px;
+  height: 12px;
+  display: block;
+}
+
+.default-chip__label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.default-chip.is-on {
+  background: rgba(0, 122, 255, 0.14);
+  border-color: rgba(0, 122, 255, 0.4);
+  color: var(--glass-blue);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65);
+  transform: translateY(-0.5px);
+}
+
+.default-chip.is-on .default-chip__mark {
+  display: inline-flex;
+}
+
+.default-checks--single .default-chip.is-on {
+  background: rgba(52, 199, 89, 0.16);
+  border-color: rgba(52, 199, 89, 0.45);
+  color: #1e8449;
+}
+
+.default-checks--single .default-chip.is-on .default-chip__mark {
+  color: #1e8449;
+}
+
+.default-date {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.default-date__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+}
+
+.default-date__field {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+  gap: 0;
+}
+
+.default-date__iso {
+  width: 9.6rem;
+  min-height: 30px;
+  padding: 4px 30px 4px 8px;
+  border-radius: 9px;
+  border: 1px solid var(--glass-white-border);
+  background: rgba(255, 255, 255, 0.78);
+  color: var(--glass-text);
+  font: inherit;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  box-sizing: border-box;
+}
+
+.default-date__iso:focus {
+  outline: none;
+  border-color: rgba(0, 122, 255, 0.45);
+  box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.12);
+}
+
+.default-date.is-picker-open {
+  z-index: 8;
+}
+
+.default-date__cal {
+  appearance: none;
+  position: absolute;
+  right: 2px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 4;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--glass-text-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.default-date__cal:hover {
+  background: rgba(0, 122, 255, 0.1);
+  color: var(--glass-blue);
+}
+
+.default-date__cal svg {
+  width: 14px;
+  height: 14px;
+}
+
+.date-pop {
+  position: fixed;
+  z-index: 10050;
+  width: 19.5rem;
+  padding: 12px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: var(--glass-shadow-hover);
+  backdrop-filter: blur(18px) saturate(160%);
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
+  box-sizing: border-box;
+}
+
+.date-pop[hidden],
+.date-pop:not(.is-open) {
+  display: none !important;
+}
+
+.date-pop.is-open {
+  display: block;
+}
+
+.date-pop__head {
+  display: grid;
+  grid-template-columns: 36px 1fr 36px;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.date-pop__title {
+  text-align: center;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--glass-text);
+  text-transform: capitalize;
+}
+
+.date-pop__nav {
+  appearance: none;
+  width: 36px;
+  height: 36px;
+  border: 1px solid rgba(60, 60, 67, 0.14);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.7);
+  color: var(--glass-text);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.date-pop__nav:hover {
+  background: rgba(0, 122, 255, 0.12);
+  border-color: rgba(0, 122, 255, 0.3);
+  color: var(--glass-blue);
+}
+
+.date-pop__dow {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  margin-bottom: 6px;
+}
+
+.date-pop__dow span {
+  text-align: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--glass-text-secondary);
+  padding: 4px 0;
+}
+
+.date-pop__grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.date-pop__empty {
+  min-height: 40px;
+}
+
+.date-pop__day {
+  appearance: none;
+  min-height: 40px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--glass-text);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.date-pop__day:hover {
+  background: rgba(0, 122, 255, 0.12);
+  border-color: rgba(0, 122, 255, 0.22);
+}
+
+.date-pop__day.is-today {
+  box-shadow: inset 0 0 0 1.5px rgba(0, 122, 255, 0.35);
+}
+
+.date-pop__day.is-on {
+  background: rgba(0, 122, 255, 0.18);
+  border-color: rgba(0, 122, 255, 0.45);
+  color: var(--glass-blue);
+}
+
+.default-date__presets {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.default-date__chip {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0;
+  min-height: 28px;
+  padding: 3px 8px 3px 6px;
+  border-radius: 9px;
+  border: 1px solid rgba(60, 60, 67, 0.14);
+  background: rgba(255, 255, 255, 0.55);
+  color: var(--glass-text-secondary);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  line-height: 1.15;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.default-date__chip:hover {
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--glass-text);
+  border-color: rgba(0, 122, 255, 0.28);
+}
+
+.default-date__chip-icon {
+  display: inline-flex;
+  width: 13px;
+  height: 13px;
+  flex: 0 0 13px;
+  color: inherit;
+}
+
+.default-date__chip-icon svg {
+  width: 13px;
+  height: 13px;
+  display: block;
+}
+
+.default-date__chip-label {
+  white-space: nowrap;
+}
+
+.default-date__chip.is-on {
+  background: rgba(52, 199, 89, 0.16);
+  border-color: rgba(52, 199, 89, 0.45);
+  color: #1e8449;
 }
 
 .default-host select {
