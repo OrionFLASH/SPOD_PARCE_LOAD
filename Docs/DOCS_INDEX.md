@@ -21,7 +21,7 @@
 - `CONTEST_BADGE_FORM.md` — Excel-форма конкурса BADGE (export/import через `run_outputs`).
 - `CONTEST_BADGE_FORM_FILLING.md` — **заполнение шаблона**: цвета, порядок полей, типичные ошибки, цикл export→import.
 - `CONTEST_BADGE_FORM_PARAM_REVIEW.md` — снимок каталога (MD); **основной ввод** — HTML-редактор `param_review_editor/`.
-- `param_review_editor/` — **редактор описаний/типов/вариантов/дефолтов** (вкладки, экспорт JSON/CSV/MD). Сборка данных: `python src/Tools/build_param_review_editor.py`.
+- `param_review_editor/` — **редактор** (`catalog.json` + зеркало `catalog.js`; выгрузка с timestamp). Сборка: `python src/Tools/build_param_review_editor.py`.
 - `PLAN_CONTEST_BADGE_FORM.md` — согласованный план формы BADGE.
 - `templates/CONTEST_BADGE_FORM/CONTEST_BADGE_FORM_BLANK.xlsx` — **пустой шаблон** в репозитории.
 

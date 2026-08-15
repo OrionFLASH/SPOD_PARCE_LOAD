@@ -52,6 +52,7 @@ _S_VALUE: Dict[str, int] = {
     "list": 14,
     "json": 15,
     "date": 16,
+    "number": 22,
 }
 _S_LEGEND: Dict[str, int] = {
     "dropdown": 17,
@@ -59,6 +60,7 @@ _S_LEGEND: Dict[str, int] = {
     "list": 19,
     "json": 20,
     "date": 21,
+    "number": 23,
 }
 
 
@@ -282,6 +284,7 @@ def _styles_xml() -> str:
         "FCE4D6",  # list
         "F5B7B1",  # json
         "DDEBF7",  # date
+        "E8DAEF",  # number
     ]
     fills = [
         '<fill><patternFill patternType="none"/></fill>',
@@ -309,7 +312,7 @@ def _styles_xml() -> str:
 
     # cellXfs mapping — indices must match _S_* constants
     # fill index: 0 none, 1 gray, 2 section, 3 kv, 4 desc, 5 headerval/text,
-    # 6 table, 7 hint, 8 dropdown, 9 list, 10 json, 11 date
+    # 6 table, 7 hint, 8 dropdown, 9 list, 10 json, 11 date, 12 number
     xfs = [
         # 0 default
         '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>',
@@ -360,6 +363,11 @@ def _styles_xml() -> str:
         '<xf numFmtId="0" fontId="4" fillId="10" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1">'
         '<alignment horizontal="center" vertical="center"/></xf>',
         '<xf numFmtId="0" fontId="4" fillId="11" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1">'
+        '<alignment horizontal="center" vertical="center"/></xf>',
+        # 22-23 number value + legend
+        '<xf numFmtId="0" fontId="0" fillId="12" borderId="0" xfId="0" applyFill="1" applyAlignment="1">'
+        '<alignment wrapText="1" vertical="center"/></xf>',
+        '<xf numFmtId="0" fontId="4" fillId="12" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1">'
         '<alignment horizontal="center" vertical="center"/></xf>',
     ]
 

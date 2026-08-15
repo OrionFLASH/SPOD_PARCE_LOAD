@@ -2,7 +2,7 @@
 
 Инструкция для работы с шаблонами **`CONTEST_BADGE_FORM_BLANK.xlsx`** и **`CONTEST_BADGE_FORM_EXAMPLE.xlsx`**.  
 Техническое описание режимов export/import: [`CONTEST_BADGE_FORM.md`](CONTEST_BADGE_FORM.md).  
-Правка подписей/описаний/дефолтов списков: HTML-редактор [`param_review_editor/index.html`](param_review_editor/index.html).
+Правка подписей/описаний/дефолтов/типов: HTML-редактор [`param_review_editor/index.html`](param_review_editor/index.html) (`catalog.json`; см. [`param_review_editor/README.md`](param_review_editor/README.md)).
 
 ---
 

@@ -1306,6 +1306,12 @@ python main.py
 
 ## История версий
 
+### Версия 1.7.65 — Доработка HTML-редактора каталога BADGE
+
+- Источник данных: **`catalog.json`** (+ зеркало **`catalog.js`** для `file://`); выгрузка `catalog_ГГГГММДД_ЧЧММ.json`.
+- Типы ввода по-русски; тип **`number`**; дефолт для dropdown/list из вариантов (select / галочки).
+- Метки «отредактировано», фильтры, поиск по всем разделам; «можно пусто» в шапке карточки.
+
 ### Версия 1.7.64 — Редактор каталога полей BADGE + дефолты формы
 
 - HTML-редактор **`Docs/param_review_editor/`** (Liquid Glass): TABLE/JSON-меню (CONTEST → CONTEST_FEATURE, REWARD → REWARD_ADD_DATA), экспорт JSON/CSV/MD.

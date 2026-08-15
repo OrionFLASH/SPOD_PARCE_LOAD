@@ -79,9 +79,9 @@
 
 ### Каталог описаний полей (редактор)
 
-- HTML: **`Docs/param_review_editor/index.html`** (Liquid Glass; меню TABLE/JSON как в SPOD).
-- Пересборка данных: `python src/Tools/build_param_review_editor.py`.
-- После правок — экспорт JSON → в чат «примени каталог» → обновляются `field_meta` / подписи / blank.
+- HTML: **`Docs/param_review_editor/index.html`** (данные: **`catalog.json`**, зеркало `catalog.js` для `file://`).
+- Пересборка: `python src/Tools/build_param_review_editor.py` → `catalog.json` + `catalog.js`.
+- Цикл: правки → «Сохранить JSON» (`catalog_ГГГГММДД_ЧЧММ.json`) → в чат «примени каталог».
 - MD-снимок: `Docs/CONTEST_BADGE_FORM_PARAM_REVIEW.md`.
 
 Списки значений — `src/contest_badge_form/field_meta.py` (`DROPDOWN_VALUES`, `FIELD_DEFAULTS`, `FIELD_ALLOW_EMPTY`). Скрытый лист `Lists` (в конце книги) — длинные списки и значения с запятыми.

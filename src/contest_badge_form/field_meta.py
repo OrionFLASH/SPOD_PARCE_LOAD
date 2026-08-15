@@ -393,12 +393,13 @@ TABLE_DROPDOWNS: Dict[str, Dict[str, List[str]]] = {
 
 
 # --- Типы ввода (цвет столбца «Значение») ---
-# dropdown = выбор из списка; text = свободный ввод; list = несколько через ;
-# json = JSON как в SPOD; date = дата YYYY-MM-DD
+# dropdown = выбор из списка; text = свободный текст; number = число;
+# list = массив значений (в форме через ;); json = JSON {[ ]}; date = YYYY-MM-DD
 
 INPUT_KIND_COLORS: Dict[str, str] = {
     "dropdown": "#C6EFCE",
     "text": "#FFF2CC",
+    "number": "#E8DAEF",
     "list": "#FCE4D6",
     "json": "#F5B7B1",
     "date": "#DDEBF7",
@@ -406,14 +407,15 @@ INPUT_KIND_COLORS: Dict[str, str] = {
 
 INPUT_KIND_LABELS: Dict[str, str] = {
     "dropdown": "Выбор из списка",
-    "text": "Свободный ввод",
-    "list": "Несколько через ;",
-    "json": "JSON (как в SPOD)",
-    "date": "Дата YYYY-MM-DD",
+    "text": "Свободный текст",
+    "number": "Число",
+    "list": "Массив значений",
+    "json": "JSON формат {[ ]}",
+    "date": "Дата (формат YYYY-MM-DD)",
 }
 
 # Порядок легенды на листе
-INPUT_KIND_ORDER: List[str] = ["dropdown", "text", "list", "json", "date"]
+INPUT_KIND_ORDER: List[str] = ["dropdown", "text", "number", "list", "json", "date"]
 
 # KV-поля с датой
 _DATE_FORM_KEYS: frozenset = frozenset({"CREATE_DT", "CLOSE_DT"})

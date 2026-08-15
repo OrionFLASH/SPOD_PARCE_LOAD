@@ -316,6 +316,6 @@ IN/
 | 15.4 | Round-trip тест `src/Tests/test_contest_badge_form.py` | [v] |
 | 15.5 | Docs / README / ROADMAP | [v] |
 | 15.6 | xlsxwriter, dropdowns, цвета типов ввода, инструкция заполнения | [v] |
-| 15.7 | HTML-редактор каталога полей (`Docs/param_review_editor/`) + экспорт JSON/CSV/MD | [v] |
+| 15.7 | HTML-редактор каталога полей (`Docs/param_review_editor/`): JSON-источник, правки, экспорт с timestamp | [v] |
 | 15.8 | Применение выгрузки редактора → `field_meta` / schema / BLANK | [w] |
 
