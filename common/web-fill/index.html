@@ -48,12 +48,15 @@ body::after{width:380px;height:380px;right:-60px;bottom:10%;background:#ffd4a8}
 .contest-tabs-group__title{font-size:10px;font-weight:750;letter-spacing:.04em;text-transform:uppercase;color:var(--glass-muted);padding:2px 4px 0}
 .contest-tab{display:flex;align-items:center;gap:6px;width:100%;border:1px solid rgba(255,255,255,.75);background:rgba(255,255,255,.55);border-radius:14px;padding:8px 10px;cursor:pointer;font:inherit;text-align:left}
 .contest-tab.active{background:var(--glass-blue-light);border-color:var(--glass-blue-border);color:var(--glass-blue);font-weight:600;box-shadow:0 0 0 2px rgba(0,122,255,.18)}
-.contest-tab.is-dirty{box-shadow:0 0 0 2px rgba(255,149,0,.35)}
+.contest-tab.is-dirty{box-shadow:0 0 0 2px rgba(255,149,0,.5)}
+.contest-tab.active.is-dirty{box-shadow:0 0 0 2px rgba(255,149,0,.55),0 0 0 4px rgba(0,122,255,.14)}
 .contest-tab .ct-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px}
 .contest-tab .ct-x{border:0;background:transparent;cursor:pointer;font-size:16px;line-height:1;opacity:.55;padding:2px 6px;border-radius:8px}
 .contest-tab .ct-x:hover{opacity:1;background:rgba(0,0,0,.06)}
 .contest-tabs-group--reward .contest-tab.active{background:rgba(52,199,89,.14);border-color:rgba(52,199,89,.35);color:#15803d;box-shadow:0 0 0 2px rgba(52,199,89,.18)}
+.contest-tabs-group--reward .contest-tab.active.is-dirty{box-shadow:0 0 0 2px rgba(255,149,0,.55),0 0 0 4px rgba(52,199,89,.14)}
 .contest-tabs-group--tournament .contest-tab.active{background:var(--glass-blue-light);border-color:var(--glass-blue-border);color:var(--glass-blue);box-shadow:0 0 0 2px rgba(0,122,255,.18)}
+.contest-tabs-group--tournament .contest-tab.active.is-dirty{box-shadow:0 0 0 2px rgba(255,149,0,.55),0 0 0 4px rgba(0,122,255,.14)}
 .nav{display:flex;flex-direction:column;gap:6px}
 .nav-btn{display:flex;align-items:center;gap:8px;width:100%;text-align:left;border:1px solid rgba(255,255,255,.55);background:rgba(255,255,255,.5);border-radius:14px;padding:10px 12px;cursor:pointer;font:inherit;color:inherit}
 .nav-btn:hover{background:rgba(255,255,255,.85);box-shadow:var(--glass-shadow)}
@@ -314,12 +317,15 @@ table.grid th .empty-pill{margin-left:4px;vertical-align:middle}
 .contest-tabs-group__title{font-size:10px;font-weight:750;letter-spacing:.04em;text-transform:uppercase;color:var(--glass-muted);padding:2px 4px 0}
 .contest-tab{display:flex;align-items:center;gap:6px;width:100%;border:1px solid rgba(255,255,255,.75);background:rgba(255,255,255,.55);border-radius:14px;padding:8px 10px;cursor:pointer;font:inherit;text-align:left}
 .contest-tab.active{background:var(--glass-blue-light);border-color:var(--glass-blue-border);color:var(--glass-blue);font-weight:600;box-shadow:0 0 0 2px rgba(0,122,255,.18)}
-.contest-tab.is-dirty{box-shadow:0 0 0 2px rgba(255,149,0,.35)}
+.contest-tab.is-dirty{box-shadow:0 0 0 2px rgba(255,149,0,.5)}
+.contest-tab.active.is-dirty{box-shadow:0 0 0 2px rgba(255,149,0,.55),0 0 0 4px rgba(0,122,255,.14)}
 .contest-tab .ct-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px}
 .contest-tab .ct-x{border:0;background:transparent;cursor:pointer;font-size:16px;line-height:1;opacity:.55;padding:2px 6px;border-radius:8px}
 .contest-tab .ct-x:hover{opacity:1;background:rgba(0,0,0,.06)}
 .contest-tabs-group--reward .contest-tab.active{background:rgba(52,199,89,.14);border-color:rgba(52,199,89,.35);color:#15803d;box-shadow:0 0 0 2px rgba(52,199,89,.18)}
+.contest-tabs-group--reward .contest-tab.active.is-dirty{box-shadow:0 0 0 2px rgba(255,149,0,.55),0 0 0 4px rgba(52,199,89,.14)}
 .contest-tabs-group--tournament .contest-tab.active{background:var(--glass-blue-light);border-color:var(--glass-blue-border);color:var(--glass-blue);box-shadow:0 0 0 2px rgba(0,122,255,.18)}
+.contest-tabs-group--tournament .contest-tab.active.is-dirty{box-shadow:0 0 0 2px rgba(255,149,0,.55),0 0 0 4px rgba(0,122,255,.14)}
 .sidebar #btn-add-contest{flex:0 0 auto;width:100%}
 .contest-search{flex:0 0 auto;position:relative;margin:0 0 6px}
 .contest-search__icon{position:absolute;left:10px;top:50%;transform:translateY(-50%);width:14px;height:14px;color:var(--glass-muted);pointer-events:none}
@@ -856,22 +862,33 @@ function scheduleStatusNavClass(status){
   return "";
 }
 /** Сортировка периодов по TOURNAMENT_STATUS; сохраняет активный период. */
-function ensureScheduleSorted(){
-  const rows=data().schedule;
+function sortScheduleRows(rows){
   if(!rows||rows.length<2) return;
-  const cur=rows[activeSchedule];
   rows.sort((a,b)=>{
     const d=scheduleStatusRank(a.TOURNAMENT_STATUS)-scheduleStatusRank(b.TOURNAMENT_STATUS);
     if(d) return d;
     return String(a.TOURNAMENT_CODE||"").localeCompare(String(b.TOURNAMENT_CODE||""),"ru");
   });
-  if(cur){
-    const ni=rows.indexOf(cur);
+}
+function ensureScheduleSorted(){
+  const rows=data().schedule;
+  if(!rows||rows.length<2) return;
+  const curRow=rows[activeSchedule];
+  sortScheduleRows(rows);
+  if(curRow){
+    const ni=rows.indexOf(curRow);
     if(ni>=0){
       activeSchedule=ni;
       if(String(activeSection||"").startsWith("SCHEDULE:")) activeSection="SCHEDULE:"+(ni+1);
     }
   }
+}
+/** Нормализация данных конкурса без пометки «правки пользователя». */
+function normalizeContestData(d){
+  if(!d) return;
+  syncBadgeSlots(d,false);
+  seedLinked(d);
+  sortScheduleRows(d.schedule);
 }
 
 function contestTypeNavLabel(t){
@@ -1070,7 +1087,7 @@ function copyActiveGroupToOthers(){
     items:rows.map((r,idx)=>({idx,label:groupTitle(r,idx),checked:idx!==i})).filter(it=>it.idx!==i),
     onConfirm:(selected)=>{
       const n=applyGroupCopy(i, selected);
-      persistLocal();render();
+      persistLocal();markContestEdited();render();
       toast(n?("Группа скопирована ("+n+")"):"Нечего копировать");
     }
   });
@@ -1087,7 +1104,7 @@ function copyActivePairToOthers(){
     items:badges.map((_,idx)=>({idx,label:pairNavTitle(idx),checked:idx!==i})).filter(it=>it.idx!==i),
     onConfirm:(selected)=>{
       const n=applyPairCopy(i, selected);
-      persistLocal();render();
+      persistLocal();markContestEdited();render();
       toast(n?("Связь и награда скопированы ("+n+")"):"Нечего копировать");
     }
   });
@@ -1317,8 +1334,28 @@ function cur(){return contests[activeContest]}
 function data(){return cur().data}
 function baseline(){return cur().baseline}
 function fingerprint(d){return JSON.stringify(d)}
-function isContestDirty(c){return fingerprint(c.data)!==fingerprint(c.baseline)}
-function markBaseline(c){c.baseline=clone(c.data)}
+/** Оранжевая обводка только после правок пользователя, не из автонормализации. */
+function isContestDirty(c){return !!(c&&c.userEdited)}
+function markBaseline(c){
+  if(!c)return;
+  c.baseline=clone(c.data);
+  c.userEdited=false;
+}
+/** Подтянуть baseline после автосид/сортировки, если пользователь ещё не правил. */
+function realignBaselineIfPristine(c){
+  if(!c||c.userEdited) return;
+  markBaseline(c);
+}
+function markContestEdited(){
+  const c=cur();
+  if(!c) return;
+  c.userEdited=true;
+  const el=$("contest-tabs")&&$("contest-tabs").querySelector(`.contest-tab[data-ci="${activeContest}"]`);
+  if(el) el.classList.toggle("is-dirty",true);
+}
+function refreshContestTabDirty(){
+  markContestEdited();
+}
 
 function closeAllDatePops(){
   document.querySelectorAll(".date-pop").forEach(p=>{p.hidden=true;p.classList.remove("is-open");if(p.parentNode)p.parentNode.removeChild(p)});
@@ -1736,11 +1773,6 @@ function refreshActiveContestTabTitle(){
   tab.textContent=contestTitle(c,activeContest);
   tab.setAttribute("data-tip",contestMenuTip(c,activeContest));
 }
-function refreshContestTabDirty(){
-  const el=$("contest-tabs")&&$("contest-tabs").querySelector(".contest-tab.active");
-  if(!el)return;
-  el.classList.toggle("is-dirty",isContestDirty(cur()));
-}
 
 function contestSearchHaystack(c){
   const d=c&&c.data?c.data:{};
@@ -1773,7 +1805,11 @@ function renderContestTabs(){
     if(!items.length) return "";
     return `<div class="contest-tabs-group contest-tabs-group--${kind}">`+
       `<div class="contest-tabs-group__title">${esc(title)}${items.length?` · ${items.length}`:""}</div>`+
-      items.map(({c,i})=>`<div class="contest-tab${i===activeContest?" active":""}${isContestDirty(c)?" is-dirty":""}" data-ci="${i}"><span class="ct-name" data-tip="${esc(contestMenuTip(c,i))}">${esc(contestTitle(c,i))}</span>${contests.length>1?`<button type="button" class="ct-x" data-del="${i}" data-tip="Удалить конкурс">×</button>`:""}</div>`).join("")+
+      items.map(({c,i})=>{
+        const dirty=isContestDirty(c);
+        const tip=contestMenuTip(c,i)+(dirty?" · есть несохранённые правки":"");
+        return `<div class="contest-tab${i===activeContest?" active":""}${dirty?" is-dirty":""}" data-ci="${i}" data-tip="${esc(dirty?"Есть правки параметров":"Текущий конкурс")}"><span class="ct-name" data-tip="${esc(tip)}">${esc(contestTitle(c,i))}</span>${contests.length>1?`<button type="button" class="ct-x" data-del="${i}" data-tip="Удалить конкурс">×</button>`:""}</div>`;
+      }).join("")+
       `</div>`;
   }
   // Награды сверху, турниры снизу — пустые группы не показываем
@@ -1785,7 +1821,17 @@ function renderContestTabs(){
       :`<div class="contest-tabs-group"><div class="contest-tabs-group__title">Конкурсы</div></div>`;
   }
   host.querySelectorAll("[data-ci]").forEach(el=>{
-    el.addEventListener("click",e=>{if(e.target.closest("[data-del]"))return;activeContest=Number(el.getAttribute("data-ci"));activeSection="CONTEST";activeBadge=0;activeSchedule=0;activeIndicator=0;activeGroup=0;activeLink=0;closeAllDatePops();render()});
+    el.addEventListener("click",e=>{
+      if(e.target.closest("[data-del]"))return;
+      activeContest=Number(el.getAttribute("data-ci"));
+      activeSection="CONTEST";activeBadge=0;activeSchedule=0;activeIndicator=0;activeGroup=0;activeLink=0;
+      closeAllDatePops();
+      const c=cur();
+      seedLinked(c.data);
+      ensureScheduleSorted();
+      realignBaselineIfPristine(c);
+      render();
+    });
   });
   host.querySelectorAll("[data-del]").forEach(btn=>{
     btn.addEventListener("click",e=>{e.stopPropagation();const i=Number(btn.getAttribute("data-del"));if(!confirm("Удалить конкурс?"))return;contests.splice(i,1);if(activeContest>=contests.length)activeContest=contests.length-1;persistLocal();render()});
@@ -2081,7 +2127,7 @@ function renderFeature(){
   $("feature-groups").appendChild(renderGrouped(
     "CONTEST_FEATURE", FEATURE_LAYOUT,
     f=>{const leaf=jsonStoreLeaf(f,"CONTEST_FEATURE","FEATURE");return data().feature[leaf]||""},
-    (f,v)=>{const leaf=jsonStoreLeaf(f,"CONTEST_FEATURE","FEATURE");data().feature[leaf]=v;persistLocal()},
+    (f,v)=>{const leaf=jsonStoreLeaf(f,"CONTEST_FEATURE","FEATURE");data().feature[leaf]=v;persistLocal();refreshContestTabDirty()},
     f=>{const leaf=jsonStoreLeaf(f,"CONTEST_FEATURE","FEATURE");return "feature."+leaf}
   ));
 }
@@ -2161,7 +2207,7 @@ function renderLinkRewardPair(){
       if(activeLink>=data().badges.length) activeLink=data().badges.length-1;
       activeBadge=activeLink;
       activeSection="PAIR:"+(activeLink+1);
-      persistLocal();render();
+      persistLocal();markContestEdited();render();
     });
   });
   const addBtn=$("btn-add-pair");
@@ -2172,7 +2218,7 @@ function renderLinkRewardPair(){
     activeLink=data().badges.length-1;
     activeBadge=activeLink;
     activeSection="PAIR:"+(activeLink+1);
-    persistLocal();render();toast("Добавлена пара");
+    persistLocal();markContestEdited();render();toast("Добавлена пара");
   });
   $("btn-copy-pairs")?.addEventListener("click",()=>copyActivePairToOthers());
   $("btn-goto-add")?.addEventListener("click",()=>{activeSection="ADD:"+(i+1);closeAllDatePops();render()});
@@ -2308,6 +2354,7 @@ function renderGroup(){
       if(activeGroup>=rows.length) activeGroup=rows.length-1;
       pruneLinkGroupCodes(data());
       persistLocal();
+      markContestEdited();
       render();
     });
   });
@@ -2316,6 +2363,7 @@ function renderGroup(){
     activeGroup=rows.length-1;
     activeSection="GROUP:"+(activeGroup+1);
     persistLocal();
+    markContestEdited();
     render();
     toast("Добавлена группа");
   });
@@ -2385,6 +2433,7 @@ function renderIndicator(){
       if(!rows.length) rows.push(emptyIndicatorRow());
       if(activeIndicator>=rows.length) activeIndicator=rows.length-1;
       persistLocal();
+      markContestEdited();
       render();
     });
   });
@@ -2393,6 +2442,7 @@ function renderIndicator(){
     activeIndicator=rows.length-1;
     activeSection="INDICATOR:"+(activeIndicator+1);
     persistLocal();
+    markContestEdited();
     render();
     toast("Добавлен индикатор");
   });
@@ -2464,6 +2514,7 @@ function renderSchedule(){
       if(!rows.length) rows.push(emptyScheduleRow());
       if(activeSchedule>=rows.length) activeSchedule=rows.length-1;
       persistLocal();
+      markContestEdited();
       render();
     });
   });
@@ -2472,6 +2523,7 @@ function renderSchedule(){
     activeSchedule=rows.length-1;
     activeSection="SCHEDULE:"+(activeSchedule+1);
     persistLocal();
+    markContestEdited();
     render();
     toast("Добавлен период");
   });
@@ -2585,6 +2637,7 @@ function render(){
   else if(activeSection==="GROUP"||activeSection.startsWith("GROUP:"))renderGroup();
   else if(activeSection==="INDICATOR"||activeSection.startsWith("INDICATOR:"))renderIndicator();
   else if(activeSection==="SCHEDULE"||activeSection.startsWith("SCHEDULE:"))renderSchedule();
+  realignBaselineIfPristine(cur());
 }
 
 function dumpsSpod(obj){if(obj===null||obj===undefined)return"null";if(typeof obj==="boolean")return obj?"true":"false";if(typeof obj==="number")return Number.isInteger(obj)?String(obj):String(obj);if(typeof obj==="string")return'"""'+obj+'"""';if(Array.isArray(obj)){if(!obj.length)return"[]";return"["+obj.map(dumpsSpod).join(", ")+"]"}if(typeof obj==="object"){const keys=Object.keys(obj);if(!keys.length)return"{}";return"{"+keys.map(k=>dumpsSpod(String(k))+": "+dumpsSpod(obj[k])).join(", ")+"}"}return'"""'+String(obj)+'"""'}
@@ -2669,7 +2722,9 @@ function applyProjectObject(restored, opts){
     const data=c.data||emptyContestData();
     expandContestPrefixedCodes(data);
     syncBadgeSlots(data,false);
-    const item={id:c.id||("c"+Date.now()+"_"+i),name:c.name||"",data,baseline:null};
+    seedLinked(data);
+    sortScheduleRows(data.schedule);
+    const item={id:c.id||("c"+Date.now()+"_"+i),name:c.name||"",data,baseline:null,userEdited:false};
     markBaseline(item);
     return item;
   });
@@ -2691,7 +2746,7 @@ function startFresh(opts){
   opts=opts||{};
   contests=[];
   const data=emptyContestData();
-  const c={id:"c"+Date.now(),name:"",data,baseline:null};
+  const c={id:"c"+Date.now(),name:"",data,baseline:null,userEdited:false};
   markBaseline(c);
   contests.push(c);
   activeContest=0;activeSection="CONTEST";activeBadge=0;activeSchedule=0;activeIndicator=0;activeGroup=0;activeLink=0;
@@ -2705,7 +2760,7 @@ function startFresh(opts){
 function addContest(){
   if(!sessionReady){toast("Сначала выберите: открыть JSON или создать новый");return}
   const data=emptyContestData();
-  const c={id:"c"+Date.now(),name:"",data,baseline:null};
+  const c={id:"c"+Date.now(),name:"",data,baseline:null,userEdited:false};
   markBaseline(c);
   contests.push(c);
   activeContest=contests.length-1;activeSection="CONTEST";activeBadge=0;activeSchedule=0;activeIndicator=0;activeGroup=0;activeLink=0;
