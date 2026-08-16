@@ -174,6 +174,17 @@ td .default-chip{min-height:34px;padding:6px 8px;font-size:11px}
 .period-tabs{display:flex;flex-wrap:wrap;gap:8px;flex:1;min-width:0}
 .period-tab{display:inline-flex;align-items:center;gap:8px;border:1px solid rgba(15,23,42,.12);background:rgba(255,255,255,.8);border-radius:14px;padding:8px 12px;font:inherit;font-size:12px;font-weight:600;cursor:pointer;color:var(--glass-text);max-width:100%}
 .period-tab.active{background:var(--glass-blue-light);border-color:var(--glass-blue-border);color:var(--glass-blue);box-shadow:0 0 0 2px rgba(0,122,255,.16)}
+.period-tab--sch-active{background:rgba(52,199,89,.14);border-color:rgba(52,199,89,.4);color:#15803d}
+.period-tab--sch-active.active{box-shadow:0 0 0 2px rgba(52,199,89,.28)}
+.period-tab--sch-results{background:rgba(0,122,255,.12);border-color:rgba(0,122,255,.4);color:var(--glass-blue)}
+.period-tab--sch-results.active{box-shadow:0 0 0 2px rgba(0,122,255,.28)}
+.period-tab--sch-done{background:rgba(244,114,182,.16);border-color:rgba(219,39,119,.38);color:#be185d}
+.period-tab--sch-done.active{box-shadow:0 0 0 2px rgba(219,39,119,.28)}
+.period-tab--sch-cancel,
+.period-tab--sch-deleted{background:rgba(148,163,184,.16);border-color:rgba(100,116,139,.4);color:#64748b}
+.period-tab--sch-deleted{opacity:.88}
+.period-tab--sch-cancel.active,
+.period-tab--sch-deleted.active{box-shadow:0 0 0 2px rgba(100,116,139,.28)}
 .period-tab .pt-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:220px}
 .period-tab .pt-x{border:0;background:transparent;cursor:pointer;opacity:.5;font-size:16px;line-height:1;padding:0 2px;border-radius:6px}
 .period-tab .pt-x:hover{opacity:1;background:rgba(0,0,0,.06)}
@@ -334,8 +345,8 @@ table.grid th .empty-pill{margin-left:4px;vertical-align:middle}
 .top-nav .nav-btn--slot .nav-btn__title{display:block;font-size:11px;font-weight:650;line-height:1.25;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .top-nav .nav-btn--slot .nav-sub{font-size:9px;margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .top-nav .nav-btn--slot .tag{font-size:8px;padding:1px 5px}
-.top-nav .nav-btn--slot.nav-btn--code{max-width:min(100%,min(48vw,380px));flex:1 1 220px}
-.top-nav .nav-btn--slot.nav-btn--code .nav-btn__title{white-space:normal;overflow-wrap:anywhere;word-break:break-word;line-height:1.2;font-size:10px;font-family:var(--mono)}
+.top-nav .nav-btn--slot.nav-btn--code{max-width:min(100%,420px);flex:0 1 auto;width:max-content}
+.top-nav .nav-btn--slot.nav-btn--code .nav-btn__title{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2;font-size:10px;font-family:var(--mono)}
 .top-nav .nav-btn--slot.nav-btn--name{max-width:min(100%,min(36vw,280px))}
 .top-nav .nav-btn--slot.nav-btn--name .nav-sub{max-width:100%}
 .top-nav .nav-group{display:inline-flex;flex-wrap:wrap;align-items:center;gap:6px;margin:0;padding:5px 8px;border-radius:12px;background:rgba(15,23,42,.04);border:1px solid rgba(15,23,42,.06);max-width:100%}
@@ -346,7 +357,29 @@ table.grid th .empty-pill{margin-left:4px;vertical-align:middle}
 .top-nav .nav-group--contest .nav-group__title{color:#15803d}
 .top-nav .nav-group--groups{background:rgba(255,149,0,.08);border-color:rgba(255,149,0,.18)}
 .top-nav .nav-group--ind{background:rgba(88,86,214,.08);border-color:rgba(88,86,214,.16)}
-.top-nav .nav-group--sch{background:rgba(0,122,255,.06);border-color:rgba(0,122,255,.14)}
+.top-nav .nav-group--sch{background:rgba(0,122,255,.06);border-color:rgba(0,122,255,.14);flex:1 1 auto;min-width:0}
+.top-nav .nav-group--sch .nav-btn--code{max-width:min(100%,460px)}
+.top-nav .nav-btn--sch-active{background:rgba(52,199,89,.14)!important;border-color:rgba(52,199,89,.42)!important;color:#15803d}
+.top-nav .nav-btn--sch-active .nav-sub{color:rgba(21,128,61,.9)}
+.top-nav .nav-btn--sch-active .tag{background:rgba(52,199,89,.2);color:#15803d}
+.top-nav .nav-btn--sch-active.active{box-shadow:0 0 0 2px rgba(52,199,89,.3)}
+.top-nav .nav-btn--sch-results{background:rgba(0,122,255,.12)!important;border-color:rgba(0,122,255,.4)!important;color:var(--glass-blue)}
+.top-nav .nav-btn--sch-results .nav-sub{color:rgba(0,102,214,.9)}
+.top-nav .nav-btn--sch-results .tag{background:rgba(0,122,255,.18);color:var(--glass-blue)}
+.top-nav .nav-btn--sch-results.active{box-shadow:0 0 0 2px rgba(0,122,255,.28)}
+.top-nav .nav-btn--sch-done{background:rgba(244,114,182,.16)!important;border-color:rgba(219,39,119,.38)!important;color:#be185d}
+.top-nav .nav-btn--sch-done .nav-sub{color:rgba(190,24,93,.9)}
+.top-nav .nav-btn--sch-done .tag{background:rgba(244,114,182,.22);color:#be185d}
+.top-nav .nav-btn--sch-done.active{box-shadow:0 0 0 2px rgba(219,39,119,.28)}
+.top-nav .nav-btn--sch-cancel,
+.top-nav .nav-btn--sch-deleted{background:rgba(148,163,184,.16)!important;border-color:rgba(100,116,139,.4)!important;color:#64748b}
+.top-nav .nav-btn--sch-cancel .nav-sub,
+.top-nav .nav-btn--sch-deleted .nav-sub{color:rgba(100,116,139,.95)}
+.top-nav .nav-btn--sch-cancel .tag,
+.top-nav .nav-btn--sch-deleted .tag{background:rgba(148,163,184,.25);color:#475569}
+.top-nav .nav-btn--sch-deleted{opacity:.88}
+.top-nav .nav-btn--sch-cancel.active,
+.top-nav .nav-btn--sch-deleted.active{box-shadow:0 0 0 2px rgba(100,116,139,.28)}
 .top-nav .nav-btn--child{max-width:min(100%,170px);padding:6px 9px;border-style:dashed;background:rgba(255,255,255,.4)}
 .top-nav .nav-btn--child .nav-btn__title{font-size:11px}
 .top-nav .nav-btn--json.active,.top-nav .nav-btn--child.active{background:rgba(175,82,222,.14);border-color:rgba(175,82,222,.42);color:#7a3aa0;border-style:solid}
@@ -460,13 +493,34 @@ table.grid th .empty-pill{margin-left:4px;vertical-align:middle}
     <div class="foot-block foot-block--export">
       <span class="foot-label">Экспорт CSV</span>
       <div class="export-inline">
-        <button type="button" class="btn btn-primary btn-compact" id="btn-export-all" data-tip="Все 6 CSV по всем конкурсам">Все 6</button>
-        <button type="button" class="btn btn-compact" data-export="contest">CONTEST</button>
-        <button type="button" class="btn btn-compact" data-export="reward">REWARD</button>
-        <button type="button" class="btn btn-compact" data-export="reward_link">LINK</button>
-        <button type="button" class="btn btn-compact" data-export="group">GROUP</button>
-        <button type="button" class="btn btn-compact" data-export="indicator">INDICATOR</button>
-        <button type="button" class="btn btn-compact" data-export="schedule">SCHEDULE</button>
+        <button type="button" class="btn btn-primary btn-compact" id="btn-export-all" data-tip="Все 6 CSV по всем конкурсам">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M8 7h12v14H8z"/><path d="M4 3h12v4"/><path d="M4 3v14h4"/><path d="M12 12v5"/><path d="M9.5 14.5 12 17l2.5-2.5"/></svg>
+          Все 6
+        </button>
+        <button type="button" class="btn btn-compact" data-export="contest" data-tip="CSV · CONTEST-DATA">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M8 21V11l4-2 4 2v10"/><path d="M6 21h12"/><path d="M10 14h4"/><path d="M12 9V5"/><circle cx="12" cy="4" r="1.5"/></svg>
+          CONTEST
+        </button>
+        <button type="button" class="btn btn-compact" data-export="reward" data-tip="CSV · REWARD (BADGE)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="9" r="5"/><path d="M8.5 13.5 7 21l5-2 5 2-1.5-7.5"/><path d="M12 4v2"/></svg>
+          REWARD
+        </button>
+        <button type="button" class="btn btn-compact" data-export="reward_link" data-tip="CSV · REWARD-LINK">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.07 0l1.41-1.41a5 5 0 0 0-7.07-7.07L10 5.93"/><path d="M14 11a5 5 0 0 0-7.07 0L5.52 12.4a5 5 0 0 0 7.07 7.07L14 18.07"/></svg>
+          LINK
+        </button>
+        <button type="button" class="btn btn-compact" data-export="group" data-tip="CSV · GROUP">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M3 19c0-2.8 2.7-5 6-5s6 2.2 6 5"/><path d="M14.5 19c.3-1.8 1.8-3.2 3.8-3.5 1.7.2 3.2 1.3 3.7 3.5"/></svg>
+          GROUP
+        </button>
+        <button type="button" class="btn btn-compact" data-export="indicator" data-tip="CSV · INDICATOR">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 19V5"/><path d="M4 19h16"/><path d="M8 16v-5"/><path d="M12 16V8"/><path d="M16 16v-3"/><path d="M8 11l4-4 4 3"/></svg>
+          INDICATOR
+        </button>
+        <button type="button" class="btn btn-compact" data-export="schedule" data-tip="CSV · TOURNAMENT-SCHEDULE">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18"/><path d="M8 3v4"/><path d="M16 3v4"/><path d="M8 14h3"/><path d="M13 14h3"/><path d="M8 17h8"/></svg>
+          SCHEDULE
+        </button>
       </div>
     </div>
   </footer>
@@ -778,6 +832,46 @@ function scheduleSub(row){
   if(st) parts.push(st);
   if(pt) parts.push(pt);
   return parts.join(" · ");
+}
+
+/** Порядок статусов турнира в верхней навигации / списке периодов. */
+const SCHEDULE_STATUS_RANK={
+  "АКТИВНЫЙ":0,
+  "ПОДВЕДЕНИЕ ИТОГОВ":1,
+  "ЗАВЕРШЕН":2,
+  "ОТМЕНЕН":3,
+  "УДАЛЕН":4,
+};
+function scheduleStatusRank(status){
+  const u=String(status||"").trim().toUpperCase();
+  return Object.prototype.hasOwnProperty.call(SCHEDULE_STATUS_RANK,u)?SCHEDULE_STATUS_RANK[u]:90;
+}
+function scheduleStatusNavClass(status){
+  const u=String(status||"").trim().toUpperCase();
+  if(u==="АКТИВНЫЙ") return "nav-btn--sch-active";
+  if(u==="ПОДВЕДЕНИЕ ИТОГОВ") return "nav-btn--sch-results";
+  if(u==="ЗАВЕРШЕН") return "nav-btn--sch-done";
+  if(u==="ОТМЕНЕН") return "nav-btn--sch-cancel";
+  if(u==="УДАЛЕН") return "nav-btn--sch-deleted";
+  return "";
+}
+/** Сортировка периодов по TOURNAMENT_STATUS; сохраняет активный период. */
+function ensureScheduleSorted(){
+  const rows=data().schedule;
+  if(!rows||rows.length<2) return;
+  const cur=rows[activeSchedule];
+  rows.sort((a,b)=>{
+    const d=scheduleStatusRank(a.TOURNAMENT_STATUS)-scheduleStatusRank(b.TOURNAMENT_STATUS);
+    if(d) return d;
+    return String(a.TOURNAMENT_CODE||"").localeCompare(String(b.TOURNAMENT_CODE||""),"ru");
+  });
+  if(cur){
+    const ni=rows.indexOf(cur);
+    if(ni>=0){
+      activeSchedule=ni;
+      if(String(activeSection||"").startsWith("SCHEDULE:")) activeSection="SCHEDULE:"+(ni+1);
+    }
+  }
 }
 
 function contestTypeNavLabel(t){
@@ -1703,7 +1797,6 @@ function navItems(){
   const max=maxBadges(data().contest.CONTEST_TYPE);
   const groupRows=data().group||[];
   const indRows=data().indicator||[];
-  const schRows=data().schedule||[];
 
   // Строка 1: Конкурс → Индикаторы → Группы
   const rowMain=[];
@@ -1782,13 +1875,15 @@ function navItems(){
     });
   }
 
-  // Строка 3: Расписание (всегда последняя)
+  // Строка 3: Расписание (всегда последняя) — порядок по TOURNAMENT_STATUS
+  ensureScheduleSorted();
+  const schSorted=data().schedule||[];
   const rowSchedule=[];
-  rowSchedule.push({kind:"group",group:"sch",title:"Расписание",meta:schRows.length+" пер."});
-  if(!schRows.length){
+  rowSchedule.push({kind:"group",group:"sch",title:"Расписание",meta:schSorted.length+" пер."});
+  if(!schSorted.length){
     rowSchedule.push({id:"SCHEDULE:1",title:"Период 1",sub:"TOURNAMENT_CODE",tag:"table",tagLabel:"T1",slot:true,codeSlot:true});
   }else{
-    schRows.forEach((r,i)=>{
+    schSorted.forEach((r,i)=>{
       const title=scheduleTitle(r,i);
       const sub=scheduleSub(r);
       rowSchedule.push({
@@ -1799,6 +1894,7 @@ function navItems(){
         tagLabel:"T"+(i+1),
         slot:true,
         codeSlot:true,
+        statusClass:scheduleStatusNavClass(r.TOURNAMENT_STATUS),
         tip:sub?title+" · "+sub:title,
       });
     });
@@ -1883,7 +1979,8 @@ function navBtnHtml(it){
   const json=it.tag==="json"?" nav-btn--json":"";
   const code=it.codeSlot?" nav-btn--code":"";
   const name=it.nameSlot?" nav-btn--name":"";
-  return `<button type="button" class="nav-btn${slot}${child}${json}${code}${name}${activeSection===it.id?" active":""}" data-nav="${esc(it.id)}" data-tip="${esc(it.tip||it.title)}"><span class="nav-btn__body"><span class="nav-btn__title">${esc(it.title)}</span><span class="nav-sub">${esc(it.sub||"")}</span></span><span class="tag ${it.tag}">${esc(it.tagLabel)}</span></button>`;
+  const status=it.statusClass?(" "+it.statusClass):"";
+  return `<button type="button" class="nav-btn${slot}${child}${json}${code}${name}${status}${activeSection===it.id?" active":""}" data-nav="${esc(it.id)}" data-tip="${esc(it.tip||it.title)}"><span class="nav-btn__body"><span class="nav-btn__title">${esc(it.title)}</span><span class="nav-sub">${esc(it.sub||"")}</span></span><span class="tag ${it.tag}">${esc(it.tagLabel)}</span></button>`;
 }
 
 function renderNavRow(raw){
@@ -2318,6 +2415,7 @@ function renderIndicator(){
 
 
 function renderSchedule(){
+  ensureScheduleSorted();
   const rows=data().schedule;
   if(!rows.length){rows.push(emptyScheduleRow());}
   if(activeSchedule>=rows.length) activeSchedule=rows.length-1;
@@ -2327,7 +2425,11 @@ function renderSchedule(){
   seedLinked(data());
   row.CONTEST_CODE=contestCodeOf();
 
-  const tabs=rows.map((r,idx)=>`<button type="button" class="period-tab${idx===i?" active":""}" data-period="${idx}"><span class="pt-name" data-tip="${esc(scheduleTitle(r,idx))}">${esc(scheduleTitle(r,idx))}</span>${rows.length>1?`<span class="pt-x" data-del-period="${idx}" data-tip="Удалить период">×</span>`:""}</button>`).join("");
+  const tabs=rows.map((r,idx)=>{
+    const stCls=scheduleStatusNavClass(r.TOURNAMENT_STATUS).replace("nav-btn--","period-tab--");
+    const tip=scheduleSub(r)?scheduleTitle(r,idx)+" · "+scheduleSub(r):scheduleTitle(r,idx);
+    return `<button type="button" class="period-tab${stCls?" "+stCls:""}${idx===i?" active":""}" data-period="${idx}"><span class="pt-name" data-tip="${esc(tip)}">${esc(scheduleTitle(r,idx))}</span>${rows.length>1?`<span class="pt-x" data-del-period="${idx}" data-tip="Удалить период">×</span>`:""}</button>`;
+  }).join("");
 
   $("workspace").innerHTML=`
 <section class="panel">
@@ -2380,7 +2482,13 @@ function renderSchedule(){
     (f,v)=>{
       if(f.key==="CONTEST_CODE"){row.CONTEST_CODE=contestCodeOf();return}
       row[f.key]=v;persistLocal();refreshContestTabDirty();
-      if(f.key==="TOURNAMENT_CODE"||f.key==="PERIOD_TYPE"||f.key==="START_DT"||f.key==="TOURNAMENT_STATUS"){
+      if(f.key==="TOURNAMENT_STATUS"){
+        ensureScheduleSorted();
+        persistLocal();
+        render();
+        return;
+      }
+      if(f.key==="TOURNAMENT_CODE"||f.key==="PERIOD_TYPE"||f.key==="START_DT"){
         const tab=$("workspace").querySelector(`.period-tab.active .pt-name`);
         if(tab){
           const tip=scheduleSub(row)?scheduleTitle(row,i)+" · "+scheduleSub(row):scheduleTitle(row,i);

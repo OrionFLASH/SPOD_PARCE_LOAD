@@ -18,6 +18,7 @@
 | `spod_fill_example_tournaments.json` | 4 турнира: `01_2026-1_05-3_1`, `10_2026-0_05-3_1`, `01_2026-0_05-2_4`, `01_2026-1_14-1_1` |
 | `spod_fill_example_mixed.json` | Все 8 конкурсов в одном снимке |
 | `spod_fill_all_badges.json` | Полный снимок: все конкурсы `IN/PROM/SPOD` со связью на `REWARD_TYPE=BADGE` (~374) |
+| `spod_fill_badges_schedule_2026.json` | BADGE и в SCHEDULE есть период с `START_DT`, содержащим `2026` |
 
 В снимке `REWARD_CODE` и `TOURNAMENT_CODE` — **только окончание** (без `r_`/`t_` и без `CONTEST_CODE`). При открытии fill собирает полный код:
 

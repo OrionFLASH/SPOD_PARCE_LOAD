@@ -323,6 +323,21 @@ def collect_badge_contest_codes() -> List[str]:
     return codes
 
 
+def collect_badge_contest_codes_with_schedule_start(needle: str = "2026") -> List[str]:
+    """
+    Конкурсы с BADGE и хотя бы одним периодом SCHEDULE,
+    у которого START_DT содержит needle (например «2026»).
+    """
+    badge = set(collect_badge_contest_codes())
+    sch_all = _read_csv(_latest("SCHEDULE (PROM)*.csv"))
+    with_start = {
+        str(r.get("CONTEST_CODE") or "").strip()
+        for r in sch_all
+        if str(r.get("CONTEST_CODE") or "").strip()
+        and needle in str(r.get("START_DT") or "")
+    }
+    return sorted(badge & with_start)
+
 def build_project(
     codes: Sequence[str],
     *,
@@ -463,6 +478,22 @@ def main() -> int:
     print(
         f"OK {all_path.relative_to(ROOT)} · {len(all_payload['contests'])} конкурс. "
         f"(REWARD_TYPE=BADGE)"
+    )
+
+    # BADGE + в SCHEDULE есть турнир с START_DT, содержащим 2026
+    y2026_codes = collect_badge_contest_codes_with_schedule_start("2026")
+    y2026_payload = build_project(
+        y2026_codes,
+        title="BADGE · SCHEDULE START_DT содержит 2026",
+        badge_only=True,
+    )
+    y2026_path = OUT_DIR / "spod_fill_badges_schedule_2026.json"
+    y2026_path.write_text(
+        json.dumps(y2026_payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    )
+    print(
+        f"OK {y2026_path.relative_to(ROOT)} · {len(y2026_payload['contests'])} конкурс. "
+        f"(BADGE + START_DT∋2026)"
     )
     return 0
 
