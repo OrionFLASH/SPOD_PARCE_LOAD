@@ -1,0 +1,1224 @@
+{
+  "version": 2,
+  "block": "PROM",
+  "title": "Примеры JSON-массивов: CONTEST_PERIOD / FILTER_PERIOD_ARR / INDICATOR_FILTER",
+  "source": "IN/PROM/SPOD (latest CONTEST/GROUP/REWARD*/INDICATOR/SCHEDULE)",
+  "saved_at": "2026-08-16T18:33:16.399729Z",
+  "catalog_stamp": "2026-08-16T18:24:55.216Z",
+  "activeContest": 0,
+  "contests": [
+    {
+      "id": "ex_01_2026_1_14_1_1",
+      "name": "Активы. Максимизируй прирост остатка",
+      "data": {
+        "contest": {
+          "CONTEST_CODE": "01_2026-1_14-1_1",
+          "FULL_NAME": "Активы. Максимизируй прирост остатка",
+          "CREATE_DT": "2026-01-01",
+          "CLOSE_DT": "4000-01-01",
+          "BUSINESS_STATUS": "АКТИВНЫЙ",
+          "CONTEST_TYPE": "ТУРНИРНЫЙ",
+          "CONTEST_DESCRIPTION": "Чтобы стать участником, покажи в текущем месяце положительный прирост остатка активов по своим клиентам. \\\\nПо итогам месяца выберем лучшие результаты в каждом подразделении. 10% участников с наибольшими результатами в своем ГОСБ (Аппарате ТБ) получат бронзовый бейдж. ТОП-3 участников с лучшими приростами в своих тербанках получат серебряный бейдж. Наконец, золотой бейдж и публикацию про себя в ленте Сообщества получат ТОП-5 участников с лучшими результатами по всей стране. Удачи!",
+          "SHOW_INDICATOR": "Прирост ОСЗ, млн руб.",
+          "PRODUCT_GROUP": "Кредиты",
+          "PRODUCT": "Кредиты все",
+          "CONTEST_SUBJECT": "EMPLOYEE",
+          "FACTOR_MARK_TYPE": "RATING_MAX",
+          "CONTEST_INDICATOR_METHOD": "INTEGRAL",
+          "CONTEST_FACTOR_METHOD": "FACT0-FACT1",
+          "PLAN_METHOD_CODE": "PRESET_VALUE",
+          "PLAN_MOD_METOD": "",
+          "PLAN_MOD_VALUE": "0",
+          "FACTOR_MATCH": ">",
+          "TARGET_TYPE": "ПРОМ",
+          "SOURCE_UPD_FREQUENCY": "7",
+          "CALC_TYPE": "1",
+          "BUSINESS_BLOCK": "KMKKSB",
+          "FACT_POST_PROCESSING": ""
+        },
+        "feature": {
+          "feature": "Победители получают один максимальный по достоинству бейдж;Данные основаны на ДБ QlikSense;Обновление информации происходит 1 раз в неделю;Награда по ГОСБ вручается, если число участников не менее 2х",
+          "vid": "ПРОМ",
+          "momentRewarding": "AFTER",
+          "minNumber": "2",
+          "capacity": "MILLIONS",
+          "accuracy": "2",
+          "masking": "N",
+          "tournamentStartMailing": "Y",
+          "tournamentEndMailing": "Y",
+          "tournamentLikeMailing": "Y",
+          "tournamentRewardingMailing": "Y",
+          "tournamentListMailing": "",
+          "persomanNumberVisible": "",
+          "persomanNumberHidden": "",
+          "gosbVisible": "",
+          "gosbHidden": "",
+          "tbVisible": "",
+          "tbHidden": "",
+          "businessBlock": "KMKKSB",
+          "typeRewarding": "one"
+        },
+        "contestPeriod": [
+          {
+            "period_code": "0",
+            "criterion_mark_type": ">",
+            "criterion_mark_value": "0"
+          },
+          {
+            "period_code": "1",
+            "criterion_mark_type": ">",
+            "criterion_mark_value": "0"
+          }
+        ],
+        "badges": [
+          {
+            "flat": {
+              "REWARD_CODE": "1",
+              "REWARD_TYPE": "BADGE",
+              "FULL_NAME": "Золото#по приросту остатка Активов",
+              "REWARD_DESCRIPTION": "Войди в число ТОП-5 участников в турнире Активы. Максимизируй прирост остатка на уровне всей страны",
+              "REWARD_CONDITION": "1",
+              "REWARD_COST": "10"
+            },
+            "add": {
+              "feature": "Факт получения бейджа попадает в ленту сообщества",
+              "nftFlg": "N",
+              "outstanding": "Y",
+              "newsType": "AIPROMPT",
+              "winCriterion": "Войди в ТОП-5 участников турнира по приросту остатка Активов в стране по приросту остатка активов за месяц",
+              "rewardRule": "Бейдж получат ТОП-5 от числа участников турнира в стране",
+              "rewardAgainGlobal": "Y",
+              "rewardAgainTournament": "N",
+              "hidden": "N",
+              "fileName": "",
+              "teamNews": "<span>[Имя_Фамилия]</span> и еще [n] [amount:менеджер] стали победителями турнира «Активы. Максимизируй прирост остатка». Они показали лучший прирост остатка активов по итогам турнира во всей стране",
+              "singleNews": "Новое достижение! <span>[Имя]</span> [gender:1:стал|gender:2:стала] победителем турнира «Активы. Максимизируй прирост остатка». [gender:1:Он|gender:2:Она] [gender:1:показал|gender:2:показала] лучший прирост остатка активов по итогам турнира во всей стране",
+              "refreshOldNews": "Y",
+              "businessBlock": "KMKKSB",
+              "recommendationLevel": "BANK",
+              "priority": "1",
+              "masterBadge": "N",
+              "parentRewardCode": "01_2026-1_00-1_1"
+            }
+          },
+          {
+            "flat": {
+              "REWARD_CODE": "2",
+              "REWARD_TYPE": "BADGE",
+              "FULL_NAME": "Серебро#по приросту остатка Активов",
+              "REWARD_DESCRIPTION": "Войти в число ТОП-3 участников на уровне своего территориального банка в рамках турнира Активы. Максимизируй прирост остатка",
+              "REWARD_CONDITION": "1",
+              "REWARD_COST": "6"
+            },
+            "add": {
+              "feature": "",
+              "nftFlg": "N",
+              "outstanding": "N",
+              "rewardRule": "Бейдж получат ТОП-3 от числа участников турнира в каждом тербанке",
+              "rewardAgainGlobal": "Y",
+              "rewardAgainTournament": "N",
+              "hidden": "N",
+              "fileName": "",
+              "teamNews": "",
+              "singleNews": "",
+              "businessBlock": "KMKKSB",
+              "recommendationLevel": "TB",
+              "priority": "2",
+              "masterBadge": "N",
+              "parentRewardCode": "01_2026-1_00-1_2"
+            }
+          },
+          {
+            "flat": {
+              "REWARD_CODE": "3",
+              "REWARD_TYPE": "BADGE",
+              "FULL_NAME": "Бронза#по приросту остатка Активов",
+              "REWARD_DESCRIPTION": "Победи в турнире Активы. Максимизируй прирост остатка в рамках своего ГОСБ / Управления",
+              "REWARD_CONDITION": "1",
+              "REWARD_COST": "4"
+            },
+            "add": {
+              "feature": "",
+              "nftFlg": "N",
+              "outstanding": "N",
+              "rewardRule": "Бейдж получат ТОП 10% от числа участников турнира в подразделении",
+              "rewardAgainGlobal": "Y",
+              "rewardAgainTournament": "N",
+              "hidden": "N",
+              "fileName": "",
+              "teamNews": "",
+              "singleNews": "",
+              "businessBlock": "KMKKSB",
+              "recommendationLevel": "GOSB",
+              "priority": "3",
+              "masterBadge": "N",
+              "parentRewardCode": "01_2026-1_00-1_3"
+            }
+          }
+        ],
+        "reward_link": [
+          {
+            "CONTEST_CODE": "01_2026-1_14-1_1",
+            "GROUP_CODE": "BANK",
+            "REWARD_CODE": "1"
+          },
+          {
+            "CONTEST_CODE": "01_2026-1_14-1_1",
+            "GROUP_CODE": "TB",
+            "REWARD_CODE": "2"
+          },
+          {
+            "CONTEST_CODE": "01_2026-1_14-1_1",
+            "GROUP_CODE": "GOSB",
+            "REWARD_CODE": "3"
+          }
+        ],
+        "group": [
+          {
+            "CONTEST_CODE": "01_2026-1_14-1_1",
+            "GROUP_CODE": "BANK",
+            "GROUP_VALUE": "*",
+            "GET_CALC_METHOD": "2",
+            "GET_CALC_CRITERION": "5",
+            "ADD_CALC_CRITERION": "0",
+            "ADD_CALC_CRITERION_2": "0",
+            "BASE_CALC_CODE": "BANK"
+          },
+          {
+            "CONTEST_CODE": "01_2026-1_14-1_1",
+            "GROUP_CODE": "GOSB",
+            "GROUP_VALUE": "*",
+            "GET_CALC_METHOD": "1",
+            "GET_CALC_CRITERION": "0.00000",
+            "ADD_CALC_CRITERION": "0.00000",
+            "ADD_CALC_CRITERION_2": "0.10000",
+            "BASE_CALC_CODE": "GOSB"
+          },
+          {
+            "CONTEST_CODE": "01_2026-1_14-1_1",
+            "GROUP_CODE": "TB",
+            "GROUP_VALUE": "*",
+            "GET_CALC_METHOD": "2",
+            "GET_CALC_CRITERION": "0",
+            "ADD_CALC_CRITERION": "3",
+            "ADD_CALC_CRITERION_2": "0",
+            "BASE_CALC_CODE": "TB"
+          }
+        ],
+        "indicator": [
+          {
+            "CONTEST_CODE": "01_2026-1_14-1_1",
+            "INDICATOR_CALC_TYPE": "1",
+            "INDICATOR_ADD_CALC_TYPE": "",
+            "FULL_NAME": "WAIT",
+            "INDICATOR_CODE": "WAIT",
+            "INDICATOR_AGG_FUNCTION": "",
+            "INDICATOR_WEIGHT": "",
+            "INDICATOR_OBJECT": "",
+            "INDICATOR_MARK_TYPE": "RATING",
+            "INDICATOR_MATCH": "MAX",
+            "INDICATOR_VALUE": "",
+            "CONTEST_CRITERION": "",
+            "CONTESTANT_SELECTION": "",
+            "CALC_TYPE": "1",
+            "N": "164",
+            "filter_items": []
+          }
+        ],
+        "schedule": [
+          {
+            "TOURNAMENT_CODE": "3021",
+            "PERIOD_TYPE": "турнир февраля",
+            "START_DT": "2026-02-01",
+            "END_DT": "2026-02-28",
+            "RESULT_DT": "2026-03-20",
+            "PLAN_PERIOD_START_DT": "",
+            "PLAN_PERIOD_END_DT": "",
+            "CRITERION_MARK_TYPE": "",
+            "CRITERION_MARK_VALUE": "",
+            "TOURNAMENT_STATUS": "ЗАВЕРШЕН",
+            "CONTEST_CODE": "01_2026-1_14-1_1",
+            "CALC_TYPE": "1",
+            "TRN_INDICATOR_FILTER": "",
+            "seasonCode": "SEASON_2026_1",
+            "filter_period": []
+          },
+          {
+            "TOURNAMENT_CODE": "3031",
+            "PERIOD_TYPE": "турнир марта",
+            "START_DT": "2026-03-01",
+            "END_DT": "2026-03-31",
+            "RESULT_DT": "2026-04-20",
+            "PLAN_PERIOD_START_DT": "",
+            "PLAN_PERIOD_END_DT": "",
+            "CRITERION_MARK_TYPE": "",
+            "CRITERION_MARK_VALUE": "",
+            "TOURNAMENT_STATUS": "ЗАВЕРШЕН",
+            "CONTEST_CODE": "01_2026-1_14-1_1",
+            "CALC_TYPE": "1",
+            "TRN_INDICATOR_FILTER": "",
+            "seasonCode": "SEASON_2026_1",
+            "filter_period": []
+          },
+          {
+            "TOURNAMENT_CODE": "3041",
+            "PERIOD_TYPE": "турнир апреля",
+            "START_DT": "2026-04-01",
+            "END_DT": "2026-04-30",
+            "RESULT_DT": "2026-05-20",
+            "PLAN_PERIOD_START_DT": "",
+            "PLAN_PERIOD_END_DT": "",
+            "CRITERION_MARK_TYPE": "",
+            "CRITERION_MARK_VALUE": "",
+            "TOURNAMENT_STATUS": "ЗАВЕРШЕН",
+            "CONTEST_CODE": "01_2026-1_14-1_1",
+            "CALC_TYPE": "1",
+            "TRN_INDICATOR_FILTER": "",
+            "seasonCode": "SEASON_2026_1",
+            "filter_period": []
+          },
+          {
+            "TOURNAMENT_CODE": "3051",
+            "PERIOD_TYPE": "турнир мая",
+            "START_DT": "2026-05-01",
+            "END_DT": "2026-05-31",
+            "RESULT_DT": "2026-06-20",
+            "PLAN_PERIOD_START_DT": "",
+            "PLAN_PERIOD_END_DT": "",
+            "CRITERION_MARK_TYPE": "",
+            "CRITERION_MARK_VALUE": "",
+            "TOURNAMENT_STATUS": "ЗАВЕРШЕН",
+            "CONTEST_CODE": "01_2026-1_14-1_1",
+            "CALC_TYPE": "1",
+            "TRN_INDICATOR_FILTER": "",
+            "seasonCode": "SEASON_2026_1",
+            "filter_period": []
+          },
+          {
+            "TOURNAMENT_CODE": "3061",
+            "PERIOD_TYPE": "турнир июня",
+            "START_DT": "2026-06-01",
+            "END_DT": "2026-06-30",
+            "RESULT_DT": "2026-07-20",
+            "PLAN_PERIOD_START_DT": "",
+            "PLAN_PERIOD_END_DT": "",
+            "CRITERION_MARK_TYPE": "",
+            "CRITERION_MARK_VALUE": "",
+            "TOURNAMENT_STATUS": "ЗАВЕРШЕН",
+            "CONTEST_CODE": "01_2026-1_14-1_1",
+            "CALC_TYPE": "1",
+            "TRN_INDICATOR_FILTER": "",
+            "seasonCode": "SEASON_2026_1",
+            "filter_period": []
+          },
+          {
+            "TOURNAMENT_CODE": "3071",
+            "PERIOD_TYPE": "турнир июля",
+            "START_DT": "2026-07-01",
+            "END_DT": "2026-07-31",
+            "RESULT_DT": "2026-08-20",
+            "PLAN_PERIOD_START_DT": "",
+            "PLAN_PERIOD_END_DT": "",
+            "CRITERION_MARK_TYPE": "",
+            "CRITERION_MARK_VALUE": "",
+            "TOURNAMENT_STATUS": "ПОДВЕДЕНИЕ ИТОГОВ",
+            "CONTEST_CODE": "01_2026-1_14-1_1",
+            "CALC_TYPE": "1",
+            "TRN_INDICATOR_FILTER": "",
+            "seasonCode": "SEASON_2026_1",
+            "filter_period": []
+          },
+          {
+            "TOURNAMENT_CODE": "3081",
+            "PERIOD_TYPE": "турнир августа",
+            "START_DT": "2026-08-01",
+            "END_DT": "2026-08-31",
+            "RESULT_DT": "2026-09-20",
+            "PLAN_PERIOD_START_DT": "",
+            "PLAN_PERIOD_END_DT": "",
+            "CRITERION_MARK_TYPE": "",
+            "CRITERION_MARK_VALUE": "",
+            "TOURNAMENT_STATUS": "АКТИВНЫЙ",
+            "CONTEST_CODE": "01_2026-1_14-1_1",
+            "CALC_TYPE": "1",
+            "TRN_INDICATOR_FILTER": "",
+            "seasonCode": "SEASON_2026_1",
+            "filter_period": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "ex_01_2025_0_13_1_1",
+      "name": "CAPMAN 1 клиент",
+      "data": {
+        "contest": {
+          "CONTEST_CODE": "01_2025-0_13-1_1",
+          "FULL_NAME": "CAPMAN 1 клиент",
+          "CREATE_DT": "2025-01-01",
+          "CLOSE_DT": "4000-01-01",
+          "BUSINESS_STATUS": "АКТИВНЫЙ",
+          "CONTEST_TYPE": "ИНДИВИДУАЛЬНЫЙ НАКОПИТЕЛЬНЫЙ",
+          "CONTEST_DESCRIPTION": "сделай сделки с 1 клиентом",
+          "SHOW_INDICATOR": "шт.",
+          "PRODUCT_GROUP": "ДГР кредитные продукты",
+          "PRODUCT": "Хедж кредитов",
+          "CONTEST_SUBJECT": "EMPLOYEE",
+          "FACTOR_MARK_TYPE": "CRITERION",
+          "CONTEST_INDICATOR_METHOD": "INTEGRAL",
+          "CONTEST_FACTOR_METHOD": "FACT",
+          "PLAN_METHOD_CODE": "PRESET_VALUE",
+          "PLAN_MOD_METOD": "",
+          "PLAN_MOD_VALUE": "1",
+          "FACTOR_MATCH": ">=",
+          "TARGET_TYPE": "ПРОМ",
+          "SOURCE_UPD_FREQUENCY": "7",
+          "CALC_TYPE": "0",
+          "BUSINESS_BLOCK": "KMKKSB",
+          "FACT_POST_PROCESSING": ""
+        },
+        "feature": {
+          "feature": "",
+          "vid": "ПРОМ",
+          "momentRewarding": "DURIN",
+          "minNumber": "1",
+          "capacity": "",
+          "accuracy": "2",
+          "masking": "N",
+          "tournamentStartMailing": "N",
+          "tournamentEndMailing": "N",
+          "tournamentLikeMailing": "Y",
+          "tournamentRewardingMailing": "Y",
+          "tournamentListMailing": "",
+          "persomanNumberVisible": "",
+          "persomanNumberHidden": "",
+          "gosbVisible": "",
+          "gosbHidden": "",
+          "tbVisible": "",
+          "tbHidden": "",
+          "businessBlock": "KMKKSB",
+          "typeRewarding": "one"
+        },
+        "contestPeriod": [],
+        "badges": [
+          {
+            "flat": {
+              "REWARD_CODE": "",
+              "REWARD_TYPE": "BADGE",
+              "FULL_NAME": "1 клиент с процентными ПФИ",
+              "REWARD_DESCRIPTION": "Награда для опытных менеджеров, выстраивающих стратегические партнерские отношения с клиентом, управляя процентным риском. Бейдж вручается за 1 клиента, заключившего сделку процентного хеджирования кредитов в 2025 году.",
+              "REWARD_CONDITION": "1",
+              "REWARD_COST": "5"
+            },
+            "add": {
+              "feature": "Бейдж можно получить только один раз за год",
+              "nftFlg": "N",
+              "outstanding": "N",
+              "rewardRule": "",
+              "rewardAgainGlobal": "N",
+              "rewardAgainTournament": "N",
+              "hidden": "N",
+              "hiddenRewardList": "Y",
+              "fileName": "",
+              "teamNews": "",
+              "singleNews": "",
+              "refreshOldNews": "N",
+              "businessBlock": "KMKKSB",
+              "recommendationLevel": "GOSB",
+              "priority": "1",
+              "masterBadge": "Y",
+              "parentRewardCode": ""
+            }
+          }
+        ],
+        "reward_link": [
+          {
+            "CONTEST_CODE": "01_2025-0_13-1_1",
+            "GROUP_CODE": "BANK",
+            "REWARD_CODE": ""
+          }
+        ],
+        "group": [
+          {
+            "CONTEST_CODE": "01_2025-0_13-1_1",
+            "GROUP_CODE": "BANK",
+            "GROUP_VALUE": "*",
+            "GET_CALC_METHOD": "3",
+            "GET_CALC_CRITERION": "",
+            "ADD_CALC_CRITERION": "",
+            "ADD_CALC_CRITERION_2": "",
+            "BASE_CALC_CODE": ""
+          }
+        ],
+        "indicator": [
+          {
+            "CONTEST_CODE": "01_2025-0_13-1_1",
+            "INDICATOR_CALC_TYPE": "1",
+            "INDICATOR_ADD_CALC_TYPE": "",
+            "FULL_NAME": "PFIMIS_CUSTOMER_ID",
+            "INDICATOR_CODE": "PFIMIS_CUSTOMER_ID",
+            "INDICATOR_AGG_FUNCTION": "COUNT_DISTINCT",
+            "INDICATOR_WEIGHT": "1",
+            "INDICATOR_OBJECT": "",
+            "INDICATOR_MARK_TYPE": "CRITERION",
+            "INDICATOR_MATCH": ">=",
+            "INDICATOR_VALUE": "1",
+            "CONTEST_CRITERION": "",
+            "CONTESTANT_SELECTION": "",
+            "CALC_TYPE": "0",
+            "N": "48",
+            "filter_items": [
+              {
+                "filtered_attribute_code": "segment",
+                "filtered_attribute_type": "STRING",
+                "filtered_attribute_match": "IN",
+                "filtered_attribute_condition": "20201;10100;20202",
+                "filtered_attribute_value": "",
+                "filtered_attribute_dt": ""
+              },
+              {
+                "filtered_attribute_code": "tb",
+                "filtered_attribute_type": "STRING",
+                "filtered_attribute_match": "NOT_IN",
+                "filtered_attribute_condition": "99",
+                "filtered_attribute_value": "",
+                "filtered_attribute_dt": ""
+              },
+              {
+                "filtered_attribute_code": "is_manual_correct",
+                "filtered_attribute_type": "STRING",
+                "filtered_attribute_match": "IN",
+                "filtered_attribute_condition": "0",
+                "filtered_attribute_value": "",
+                "filtered_attribute_dt": ""
+              },
+              {
+                "filtered_attribute_code": "is_cva_product",
+                "filtered_attribute_type": "STRING",
+                "filtered_attribute_match": "IN",
+                "filtered_attribute_condition": "0",
+                "filtered_attribute_value": "",
+                "filtered_attribute_dt": ""
+              },
+              {
+                "filtered_attribute_code": "product_group",
+                "filtered_attribute_type": "STRING",
+                "filtered_attribute_match": "IN",
+                "filtered_attribute_condition": "1;2;14;8",
+                "filtered_attribute_value": "",
+                "filtered_attribute_dt": ""
+              }
+            ]
+          }
+        ],
+        "schedule": [
+          {
+            "TOURNAMENT_CODE": "1001",
+            "PERIOD_TYPE": "турнир года",
+            "START_DT": "2025-01-01",
+            "END_DT": "2025-12-31",
+            "RESULT_DT": "2025-12-31",
+            "PLAN_PERIOD_START_DT": "",
+            "PLAN_PERIOD_END_DT": "",
+            "CRITERION_MARK_TYPE": "",
+            "CRITERION_MARK_VALUE": "",
+            "TOURNAMENT_STATUS": "ЗАВЕРШЕН",
+            "CONTEST_CODE": "01_2025-0_13-1_1",
+            "CALC_TYPE": "0",
+            "TRN_INDICATOR_FILTER": "",
+            "seasonCode": "",
+            "filter_period": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "ex_01_2025_1_02_2_2",
+      "name": "Пассивы. Прирост остатка долгосрочных депозитов",
+      "data": {
+        "contest": {
+          "CONTEST_CODE": "01_2025-1_02-2_2",
+          "FULL_NAME": "Пассивы. Прирост остатка долгосрочных депозитов",
+          "CREATE_DT": "2025-01-01",
+          "CLOSE_DT": "4000-01-01",
+          "BUSINESS_STATUS": "АКТИВНЫЙ",
+          "CONTEST_TYPE": "ТУРНИРНЫЙ",
+          "CONTEST_DESCRIPTION": "Участвуют клиентские менеджеры, которые за месяц проведения турнира показали положительный прирост остатка депозитов со сроком 31 день и более по своим клиентам. \\\\nПо итогам месяца в каждом ТБ победят менеджеры, вошедшие в ТОП-5 лучших по результату. А ТОП-10 участников с наибольшими результатами во всей стране получат золотой бейдж и публикацию про себя в ленте Сообщества!",
+          "SHOW_INDICATOR": "Прирост, млн руб.",
+          "PRODUCT_GROUP": "Пассивы, РКО",
+          "PRODUCT": "Депозиты",
+          "CONTEST_SUBJECT": "EMPLOYEE",
+          "FACTOR_MARK_TYPE": "RATING_MAX",
+          "CONTEST_INDICATOR_METHOD": "INTEGRAL",
+          "CONTEST_FACTOR_METHOD": "FACT0-FACT1",
+          "PLAN_METHOD_CODE": "PRESET_VALUE",
+          "PLAN_MOD_METOD": "",
+          "PLAN_MOD_VALUE": "0",
+          "FACTOR_MATCH": ">",
+          "TARGET_TYPE": "ПРОМ",
+          "SOURCE_UPD_FREQUENCY": "1",
+          "CALC_TYPE": "0",
+          "BUSINESS_BLOCK": "KMKKSB",
+          "FACT_POST_PROCESSING": ""
+        },
+        "feature": {
+          "feature": "Победители получают один максимальный по достоинству бейдж;Данные основаны на оперативных кубах MIS;Обновление информации происходит 1 раз в неделю",
+          "vid": "ПРОМ",
+          "momentRewarding": "AFTER",
+          "minNumber": "2",
+          "capacity": "MILLIONS",
+          "accuracy": "2",
+          "masking": "N",
+          "tournamentStartMailing": "Y",
+          "tournamentEndMailing": "Y",
+          "tournamentLikeMailing": "Y",
+          "tournamentRewardingMailing": "Y",
+          "tournamentListMailing": "",
+          "persomanNumberVisible": "",
+          "persomanNumberHidden": "",
+          "gosbVisible": "",
+          "gosbHidden": "",
+          "tbVisible": "",
+          "tbHidden": "",
+          "businessBlock": "KMKKSB",
+          "typeRewarding": "one"
+        },
+        "contestPeriod": [
+          {
+            "period_code": "0",
+            "criterion_mark_type": ">",
+            "criterion_mark_value": "0"
+          },
+          {
+            "period_code": "1",
+            "criterion_mark_type": ">",
+            "criterion_mark_value": "0"
+          }
+        ],
+        "badges": [
+          {
+            "flat": {
+              "REWARD_CODE": "1",
+              "REWARD_TYPE": "BADGE",
+              "FULL_NAME": "Золото#по приросту остатка долгосрочных депозитов",
+              "REWARD_DESCRIPTION": "Войди в ТОП-10 участников в турнире Пассивы. Прирост остатка долгосрочных депозитов на уровне всей страны",
+              "REWARD_CONDITION": "1",
+              "REWARD_COST": "8"
+            },
+            "add": {
+              "feature": "Факт получения бейджа попадает в ленту сообщества",
+              "nftFlg": "N",
+              "outstanding": "Y",
+              "rewardRule": "Бейдж получат ТОП-5 от числа участников турнира в стране",
+              "rewardAgainGlobal": "Y",
+              "rewardAgainTournament": "N",
+              "hidden": "N",
+              "fileName": "",
+              "teamNews": "<span>[Имя_Фамилия]</span> и еще [n] [amount:менеджер] стали победителями турнира «Пассивы. Прирост остатка долгосрочных депозитов». Они показали лучший прирост остатка депозитов по итогам турнира во всей стране",
+              "singleNews": "Новое достижение! <span>[Имя]</span> [gender:1:стал|gender:2:стала] победителем турнира «Пассивы. Прирост остатка долгосрочных депозитов». [gender:1:Он|gender:2:Она] [gender:1:показал|gender:2:показала] лучший прирост остатка депозитов по итогам турнира во всей стране",
+              "refreshOldNews": "Y",
+              "businessBlock": "KMKKSB",
+              "recommendationLevel": "BANK",
+              "priority": "1",
+              "masterBadge": "N",
+              "parentRewardCode": "01_2025-1_00-1_1"
+            }
+          },
+          {
+            "flat": {
+              "REWARD_CODE": "2",
+              "REWARD_TYPE": "BADGE",
+              "FULL_NAME": "Серебро#по приросту остатка долгосрочных депозитов",
+              "REWARD_DESCRIPTION": "Войди в ТОП-5 участников в турнире Пассивы. Прирост остатка долгосрочных депозитов на уровне своего территориального банка",
+              "REWARD_CONDITION": "1",
+              "REWARD_COST": "5"
+            },
+            "add": {
+              "feature": "",
+              "nftFlg": "N",
+              "outstanding": "N",
+              "rewardRule": "Бейдж получат ТОП-10 от числа участников турнира в стране",
+              "rewardAgainGlobal": "Y",
+              "rewardAgainTournament": "N",
+              "hidden": "N",
+              "fileName": "",
+              "teamNews": "",
+              "singleNews": "",
+              "businessBlock": "KMKKSB",
+              "recommendationLevel": "TB",
+              "priority": "2",
+              "masterBadge": "N",
+              "parentRewardCode": "01_2025-1_00-1_2"
+            }
+          },
+          {
+            "flat": {
+              "REWARD_CODE": "3",
+              "REWARD_TYPE": "BADGE",
+              "FULL_NAME": "Бронза#по приросту остатка долгосрочных депозитов",
+              "REWARD_DESCRIPTION": "Победи в турнире Пассивы. Прирост остатка долгосрочных депозитов в рамках своего ГОСБ / Управления",
+              "REWARD_CONDITION": "1",
+              "REWARD_COST": "2"
+            },
+            "add": {
+              "feature": "",
+              "nftFlg": "N",
+              "outstanding": "N",
+              "rewardRule": "Бейдж получат ТОП-5 от числа участников турнира в тербанке",
+              "rewardAgainGlobal": "Y",
+              "rewardAgainTournament": "N",
+              "hidden": "N",
+              "fileName": "",
+              "teamNews": "",
+              "singleNews": "",
+              "businessBlock": "KMKKSB",
+              "recommendationLevel": "GOSB",
+              "priority": "3",
+              "masterBadge": "N",
+              "parentRewardCode": "01_2025-1_00-1_3"
+            }
+          }
+        ],
+        "reward_link": [
+          {
+            "CONTEST_CODE": "01_2025-1_02-2_2",
+            "GROUP_CODE": "BANK",
+            "REWARD_CODE": "1"
+          },
+          {
+            "CONTEST_CODE": "01_2025-1_02-2_2",
+            "GROUP_CODE": "BANK",
+            "REWARD_CODE": "2"
+          },
+          {
+            "CONTEST_CODE": "01_2025-1_02-2_2",
+            "GROUP_CODE": "TB",
+            "REWARD_CODE": "3"
+          }
+        ],
+        "group": [
+          {
+            "CONTEST_CODE": "01_2025-1_02-2_2",
+            "GROUP_CODE": "BANK",
+            "GROUP_VALUE": "*",
+            "GET_CALC_METHOD": "2",
+            "GET_CALC_CRITERION": "5",
+            "ADD_CALC_CRITERION": "5",
+            "ADD_CALC_CRITERION_2": "0",
+            "BASE_CALC_CODE": "BANK"
+          },
+          {
+            "CONTEST_CODE": "01_2025-1_02-2_2",
+            "GROUP_CODE": "TB",
+            "GROUP_VALUE": "*",
+            "GET_CALC_METHOD": "2",
+            "GET_CALC_CRITERION": "0",
+            "ADD_CALC_CRITERION": "0",
+            "ADD_CALC_CRITERION_2": "5",
+            "BASE_CALC_CODE": "TB"
+          }
+        ],
+        "indicator": [
+          {
+            "CONTEST_CODE": "01_2025-1_02-2_2",
+            "INDICATOR_CALC_TYPE": "1",
+            "INDICATOR_ADD_CALC_TYPE": "",
+            "FULL_NAME": "PULMIS_BALANCE_OUT_RUB",
+            "INDICATOR_CODE": "PULMIS_BALANCE_OUT_RUB",
+            "INDICATOR_AGG_FUNCTION": "SUM",
+            "INDICATOR_WEIGHT": "1",
+            "INDICATOR_OBJECT": "",
+            "INDICATOR_MARK_TYPE": "RATING",
+            "INDICATOR_MATCH": "MAX",
+            "INDICATOR_VALUE": "",
+            "CONTEST_CRITERION": "",
+            "CONTESTANT_SELECTION": "",
+            "CALC_TYPE": "0",
+            "N": "65",
+            "filter_items": [
+              {
+                "filtered_attribute_code": "segment_mk",
+                "filtered_attribute_type": "STRING",
+                "filtered_attribute_match": "IN",
+                "filtered_attribute_condition": "10100;20201;20202;20605",
+                "filtered_attribute_value": "",
+                "filtered_attribute_dt": ""
+              },
+              {
+                "filtered_attribute_code": "coa_type_id",
+                "filtered_attribute_type": "STRING",
+                "filtered_attribute_match": "IN",
+                "filtered_attribute_condition": "41102;41103;41104;41402;41403;41404;41405;41502;41503;41504;41505;41506;41602;41603;41604;41605;41702;41703;41704;41705;41802;41803;41804;41805;41806;41902;41903;41904;41905;41906;41907;42002;42003;42004;42005;42006;42007;42102;42103;42104;42105;42106;42107;42109;42110;42111;42112;42113;42114;42202;42203;42204;42205;42206;42207;42502;42503;42504;42505;42506;42507;42802;43207;43707;43806;43807;43907;47426;47440;47442;47445;47453;47459;47607",
+                "filtered_attribute_value": "",
+                "filtered_attribute_dt": ""
+              },
+              {
+                "filtered_attribute_code": "ccy_code",
+                "filtered_attribute_type": "STRING",
+                "filtered_attribute_match": "IN",
+                "filtered_attribute_condition": "RUR",
+                "filtered_attribute_value": "",
+                "filtered_attribute_dt": ""
+              },
+              {
+                "filtered_attribute_code": "early_termination",
+                "filtered_attribute_type": "STRING",
+                "filtered_attribute_match": "IN",
+                "filtered_attribute_condition": "0",
+                "filtered_attribute_value": "",
+                "filtered_attribute_dt": ""
+              },
+              {
+                "filtered_attribute_code": "deposit_period",
+                "filtered_attribute_type": "DECIMAL (38,12)",
+                "filtered_attribute_match": ">=",
+                "filtered_attribute_condition": "",
+                "filtered_attribute_value": "31",
+                "filtered_attribute_dt": ""
+              }
+            ]
+          }
+        ],
+        "schedule": [
+          {
+            "TOURNAMENT_CODE": "3021",
+            "PERIOD_TYPE": "турнир февраля",
+            "START_DT": "2025-02-01",
+            "END_DT": "2025-02-28",
+            "RESULT_DT": "2025-04-07",
+            "PLAN_PERIOD_START_DT": "",
+            "PLAN_PERIOD_END_DT": "",
+            "CRITERION_MARK_TYPE": ">",
+            "CRITERION_MARK_VALUE": "0",
+            "TOURNAMENT_STATUS": "ЗАВЕРШЕН",
+            "CONTEST_CODE": "01_2025-1_02-2_2",
+            "CALC_TYPE": "0",
+            "TRN_INDICATOR_FILTER": "",
+            "seasonCode": "SEASON_2025_1",
+            "filter_period": [
+              {
+                "period_code": "1",
+                "start_dt": "2025-01-01",
+                "end_dt": "2025-01-31",
+                "criterion_mark_type": ">=",
+                "criterion_mark_value": "0"
+              }
+            ]
+          },
+          {
+            "TOURNAMENT_CODE": "3031",
+            "PERIOD_TYPE": "турнир марта",
+            "START_DT": "2025-03-01",
+            "END_DT": "2025-03-31",
+            "RESULT_DT": "2025-04-20",
+            "PLAN_PERIOD_START_DT": "",
+            "PLAN_PERIOD_END_DT": "",
+            "CRITERION_MARK_TYPE": ">",
+            "CRITERION_MARK_VALUE": "0",
+            "TOURNAMENT_STATUS": "ЗАВЕРШЕН",
+            "CONTEST_CODE": "01_2025-1_02-2_2",
+            "CALC_TYPE": "0",
+            "TRN_INDICATOR_FILTER": "",
+            "seasonCode": "SEASON_2025_1",
+            "filter_period": [
+              {
+                "period_code": "1",
+                "start_dt": "2025-02-01",
+                "end_dt": "2025-02-28",
+                "criterion_mark_type": ">=",
+                "criterion_mark_value": "0"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "ex_01_2026_1_09_1_1",
+      "name": "Гарантии. Прирост комиссии",
+      "data": {
+        "contest": {
+          "CONTEST_CODE": "01_2026-1_09-1_1",
+          "FULL_NAME": "Гарантии. Прирост комиссии",
+          "CREATE_DT": "2026-01-01",
+          "CLOSE_DT": "4000-01-01",
+          "BUSINESS_STATUS": "АКТИВНЫЙ",
+          "CONTEST_TYPE": "ТУРНИРНЫЙ",
+          "CONTEST_DESCRIPTION": "Чтобы стать участником, получи в текущем месяце комиссию по банковским гарантиям больше, чем в предыдущем. \\\\nПо итогам месяца в каждом ГОСБ менеджеры с ТОП-1 приростом получат бронзовый бейдж. А вошедшие в ТОП-15 по приросту во всей стране смогут претендовать на золотые и серебряные награды!",
+          "SHOW_INDICATOR": "Сумма, тыс. руб.",
+          "PRODUCT_GROUP": "Гарантии",
+          "PRODUCT": "Гарантии",
+          "CONTEST_SUBJECT": "EMPLOYEE",
+          "FACTOR_MARK_TYPE": "RATING_MAX",
+          "CONTEST_INDICATOR_METHOD": "INTEGRAL",
+          "CONTEST_FACTOR_METHOD": "FACT0-FACT1",
+          "PLAN_METHOD_CODE": "PRESET_VALUE",
+          "PLAN_MOD_METOD": "",
+          "PLAN_MOD_VALUE": "0",
+          "FACTOR_MATCH": ">",
+          "TARGET_TYPE": "ПРОМ",
+          "SOURCE_UPD_FREQUENCY": "7",
+          "CALC_TYPE": "0",
+          "BUSINESS_BLOCK": "KMKKSB",
+          "FACT_POST_PROCESSING": ""
+        },
+        "feature": {
+          "feature": "Победители получают один максимальный по достоинству бейдж;Данные основаны на оперативных кубах MIS;Награда по ГОСБ вручается, если число участников не менее 2х",
+          "vid": "ПРОМ",
+          "momentRewarding": "AFTER",
+          "minNumber": "2",
+          "capacity": "THOUSANDS",
+          "accuracy": "2",
+          "masking": "N",
+          "tournamentStartMailing": "Y",
+          "tournamentEndMailing": "Y",
+          "tournamentLikeMailing": "Y",
+          "tournamentRewardingMailing": "Y",
+          "tournamentListMailing": "",
+          "persomanNumberVisible": "",
+          "persomanNumberHidden": "",
+          "gosbVisible": "",
+          "gosbHidden": "",
+          "tbVisible": "",
+          "tbHidden": "",
+          "businessBlock": "KMKKSB",
+          "typeRewarding": "one"
+        },
+        "contestPeriod": [],
+        "badges": [
+          {
+            "flat": {
+              "REWARD_CODE": "1",
+              "REWARD_TYPE": "BADGE",
+              "FULL_NAME": "Золото#по гарантиям",
+              "REWARD_DESCRIPTION": "Войди в ТОП-5 участников в турнире Гарантии. Прирост комиссии на уровне всей страны",
+              "REWARD_CONDITION": "1",
+              "REWARD_COST": "8"
+            },
+            "add": {
+              "feature": "Факт получения бейджа попадает в ленту сообщества",
+              "nftFlg": "N",
+              "outstanding": "Y",
+              "newsType": "AIPROMPT",
+              "winCriterion": "Войди в ТОП-5 участников турнира в стране по приросту комиссионного дохода от банковских гарантий",
+              "rewardRule": "Бейдж получат ТОП-5 от числа участников турнира в стране",
+              "rewardAgainGlobal": "Y",
+              "rewardAgainTournament": "N",
+              "hidden": "N",
+              "fileName": "",
+              "teamNews": "<span>[Имя_Фамилия]</span> и еще [n] [amount:менеджер] стали победителями турнира «Гарантии. Прирост комиссии». Они показали лучший результат по приросту комиссии от банковских гарантий в рамках турнира во всей стране",
+              "singleNews": "Новое достижение! <span>[Имя]</span> [gender:1:стал|gender:2:стала] победителем турнира «Гарантии. Прирост комиссии». [gender:1:Он|gender:2:Она] [gender:1:показал|gender:2:показала] лучший результат по приросту комиссии от банковских гарантий в рамках турнира во всей стране",
+              "refreshOldNews": "Y",
+              "businessBlock": "KMKKSB",
+              "recommendationLevel": "BANK",
+              "priority": "1",
+              "masterBadge": "N",
+              "parentRewardCode": "01_2026-1_00-1_1"
+            }
+          },
+          {
+            "flat": {
+              "REWARD_CODE": "2",
+              "REWARD_TYPE": "BADGE",
+              "FULL_NAME": "Серебро#по гарантиям",
+              "REWARD_DESCRIPTION": "Войди в ТОП-15 участников в турнире Гарантии. Прирост комиссии на уровне всей страны",
+              "REWARD_CONDITION": "1",
+              "REWARD_COST": "5"
+            },
+            "add": {
+              "feature": "",
+              "nftFlg": "N",
+              "outstanding": "N",
+              "rewardRule": "Бейдж получат ТОП-15 от числа участников турнира в тербанке",
+              "rewardAgainGlobal": "Y",
+              "rewardAgainTournament": "N",
+              "hidden": "N",
+              "fileName": "",
+              "teamNews": "",
+              "singleNews": "",
+              "refreshOldNews": "N",
+              "businessBlock": "KMKKSB",
+              "recommendationLevel": "TB",
+              "priority": "2",
+              "masterBadge": "N",
+              "parentRewardCode": "01_2026-1_00-1_2"
+            }
+          },
+          {
+            "flat": {
+              "REWARD_CODE": "3",
+              "REWARD_TYPE": "BADGE",
+              "FULL_NAME": "Бронза#по гарантиям",
+              "REWARD_DESCRIPTION": "Стань одним из лучших в турнире Гарантии. Прирост комиссии на уровне своего подразделения",
+              "REWARD_CONDITION": "1",
+              "REWARD_COST": "3"
+            },
+            "add": {
+              "feature": "",
+              "nftFlg": "N",
+              "outstanding": "N",
+              "rewardRule": "Бейдж получат ТОП-1 от числа участников вподразделении",
+              "rewardAgainGlobal": "Y",
+              "rewardAgainTournament": "N",
+              "hidden": "N",
+              "fileName": "",
+              "teamNews": "",
+              "singleNews": "",
+              "refreshOldNews": "N",
+              "businessBlock": "KMKKSB",
+              "recommendationLevel": "GOSB",
+              "priority": "3",
+              "masterBadge": "N",
+              "parentRewardCode": "01_2026-1_00-1_3"
+            }
+          }
+        ],
+        "reward_link": [
+          {
+            "CONTEST_CODE": "01_2026-1_09-1_1",
+            "GROUP_CODE": "BANK",
+            "REWARD_CODE": "1"
+          },
+          {
+            "CONTEST_CODE": "01_2026-1_09-1_1",
+            "GROUP_CODE": "BANK",
+            "REWARD_CODE": "2"
+          },
+          {
+            "CONTEST_CODE": "01_2026-1_09-1_1",
+            "GROUP_CODE": "GOSB",
+            "REWARD_CODE": "3"
+          }
+        ],
+        "group": [
+          {
+            "CONTEST_CODE": "01_2026-1_09-1_1",
+            "GROUP_CODE": "BANK",
+            "GROUP_VALUE": "*",
+            "GET_CALC_METHOD": "2",
+            "GET_CALC_CRITERION": "5",
+            "ADD_CALC_CRITERION": "10",
+            "ADD_CALC_CRITERION_2": "0",
+            "BASE_CALC_CODE": "BANK"
+          },
+          {
+            "CONTEST_CODE": "01_2026-1_09-1_1",
+            "GROUP_CODE": "GOSB",
+            "GROUP_VALUE": "*",
+            "GET_CALC_METHOD": "2",
+            "GET_CALC_CRITERION": "0",
+            "ADD_CALC_CRITERION": "0",
+            "ADD_CALC_CRITERION_2": "1",
+            "BASE_CALC_CODE": "GOSB"
+          }
+        ],
+        "indicator": [
+          {
+            "CONTEST_CODE": "01_2026-1_09-1_1",
+            "INDICATOR_CALC_TYPE": "1",
+            "INDICATOR_ADD_CALC_TYPE": "",
+            "FULL_NAME": "CC360_NKD_DETAIL_CHKD",
+            "INDICATOR_CODE": "CC360_NKD_DETAIL_CHKD",
+            "INDICATOR_AGG_FUNCTION": "SUM",
+            "INDICATOR_WEIGHT": "1",
+            "INDICATOR_OBJECT": "",
+            "INDICATOR_MARK_TYPE": "RATING",
+            "INDICATOR_MATCH": "MAX",
+            "INDICATOR_VALUE": "",
+            "CONTEST_CRITERION": "",
+            "CONTESTANT_SELECTION": "0",
+            "CALC_TYPE": "0",
+            "N": "160",
+            "filter_items": [
+              {
+                "filtered_attribute_code": "product",
+                "filtered_attribute_type": "STRING",
+                "filtered_attribute_match": "IN",
+                "filtered_attribute_condition": "БАНКОВСКИЕ ГАРАНТИИ;ЭЛЕКТРОННЫЕ ГАРАНТИИ (ВОЗМЕЩЕНИЕ НАЛОГОВ)",
+                "filtered_attribute_value": "",
+                "filtered_attribute_dt": ""
+              }
+            ]
+          }
+        ],
+        "schedule": [
+          {
+            "TOURNAMENT_CODE": "3021",
+            "PERIOD_TYPE": "турнир февраля",
+            "START_DT": "2026-02-01",
+            "END_DT": "2026-02-28",
+            "RESULT_DT": "2026-03-20",
+            "PLAN_PERIOD_START_DT": "",
+            "PLAN_PERIOD_END_DT": "",
+            "CRITERION_MARK_TYPE": ">",
+            "CRITERION_MARK_VALUE": "0",
+            "TOURNAMENT_STATUS": "ЗАВЕРШЕН",
+            "CONTEST_CODE": "01_2026-1_09-1_1",
+            "CALC_TYPE": "0",
+            "TRN_INDICATOR_FILTER": "",
+            "seasonCode": "SEASON_2026_1",
+            "filter_period": [
+              {
+                "period_code": "1",
+                "start_dt": "2026-01-01",
+                "end_dt": "2026-01-31",
+                "criterion_mark_type": "",
+                "criterion_mark_value": ""
+              }
+            ]
+          },
+          {
+            "TOURNAMENT_CODE": "3031",
+            "PERIOD_TYPE": "турнир марта",
+            "START_DT": "2026-03-01",
+            "END_DT": "2026-03-31",
+            "RESULT_DT": "2026-04-20",
+            "PLAN_PERIOD_START_DT": "",
+            "PLAN_PERIOD_END_DT": "",
+            "CRITERION_MARK_TYPE": ">",
+            "CRITERION_MARK_VALUE": "0",
+            "TOURNAMENT_STATUS": "ЗАВЕРШЕН",
+            "CONTEST_CODE": "01_2026-1_09-1_1",
+            "CALC_TYPE": "0",
+            "TRN_INDICATOR_FILTER": "",
+            "seasonCode": "SEASON_2026_1",
+            "filter_period": [
+              {
+                "period_code": "1",
+                "start_dt": "2026-02-01",
+                "end_dt": "2026-02-28",
+                "criterion_mark_type": "",
+                "criterion_mark_value": ""
+              }
+            ]
+          },
+          {
+            "TOURNAMENT_CODE": "3041",
+            "PERIOD_TYPE": "турнир апреля",
+            "START_DT": "2026-04-01",
+            "END_DT": "2026-04-30",
+            "RESULT_DT": "2026-05-18",
+            "PLAN_PERIOD_START_DT": "",
+            "PLAN_PERIOD_END_DT": "",
+            "CRITERION_MARK_TYPE": ">",
+            "CRITERION_MARK_VALUE": "0",
+            "TOURNAMENT_STATUS": "ЗАВЕРШЕН",
+            "CONTEST_CODE": "01_2026-1_09-1_1",
+            "CALC_TYPE": "0",
+            "TRN_INDICATOR_FILTER": "",
+            "seasonCode": "SEASON_2026_1",
+            "filter_period": [
+              {
+                "period_code": "1",
+                "start_dt": "2026-03-01",
+                "end_dt": "2026-03-31",
+                "criterion_mark_type": "",
+                "criterion_mark_value": ""
+              }
+            ]
+          },
+          {
+            "TOURNAMENT_CODE": "3051",
+            "PERIOD_TYPE": "турнир мая",
+            "START_DT": "2026-05-01",
+            "END_DT": "2026-05-31",
+            "RESULT_DT": "2026-06-20",
+            "PLAN_PERIOD_START_DT": "",
+            "PLAN_PERIOD_END_DT": "",
+            "CRITERION_MARK_TYPE": ">",
+            "CRITERION_MARK_VALUE": "0",
+            "TOURNAMENT_STATUS": "ЗАВЕРШЕН",
+            "CONTEST_CODE": "01_2026-1_09-1_1",
+            "CALC_TYPE": "0",
+            "TRN_INDICATOR_FILTER": "",
+            "seasonCode": "SEASON_2026_1",
+            "filter_period": [
+              {
+                "period_code": "1",
+                "start_dt": "2026-04-01",
+                "end_dt": "2026-04-30",
+                "criterion_mark_type": "",
+                "criterion_mark_value": ""
+              }
+            ]
+          },
+          {
+            "TOURNAMENT_CODE": "3061",
+            "PERIOD_TYPE": "турнир июня",
+            "START_DT": "2026-06-01",
+            "END_DT": "2026-06-30",
+            "RESULT_DT": "2026-07-20",
+            "PLAN_PERIOD_START_DT": "",
+            "PLAN_PERIOD_END_DT": "",
+            "CRITERION_MARK_TYPE": ">",
+            "CRITERION_MARK_VALUE": "0",
+            "TOURNAMENT_STATUS": "ЗАВЕРШЕН",
+            "CONTEST_CODE": "01_2026-1_09-1_1",
+            "CALC_TYPE": "0",
+            "TRN_INDICATOR_FILTER": "",
+            "seasonCode": "SEASON_2026_1",
+            "filter_period": [
+              {
+                "period_code": "1",
+                "start_dt": "2026-05-01",
+                "end_dt": "2026-05-31",
+                "criterion_mark_type": "",
+                "criterion_mark_value": ""
+              }
+            ]
+          },
+          {
+            "TOURNAMENT_CODE": "3071",
+            "PERIOD_TYPE": "турнир июля",
+            "START_DT": "2026-07-01",
+            "END_DT": "2026-07-31",
+            "RESULT_DT": "2026-08-20",
+            "PLAN_PERIOD_START_DT": "",
+            "PLAN_PERIOD_END_DT": "",
+            "CRITERION_MARK_TYPE": ">",
+            "CRITERION_MARK_VALUE": "0",
+            "TOURNAMENT_STATUS": "ПОДВЕДЕНИЕ ИТОГОВ",
+            "CONTEST_CODE": "01_2026-1_09-1_1",
+            "CALC_TYPE": "0",
+            "TRN_INDICATOR_FILTER": "",
+            "seasonCode": "SEASON_2026_1",
+            "filter_period": [
+              {
+                "period_code": "1",
+                "start_dt": "2026-06-01",
+                "end_dt": "2026-06-30",
+                "criterion_mark_type": "",
+                "criterion_mark_value": ""
+              }
+            ]
+          },
+          {
+            "TOURNAMENT_CODE": "3081",
+            "PERIOD_TYPE": "турнир августа",
+            "START_DT": "2026-08-01",
+            "END_DT": "2026-08-31",
+            "RESULT_DT": "2026-09-20",
+            "PLAN_PERIOD_START_DT": "",
+            "PLAN_PERIOD_END_DT": "",
+            "CRITERION_MARK_TYPE": ">",
+            "CRITERION_MARK_VALUE": "0",
+            "TOURNAMENT_STATUS": "АКТИВНЫЙ",
+            "CONTEST_CODE": "01_2026-1_09-1_1",
+            "CALC_TYPE": "0",
+            "TRN_INDICATOR_FILTER": "",
+            "seasonCode": "SEASON_2026_1",
+            "filter_period": [
+              {
+                "period_code": "1",
+                "start_dt": "2026-07-01",
+                "end_dt": "2026-07-31",
+                "criterion_mark_type": "",
+                "criterion_mark_value": ""
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

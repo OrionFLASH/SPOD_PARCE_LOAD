@@ -60,6 +60,18 @@ class TestSpodJson(unittest.TestCase):
         self.assertEqual(parsed["nftFlg"], "N")
         self.assertEqual(parsed["businessBlock"], ["KMKKSB"])
 
+    def test_parse_trailing_quote_array(self) -> None:
+        """Выгрузки CSV часто оставляют хвост «]"» после массива."""
+        raw = (
+            '[{"period_code""": 1, """start_dt""": """2026-01-01""", '
+            '"""end_dt""": """2026-01-31"""}]"'
+        )
+        parsed = parse_spod_json(raw)
+        assert isinstance(parsed, list)
+        self.assertEqual(len(parsed), 1)
+        self.assertEqual(parsed[0]["period_code"], 1)
+        self.assertEqual(parsed[0]["start_dt"], "2026-01-01")
+
 
 class TestSchemaLimits(unittest.TestCase):
     def test_limits(self) -> None:

@@ -41,14 +41,13 @@ CONTEST_FLAT_KEYS = [
     "PLAN_MOD_METOD",
     "PLAN_MOD_VALUE",
     "FACTOR_MATCH",
-    "CONTEST_PERIOD",
     "TARGET_TYPE",
     "SOURCE_UPD_FREQUENCY",
     "CALC_TYPE",
     "BUSINESS_BLOCK",
     "FACT_POST_PROCESSING",
 ]
-CONTEST_LIST_KEYS = {"BUSINESS_BLOCK", "CONTEST_PERIOD"}
+CONTEST_LIST_KEYS = {"BUSINESS_BLOCK"}
 LINK_COLS = ["CONTEST_CODE", "GROUP_CODE", "REWARD_CODE"]
 GROUP_COLS = [
     "CONTEST_CODE",
@@ -73,7 +72,6 @@ IND_COLS = [
     "INDICATOR_MATCH",
     "INDICATOR_VALUE",
     "CONTEST_CRITERION",
-    "INDICATOR_FILTER",
     "CONTESTANT_SELECTION",
     "CALC_TYPE",
     "N",
@@ -88,10 +86,8 @@ SCH_COLS = [
     "PLAN_PERIOD_END_DT",
     "CRITERION_MARK_TYPE",
     "CRITERION_MARK_VALUE",
-    "FILTER_PERIOD_ARR",
     "TOURNAMENT_STATUS",
     "CONTEST_CODE",
-    "TARGET_TYPE",
     "CALC_TYPE",
     "TRN_INDICATOR_FILTER",
 ]
@@ -153,6 +149,70 @@ def _leaf_value(val: Any, *, as_list: bool) -> str:
     if isinstance(val, float) and val == int(val):
         return str(int(val))
     return str(val)
+
+
+def _parse_array_cell(raw: Any) -> List[Any]:
+    parsed = parse_spod_json(raw)
+    return list(parsed) if isinstance(parsed, list) else []
+
+
+def _scalar_str(val: Any, default: str = "") -> str:
+    if val is None:
+        return default
+    if isinstance(val, bool):
+        return "Y" if val else "N"
+    if isinstance(val, float) and val == int(val):
+        return str(int(val))
+    return str(val).strip() if str(val).strip() else default
+
+
+def _norm_contest_period_item(raw: Any) -> Dict[str, str]:
+    it = raw if isinstance(raw, dict) else {}
+    return {
+        "period_code": _scalar_str(it.get("period_code"), "0"),
+        "criterion_mark_type": _scalar_str(it.get("criterion_mark_type"), ">"),
+        "criterion_mark_value": _scalar_str(it.get("criterion_mark_value"), "0"),
+    }
+
+
+def _norm_filter_period_item(raw: Any) -> Dict[str, str]:
+    it = raw if isinstance(raw, dict) else {}
+    cmv = it.get("criterion_mark_value")
+    return {
+        "period_code": _scalar_str(it.get("period_code"), "1"),
+        "start_dt": _scalar_str(it.get("start_dt")),
+        "end_dt": _scalar_str(it.get("end_dt")),
+        "criterion_mark_type": _scalar_str(it.get("criterion_mark_type")),
+        "criterion_mark_value": "" if cmv is None or str(cmv).strip() == "" else _scalar_str(cmv),
+    }
+
+
+def _norm_indicator_filter_item(raw: Any) -> Dict[str, str]:
+    it = raw if isinstance(raw, dict) else {}
+    cond = it.get("filtered_attribute_condition")
+    if isinstance(cond, list):
+        cond_s = form_cell_from_list(cond)
+    else:
+        cond_s = _scalar_str(cond)
+    fav = it.get("filtered_attribute_value")
+    return {
+        "filtered_attribute_code": _scalar_str(it.get("filtered_attribute_code")),
+        "filtered_attribute_type": _scalar_str(it.get("filtered_attribute_type"), "STRING"),
+        "filtered_attribute_match": _scalar_str(it.get("filtered_attribute_match"), "IN"),
+        "filtered_attribute_condition": cond_s,
+        "filtered_attribute_value": "" if fav is None or str(fav).strip() == "" else _scalar_str(fav),
+        "filtered_attribute_dt": _scalar_str(it.get("filtered_attribute_dt")),
+    }
+
+
+def _season_code_from_target(raw: Any) -> str:
+    parsed = parse_spod_json(raw)
+    if isinstance(parsed, dict):
+        return _scalar_str(parsed.get("seasonCode"))
+    s = _scalar_str(raw)
+    if s.startswith("{") or "seasonCode" in s:
+        return ""
+    return s
 
 
 def _row_subset(row: Dict[str, str], cols: Sequence[str]) -> Dict[str, str]:
@@ -218,6 +278,10 @@ def build_contest_data(
     for leaf, val in feature_obj.items():
         feature[str(leaf)] = _leaf_value(val, as_list=str(leaf) in FEATURE_LIST_LEAVES)
 
+    contest_period = [
+        _norm_contest_period_item(x) for x in _parse_array_cell(contest_row.get("CONTEST_PERIOD", ""))
+    ]
+
     badges: List[Dict[str, Any]] = []
     reward_link: List[Dict[str, str]] = []
     for link in links:
@@ -274,26 +338,44 @@ def build_contest_data(
     for g in group_rows:
         g["CONTEST_CODE"] = cc
 
-    ind_rows = [_row_subset(r, IND_COLS) for r in indicators] or [
-        {c: "" for c in IND_COLS}
-    ]
-    for r in ind_rows:
-        r["CONTEST_CODE"] = cc
+    ind_rows: List[Dict[str, Any]] = []
+    for r in indicators:
+        row: Dict[str, Any] = _row_subset(r, IND_COLS)
+        row["CONTEST_CODE"] = cc
+        row["filter_items"] = [
+            _norm_indicator_filter_item(x)
+            for x in _parse_array_cell(r.get("INDICATOR_FILTER", ""))
+        ]
+        ind_rows.append(row)
+    if not ind_rows:
+        empty_ind: Dict[str, Any] = {c: "" for c in IND_COLS}
+        empty_ind["CONTEST_CODE"] = cc
+        empty_ind["filter_items"] = []
+        ind_rows = [empty_ind]
 
-    sch_rows: List[Dict[str, str]] = []
+    sch_rows: List[Dict[str, Any]] = []
     for r in schedules:
         row = _row_subset(r, SCH_COLS)
         row["CONTEST_CODE"] = cc
         tc_full = str(row.get("TOURNAMENT_CODE", "") or "").strip()
         row["TOURNAMENT_CODE"] = code_ending(tc_full, cc, "tournament")
+        row["seasonCode"] = _season_code_from_target(r.get("TARGET_TYPE", ""))
+        row["filter_period"] = [
+            _norm_filter_period_item(x)
+            for x in _parse_array_cell(r.get("FILTER_PERIOD_ARR", ""))
+        ]
         sch_rows.append(row)
     if not sch_rows:
-        sch_rows = [{c: "" for c in SCH_COLS}]
-        sch_rows[0]["CONTEST_CODE"] = cc
+        empty_sch: Dict[str, Any] = {c: "" for c in SCH_COLS}
+        empty_sch["CONTEST_CODE"] = cc
+        empty_sch["seasonCode"] = ""
+        empty_sch["filter_period"] = []
+        sch_rows = [empty_sch]
 
     return {
         "contest": contest,
         "feature": feature,
+        "contestPeriod": contest_period,
         "badges": badges,
         "reward_link": reward_link,
         "group": group_rows,
@@ -452,6 +534,17 @@ def main() -> int:
                 "10_2026-0_05-3_1",
                 "01_2026-0_05-2_4",
                 "01_2026-1_14-1_1",
+            ],
+            False,
+        ),
+        (
+            "spod_fill_example_json_arrays.json",
+            "Примеры JSON-массивов: CONTEST_PERIOD / FILTER_PERIOD_ARR / INDICATOR_FILTER",
+            [
+                "01_2026-1_14-1_1",  # CONTEST_PERIOD: 2 периода
+                "01_2025-0_13-1_1",  # INDICATOR_FILTER: несколько фильтров
+                "01_2025-1_02-2_2",  # INDICATOR_FILTER + FILTER_PERIOD_ARR + CONTEST_PERIOD
+                "01_2026-1_09-1_1",  # FILTER_PERIOD_ARR в нескольких турнирах
             ],
             False,
         ),

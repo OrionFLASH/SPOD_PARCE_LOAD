@@ -3,8 +3,8 @@
   "block": "PROM",
   "title": "Смешанный пример: награды + турниры",
   "source": "IN/PROM/SPOD (latest CONTEST/GROUP/REWARD*/INDICATOR/SCHEDULE)",
-  "saved_at": "2026-08-16T14:21:28.709714Z",
-  "catalog_stamp": "2026-08-16T12:40:08.255Z",
+  "saved_at": "2026-08-16T18:33:16.389339Z",
+  "catalog_stamp": "2026-08-16T18:24:55.216Z",
   "activeContest": 0,
   "contests": [
     {
@@ -30,7 +30,6 @@
           "PLAN_MOD_METOD": "",
           "PLAN_MOD_VALUE": "85",
           "FACTOR_MATCH": ">=",
-          "CONTEST_PERIOD": "",
           "TARGET_TYPE": "ПРОМ",
           "SOURCE_UPD_FREQUENCY": "1",
           "CALC_TYPE": "1",
@@ -59,6 +58,7 @@
           "businessBlock": "AKMKKSB",
           "typeRewarding": "one"
         },
+        "contestPeriod": [],
         "badges": [
           {
             "flat": {
@@ -125,10 +125,10 @@
             "INDICATOR_MATCH": ">=",
             "INDICATOR_VALUE": "85",
             "CONTEST_CRITERION": "",
-            "INDICATOR_FILTER": "",
             "CONTESTANT_SELECTION": "",
             "CALC_TYPE": "1",
-            "N": "345"
+            "N": "345",
+            "filter_items": []
           }
         ],
         "schedule": [
@@ -142,12 +142,12 @@
             "PLAN_PERIOD_END_DT": "",
             "CRITERION_MARK_TYPE": "",
             "CRITERION_MARK_VALUE": "",
-            "FILTER_PERIOD_ARR": "",
             "TOURNAMENT_STATUS": "ЗАВЕРШЕН",
             "CONTEST_CODE": "09_2026-0_23-1_2",
-            "TARGET_TYPE": "{\"\"\"seasonCode\"\"\": \"\"\"SEASON_akm_2026\"\"\"}",
             "CALC_TYPE": "1",
-            "TRN_INDICATOR_FILTER": ""
+            "TRN_INDICATOR_FILTER": "",
+            "seasonCode": "SEASON_akm_2026",
+            "filter_period": []
           },
           {
             "TOURNAMENT_CODE": "4002",
@@ -159,12 +159,12 @@
             "PLAN_PERIOD_END_DT": "",
             "CRITERION_MARK_TYPE": "",
             "CRITERION_MARK_VALUE": "",
-            "FILTER_PERIOD_ARR": "",
             "TOURNAMENT_STATUS": "ЗАВЕРШЕН",
             "CONTEST_CODE": "09_2026-0_23-1_2",
-            "TARGET_TYPE": "{\"\"\"seasonCode\"\"\": \"\"\"SEASON_akm_2026\"\"\"}",
             "CALC_TYPE": "1",
-            "TRN_INDICATOR_FILTER": ""
+            "TRN_INDICATOR_FILTER": "",
+            "seasonCode": "SEASON_akm_2026",
+            "filter_period": []
           }
         ]
       }
@@ -192,7 +192,6 @@
           "PLAN_MOD_METOD": "",
           "PLAN_MOD_VALUE": "85",
           "FACTOR_MATCH": ">=",
-          "CONTEST_PERIOD": "",
           "TARGET_TYPE": "ПРОМ",
           "SOURCE_UPD_FREQUENCY": "1",
           "CALC_TYPE": "1",
@@ -221,6 +220,7 @@
           "businessBlock": "AKMKKSB",
           "typeRewarding": "one"
         },
+        "contestPeriod": [],
         "badges": [
           {
             "flat": {
@@ -287,10 +287,10 @@
             "INDICATOR_MATCH": ">=",
             "INDICATOR_VALUE": "85",
             "CONTEST_CRITERION": "",
-            "INDICATOR_FILTER": "",
             "CONTESTANT_SELECTION": "",
             "CALC_TYPE": "1",
-            "N": "346"
+            "N": "346",
+            "filter_items": []
           }
         ],
         "schedule": [
@@ -304,12 +304,12 @@
             "PLAN_PERIOD_END_DT": "",
             "CRITERION_MARK_TYPE": "",
             "CRITERION_MARK_VALUE": "",
-            "FILTER_PERIOD_ARR": "",
             "TOURNAMENT_STATUS": "ЗАВЕРШЕН",
             "CONTEST_CODE": "09_2026-0_23-1_3",
-            "TARGET_TYPE": "{\"\"\"seasonCode\"\"\": \"\"\"SEASON_akm_2026\"\"\"}",
             "CALC_TYPE": "1",
-            "TRN_INDICATOR_FILTER": ""
+            "TRN_INDICATOR_FILTER": "",
+            "seasonCode": "SEASON_akm_2026",
+            "filter_period": []
           },
           {
             "TOURNAMENT_CODE": "4002",
@@ -321,12 +321,12 @@
             "PLAN_PERIOD_END_DT": "",
             "CRITERION_MARK_TYPE": "",
             "CRITERION_MARK_VALUE": "",
-            "FILTER_PERIOD_ARR": "",
             "TOURNAMENT_STATUS": "ЗАВЕРШЕН",
             "CONTEST_CODE": "09_2026-0_23-1_3",
-            "TARGET_TYPE": "{\"\"\"seasonCode\"\"\": \"\"\"SEASON_akm_2026\"\"\"}",
             "CALC_TYPE": "1",
-            "TRN_INDICATOR_FILTER": ""
+            "TRN_INDICATOR_FILTER": "",
+            "seasonCode": "SEASON_akm_2026",
+            "filter_period": []
           }
         ]
       }
@@ -354,7 +354,6 @@
           "PLAN_MOD_METOD": "",
           "PLAN_MOD_VALUE": "85",
           "FACTOR_MATCH": ">=",
-          "CONTEST_PERIOD": "",
           "TARGET_TYPE": "ПРОМ",
           "SOURCE_UPD_FREQUENCY": "1",
           "CALC_TYPE": "1",
@@ -383,6 +382,7 @@
           "businessBlock": "AKMKKSB",
           "typeRewarding": "one"
         },
+        "contestPeriod": [],
         "badges": [
           {
             "flat": {
@@ -449,10 +449,10 @@
             "INDICATOR_MATCH": ">=",
             "INDICATOR_VALUE": "85",
             "CONTEST_CRITERION": "",
-            "INDICATOR_FILTER": "",
             "CONTESTANT_SELECTION": "",
             "CALC_TYPE": "1",
-            "N": "347"
+            "N": "347",
+            "filter_items": []
           }
         ],
         "schedule": [
@@ -466,12 +466,12 @@
             "PLAN_PERIOD_END_DT": "",
             "CRITERION_MARK_TYPE": "",
             "CRITERION_MARK_VALUE": "",
-            "FILTER_PERIOD_ARR": "",
             "TOURNAMENT_STATUS": "ОТМЕНЕН",
             "CONTEST_CODE": "09_2026-0_23-1_4",
-            "TARGET_TYPE": "{\"\"\"seasonCode\"\"\": \"\"\"SEASON_akm_2026\"\"\"}",
             "CALC_TYPE": "1",
-            "TRN_INDICATOR_FILTER": ""
+            "TRN_INDICATOR_FILTER": "",
+            "seasonCode": "SEASON_akm_2026",
+            "filter_period": []
           },
           {
             "TOURNAMENT_CODE": "4002",
@@ -483,12 +483,12 @@
             "PLAN_PERIOD_END_DT": "",
             "CRITERION_MARK_TYPE": "",
             "CRITERION_MARK_VALUE": "",
-            "FILTER_PERIOD_ARR": "",
             "TOURNAMENT_STATUS": "ЗАВЕРШЕН",
             "CONTEST_CODE": "09_2026-0_23-1_4",
-            "TARGET_TYPE": "{\"\"\"seasonCode\"\"\": \"\"\"SEASON_akm_2026\"\"\"}",
             "CALC_TYPE": "1",
-            "TRN_INDICATOR_FILTER": ""
+            "TRN_INDICATOR_FILTER": "",
+            "seasonCode": "SEASON_akm_2026",
+            "filter_period": []
           }
         ]
       }
@@ -516,7 +516,6 @@
           "PLAN_MOD_METOD": "",
           "PLAN_MOD_VALUE": "85",
           "FACTOR_MATCH": ">=",
-          "CONTEST_PERIOD": "",
           "TARGET_TYPE": "ПРОМ",
           "SOURCE_UPD_FREQUENCY": "1",
           "CALC_TYPE": "1",
@@ -545,6 +544,7 @@
           "businessBlock": "AKMKKSB",
           "typeRewarding": "one"
         },
+        "contestPeriod": [],
         "badges": [
           {
             "flat": {
@@ -611,10 +611,10 @@
             "INDICATOR_MATCH": ">=",
             "INDICATOR_VALUE": "85",
             "CONTEST_CRITERION": "",
-            "INDICATOR_FILTER": "",
             "CONTESTANT_SELECTION": "",
             "CALC_TYPE": "1",
-            "N": "348"
+            "N": "348",
+            "filter_items": []
           }
         ],
         "schedule": [
@@ -628,12 +628,12 @@
             "PLAN_PERIOD_END_DT": "",
             "CRITERION_MARK_TYPE": "",
             "CRITERION_MARK_VALUE": "",
-            "FILTER_PERIOD_ARR": "",
             "TOURNAMENT_STATUS": "ОТМЕНЕН",
             "CONTEST_CODE": "09_2026-0_23-1_5",
-            "TARGET_TYPE": "{\"\"\"seasonCode\"\"\": \"\"\"SEASON_akm_2026\"\"\"}",
             "CALC_TYPE": "1",
-            "TRN_INDICATOR_FILTER": ""
+            "TRN_INDICATOR_FILTER": "",
+            "seasonCode": "SEASON_akm_2026",
+            "filter_period": []
           },
           {
             "TOURNAMENT_CODE": "4002",
@@ -645,12 +645,12 @@
             "PLAN_PERIOD_END_DT": "",
             "CRITERION_MARK_TYPE": "",
             "CRITERION_MARK_VALUE": "",
-            "FILTER_PERIOD_ARR": "",
             "TOURNAMENT_STATUS": "ЗАВЕРШЕН",
             "CONTEST_CODE": "09_2026-0_23-1_5",
-            "TARGET_TYPE": "{\"\"\"seasonCode\"\"\": \"\"\"SEASON_akm_2026\"\"\"}",
             "CALC_TYPE": "1",
-            "TRN_INDICATOR_FILTER": ""
+            "TRN_INDICATOR_FILTER": "",
+            "seasonCode": "SEASON_akm_2026",
+            "filter_period": []
           }
         ]
       }
@@ -678,7 +678,6 @@
           "PLAN_MOD_METOD": "",
           "PLAN_MOD_VALUE": "0",
           "FACTOR_MATCH": ">",
-          "CONTEST_PERIOD": "",
           "TARGET_TYPE": "ПРОМ",
           "SOURCE_UPD_FREQUENCY": "7",
           "CALC_TYPE": "1",
@@ -708,6 +707,7 @@
           "businessBlock": "KMKKSB",
           "typeRewarding": "one"
         },
+        "contestPeriod": [],
         "badges": [
           {
             "flat": {
@@ -774,10 +774,10 @@
             "INDICATOR_MATCH": "MAX",
             "INDICATOR_VALUE": "",
             "CONTEST_CRITERION": "",
-            "INDICATOR_FILTER": "",
             "CONTESTANT_SELECTION": "0",
             "CALC_TYPE": "1",
-            "N": "355"
+            "N": "355",
+            "filter_items": []
           }
         ],
         "schedule": [
@@ -791,12 +791,12 @@
             "PLAN_PERIOD_END_DT": "",
             "CRITERION_MARK_TYPE": ">",
             "CRITERION_MARK_VALUE": "0",
-            "FILTER_PERIOD_ARR": "",
             "TOURNAMENT_STATUS": "АКТИВНЫЙ",
             "CONTEST_CODE": "01_2026-1_05-3_1",
-            "TARGET_TYPE": "{\"\"\"seasonCode\"\"\": \"\"\"SEASON_2026_1\"\"\"}",
             "CALC_TYPE": "1",
-            "TRN_INDICATOR_FILTER": ""
+            "TRN_INDICATOR_FILTER": "",
+            "seasonCode": "SEASON_2026_1",
+            "filter_period": []
           }
         ]
       }
@@ -824,7 +824,6 @@
           "PLAN_MOD_METOD": "",
           "PLAN_MOD_VALUE": "0",
           "FACTOR_MATCH": ">",
-          "CONTEST_PERIOD": "",
           "TARGET_TYPE": "ПРОМ",
           "SOURCE_UPD_FREQUENCY": "7",
           "CALC_TYPE": "1",
@@ -854,6 +853,7 @@
           "businessBlock": "CSM",
           "typeRewarding": "one"
         },
+        "contestPeriod": [],
         "badges": [
           {
             "flat": {
@@ -920,10 +920,10 @@
             "INDICATOR_MATCH": "MAX",
             "INDICATOR_VALUE": "",
             "CONTEST_CRITERION": "",
-            "INDICATOR_FILTER": "",
             "CONTESTANT_SELECTION": "0",
             "CALC_TYPE": "1",
-            "N": "366"
+            "N": "366",
+            "filter_items": []
           }
         ],
         "schedule": [
@@ -937,12 +937,12 @@
             "PLAN_PERIOD_END_DT": "",
             "CRITERION_MARK_TYPE": ">",
             "CRITERION_MARK_VALUE": "0",
-            "FILTER_PERIOD_ARR": "",
             "TOURNAMENT_STATUS": "АКТИВНЫЙ",
             "CONTEST_CODE": "10_2026-0_05-3_1",
-            "TARGET_TYPE": "{\"\"\"seasonCode\"\"\": \"\"\"SEASON_csm_2026\"\"\"}",
             "CALC_TYPE": "1",
-            "TRN_INDICATOR_FILTER": ""
+            "TRN_INDICATOR_FILTER": "",
+            "seasonCode": "SEASON_csm_2026",
+            "filter_period": []
           }
         ]
       }
@@ -970,7 +970,6 @@
           "PLAN_MOD_METOD": "",
           "PLAN_MOD_VALUE": "0",
           "FACTOR_MATCH": ">",
-          "CONTEST_PERIOD": "",
           "TARGET_TYPE": "ПРОМ",
           "SOURCE_UPD_FREQUENCY": "7",
           "CALC_TYPE": "1",
@@ -999,6 +998,7 @@
           "businessBlock": "KMKKSB",
           "typeRewarding": "one"
         },
+        "contestPeriod": [],
         "badges": [
           {
             "flat": {
@@ -1133,10 +1133,10 @@
             "INDICATOR_MATCH": "MAX",
             "INDICATOR_VALUE": "",
             "CONTEST_CRITERION": "",
-            "INDICATOR_FILTER": "",
             "CONTESTANT_SELECTION": "0",
             "CALC_TYPE": "1",
-            "N": "327"
+            "N": "327",
+            "filter_items": []
           }
         ],
         "schedule": [
@@ -1150,12 +1150,12 @@
             "PLAN_PERIOD_END_DT": "",
             "CRITERION_MARK_TYPE": "",
             "CRITERION_MARK_VALUE": "",
-            "FILTER_PERIOD_ARR": "",
             "TOURNAMENT_STATUS": "АКТИВНЫЙ",
             "CONTEST_CODE": "01_2026-0_05-2_4",
-            "TARGET_TYPE": "{\"\"\"seasonCode\"\"\": \"\"\"SEASON_2026_1\"\"\"}",
             "CALC_TYPE": "1",
-            "TRN_INDICATOR_FILTER": ""
+            "TRN_INDICATOR_FILTER": "",
+            "seasonCode": "SEASON_2026_1",
+            "filter_period": []
           }
         ]
       }
@@ -1183,7 +1183,6 @@
           "PLAN_MOD_METOD": "",
           "PLAN_MOD_VALUE": "0",
           "FACTOR_MATCH": ">",
-          "CONTEST_PERIOD": "[{\"period_code\"\"\": 0, \"\"\"criterion_mark_type\"\"\": \"\"\">\"\"\", \"\"\"criterion_mark_value\"\"\": 0}, {\"\"\"period_code\"\"\": 1, \"\"\"criterion_mark_type\"\"\": \"\"\">\"\"\", \"\"\"criterion_mark_value\"\"\": 0}]\"",
           "TARGET_TYPE": "ПРОМ",
           "SOURCE_UPD_FREQUENCY": "7",
           "CALC_TYPE": "1",
@@ -1212,6 +1211,18 @@
           "businessBlock": "KMKKSB",
           "typeRewarding": "one"
         },
+        "contestPeriod": [
+          {
+            "period_code": "0",
+            "criterion_mark_type": ">",
+            "criterion_mark_value": "0"
+          },
+          {
+            "period_code": "1",
+            "criterion_mark_type": ">",
+            "criterion_mark_value": "0"
+          }
+        ],
         "badges": [
           {
             "flat": {
@@ -1361,10 +1372,10 @@
             "INDICATOR_MATCH": "MAX",
             "INDICATOR_VALUE": "",
             "CONTEST_CRITERION": "",
-            "INDICATOR_FILTER": "",
             "CONTESTANT_SELECTION": "",
             "CALC_TYPE": "1",
-            "N": "164"
+            "N": "164",
+            "filter_items": []
           }
         ],
         "schedule": [
@@ -1378,12 +1389,12 @@
             "PLAN_PERIOD_END_DT": "",
             "CRITERION_MARK_TYPE": "",
             "CRITERION_MARK_VALUE": "",
-            "FILTER_PERIOD_ARR": "",
             "TOURNAMENT_STATUS": "ЗАВЕРШЕН",
             "CONTEST_CODE": "01_2026-1_14-1_1",
-            "TARGET_TYPE": "{\"\"\"seasonCode\"\"\": \"\"\"SEASON_2026_1\"\"\"}",
             "CALC_TYPE": "1",
-            "TRN_INDICATOR_FILTER": ""
+            "TRN_INDICATOR_FILTER": "",
+            "seasonCode": "SEASON_2026_1",
+            "filter_period": []
           },
           {
             "TOURNAMENT_CODE": "3031",
@@ -1395,12 +1406,12 @@
             "PLAN_PERIOD_END_DT": "",
             "CRITERION_MARK_TYPE": "",
             "CRITERION_MARK_VALUE": "",
-            "FILTER_PERIOD_ARR": "",
             "TOURNAMENT_STATUS": "ЗАВЕРШЕН",
             "CONTEST_CODE": "01_2026-1_14-1_1",
-            "TARGET_TYPE": "{\"\"\"seasonCode\"\"\": \"\"\"SEASON_2026_1\"\"\"}",
             "CALC_TYPE": "1",
-            "TRN_INDICATOR_FILTER": ""
+            "TRN_INDICATOR_FILTER": "",
+            "seasonCode": "SEASON_2026_1",
+            "filter_period": []
           },
           {
             "TOURNAMENT_CODE": "3041",
@@ -1412,12 +1423,12 @@
             "PLAN_PERIOD_END_DT": "",
             "CRITERION_MARK_TYPE": "",
             "CRITERION_MARK_VALUE": "",
-            "FILTER_PERIOD_ARR": "",
             "TOURNAMENT_STATUS": "ЗАВЕРШЕН",
             "CONTEST_CODE": "01_2026-1_14-1_1",
-            "TARGET_TYPE": "{\"\"\"seasonCode\"\"\": \"\"\"SEASON_2026_1\"\"\"}",
             "CALC_TYPE": "1",
-            "TRN_INDICATOR_FILTER": ""
+            "TRN_INDICATOR_FILTER": "",
+            "seasonCode": "SEASON_2026_1",
+            "filter_period": []
           },
           {
             "TOURNAMENT_CODE": "3051",
@@ -1429,12 +1440,12 @@
             "PLAN_PERIOD_END_DT": "",
             "CRITERION_MARK_TYPE": "",
             "CRITERION_MARK_VALUE": "",
-            "FILTER_PERIOD_ARR": "",
             "TOURNAMENT_STATUS": "ЗАВЕРШЕН",
             "CONTEST_CODE": "01_2026-1_14-1_1",
-            "TARGET_TYPE": "{\"\"\"seasonCode\"\"\": \"\"\"SEASON_2026_1\"\"\"}",
             "CALC_TYPE": "1",
-            "TRN_INDICATOR_FILTER": ""
+            "TRN_INDICATOR_FILTER": "",
+            "seasonCode": "SEASON_2026_1",
+            "filter_period": []
           },
           {
             "TOURNAMENT_CODE": "3061",
@@ -1446,12 +1457,12 @@
             "PLAN_PERIOD_END_DT": "",
             "CRITERION_MARK_TYPE": "",
             "CRITERION_MARK_VALUE": "",
-            "FILTER_PERIOD_ARR": "",
             "TOURNAMENT_STATUS": "ЗАВЕРШЕН",
             "CONTEST_CODE": "01_2026-1_14-1_1",
-            "TARGET_TYPE": "{\"\"\"seasonCode\"\"\": \"\"\"SEASON_2026_1\"\"\"}",
             "CALC_TYPE": "1",
-            "TRN_INDICATOR_FILTER": ""
+            "TRN_INDICATOR_FILTER": "",
+            "seasonCode": "SEASON_2026_1",
+            "filter_period": []
           },
           {
             "TOURNAMENT_CODE": "3071",
@@ -1463,12 +1474,12 @@
             "PLAN_PERIOD_END_DT": "",
             "CRITERION_MARK_TYPE": "",
             "CRITERION_MARK_VALUE": "",
-            "FILTER_PERIOD_ARR": "",
             "TOURNAMENT_STATUS": "ПОДВЕДЕНИЕ ИТОГОВ",
             "CONTEST_CODE": "01_2026-1_14-1_1",
-            "TARGET_TYPE": "{\"\"\"seasonCode\"\"\": \"\"\"SEASON_2026_1\"\"\"}",
             "CALC_TYPE": "1",
-            "TRN_INDICATOR_FILTER": ""
+            "TRN_INDICATOR_FILTER": "",
+            "seasonCode": "SEASON_2026_1",
+            "filter_period": []
           },
           {
             "TOURNAMENT_CODE": "3081",
@@ -1480,12 +1491,12 @@
             "PLAN_PERIOD_END_DT": "",
             "CRITERION_MARK_TYPE": "",
             "CRITERION_MARK_VALUE": "",
-            "FILTER_PERIOD_ARR": "",
             "TOURNAMENT_STATUS": "АКТИВНЫЙ",
             "CONTEST_CODE": "01_2026-1_14-1_1",
-            "TARGET_TYPE": "{\"\"\"seasonCode\"\"\": \"\"\"SEASON_2026_1\"\"\"}",
             "CALC_TYPE": "1",
-            "TRN_INDICATOR_FILTER": ""
+            "TRN_INDICATOR_FILTER": "",
+            "seasonCode": "SEASON_2026_1",
+            "filter_period": []
           }
         ]
       }

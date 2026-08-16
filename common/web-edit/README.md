@@ -14,8 +14,8 @@ HTML-страница в стиле **Apple Liquid Glass**.
 
 ## Цикл
 
-1. Откройте `index.html` → «Выбрать catalog.json».
-2. Правки → «Сохранить JSON» → положите файл обратно в `web-edit/catalog.json` (и при необходимости в `param_catalog_review/`).
+1. Откройте `game_edit_parameters.html` → «Выбрать catalog.json».
+2. Правки → «Сохранить JSON» → положите файл обратно в `web-edit/game_edit_catalog.json` (и при необходимости в `param_catalog_review/`).
 3. Токен `contest_badge_form_blank` читает `param_catalog_review/catalog.json`.
 
 ## Варианты и подписи (`variants` / `variant_labels`)
@@ -48,4 +48,4 @@ python src/Tools/build_param_review_editor.py
 python src/Tools/sync_web_fill_catalog.py
 ```
 
-Страница: `../web-fill/index.html` (скрипт обновляет `catalog.json` / `catalog.js` **в web-fill** и блок `EMBEDDED_CATALOG` в `index.html`).
+Страница: `../web-fill/game_fill_settings.html` (скрипт обновляет `catalog.json` / `catalog.js` **в web-fill** и блок `EMBEDDED_CATALOG` в `game_fill_settings.html`).

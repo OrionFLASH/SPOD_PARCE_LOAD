@@ -24,6 +24,9 @@ def normalize_spod_json_text(raw: Any) -> str:
             s = inner
         else:
             break
+    # В выгрузках CSV часто хвост «]"» после валидного массива/объекта
+    while len(s) >= 2 and s[-1] == '"' and (s.startswith("{") or s.startswith("[")):
+        s = s[:-1].rstrip()
     return s.strip()
 
 
@@ -31,19 +34,24 @@ def parse_spod_json(raw: Any) -> Any:
     """
     Разбор ячейки SPOD в Python-объект.
     Пустая ячейка → None; при ошибке — логирование и None.
+    Допускает хвостовой мусор после первого JSON-значения (raw_decode).
     """
     norm = normalize_spod_json_text(raw)
     if not norm:
         return None
     try:
         return json.loads(norm)
-    except json.JSONDecodeError as exc:
-        logging.warning(
-            "[contest_badge_form] Не удалось разобрать SPOD-JSON: %s | %s",
-            exc,
-            norm[:120],
-        )
-        return None
+    except json.JSONDecodeError:
+        try:
+            obj, _end = json.JSONDecoder().raw_decode(norm)
+            return obj
+        except json.JSONDecodeError as exc:
+            logging.warning(
+                "[contest_badge_form] Не удалось разобрать SPOD-JSON: %s | %s",
+                exc,
+                norm[:120],
+            )
+            return None
 
 
 def dumps_spod_json(obj: Any) -> str:

@@ -14,7 +14,6 @@ DST_DIR = ROOT / "common" / "web-fill"
 # Однофайловые fill-страницы с маркерами EMBEDDED_CATALOG
 FILL_PAGES = (
     DST_DIR / "game_fill_settings.html",
-    DST_DIR / "index.html",
 )
 
 

@@ -86,10 +86,22 @@ body::after{width:380px;height:380px;right:-60px;bottom:10%;background:#ffd4a8}
 .pair-block__hint{font-size:10px;font-weight:600;text-transform:none;letter-spacing:0;color:var(--glass-muted)}
 .arr-block{margin:14px 0 0}
 .arr-block > .group-card{margin-bottom:12px}
-.arr-item{margin:0 0 12px;padding:12px 12px 4px;border-radius:14px;border:1px solid rgba(175,82,222,.22);background:rgba(175,82,222,.05)}
-.arr-item__head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 0 8px}
-.arr-item__title{font-size:12px;font-weight:750;letter-spacing:.02em;color:#7a3aa0}
-.arr-toolbar{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 4px}
+.arr-layout{display:grid;grid-template-columns:minmax(180px,240px) minmax(0,1fr);gap:12px;align-items:start}
+.arr-sets{display:flex;flex-direction:column;gap:6px;max-height:min(52vh,520px);overflow:auto;padding:2px}
+.arr-set-btn{display:flex;flex-direction:column;align-items:flex-start;gap:2px;width:100%;text-align:left;padding:8px 10px;border-radius:12px;border:1px solid rgba(15,23,42,.1);background:rgba(255,255,255,.55);cursor:pointer;font:inherit;color:inherit}
+.arr-set-btn:hover{border-color:rgba(0,122,255,.35);background:rgba(0,122,255,.06)}
+.arr-set-btn.is-active{border-color:rgba(0,122,255,.45);background:rgba(0,122,255,.12);box-shadow:0 4px 14px rgba(0,122,255,.12)}
+.arr-set-btn__idx{font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--glass-muted)}
+.arr-set-btn__sum{font-size:12px;font-weight:650;line-height:1.3;word-break:break-word}
+.arr-detail{min-width:0}
+.arr-item{margin:0;padding:12px 12px 4px;border-radius:14px;border:1px solid rgba(0,122,255,.22);background:rgba(0,122,255,.05)}
+.arr-item__head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 0 8px;flex-wrap:wrap}
+.arr-item__title{font-size:12px;font-weight:750;letter-spacing:.02em;color:var(--glass-blue)}
+.arr-item__actions{display:flex;flex-wrap:wrap;gap:6px}
+.arr-toolbar{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 4px;align-items:center}
+.arr-toolbar__count{font-size:12px;color:var(--glass-muted);font-weight:600;margin-right:auto}
+.arr-empty{margin:0;padding:10px 12px;color:var(--glass-muted);font-size:13px}
+@media (max-width:860px){.arr-layout{grid-template-columns:1fr}}
 .arr-empty{margin:0 0 8px;font-size:13px;color:var(--glass-muted)}
 
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:1px solid rgba(255,255,255,.75);border-radius:14px;padding:10px 14px;font:inherit;font-size:13px;font-weight:600;cursor:pointer;background:rgba(255,255,255,.65);box-shadow:var(--glass-shadow);color:var(--glass-text)}
@@ -301,7 +313,7 @@ table.grid th .empty-pill{margin-left:4px;vertical-align:middle}
 
 /* layout chrome */
 .app{position:relative;z-index:1;display:flex;flex-direction:column;height:100%;min-height:0;overflow:hidden}
-.chrome-top{flex:0 0 auto;z-index:50;padding:8px 14px 8px;background:linear-gradient(180deg,rgba(245,247,250,.97) 0%,rgba(245,247,250,.92) 75%,rgba(245,247,250,.78) 100%);backdrop-filter:blur(16px) saturate(160%);-webkit-backdrop-filter:blur(16px) saturate(160%);border-bottom:1px solid rgba(255,255,255,.75);box-shadow:0 8px 24px rgba(15,23,42,.06)}
+.chrome-top{flex:0 0 auto;z-index:50;padding:4px 10px 5px;background:linear-gradient(180deg,rgba(245,247,250,.97) 0%,rgba(245,247,250,.92) 75%,rgba(245,247,250,.78) 100%);backdrop-filter:blur(16px) saturate(160%);-webkit-backdrop-filter:blur(16px) saturate(160%);border-bottom:1px solid rgba(255,255,255,.75);box-shadow:0 6px 18px rgba(15,23,42,.05)}
 .chrome-top:has(#section-nav[hidden]){padding:0;border:0;box-shadow:none;background:transparent;backdrop-filter:none;-webkit-backdrop-filter:none}
 .chrome-mid{flex:1 1 auto;min-height:0;display:grid;grid-template-columns:var(--side-w,304px) minmax(0,1fr);overflow:hidden;transition:grid-template-columns .28s ease}
 .sidebar{height:100%;min-height:0;min-width:0;width:100%;padding:12px 10px 12px;display:flex;flex-direction:column;gap:8px;overflow:hidden;background:rgba(255,255,255,.82);backdrop-filter:blur(var(--blur)) saturate(180%);-webkit-backdrop-filter:blur(var(--blur)) saturate(180%);border-right:1px solid var(--glass-border);box-shadow:var(--glass-shadow);transition:opacity .22s ease,transform .28s ease,padding .28s ease,border-color .28s ease}
@@ -354,6 +366,29 @@ table.grid th .empty-pill{margin-left:4px;vertical-align:middle}
 .contest-tab--sch-empty.active{background:rgba(234,179,8,.2);border-color:rgba(202,138,4,.5);box-shadow:0 0 0 2px rgba(234,179,8,.3)}
 .contest-tab--sch-empty.active.is-dirty{box-shadow:0 0 0 2px rgba(255,149,0,.55),0 0 0 4px rgba(234,179,8,.16)}
 .sidebar #btn-add-contest{flex:0 0 auto;width:100%}
+.sidebar-contest-actions{flex:0 0 auto;display:flex;flex-direction:column;gap:6px;width:100%}
+.sidebar-contest-actions .btn{width:100%}
+.copy-modal--wide{width:min(560px,100%);max-height:min(90vh,720px);overflow:auto}
+.copy-modal__section{margin:0 0 12px;padding:10px 12px;border-radius:14px;background:rgba(15,23,42,.03);border:1px solid rgba(15,23,42,.08)}
+.copy-modal__section-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;margin:0 0 8px}
+.copy-modal__section-title{margin:0;font-size:13px;font-weight:800;letter-spacing:.02em}
+.copy-modal__section-meta{font-size:11px;font-weight:600;color:var(--glass-muted)}
+.copy-modal__status-tools{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 8px}
+.copy-modal__status-btn{display:inline-flex;align-items:center;gap:5px;padding:5px 9px;border-radius:999px;border:1px solid rgba(15,23,42,.12);background:rgba(255,255,255,.75);font:inherit;font-size:11px;font-weight:700;cursor:pointer;color:var(--glass-text)}
+.copy-modal__status-btn input{margin:0}
+.copy-modal__status-btn.is-on{border-color:rgba(0,122,255,.35);background:rgba(0,122,255,.1);color:var(--glass-blue)}
+.copy-modal__status-btn--active.is-on{border-color:rgba(52,199,89,.4);background:rgba(52,199,89,.12);color:#15803d}
+.copy-modal__status-btn--results.is-on{border-color:rgba(0,122,255,.4);background:rgba(0,122,255,.12)}
+.copy-modal__status-btn--done.is-on{border-color:rgba(219,39,119,.38);background:rgba(244,114,182,.14);color:#be185d}
+.copy-modal__status-btn--dead.is-on{border-color:rgba(100,116,139,.4);background:rgba(148,163,184,.16);color:#64748b}
+.copy-modal__field{display:flex;flex-direction:column;gap:4px;margin:0 0 12px}
+.copy-modal__field label{font-size:11px;font-weight:700;color:var(--glass-muted)}
+.copy-modal__field input{padding:8px 10px;border-radius:10px;border:1px solid rgba(15,23,42,.12);background:#fff;font:inherit;font-size:13px;font-weight:600}
+.copy-modal__list{max-height:min(28vh,200px)}
+.copy-modal__item--sch-active{border-color:rgba(52,199,89,.25)}
+.copy-modal__item--sch-results{border-color:rgba(0,122,255,.25)}
+.copy-modal__item--sch-done{border-color:rgba(219,39,119,.22)}
+.copy-modal__item--sch-dead{border-color:rgba(100,116,139,.28);opacity:.92}
 .contest-search{flex:0 0 auto;position:relative;margin:0 0 6px}
 .contest-search__icon{position:absolute;left:10px;top:50%;transform:translateY(-50%);width:14px;height:14px;color:var(--glass-muted);pointer-events:none}
 .contest-search__icon svg{width:14px;height:14px;display:block}
@@ -381,57 +416,66 @@ table.grid th .empty-pill{margin-left:4px;vertical-align:middle}
 .archive-banner__actions{display:flex;flex-wrap:wrap;gap:8px}
 .archive-preview{margin:0 0 12px;padding:12px;border-radius:12px;background:rgba(255,255,255,.7);border:1px solid rgba(15,23,42,.08);font-size:12px;line-height:1.45;color:var(--glass-muted);white-space:pre-wrap;word-break:break-word;max-height:220px;overflow:auto;font-family:var(--mono)}
 .contest-tabs-empty{padding:12px 10px;font-size:12px;line-height:1.4;color:var(--glass-muted);text-align:center}
-.top-nav{display:flex;flex-direction:column;align-items:stretch;gap:8px;padding:8px 10px;border-radius:16px;background:rgba(255,255,255,.88);border:1px solid rgba(255,255,255,.85);box-shadow:var(--glass-shadow);width:100%;box-sizing:border-box}
+.top-nav{display:flex;flex-direction:column;align-items:stretch;gap:4px;padding:4px 6px;border-radius:12px;background:rgba(255,255,255,.88);border:1px solid rgba(255,255,255,.85);box-shadow:var(--glass-shadow);width:100%;box-sizing:border-box}
 .top-nav[hidden]{display:none!important}
-.top-nav__row{display:flex;flex-wrap:wrap;align-items:stretch;justify-content:stretch;gap:8px;width:100%;box-sizing:border-box}
+.top-nav__row{display:flex;flex-wrap:nowrap;align-items:stretch;justify-content:stretch;gap:5px;width:100%;box-sizing:border-box;min-height:0}
+@media (max-width:900px){
+  .top-nav__row--main{flex-wrap:wrap}
+  .top-nav .nav-group--contest,.top-nav .nav-group--ind,.top-nav .nav-group--groups{flex:1 1 calc(50% - 5px);min-width:min(100%,220px)}
+}
 .top-nav__row--main{/* конкурс · индикаторы · группы */}
 .top-nav__row--links{/* связи + награды */}
 .top-nav__row--schedule{/* расписание */}
-.top-nav .nav-btn{display:inline-flex;align-items:center;gap:8px;width:auto;max-width:100%;min-width:0;text-align:left;border:1px solid rgba(255,255,255,.55);background:rgba(255,255,255,.55);border-radius:12px;padding:7px 10px;cursor:pointer;font:inherit;color:inherit;flex:1 1 140px;box-sizing:border-box}
+.top-nav .nav-btn{display:inline-flex;align-items:center;gap:5px;width:auto;max-width:100%;min-width:0;min-height:28px;height:28px;text-align:left;border:1px solid rgba(255,255,255,.55);background:rgba(255,255,255,.55);border-radius:8px;padding:2px 8px;cursor:pointer;font:inherit;color:inherit;flex:0 1 auto;box-sizing:border-box}
 .top-nav .nav-btn:hover{background:rgba(255,255,255,.92);box-shadow:var(--glass-shadow)}
 .top-nav .nav-btn.active{background:var(--glass-blue-light);border-color:var(--glass-blue-border);color:var(--glass-blue);font-weight:600}
-.top-nav .nav-btn .tag{margin-left:auto;font-size:9px;font-weight:700;padding:2px 6px;border-radius:999px;background:rgba(0,0,0,.06);flex-shrink:0}
+.top-nav .nav-btn .tag{margin-left:auto;font-size:8px;font-weight:800;padding:1px 5px;border-radius:999px;background:rgba(0,0,0,.06);flex-shrink:0;line-height:1.2}
 .top-nav .nav-btn .tag.json{background:rgba(192,57,43,.12);color:#c0392b}
 .top-nav .nav-btn .tag.table{background:rgba(0,122,255,.12);color:var(--glass-blue)}
 .top-nav .nav-btn .tag.start{background:rgba(52,199,89,.14);color:#15803d}
-.top-nav .nav-btn--slot{padding:6px 10px;max-width:100%;border-radius:11px;flex:1 1 150px}
-.top-nav .nav-btn--slot .nav-btn__title{display:block;font-size:11px;font-weight:650;line-height:1.25;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center}
-.top-nav .nav-btn--slot .nav-sub{font-size:9px;margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center}
+.top-nav .nav-btn--slot{padding:2px 18px 2px 8px;max-width:100%;border-radius:8px;flex:0 1 auto}
+.top-nav .nav-btn__body{display:flex;flex-direction:row;align-items:center;gap:5px;min-width:0;flex:1 1 auto;text-align:left;overflow:hidden}
+.top-nav .nav-btn--slot .nav-btn__title{display:block;font-size:11px;font-weight:650;line-height:1.15;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left;min-width:0}
+.top-nav .nav-btn--slot .nav-sub{display:none;font-size:9px;margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--glass-muted);font-weight:500;max-width:14ch;flex:0 1 auto}
+.top-nav .nav-btn--slot.nav-btn--name .nav-sub{display:inline;max-width:min(22ch,28vw)}
+.top-nav .nav-btn--slot.nav-btn--code .nav-sub{display:inline;max-width:min(18ch,22vw)}
 .top-nav .nav-btn--slot .tag{font-size:8px;padding:1px 5px}
-.top-nav .nav-btn--slot.nav-btn--code{max-width:100%;flex:1 1 200px;width:auto}
-.top-nav .nav-btn--slot.nav-btn--code .nav-btn__title{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2;font-size:10px;font-family:var(--mono);text-align:center}
-.top-nav .nav-btn--slot.nav-btn--name{max-width:100%;flex:1 1 180px}
-.top-nav .nav-btn--slot.nav-btn--name .nav-sub{max-width:100%}
-.top-nav .nav-group{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:6px 8px;margin:0;padding:8px 10px;border-radius:12px;background:rgba(15,23,42,.04);border:1px solid rgba(15,23,42,.06);flex:1 1 0;min-width:min(100%,200px);max-width:100%;box-sizing:border-box}
-.top-nav .nav-group__title{display:inline-flex;align-items:baseline;gap:6px;font-size:10px;font-weight:800;letter-spacing:.02em;text-transform:uppercase;color:var(--glass-text);padding:0 2px;white-space:nowrap;flex:0 1 auto}
-.top-nav .nav-group__meta{font-size:9px;font-weight:600;color:var(--glass-muted);text-transform:none;letter-spacing:0}
-.top-nav .nav-group--pair{background:linear-gradient(90deg,rgba(0,122,255,.07),rgba(52,199,89,.08));border-color:rgba(15,23,42,.1)}
-.top-nav .nav-group--contest{background:rgba(52,199,89,.08);border-color:rgba(52,199,89,.2)}
+.top-nav .nav-btn--slot.nav-btn--code{max-width:100%;flex:1 1 180px;width:auto;min-width:0}
+.top-nav .nav-btn--slot.nav-btn--code .nav-btn__title{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.15;font-size:10px;font-family:var(--mono);text-align:left}
+.top-nav .nav-btn--slot.nav-btn--name{max-width:100%;flex:1 1 160px;min-width:0}
+.top-nav .nav-btn--slot.nav-btn--name .nav-btn__title{max-width:18ch}
+.top-nav .nav-group{display:flex;flex-wrap:nowrap;align-items:center;justify-content:flex-start;gap:4px 5px;margin:0;padding:3px 6px;border-radius:9px;background:rgba(15,23,42,.04);border:1px solid rgba(15,23,42,.06);flex:1 1 0;min-width:0;max-width:100%;box-sizing:border-box;overflow-x:auto;overflow-y:hidden;scrollbar-width:thin}
+.top-nav .nav-group__title{display:inline-flex;align-items:baseline;gap:4px;font-size:9px;font-weight:800;letter-spacing:.03em;text-transform:uppercase;color:var(--glass-text);padding:0 2px;white-space:nowrap;flex:0 0 auto;line-height:1.1}
+.top-nav .nav-group__meta{font-size:8px;font-weight:600;color:var(--glass-muted);text-transform:none;letter-spacing:0}
+.top-nav .nav-group--pair{background:linear-gradient(90deg,rgba(0,122,255,.07),rgba(52,199,89,.08));border-color:rgba(15,23,42,.1);flex:1 1 100%}
+.top-nav .nav-group--contest{background:rgba(52,199,89,.08);border-color:rgba(52,199,89,.2);flex:1.35 1 0;min-width:min(100%,280px)}
 .top-nav .nav-group--contest .nav-group__title{color:#15803d}
+.top-nav .nav-group--contest .nav-btn--name{flex:1 1 140px}
+.top-nav .nav-group--contest .nav-btn--child{flex:0 0 auto;max-width:none}
 .top-nav .nav-group--groups{background:rgba(255,149,0,.08);border-color:rgba(255,149,0,.18)}
 .top-nav .nav-group--ind{background:rgba(88,86,214,.08);border-color:rgba(88,86,214,.16)}
 /* Много групп (>3): сужаем Конкурс и Индикаторы, место — под Группы */
 .top-nav__row--main.top-nav__row--groups-heavy .nav-group--contest,
 .top-nav__row--main.top-nav__row--groups-heavy .nav-group--ind{
   flex:0 1 auto;
-  max-width:min(260px,26vw);
+  max-width:min(320px,32vw);
   min-width:0;
 }
 .top-nav__row--main.top-nav__row--groups-heavy .nav-group--contest .nav-btn--slot,
 .top-nav__row--main.top-nav__row--groups-heavy .nav-group--contest .nav-btn--child,
 .top-nav__row--main.top-nav__row--groups-heavy .nav-group--ind .nav-btn--slot{
-  flex:1 1 100%;
+  flex:0 1 auto;
   max-width:100%;
 }
 .top-nav__row--main.top-nav__row--groups-heavy .nav-group--groups{
   flex:1 1 55%;
-  min-width:min(100%,380px);
+  min-width:min(100%,320px);
   justify-content:flex-start;
 }
 .top-nav__row--main.top-nav__row--groups-heavy .nav-group--groups .nav-btn--slot{
   flex:0 1 auto;
   width:max-content;
-  max-width:min(100%,200px);
+  max-width:min(100%,180px);
 }
 .top-nav .nav-group--sch{background:rgba(0,122,255,.06);border-color:rgba(0,122,255,.14);flex:1 1 100%;min-width:0}
 .top-nav .nav-group--sch .nav-btn--code{max-width:100%;flex:1 1 220px}
@@ -456,21 +500,22 @@ table.grid th .empty-pill{margin-left:4px;vertical-align:middle}
 .top-nav .nav-btn--sch-deleted{opacity:.88}
 .top-nav .nav-btn--sch-cancel.active,
 .top-nav .nav-btn--sch-deleted.active{box-shadow:0 0 0 2px rgba(100,116,139,.28)}
-.top-nav .nav-btn--child{max-width:100%;padding:6px 9px;border-style:dashed;background:rgba(255,255,255,.4);flex:1 1 140px}
+.top-nav .nav-btn--child{max-width:none;padding:2px 8px;border-style:dashed;background:rgba(255,255,255,.4);flex:0 0 auto;height:28px}
 .top-nav .nav-btn--child .nav-btn__title{font-size:11px}
 .top-nav .nav-btn--json.active,.top-nav .nav-btn--child.active{background:rgba(175,82,222,.14);border-color:rgba(175,82,222,.42);color:#7a3aa0;border-style:solid}
 .top-nav .nav-btn--json.active .nav-sub,.top-nav .nav-btn--child.active .nav-sub{color:rgba(122,58,160,.85)}
-.nav-pair-unit{display:inline-flex;align-items:stretch;gap:4px;padding:3px;border-radius:12px;border:1px solid rgba(15,23,42,.1);background:rgba(255,255,255,.55);max-width:100%;flex:1 1 220px;min-width:min(100%,200px);box-sizing:border-box;justify-content:center}
-.nav-pair-unit.is-on{border-color:rgba(0,122,255,.38);background:rgba(0,122,255,.05);box-shadow:0 0 0 2px rgba(0,122,255,.12)}
-.nav-pair-unit.is-on-add{border-color:rgba(175,82,222,.4);background:rgba(175,82,222,.06);box-shadow:0 0 0 2px rgba(175,82,222,.12)}
-.nav-pair-unit__n{display:inline-flex;align-items:center;justify-content:center;min-width:20px;padding:0 2px;font-size:11px;font-weight:800;color:var(--glass-muted);flex:0 0 auto}
-.nav-pair-unit .nav-btn{max-width:100%;flex:1 1 120px;min-width:0}
+.nav-pair-unit{display:inline-flex;align-items:center;gap:3px;padding:2px;border-radius:9px;border:1px solid rgba(15,23,42,.1);background:rgba(255,255,255,.55);max-width:100%;flex:0 1 auto;min-width:0;box-sizing:border-box;justify-content:flex-start;height:32px}
+.nav-pair-unit.is-on{border-color:rgba(0,122,255,.38);background:rgba(0,122,255,.05);box-shadow:0 0 0 1px rgba(0,122,255,.12)}
+.nav-pair-unit.is-on-add{border-color:rgba(175,82,222,.4);background:rgba(175,82,222,.06);box-shadow:0 0 0 1px rgba(175,82,222,.12)}
+.nav-pair-unit__n{display:inline-flex;align-items:center;justify-content:center;min-width:16px;padding:0 2px;font-size:10px;font-weight:800;color:var(--glass-muted);flex:0 0 auto}
+.nav-pair-unit .nav-btn{max-width:100%;flex:0 1 auto;min-width:0;height:26px;min-height:26px}
+.nav-pair-unit .nav-btn--slot .nav-sub{display:none}
 .nav-btn{position:relative}
-.top-nav .nav-btn--slot{padding-right:22px}
-.nav-btn__x,.nav-pair-unit__x{position:absolute;top:2px;right:2px;z-index:2;border:0;background:transparent;cursor:pointer;font-size:14px;line-height:1;opacity:.45;padding:2px 5px;border-radius:6px;color:inherit;font:inherit}
+.top-nav .nav-btn--slot{padding-right:18px}
+.nav-btn__x,.nav-pair-unit__x{position:absolute;top:1px;right:1px;z-index:2;border:0;background:transparent;cursor:pointer;font-size:12px;line-height:1;opacity:.45;padding:1px 4px;border-radius:5px;color:inherit;font:inherit}
 .nav-btn__x:hover,.nav-pair-unit__x:hover{opacity:1;background:rgba(0,0,0,.08)}
 .nav-pair-unit{position:relative}
-.nav-pair-unit__x{top:4px;right:4px}
+.nav-pair-unit__x{top:2px;right:2px}
 .btn-danger-soft{border-color:rgba(192,57,43,.28)!important;color:#c0392b!important;background:rgba(192,57,43,.06)!important}
 .btn-danger-soft:hover{background:rgba(192,57,43,.12)!important;border-color:rgba(192,57,43,.4)!important}
 .nav-goto{display:inline-flex;align-items:center;gap:8px;margin:0 0 14px;padding:10px 14px;border-radius:14px;border:1px dashed rgba(175,82,222,.35);background:rgba(175,82,222,.06);font-size:13px;font-weight:600;color:#7a3aa0;cursor:pointer;font:inherit}
@@ -496,7 +541,7 @@ table.grid th .empty-pill{margin-left:4px;vertical-align:middle}
 .btn-compact svg{width:14px;height:14px}
 .export-inline{display:inline-flex;flex-wrap:wrap;align-items:center;gap:6px}
 .toast{bottom:84px!important;z-index:60!important}
-.app.is-gated .contest-tabs,.app.is-gated #section-nav,.app.is-gated .export-inline,.app.is-gated #btn-add-contest,.app.is-gated #btn-reset-catalog,.app.is-gated #btn-export-all,.app.is-gated #btn-save-project,.app.is-gated #btn-import-project-label,.app.is-gated #contest-search{opacity:.45;pointer-events:none}
+.app.is-gated .contest-tabs,.app.is-gated #section-nav,.app.is-gated .export-inline,.app.is-gated #btn-add-contest,.app.is-gated #btn-copy-contest,.app.is-gated #btn-reset-catalog,.app.is-gated #btn-export-all,.app.is-gated #btn-save-project,.app.is-gated #btn-import-project-label,.app.is-gated #contest-search{opacity:.45;pointer-events:none}
 @media(max-width:1100px){
   .chrome-foot{flex-wrap:wrap}
   .foot-block--meta{order:3;flex:1 1 100%;padding:0}
@@ -530,9 +575,9 @@ table.grid th .empty-pill{margin-left:4px;vertical-align:middle}
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>
         </button>
       </div>
-      <div class="contest-search" data-tip="Поиск по CONTEST_CODE, FULL_NAME (конкурс и награды), CONTEST_DESCRIPTION, REWARD_DESCRIPTION">
+      <div class="contest-search" data-tip="Поиск по CONTEST_CODE, FULL_NAME, CONTEST_DESCRIPTION, REWARD_CODE, REWARD FULL_NAME/DESCRIPTION, TOURNAMENT_CODE">
         <span class="contest-search__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg></span>
-        <input type="search" id="contest-search" class="contest-search__input" placeholder="Поиск по коду и названиям…" autocomplete="off" />
+        <input type="search" id="contest-search" class="contest-search__input" placeholder="Код конкурса, награды, турнира…" autocomplete="off" />
       </div>
       <div class="contest-kind-filters" role="group" aria-label="Фильтр типа конкурсов">
         <button type="button" class="contest-kind-btn contest-kind-btn--tournament is-on" id="filter-tournaments" aria-pressed="true" data-tip="Показать турнирные конкурсы (нажмите, чтобы скрыть)">
@@ -551,10 +596,16 @@ table.grid th .empty-pill{margin-left:4px;vertical-align:middle}
       <div class="contest-tabs-scroll">
         <div class="contest-tabs" id="contest-tabs"></div>
       </div>
-      <button type="button" class="btn btn-sidebar" id="btn-add-contest" data-tip="Добавить ещё один конкурс (свои BADGE / таблицы)">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
-        Добавить конкурс
-      </button>
+      <div class="sidebar-contest-actions">
+        <button type="button" class="btn btn-sidebar" id="btn-add-contest" data-tip="Добавить ещё один конкурс (свои BADGE / таблицы)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+          Добавить конкурс
+        </button>
+        <button type="button" class="btn btn-sidebar" id="btn-copy-contest" data-tip="Создать полную копию текущего конкурса с выбором групп, наград/связей и турниров">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
+          Копировать конкурс
+        </button>
+      </div>
     </aside>
     <main class="main">
       <div id="workspace" class="workspace"></div>
@@ -1307,6 +1358,264 @@ function copyActiveScheduleToOthers(){
   });
 }
 
+/** Корзина статуса турнира для копирования конкурса. */
+function scheduleCopyBucket(status){
+  const u=String(status||"").trim().toUpperCase();
+  if(u==="АКТИВНЫЙ") return "active";
+  if(u==="ПОДВЕДЕНИЕ ИТОГОВ") return "results";
+  if(u==="ЗАВЕРШЕН") return "done";
+  if(u==="ОТМЕНЕН"||u==="УДАЛЕН") return "dead";
+  return "other";
+}
+function suggestCopiedContestCode(srcCode){
+  const base=String(srcCode||"").trim()||"contest";
+  const root=base.replace(/_copy\d*$/i,"");
+  let cand=root+"_copy";
+  let n=2;
+  const used=new Set(contests.map(c=>String((c.data&&c.data.contest&&c.data.contest.CONTEST_CODE)||"").trim()).filter(Boolean));
+  while(used.has(cand)){cand=root+"_copy"+n;n++}
+  return cand;
+}
+function buildContestDataCopy(src, sel){
+  const prevCc=String((src.contest&&src.contest.CONTEST_CODE)||"").trim();
+  const nextCc=String(sel.newCode||"").trim();
+  const out={
+    contest:clone(src.contest||{}),
+    feature:clone(src.feature||{}),
+    contestPeriod:clone(src.contestPeriod||[]),
+    indicator:clone(src.indicator||[]),
+    group:[],
+    badges:[],
+    reward_link:[],
+    schedule:[],
+  };
+  out.contest.CONTEST_CODE=nextCc;
+  if(sel.copyNameSuffix!==false){
+    const name=String(out.contest.FULL_NAME||"").trim();
+    if(name&&!/\(копия\)\s*$/i.test(name)) out.contest.FULL_NAME=name+" (копия)";
+  }
+  const gIdxs=sel.groupIdxs||[];
+  out.group=gIdxs.map(i=>clone((src.group||[])[i])).filter(Boolean);
+  if(!out.group.length && !(src.group||[]).length){
+    const blank=Object.fromEntries(GROUP_COLS.map(c=>[c,""]));
+    for(const f of (catalog.sections.find(s=>s.id==="TABLE:GROUP")||{fields:[]}).fields){
+      if(f.kind==="json") continue;
+      if(f.default!=null&&String(f.default)!==""&&blank[f.key]!==undefined) blank[f.key]=String(f.default);
+    }
+    out.group=[blank];
+  }
+  const pIdxs=sel.pairIdxs||[];
+  for(const i of pIdxs){
+    const b=(src.badges||[])[i];
+    const link=(src.reward_link||[])[i];
+    if(!b&&!link) continue;
+    out.badges.push(clone(b||emptyBadge()));
+    out.reward_link.push(clone(link||Object.fromEntries(LINK_COLS.map(c=>[c,""]))));
+  }
+  const sIdxs=sel.scheduleIdxs||[];
+  out.schedule=sIdxs.map(i=>clone((src.schedule||[])[i])).filter(Boolean);
+  if(!out.schedule.length && !(src.schedule||[]).length){
+    const blank=Object.fromEntries(SCH_COLS.map(c=>[c,""]));
+    for(const f of (catalog.sections.find(s=>s.id==="TABLE:SCHEDULE")||{fields:[]}).fields){
+      if(f.key==="TOURNAMENT_CODE"||f.kind==="json") continue;
+      if(f.default!=null&&String(f.default)!==""&&blank[f.key]!==undefined) blank[f.key]=String(f.default);
+    }
+    blank.filter_period=[];
+    blank.seasonCode="";
+    delete blank.TARGET_TYPE;
+    delete blank.FILTER_PERIOD_ARR;
+    out.schedule=[blank];
+  }
+  ensureJsonStructures(out);
+  for(const row of out.group||[]) row.CONTEST_CODE=nextCc;
+  for(const row of out.indicator||[]) row.CONTEST_CODE=nextCc;
+  for(const row of out.reward_link||[]) row.CONTEST_CODE=nextCc;
+  for(const row of out.schedule||[]) row.CONTEST_CODE=nextCc;
+  resyncPrefixedCodes(out, prevCc);
+  syncBadgeSlots(out,false);
+  seedLinked(out);
+  sortScheduleRows(out.schedule);
+  return out;
+}
+function openCopyContestModal(){
+  if(!sessionReady){toast("Сначала создайте или откройте конкурс");return}
+  if(activeArchiveId){toast("Копирование из архива недоступно — сначала откройте активный конкурс");return}
+  const srcItem=cur();
+  if(!srcItem||!srcItem.data){toast("Нет текущего конкурса");return}
+  const src=srcItem.data;
+  const groups=src.group||[];
+  const badges=src.badges||[];
+  const schedules=src.schedule||[];
+  const srcCode=String((src.contest&&src.contest.CONTEST_CODE)||"").trim();
+  const suggested=suggestCopiedContestCode(srcCode);
+
+  const schBuckets={active:[],results:[],done:[],dead:[],other:[]};
+  schedules.forEach((r,idx)=>{
+    const b=scheduleCopyBucket(r.TOURNAMENT_STATUS);
+    (schBuckets[b]||schBuckets.other).push(idx);
+  });
+
+  closeCopyModal();
+  const backdrop=document.createElement("div");
+  backdrop.id="copy-modal-backdrop";
+  backdrop.className="copy-modal-backdrop";
+  const groupHtml=groups.length?groups.map((r,idx)=>`
+    <label class="copy-modal__item">
+      <input type="checkbox" data-copy-group="${idx}" checked />
+      <span>${esc(groupTitle(r,idx))}${groupSub(r)?" · "+esc(groupSub(r)):""}</span>
+    </label>`).join(""):`<p class="copy-modal__text">Групп нет — будет одна пустая.</p>`;
+  const pairHtml=badges.length?badges.map((b,idx)=>{
+    const flat=(b&&b.flat)||{};
+    const code=String(flat.REWARD_CODE||"").trim();
+    const name=String(flat.FULL_NAME||"").trim();
+    return `<label class="copy-modal__item">
+      <input type="checkbox" data-copy-pair="${idx}" checked />
+      <span>${esc(pairNavTitle(idx))}${name&&name!==code?" · "+esc(name):""}</span>
+    </label>`;
+  }).join(""):`<p class="copy-modal__text">Связей/наград нет — будет одна пустая пара.</p>`;
+
+  function schItemClass(bucket){
+    if(bucket==="active") return "copy-modal__item--sch-active";
+    if(bucket==="results") return "copy-modal__item--sch-results";
+    if(bucket==="done") return "copy-modal__item--sch-done";
+    if(bucket==="dead") return "copy-modal__item--sch-dead";
+    return "";
+  }
+  const schHtml=schedules.length?schedules.map((r,idx)=>{
+    const bucket=scheduleCopyBucket(r.TOURNAMENT_STATUS);
+    const lab=scheduleTitle(r,idx)+(scheduleSub(r)?" · "+scheduleSub(r):"");
+    return `<label class="copy-modal__item ${schItemClass(bucket)}">
+      <input type="checkbox" data-copy-sch="${idx}" data-sch-bucket="${bucket}" checked />
+      <span>${esc(lab)}</span>
+    </label>`;
+  }).join(""):`<p class="copy-modal__text">Турниров нет — будет один пустой период.</p>`;
+
+  const statusBtns=[
+    {id:"active",label:"Активные",n:schBuckets.active.length,cls:"copy-modal__status-btn--active"},
+    {id:"results",label:"Подведение итогов",n:schBuckets.results.length,cls:"copy-modal__status-btn--results"},
+    {id:"done",label:"Завершённые",n:schBuckets.done.length,cls:"copy-modal__status-btn--done"},
+    {id:"dead",label:"Отменённые / удалённые",n:schBuckets.dead.length,cls:"copy-modal__status-btn--dead"},
+  ].filter(x=>x.n>0);
+
+  backdrop.innerHTML=`
+    <div class="copy-modal copy-modal--wide" role="dialog" aria-modal="true" aria-labelledby="copy-modal-title">
+      <h3 id="copy-modal-title">Копировать конкурс</h3>
+      <p class="copy-modal__text">Будет создан новый конкурс. Карточка, FEATURE, периоды CONTEST_PERIOD и индикаторы копируются целиком. Ниже выберите группы, связи/награды и турниры.</p>
+      <div class="copy-modal__field">
+        <label for="copy-contest-code">Код нового конкурса (CONTEST_CODE)</label>
+        <input type="text" id="copy-contest-code" value="${esc(suggested)}" autocomplete="off" />
+      </div>
+      <div class="copy-modal__section">
+        <div class="copy-modal__section-head">
+          <h4 class="copy-modal__section-title">Группы</h4>
+          <span class="copy-modal__section-meta">${groups.length} шт.</span>
+        </div>
+        <div class="copy-modal__tools">
+          <button type="button" class="btn" data-sel="group" data-on="1">Все</button>
+          <button type="button" class="btn" data-sel="group" data-on="0">Снять</button>
+        </div>
+        <div class="copy-modal__list" data-list="group">${groupHtml}</div>
+      </div>
+      <div class="copy-modal__section">
+        <div class="copy-modal__section-head">
+          <h4 class="copy-modal__section-title">Связи + награды</h4>
+          <span class="copy-modal__section-meta">${badges.length} шт.</span>
+        </div>
+        <div class="copy-modal__tools">
+          <button type="button" class="btn" data-sel="pair" data-on="1">Все</button>
+          <button type="button" class="btn" data-sel="pair" data-on="0">Снять</button>
+        </div>
+        <div class="copy-modal__list" data-list="pair">${pairHtml}</div>
+      </div>
+      <div class="copy-modal__section">
+        <div class="copy-modal__section-head">
+          <h4 class="copy-modal__section-title">Турниры (расписание)</h4>
+          <span class="copy-modal__section-meta">${schedules.length} шт.</span>
+        </div>
+        ${statusBtns.length?`<div class="copy-modal__status-tools" role="group" aria-label="Выбор по статусу">
+          ${statusBtns.map(b=>`<label class="copy-modal__status-btn ${b.cls} is-on" data-status-bucket="${b.id}">
+            <input type="checkbox" data-status-toggle="${b.id}" checked />
+            <span>${esc(b.label)} (${b.n})</span>
+          </label>`).join("")}
+        </div>`:""}
+        <div class="copy-modal__tools">
+          <button type="button" class="btn" data-sel="sch" data-on="1">Все турниры</button>
+          <button type="button" class="btn" data-sel="sch" data-on="0">Снять все</button>
+        </div>
+        <div class="copy-modal__list" data-list="sch">${schHtml}</div>
+      </div>
+      <div class="copy-modal__actions">
+        <button type="button" class="btn" id="copy-modal-cancel">Отмена</button>
+        <button type="button" class="btn btn-primary" id="copy-modal-ok">Создать копию</button>
+      </div>
+    </div>`;
+  document.body.appendChild(backdrop);
+
+  const setList=(kind,on)=>{
+    backdrop.querySelectorAll(`input[data-copy-${kind}]`).forEach(inp=>{inp.checked=!!on});
+    if(kind==="sch"){
+      backdrop.querySelectorAll("[data-status-toggle]").forEach(inp=>{
+        inp.checked=!!on;
+        inp.closest(".copy-modal__status-btn")?.classList.toggle("is-on",!!on);
+      });
+    }
+  };
+  backdrop.querySelectorAll("[data-sel]").forEach(btn=>{
+    btn.addEventListener("click",()=>{
+      setList(btn.getAttribute("data-sel"), btn.getAttribute("data-on")==="1");
+    });
+  });
+  backdrop.querySelectorAll("[data-status-toggle]").forEach(inp=>{
+    inp.addEventListener("change",()=>{
+      const bucket=inp.getAttribute("data-status-toggle");
+      const on=!!inp.checked;
+      inp.closest(".copy-modal__status-btn")?.classList.toggle("is-on",on);
+      backdrop.querySelectorAll(`input[data-copy-sch][data-sch-bucket="${bucket}"]`).forEach(cb=>{cb.checked=on});
+    });
+  });
+  // Синхронизация статус-кнопок при ручном клике по турниру
+  backdrop.querySelectorAll("input[data-copy-sch]").forEach(cb=>{
+    cb.addEventListener("change",()=>{
+      const bucket=cb.getAttribute("data-sch-bucket");
+      if(!bucket) return;
+      const boxes=[...backdrop.querySelectorAll(`input[data-copy-sch][data-sch-bucket="${bucket}"]`)];
+      const allOn=boxes.length&&boxes.every(x=>x.checked);
+      const toggle=backdrop.querySelector(`input[data-status-toggle="${bucket}"]`);
+      if(toggle){
+        toggle.checked=allOn;
+        toggle.closest(".copy-modal__status-btn")?.classList.toggle("is-on",allOn);
+      }
+    });
+  });
+
+  backdrop.querySelector("#copy-modal-cancel").addEventListener("click",()=>closeCopyModal());
+  backdrop.addEventListener("click",e=>{if(e.target===backdrop)closeCopyModal()});
+  const onKey=e=>{if(e.key==="Escape"){closeCopyModal();document.removeEventListener("keydown",onKey)}};
+  document.addEventListener("keydown",onKey);
+  backdrop.querySelector("#copy-modal-ok").addEventListener("click",()=>{
+    const newCode=String(backdrop.querySelector("#copy-contest-code")?.value||"").trim();
+    if(!newCode){toast("Укажите код нового конкурса");return}
+    const used=contests.some(c=>String((c.data&&c.data.contest&&c.data.contest.CONTEST_CODE)||"").trim()===newCode);
+    if(used&&!confirm(`Код «${newCode}» уже есть в списке. Всё равно создать копию?`)) return;
+    const groupIdxs=[...backdrop.querySelectorAll("input[data-copy-group]:checked")].map(el=>Number(el.getAttribute("data-copy-group")));
+    const pairIdxs=[...backdrop.querySelectorAll("input[data-copy-pair]:checked")].map(el=>Number(el.getAttribute("data-copy-pair")));
+    const scheduleIdxs=[...backdrop.querySelectorAll("input[data-copy-sch]:checked")].map(el=>Number(el.getAttribute("data-copy-sch")));
+    document.removeEventListener("keydown",onKey);
+    closeCopyModal();
+    const dataCopy=buildContestDataCopy(src,{newCode,groupIdxs,pairIdxs,scheduleIdxs});
+    const item={id:"c"+Date.now(),name:String(dataCopy.contest.FULL_NAME||"").trim(),data:dataCopy,baseline:null,userEdited:false};
+    markBaseline(item);
+    contests.push(item);
+    activeContest=contests.length-1;
+    activeArchiveId=null;
+    activeSection="CONTEST";
+    activeBadge=0;activeSchedule=0;activeIndicator=0;activeGroup=0;activeLink=0;
+    persistLocal();
+    render();
+    toast(`Копия создана · ${newCode} · G:${groupIdxs.length} R:${pairIdxs.length} T:${scheduleIdxs.length}`);
+  });
+}
+
 /* ——— Архив удалений (бандл на конкурс) ——— */
 const ARCHIVE_KIND_LABEL={
   bundle:"Архив конкурса",
@@ -2046,8 +2355,8 @@ function renderArchiveNav(entry){
     const full=String(ct.FULL_NAME||"").trim();
     pushGroup("contest","Конкурс","архив",[
       {id:"CONTEST",title:typeLab,sub:full,tag:"start",tagLabel:"DATA",slot:true,nameSlot:true,tip:full?typeLab+" · "+full:typeLab},
-      {id:"CONTEST_FEATURE",title:"Особенности",sub:"CONTEST_FEATURE",tag:"json",tagLabel:"JSON",slot:true,child:true},
-      {id:"CONTEST_PERIOD",title:"Периоды",sub:"CONTEST_PERIOD",tag:"json",tagLabel:"ARR",slot:true,child:true},
+      {id:"CONTEST_FEATURE",title:"FEATURE",sub:"",tag:"json",tagLabel:"JSON",slot:true,child:true,tip:"Особенности · CONTEST_FEATURE"},
+      {id:"CONTEST_PERIOD",title:"Периоды",sub:"",tag:"json",tagLabel:"ARR",slot:true,child:true,tip:"Периоды · CONTEST_PERIOD"},
     ]);
     const inds=d.indicator||[];
     if(inds.length) pushGroup("ind","Индикаторы",inds.length+" шт.", inds.map((r,i)=>{
@@ -2069,8 +2378,8 @@ function renderArchiveNav(entry){
         items.push({
           kind:"pairUnit",index:i,hideDelete:true,
           pairId:"PAIR:"+(i+1), addId:"ADD:"+(i+1),
-          pairTitle:label, pairSub:"связь + BADGE",
-          addTitle:"Особенности", addSub:code?("JSON · "+code):"REWARD_ADD_DATA",
+          pairTitle:label, pairSub:"",
+          addTitle:"ADD", addSub:"",
           tipPair:label, tipAdd:"JSON ADD",
         });
       }
@@ -2104,8 +2413,8 @@ function renderArchiveNav(entry){
         items.push({
           kind:"pairUnit",index:i,hideDelete:true,
           pairId:"PAIR:"+f.id, addId:"ADD:"+f.id,
-          pairTitle:label, pairSub:"связь + BADGE",
-          addTitle:"Особенности", addSub:code?("JSON · "+code):"REWARD_ADD_DATA",
+          pairTitle:label, pairSub:"",
+          addTitle:"ADD", addSub:"",
           tipPair:label, tipAdd:"JSON ADD",
         });
       });
@@ -2992,7 +3301,13 @@ function contestSearchHaystack(c){
   parts.push(ct.CONTEST_CODE,ct.FULL_NAME,ct.CONTEST_DESCRIPTION);
   for(const b of d.badges||[]){
     const flat=b&&b.flat?b.flat:{};
-    parts.push(flat.FULL_NAME,flat.REWARD_DESCRIPTION);
+    parts.push(flat.FULL_NAME,flat.REWARD_DESCRIPTION,flat.REWARD_CODE);
+  }
+  for(const link of d.reward_link||[]){
+    parts.push(link&&link.REWARD_CODE);
+  }
+  for(const row of d.schedule||[]){
+    parts.push(row&&row.TOURNAMENT_CODE);
   }
   return parts.map(x=>String(x??"")).join("\n").toLowerCase();
 }
@@ -3119,7 +3434,7 @@ function navItems(){
 
   // Строка 1: Конкурс → Индикаторы → Группы
   const rowMain=[];
-  rowMain.push({kind:"group",group:"contest",title:"Конкурс",meta:"карточка + FEATURE"});
+  rowMain.push({kind:"group",group:"contest",title:"Конкурс",meta:"DATA · JSON"});
   {
     const title=contestTypeNavLabel(data().contest.CONTEST_TYPE);
     const sub=contestCardSub();
@@ -3134,8 +3449,8 @@ function navItems(){
       tip:sub?title+" · "+sub:title,
     });
   }
-  rowMain.push({id:"CONTEST_FEATURE",title:"Особенности",sub:"CONTEST_FEATURE",tag:"json",tagLabel:"JSON",slot:true,child:true});
-  rowMain.push({id:"CONTEST_PERIOD",title:"Периоды",sub:"CONTEST_PERIOD",tag:"json",tagLabel:"ARR",slot:true,child:true});
+  rowMain.push({id:"CONTEST_FEATURE",title:"FEATURE",sub:"",tag:"json",tagLabel:"JSON",slot:true,child:true,tip:"Особенности · CONTEST_FEATURE"});
+  rowMain.push({id:"CONTEST_PERIOD",title:"Периоды",sub:"",tag:"json",tagLabel:"ARR",slot:true,child:true,tip:"Периоды · CONTEST_PERIOD"});
 
   rowMain.push({kind:"group",group:"ind",title:"Индикаторы",meta:indRows.length+" шт."});
   if(!indRows.length){
@@ -3193,10 +3508,10 @@ function navItems(){
       pairId:"PAIR:"+(i+1),
       addId:"ADD:"+(i+1),
       pairTitle:label,
-      pairSub:"связь + BADGE",
-      addTitle:"Особенности",
-      addSub:code?("JSON · "+code):"REWARD_ADD_DATA",
-      tipPair:label,
+      pairSub:"",
+      addTitle:"ADD",
+      addSub:"",
+      tipPair:label+" · связь + BADGE",
       tipAdd:"JSON REWARD_ADD_DATA для награды "+(code||("#"+(i+1))),
     });
   }
@@ -3310,7 +3625,8 @@ function navBtnHtml(it){
   const name=it.nameSlot?" nav-btn--name":"";
   const status=it.statusClass?(" "+it.statusClass):"";
   const del=it.canDelete?`<span class="nav-btn__x" role="button" tabindex="0" data-nav-del="${esc(it.delKind)}" data-nav-del-i="${it.delIndex}" data-tip="В архив">×</span>`:"";
-  return `<button type="button" class="nav-btn${slot}${child}${json}${code}${name}${status}${activeSection===it.id?" active":""}" data-nav="${esc(it.id)}" data-tip="${esc(it.tip||it.title)}"><span class="nav-btn__body"><span class="nav-btn__title">${esc(it.title)}</span><span class="nav-sub">${esc(it.sub||"")}</span></span><span class="tag ${it.tag}">${esc(it.tagLabel)}</span>${del}</button>`;
+  const sub=it.sub?`<span class="nav-sub">${esc(it.sub)}</span>`:"";
+  return `<button type="button" class="nav-btn${slot}${child}${json}${code}${name}${status}${activeSection===it.id?" active":""}" data-nav="${esc(it.id)}" data-tip="${esc(it.tip||it.title)}"><span class="nav-btn__body"><span class="nav-btn__title">${esc(it.title)}</span>${sub}</span><span class="tag ${it.tag}">${esc(it.tagLabel)}</span>${del}</button>`;
 }
 
 function renderNavRow(raw){
@@ -3331,8 +3647,8 @@ function renderNavRow(raw){
           const unitCls=addOn?" is-on-add":(pairOn?" is-on":"");
           html+=`<div class="nav-pair-unit${unitCls}" data-pair-unit="${s.index}">`;
           html+=`<span class="nav-pair-unit__n" aria-hidden="true">${s.index+1}</span>`;
-          html+=`<button type="button" class="nav-btn nav-btn--slot${pairOn?" active":""}" data-nav="${esc(s.pairId)}" data-tip="${esc(s.tipPair)}"><span class="nav-btn__body"><span class="nav-btn__title">${esc(s.pairTitle)}</span><span class="nav-sub">${esc(s.pairSub)}</span></span><span class="tag table">R${s.index+1}</span></button>`;
-          html+=`<button type="button" class="nav-btn nav-btn--slot nav-btn--json nav-btn--child${addOn?" active":""}" data-nav="${esc(s.addId)}" data-tip="${esc(s.tipAdd)}"><span class="nav-btn__body"><span class="nav-btn__title">${esc(s.addTitle)}</span><span class="nav-sub">${esc(s.addSub)}</span></span><span class="tag json">JSON</span></button>`;
+          html+=`<button type="button" class="nav-btn nav-btn--slot${pairOn?" active":""}" data-nav="${esc(s.pairId)}" data-tip="${esc(s.tipPair)}"><span class="nav-btn__body"><span class="nav-btn__title">${esc(s.pairTitle)}</span>${s.pairSub?`<span class="nav-sub">${esc(s.pairSub)}</span>`:""}</span><span class="tag table">R${s.index+1}</span></button>`;
+          html+=`<button type="button" class="nav-btn nav-btn--slot nav-btn--json nav-btn--child${addOn?" active":""}" data-nav="${esc(s.addId)}" data-tip="${esc(s.tipAdd)}"><span class="nav-btn__body"><span class="nav-btn__title">${esc(s.addTitle)}</span>${s.addSub?`<span class="nav-sub">${esc(s.addSub)}</span>`:""}</span><span class="tag json">JSON</span></button>`;
           if(!s.hideDelete) html+=`<button type="button" class="nav-pair-unit__x" data-nav-del="pair" data-nav-del-i="${s.index}" data-tip="В архив">×</button>`;
           html+=`</div>`;
         }else{
@@ -4011,12 +4327,40 @@ function normalizeSpodJsonText(raw){
     if(inner.startsWith("{")||inner.startsWith("[")) s=inner;
     else break;
   }
+  while(s.length>=2&&s[s.length-1]==='"'&&(s.startsWith("{")||s.startsWith("["))){
+    s=s.slice(0,-1).trimEnd();
+  }
   return s.trim();
 }
 function parseSpodJson(raw){
   const norm=normalizeSpodJsonText(raw);
   if(!norm) return null;
-  try{return JSON.parse(norm)}catch(_){return null}
+  try{return JSON.parse(norm)}catch(_){
+    try{
+      const m=/^\s*[\[{]/.exec(norm);
+      if(!m) return null;
+      // raw_decode-подобно: взять первый полный JSON-объект/массив
+      let depth=0, inStr=false, esc=false;
+      for(let i=0;i<norm.length;i++){
+        const ch=norm[i];
+        if(inStr){
+          if(esc){esc=false;continue}
+          if(ch==="\\"){esc=true;continue}
+          if(ch==='"') inStr=false;
+          continue;
+        }
+        if(ch==='"'){inStr=true;continue}
+        if(ch==="{"||ch==="[") depth++;
+        else if(ch==="}"||ch==="]"){
+          depth--;
+          if(depth===0){
+            try{return JSON.parse(norm.slice(0,i+1))}catch(__){return null}
+          }
+        }
+      }
+    }catch(__){}
+    return null;
+  }
 }
 function asFiniteNumber(v, fallback){
   if(v===null||v===undefined||v==="") return fallback;
@@ -4184,11 +4528,29 @@ function arrayFieldLeaf(f, sectionPrefix){
   if(k.startsWith(sectionPrefix+".")) return k.slice(sectionPrefix.length+1);
   return jsonStoreLeaf(f, sectionPrefix, sectionPrefix);
 }
+function arrItemSummary(sectionId, item, idx){
+  const it=item||{};
+  if(sectionId==="CONTEST_PERIOD"){
+    return `Период ${it.period_code||"?"} · ${it.criterion_mark_type||""} ${it.criterion_mark_value??""}`.trim();
+  }
+  if(sectionId==="FILTER_PERIOD_ARR"){
+    const range=[it.start_dt,it.end_dt].filter(Boolean).join(" → ")||"даты не заданы";
+    return `#${it.period_code||"?"} · ${range}`;
+  }
+  if(sectionId==="INDICATOR_FILTER"){
+    const code=it.filtered_attribute_code||"фильтр";
+    const match=it.filtered_attribute_match||"";
+    let val=String(it.filtered_attribute_condition||it.filtered_attribute_value||it.filtered_attribute_dt||"").trim();
+    if(val.length>42) val=val.slice(0,42)+"…";
+    return `${code} ${match}${val?" · "+val:""}`.trim();
+  }
+  return `Набор ${idx+1}`;
+}
 function appendJsonArrayEditor(host, sectionId, items, opts){
   opts=opts||{};
   const locked=!!opts.locked;
   const title=opts.title||sectionId;
-  const hint=opts.hint||"";
+  const hint=opts.hint||"Несколько наборов в одном JSON-массиве: слева список, справа редактирование выбранного.";
   const emptyFactory=opts.emptyFactory||(()=>({}));
   const onChange=opts.onChange||(()=>{});
   const pathPrefix=opts.pathPrefix||sectionId;
@@ -4196,45 +4558,105 @@ function appendJsonArrayEditor(host, sectionId, items, opts){
   const fields=sec.fields||[];
   const wrap=document.createElement("section");
   wrap.className="group-card arr-block";
-  wrap.innerHTML=`<div class="group-card__head"><h3 class="group-card__title">${esc(title)}</h3>${hint?`<p class="group-card__hint">${esc(hint)}</p>`:""}</div><div class="arr-list"></div>`;
-  const list=wrap.querySelector(".arr-list");
-  function redraw(){
-    list.innerHTML="";
+  wrap.innerHTML=`<div class="group-card__head"><h3 class="group-card__title">${esc(title)}</h3><p class="group-card__hint">${esc(hint)}</p></div><div class="arr-toolbar"></div><div class="arr-layout"><div class="arr-sets"></div><div class="arr-detail"></div></div>`;
+  const toolbar=wrap.querySelector(".arr-toolbar");
+  const setsEl=wrap.querySelector(".arr-sets");
+  const detail=wrap.querySelector(".arr-detail");
+  let activeIdx=items.length?0:-1;
+
+  function paintToolbar(){
+    toolbar.innerHTML="";
+    const count=document.createElement("span");
+    count.className="arr-toolbar__count";
+    count.textContent=items.length?`Наборов: ${items.length}`:"Наборов нет";
+    toolbar.appendChild(count);
+    if(locked) return;
+    const add=document.createElement("button");
+    add.type="button";add.className="btn btn-primary";
+    add.innerHTML=`<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14"/><path d="M5 12h14"/></svg> Добавить набор`;
+    add.addEventListener("click",()=>{
+      items.push(emptyFactory());
+      activeIdx=items.length-1;
+      onChange();
+      redraw();
+    });
+    toolbar.appendChild(add);
+  }
+
+  function paintSets(){
+    setsEl.innerHTML="";
     if(!items.length){
-      const p=document.createElement("p");p.className="arr-empty";p.textContent=locked?"Нет элементов.":"Элементов пока нет — добавьте строку массива.";
-      list.appendChild(p);
+      const p=document.createElement("p");p.className="arr-empty";
+      p.textContent=locked?"Нет элементов.":"Добавьте первый набор JSON-настроек.";
+      setsEl.appendChild(p);
+      return;
     }
     items.forEach((item,idx)=>{
-      const card=document.createElement("div");card.className="arr-item";
-      card.innerHTML=`<div class="arr-item__head"><span class="arr-item__title">Элемент ${idx+1}</span>${locked?"":`<button type="button" class="btn btn-danger-soft" data-arr-del="${idx}" data-tip="Удалить элемент">×</button>`}</div><div class="fields-grid"></div>`;
-      const grid=card.querySelector(".fields-grid");
-      for(const f of fields){
-        const leaf=arrayFieldLeaf(f, sectionId);
-        const span=f.kind==="list"||f.kind==="text"?12:(f.kind==="date"?6:4);
-        grid.appendChild(renderFieldCard(f, item[leaf]!=null?String(item[leaf]):"", pathPrefix+"."+idx+"."+leaf, v=>{
-          item[leaf]=v;onChange();
-        },{span,locked,lockedHint:locked?"Архив — только просмотр":""}));
-      }
-      list.appendChild(card);
+      const btn=document.createElement("button");
+      btn.type="button";
+      btn.className="arr-set-btn"+(idx===activeIdx?" is-active":"");
+      btn.innerHTML=`<span class="arr-set-btn__idx">Набор ${idx+1}</span><span class="arr-set-btn__sum">${esc(arrItemSummary(sectionId,item,idx))}</span>`;
+      btn.addEventListener("click",()=>{activeIdx=idx;redraw()});
+      setsEl.appendChild(btn);
     });
+  }
+
+  function paintDetail(){
+    detail.innerHTML="";
+    if(activeIdx<0||activeIdx>=items.length){
+      const p=document.createElement("p");p.className="arr-empty";
+      p.textContent=locked?"Выберите набор слева.":"Выберите набор слева или добавьте новый.";
+      detail.appendChild(p);
+      return;
+    }
+    const item=items[activeIdx];
+    const idx=activeIdx;
+    const card=document.createElement("div");card.className="arr-item";
+    card.innerHTML=`<div class="arr-item__head"><span class="arr-item__title">Набор ${idx+1}: ${esc(arrItemSummary(sectionId,item,idx))}</span><div class="arr-item__actions"></div></div><div class="fields-grid"></div>`;
+    const actions=card.querySelector(".arr-item__actions");
     if(!locked){
-      list.querySelectorAll("[data-arr-del]").forEach(btn=>btn.addEventListener("click",()=>{
-        const i=Number(btn.getAttribute("data-arr-del"));
-        items.splice(i,1);
+      const dup=document.createElement("button");dup.type="button";dup.className="btn";dup.textContent="Дублировать";
+      dup.setAttribute("data-tip","Скопировать этот набор и открыть копию");
+      dup.addEventListener("click",()=>{
+        items.splice(idx+1,0,JSON.parse(JSON.stringify(item)));
+        activeIdx=idx+1;
         onChange();
         redraw();
-      }));
+      });
+      const del=document.createElement("button");del.type="button";del.className="btn btn-danger-soft";del.textContent="Удалить";
+      del.setAttribute("data-tip","Удалить набор из массива");
+      del.addEventListener("click",()=>{
+        items.splice(idx,1);
+        activeIdx=items.length?Math.min(idx,items.length-1):-1;
+        onChange();
+        redraw();
+      });
+      actions.appendChild(dup);
+      actions.appendChild(del);
     }
+    const grid=card.querySelector(".fields-grid");
+    for(const f of fields){
+      const leaf=arrayFieldLeaf(f, sectionId);
+      const span=f.kind==="list"||f.kind==="text"?12:(f.kind==="date"?6:4);
+      grid.appendChild(renderFieldCard(f, item[leaf]!=null?String(item[leaf]):"", pathPrefix+"."+idx+"."+leaf, v=>{
+        item[leaf]=v;onChange();
+        // обновить подписи списка наборов без полного сброса фокуса полей
+        paintSets();
+        const titleEl=card.querySelector(".arr-item__title");
+        if(titleEl) titleEl.textContent=`Набор ${idx+1}: ${arrItemSummary(sectionId,item,idx)}`;
+      },{span,locked,lockedHint:locked?"Архив — только просмотр":""}));
+    }
+    detail.appendChild(card);
+  }
+
+  function redraw(){
+    if(activeIdx>=items.length) activeIdx=items.length?items.length-1:-1;
+    if(activeIdx<0&&items.length) activeIdx=0;
+    paintToolbar();
+    paintSets();
+    paintDetail();
   }
   redraw();
-  if(!locked){
-    const bar=document.createElement("div");bar.className="arr-toolbar";
-    const add=document.createElement("button");add.type="button";add.className="btn btn-primary";
-    add.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14"/><path d="M5 12h14"/></svg> Добавить элемент`;
-    add.addEventListener("click",()=>{items.push(emptyFactory());onChange();redraw()});
-    bar.appendChild(add);
-    wrap.appendChild(bar);
-  }
   host.appendChild(wrap);
   return wrap;
 }
@@ -4545,6 +4967,7 @@ function applyProjectObject(restored, opts){
   if(!restored||!Array.isArray(restored.contests)||!restored.contests.length)throw new Error("В файле нет contests[]");
   contests=restored.contests.map((c,i)=>{
     const data=c.data||emptyContestData();
+    ensureJsonStructures(data);
     expandContestPrefixedCodes(data);
     syncBadgeSlots(data,false);
     seedLinked(data);
@@ -4714,6 +5137,7 @@ function wire(){
   $("btn-sidebar-hide")?.addEventListener("click",()=>setSidebarOpen(false));
   $("btn-sidebar-show")?.addEventListener("click",()=>setSidebarOpen(true));
   $("btn-add-contest").addEventListener("click",()=>addContest());
+  $("btn-copy-contest")?.addEventListener("click",()=>openCopyContestModal());
   $("btn-save-project").addEventListener("click",()=>saveProjectFile());
   $("btn-reset-catalog").addEventListener("click",()=>resetToCatalogDefaults());
   $("btn-export-all").addEventListener("click",()=>{if(!sessionReady){toast("Сначала создайте или откройте конкурс");return}exportAll()});

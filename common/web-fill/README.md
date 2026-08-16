@@ -1,11 +1,11 @@
 # Заполнение SPOD (web-fill)
 
-**Один файл:** `index.html` (HTML + CSS + JS + встроенный каталог).  
+**Один файл:** `game_fill_settings.html` (HTML + CSS + JS + встроенный каталог).  
 Типы полей, варианты и дефолты правятся в **web-edit**, затем синхронизируются сюда.
 
 ## Как открыть
 
-Откройте `index.html` через **Live Server / HTTP** (тогда подхватывается свежий `catalog.json` рядом).  
+Откройте `game_fill_settings.html` через **Live Server / HTTP** (тогда подхватывается свежий `catalog.json` рядом).  
 Через `file://` используется встроенный `EMBEDDED_CATALOG`.
 
 ## Примеры снимков (из PROM SPOD)
@@ -17,6 +17,7 @@
 | `spod_fill_example_rewards.json` | 4 индивидуальных накопительных: `09_2026-0_23-1_2` … `_5` |
 | `spod_fill_example_tournaments.json` | 4 турнира: `01_2026-1_05-3_1`, `10_2026-0_05-3_1`, `01_2026-0_05-2_4`, `01_2026-1_14-1_1` |
 | `spod_fill_example_mixed.json` | Все 8 конкурсов в одном снимке |
+| `spod_fill_example_json_arrays.json` | Шаблоны JSON-массивов: `CONTEST_PERIOD`, `FILTER_PERIOD_ARR`, `INDICATOR_FILTER` (несколько наборов) |
 | `spod_fill_all_badges.json` | Полный снимок: все конкурсы `IN/PROM/SPOD` со связью на `REWARD_TYPE=BADGE` (~374) |
 | `spod_fill_badges_schedule_2026.json` | BADGE и в SCHEDULE есть период с `START_DT`, содержащим `2026` |
 
@@ -129,7 +130,7 @@ python src/Tools/export_web_fill_examples_from_spod.py
 python src/Tools/sync_web_fill_catalog.py
 ```
 
-Обновляются `catalog.json`, `catalog.js` и блок `EMBEDDED_CATALOG` в `index.html`.
+Обновляются `catalog.json`, `catalog.js` и блок `EMBEDDED_CATALOG` в `game_fill_settings.html`.
 
 ## История (web-fill)
 
