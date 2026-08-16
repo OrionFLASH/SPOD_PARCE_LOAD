@@ -46,11 +46,14 @@ body::after{width:380px;height:380px;right:-60px;bottom:10%;background:#ffd4a8}
 .contest-tabs{display:flex;flex-direction:column;gap:10px}
 .contest-tabs-group{display:flex;flex-direction:column;gap:6px}
 .contest-tabs-group__title{font-size:10px;font-weight:750;letter-spacing:.04em;text-transform:uppercase;color:var(--glass-muted);padding:2px 4px 0}
-.contest-tab{display:flex;align-items:center;gap:6px;width:100%;border:1px solid rgba(255,255,255,.75);background:rgba(255,255,255,.55);border-radius:14px;padding:8px 10px;cursor:pointer;font:inherit;text-align:left}
+.contest-tab{display:flex;align-items:center;gap:6px;width:100%;border:1px solid rgba(255,255,255,.75);background:rgba(255,255,255,.55);border-radius:14px;padding:6px 10px;cursor:pointer;font:inherit;text-align:left;min-height:0}
 .contest-tab.active{font-weight:600}
 .contest-tab.is-dirty{box-shadow:0 0 0 2px rgba(255,149,0,.5)}
-.contest-tab .ct-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px}
-.contest-tab .ct-x{border:0;background:transparent;cursor:pointer;font-size:16px;line-height:1;opacity:.55;padding:2px 6px;border-radius:8px}
+.contest-tab .ct-text{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:1px;line-height:1.15}
+.contest-tab .ct-code{display:block;font-size:12px;font-weight:700;letter-spacing:-.01em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.contest-tab .ct-fullname{display:block;font-size:9px;font-weight:500;opacity:.88;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.contest-tab .ct-fullname:empty{display:none}
+.contest-tab .ct-x{border:0;background:transparent;cursor:pointer;font-size:16px;line-height:1;opacity:.55;padding:2px 6px;border-radius:8px;flex:0 0 auto;align-self:center}
 .contest-tab .ct-x:hover{opacity:1;background:rgba(0,0,0,.06)}
 .nav{display:flex;flex-direction:column;gap:6px}
 .nav-btn{display:flex;align-items:center;gap:8px;width:100%;text-align:left;border:1px solid rgba(255,255,255,.55);background:rgba(255,255,255,.5);border-radius:14px;padding:10px 12px;cursor:pointer;font:inherit;color:inherit}
@@ -289,7 +292,7 @@ table.grid th .empty-pill{margin-left:4px;vertical-align:middle}
 .app{position:relative;z-index:1;display:flex;flex-direction:column;height:100%;min-height:0;overflow:hidden}
 .chrome-top{flex:0 0 auto;z-index:50;padding:8px 14px 8px;background:linear-gradient(180deg,rgba(245,247,250,.97) 0%,rgba(245,247,250,.92) 75%,rgba(245,247,250,.78) 100%);backdrop-filter:blur(16px) saturate(160%);-webkit-backdrop-filter:blur(16px) saturate(160%);border-bottom:1px solid rgba(255,255,255,.75);box-shadow:0 8px 24px rgba(15,23,42,.06)}
 .chrome-top:has(#section-nav[hidden]){padding:0;border:0;box-shadow:none;background:transparent;backdrop-filter:none;-webkit-backdrop-filter:none}
-.chrome-mid{flex:1 1 auto;min-height:0;display:grid;grid-template-columns:var(--side-w,270px) minmax(0,1fr);overflow:hidden;transition:grid-template-columns .28s ease}
+.chrome-mid{flex:1 1 auto;min-height:0;display:grid;grid-template-columns:var(--side-w,304px) minmax(0,1fr);overflow:hidden;transition:grid-template-columns .28s ease}
 .sidebar{height:100%;min-height:0;min-width:0;width:100%;padding:12px 10px 12px;display:flex;flex-direction:column;gap:8px;overflow:hidden;background:rgba(255,255,255,.82);backdrop-filter:blur(var(--blur)) saturate(180%);-webkit-backdrop-filter:blur(var(--blur)) saturate(180%);border-right:1px solid var(--glass-border);box-shadow:var(--glass-shadow);transition:opacity .22s ease,transform .28s ease,padding .28s ease,border-color .28s ease}
 .sidebar-head{display:flex;align-items:center;justify-content:space-between;gap:8px;flex:0 0 auto;min-width:0;margin:0 0 2px}
 .side-block-title{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--glass-muted);margin:0 4px;flex:1 1 auto;min-width:0}
@@ -310,12 +313,15 @@ table.grid th .empty-pill{margin-left:4px;vertical-align:middle}
 .contest-tabs{display:flex;flex-direction:column;gap:10px}
 .contest-tabs-group{display:flex;flex-direction:column;gap:6px}
 .contest-tabs-group__title{font-size:10px;font-weight:750;letter-spacing:.04em;text-transform:uppercase;color:var(--glass-muted);padding:2px 4px 0}
-.contest-tab{display:flex;align-items:center;gap:6px;width:100%;border:1px solid rgba(255,255,255,.75);background:rgba(255,255,255,.55);border-radius:14px;padding:8px 10px;cursor:pointer;font:inherit;text-align:left}
+.contest-tab{display:flex;align-items:center;gap:6px;width:100%;border:1px solid rgba(255,255,255,.75);background:rgba(255,255,255,.55);border-radius:14px;padding:6px 10px;cursor:pointer;font:inherit;text-align:left;min-height:0}
 .contest-tab.active{font-weight:600}
 .contest-tab.is-dirty{box-shadow:0 0 0 2px rgba(255,149,0,.5)}
 .contest-tab.active.is-dirty{box-shadow:0 0 0 2px rgba(255,149,0,.55),0 0 0 4px rgba(15,23,42,.08)}
-.contest-tab .ct-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px}
-.contest-tab .ct-x{border:0;background:transparent;cursor:pointer;font-size:16px;line-height:1;opacity:.55;padding:2px 6px;border-radius:8px}
+.contest-tab .ct-text{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:1px;line-height:1.15}
+.contest-tab .ct-code{display:block;font-size:12px;font-weight:700;letter-spacing:-.01em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.contest-tab .ct-fullname{display:block;font-size:9px;font-weight:500;opacity:.88;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.contest-tab .ct-fullname:empty{display:none}
+.contest-tab .ct-x{border:0;background:transparent;cursor:pointer;font-size:16px;line-height:1;opacity:.55;padding:2px 6px;border-radius:8px;flex:0 0 auto;align-self:center}
 .contest-tab .ct-x:hover{opacity:1;background:rgba(0,0,0,.06)}
 /* Тона по статусам турниров в расписании */
 .contest-tab--sch-active{background:rgba(52,199,89,.12);border-color:rgba(52,199,89,.35);color:#15803d}
@@ -340,6 +346,14 @@ table.grid th .empty-pill{margin-left:4px;vertical-align:middle}
 .contest-search__input{width:100%;box-sizing:border-box;padding:8px 10px 8px 32px;border-radius:12px;border:1px solid rgba(15,23,42,.12);background:rgba(255,255,255,.92);font:inherit;font-size:12px;font-weight:600;color:var(--glass-text)}
 .contest-search__input:focus{outline:2px solid rgba(0,122,255,.28);border-color:rgba(0,122,255,.4)}
 .contest-search__input::placeholder{font-weight:500;color:var(--glass-muted)}
+.contest-kind-filters{flex:0 0 auto;display:flex;gap:6px;margin:0 0 8px}
+.contest-kind-btn{flex:1 1 0;display:inline-flex;align-items:center;justify-content:center;gap:5px;min-width:0;padding:5px 8px;border:1px solid rgba(15,23,42,.12);border-radius:10px;background:rgba(255,255,255,.55);color:var(--glass-muted);cursor:pointer;font:inherit;font-size:10px;font-weight:700;letter-spacing:.01em;line-height:1.1}
+.contest-kind-btn svg{width:13px;height:13px;flex:0 0 auto;display:block;opacity:.75}
+.contest-kind-btn:hover{background:rgba(255,255,255,.92);color:var(--glass-text);border-color:rgba(15,23,42,.18)}
+.contest-kind-btn.is-on{background:rgba(0,122,255,.12);border-color:rgba(0,122,255,.38);color:var(--glass-blue);box-shadow:0 0 0 1px rgba(0,122,255,.12)}
+.contest-kind-btn.is-on svg{opacity:1}
+.contest-kind-btn--tournament.is-on{background:rgba(52,199,89,.12);border-color:rgba(52,199,89,.4);color:#15803d;box-shadow:0 0 0 1px rgba(52,199,89,.1)}
+.contest-kind-btn--reward.is-on{background:rgba(255,149,0,.12);border-color:rgba(255,149,0,.4);color:#c2410c;box-shadow:0 0 0 1px rgba(255,149,0,.1)}
 .contest-tabs-empty{padding:12px 10px;font-size:12px;line-height:1.4;color:var(--glass-muted);text-align:center}
 .top-nav{display:flex;flex-direction:column;align-items:stretch;gap:8px;padding:8px 10px;border-radius:16px;background:rgba(255,255,255,.88);border:1px solid rgba(255,255,255,.85);box-shadow:var(--glass-shadow);width:100%;box-sizing:border-box}
 .top-nav[hidden]{display:none!important}
@@ -370,6 +384,29 @@ table.grid th .empty-pill{margin-left:4px;vertical-align:middle}
 .top-nav .nav-group--contest .nav-group__title{color:#15803d}
 .top-nav .nav-group--groups{background:rgba(255,149,0,.08);border-color:rgba(255,149,0,.18)}
 .top-nav .nav-group--ind{background:rgba(88,86,214,.08);border-color:rgba(88,86,214,.16)}
+/* Много групп (>3): сужаем Конкурс и Индикаторы, место — под Группы */
+.top-nav__row--main.top-nav__row--groups-heavy .nav-group--contest,
+.top-nav__row--main.top-nav__row--groups-heavy .nav-group--ind{
+  flex:0 1 auto;
+  max-width:min(260px,26vw);
+  min-width:0;
+}
+.top-nav__row--main.top-nav__row--groups-heavy .nav-group--contest .nav-btn--slot,
+.top-nav__row--main.top-nav__row--groups-heavy .nav-group--contest .nav-btn--child,
+.top-nav__row--main.top-nav__row--groups-heavy .nav-group--ind .nav-btn--slot{
+  flex:1 1 100%;
+  max-width:100%;
+}
+.top-nav__row--main.top-nav__row--groups-heavy .nav-group--groups{
+  flex:1 1 55%;
+  min-width:min(100%,380px);
+  justify-content:flex-start;
+}
+.top-nav__row--main.top-nav__row--groups-heavy .nav-group--groups .nav-btn--slot{
+  flex:0 1 auto;
+  width:max-content;
+  max-width:min(100%,200px);
+}
 .top-nav .nav-group--sch{background:rgba(0,122,255,.06);border-color:rgba(0,122,255,.14);flex:1 1 100%;min-width:0}
 .top-nav .nav-group--sch .nav-btn--code{max-width:100%;flex:1 1 220px}
 .top-nav .nav-btn--sch-active{background:rgba(52,199,89,.14)!important;border-color:rgba(52,199,89,.42)!important;color:#15803d}
@@ -462,6 +499,16 @@ table.grid th .empty-pill{margin-left:4px;vertical-align:middle}
       <div class="contest-search" data-tip="Поиск по CONTEST_CODE, FULL_NAME (конкурс и награды), CONTEST_DESCRIPTION, REWARD_DESCRIPTION">
         <span class="contest-search__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg></span>
         <input type="search" id="contest-search" class="contest-search__input" placeholder="Поиск по коду и названиям…" autocomplete="off" />
+      </div>
+      <div class="contest-kind-filters" role="group" aria-label="Фильтр типа конкурсов">
+        <button type="button" class="contest-kind-btn contest-kind-btn--tournament is-on" id="filter-tournaments" aria-pressed="true" data-tip="Показать турнирные конкурсы (нажмите, чтобы скрыть)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M8 21h8"/><path d="M12 17v4"/><path d="M7 4h10v5a5 5 0 0 1-10 0V4z"/><path d="M5 6H3a2 2 0 0 0 2 4h0"/><path d="M19 6h2a2 2 0 0 1-2 4h0"/></svg>
+          <span>Турниры</span>
+        </button>
+        <button type="button" class="contest-kind-btn contest-kind-btn--reward is-on" id="filter-rewards" aria-pressed="true" data-tip="Показать индивидуальные (награды); нажмите, чтобы скрыть">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="8" r="5"/><path d="M8.2 12.5 7 21l5-2 5 2-1.2-8.5"/><path d="M12 3v2"/></svg>
+          <span>Награды</span>
+        </button>
       </div>
       <div class="contest-tabs-scroll">
         <div class="contest-tabs" id="contest-tabs"></div>
@@ -572,6 +619,9 @@ let activeLink=0;
 let activeContest=0;
 /** Фильтр списка конкурсов в сайдбаре */
 let contestListQuery="";
+/** Показывать турнирные / индивидуальные (награды) в списке и в поиске */
+let contestListShowTournament=true;
+let contestListShowReward=true;
 /** @type {Array<{id:string,name:string,baseline:any,data:any}>} */
 let contests=[];
 
@@ -969,11 +1019,18 @@ function emptyGroupRow(){
   }
   return row;
 }
+/** Подпись варианта поля из каталога; если нет — само значение. */
+function variantDisplay(sectionId, key, value){
+  const v=String(value||"").trim();
+  if(!v) return "";
+  const lab=labelForVariant(meta(sectionId,key), v);
+  return lab||v;
+}
 function groupTitle(row,i){
   const parts=[];
   const gc=String(row.GROUP_CODE||"").trim();
   const gv=String(row.GROUP_VALUE||"").trim();
-  const method=String(row.GET_CALC_METHOD||"").trim();
+  const method=variantDisplay("TABLE:GROUP","GET_CALC_METHOD",row.GET_CALC_METHOD);
   if(gc) parts.push(gc);
   if(gv) parts.push(gv.length>28?gv.slice(0,28)+"…":gv);
   if(method) parts.push(method);
@@ -985,7 +1042,10 @@ function groupSub(row){
   const g=String(row.GET_CALC_CRITERION||"").trim();
   const a1=String(row.ADD_CALC_CRITERION||"").trim();
   const a2=String(row.ADD_CALC_CRITERION_2||"").trim();
-  return parts.join(" - ");
+  if(g) parts.push(g);
+  if(a1) parts.push(a1);
+  if(a2) parts.push(a2);
+  return parts.join(" · ");
 }
 
 /** Скопировать поля строки по списку колонок (полная перезапись dst). */
@@ -1774,9 +1834,17 @@ function contestTitle(c,i){
   if(code||name)return (code||"без кода")+(name?" · "+name:"");
   return "Конкурс "+(i+1);
 }
+function contestCodeLine(c,i){
+  const code=String((c.data.contest&&c.data.contest.CONTEST_CODE)||"").trim();
+  if(code) return code;
+  return "Конкурс "+((i||0)+1);
+}
+function contestNameLine(c){
+  return String((c.data.contest&&c.data.contest.FULL_NAME)||"").trim();
+}
 /** Подсказка вкладки: FULL_NAME без кода; если названия нет — код. */
 function contestMenuTip(c,i){
-  const name=String((c.data.contest&&c.data.contest.FULL_NAME)||"").trim();
+  const name=contestNameLine(c);
   if(name) return name;
   const code=String((c.data.contest&&c.data.contest.CONTEST_CODE)||"").trim();
   if(code) return code;
@@ -1791,10 +1859,13 @@ function contestMenuKind(c){
 
 /** Обновить заголовок вкладки конкурса без полной перерисовки workspace (иначе текстовые поля теряют фокус). */
 function refreshActiveContestTabTitle(){
-  const tab=$("contest-tabs")&&$("contest-tabs").querySelector(".contest-tab.active .ct-name");
+  const tab=$("contest-tabs")&&$("contest-tabs").querySelector(".contest-tab.active .ct-text");
   if(!tab)return;
   const c=cur();
-  tab.textContent=contestTitle(c,activeContest);
+  const codeEl=tab.querySelector(".ct-code");
+  const nameEl=tab.querySelector(".ct-fullname");
+  if(codeEl) codeEl.textContent=contestCodeLine(c,activeContest);
+  if(nameEl) nameEl.textContent=contestNameLine(c);
   tab.setAttribute("data-tip",contestMenuTip(c,activeContest));
 }
 
@@ -1814,13 +1885,32 @@ function contestMatchesListQuery(c,q){
   if(!needle) return true;
   return contestSearchHaystack(c).includes(needle);
 }
+function contestMatchesKindFilter(c){
+  const kind=contestMenuKind(c);
+  if(kind==="reward") return !!contestListShowReward;
+  return !!contestListShowTournament;
+}
+function syncContestKindFilterButtons(){
+  const t=$("filter-tournaments");
+  const r=$("filter-rewards");
+  if(t){
+    t.classList.toggle("is-on",contestListShowTournament);
+    t.setAttribute("aria-pressed",contestListShowTournament?"true":"false");
+  }
+  if(r){
+    r.classList.toggle("is-on",contestListShowReward);
+    r.setAttribute("aria-pressed",contestListShowReward?"true":"false");
+  }
+}
 
 function renderContestTabs(){
   const host=$("contest-tabs");
   if(!host)return;
+  syncContestKindFilterButtons();
   const rewards=[];
   const tournaments=[];
   contests.forEach((c,i)=>{
+    if(!contestMatchesKindFilter(c)) return;
     if(!contestMatchesListQuery(c,contestListQuery)) return;
     if(contestMenuKind(c)==="reward") rewards.push({c,i});
     else tournaments.push({c,i});
@@ -1834,7 +1924,7 @@ function renderContestTabs(){
         const tone=contestScheduleListTone(c);
         const tip=contestMenuTip(c,i)+(dirty?" · есть несохранённые правки":"")+(tone.label?" · "+tone.label:"");
         const tabTip=dirty?"Есть правки параметров":(tone.label||"Текущий конкурс");
-        return `<div class="contest-tab ${tone.cls}${i===activeContest?" active":""}${dirty?" is-dirty":""}" data-ci="${i}" data-tip="${esc(tabTip)}"><span class="ct-name" data-tip="${esc(tip)}">${esc(contestTitle(c,i))}</span>${contests.length>1?`<button type="button" class="ct-x" data-del="${i}" data-tip="Удалить конкурс">×</button>`:""}</div>`;
+        return `<div class="contest-tab ${tone.cls}${i===activeContest?" active":""}${dirty?" is-dirty":""}" data-ci="${i}" data-tip="${esc(tabTip)}"><span class="ct-text" data-tip="${esc(tip)}"><span class="ct-code">${esc(contestCodeLine(c,i))}</span><span class="ct-fullname">${esc(contestNameLine(c))}</span></span>${contests.length>1?`<button type="button" class="ct-x" data-del="${i}" data-tip="Удалить конкурс">×</button>`:""}</div>`;
       }).join("")+
       `</div>`;
   }
@@ -1842,9 +1932,13 @@ function renderContestTabs(){
   host.innerHTML=groupHtml("reward","Награды",rewards)+groupHtml("tournament","Турниры",tournaments);
   if(!host.innerHTML.trim()){
     const q=String(contestListQuery||"").trim();
-    host.innerHTML=q
-      ?`<div class="contest-tabs-empty">Нет конкурсов по запросу «${esc(q)}»</div>`
-      :`<div class="contest-tabs-group"><div class="contest-tabs-group__title">Конкурсы</div></div>`;
+    if(!contestListShowTournament&&!contestListShowReward){
+      host.innerHTML=`<div class="contest-tabs-empty">Включите «Турниры» или «Награды»</div>`;
+    }else if(q){
+      host.innerHTML=`<div class="contest-tabs-empty">Нет конкурсов по запросу «${esc(q)}»</div>`;
+    }else{
+      host.innerHTML=`<div class="contest-tabs-empty">Нет конкурсов выбранного типа</div>`;
+    }
   }
   host.querySelectorAll("[data-ci]").forEach(el=>{
     el.addEventListener("click",e=>{
@@ -2098,9 +2192,11 @@ function renderNav(){
   if(!sessionReady){nav.hidden=true;nav.innerHTML="";return}
   nav.hidden=false;
   const {rowMain,rowLinks,rowSchedule}=navItems();
+  const groupN=Math.max((data().group||[]).length,0);
+  const mainHeavy=groupN>3?" top-nav__row--groups-heavy":"";
   // 1) Конкурс · Индикаторы · Группы  2) Связи + особенности  3) Расписание
   nav.innerHTML=
-    `<div class="top-nav__row top-nav__row--main">${renderNavRow(rowMain)}</div>`+
+    `<div class="top-nav__row top-nav__row--main${mainHeavy}">${renderNavRow(rowMain)}</div>`+
     `<div class="top-nav__row top-nav__row--links">${renderNavRow(rowLinks)}</div>`+
     `<div class="top-nav__row top-nav__row--schedule">${renderNavRow(rowSchedule)}</div>`;
   nav.querySelectorAll("[data-nav]").forEach(btn=>btn.addEventListener("click",()=>{
@@ -2403,10 +2499,18 @@ function renderGroup(){
       row[f.key]=v;
       if(f.key==="GROUP_CODE") pruneLinkGroupCodes(data());
       persistLocal();refreshContestTabDirty();
-      if(f.key==="GROUP_CODE"||f.key==="GROUP_VALUE"){
+      if(f.key==="GROUP_CODE"||f.key==="GROUP_VALUE"||f.key==="GET_CALC_METHOD"){
         const tab=$("workspace").querySelector(`.period-tab.active .pt-name`);
-        if(tab){tab.textContent=groupTitle(row,i);tab.setAttribute("data-tip",groupTitle(row,i))}
+        if(tab){
+          const tip=groupSub(row)?groupTitle(row,i)+" · "+groupSub(row):groupTitle(row,i);
+          tab.textContent=groupTitle(row,i);
+          tab.setAttribute("data-tip",tip);
+        }
       }
+      if(
+        f.key==="GROUP_CODE"||f.key==="GROUP_VALUE"||f.key==="GET_CALC_METHOD"||
+        f.key==="GET_CALC_CRITERION"||f.key==="ADD_CALC_CRITERION"||f.key==="ADD_CALC_CRITERION_2"
+      ) renderNav();
     },
     f=>"group."+i+"."+f.key,
     ["CONTEST_CODE"]
@@ -2915,6 +3019,14 @@ function wire(){
   });
   $("contest-search")?.addEventListener("input",e=>{
     contestListQuery=String(e.target.value||"");
+    renderContestTabs();
+  });
+  $("filter-tournaments")?.addEventListener("click",()=>{
+    contestListShowTournament=!contestListShowTournament;
+    renderContestTabs();
+  });
+  $("filter-rewards")?.addEventListener("click",()=>{
+    contestListShowReward=!contestListShowReward;
     renderContestTabs();
   });
 }
