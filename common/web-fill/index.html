@@ -346,7 +346,7 @@ table.grid th .empty-pill{margin-left:4px;vertical-align:middle}
 .contest-search__input{width:100%;box-sizing:border-box;padding:8px 10px 8px 32px;border-radius:12px;border:1px solid rgba(15,23,42,.12);background:rgba(255,255,255,.92);font:inherit;font-size:12px;font-weight:600;color:var(--glass-text)}
 .contest-search__input:focus{outline:2px solid rgba(0,122,255,.28);border-color:rgba(0,122,255,.4)}
 .contest-search__input::placeholder{font-weight:500;color:var(--glass-muted)}
-.contest-kind-filters{flex:0 0 auto;display:flex;gap:6px;margin:0 0 8px}
+.contest-kind-filters{flex:0 0 auto;display:flex;flex-wrap:wrap;gap:6px;margin:0 0 8px}
 .contest-kind-btn{flex:1 1 0;display:inline-flex;align-items:center;justify-content:center;gap:5px;min-width:0;padding:5px 8px;border:1px solid rgba(15,23,42,.12);border-radius:10px;background:rgba(255,255,255,.55);color:var(--glass-muted);cursor:pointer;font:inherit;font-size:10px;font-weight:700;letter-spacing:.01em;line-height:1.1}
 .contest-kind-btn svg{width:13px;height:13px;flex:0 0 auto;display:block;opacity:.75}
 .contest-kind-btn:hover{background:rgba(255,255,255,.92);color:var(--glass-text);border-color:rgba(15,23,42,.18)}
@@ -354,6 +354,18 @@ table.grid th .empty-pill{margin-left:4px;vertical-align:middle}
 .contest-kind-btn.is-on svg{opacity:1}
 .contest-kind-btn--tournament.is-on{background:rgba(52,199,89,.12);border-color:rgba(52,199,89,.4);color:#15803d;box-shadow:0 0 0 1px rgba(52,199,89,.1)}
 .contest-kind-btn--reward.is-on{background:rgba(255,149,0,.12);border-color:rgba(255,149,0,.4);color:#c2410c;box-shadow:0 0 0 1px rgba(255,149,0,.1)}
+.contest-kind-btn--archive.is-on{background:rgba(100,116,139,.14);border-color:rgba(100,116,139,.42);color:#475569;box-shadow:0 0 0 1px rgba(100,116,139,.12)}
+.contest-tabs-group--archive{margin-top:8px;padding-top:8px;border-top:1px dashed rgba(100,116,139,.35)}
+.contest-tabs-group--archive .contest-tabs-group__title{color:#64748b}
+.contest-tab--archive{background:rgba(148,163,184,.12);border-color:rgba(100,116,139,.28);color:#475569;border-style:dashed}
+.contest-tab--archive.active{background:rgba(148,163,184,.22);border-color:rgba(100,116,139,.45);box-shadow:0 0 0 2px rgba(100,116,139,.22);border-style:solid}
+.contest-tab--archive .ct-kind{display:inline-block;font-size:8px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;opacity:.85;margin-bottom:1px}
+.contest-tab--archive .ct-ctx{display:block;font-size:8px;font-weight:500;opacity:.75;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.archive-banner{display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:12px;padding:12px 14px;margin:0 0 14px;border-radius:14px;background:rgba(148,163,184,.14);border:1px solid rgba(100,116,139,.28)}
+.archive-banner__title{margin:0 0 4px;font-size:15px;font-weight:750}
+.archive-banner__meta{margin:0;font-size:12px;line-height:1.4;color:var(--glass-muted)}
+.archive-banner__actions{display:flex;flex-wrap:wrap;gap:8px}
+.archive-preview{margin:0 0 12px;padding:12px;border-radius:12px;background:rgba(255,255,255,.7);border:1px solid rgba(15,23,42,.08);font-size:12px;line-height:1.45;color:var(--glass-muted);white-space:pre-wrap;word-break:break-word;max-height:220px;overflow:auto;font-family:var(--mono)}
 .contest-tabs-empty{padding:12px 10px;font-size:12px;line-height:1.4;color:var(--glass-muted);text-align:center}
 .top-nav{display:flex;flex-direction:column;align-items:stretch;gap:8px;padding:8px 10px;border-radius:16px;background:rgba(255,255,255,.88);border:1px solid rgba(255,255,255,.85);box-shadow:var(--glass-shadow);width:100%;box-sizing:border-box}
 .top-nav[hidden]{display:none!important}
@@ -509,6 +521,10 @@ table.grid th .empty-pill{margin-left:4px;vertical-align:middle}
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="8" r="5"/><path d="M8.2 12.5 7 21l5-2 5 2-1.2-8.5"/><path d="M12 3v2"/></svg>
           <span>Награды</span>
         </button>
+        <button type="button" class="contest-kind-btn contest-kind-btn--archive" id="filter-archive" aria-pressed="false" data-tip="Показать архив удалённых конкурсов и частей (по умолчанию скрыт)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 7h18"/><path d="M5 7v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7"/><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/><path d="M10 12h4"/></svg>
+          <span>Архив</span>
+        </button>
       </div>
       <div class="contest-tabs-scroll">
         <div class="contest-tabs" id="contest-tabs"></div>
@@ -622,6 +638,12 @@ let contestListQuery="";
 /** Показывать турнирные / индивидуальные (награды) в списке и в поиске */
 let contestListShowTournament=true;
 let contestListShowReward=true;
+/** Показывать блок архива внизу списка (по умолчанию выкл.) */
+let contestListShowArchive=false;
+/** @type {Array<object>} записи архива удалённых конкурсов и частей */
+let archiveEntries=[];
+/** id открытой карточки архива или null */
+let activeArchiveId=null;
 /** @type {Array<{id:string,name:string,baseline:any,data:any}>} */
 let contests=[];
 
@@ -1076,6 +1098,20 @@ function applyGroupCopy(fromIdx, toIdxs){
   pruneLinkGroupCodes(data());
   return n;
 }
+/** Копировать поля расписания; CONTEST_CODE и TOURNAMENT_CODE у целей не трогаем. */
+function applyScheduleCopy(fromIdx, toIdxs){
+  const rows=data().schedule||[];
+  const src=rows[fromIdx];
+  if(!src)return 0;
+  let n=0;
+  for(const j of toIdxs){
+    if(j===fromIdx||j<0||j>=rows.length) continue;
+    copyCols(src, rows[j], SCH_COLS, ["CONTEST_CODE","TOURNAMENT_CODE"]);
+    rows[j].CONTEST_CODE=contestCodeOf();
+    n++;
+  }
+  return n;
+}
 function applyPairCopy(fromIdx, toIdxs){
   const badges=data().badges||[];
   const links=data().reward_link||[];
@@ -1193,8 +1229,312 @@ function copyActivePairToOthers(){
     }
   });
 }
+function copyActiveScheduleToOthers(){
+  const rows=data().schedule||[];
+  if(rows.length<=1){toast("Нет других турниров в расписании");return}
+  const i=activeSchedule;
+  if(i<0||i>=rows.length)return;
+  openCopyTargetModal({
+    title:"Копировать расписание",
+    text:`Источник: «${scheduleTitle(rows[i],i)}». Отметьте турниры этого конкурса, куда перенести параметры. Код турнира (TOURNAMENT_CODE) у целей не меняется.`,
+    emptyToast:"Нет других турниров",
+    items:rows.map((r,idx)=>({idx,label:scheduleTitle(r,idx)+(scheduleSub(r)?" · "+scheduleSub(r):""),checked:idx!==i})).filter(it=>it.idx!==i),
+    onConfirm:(selected)=>{
+      const n=applyScheduleCopy(i, selected);
+      ensureScheduleSorted();
+      persistLocal();markContestEdited();render();
+      toast(n?("Расписание скопировано ("+n+")"):"Нечего копировать");
+    }
+  });
+}
 
-
+/* ——— Архив удалений ——— */
+const ARCHIVE_KIND_LABEL={
+  contest:"Конкурс целиком",
+  group:"Группа",
+  schedule:"Расписание",
+  indicator:"Индикатор",
+  pair:"Связь + награда",
+};
+function newArchiveId(){return "arch_"+Date.now().toString(36)+"_"+Math.random().toString(36).slice(2,7)}
+function archiveKindLabel(kind){return ARCHIVE_KIND_LABEL[kind]||String(kind||"элемент")}
+function findArchiveEntry(id){return archiveEntries.find(e=>e&&e.id===id)||null}
+function removeArchiveEntry(id){
+  const i=archiveEntries.findIndex(e=>e&&e.id===id);
+  if(i<0) return null;
+  const [e]=archiveEntries.splice(i,1);
+  return e;
+}
+function findLiveContestForArchive(entry){
+  if(!entry) return null;
+  if(entry.contestId){
+    const byId=contests.find(c=>c&&c.id===entry.contestId);
+    if(byId) return byId;
+  }
+  const code=String(entry.contestCode||"").trim();
+  if(code){
+    const byCode=contests.find(c=>String((c.data.contest&&c.data.contest.CONTEST_CODE)||"").trim()===code);
+    if(byCode) return byCode;
+  }
+  return null;
+}
+function pushArchiveEntry(entry){
+  archiveEntries.unshift(entry);
+  contestListShowArchive=true;
+  syncContestKindFilterButtons();
+}
+function archiveContestAt(i){
+  if(i<0||i>=contests.length) return;
+  if(contests.length<=1){toast("Нельзя отправить в архив единственный конкурс");return}
+  const c=contests[i];
+  const code=String((c.data.contest&&c.data.contest.CONTEST_CODE)||"").trim();
+  const name=String((c.data.contest&&c.data.contest.FULL_NAME)||"").trim();
+  pushArchiveEntry({
+    id:newArchiveId(),
+    kind:"contest",
+    deletedAt:new Date().toISOString(),
+    contestId:c.id,
+    contestCode:code,
+    contestName:name,
+    label:code||name||("Конкурс "+(i+1)),
+    detail:name&&code?name:(name||code||""),
+    snapshot:{id:c.id,name:c.name||"",data:clone(c.data)},
+  });
+  const wasActive=activeContest===i;
+  contests.splice(i,1);
+  if(activeContest>=contests.length) activeContest=contests.length-1;
+  else if(activeContest>i) activeContest--;
+  if(wasActive){activeArchiveId=archiveEntries[0].id;activeSection="ARCHIVE"}
+  else if(activeArchiveId){/* keep */}
+  persistLocal();
+  render();
+  toast("Конкурс перемещён в архив");
+}
+function archiveFragment(kind, payload, label, detail){
+  const c=cur();
+  if(!c) return;
+  const code=contestCodeOf();
+  const name=String((c.data.contest&&c.data.contest.FULL_NAME)||"").trim();
+  pushArchiveEntry({
+    id:newArchiveId(),
+    kind,
+    deletedAt:new Date().toISOString(),
+    contestId:c.id,
+    contestCode:code,
+    contestName:name,
+    label:label||archiveKindLabel(kind),
+    detail:detail||(code?("из "+code):""),
+    payload:clone(payload),
+  });
+}
+function archiveEntrySearchHaystack(e){
+  return [e.label,e.detail,e.contestCode,e.contestName,archiveKindLabel(e.kind),e.deletedAt]
+    .map(x=>String(x??"")).join("\n").toLowerCase();
+}
+function archiveMatchesListQuery(e,q){
+  const needle=String(q||"").trim().toLowerCase();
+  if(!needle) return true;
+  return archiveEntrySearchHaystack(e).includes(needle);
+}
+function formatArchiveWhen(iso){
+  const s=String(iso||"");
+  if(s.length>=16) return s.slice(0,10)+" "+s.slice(11,16);
+  return s||"—";
+}
+function archivePreviewText(entry){
+  if(!entry) return "";
+  if(entry.kind==="contest"){
+    const d=entry.snapshot&&entry.snapshot.data?entry.snapshot.data:{};
+    const ct=d.contest||{};
+    return [
+      "Код: "+(ct.CONTEST_CODE||"—"),
+      "Название: "+(ct.FULL_NAME||"—"),
+      "Тип: "+(ct.CONTEST_TYPE||"—"),
+      "Групп: "+((d.group||[]).length),
+      "Индикаторов: "+((d.indicator||[]).length),
+      "Турниров в расписании: "+((d.schedule||[]).length),
+      "Пар связь+награда: "+((d.badges||[]).length),
+    ].join("\n");
+  }
+  try{return JSON.stringify(entry.payload,null,2)}catch(_){return String(entry.payload||"")}
+}
+function restoreContestFromArchive(entry, parts){
+  const snap=entry.snapshot;
+  if(!snap||!snap.data){toast("В архиве нет снимка конкурса");return false}
+  const data=clone(snap.data);
+  const empty=emptyContestData();
+  if(parts&&!parts.all){
+    if(!parts.card){data.contest=empty.contest;data.feature=empty.feature}
+    if(!parts.groups) data.group=clone(empty.group);
+    if(!parts.indicators) data.indicator=clone(empty.indicator);
+    if(!parts.schedule) data.schedule=clone(empty.schedule);
+    if(!parts.pairs){data.badges=clone(empty.badges);data.reward_link=clone(empty.reward_link)}
+  }
+  expandContestPrefixedCodes(data);
+  syncBadgeSlots(data,false);
+  seedLinked(data);
+  sortScheduleRows(data.schedule);
+  const item={id:snap.id||("c"+Date.now()),name:snap.name||"",data,baseline:null,userEdited:false};
+  markBaseline(item);
+  contests.push(item);
+  activeContest=contests.length-1;
+  activeArchiveId=null;
+  activeSection="CONTEST";
+  activeBadge=0;activeSchedule=0;activeIndicator=0;activeGroup=0;activeLink=0;
+  removeArchiveEntry(entry.id);
+  return true;
+}
+function restoreFragmentFromArchive(entry){
+  const live=findLiveContestForArchive(entry);
+  if(!live){toast("Живой конкурс не найден — сначала восстановите конкурс целиком");return false}
+  const d=live.data;
+  if(entry.kind==="group"){
+    if(!Array.isArray(d.group)) d.group=[];
+    d.group.push(clone(entry.payload||{}));
+    d.group[d.group.length-1].CONTEST_CODE=contestCodeOf(d);
+    pruneLinkGroupCodes(d);
+    activeGroup=d.group.length-1;
+    activeSection="GROUP:"+(activeGroup+1);
+  }else if(entry.kind==="schedule"){
+    if(!Array.isArray(d.schedule)) d.schedule=[];
+    const row=clone(entry.payload||{});
+    row.CONTEST_CODE=contestCodeOf(d);
+    d.schedule.push(row);
+    sortScheduleRows(d.schedule);
+    const tc=String(row.TOURNAMENT_CODE||"");
+    let ni=tc?d.schedule.findIndex(r=>String(r.TOURNAMENT_CODE||"")===tc):-1;
+    if(ni<0) ni=d.schedule.length-1;
+    activeSchedule=Math.max(0,ni);
+    activeSection="SCHEDULE:"+(activeSchedule+1);
+  }else if(entry.kind==="indicator"){
+    if(!Array.isArray(d.indicator)) d.indicator=[];
+    d.indicator.push(clone(entry.payload||{}));
+    d.indicator[d.indicator.length-1].CONTEST_CODE=contestCodeOf(d);
+    activeIndicator=d.indicator.length-1;
+    activeSection="INDICATOR:"+(activeIndicator+1);
+  }else if(entry.kind==="pair"){
+    const max=maxBadges(d.contest.CONTEST_TYPE);
+    if((d.badges||[]).length>=max){toast("Достигнут лимит пар для типа конкурса ("+max+")");return false}
+    if(!Array.isArray(d.badges)) d.badges=[];
+    if(!Array.isArray(d.reward_link)) d.reward_link=[];
+    const p=entry.payload||{};
+    d.badges.push(clone(p.badge||emptyBadge()));
+    d.reward_link.push(clone(p.link||{}));
+    const j=d.badges.length-1;
+    d.reward_link[j].CONTEST_CODE=contestCodeOf(d);
+    activeLink=j;activeBadge=j;
+    activeSection="PAIR:"+(j+1);
+  }else{
+    toast("Неизвестный тип записи архива");
+    return false;
+  }
+  activeContest=contests.indexOf(live);
+  activeArchiveId=null;
+  seedLinked(d);
+  removeArchiveEntry(entry.id);
+  live.userEdited=true;
+  return true;
+}
+function openArchiveRestoreModal(entry){
+  if(!entry) return;
+  closeCopyModal();
+  const backdrop=document.createElement("div");
+  backdrop.id="copy-modal-backdrop";
+  backdrop.className="copy-modal-backdrop";
+  const isContest=entry.kind==="contest";
+  const live=findLiveContestForArchive(entry);
+  let body="";
+  if(isContest){
+    body=`
+      <p class="copy-modal__text">Восстановить «${esc(entry.label)}» в список конкурсов?</p>
+      <label class="copy-modal__item"><input type="radio" name="arch-mode" value="all" checked /><span>Весь конкурс целиком</span></label>
+      <label class="copy-modal__item"><input type="radio" name="arch-mode" value="parts" /><span>Только выбранные части</span></label>
+      <div class="copy-modal__list" id="arch-parts" hidden>
+        <label class="copy-modal__item"><input type="checkbox" data-part="card" checked /><span>Карточка + FEATURE</span></label>
+        <label class="copy-modal__item"><input type="checkbox" data-part="groups" checked /><span>Группы</span></label>
+        <label class="copy-modal__item"><input type="checkbox" data-part="indicators" checked /><span>Индикаторы</span></label>
+        <label class="copy-modal__item"><input type="checkbox" data-part="schedule" checked /><span>Расписание</span></label>
+        <label class="copy-modal__item"><input type="checkbox" data-part="pairs" checked /><span>Связи + награды</span></label>
+      </div>`;
+  }else{
+    const where=live
+      ?(`Вернуть ${archiveKindLabel(entry.kind).toLowerCase()} «${esc(entry.label)}» в конкурс «${esc(contestCodeLine(live,contests.indexOf(live)))}»?`)
+      :(`Конкурс для «${esc(entry.label)}» сейчас не в списке. Сначала восстановите конкурс целиком.`);
+    body=`<p class="copy-modal__text">${where}</p>`;
+  }
+  backdrop.innerHTML=`
+    <div class="copy-modal" role="dialog" aria-modal="true" aria-labelledby="copy-modal-title">
+      <h3 id="copy-modal-title">Восстановить из архива</h3>
+      ${body}
+      <div class="copy-modal__actions">
+        <button type="button" class="btn" id="copy-modal-cancel">Отмена</button>
+        <button type="button" class="btn btn-primary" id="copy-modal-ok" ${(!isContest&&!live)?"disabled":""}>Восстановить</button>
+      </div>
+    </div>`;
+  document.body.appendChild(backdrop);
+  const partsBox=backdrop.querySelector("#arch-parts");
+  backdrop.querySelectorAll('input[name="arch-mode"]').forEach(r=>{
+    r.addEventListener("change",()=>{if(partsBox) partsBox.hidden=backdrop.querySelector('input[name="arch-mode"]:checked')?.value!=="parts"});
+  });
+  backdrop.querySelector("#copy-modal-cancel").addEventListener("click",()=>closeCopyModal());
+  backdrop.addEventListener("click",e=>{if(e.target===backdrop)closeCopyModal()});
+  const onKey=e=>{if(e.key==="Escape"){closeCopyModal();document.removeEventListener("keydown",onKey)}};
+  document.addEventListener("keydown",onKey);
+  backdrop.querySelector("#copy-modal-ok").addEventListener("click",()=>{
+    if(!isContest&&!live){toast("Нет конкурса для восстановления части");return}
+    let ok=false;
+    if(isContest){
+      const mode=backdrop.querySelector('input[name="arch-mode"]:checked')?.value||"all";
+      if(mode==="all") ok=restoreContestFromArchive(entry,{all:true});
+      else{
+        const parts={all:false};
+        backdrop.querySelectorAll("[data-part]").forEach(inp=>{parts[inp.getAttribute("data-part")]=!!inp.checked});
+        if(!parts.card&&!parts.groups&&!parts.indicators&&!parts.schedule&&!parts.pairs){
+          toast("Выберите хотя бы одну часть");return;
+        }
+        ok=restoreContestFromArchive(entry,parts);
+      }
+    }else ok=restoreFragmentFromArchive(entry);
+    document.removeEventListener("keydown",onKey);
+    closeCopyModal();
+    if(ok){persistLocal();render();toast("Восстановлено из архива")}
+  });
+}
+function purgeArchiveEntry(entry){
+  if(!entry) return;
+  if(!confirm("Безвозвратно удалить из архива «"+entry.label+"»? Это нельзя отменить.")) return;
+  if(activeArchiveId===entry.id) activeArchiveId=null;
+  removeArchiveEntry(entry.id);
+  persistLocal();
+  render();
+  toast("Удалено из архива безвозвратно");
+}
+function renderArchiveView(entry){
+  const ws=$("workspace");
+  if(!ws||!entry) return;
+  const when=formatArchiveWhen(entry.deletedAt);
+  const kind=archiveKindLabel(entry.kind);
+  const ctx=[entry.contestCode,entry.contestName].filter(Boolean).join(" · ");
+  const live=findLiveContestForArchive(entry);
+  const canFrag=entry.kind!=="contest"&&!!live;
+  ws.innerHTML=`
+<section class="panel">
+  <div class="archive-banner">
+    <div>
+      <h2 class="archive-banner__title">Архив · ${esc(kind)}</h2>
+      <p class="archive-banner__meta">${esc(entry.label)}${ctx?" · "+esc(ctx):""}<br>Удалено: ${esc(when)}${entry.kind!=="contest"?(live?" · конкурс в списке":" · конкурс не в списке"):""}</p>
+    </div>
+    <div class="archive-banner__actions">
+      <button type="button" class="btn btn-primary" id="btn-arch-restore" data-tip="Вернуть из архива с подтверждением">${entry.kind==="contest"||canFrag?"Восстановить…":"Восстановить…"}</button>
+      <button type="button" class="btn" id="btn-arch-purge" data-tip="Удалить запись архива навсегда">Удалить безвозвратно</button>
+    </div>
+  </div>
+  <p class="intro">Это карточка архива. Данные не участвуют в экспорте CSV, пока не восстановлены.</p>
+  <pre class="archive-preview">${esc(archivePreviewText(entry))}</pre>
+</section>`;
+  $("btn-arch-restore")?.addEventListener("click",()=>openArchiveRestoreModal(entry));
+  $("btn-arch-purge")?.addEventListener("click",()=>purgeArchiveEntry(entry));
+}
 
 function contestCodeOf(d){return String((d||data()).contest.CONTEST_CODE||"").trim()}
 /** База без хвостового _: r_CONTEST_CODE / t_CONTEST_CODE */
@@ -1420,6 +1760,13 @@ function baseline(){return cur().baseline}
 function fingerprint(d){return JSON.stringify(d)}
 /** Оранжевая обводка только после правок пользователя, не из автонормализации. */
 function isContestDirty(c){return !!(c&&c.userEdited)}
+/** >0 — идёт автоподстановка дефолтов при монтировании полей; dirty не ставим. */
+let suppressDirtyMark=0;
+function withSilentNormalize(fn){
+  suppressDirtyMark++;
+  try{return fn()}
+  finally{suppressDirtyMark--}
+}
 function markBaseline(c){
   if(!c)return;
   c.baseline=clone(c.data);
@@ -1431,6 +1778,7 @@ function realignBaselineIfPristine(c){
   markBaseline(c);
 }
 function markContestEdited(){
+  if(suppressDirtyMark>0) return;
   const c=cur();
   if(!c) return;
   c.userEdited=true;
@@ -1548,8 +1896,15 @@ function mountChips(host, f, value, onChange, {multi}){
   const required=selectionRequired(f);
   let curVal=value||"";
   if(required&&variants.length){
-    if(multi){if(!listFromCell(curVal).filter(x=>variants.includes(x)).length){curVal=variants[0];onChange(curVal)}}
-    else if(!String(curVal).trim()||!variants.includes(String(curVal))){curVal=variants[0];onChange(curVal)}
+    if(multi){
+      if(!listFromCell(curVal).filter(x=>variants.includes(x)).length){
+        curVal=variants[0];
+        withSilentNormalize(()=>onChange(curVal));
+      }
+    }else if(!String(curVal).trim()||!variants.includes(String(curVal))){
+      curVal=variants[0];
+      withSilentNormalize(()=>onChange(curVal));
+    }
   }
   box.setAttribute("data-tip",tipFor(f)+(required?"\nОбязательно: нельзя снять все варианты":"\nМожно пусто: повторный клик снимает выбор"));
   const extra=multi?document.createElement("input"):null;
@@ -1597,7 +1952,10 @@ function mountDropdownCustom(host, f, value, onChange){
   const variants=f.variants||[];
   const required=selectionRequired(f);
   let curVal=String(value||"");
-  if(required&&!String(curVal).trim()&&variants.length){curVal=variants[0];onChange(curVal)}
+  if(required&&!String(curVal).trim()&&variants.length){
+    curVal=variants[0];
+    withSilentNormalize(()=>onChange(curVal));
+  }
   const wrap=document.createElement("div");
   wrap.setAttribute("data-tip",tipFor(f)+(required?"\nОбязательно: чип или свой текст — пусто нельзя":"\nМожно пусто: можно снять чип и очистить свой вариант"));
   const box=document.createElement("div");box.className="default-checks default-checks--single";
@@ -1739,7 +2097,7 @@ function mountCompositeCode(host, f, fullValue, onChange, tip, prefix){
   // нормализовать пустое окончание → r_CODE / t_CODE (без хвостового _)
   if(!miss){
     const built=buildPrefixedCode(prefix, inp.value);
-    if(built && built!==full) onChange(built);
+    if(built && built!==full) withSilentNormalize(()=>onChange(built));
   }
 }
 
@@ -1758,7 +2116,12 @@ function renderFieldCard(f, value, path, onChange, opts){
   card.className="field span-"+span+(opts.hero?" field--hero":"")+(dirty?" is-edited":"")+(locked?" is-locked":"")+(pick?" field--pick":"")+(allow?"":" is-required");
   const showKey=jsonFact||String(f.key||"");const showJson=jsonFact&&jsonFact!==String(f.key||"");card.innerHTML=`<div class="field-head"><span class="field-label">${esc(f.label||f.key)}</span><span class="edited-badge">изменено</span>${emptyPillHtml(f,opts)}<span class="field-key" data-tip="Ключ параметра / путь в JSON">${esc(showKey)}</span>${showJson?`<span class="json-fact" data-tip="Полный путь в JSON SPOD: ${esc(jsonFact)}">${esc(jsonFact)}</span>`:""}<span class="kind-pill ${esc(kind)}" data-tip="${esc(kindLabel(kind))}">${esc(kindShort(kind))}</span></div>${f.description?`<div class="field-desc">${esc(f.description)}</div>`:""}<div class="field-control"></div>`;
   const host=card.querySelector(".field-control");
-  const wrapChange=v=>{onChange(v);card.classList.toggle("is-edited",isEditedValue(path,v));refreshContestTabDirty()};
+  const wrapChange=v=>{
+    onChange(v);
+    if(suppressDirtyMark>0) realignBaselineIfPristine(cur());
+    else refreshContestTabDirty();
+    card.classList.toggle("is-edited",isEditedValue(path,v));
+  };
   if(locked&&!pick){
     const box=document.createElement("div");box.className="locked-value";
     box.innerHTML=`<span>${esc(value||"—")}</span>${opts.lockedHint?`<span class="locked-value__hint">${esc(opts.lockedHint)}</span>`:""}`;
@@ -1893,6 +2256,7 @@ function contestMatchesKindFilter(c){
 function syncContestKindFilterButtons(){
   const t=$("filter-tournaments");
   const r=$("filter-rewards");
+  const a=$("filter-archive");
   if(t){
     t.classList.toggle("is-on",contestListShowTournament);
     t.setAttribute("aria-pressed",contestListShowTournament?"true":"false");
@@ -1900,6 +2264,10 @@ function syncContestKindFilterButtons(){
   if(r){
     r.classList.toggle("is-on",contestListShowReward);
     r.setAttribute("aria-pressed",contestListShowReward?"true":"false");
+  }
+  if(a){
+    a.classList.toggle("is-on",contestListShowArchive);
+    a.setAttribute("aria-pressed",contestListShowArchive?"true":"false");
   }
 }
 
@@ -1924,16 +2292,32 @@ function renderContestTabs(){
         const tone=contestScheduleListTone(c);
         const tip=contestMenuTip(c,i)+(dirty?" · есть несохранённые правки":"")+(tone.label?" · "+tone.label:"");
         const tabTip=dirty?"Есть правки параметров":(tone.label||"Текущий конкурс");
-        return `<div class="contest-tab ${tone.cls}${i===activeContest?" active":""}${dirty?" is-dirty":""}" data-ci="${i}" data-tip="${esc(tabTip)}"><span class="ct-text" data-tip="${esc(tip)}"><span class="ct-code">${esc(contestCodeLine(c,i))}</span><span class="ct-fullname">${esc(contestNameLine(c))}</span></span>${contests.length>1?`<button type="button" class="ct-x" data-del="${i}" data-tip="Удалить конкурс">×</button>`:""}</div>`;
+        return `<div class="contest-tab ${tone.cls}${i===activeContest&&!activeArchiveId?" active":""}${dirty?" is-dirty":""}" data-ci="${i}" data-tip="${esc(tabTip)}"><span class="ct-text" data-tip="${esc(tip)}"><span class="ct-code">${esc(contestCodeLine(c,i))}</span><span class="ct-name">${esc(contestNameLine(c))}</span></span>${contests.length>1?`<button type="button" class="ct-x" data-del="${i}" data-tip="В архив">×</button>`:""}</div>`;
       }).join("")+
       `</div>`;
   }
-  // Награды сверху, турниры снизу — пустые группы не показываем
-  host.innerHTML=groupHtml("reward","Награды",rewards)+groupHtml("tournament","Турниры",tournaments);
+  let html=groupHtml("reward","Награды",rewards)+groupHtml("tournament","Турниры",tournaments);
+  if(contestListShowArchive){
+    const arch=archiveEntries.filter(e=>archiveMatchesListQuery(e,contestListQuery));
+    if(arch.length){
+      html+=`<div class="contest-tabs-group contest-tabs-group--archive">`+
+        `<div class="contest-tabs-group__title">Архив · ${arch.length}</div>`+
+        arch.map(e=>{
+          const kind=archiveKindLabel(e.kind);
+          const tip=kind+" · "+(e.label||"")+(e.contestCode?" · "+e.contestCode:"");
+          const line2=e.kind==="contest"?(e.detail||e.contestName||""):(e.detail||e.contestCode||"");
+          return `<div class="contest-tab contest-tab--archive${activeArchiveId===e.id?" active":""}" data-arch="${esc(e.id)}" data-tip="${esc(tip)}"><span class="ct-text" data-tip="${esc(tip)}"><span class="ct-kind">${esc(kind)}</span><span class="ct-code">${esc(e.label||kind)}</span>${line2?`<span class="ct-ctx">${esc(line2)}</span>`:""}</span></div>`;
+        }).join("")+
+        `</div>`;
+    }
+  }
+  host.innerHTML=html;
   if(!host.innerHTML.trim()){
     const q=String(contestListQuery||"").trim();
-    if(!contestListShowTournament&&!contestListShowReward){
-      host.innerHTML=`<div class="contest-tabs-empty">Включите «Турниры» или «Награды»</div>`;
+    if(!contestListShowTournament&&!contestListShowReward&&!contestListShowArchive){
+      host.innerHTML=`<div class="contest-tabs-empty">Включите «Турниры», «Награды» или «Архив»</div>`;
+    }else if(contestListShowArchive&&!archiveEntries.length&&!rewards.length&&!tournaments.length){
+      host.innerHTML=`<div class="contest-tabs-empty">Архив пуст</div>`;
     }else if(q){
       host.innerHTML=`<div class="contest-tabs-empty">Нет конкурсов по запросу «${esc(q)}»</div>`;
     }else{
@@ -1943,6 +2327,7 @@ function renderContestTabs(){
   host.querySelectorAll("[data-ci]").forEach(el=>{
     el.addEventListener("click",e=>{
       if(e.target.closest("[data-del]"))return;
+      activeArchiveId=null;
       activeContest=Number(el.getAttribute("data-ci"));
       activeSection="CONTEST";activeBadge=0;activeSchedule=0;activeIndicator=0;activeGroup=0;activeLink=0;
       closeAllDatePops();
@@ -1954,7 +2339,20 @@ function renderContestTabs(){
     });
   });
   host.querySelectorAll("[data-del]").forEach(btn=>{
-    btn.addEventListener("click",e=>{e.stopPropagation();const i=Number(btn.getAttribute("data-del"));if(!confirm("Удалить конкурс?"))return;contests.splice(i,1);if(activeContest>=contests.length)activeContest=contests.length-1;persistLocal();render()});
+    btn.addEventListener("click",e=>{
+      e.stopPropagation();
+      const i=Number(btn.getAttribute("data-del"));
+      if(!confirm("Переместить конкурс в архив?")) return;
+      archiveContestAt(i);
+    });
+  });
+  host.querySelectorAll("[data-arch]").forEach(el=>{
+    el.addEventListener("click",()=>{
+      activeArchiveId=el.getAttribute("data-arch");
+      activeSection="ARCHIVE";
+      closeAllDatePops();
+      render();
+    });
   });
 }
 
@@ -2272,7 +2670,7 @@ function renderLinkRewardPair(){
 
   const tabs=data().badges.map((_,idx)=>{
     const label=pairNavTitle(idx);
-    return `<button type="button" class="period-tab${idx===i?" active":""}" data-pair="${idx}"><span class="pt-name" data-tip="${esc(label)}">${esc(label)}</span>${n>1?`<span class="pt-x" data-del-pair="${idx}" data-tip="Удалить пару">×</span>`:""}</button>`;
+    return `<button type="button" class="period-tab${idx===i?" active":""}" data-pair="${idx}"><span class="pt-name" data-tip="${esc(label)}">${esc(label)}</span>${n>1?`<span class="pt-x" data-del-pair="${idx}" data-tip="В архив">×</span>`:""}</button>`;
   }).join("");
 
   $("workspace").innerHTML=`
@@ -2323,13 +2721,17 @@ function renderLinkRewardPair(){
       e.stopPropagation();
       const di=Number(btn.getAttribute("data-del-pair"));
       if(data().badges.length<=1){toast("Нужна хотя бы одна пара");return}
-      if(!confirm("Удалить эту пару (связь + награда)?")) return;
+      if(!confirm("Переместить эту пару (связь + награда) в архив?")) return;
+      const badge=data().badges[di];
+      const link=data().reward_link[di];
+      archiveFragment("pair",{badge,link},pairNavTitle(di),contestCodeOf());
       data().badges.splice(di,1);
       data().reward_link.splice(di,1);
       if(activeLink>=data().badges.length) activeLink=data().badges.length-1;
       activeBadge=activeLink;
       activeSection="PAIR:"+(activeLink+1);
       persistLocal();markContestEdited();render();
+      toast("Пара перемещена в архив");
     });
   });
   const addBtn=$("btn-add-pair");
@@ -2434,7 +2836,7 @@ function renderGroup(){
   const row=rows[i];
   row.CONTEST_CODE=contestCodeOf();
 
-  const tabs=rows.map((r,idx)=>`<button type="button" class="period-tab${idx===i?" active":""}" data-grp="${idx}"><span class="pt-name" data-tip="${esc(groupTitle(r,idx))}">${esc(groupTitle(r,idx))}</span>${rows.length>1?`<span class="pt-x" data-del-grp="${idx}" data-tip="Удалить группу">×</span>`:""}</button>`).join("");
+  const tabs=rows.map((r,idx)=>`<button type="button" class="period-tab${idx===i?" active":""}" data-grp="${idx}"><span class="pt-name" data-tip="${esc(groupTitle(r,idx))}">${esc(groupTitle(r,idx))}</span>${rows.length>1?`<span class="pt-x" data-del-grp="${idx}" data-tip="В архив">×</span>`:""}</button>`).join("");
 
   $("workspace").innerHTML=`
 <section class="panel">
@@ -2470,7 +2872,9 @@ function renderGroup(){
     btn.addEventListener("click",e=>{
       e.stopPropagation();
       const di=Number(btn.getAttribute("data-del-grp"));
-      if(!confirm("Удалить эту группу?")) return;
+      if(!confirm("Переместить эту группу в архив?")) return;
+      const row=rows[di];
+      archiveFragment("group",row,groupTitle(row,di),contestCodeOf());
       rows.splice(di,1);
       if(!rows.length) rows.push(emptyGroupRow());
       if(activeGroup>=rows.length) activeGroup=rows.length-1;
@@ -2478,6 +2882,7 @@ function renderGroup(){
       persistLocal();
       markContestEdited();
       render();
+      toast("Группа перемещена в архив");
     });
   });
   $("btn-add-group").addEventListener("click",()=>{
@@ -2528,7 +2933,7 @@ function renderIndicator(){
   const row=rows[i];
   row.CONTEST_CODE=contestCodeOf();
 
-  const tabs=rows.map((r,idx)=>`<button type="button" class="period-tab${idx===i?" active":""}" data-ind="${idx}"><span class="pt-name" data-tip="${esc(indicatorTitle(r,idx))}">${esc(indicatorTitle(r,idx))}</span>${rows.length>1?`<span class="pt-x" data-del-ind="${idx}" data-tip="Удалить индикатор">×</span>`:""}</button>`).join("");
+  const tabs=rows.map((r,idx)=>`<button type="button" class="period-tab${idx===i?" active":""}" data-ind="${idx}"><span class="pt-name" data-tip="${esc(indicatorTitle(r,idx))}">${esc(indicatorTitle(r,idx))}</span>${rows.length>1?`<span class="pt-x" data-del-ind="${idx}" data-tip="В архив">×</span>`:""}</button>`).join("");
 
   $("workspace").innerHTML=`
 <section class="panel">
@@ -2558,13 +2963,16 @@ function renderIndicator(){
     btn.addEventListener("click",e=>{
       e.stopPropagation();
       const di=Number(btn.getAttribute("data-del-ind"));
-      if(!confirm("Удалить этот индикатор?")) return;
+      if(!confirm("Переместить этот индикатор в архив?")) return;
+      const row=rows[di];
+      archiveFragment("indicator",row,indicatorTitle(row,di),contestCodeOf());
       rows.splice(di,1);
       if(!rows.length) rows.push(emptyIndicatorRow());
       if(activeIndicator>=rows.length) activeIndicator=rows.length-1;
       persistLocal();
       markContestEdited();
       render();
+      toast("Индикатор перемещён в архив");
     });
   });
   $("btn-add-indicator").addEventListener("click",()=>{
@@ -2608,7 +3016,7 @@ function renderSchedule(){
   const tabs=rows.map((r,idx)=>{
     const stCls=scheduleStatusNavClass(r.TOURNAMENT_STATUS).replace("nav-btn--","period-tab--");
     const tip=scheduleSub(r)?scheduleTitle(r,idx)+" · "+scheduleSub(r):scheduleTitle(r,idx);
-    return `<button type="button" class="period-tab${stCls?" "+stCls:""}${idx===i?" active":""}" data-period="${idx}"><span class="pt-name" data-tip="${esc(tip)}">${esc(scheduleTitle(r,idx))}</span>${rows.length>1?`<span class="pt-x" data-del-period="${idx}" data-tip="Удалить период">×</span>`:""}</button>`;
+    return `<button type="button" class="period-tab${stCls?" "+stCls:""}${idx===i?" active":""}" data-period="${idx}"><span class="pt-name" data-tip="${esc(tip)}">${esc(scheduleTitle(r,idx))}</span>${rows.length>1?`<span class="pt-x" data-del-period="${idx}" data-tip="В архив">×</span>`:""}</button>`;
   }).join("");
 
   $("workspace").innerHTML=`
@@ -2617,10 +3025,16 @@ function renderSchedule(){
   <p class="intro">Каждый период — карточка. <code>TOURNAMENT_CODE</code> = <code>t_</code> + <code>CONTEST_CODE</code>; при непустом окончании — ещё <code>_</code> + окончание (иначе без хвостового <code>_</code>).</p>
   <div class="period-bar">
     <div class="period-tabs">${tabs}</div>
-    <button type="button" class="btn btn-primary" id="btn-add-period" data-tip="Добавить ещё один период расписания">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
-      Период
-    </button>
+    <div class="period-bar__actions">
+      <button type="button" class="btn btn-primary" id="btn-add-period" data-tip="Добавить ещё один турнир в расписание">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+        добавить турнир
+      </button>
+      <button type="button" class="btn" id="btn-copy-schedule" ${rows.length<=1?"disabled":""} data-tip="${rows.length<=1?"Нужно больше одного турнира — копировать некуда":"Выбрать турниры этого конкурса, куда скопировать параметры активного расписания (без TOURNAMENT_CODE)"}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
+        Копировать в остальные
+      </button>
+    </div>
   </div>
   <p class="period-meta">Период ${i+1} из ${rows.length}</p>
   <div id="schedule-groups"></div>
@@ -2639,13 +3053,16 @@ function renderSchedule(){
     btn.addEventListener("click",e=>{
       e.stopPropagation();
       const di=Number(btn.getAttribute("data-del-period"));
-      if(!confirm("Удалить этот период расписания?")) return;
+      if(!confirm("Переместить этот турнир расписания в архив?")) return;
+      const row=rows[di];
+      archiveFragment("schedule",row,scheduleTitle(row,di),scheduleSub(row)||contestCodeOf());
       rows.splice(di,1);
       if(!rows.length) rows.push(emptyScheduleRow());
       if(activeSchedule>=rows.length) activeSchedule=rows.length-1;
       persistLocal();
       markContestEdited();
       render();
+      toast("Турнир перемещён в архив");
     });
   });
   $("btn-add-period").addEventListener("click",()=>{
@@ -2655,8 +3072,9 @@ function renderSchedule(){
     persistLocal();
     markContestEdited();
     render();
-    toast("Добавлен период");
+    toast("Добавлен турнир");
   });
+  $("btn-copy-schedule")?.addEventListener("click",()=>copyActiveScheduleToOthers());
 
   $("schedule-groups").appendChild(renderGrouped(
     "TABLE:SCHEDULE", SCHEDULE_LAYOUT,
@@ -2756,10 +3174,23 @@ function renderTable(kind,title,cols,rowsKey){
 
 function render(){
   if(!catalog||!contests.length)return;
-  syncBadgeSlots(data(),false);
-  seedLinked(data());
-  normalizeActiveSection();
-  renderContestTabs();renderNav();
+  if(activeArchiveId){
+    const entry=findArchiveEntry(activeArchiveId);
+    if(!entry) activeArchiveId=null;
+  }
+  if(!activeArchiveId){
+    syncBadgeSlots(data(),false);
+    seedLinked(data());
+    normalizeActiveSection();
+  }
+  renderContestTabs();
+  if(activeArchiveId){
+    const nav=$("section-nav");
+    if(nav){nav.hidden=true;nav.innerHTML=""}
+    renderArchiveView(findArchiveEntry(activeArchiveId));
+    return;
+  }
+  renderNav();
   if(activeSection==="CONTEST")renderContest();
   else if(activeSection==="CONTEST_FEATURE")renderFeature();
   else if(activeSection.startsWith("ADD:"))renderRewardAdd();
@@ -2823,7 +3254,7 @@ function setSidebarOpen(open){
 }
 let catalogSource="embedded";
 
-function projectPayload(){return{version:2,block:BLOCK,saved_at:new Date().toISOString(),catalog_stamp:catalogStamp(catalog),activeContest,contests:contests.map(c=>({id:c.id,name:contestTitle(c,0),data:c.data}))}}
+function projectPayload(){return{version:3,block:BLOCK,saved_at:new Date().toISOString(),catalog_stamp:catalogStamp(catalog),activeContest,contests:contests.map(c=>({id:c.id,name:contestTitle(c,0),data:c.data})),archive:archiveEntries}}
 function persistLocal(){if(!sessionReady)return;try{localStorage.setItem(LS_PROJECT,JSON.stringify(projectPayload()))}catch(_){}}
 function saveProjectFile(){
   if(!sessionReady||!contests.length){toast("Сначала создайте или откройте конкурс");return}
@@ -2859,6 +3290,8 @@ function applyProjectObject(restored, opts){
     return item;
   });
   activeContest=Math.min(Math.max(0,Number(restored.activeContest||0)),contests.length-1);
+  archiveEntries=Array.isArray(restored.archive)?restored.archive.map(e=>clone(e)):[];
+  activeArchiveId=null;
   activeSection="CONTEST";activeBadge=0;activeSchedule=0;activeIndicator=0;activeGroup=0;activeLink=0;
   sessionReady=true;
   setGated(false);
@@ -2875,6 +3308,8 @@ function restoreDraftIfAny(){
 function startFresh(opts){
   opts=opts||{};
   contests=[];
+  archiveEntries=[];
+  activeArchiveId=null;
   const data=emptyContestData();
   const c={id:"c"+Date.now(),name:"",data,baseline:null,userEdited:false};
   markBaseline(c);
@@ -3027,6 +3462,11 @@ function wire(){
   });
   $("filter-rewards")?.addEventListener("click",()=>{
     contestListShowReward=!contestListShowReward;
+    renderContestTabs();
+  });
+  $("filter-archive")?.addEventListener("click",()=>{
+    contestListShowArchive=!contestListShowArchive;
+    if(!contestListShowArchive&&activeArchiveId){activeArchiveId=null;render();return}
     renderContestTabs();
   });
 }

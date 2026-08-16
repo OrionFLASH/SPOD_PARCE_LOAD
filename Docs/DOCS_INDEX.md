@@ -22,6 +22,7 @@
 - `CONTEST_BADGE_FORM_FILLING.md` — **заполнение шаблона**: цвета, порядок полей, типичные ошибки, цикл export→import.
 - `CONTEST_BADGE_FORM_PARAM_REVIEW.md` — stub: актуальный MD-снимок в **`common/param_catalog_review/`**.
 - Редактор описаний: **`common/web-edit/`** (данные **`common/param_catalog_review/catalog.json`**). Сборка: `python src/Tools/build_param_review_editor.py`.
+- Заполнение параметров SPOD: **`common/web-fill/`** (`index.html` + `README.md`) — шаги, CSV, снимок JSON, архив удалений.
 - `PLAN_CONTEST_BADGE_FORM.md` — согласованный план формы BADGE.
 - Шаблон BLANK: **`common/templates/CONTEST_BADGE_FORM/CONTEST_BADGE_FORM_BLANK.xlsx`** (stub в `Docs/templates/…`).
 
