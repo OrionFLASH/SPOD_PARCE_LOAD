@@ -48,6 +48,9 @@ LOGS/
 # Пустой шаблон Excel-формы BADGE (исключение из *.xlsx)
 !common/templates/CONTEST_BADGE_FORM/*.xlsx
 !Docs/templates/**/*.xlsx
+# Excel-каталог полей web-edit + копия blank рядом с web-fill
+!common/web-edit/game_edit_catalog.xlsx
+!common/web-fill/CONTEST_BADGE_FORM_BLANK.xlsx
 OUT/
 
 # Temporary / test work (not IN/OUT data)

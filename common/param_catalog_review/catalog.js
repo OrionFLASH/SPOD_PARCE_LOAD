@@ -1,4 +1,4 @@
-/* зеркало catalog.json */
+/* зеркало catalog.json — из web-edit */
 window.PARAM_REVIEW_CATALOG = {
   "version": 2,
   "generated_at": "2026-08-16T17:32:07Z",
@@ -2624,4 +2624,3 @@ window.PARAM_REVIEW_CATALOG = {
   ],
   "exported_at": "2026-08-16T20:04:09.041Z"
 };
-window.SPOD_PARAM_CATALOG = window.PARAM_REVIEW_CATALOG;
