@@ -326,4 +326,5 @@ IN/
 | 15.13 | SPOD-JSON массивы/объекты: `CONTEST_PERIOD`, `FILTER_PERIOD_ARR`, `INDICATOR_FILTER`, `TARGET_TYPE`(schedule/`seasonCode`) — разделы edit + UI/экспорт fill | [v] |
 | 15.14 | JSON: `json_required` (ключ обязателен / может отсутствовать) + колонки-оболочки `kind: json` в TABLE для `allow_empty` ячейки | [v] |
 | 15.15 | Fill: наборы JSON-массивов (`CONTEST_PERIOD` / `FILTER_PERIOD_ARR` / `INDICATOR_FILTER`) — UI список+редактор; примеры снимков со структурами | [v] |
+| 15.16 | Fill: подписи/описания только из каталога 2124 (без override layout); пилюля `json_required` у JSON-ключей | [v] |
 

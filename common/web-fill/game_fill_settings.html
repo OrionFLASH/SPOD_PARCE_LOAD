@@ -160,6 +160,8 @@ body::after{width:380px;height:380px;right:-60px;bottom:10%;background:#ffd4a8}
 .empty-pill{display:inline-flex;align-items:center;font-size:9px;font-weight:700;padding:2px 7px;border-radius:999px;border:1px solid;letter-spacing:.01em;order:1;white-space:nowrap}
 .empty-pill.is-req{background:rgba(255,59,48,.1);border-color:rgba(255,59,48,.32);color:#b91c1c}
 .empty-pill.is-opt{background:rgba(52,199,89,.1);border-color:rgba(52,199,89,.3);color:#15803d}
+.empty-pill.is-json-req{background:rgba(0,122,255,.1);border-color:rgba(0,122,255,.32);color:#1d4ed8}
+.empty-pill.is-json-opt{background:rgba(142,142,147,.14);border-color:rgba(142,142,147,.38);color:#636366}
 .kind-pill{font-size:9px;font-weight:700;padding:2px 7px;border-radius:999px;border:1px solid rgba(0,0,0,.05);opacity:.7;order:4;margin-left:auto}
 .kind-pill.dropdown{background:var(--kind-dropdown)}
 .kind-pill.dropdown_custom{background:var(--kind-dropdown-custom)}
@@ -426,24 +428,24 @@ table.grid th .empty-pill{margin-left:4px;vertical-align:middle}
 .top-nav__row--main{/* конкурс · индикаторы · группы */}
 .top-nav__row--links{/* связи + награды */}
 .top-nav__row--schedule{/* расписание */}
-.top-nav .nav-btn{display:inline-flex;align-items:center;gap:5px;width:auto;max-width:100%;min-width:0;min-height:28px;height:28px;text-align:left;border:1px solid rgba(255,255,255,.55);background:rgba(255,255,255,.55);border-radius:8px;padding:2px 8px;cursor:pointer;font:inherit;color:inherit;flex:0 1 auto;box-sizing:border-box}
+.top-nav .nav-btn{display:inline-flex;align-items:center;gap:5px;width:auto;max-width:100%;min-width:0;min-height:0;height:auto;text-align:left;border:1px solid rgba(255,255,255,.55);background:rgba(255,255,255,.55);border-radius:8px;padding:3px 8px;cursor:pointer;font:inherit;color:inherit;flex:0 1 auto;box-sizing:border-box}
 .top-nav .nav-btn:hover{background:rgba(255,255,255,.92);box-shadow:var(--glass-shadow)}
 .top-nav .nav-btn.active{background:var(--glass-blue-light);border-color:var(--glass-blue-border);color:var(--glass-blue);font-weight:600}
-.top-nav .nav-btn .tag{margin-left:auto;font-size:8px;font-weight:800;padding:1px 5px;border-radius:999px;background:rgba(0,0,0,.06);flex-shrink:0;line-height:1.2}
+.top-nav .nav-btn .tag{margin-left:auto;align-self:center;font-size:8px;font-weight:800;padding:1px 5px;border-radius:999px;background:rgba(0,0,0,.06);flex-shrink:0;line-height:1.2}
 .top-nav .nav-btn .tag.json{background:rgba(192,57,43,.12);color:#c0392b}
 .top-nav .nav-btn .tag.table{background:rgba(0,122,255,.12);color:var(--glass-blue)}
 .top-nav .nav-btn .tag.start{background:rgba(52,199,89,.14);color:#15803d}
-.top-nav .nav-btn--slot{padding:2px 18px 2px 8px;max-width:100%;border-radius:8px;flex:0 1 auto}
-.top-nav .nav-btn__body{display:flex;flex-direction:row;align-items:center;gap:5px;min-width:0;flex:1 1 auto;text-align:left;overflow:hidden}
-.top-nav .nav-btn--slot .nav-btn__title{display:block;font-size:11px;font-weight:650;line-height:1.15;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left;min-width:0}
-.top-nav .nav-btn--slot .nav-sub{display:none;font-size:9px;margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--glass-muted);font-weight:500;max-width:14ch;flex:0 1 auto}
-.top-nav .nav-btn--slot.nav-btn--name .nav-sub{display:inline;max-width:min(22ch,28vw)}
-.top-nav .nav-btn--slot.nav-btn--code .nav-sub{display:inline;max-width:min(18ch,22vw)}
+.top-nav .nav-btn--slot{padding:3px 16px 3px 8px;max-width:100%;border-radius:8px;flex:0 1 auto}
+.top-nav .nav-btn__body{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:0;min-width:0;flex:1 1 auto;text-align:left;overflow:visible}
+.top-nav .nav-btn--slot .nav-btn__title{display:block;font-size:11px;font-weight:650;line-height:1.2;overflow:visible;text-overflow:clip;white-space:nowrap;text-align:left;min-width:0}
+.top-nav .nav-btn--slot .nav-sub{display:block;font-size:9px;margin:1px 0 0;overflow:visible;text-overflow:clip;white-space:nowrap;color:var(--glass-muted);font-weight:500;max-width:none;line-height:1.15}
+/* Сокращать можно только FULL_NAME (вторая строка у карточки конкурса) */
+.top-nav .nav-btn--slot.nav-btn--name .nav-sub{overflow:hidden;text-overflow:ellipsis;max-width:min(28ch,32vw)}
 .top-nav .nav-btn--slot .tag{font-size:8px;padding:1px 5px}
-.top-nav .nav-btn--slot.nav-btn--code{max-width:100%;flex:1 1 180px;width:auto;min-width:0}
-.top-nav .nav-btn--slot.nav-btn--code .nav-btn__title{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.15;font-size:10px;font-family:var(--mono);text-align:left}
-.top-nav .nav-btn--slot.nav-btn--name{max-width:100%;flex:1 1 160px;min-width:0}
-.top-nav .nav-btn--slot.nav-btn--name .nav-btn__title{max-width:18ch}
+.top-nav .nav-btn--slot.nav-btn--code{max-width:none;flex:0 1 auto;width:auto;min-width:0}
+.top-nav .nav-btn--slot.nav-btn--code .nav-btn__title{white-space:nowrap;overflow:visible;text-overflow:clip;line-height:1.2;font-size:10px;font-family:var(--mono);text-align:left}
+.top-nav .nav-btn--slot.nav-btn--name{max-width:min(100%,280px);flex:1 1 140px;min-width:0}
+.top-nav .nav-btn--slot.nav-btn--name .nav-btn__title{max-width:none;overflow:visible;text-overflow:clip}
 .top-nav .nav-group{display:flex;flex-wrap:nowrap;align-items:center;justify-content:flex-start;gap:4px 5px;margin:0;padding:3px 6px;border-radius:9px;background:rgba(15,23,42,.04);border:1px solid rgba(15,23,42,.06);flex:1 1 0;min-width:0;max-width:100%;box-sizing:border-box;overflow-x:auto;overflow-y:hidden;scrollbar-width:thin}
 .top-nav .nav-group__title{display:inline-flex;align-items:baseline;gap:4px;font-size:9px;font-weight:800;letter-spacing:.03em;text-transform:uppercase;color:var(--glass-text);padding:0 2px;white-space:nowrap;flex:0 0 auto;line-height:1.1}
 .top-nav .nav-group__meta{font-size:8px;font-weight:600;color:var(--glass-muted);text-transform:none;letter-spacing:0}
@@ -475,7 +477,7 @@ table.grid th .empty-pill{margin-left:4px;vertical-align:middle}
 .top-nav__row--main.top-nav__row--groups-heavy .nav-group--groups .nav-btn--slot{
   flex:0 1 auto;
   width:max-content;
-  max-width:min(100%,180px);
+  max-width:none;
 }
 .top-nav .nav-group--sch{background:rgba(0,122,255,.06);border-color:rgba(0,122,255,.14);flex:1 1 100%;min-width:0}
 .top-nav .nav-group--sch .nav-btn--code{max-width:100%;flex:1 1 220px}
@@ -500,16 +502,16 @@ table.grid th .empty-pill{margin-left:4px;vertical-align:middle}
 .top-nav .nav-btn--sch-deleted{opacity:.88}
 .top-nav .nav-btn--sch-cancel.active,
 .top-nav .nav-btn--sch-deleted.active{box-shadow:0 0 0 2px rgba(100,116,139,.28)}
-.top-nav .nav-btn--child{max-width:none;padding:2px 8px;border-style:dashed;background:rgba(255,255,255,.4);flex:0 0 auto;height:28px}
+.top-nav .nav-btn--child{max-width:none;padding:3px 8px;border-style:dashed;background:rgba(255,255,255,.4);flex:0 0 auto;height:auto;min-height:0}
 .top-nav .nav-btn--child .nav-btn__title{font-size:11px}
 .top-nav .nav-btn--json.active,.top-nav .nav-btn--child.active{background:rgba(175,82,222,.14);border-color:rgba(175,82,222,.42);color:#7a3aa0;border-style:solid}
 .top-nav .nav-btn--json.active .nav-sub,.top-nav .nav-btn--child.active .nav-sub{color:rgba(122,58,160,.85)}
-.nav-pair-unit{display:inline-flex;align-items:center;gap:3px;padding:2px;border-radius:9px;border:1px solid rgba(15,23,42,.1);background:rgba(255,255,255,.55);max-width:100%;flex:0 1 auto;min-width:0;box-sizing:border-box;justify-content:flex-start;height:32px}
+.nav-pair-unit{display:inline-flex;align-items:center;gap:3px;padding:2px;border-radius:9px;border:1px solid rgba(15,23,42,.1);background:rgba(255,255,255,.55);max-width:100%;flex:0 1 auto;min-width:0;box-sizing:border-box;justify-content:flex-start;height:auto;min-height:34px}
 .nav-pair-unit.is-on{border-color:rgba(0,122,255,.38);background:rgba(0,122,255,.05);box-shadow:0 0 0 1px rgba(0,122,255,.12)}
 .nav-pair-unit.is-on-add{border-color:rgba(175,82,222,.4);background:rgba(175,82,222,.06);box-shadow:0 0 0 1px rgba(175,82,222,.12)}
 .nav-pair-unit__n{display:inline-flex;align-items:center;justify-content:center;min-width:16px;padding:0 2px;font-size:10px;font-weight:800;color:var(--glass-muted);flex:0 0 auto}
-.nav-pair-unit .nav-btn{max-width:100%;flex:0 1 auto;min-width:0;height:26px;min-height:26px}
-.nav-pair-unit .nav-btn--slot .nav-sub{display:none}
+.nav-pair-unit .nav-btn{max-width:100%;flex:0 1 auto;min-width:0;height:auto;min-height:0}
+.nav-pair-unit .nav-btn--slot .nav-sub{display:block;overflow:visible;text-overflow:clip;max-width:none}
 .nav-btn{position:relative}
 .top-nav .nav-btn--slot{padding-right:18px}
 .nav-btn__x,.nav-pair-unit__x{position:absolute;top:1px;right:1px;z-index:2;border:0;background:transparent;cursor:pointer;font-size:12px;line-height:1;opacity:.45;padding:1px 4px;border-radius:5px;color:inherit;font:inherit}
@@ -753,12 +755,25 @@ function emptyPillHtml(f, opts){
   if(allow) return `<span class="empty-pill is-opt" data-tip="Можно оставить пустым — значение не обязательно">можно пусто</span>`;
   return `<span class="empty-pill is-req" data-tip="Обязательно: поле нельзя оставлять пустым">обязательно</span>`;
 }
+/** Признак наличия ключа в JSON (не пустота значения). */
+function isJsonKeyMeta(f){
+  return !!(f && Object.prototype.hasOwnProperty.call(f,"json_required"));
+}
+function jsonRequiredPillHtml(f){
+  if(!isJsonKeyMeta(f)) return "";
+  const on=fieldJsonRequired(f);
+  if(on) return `<span class="empty-pill is-json-req" data-tip="Ключ обязателен в JSON: при экспорте всегда присутствует. Пустое значение — отдельно флаг «можно пусто»">ключ обязателен</span>`;
+  return `<span class="empty-pill is-json-opt" data-tip="Ключ может отсутствовать в JSON: при пустом значении ключ не пишется">ключ может отсутствовать</span>`;
+}
 function tipFor(f, opts){
   const parts=[];
   if(f.description)parts.push(f.description);
   const kind=f.kind||"text";
   parts.push("Формат: "+kindLabel(kind));
   parts.push(fieldAllowEmpty(f,opts)?"Можно пусто: да":"Обязательно: нельзя оставлять пустым");
+  if(isJsonKeyMeta(f)){
+    parts.push(fieldJsonRequired(f)?"Ключ в JSON: обязателен":"Ключ в JSON: может отсутствовать");
+  }
   if((f.variants||[]).length){
     const labs=f.variant_labels||[];
     parts.push("Варианты: "+f.variants.map((v,i)=>{
@@ -813,72 +828,72 @@ const ADD_LAYOUT=[
   {title:"4. Списки REWARD_ADD_DATA",hint:"Преференции и массивы через ;.",items:[{key:"REWARD_ADD_DATA.preferences",span:12},{key:"REWARD_ADD_DATA.feature",span:12},{key:"REWARD_ADD_DATA.businessBlock",span:6},{key:"REWARD_ADD_DATA.helpCodeList",span:6}]},
 ];
 const SCHEDULE_LAYOUT=[
-  {title:"1. Коды и статус",hint:"TOURNAMENT = t_ + CONTEST_CODE; «_» + окончание — только если окончание непустое.",items:[
-    {key:"TOURNAMENT_CODE",span:6,label:"Окончание TOURNAMENT_CODE",compositeKind:"tournament"},
-    {key:"TOURNAMENT_STATUS",span:6,label:"Статус периода"},
-    {key:"PERIOD_TYPE",span:12,label:"Тип / название периода"}
+  {title:"1. Коды и статус",hint:"TOURNAMENT = t_ + CONTEST_CODE; «_» + окончание — только если окончание непустое. Подписи — из каталога.",items:[
+    {key:"TOURNAMENT_CODE",span:6,compositeKind:"tournament"},
+    {key:"TOURNAMENT_STATUS",span:6},
+    {key:"PERIOD_TYPE",span:12}
   ]},
   {title:"2. Даты турнира",hint:"Старт, финиш и подведение итогов.",items:[
-    {key:"START_DT",span:4,label:"Дата старта"},
-    {key:"END_DT",span:4,label:"Дата окончания"},
-    {key:"RESULT_DT",span:4,label:"Дата итогов"}
+    {key:"START_DT",span:4},
+    {key:"END_DT",span:4},
+    {key:"RESULT_DT",span:4}
   ]},
   {title:"3. Период плана",hint:"Окно планового периода.",items:[
-    {key:"PLAN_PERIOD_START_DT",span:6,label:"План: начало"},
-    {key:"PLAN_PERIOD_END_DT",span:6,label:"План: конец"}
+    {key:"PLAN_PERIOD_START_DT",span:6},
+    {key:"PLAN_PERIOD_END_DT",span:6}
   ]},
   {title:"4. Критерий",hint:"Тип сравнения и порог.",items:[
-    {key:"CRITERION_MARK_TYPE",span:4,label:"Сравнение"},
-    {key:"CRITERION_MARK_VALUE",span:8,label:"Порог критерия"}
+    {key:"CRITERION_MARK_TYPE",span:4},
+    {key:"CRITERION_MARK_VALUE",span:8}
   ]},
   {title:"5. Расчёт",hint:"Тип расчёта и TRN_INDICATOR_FILTER. TARGET_TYPE (seasonCode) и FILTER_PERIOD_ARR — блоки ниже.",items:[
-    {key:"CALC_TYPE",span:6,label:"Тип расчёта"},
-    {key:"TRN_INDICATOR_FILTER",span:12,label:"Фильтр индикатора турнира"}
+    {key:"CALC_TYPE",span:6},
+    {key:"TRN_INDICATOR_FILTER",span:12}
   ]},
 ];
 
 const INDICATOR_LAYOUT=[
   {title:"1. Код и название",hint:"Код конкурса — в заголовке. Код и имя индикатора — свои для строки.",items:[
-    {key:"INDICATOR_CODE",span:6,label:"Код индикатора"},
-    {key:"N",span:6,label:"Порядок (N)"},
-    {key:"FULL_NAME",span:12,label:"Название индикатора"}
+    {key:"INDICATOR_CODE",span:6},
+    {key:"N",span:6},
+    {key:"FULL_NAME",span:12}
   ]},
   {title:"2. Тип расчёта",hint:"Как считается показатель.",items:[
-    {key:"INDICATOR_CALC_TYPE",span:4,label:"Тип расчёта"},
-    {key:"INDICATOR_ADD_CALC_TYPE",span:4,label:"Доп. тип расчёта"},
-    {key:"CALC_TYPE",span:4,label:"CALC_TYPE"},
-    {key:"INDICATOR_AGG_FUNCTION",span:6,label:"Агрегация"},
-    {key:"INDICATOR_WEIGHT",span:6,label:"Вес"}
+    {key:"INDICATOR_CALC_TYPE",span:4},
+    {key:"INDICATOR_ADD_CALC_TYPE",span:4},
+    {key:"CALC_TYPE",span:4},
+    {key:"INDICATOR_AGG_FUNCTION",span:6},
+    {key:"INDICATOR_WEIGHT",span:6}
   ]},
   {title:"3. Объект и порог",hint:"Что измеряем и как сравниваем.",items:[
-    {key:"INDICATOR_OBJECT",span:6,label:"Объект"},
-    {key:"INDICATOR_MARK_TYPE",span:6,label:"Тип отметки"},
-    {key:"INDICATOR_MATCH",span:4,label:"Сравнение"},
-    {key:"INDICATOR_VALUE",span:4,label:"Порог / значение"},
-    {key:"CONTEST_CRITERION",span:4,label:"Критерий конкурса"},
-    {key:"CONTESTANT_SELECTION",span:12,label:"Отбор участников"}
+    {key:"INDICATOR_OBJECT",span:6},
+    {key:"INDICATOR_MARK_TYPE",span:6},
+    {key:"INDICATOR_MATCH",span:4},
+    {key:"INDICATOR_VALUE",span:4},
+    {key:"CONTEST_CRITERION",span:4},
+    {key:"CONTESTANT_SELECTION",span:12}
   ]},
   {title:"4. Фильтр",hint:"INDICATOR_FILTER собирается блоком элементов ниже (не сырой JSON).",items:[]},
 ];
 
 const GROUP_LAYOUT=[
   {title:"1. Код группы",hint:"Код конкурса — в заголовке. Уровень и значение группы.",items:[
-    {key:"GROUP_CODE",span:6,label:"Уровень группы"},
-    {key:"BASE_CALC_CODE",span:6,label:"Базовый код расчёта"},
-    {key:"GROUP_VALUE",span:12,label:"Значение группы (JSON / * / [код])"}
+    {key:"GROUP_CODE",span:6},
+    {key:"BASE_CALC_CODE",span:6},
+    {key:"GROUP_VALUE",span:12}
   ]},
   {title:"2. Методы и пороги",hint:"Как считается группа и дополнительные критерии.",items:[
-    {key:"GET_CALC_METHOD",span:4,label:"Метод расчёта"},
-    {key:"GET_CALC_CRITERION",span:4,label:"Критерий"},
-    {key:"ADD_CALC_CRITERION",span:4,label:"Доп. критерий 1"},
-    {key:"ADD_CALC_CRITERION_2",span:12,label:"Доп. критерий 2"}
+    {key:"GET_CALC_METHOD",span:4},
+    {key:"GET_CALC_CRITERION",span:4},
+    {key:"ADD_CALC_CRITERION",span:4},
+    {key:"ADD_CALC_CRITERION_2",span:12}
   ]},
 ];
 
 const LINK_LAYOUT=[
   {title:"Связь группы и награды",hint:"REWARD_CODE = r_ + CONTEST_CODE; «_» + окончание — только если окончание заполнено (часто при нескольких наградах).",items:[
-    {key:"GROUP_CODE",span:6,label:"Уровень группы",pickFromGroups:true},
-    {key:"REWARD_CODE",span:6,label:"Окончание REWARD_CODE",compositeKind:"reward"}
+    {key:"GROUP_CODE",span:6,pickFromGroups:true},
+    {key:"REWARD_CODE",span:6,compositeKind:"reward"}
   ]},
 ];
 
@@ -937,8 +952,7 @@ function renderGrouped(sectionId, layout, getValue, setValue, pathOf, omitKeys, 
     for(const it of g.items){
       if(omit.has(it.key)) continue;
       const base=map[it.key];if(!base)continue;used.add(it.key);
-      const f=it.label?Object.assign({},base,{label:it.label}):base;
-      const cardEl=renderFieldCard(f,getValue(base),pathOf(base),v=>setValue(base,v),{
+      const cardEl=renderFieldCard(base,getValue(base),pathOf(base),v=>setValue(base,v),{
         span:it.span||12,hero:!!it.hero,locked:forceLocked||!!it.locked,pickVariants:forceLocked?null:(it.pickVariants||null),lockedHint:it.lockedHint||forceHint||"",
         emptyPickHint:it.emptyPickHint||"",pickAllowEmpty:!!it.pickAllowEmpty,compositeKind:forceLocked?"":(it.compositeKind||"")
       });
@@ -2355,8 +2369,8 @@ function renderArchiveNav(entry){
     const full=String(ct.FULL_NAME||"").trim();
     pushGroup("contest","Конкурс","архив",[
       {id:"CONTEST",title:typeLab,sub:full,tag:"start",tagLabel:"DATA",slot:true,nameSlot:true,tip:full?typeLab+" · "+full:typeLab},
-      {id:"CONTEST_FEATURE",title:"FEATURE",sub:"",tag:"json",tagLabel:"JSON",slot:true,child:true,tip:"Особенности · CONTEST_FEATURE"},
-      {id:"CONTEST_PERIOD",title:"Периоды",sub:"",tag:"json",tagLabel:"ARR",slot:true,child:true,tip:"Периоды · CONTEST_PERIOD"},
+      {id:"CONTEST_FEATURE",title:"Особенности",sub:"CONTEST_FEATURE",tag:"json",tagLabel:"JSON",slot:true,child:true,tip:"Особенности · CONTEST_FEATURE"},
+      {id:"CONTEST_PERIOD",title:"Периоды",sub:"CONTEST_PERIOD",tag:"json",tagLabel:"ARR",slot:true,child:true,tip:"Периоды · CONTEST_PERIOD"},
     ]);
     const inds=d.indicator||[];
     if(inds.length) pushGroup("ind","Индикаторы",inds.length+" шт.", inds.map((r,i)=>{
@@ -2378,8 +2392,8 @@ function renderArchiveNav(entry){
         items.push({
           kind:"pairUnit",index:i,hideDelete:true,
           pairId:"PAIR:"+(i+1), addId:"ADD:"+(i+1),
-          pairTitle:label, pairSub:"",
-          addTitle:"ADD", addSub:"",
+          pairTitle:label, pairSub:"связь + BADGE",
+          addTitle:"Особенности", addSub:code?("JSON · "+code):"REWARD_ADD_DATA",
           tipPair:label, tipAdd:"JSON ADD",
         });
       }
@@ -2413,8 +2427,8 @@ function renderArchiveNav(entry){
         items.push({
           kind:"pairUnit",index:i,hideDelete:true,
           pairId:"PAIR:"+f.id, addId:"ADD:"+f.id,
-          pairTitle:label, pairSub:"",
-          addTitle:"ADD", addSub:"",
+          pairTitle:label, pairSub:"связь + BADGE",
+          addTitle:"Особенности", addSub:code?("JSON · "+code):"REWARD_ADD_DATA",
           tipPair:label, tipAdd:"JSON ADD",
         });
       });
@@ -3152,7 +3166,7 @@ function renderFieldCard(f, value, path, onChange, opts){
   const allow=fieldAllowEmpty(f,opts);
   const compositeKind=opts.compositeKind||"";
   card.className="field span-"+span+(opts.hero?" field--hero":"")+(dirty?" is-edited":"")+(locked?" is-locked":"")+(pick?" field--pick":"")+(allow?"":" is-required");
-  const showKey=jsonFact||String(f.key||"");const showJson=jsonFact&&jsonFact!==String(f.key||"");card.innerHTML=`<div class="field-head"><span class="field-label">${esc(f.label||f.key)}</span><span class="edited-badge">изменено</span>${emptyPillHtml(f,opts)}<span class="field-key" data-tip="Ключ параметра / путь в JSON">${esc(showKey)}</span>${showJson?`<span class="json-fact" data-tip="Полный путь в JSON SPOD: ${esc(jsonFact)}">${esc(jsonFact)}</span>`:""}<span class="kind-pill ${esc(kind)}" data-tip="${esc(kindLabel(kind))}">${esc(kindShort(kind))}</span></div>${f.description?`<div class="field-desc">${esc(f.description)}</div>`:""}<div class="field-control"></div>`;
+  const showKey=jsonFact||String(f.key||"");const showJson=jsonFact&&jsonFact!==String(f.key||"");card.innerHTML=`<div class="field-head"><span class="field-label">${esc(f.label||f.key)}</span><span class="edited-badge">изменено</span>${emptyPillHtml(f,opts)}${jsonRequiredPillHtml(f)}<span class="field-key" data-tip="Ключ параметра / путь в JSON">${esc(showKey)}</span>${showJson?`<span class="json-fact" data-tip="Полный путь в JSON SPOD: ${esc(jsonFact)}">${esc(jsonFact)}</span>`:""}<span class="kind-pill ${esc(kind)}" data-tip="${esc(kindLabel(kind))}">${esc(kindShort(kind))}</span></div>${f.description?`<div class="field-desc">${esc(f.description)}</div>`:""}<div class="field-control"></div>`;
   const host=card.querySelector(".field-control");
   const wrapChange=v=>{
     onChange(v);
@@ -3434,7 +3448,7 @@ function navItems(){
 
   // Строка 1: Конкурс → Индикаторы → Группы
   const rowMain=[];
-  rowMain.push({kind:"group",group:"contest",title:"Конкурс",meta:"DATA · JSON"});
+  rowMain.push({kind:"group",group:"contest",title:"Конкурс",meta:"карточка + FEATURE"});
   {
     const title=contestTypeNavLabel(data().contest.CONTEST_TYPE);
     const sub=contestCardSub();
@@ -3449,8 +3463,8 @@ function navItems(){
       tip:sub?title+" · "+sub:title,
     });
   }
-  rowMain.push({id:"CONTEST_FEATURE",title:"FEATURE",sub:"",tag:"json",tagLabel:"JSON",slot:true,child:true,tip:"Особенности · CONTEST_FEATURE"});
-  rowMain.push({id:"CONTEST_PERIOD",title:"Периоды",sub:"",tag:"json",tagLabel:"ARR",slot:true,child:true,tip:"Периоды · CONTEST_PERIOD"});
+  rowMain.push({id:"CONTEST_FEATURE",title:"Особенности",sub:"CONTEST_FEATURE",tag:"json",tagLabel:"JSON",slot:true,child:true,tip:"Особенности · CONTEST_FEATURE"});
+  rowMain.push({id:"CONTEST_PERIOD",title:"Периоды",sub:"CONTEST_PERIOD",tag:"json",tagLabel:"ARR",slot:true,child:true,tip:"Периоды · CONTEST_PERIOD"});
 
   rowMain.push({kind:"group",group:"ind",title:"Индикаторы",meta:indRows.length+" шт."});
   if(!indRows.length){
@@ -3508,9 +3522,9 @@ function navItems(){
       pairId:"PAIR:"+(i+1),
       addId:"ADD:"+(i+1),
       pairTitle:label,
-      pairSub:"",
-      addTitle:"ADD",
-      addSub:"",
+      pairSub:"связь + BADGE",
+      addTitle:"Особенности",
+      addSub:code?("JSON · "+code):"REWARD_ADD_DATA",
       tipPair:label+" · связь + BADGE",
       tipAdd:"JSON REWARD_ADD_DATA для награды "+(code||("#"+(i+1))),
     });
@@ -4224,8 +4238,7 @@ function renderTable(kind,title,cols,rowsKey){
   const cc=contestCodeOf();
   const head=cols.map(c=>{
     const f=meta(secId,c);
-    const allow=!!f.allow_empty;
-    return `<th data-tip="${esc(tipFor(f))}">${esc(c)} <span class="empty-pill ${allow?"is-opt":"is-req"}">${allow?"можно пусто":"обязательно"}</span></th>`;
+    return `<th data-tip="${esc(tipFor(f))}">${esc(c)} ${emptyPillHtml(f)}${jsonRequiredPillHtml(f)}</th>`;
   }).join("")+"<th></th>";
   const body=rows.map((row,ri)=>{
     row.CONTEST_CODE=cc;
