@@ -4,17 +4,18 @@ HTML-страница в стиле **Apple Liquid Glass**.
 
 ## Данные
 
-- Рабочий файл на старте: **`catalog.json`** рядом со страницей (Live Server / HTTP подхватывает сам).
-- Зеркало **`catalog.js`** (`window.PARAM_REVIEW_CATALOG`) — для `file://` и копий.
-- Копия для blank: `../param_catalog_review/catalog.json` (+ `catalog.js`).
-- Актуальный снимок правок из UI можно сохранить как `catalog_ГГГГММДД_ЧЧММ.json`; чтобы сделать его основным — скопируйте содержимое в `catalog.json` и выполните `python src/Tools/sync_web_fill_catalog.py` (сейчас в репозитории — данные из `catalog_20260816_0000.json`).
-
-Через **`file://`** без Live Server автозагрузка `catalog.json` недоступна: выберите файл в сайдбаре.
+- **Источник правды — `catalog.json`** (или снимок `catalog_….json` через «Выбрать файл»).
+- При старте страница **не** подгружает каталог сама: показывается экран «Откройте catalog.json».
+- После выбора файла baseline сбрасывается — меток «отредактировано» сразу после импорта быть не должно.
+- Черновик правок может лежать в `localStorage`; кнопка **«Продолжить черновик»** появляется только если черновик есть (не автозагрузка).
+- **«Перечитать catalog.json»** — явно прочитать `./catalog.json` по HTTP (Live Server).
+- Копия для blank: `../param_catalog_review/catalog.json`.
+- Файл **`catalog.js` в web-edit не используется** редактором (зеркало для других утилит/review при необходимости).
 
 ## Цикл
 
-1. Откройте `index.html` (лучше через Live Server) или выберите `catalog.json` в сайдбаре.
-2. Правки → «Сохранить JSON» → заменить файл в `web-edit/` (и при необходимости в `param_catalog_review/`).
+1. Откройте `index.html` → «Выбрать catalog.json».
+2. Правки → «Сохранить JSON» → положите файл обратно в `web-edit/catalog.json` (и при необходимости в `param_catalog_review/`).
 3. Токен `contest_badge_form_blank` читает `param_catalog_review/catalog.json`.
 
 ## Варианты и подписи (`variants` / `variant_labels`)
@@ -47,4 +48,4 @@ python src/Tools/build_param_review_editor.py
 python src/Tools/sync_web_fill_catalog.py
 ```
 
-Страница: `../web-fill/index.html` (скрипт обновляет `catalog.json` / `catalog.js` и блок `EMBEDDED_CATALOG` в `index.html`).
+Страница: `../web-fill/index.html` (скрипт обновляет `catalog.json` / `catalog.js` **в web-fill** и блок `EMBEDDED_CATALOG` в `index.html`).

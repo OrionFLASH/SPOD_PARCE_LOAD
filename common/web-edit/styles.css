@@ -136,7 +136,8 @@
 
 html, body {
   margin: 0;
-  min-height: 100%;
+  height: 100%;
+  overflow: hidden;
   font-family: var(--font);
   color: var(--glass-text);
   background: var(--glass-bg-gradient);
@@ -215,14 +216,15 @@ body::after {
   z-index: 1;
   display: grid;
   grid-template-columns: 360px minmax(0, 1fr);
-  min-height: 100vh;
+  height: 100%;
+  min-height: 0;
 }
 
 /* ——— Sidebar glass ——— */
 .sidebar {
   position: sticky;
   top: 0;
-  height: 100vh;
+  height: 100%;
   width: 100%;
   padding: 18px 16px 20px;
   display: flex;
@@ -312,20 +314,31 @@ body::after {
   overscroll-behavior: contain;
 }
 
-.sidebar-tools {
+.sidebar-filters,
+.sidebar-files {
   flex: 0 0 auto;
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
-.sidebar-tools .sidebar-block-title {
-  margin-bottom: 2px;
+.sidebar-filters .sidebar-block-title,
+.sidebar-files .sidebar-block-title {
+  margin-bottom: 4px;
 }
 
-.sidebar-tools .sidebar-block-title--spaced {
+.sidebar-sublabel {
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--glass-text-secondary);
+  opacity: 0.9;
+  margin: 0 0 2px;
+}
+
+.sidebar-sublabel--spaced {
   margin-top: 6px;
-  margin-bottom: 2px;
 }
 
 .sidebar-switch {
@@ -503,10 +516,15 @@ body::after {
 
 /* ——— Main ——— */
 .main {
-  padding: 22px 28px 64px;
+  padding: 22px 28px 20px;
   max-width: none;
   width: 100%;
   min-width: 0;
+  min-height: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .topbar {
@@ -515,10 +533,14 @@ body::after {
   gap: 16px;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 18px;
+  flex: 0 0 auto;
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  margin-bottom: 14px;
   padding: 18px 20px;
   border-radius: var(--radius-xl);
-  background: var(--glass-white);
+  background: rgba(255, 255, 255, 0.88);
   backdrop-filter: blur(var(--blur)) saturate(180%);
   -webkit-backdrop-filter: blur(var(--blur)) saturate(180%);
   border: 1px solid var(--glass-white-border);
@@ -750,7 +772,12 @@ body::after {
   display: flex;
   flex-direction: column;
   gap: 14px;
-  padding: 2px 2px 8px;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: 2px 4px 28px 2px;
+  scroll-padding-top: 8px;
 }
 
 .search-group-head {
@@ -1923,7 +1950,7 @@ body::after {
 }
 
 @media (max-width: 700px) {
-  .main { padding: 14px; }
+  .main { padding: 14px 14px 12px; }
   .search-wrap { flex: 1 1 100%; width: 100%; }
   #search { min-width: 0; width: 100%; }
 }

@@ -2,10 +2,10 @@
 (function () {
   "use strict";
 
-  const LS_KEY = "spod_param_review_catalog_v5";
-  const LS_BASELINE_KEY = "spod_param_review_baseline_v5";
-  const LS_SOURCE_KEY = "spod_param_review_source_v5";
-  /** Только catalog.json рядом со страницей (без catalog.js и без соседних папок). */
+  const LS_KEY = "spod_param_review_catalog_v6";
+  const LS_BASELINE_KEY = "spod_param_review_baseline_v6";
+  const LS_SOURCE_KEY = "spod_param_review_source_v6";
+  /** Рабочий источник — catalog.json (файл через диалог или «Перечитать» по HTTP). catalog.js не используется. */
   const CATALOG_URL = "./catalog.json";
   const KINDS = ["dropdown", "dropdown_custom", "text", "number", "list", "json", "date"];
   const KIND_LABELS = {
@@ -155,12 +155,27 @@
     normalizeCatalogFields(catalog);
     sourceStamp = catalogStamp(catalog);
     activeSectionId = catalog.sections[0]?.id || null;
-    if (resetBaseline) captureBaseline();
-    else if (!loadBaseline()) captureBaseline();
-    if (persistDraft) persist();
+    if (resetBaseline) {
+      baseline = {};
+      try {
+        localStorage.removeItem(LS_BASELINE_KEY);
+      } catch (_) {
+        /* ignore */
+      }
+    }
     showApp();
     syncWorkspaceMode();
+    // Сначала отрисовка (UI может чуть нормализовать поля), затем baseline —
+    // иначе ложные «отредактировано» сразу после импорта.
     renderAll();
+    if (resetBaseline) {
+      captureBaseline();
+    } else if (!loadBaseline()) {
+      captureBaseline();
+    }
+    if (persistDraft) persist({ quiet: true });
+    renderAll();
+    syncEmptyDraftHint();
   }
 
   /** Канонический снимок поля для сравнения с baseline (без ложных «правок»). */
@@ -337,52 +352,85 @@
     sourceStamp = "";
     showApp();
     syncWorkspaceMode();
+    syncEmptyDraftHint();
   }
 
-  async function bootFromFile({ forceFile = false } = {}) {
+  function hasStoredDraft() {
+    try {
+      const raw = localStorage.getItem(LS_KEY);
+      if (!raw) return false;
+      const saved = JSON.parse(raw);
+      return !!(saved && Array.isArray(saved.sections) && saved.sections.length);
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function syncEmptyDraftHint() {
+    const btn = $("btn-resume-draft");
+    if (!btn) return;
+    const show = !hasCatalog() && hasStoredDraft();
+    btn.hidden = !show;
+  }
+
+  /** Продолжить черновик из localStorage (явная кнопка, не автозагрузка). */
+  function resumeDraftFromBrowser() {
+    const draft = tryRestoreDraft("");
+    if (!draft) {
+      showToast("Черновика нет");
+      syncEmptyDraftHint();
+      return;
+    }
+    catalog = draft;
+    normalizeCatalogFields(catalog);
+    sourceStamp =
+      localStorage.getItem(LS_SOURCE_KEY) || catalogStamp(draft);
+    activeSectionId = catalog.sections[0]?.id || null;
     showApp();
+    syncWorkspaceMode();
+    renderAll();
+    if (!loadBaseline()) captureBaseline();
+    else {
+      // baseline мог устареть относительно нормализации — пересчитать метки
+      // только если нет реальных отличий после нормализации: оставляем как есть
+    }
+    persist({ quiet: true });
+    renderAll();
+    showToast("Черновик из браузера");
+    syncEmptyDraftHint();
+  }
+
+  /**
+   * Старт: пустой экран «выберите catalog.json».
+   * Автозагрузка файла/черновика отключена — иначе сразу «отредактировано»
+   * из старого baseline в браузере.
+   */
+  function boot() {
+    enterEmptyWorkspace();
+  }
+
+  /** Явно перечитать ./catalog.json (Live Server / HTTP). */
+  async function reloadCatalogFromDisk() {
     try {
       const fileData = await loadSourceCatalog();
-      const fileStamp = catalogStamp(fileData);
-      if (!forceFile) {
-        const draft = tryRestoreDraft(fileStamp);
-        if (draft) {
-          sourceStamp = fileStamp || catalogStamp(draft);
-          catalog = draft;
-          normalizeCatalogFields(catalog);
-          if (!loadBaseline()) captureBaseline();
-          syncWorkspaceMode();
-          renderAll();
-          showToast("Черновик из браузера");
-          return;
-        }
-      }
       applyCatalog(fileData, { resetBaseline: true, persistDraft: true });
       showToast("Загружен catalog.json");
-    } catch (_) {
-      if (!forceFile) {
-        // без файла на диске — взять черновик, если уже открывали
-        const draft = tryRestoreDraft("");
-        if (draft) {
-          sourceStamp = catalogStamp(draft);
-          catalog = draft;
-          normalizeCatalogFields(catalog);
-          if (!loadBaseline()) captureBaseline();
-          syncWorkspaceMode();
-          renderAll();
-          showToast("Черновик из браузера");
-          return;
-        }
-      }
+    } catch (err) {
+      const msg = err && err.message ? err.message : String(err);
+      alert(
+        "Не удалось прочитать ./catalog.json.\n" +
+          "Откройте страницу через Live Server или выберите файл вручную.\n\n" +
+          msg
+      );
       enterEmptyWorkspace();
     }
   }
 
-  function persist() {
+  function persist({ quiet = false } = {}) {
     if (!catalog) return;
     localStorage.setItem(LS_KEY, JSON.stringify(catalog));
     localStorage.setItem(LS_SOURCE_KEY, sourceStamp || catalogStamp(catalog));
-    showToast("Черновик в браузере");
+    if (!quiet) showToast("Черновик в браузере");
   }
 
   function schedulePersist() {
@@ -1435,14 +1483,16 @@
     const labelsText = (field.variant_labels || []).join("\n");
     const variantsActive = kindHasVariants(field.kind);
     const jsonFact = (field.json_target || "").trim();
+    const displayKey = jsonFact || field.key;
+    const showJsonFact = Boolean(jsonFact && jsonFact !== field.key);
 
     card.innerHTML = `
       <div class="card-head">
         <div class="card-key-wrap">
           <span class="card-n" data-tip="Порядковый номер поля в разделе">#${field.n}</span>
-          <span class="card-key" data-tip="Технический ключ параметра в форме / SPOD">${escapeHtml(field.key)}</span>
+          <span class="card-key" data-tip="Технический ключ параметра (колонка JSON / поле SPOD)">${escapeHtml(displayKey)}</span>
           ${
-            jsonFact
+            showJsonFact
               ? `<span class="json-fact" data-tip="Полный путь ключа в JSON SPOD (колонка.лист; не редактируется): ${escapeHtml(
                   jsonFact
                 )}">${escapeHtml(jsonFact)}</span>`
@@ -2143,7 +2193,7 @@
     $("btn-reload").addEventListener("click", () => {
       if (
         !confirm(
-          "Сбросить черновик в браузере и заново прочитать catalog.json?"
+          "Сбросить черновик в браузере и заново прочитать catalog.json рядом со страницей?"
         )
       ) {
         return;
@@ -2152,10 +2202,15 @@
       localStorage.removeItem(LS_BASELINE_KEY);
       localStorage.removeItem(LS_SOURCE_KEY);
       resetEditFilterUi();
-      bootFromFile({ forceFile: true });
+      reloadCatalogFromDisk();
     });
+
+    const resumeBtn = $("btn-resume-draft");
+    if (resumeBtn) {
+      resumeBtn.addEventListener("click", () => resumeDraftFromBrowser());
+    }
   }
 
   wire();
-  bootFromFile();
+  boot();
 })();

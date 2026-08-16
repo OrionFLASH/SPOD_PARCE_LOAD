@@ -107,6 +107,29 @@ def load_param_catalog(path: str | Path) -> int:
                 else:
                     # не затирать CONTEST и др.; доп. ключ по секции
                     _fields_by_key[f"{sid}.{key}"] = entry
+                # Алиасы blank/Excel KV ↔ каталог (FEATURE.* / ADD.*)
+                if sid == "CONTEST_FEATURE":
+                    leaf = (
+                        key[len("CONTEST_FEATURE.") :]
+                        if key.startswith("CONTEST_FEATURE.")
+                        else key[len("FEATURE.") :]
+                        if key.startswith("FEATURE.")
+                        else ""
+                    )
+                    if leaf:
+                        _fields_by_key[f"FEATURE.{leaf}"] = entry
+                        _fields_by_key[f"CONTEST_FEATURE.{leaf}"] = entry
+                elif sid == "REWARD_ADD_DATA":
+                    leaf = (
+                        key[len("REWARD_ADD_DATA.") :]
+                        if key.startswith("REWARD_ADD_DATA.")
+                        else key[len("ADD.") :]
+                        if key.startswith("ADD.")
+                        else ""
+                    )
+                    if leaf:
+                        _fields_by_key[f"ADD.{leaf}"] = entry
+                        _fields_by_key[f"REWARD_ADD_DATA.{leaf}"] = entry
             n += 1
 
     logging.info(

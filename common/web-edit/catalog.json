@@ -196,7 +196,8 @@
           "variants": [
             "CRITERION",
             "RATING_MAX",
-            "RATING_MIN"
+            "RATING_MIN",
+            "GAIN"
           ],
           "default": "CRITERION",
           "allow_empty": false,
@@ -205,7 +206,8 @@
           "variant_labels": [
             "Достигни",
             "Больше - лучше",
-            "Меньше - лучше"
+            "Меньше - лучше",
+            ""
           ]
         },
         {
@@ -378,17 +380,21 @@
           "key": "FACT_POST_PROCESSING",
           "status": "[v]",
           "label": "Постобработка факта",
-          "description": "Постобработка факта для автоматического расчета. Правило постобработки показателя конкурса. PERCENTILE — вычисление перцентиля от фактического показателя конкурса",
+          "description": "Правило постобработки показателя конкурса. PERCENTILE, SPECIAL_INDICATOR_1, COUNT_BIGGER",
           "kind": "dropdown",
           "variants": [
-            "PERCENTILE"
+            "PERCENTILE",
+            "COUNT_BIGGER",
+            "SPECIAL_INDICATOR_1"
           ],
           "default": "",
           "allow_empty": true,
           "json_target": "",
           "note": "",
           "variant_labels": [
-            "Процентиль"
+            "Процентиль",
+            "Количество с лучшим показателем",
+            "Специальный показатель"
           ]
         },
         {
@@ -441,9 +447,9 @@
       "fields": [
         {
           "n": 25,
-          "key": "FEATURE.vid",
+          "key": "CONTEST_FEATURE.vid",
           "status": "[v]",
-          "label": "FEATURE.Среда конкурса",
+          "label": "Среда конкурса",
           "description": "Опредедяем среду для конкурса (по умолчанию ПРОМ)",
           "kind": "dropdown",
           "variants": [
@@ -461,7 +467,7 @@
         },
         {
           "n": 26,
-          "key": "FEATURE.accuracy",
+          "key": "CONTEST_FEATURE.accuracy",
           "status": "[v]",
           "label": "Округление до...",
           "description": "Точность/разрядность: 0  |  1  |  2 . (число знаков после запятой для отображения)",
@@ -483,7 +489,7 @@
         },
         {
           "n": 27,
-          "key": "FEATURE.capacity",
+          "key": "CONTEST_FEATURE.capacity",
           "status": "[v]",
           "label": "Приведение к млн / тыс.",
           "description": "Приведение отображаемого показателя к млн, к тыс.",
@@ -503,7 +509,7 @@
         },
         {
           "n": 28,
-          "key": "FEATURE.masking",
+          "key": "CONTEST_FEATURE.masking",
           "status": "[v]",
           "label": "masking",
           "description": "Всегда ставами в Нет (N)",
@@ -523,7 +529,7 @@
         },
         {
           "n": 29,
-          "key": "FEATURE.minNumber",
+          "key": "CONTEST_FEATURE.minNumber",
           "status": "[v]",
           "label": "Минимум участников",
           "description": "Мин. число участников на уровне чтобы считать победителей (исключаем соревнование сам с собой): 1  |  2  |  3.",
@@ -540,7 +546,7 @@
         },
         {
           "n": 30,
-          "key": "FEATURE.momentRewarding",
+          "key": "CONTEST_FEATURE.momentRewarding",
           "status": "[v]",
           "label": "Когда выбираем победителей",
           "description": "Момент награждения после закрытия турнира / во время турнира",
@@ -560,7 +566,7 @@
         },
         {
           "n": 31,
-          "key": "FEATURE.typeRewarding",
+          "key": "CONTEST_FEATURE.typeRewarding",
           "status": "[v]",
           "label": "Сколько наград получает",
           "description": "Вручаем одну из 3 наград или все",
@@ -580,7 +586,7 @@
         },
         {
           "n": 32,
-          "key": "FEATURE.avatarShow",
+          "key": "CONTEST_FEATURE.avatarShow",
           "status": "[v]",
           "label": "Показывать аватар?",
           "description": "Управление показом фотографий участников",
@@ -600,7 +606,7 @@
         },
         {
           "n": 33,
-          "key": "FEATURE.tournamentTeam",
+          "key": "CONTEST_FEATURE.tournamentTeam",
           "status": "[v]",
           "label": "Признак командного конкурса",
           "description": "При выборе командного турнира соревнуются не сотрудники, а команды (КПК/ Отдел/ ГОСБ/ ТБ)",
@@ -620,7 +626,7 @@
         },
         {
           "n": 34,
-          "key": "FEATURE.persomanNumberVisible",
+          "key": "CONTEST_FEATURE.persomanNumberVisible",
           "status": "[v]",
           "label": "Видимость для сотрудника",
           "description": "Если указаны табельные, то только эти сотрудники увидят турнир",
@@ -633,7 +639,7 @@
         },
         {
           "n": 35,
-          "key": "FEATURE.persomanNumberHidden",
+          "key": "CONTEST_FEATURE.persomanNumberHidden",
           "status": "[v]",
           "label": "Скрытие для сотрудников",
           "description": "Если указаны табельные, то эти сотрудники не увидят турнир",
@@ -646,7 +652,7 @@
         },
         {
           "n": 36,
-          "key": "FEATURE.tournamentStartMailing",
+          "key": "CONTEST_FEATURE.tournamentStartMailing",
           "status": "[v]",
           "label": "Письма о старте турнира",
           "description": "В дату старта турнира участникам из вертикали придет письмо с уведомлением о старте турнира",
@@ -666,7 +672,7 @@
         },
         {
           "n": 37,
-          "key": "FEATURE.tournamentEndMailing",
+          "key": "CONTEST_FEATURE.tournamentEndMailing",
           "status": "[v]",
           "label": "Письмо о завершении турнира",
           "description": "Когда турнир закроется и подведут итоги участникам не победившим придет письмо о закрытии турнира",
@@ -686,7 +692,7 @@
         },
         {
           "n": 38,
-          "key": "FEATURE.tournamentLikeMailing",
+          "key": "CONTEST_FEATURE.tournamentLikeMailing",
           "status": "[v]",
           "label": "Письмо о лайке",
           "description": "Рассылка писем о лайках на новости с участием сотрудника",
@@ -706,7 +712,7 @@
         },
         {
           "n": 39,
-          "key": "FEATURE.tournamentListMailing",
+          "key": "CONTEST_FEATURE.tournamentListMailing",
           "status": "[w]",
           "label": "Письмо о...",
           "description": "описание готовится (по умолчанию пусто)",
@@ -719,7 +725,7 @@
         },
         {
           "n": 40,
-          "key": "FEATURE.tournamentRewardingMailing",
+          "key": "CONTEST_FEATURE.tournamentRewardingMailing",
           "status": "[v]",
           "label": "Письмо о награждении",
           "description": "РАссылка письма получателям награды после ее вручения",
@@ -739,7 +745,7 @@
         },
         {
           "n": 41,
-          "key": "FEATURE.feature",
+          "key": "CONTEST_FEATURE.feature",
           "status": "[v]",
           "label": "Особенности конкурса",
           "description": "Тексты особенностей турнира. Показываем в детальной карточке турнира, можно указать несколько",
@@ -752,7 +758,7 @@
         },
         {
           "n": 42,
-          "key": "FEATURE.businessBlock",
+          "key": "CONTEST_FEATURE.businessBlock",
           "status": "[v]",
           "label": "Бизнес-блок",
           "description": "Бизнес блок конкурса и его участников",
@@ -776,7 +782,7 @@
         },
         {
           "n": 43,
-          "key": "FEATURE.helpCodeList",
+          "key": "CONTEST_FEATURE.helpCodeList",
           "status": "[v]",
           "label": "Код окна с описанием показателя",
           "description": "Коды для вывода окна с дополнительным описанием конкурса (доступно в детальной карточке турнира)",
@@ -789,10 +795,10 @@
         },
         {
           "n": 44,
-          "key": "FEATURE.preferences",
+          "key": "CONTEST_FEATURE.preferences",
           "status": "[v]",
           "label": "Преференции за победу",
-          "description": "Преференции за получение награды если предусмотрены",
+          "description": "Преференции за победу в турнире если предусмотрены (отображаем в детальной карточке турнира)",
           "kind": "list",
           "variants": [],
           "default": "",
@@ -802,7 +808,7 @@
         },
         {
           "n": 45,
-          "key": "FEATURE.tbVisible",
+          "key": "CONTEST_FEATURE.tbVisible",
           "status": "[v]",
           "label": "Видимость для ТБ",
           "description": "Только эти ТБ (если указаны) увидят конкурс",
@@ -815,7 +821,7 @@
         },
         {
           "n": 46,
-          "key": "FEATURE.tbHidden",
+          "key": "CONTEST_FEATURE.tbHidden",
           "status": "[v]",
           "label": "Скрытие для ТБ",
           "description": "Конкурс видят все ТБ, кроме указанных здесь",
@@ -828,7 +834,7 @@
         },
         {
           "n": 47,
-          "key": "FEATURE.gosbVisible",
+          "key": "CONTEST_FEATURE.gosbVisible",
           "status": "[v]",
           "label": "Видимость для ГОСБ",
           "description": "Только эти ГОСБ (если указаны) увидят конкурс",
@@ -841,7 +847,7 @@
         },
         {
           "n": 48,
-          "key": "FEATURE.gosbHidden",
+          "key": "CONTEST_FEATURE.gosbHidden",
           "status": "[v]",
           "label": "Скрытие для ГОСБ",
           "description": "Конкурс видят все ГОСБ, кроме указанных здесь",
@@ -929,15 +935,22 @@
         {
           "n": 53,
           "key": "REWARD_CONDITION",
-          "status": "[w]",
-          "label": "Условие награды",
-          "description": "Класс/код условия начисления (часто пусто или код).",
-          "kind": "text",
-          "variants": [],
-          "default": "",
-          "allow_empty": true,
+          "status": "[v]",
+          "label": "Условия получения награды",
+          "description": "Условия получения награды (1-победа в конкурсе, 2 - участие в конкурсе)",
+          "kind": "dropdown",
+          "variants": [
+            "1",
+            "2"
+          ],
+          "default": "1",
+          "allow_empty": false,
           "json_target": "",
-          "note": ""
+          "note": "",
+          "variant_labels": [
+            "победа",
+            "участие"
+          ]
         },
         {
           "n": 54,
@@ -965,17 +978,17 @@
       "fields": [
         {
           "n": 55,
-          "key": "ADD.nftFlg",
-          "status": "[ ]",
-          "label": "ADD.nftFlg",
-          "description": "NFT-флаг: Y  |  N (обычно N).",
+          "key": "REWARD_ADD_DATA.nftFlg",
+          "status": "[v]",
+          "label": "Признак NFT",
+          "description": "Ставить метку на награду / турнир?",
           "kind": "dropdown",
           "variants": [
             "Y",
             "N"
           ],
           "default": "N",
-          "allow_empty": true,
+          "allow_empty": false,
           "json_target": "REWARD_ADD_DATA.nftFlg",
           "note": "N (обычно N).",
           "variant_labels": [
@@ -985,17 +998,17 @@
         },
         {
           "n": 56,
-          "key": "ADD.outstanding",
-          "status": "[ ]",
-          "label": "ADD.outstanding",
-          "description": "Выдающийся: Y  |  N.",
+          "key": "REWARD_ADD_DATA.outstanding",
+          "status": "[v]",
+          "label": "Выпуск новостей",
+          "description": "При получении награды выходит новость с поздравлением а Сообществе",
           "kind": "dropdown",
           "variants": [
             "Y",
             "N"
           ],
           "default": "N",
-          "allow_empty": true,
+          "allow_empty": false,
           "json_target": "REWARD_ADD_DATA.outstanding",
           "note": "N.",
           "variant_labels": [
@@ -1005,10 +1018,10 @@
         },
         {
           "n": 57,
-          "key": "ADD.rewardRule",
-          "status": "[ ]",
-          "label": "ADD.rewardRule",
-          "description": "Текст правила получения бейджа.",
+          "key": "REWARD_ADD_DATA.rewardRule",
+          "status": "[v]",
+          "label": "Правило получения",
+          "description": "Текст правила получения награды для отображения в детальной карточке награды",
           "kind": "text",
           "variants": [],
           "default": "",
@@ -1018,17 +1031,17 @@
         },
         {
           "n": 58,
-          "key": "ADD.rewardAgainGlobal",
-          "status": "[ ]",
-          "label": "ADD.rewardAgainGlobal",
-          "description": "Повтор глобально: Y  |  N.",
+          "key": "REWARD_ADD_DATA.rewardAgainGlobal",
+          "status": "[v]",
+          "label": "Повтор в другом турнире",
+          "description": "Можно ли награду получить больше одного раза в разных турнирах",
           "kind": "dropdown",
           "variants": [
             "Y",
             "N"
           ],
           "default": "N",
-          "allow_empty": true,
+          "allow_empty": false,
           "json_target": "REWARD_ADD_DATA.rewardAgainGlobal",
           "note": "N.",
           "variant_labels": [
@@ -1038,17 +1051,17 @@
         },
         {
           "n": 59,
-          "key": "ADD.rewardAgainTournament",
-          "status": "[ ]",
-          "label": "ADD.rewardAgainTournament",
-          "description": "Повтор в турнире: Y  |  N (часто N).",
+          "key": "REWARD_ADD_DATA.rewardAgainTournament",
+          "status": "[v]",
+          "label": "Повтор в текущем турнире",
+          "description": "Можно ли награду получить больше одного раза в одном турнире (не используем всегда Нет (N))",
           "kind": "dropdown",
           "variants": [
             "Y",
             "N"
           ],
           "default": "N",
-          "allow_empty": true,
+          "allow_empty": false,
           "json_target": "REWARD_ADD_DATA.rewardAgainTournament",
           "note": "N (часто N).",
           "variant_labels": [
@@ -1058,17 +1071,17 @@
         },
         {
           "n": 60,
-          "key": "ADD.hidden",
-          "status": "[ ]",
-          "label": "ADD.hidden",
-          "description": "Скрыт: Y  |  N.",
+          "key": "REWARD_ADD_DATA.hidden",
+          "status": "[v]",
+          "label": "Скрыть награду",
+          "description": "Скрывает награду во всех местах",
           "kind": "dropdown",
           "variants": [
             "Y",
             "N"
           ],
           "default": "N",
-          "allow_empty": true,
+          "allow_empty": false,
           "json_target": "REWARD_ADD_DATA.hidden",
           "note": "N.",
           "variant_labels": [
@@ -1078,23 +1091,23 @@
         },
         {
           "n": 61,
-          "key": "ADD.fileName",
-          "status": "[ ]",
-          "label": "ADD.fileName",
-          "description": "Имя файла арта/иконки (код); часто пусто.",
+          "key": "REWARD_ADD_DATA.fileName",
+          "status": "[v]",
+          "label": "Техническое имя награды",
+          "description": "Техническое наименование группы наград",
           "kind": "text",
           "variants": [],
           "default": "",
-          "allow_empty": true,
+          "allow_empty": false,
           "json_target": "REWARD_ADD_DATA.fileName",
           "note": ""
         },
         {
           "n": 62,
-          "key": "ADD.teamNews",
-          "status": "[ ]",
-          "label": "ADD.teamNews",
-          "description": "Текст командной новости (шаблон с [Имя] и т.п.).",
+          "key": "REWARD_ADD_DATA.teamNews",
+          "status": "[v]",
+          "label": "Текст групповой новости",
+          "description": "Текст новости с выпуском по шаблону, когда победителей более одного",
           "kind": "text",
           "variants": [],
           "default": "",
@@ -1104,10 +1117,10 @@
         },
         {
           "n": 63,
-          "key": "ADD.singleNews",
-          "status": "[ ]",
-          "label": "ADD.singleNews",
-          "description": "Текст индивидуальной новости.",
+          "key": "REWARD_ADD_DATA.singleNews",
+          "status": "[v]",
+          "label": "Текст одиночной новости",
+          "description": "Текст новости с выпуском по шаблону, когда победитель один",
           "kind": "text",
           "variants": [],
           "default": "",
@@ -1117,17 +1130,17 @@
         },
         {
           "n": 64,
-          "key": "ADD.masterBadge",
-          "status": "[ ]",
-          "label": "ADD.masterBadge",
-          "description": "Мастер-бейдж: Y  |  N. (Y — для награды / N — для турнира)",
+          "key": "REWARD_ADD_DATA.masterBadge",
+          "status": "[v]",
+          "label": "Выбор мастер бейджа",
+          "description": "Признак является ли данная награда основной для вручения (Награда - Да (Y) / Турнир - Нет (N))",
           "kind": "dropdown",
           "variants": [
             "Y",
             "N"
           ],
-          "default": "N",
-          "allow_empty": true,
+          "default": "Y",
+          "allow_empty": false,
           "json_target": "REWARD_ADD_DATA.masterBadge",
           "note": "N. (Y — для награды / N — для турнира)",
           "variant_labels": [
@@ -1137,40 +1150,45 @@
         },
         {
           "n": 65,
-          "key": "ADD.parentRewardCode",
-          "status": "[ ]",
-          "label": "ADD.parentRewardCode",
-          "description": "Код родительской награды (если есть).",
+          "key": "REWARD_ADD_DATA.parentRewardCode",
+          "status": "[v]",
+          "label": "Код Мастер-беджа",
+          "description": "Код родительской (Мастер) награды. (Награда = коду награды / Турнир = коду сезонной награды)",
           "kind": "text",
           "variants": [],
           "default": "",
-          "allow_empty": true,
+          "allow_empty": false,
           "json_target": "REWARD_ADD_DATA.parentRewardCode",
           "note": ""
         },
         {
           "n": 66,
-          "key": "ADD.priority",
-          "status": "[ ]",
-          "label": "ADD.priority",
-          "description": "Приоритет слота: 1  |  2  |  3.",
+          "key": "REWARD_ADD_DATA.priority",
+          "status": "[v]",
+          "label": "Приоритет награды",
+          "description": "Признак отнесения вида награды к Золоту/Серебру/Бронзе",
           "kind": "dropdown",
           "variants": [
             "1",
             "2",
             "3"
           ],
-          "default": "",
-          "allow_empty": true,
+          "default": "1",
+          "allow_empty": false,
           "json_target": "REWARD_ADD_DATA.priority",
-          "note": ""
+          "note": "",
+          "variant_labels": [
+            "Золото",
+            "Серебро",
+            "Бронза"
+          ]
         },
         {
           "n": 67,
-          "key": "ADD.recommendationLevel",
-          "status": "[ ]",
-          "label": "ADD.recommendationLevel",
-          "description": "Уровень: BANK  |  TB  |  GOSB  |  NON.",
+          "key": "REWARD_ADD_DATA.recommendationLevel",
+          "status": "[v]",
+          "label": "Уровень для рекомендаций",
+          "description": "Уровень для отбора в рекомендательную систему",
           "kind": "dropdown",
           "variants": [
             "BANK",
@@ -1178,26 +1196,32 @@
             "GOSB",
             "NON"
           ],
-          "default": "",
-          "allow_empty": true,
+          "default": "BANK",
+          "allow_empty": false,
           "json_target": "REWARD_ADD_DATA.recommendationLevel",
-          "note": ""
+          "note": "",
+          "variant_labels": [
+            "Страна",
+            "Тер. банк",
+            "ГОСБ",
+            "нет"
+          ]
         },
         {
           "n": 68,
-          "key": "ADD.refreshOldNews",
-          "status": "[ ]",
-          "label": "ADD.refreshOldNews",
-          "description": "Обновлять старые новости: Y  |  N.",
+          "key": "REWARD_ADD_DATA.refreshOldNews",
+          "status": "[v]",
+          "label": "Обновление новости",
+          "description": "Обновлять старые новости по этой награде или выпускать новую каждый раз",
           "kind": "dropdown",
           "variants": [
             "Y",
             "N"
           ],
           "default": "N",
-          "allow_empty": true,
+          "allow_empty": false,
           "json_target": "REWARD_ADD_DATA.refreshOldNews",
-          "note": "N.",
+          "note": "",
           "variant_labels": [
             "Да",
             "Нет"
@@ -1205,19 +1229,19 @@
         },
         {
           "n": 69,
-          "key": "ADD.tournamentTeam",
-          "status": "[ ]",
-          "label": "ADD.tournamentTeam",
-          "description": "Командный режим награды: Y  |  N.",
+          "key": "REWARD_ADD_DATA.tournamentTeam",
+          "status": "[v]",
+          "label": "Коммандная награда",
+          "description": "Командный режим награды",
           "kind": "dropdown",
           "variants": [
             "Y",
             "N"
           ],
           "default": "N",
-          "allow_empty": true,
+          "allow_empty": false,
           "json_target": "REWARD_ADD_DATA.tournamentTeam",
-          "note": "N.",
+          "note": "",
           "variant_labels": [
             "Да",
             "Нет"
@@ -1225,39 +1249,56 @@
         },
         {
           "n": 70,
-          "key": "ADD.seasonItem",
-          "status": "[ ]",
-          "label": "ADD.seasonItem",
-          "description": "Код сезонного ITEM (если связан).",
-          "kind": "text",
-          "variants": [],
-          "default": "",
-          "allow_empty": true,
+          "key": "REWARD_ADD_DATA.seasonItem",
+          "status": "[v]",
+          "label": "Код сезона товара",
+          "description": "Код сезона для сезонной награды и товара",
+          "kind": "dropdown",
+          "variants": [
+            "SEASON_mmb_2026",
+            "SEASON_2026_1",
+            "SEASON_akm_2026",
+            "SEASON_csm_2026",
+            "SEASON_m_2026_1"
+          ],
+          "default": "SEASON_mmb_2026",
+          "allow_empty": false,
           "json_target": "REWARD_ADD_DATA.seasonItem",
-          "note": ""
+          "note": "",
+          "variant_labels": [
+            "Сезон 2026 (ММБ)",
+            "Сезон 2026 (ККСБ)",
+            "Сезон 2026 (АКМ)",
+            "Сезон 2026  (CSM)",
+            "Сезон 2026 (МНС)"
+          ]
         },
         {
           "n": 71,
-          "key": "ADD.newsType",
-          "status": "[ ]",
-          "label": "ADD.newsType",
-          "description": "Тип новости: AIPROMPT  |  TEMPLATE. (генерит ИИ / по шаблону)",
+          "key": "REWARD_ADD_DATA.newsType",
+          "status": "[v]",
+          "label": "Тип выпускаемых новостей",
+          "description": "Как формируются новости о награде (AI-генерация / Создание по шаблону)",
           "kind": "dropdown",
           "variants": [
             "AIPROMPT",
             "TEMPLATE"
           ],
-          "default": "",
-          "allow_empty": true,
+          "default": "AIPROMPT",
+          "allow_empty": false,
           "json_target": "REWARD_ADD_DATA.newsType",
-          "note": "TEMPLATE. (генерит ИИ / по шаблону)"
+          "note": "TEMPLATE. (генерит ИИ / по шаблону)",
+          "variant_labels": [
+            "AI-генерация",
+            "Шаблон"
+          ]
         },
         {
           "n": 72,
-          "key": "ADD.winCriterion",
-          "status": "[ ]",
-          "label": "ADD.winCriterion",
-          "description": "Текст критерия победы для ИИ создания новости",
+          "key": "REWARD_ADD_DATA.winCriterion",
+          "status": "[v]",
+          "label": "Критерий победы для новости",
+          "description": "Текст критерия победы для AI-создания новостей",
           "kind": "text",
           "variants": [],
           "default": "",
@@ -1267,10 +1308,10 @@
         },
         {
           "n": 73,
-          "key": "ADD.preferences",
-          "status": "[ ]",
-          "label": "ADD.preferences (через ;)",
-          "description": "Преференции если предусмотрены за награду",
+          "key": "REWARD_ADD_DATA.preferences",
+          "status": "[v]",
+          "label": "Преференции за победу",
+          "description": "Преференции за получение награды если предусмотрены (отображаем в детальной карточке Бейджа (награды))",
           "kind": "list",
           "variants": [],
           "default": "",
@@ -1280,10 +1321,10 @@
         },
         {
           "n": 74,
-          "key": "ADD.feature",
-          "status": "[ ]",
-          "label": "ADD.feature (через ;)",
-          "description": "Особенности награды через ; . (показываем в Награде)",
+          "key": "REWARD_ADD_DATA.feature",
+          "status": "[v]",
+          "label": "Особенности награды",
+          "description": "Особенности награды для показа в Детальной карточке бейджа",
           "kind": "list",
           "variants": [],
           "default": "",
@@ -1293,10 +1334,10 @@
         },
         {
           "n": 75,
-          "key": "ADD.businessBlock",
-          "status": "[ ]",
-          "label": "ADD.businessBlock (через ;)",
-          "description": "Блоки награды через ; . Варианты: KMMMB, KMKKSB, CSM, AKMKKSB. По умолчанию KMMMB.",
+          "key": "REWARD_ADD_DATA.businessBlock",
+          "status": "[v]",
+          "label": "Бизнес-блок награды",
+          "description": "Бизнес блок награды и участников кто может претендовать",
           "kind": "list",
           "variants": [
             "KMMMB",
@@ -1311,10 +1352,10 @@
         },
         {
           "n": 76,
-          "key": "ADD.helpCodeList",
-          "status": "[ ]",
-          "label": "ADD.helpCodeList (через ;)",
-          "description": "Коды help через ; .",
+          "key": "REWARD_ADD_DATA.helpCodeList",
+          "status": "[v]",
+          "label": "Код окна с описанием показателя",
+          "description": "Коды для вывода окна с дополнительным описанием конкурса (доступно в детальной карточке награды)",
           "kind": "list",
           "variants": [],
           "default": "",
@@ -1324,17 +1365,17 @@
         },
         {
           "n": 77,
-          "key": "ADD.hiddenRewardList",
-          "status": "[ ]",
-          "label": "ADD.hiddenRewardList",
-          "description": "Скрыт в списке наград: Y  |  N.",
+          "key": "REWARD_ADD_DATA.hiddenRewardList",
+          "status": "[v]",
+          "label": "Скрыть в списках",
+          "description": "Скрывает награду в списках",
           "kind": "dropdown",
           "variants": [
             "Y",
             "N"
           ],
           "default": "N",
-          "allow_empty": true,
+          "allow_empty": false,
           "json_target": "REWARD_ADD_DATA.hiddenRewardList",
           "note": "N.",
           "variant_labels": [
@@ -1358,7 +1399,7 @@
           "key": "CONTEST_CODE",
           "status": "[v]",
           "label": "Код конкурса",
-          "description": "Код конкурса (= CONTEST_CODE на листе CONTEST)",
+          "description": "Уникальный код конкурса (ключ связей). Пример: 01_2025-0_11-1_1",
           "kind": "text",
           "variants": [],
           "default": "",
@@ -1417,22 +1458,22 @@
         {
           "n": 81,
           "key": "CONTEST_CODE",
-          "status": "[ ]",
-          "label": "CONTEST_CODE",
-          "description": "Код конкурса",
+          "status": "[v]",
+          "label": "Код конкурса",
+          "description": "Уникальный код конкурса (ключ связей). Пример: 01_2025-0_11-1_1",
           "kind": "text",
           "variants": [],
           "default": "",
-          "allow_empty": true,
+          "allow_empty": false,
           "json_target": "",
           "note": ""
         },
         {
           "n": 82,
           "key": "GROUP_CODE",
-          "status": "[ ]",
-          "label": "GROUP_CODE",
-          "description": "BANK  |  TB  |  GOSB  |  GROUPING",
+          "status": "[v]",
+          "label": "Код уровня награды",
+          "description": "Выбор уровня на котором выбираем победителей (среди кого соревнуемся)",
           "kind": "dropdown",
           "variants": [
             "BANK",
@@ -1440,86 +1481,126 @@
             "GOSB",
             "GROUPING"
           ],
-          "default": "",
-          "allow_empty": true,
+          "default": "BANK",
+          "allow_empty": false,
           "json_target": "",
-          "note": ""
+          "note": "",
+          "variant_labels": [
+            "Вся страна",
+            "Тер. банк",
+            "ГОСБ",
+            "Группа"
+          ]
         },
         {
           "n": 83,
           "key": "GROUP_VALUE",
-          "status": "[ ]",
-          "label": "GROUP_VALUE",
-          "description": "* или [код] / JSON",
-          "kind": "json",
-          "variants": [],
-          "default": "",
-          "allow_empty": true,
+          "status": "[v]",
+          "label": "Фильтр по уровням",
+          "description": "Отдельные настройки победителей для выбранного уровня",
+          "kind": "dropdown_custom",
+          "variants": [
+            "*",
+            "38",
+            "40",
+            "44",
+            "18",
+            "42",
+            "70",
+            "54",
+            "55",
+            "16",
+            "13",
+            "52"
+          ],
+          "default": "*",
+          "allow_empty": false,
           "json_target": "GROUP_VALUE",
-          "note": ""
+          "note": "",
+          "variant_labels": [
+            "Все",
+            "МБ",
+            "СРБ",
+            "СибБ",
+            "ББ",
+            "ВВБ",
+            "ДВБ",
+            "ПБ",
+            "СЗБ",
+            "УБ",
+            "ЦЧБ",
+            "ЮЗБ"
+          ]
         },
         {
           "n": 84,
           "key": "GET_CALC_METHOD",
-          "status": "[ ]",
-          "label": "GET_CALC_METHOD",
-          "description": "1  |  2  |  3",
+          "status": "[v]",
+          "label": "Способ выбора победителей",
+          "description": "Каким образом выбираем победителей турника",
           "kind": "dropdown",
           "variants": [
             "1",
             "2",
-            "3"
+            "3",
+            "0"
           ],
-          "default": "",
-          "allow_empty": true,
+          "default": "2",
+          "allow_empty": false,
           "json_target": "",
-          "note": ""
+          "note": "",
+          "variant_labels": [
+            "процент от",
+            "первые Х",
+            "достигни",
+            "не вручаем"
+          ]
         },
         {
           "n": 85,
           "key": "GET_CALC_CRITERION",
-          "status": "[ ]",
-          "label": "GET_CALC_CRITERION",
-          "description": "Число/порог",
-          "kind": "text",
+          "status": "[v]",
+          "label": "Критерий Золото",
+          "description": "Сколько лучших выбираем для уровня Золото",
+          "kind": "number",
           "variants": [],
-          "default": "",
-          "allow_empty": true,
+          "default": "0",
+          "allow_empty": false,
           "json_target": "",
           "note": ""
         },
         {
           "n": 86,
           "key": "ADD_CALC_CRITERION",
-          "status": "[ ]",
-          "label": "ADD_CALC_CRITERION",
-          "description": "Число/порог",
-          "kind": "text",
+          "status": "[v]",
+          "label": "Критерий Серебро",
+          "description": "Сколько лучших выбираем для уровня Серебро",
+          "kind": "number",
           "variants": [],
-          "default": "",
-          "allow_empty": true,
+          "default": "0",
+          "allow_empty": false,
           "json_target": "",
           "note": ""
         },
         {
           "n": 87,
           "key": "ADD_CALC_CRITERION_2",
-          "status": "[ ]",
-          "label": "ADD_CALC_CRITERION_2",
-          "description": "Число/порог",
-          "kind": "text",
+          "status": "[v]",
+          "label": "Критерий Бронза",
+          "description": "Сколько лучших выбираем для уровня Бронза",
+          "kind": "number",
           "variants": [],
-          "default": "",
-          "allow_empty": true,
+          "default": "0",
+          "allow_empty": false,
           "json_target": "",
           "note": ""
         },
         {
           "n": 88,
           "key": "BASE_CALC_CODE",
-          "status": "[ ]",
-          "label": "BASE_CALC_CODE",
-          "description": "BANK  |  TB  |  GOSB  |  GROUPING",
+          "status": "[v]",
+          "label": "Код уровня награды",
+          "description": "Выбор уровня на котором выбираем победителей (среди кого соревнуемся)",
           "kind": "dropdown",
           "variants": [
             "BANK",
@@ -1530,7 +1611,13 @@
           "default": "",
           "allow_empty": true,
           "json_target": "",
-          "note": ""
+          "note": "",
+          "variant_labels": [
+            "Вся страна",
+            "Тер. банк",
+            "ГОСБ",
+            "Группа"
+          ]
         }
       ]
     },
@@ -1546,37 +1633,44 @@
         {
           "n": 89,
           "key": "CONTEST_CODE",
-          "status": "[ ]",
-          "label": "CONTEST_CODE",
-          "description": "Код конкурса",
+          "status": "[v]",
+          "label": "Код конкурса",
+          "description": "Уникальный код конкурса (ключ связей). Пример: 01_2025-0_11-1_1",
           "kind": "text",
           "variants": [],
           "default": "",
-          "allow_empty": true,
+          "allow_empty": false,
           "json_target": "",
           "note": ""
         },
         {
           "n": 90,
           "key": "INDICATOR_CALC_TYPE",
-          "status": "[ ]",
-          "label": "INDICATOR_CALC_TYPE",
-          "description": "Обычно 1",
+          "status": "[v]",
+          "label": "Тип индикатора",
+          "description": "Тип показателя (сейчас всегда используем 1-Расчетный",
           "kind": "dropdown",
           "variants": [
-            "1"
+            "1",
+            "2",
+            "3"
           ],
-          "default": "",
-          "allow_empty": true,
+          "default": "1",
+          "allow_empty": false,
           "json_target": "",
-          "note": ""
+          "note": "",
+          "variant_labels": [
+            "Расчетный",
+            "Абсолютный",
+            "Относительный"
+          ]
         },
         {
           "n": 91,
           "key": "INDICATOR_ADD_CALC_TYPE",
-          "status": "[ ]",
-          "label": "INDICATOR_ADD_CALC_TYPE",
-          "description": "NUMERATOR  |  DIVIDER",
+          "status": "[v]",
+          "label": "Классификация показателя",
+          "description": "Классификация показателя для определения расчета (числитель / знаменатель)",
           "kind": "dropdown",
           "variants": [
             "NUMERATOR",
@@ -1585,40 +1679,49 @@
           "default": "",
           "allow_empty": true,
           "json_target": "",
-          "note": "DIVIDER"
+          "note": "DIVIDER",
+          "variant_labels": [
+            "Числитель",
+            "Знаменатель"
+          ]
         },
         {
           "n": 92,
           "key": "FULL_NAME",
-          "status": "[ ]",
-          "label": "FULL_NAME",
-          "description": "Имя индикатора",
+          "status": "[v]",
+          "label": "Имя индикатора",
+          "description": "Наименование показателя = коду показателя и не используется",
           "kind": "text",
           "variants": [],
           "default": "",
-          "allow_empty": true,
+          "allow_empty": false,
           "json_target": "",
           "note": ""
         },
         {
           "n": 93,
           "key": "INDICATOR_CODE",
-          "status": "[ ]",
-          "label": "INDICATOR_CODE",
-          "description": "Код (WAIT, RATING, …)",
-          "kind": "text",
-          "variants": [],
-          "default": "",
-          "allow_empty": true,
+          "status": "[v]",
+          "label": "Код показателя",
+          "description": "Код показателя для расчетов",
+          "kind": "dropdown_custom",
+          "variants": [
+            "WAIT"
+          ],
+          "default": "WAIT",
+          "allow_empty": false,
           "json_target": "",
-          "note": ""
+          "note": "",
+          "variant_labels": [
+            "Ручной"
+          ]
         },
         {
           "n": 94,
           "key": "INDICATOR_AGG_FUNCTION",
-          "status": "[ ]",
-          "label": "INDICATOR_AGG_FUNCTION",
-          "description": "SUM  |  MAX  |  COUNT_DISTINCT  |  …",
+          "status": "[v]",
+          "label": "Функция агрегации",
+          "description": "Метод расчета показателя",
           "kind": "dropdown",
           "variants": [
             "SUM",
@@ -1627,34 +1730,46 @@
             "COUNT_DISTINCT_CUSTOMER",
             "COUNT_DISTINCT_DEAL"
           ],
-          "default": "",
-          "allow_empty": true,
+          "default": "SUM",
+          "allow_empty": false,
           "json_target": "",
-          "note": ""
+          "note": "",
+          "variant_labels": [
+            "Сумма",
+            "Максимум",
+            "Уникальные",
+            "Уникальные сотрудники",
+            "Уникальные клиенты"
+          ]
         },
         {
           "n": 95,
           "key": "INDICATOR_WEIGHT",
-          "status": "[ ]",
-          "label": "INDICATOR_WEIGHT",
-          "description": "1  |  -1  |  1000",
+          "status": "[v]",
+          "label": "Множитель показателя",
+          "description": "Способ расчета показателя (множитель)",
           "kind": "dropdown",
           "variants": [
             "1",
             "-1",
             "1000"
           ],
-          "default": "",
-          "allow_empty": true,
+          "default": "1",
+          "allow_empty": false,
           "json_target": "",
-          "note": ""
+          "note": "",
+          "variant_labels": [
+            "Положительный",
+            "Отрицательный",
+            "Множитель x1000"
+          ]
         },
         {
           "n": 96,
           "key": "INDICATOR_OBJECT",
-          "status": "[ ]",
-          "label": "INDICATOR_OBJECT",
-          "description": "Часто пусто",
+          "status": "[v]",
+          "label": "Объект конкурса",
+          "description": "Параметр для определения объекта конкурса (для группировки в рамках одного сотрудника (поиск лучшей сделки) - для типа показателя - 2- Абсолютный показатель)",
           "kind": "text",
           "variants": [],
           "default": "",
@@ -1665,48 +1780,68 @@
         {
           "n": 97,
           "key": "INDICATOR_MARK_TYPE",
-          "status": "[ ]",
-          "label": "INDICATOR_MARK_TYPE",
-          "description": "CRITERION  |  GAIN  |  RATING",
+          "status": "[v]",
+          "label": "Как выбираем победителей",
+          "description": "Способ выбора победителей: достиг показателя, сделал больше других или меньше других — меньше, например, для ранга",
           "kind": "dropdown",
           "variants": [
             "CRITERION",
-            "GAIN",
-            "RATING"
+            "RATING",
+            "GAIN"
           ],
-          "default": "",
-          "allow_empty": true,
+          "default": "RATING",
+          "allow_empty": false,
           "json_target": "",
-          "note": ""
+          "note": "",
+          "variant_labels": [
+            "Достигни",
+            "Рейтинг",
+            ""
+          ]
         },
         {
           "n": 98,
           "key": "INDICATOR_MATCH",
-          "status": "[ ]",
-          "label": "INDICATOR_MATCH",
-          "description": "=  |  >=  |  MAX  |  MIN  |  X2…",
+          "status": "[v]",
+          "label": "Символ сравнения с планом",
+          "description": "Вид сравнения показателя с планом для определения участников",
           "kind": "dropdown",
           "variants": [
             "=",
+            ">",
             ">=",
+            "<",
+            "<=",
             "MAX",
             "MIN",
             "X2",
             "X3",
             "X4"
           ],
-          "default": "",
-          "allow_empty": true,
+          "default": "MAX",
+          "allow_empty": false,
           "json_target": "",
-          "note": ""
+          "note": "",
+          "variant_labels": [
+            "Равно",
+            "Больше",
+            "Больше или равно",
+            "Меньше",
+            "Меньше или равно",
+            "Максимум",
+            "Минимум",
+            "Больше в 2 раза",
+            "Больше в 3 раза",
+            "Больше в 4 раза"
+          ]
         },
         {
           "n": 99,
           "key": "INDICATOR_VALUE",
-          "status": "[ ]",
-          "label": "INDICATOR_VALUE",
-          "description": "Порог/константа",
-          "kind": "text",
+          "status": "[v]",
+          "label": "Значение плана",
+          "description": "Значение планового показателя (0, 1, 1000, …)",
+          "kind": "number",
           "variants": [],
           "default": "",
           "allow_empty": true,
@@ -1716,9 +1851,9 @@
         {
           "n": 100,
           "key": "CONTEST_CRITERION",
-          "status": "[ ]",
-          "label": "CONTEST_CRITERION",
-          "description": "Часто пусто",
+          "status": "[v]",
+          "label": "Ограничения сделки",
+          "description": "Параметры для ограничения выбора сделки (не используется)",
           "kind": "text",
           "variants": [],
           "default": "",
@@ -1729,9 +1864,9 @@
         {
           "n": 101,
           "key": "INDICATOR_FILTER",
-          "status": "[ ]",
-          "label": "INDICATOR_FILTER",
-          "description": "SPOD-JSON фильтр или пусто",
+          "status": "[v]",
+          "label": "Фильтр индикатора",
+          "description": "Параметры для ограничения выбора операции (сделки). Фильтр для автоматического расчета",
           "kind": "json",
           "variants": [],
           "default": "",
@@ -1742,18 +1877,22 @@
         {
           "n": 102,
           "key": "CONTESTANT_SELECTION",
-          "status": "[ ]",
-          "label": "CONTESTANT_SELECTION",
-          "description": "0  |  1",
+          "status": "[v]",
+          "label": "Как определять ВКО",
+          "description": "Способ определения участника на данных источника",
           "kind": "dropdown",
           "variants": [
             "0",
             "1"
           ],
-          "default": "",
-          "allow_empty": true,
+          "default": "0",
+          "allow_empty": false,
           "json_target": "",
-          "note": "1"
+          "note": "1",
+          "variant_labels": [
+            "На дату операции",
+            "На конец турнира"
+          ]
         },
         {
           "n": 103,
@@ -1778,13 +1917,13 @@
         {
           "n": 104,
           "key": "N",
-          "status": "[ ]",
-          "label": "N",
-          "description": "Параметр N",
-          "kind": "text",
+          "status": "[v]",
+          "label": "Уникальный ID строки",
+          "description": "Уникальный во всем файле настроек ID (порядковый номер)",
+          "kind": "number",
           "variants": [],
           "default": "",
-          "allow_empty": true,
+          "allow_empty": false,
           "json_target": "",
           "note": ""
         }
@@ -1815,20 +1954,41 @@
         {
           "n": 106,
           "key": "PERIOD_TYPE",
-          "status": "[ ]",
-          "label": "PERIOD_TYPE",
-          "description": "Текст периода (турнир месяца, …)",
-          "kind": "text",
-          "variants": [],
-          "default": "",
-          "allow_empty": true,
+          "status": "[v]",
+          "label": "Тип периодичность турнира",
+          "description": "Текстовое описание периода турнира",
+          "kind": "dropdown_custom",
+          "variants": [
+            "турнир года",
+            "турнир 1 полугодия",
+            "турнир 2 полугодия",
+            "турнир 1 квартала",
+            "турнир 2 квартала",
+            "турнир 3 квартала",
+            "турнир 4 квартала",
+            "турнир января",
+            "турнир февраля",
+            "турнир марта",
+            "турнир апреля",
+            "турнир мая",
+            "турнир июня",
+            "турнир июля",
+            "турнир августа",
+            "турнир сентября",
+            "турнир октября",
+            "турнир ноября",
+            "турнир декабря",
+            "произвольный"
+          ],
+          "default": "произвольный",
+          "allow_empty": false,
           "json_target": "",
           "note": ""
         },
         {
           "n": 107,
           "key": "START_DT",
-          "status": "[ ]",
+          "status": "[v]",
           "label": "Дата начала турнира",
           "description": "Дата старта турнира",
           "kind": "date",
@@ -1893,51 +2053,61 @@
         {
           "n": 112,
           "key": "CRITERION_MARK_TYPE",
-          "status": "[ ]",
-          "label": "CRITERION_MARK_TYPE",
-          "description": ">  |  >=",
+          "status": "[v]",
+          "label": "Критерий участия",
+          "description": "Критерий участия для перида конкурса. Оператор сравнения",
           "kind": "dropdown",
           "variants": [
+            "=",
             ">",
-            ">="
+            ">=",
+            "<",
+            "<="
           ],
-          "default": "",
-          "allow_empty": true,
+          "default": ">=",
+          "allow_empty": false,
           "json_target": "",
-          "note": ""
+          "note": "",
+          "variant_labels": [
+            "Равно",
+            "Больше",
+            "Больше или равно",
+            "Меньше",
+            "Меньше или равно"
+          ]
         },
         {
           "n": 113,
           "key": "CRITERION_MARK_VALUE",
-          "status": "[ ]",
-          "label": "CRITERION_MARK_VALUE",
-          "description": "Число (0, 50000, …)",
-          "kind": "text",
+          "status": "[v]",
+          "label": "Критерий отбора периода",
+          "description": "Значение критерий для участия перида конкурса",
+          "kind": "number",
           "variants": [],
           "default": "",
-          "allow_empty": true,
+          "allow_empty": false,
           "json_target": "",
           "note": ""
         },
         {
           "n": 114,
           "key": "FILTER_PERIOD_ARR",
-          "status": "[ ]",
-          "label": "FILTER_PERIOD_ARR",
-          "description": "JSON или пусто",
+          "status": "[v]",
+          "label": "Фильтры для прошлых периодов",
+          "description": "Прошлые периоды турнира для определения критериев участия",
           "kind": "json",
           "variants": [],
           "default": "",
           "allow_empty": true,
           "json_target": "FILTER_PERIOD_ARR",
-          "note": ""
+          "note": "period_code - код периода\nstart_dt - дата начала периода,\nend_dt - дата окончания периода\ncriterion_mark_type - условие (<=, <, =, >, >=,<>)\ncriterion_mark_value - значение для ограничения"
         },
         {
           "n": 115,
           "key": "TOURNAMENT_STATUS",
-          "status": "[ ]",
+          "status": "[v]",
           "label": "Статус турнира",
-          "description": "АКТИВНЫЙ  |  ЗАВЕРШЕН  |  ОТМЕНЕН  |  ПОДВЕДЕНИЕ ИТОГОВ  |  УДАЛЕН",
+          "description": "Выбор статуса активности турнира",
           "kind": "dropdown",
           "variants": [
             "АКТИВНЫЙ",
@@ -1956,7 +2126,7 @@
           "key": "CONTEST_CODE",
           "status": "[v]",
           "label": "Код конкурса",
-          "description": "Код связанного с турниром конкурса",
+          "description": "Уникальный код конкурса (ключ связей). Пример: 01_2025-0_11-1_1",
           "kind": "text",
           "variants": [],
           "default": "",
@@ -1967,15 +2137,28 @@
         {
           "n": 117,
           "key": "TARGET_TYPE",
-          "status": "[ ]",
+          "status": "[w]",
           "label": "Сезон и ...",
           "description": "В каком сезоне разыгрываем награду (в каком рейтинге делаем расчет полученных кристаллов)",
-          "kind": "json",
-          "variants": [],
-          "default": "",
-          "allow_empty": true,
+          "kind": "dropdown",
+          "variants": [
+            "SEASON_mmb_2026",
+            "SEASON_2026_1",
+            "SEASON_akm_2026",
+            "SEASON_csm_2026",
+            "SEASON_m_2026_1"
+          ],
+          "default": "SEASON_mmb_2026",
+          "allow_empty": false,
           "json_target": "TARGET_TYPE",
-          "note": ""
+          "note": "",
+          "variant_labels": [
+            "Сезон 2026 (ММБ)",
+            "Сезон 2026 (ККСБ)",
+            "Сезон 2026 (АКМ)",
+            "Сезон 2026  (CSM)",
+            "Сезон 2026 (МНС)"
+          ]
         },
         {
           "n": 118,
@@ -2000,10 +2183,10 @@
         {
           "n": 119,
           "key": "TRN_INDICATOR_FILTER",
-          "status": "[ ]",
+          "status": "[w]",
           "label": "TRN_INDICATOR_FILTER",
-          "description": "Часто пусто",
-          "kind": "json",
+          "description": "Описание готовится... по умолчанию не заполняется",
+          "kind": "text",
           "variants": [],
           "default": "",
           "allow_empty": true,
@@ -2013,5 +2196,5 @@
       ]
     }
   ],
-  "exported_at": "2026-08-15T21:00:40.828Z"
+  "exported_at": "2026-08-16T12:40:08.255Z"
 }

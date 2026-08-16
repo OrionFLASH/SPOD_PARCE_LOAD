@@ -641,6 +641,10 @@ def table_hint_for(table_key: str, col_name: str) -> str:
 
 def json_pack_target(form_key: str) -> str:
     """Полный путь ключа в JSON SPOD: колонка.лист; пусто = плоская колонка."""
+    if form_key.startswith("CONTEST_FEATURE."):
+        return form_key
+    if form_key.startswith("REWARD_ADD_DATA."):
+        return form_key
     if form_key.startswith("FEATURE."):
         leaf = form_key.split(".", 1)[1]
         return f"CONTEST_FEATURE.{leaf}" if leaf else "CONTEST_FEATURE"

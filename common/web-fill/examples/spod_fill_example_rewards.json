@@ -1,0 +1,659 @@
+{
+  "version": 2,
+  "block": "PROM",
+  "title": "Примеры наград (индивидуальные накопительные)",
+  "source": "IN/PROM/SPOD (latest CONTEST/GROUP/REWARD*/INDICATOR/SCHEDULE)",
+  "saved_at": "2026-08-16T14:21:28.688519Z",
+  "catalog_stamp": "2026-08-16T12:40:08.255Z",
+  "activeContest": 0,
+  "contests": [
+    {
+      "id": "ex_09_2026_0_23_1_2",
+      "name": "Передача ОСВ из 1С (до 5 задач)",
+      "data": {
+        "contest": {
+          "CONTEST_CODE": "09_2026-0_23-1_2",
+          "FULL_NAME": "Передача ОСВ из 1С (до 5 задач)",
+          "CREATE_DT": "2026-01-01",
+          "CLOSE_DT": "4000-01-01",
+          "BUSINESS_STATUS": "АКТИВНЫЙ",
+          "CONTEST_TYPE": "ИНДИВИДУАЛЬНЫЙ НАКОПИТЕЛЬНЫЙ",
+          "CONTEST_DESCRIPTION": "За награду борятся АКМ, перед которыми поставлены задачи по передаче ОСВ из 1С. Победители будут выбраны из числа участников, закрывших с успехом с отражением в комментариях результата (подписано ДС и клиент произвел настройку 1С) 85% поставленных задач по доле отработки",
+          "SHOW_INDICATOR": "%",
+          "PRODUCT_GROUP": "Сервисные задачи",
+          "PRODUCT": "Передача ОСВ из 1С",
+          "CONTEST_SUBJECT": "EMPLOYEE",
+          "FACTOR_MARK_TYPE": "CRITERION",
+          "CONTEST_INDICATOR_METHOD": "INTEGRAL",
+          "CONTEST_FACTOR_METHOD": "FACT",
+          "PLAN_METHOD_CODE": "PRESET_VALUE",
+          "PLAN_MOD_METOD": "",
+          "PLAN_MOD_VALUE": "85",
+          "FACTOR_MATCH": ">=",
+          "CONTEST_PERIOD": "",
+          "TARGET_TYPE": "ПРОМ",
+          "SOURCE_UPD_FREQUENCY": "1",
+          "CALC_TYPE": "1",
+          "BUSINESS_BLOCK": "AKMKKSB",
+          "FACT_POST_PROCESSING": ""
+        },
+        "feature": {
+          "feature": "",
+          "vid": "ПРОМ",
+          "momentRewarding": "AFTER",
+          "minNumber": "1",
+          "capacity": "",
+          "accuracy": "1",
+          "masking": "N",
+          "tournamentStartMailing": "N",
+          "tournamentEndMailing": "N",
+          "tournamentLikeMailing": "Y",
+          "tournamentRewardingMailing": "Y",
+          "tournamentListMailing": "",
+          "persomanNumberVisible": "",
+          "persomanNumberHidden": "",
+          "gosbVisible": "",
+          "gosbHidden": "",
+          "tbVisible": "",
+          "tbHidden": "",
+          "businessBlock": "AKMKKSB",
+          "typeRewarding": "one"
+        },
+        "badges": [
+          {
+            "flat": {
+              "REWARD_CODE": "",
+              "REWARD_TYPE": "BADGE",
+              "FULL_NAME": "Передача ОСВ из 1С (до 5 задач)",
+              "REWARD_DESCRIPTION": "Награду получают АКМ, которые закрыли не менее 85% поставленных задач по передаче ОСВ из 1С и успешно отработали их в соответствии со своим диапазоном: от 1 до 5 задач",
+              "REWARD_CONDITION": "1",
+              "REWARD_COST": "2"
+            },
+            "add": {
+              "feature": "Учитываются успешно закрытые задачи с отражением в комментариях результата ««Успех» - Выполнена конфигурация программы 1С. ДС подписан. Отчетность передана посредством 1С»;Награда выдается при общем числе успешно закрытых задач до 5;Учёт ведётся в рамках каждой волны выставления задач в течение года, поэтому бейдж можно будет получить несколько раз",
+              "nftFlg": "N",
+              "outstanding": "N",
+              "newsType": "AIPROMPT",
+              "winCriterion": "Необходимо положительно закрыть не менее 85% задач по передаче ОСВ из 1С",
+              "rewardRule": "Бейдж получат участники, закрывшие более 85% выставленных на них задач по передаче ОСВ из 1С",
+              "rewardAgainGlobal": "Y",
+              "rewardAgainTournament": "N",
+              "hidden": "N",
+              "hiddenRewardList": "N",
+              "fileName": "",
+              "teamNews": "<span>[Имя_Фамилия]</span> и еще [n] [amount:менеджер] стали победителями турнира «Передача ОСВ из 1С (до 5 задач)». Они показали лучший результат в своем ТБ",
+              "singleNews": "Новое достижение! <span>[Имя]</span> [gender:1:стал|gender:2:стала] победителем турнира «Передача ОСВ из 1С (до 5 задач)». [gender:1:Он|gender:2:Она] [gender:1:показал|gender:2:показала] лучший результат по итогам турнира в своем ТБ",
+              "refreshOldNews": "Y",
+              "businessBlock": "AKMKKSB",
+              "recommendationLevel": "GOSB",
+              "priority": "1",
+              "masterBadge": "Y",
+              "parentRewardCode": ""
+            }
+          }
+        ],
+        "reward_link": [
+          {
+            "CONTEST_CODE": "09_2026-0_23-1_2",
+            "GROUP_CODE": "BANK",
+            "REWARD_CODE": ""
+          }
+        ],
+        "group": [
+          {
+            "CONTEST_CODE": "09_2026-0_23-1_2",
+            "GROUP_CODE": "BANK",
+            "GROUP_VALUE": "*",
+            "GET_CALC_METHOD": "3",
+            "GET_CALC_CRITERION": "",
+            "ADD_CALC_CRITERION": "",
+            "ADD_CALC_CRITERION_2": "",
+            "BASE_CALC_CODE": ""
+          }
+        ],
+        "indicator": [
+          {
+            "CONTEST_CODE": "09_2026-0_23-1_2",
+            "INDICATOR_CALC_TYPE": "1",
+            "INDICATOR_ADD_CALC_TYPE": "",
+            "FULL_NAME": "WAIT",
+            "INDICATOR_CODE": "WAIT",
+            "INDICATOR_AGG_FUNCTION": "",
+            "INDICATOR_WEIGHT": "",
+            "INDICATOR_OBJECT": "",
+            "INDICATOR_MARK_TYPE": "CRITERION",
+            "INDICATOR_MATCH": ">=",
+            "INDICATOR_VALUE": "85",
+            "CONTEST_CRITERION": "",
+            "INDICATOR_FILTER": "",
+            "CONTESTANT_SELECTION": "",
+            "CALC_TYPE": "1",
+            "N": "345"
+          }
+        ],
+        "schedule": [
+          {
+            "TOURNAMENT_CODE": "4001",
+            "PERIOD_TYPE": "произвольный",
+            "START_DT": "2026-04-09",
+            "END_DT": "2026-06-11",
+            "RESULT_DT": "2026-07-01",
+            "PLAN_PERIOD_START_DT": "",
+            "PLAN_PERIOD_END_DT": "",
+            "CRITERION_MARK_TYPE": "",
+            "CRITERION_MARK_VALUE": "",
+            "FILTER_PERIOD_ARR": "",
+            "TOURNAMENT_STATUS": "ЗАВЕРШЕН",
+            "CONTEST_CODE": "09_2026-0_23-1_2",
+            "TARGET_TYPE": "{\"\"\"seasonCode\"\"\": \"\"\"SEASON_akm_2026\"\"\"}",
+            "CALC_TYPE": "1",
+            "TRN_INDICATOR_FILTER": ""
+          },
+          {
+            "TOURNAMENT_CODE": "4002",
+            "PERIOD_TYPE": "произвольный",
+            "START_DT": "2026-06-12",
+            "END_DT": "2026-07-24",
+            "RESULT_DT": "2026-07-25",
+            "PLAN_PERIOD_START_DT": "",
+            "PLAN_PERIOD_END_DT": "",
+            "CRITERION_MARK_TYPE": "",
+            "CRITERION_MARK_VALUE": "",
+            "FILTER_PERIOD_ARR": "",
+            "TOURNAMENT_STATUS": "ЗАВЕРШЕН",
+            "CONTEST_CODE": "09_2026-0_23-1_2",
+            "TARGET_TYPE": "{\"\"\"seasonCode\"\"\": \"\"\"SEASON_akm_2026\"\"\"}",
+            "CALC_TYPE": "1",
+            "TRN_INDICATOR_FILTER": ""
+          }
+        ]
+      }
+    },
+    {
+      "id": "ex_09_2026_0_23_1_3",
+      "name": "Передача ОСВ из 1С (6-10 задач)",
+      "data": {
+        "contest": {
+          "CONTEST_CODE": "09_2026-0_23-1_3",
+          "FULL_NAME": "Передача ОСВ из 1С (6-10 задач)",
+          "CREATE_DT": "2026-01-01",
+          "CLOSE_DT": "4000-01-01",
+          "BUSINESS_STATUS": "АКТИВНЫЙ",
+          "CONTEST_TYPE": "ИНДИВИДУАЛЬНЫЙ НАКОПИТЕЛЬНЫЙ",
+          "CONTEST_DESCRIPTION": "За награду борятся АКМ, перед которыми поставлены задачи по передаче ОСВ из 1С. Победители будут выбраны из числа участников, закрывших с успехом с отражением в комментариях результата (подписано ДС и клиент произвел настройку 1С) не менее 85% поставленных задач по доле отработки",
+          "SHOW_INDICATOR": "%",
+          "PRODUCT_GROUP": "Сервисные задачи",
+          "PRODUCT": "Передача ОСВ из 1С",
+          "CONTEST_SUBJECT": "EMPLOYEE",
+          "FACTOR_MARK_TYPE": "CRITERION",
+          "CONTEST_INDICATOR_METHOD": "INTEGRAL",
+          "CONTEST_FACTOR_METHOD": "FACT",
+          "PLAN_METHOD_CODE": "PRESET_VALUE",
+          "PLAN_MOD_METOD": "",
+          "PLAN_MOD_VALUE": "85",
+          "FACTOR_MATCH": ">=",
+          "CONTEST_PERIOD": "",
+          "TARGET_TYPE": "ПРОМ",
+          "SOURCE_UPD_FREQUENCY": "1",
+          "CALC_TYPE": "1",
+          "BUSINESS_BLOCK": "AKMKKSB",
+          "FACT_POST_PROCESSING": ""
+        },
+        "feature": {
+          "feature": "",
+          "vid": "ПРОМ",
+          "momentRewarding": "AFTER",
+          "minNumber": "1",
+          "capacity": "",
+          "accuracy": "1",
+          "masking": "N",
+          "tournamentStartMailing": "N",
+          "tournamentEndMailing": "N",
+          "tournamentLikeMailing": "Y",
+          "tournamentRewardingMailing": "Y",
+          "tournamentListMailing": "",
+          "persomanNumberVisible": "",
+          "persomanNumberHidden": "",
+          "gosbVisible": "",
+          "gosbHidden": "",
+          "tbVisible": "",
+          "tbHidden": "",
+          "businessBlock": "AKMKKSB",
+          "typeRewarding": "one"
+        },
+        "badges": [
+          {
+            "flat": {
+              "REWARD_CODE": "",
+              "REWARD_TYPE": "BADGE",
+              "FULL_NAME": "Передача ОСВ из 1С (6-10 задач)",
+              "REWARD_DESCRIPTION": "Награду получают АКМ, которые закрыли не менее 85% поставленных задач по передаче ОСВ из 1С и успешно отработали их в соответствии со своим диапазоном: от 6 до 10 задач",
+              "REWARD_CONDITION": "1",
+              "REWARD_COST": "5"
+            },
+            "add": {
+              "feature": "Учитываются успешно закрытые задачи с отражением в комментариях результата ««Успех» - Выполнена конфигурация программы 1С. ДС подписан. Отчетность передана посредством 1С»;Награда выдается при общем числе успешно закрытых задач от 6 до 10;Учёт ведётся в рамках каждой волны выставления задач в течение года, поэтому бейдж можно будет получить несколько раз;Факт получения бейджа попадает в ленту сообщества",
+              "nftFlg": "N",
+              "outstanding": "Y",
+              "newsType": "AIPROMPT",
+              "winCriterion": "Необходимо положительно закрыть не менее 85% задач по передаче ОСВ из 1С",
+              "rewardRule": "Бейдж получат участники, закрывшие более 85% выставленных на них задач по передаче ОСВ из 1С",
+              "rewardAgainGlobal": "Y",
+              "rewardAgainTournament": "N",
+              "hidden": "N",
+              "hiddenRewardList": "N",
+              "fileName": "",
+              "teamNews": "<span>[Имя_Фамилия]</span> и еще [n] [amount:менеджер] стали победителями турнира «Передача ОСВ из 1С (6-10 задач)». Они показали лучший результат в своем ТБ",
+              "singleNews": "Новое достижение! <span>[Имя]</span> [gender:1:стал|gender:2:стала] победителем турнира «Передача ОСВ из 1С (6-10 задач)». [gender:1:Он|gender:2:Она] [gender:1:показал|gender:2:показала] лучший результат по итогам турнира в своем ТБ",
+              "refreshOldNews": "Y",
+              "businessBlock": "AKMKKSB",
+              "recommendationLevel": "TB",
+              "priority": "1",
+              "masterBadge": "Y",
+              "parentRewardCode": ""
+            }
+          }
+        ],
+        "reward_link": [
+          {
+            "CONTEST_CODE": "09_2026-0_23-1_3",
+            "GROUP_CODE": "BANK",
+            "REWARD_CODE": ""
+          }
+        ],
+        "group": [
+          {
+            "CONTEST_CODE": "09_2026-0_23-1_3",
+            "GROUP_CODE": "BANK",
+            "GROUP_VALUE": "*",
+            "GET_CALC_METHOD": "3",
+            "GET_CALC_CRITERION": "",
+            "ADD_CALC_CRITERION": "",
+            "ADD_CALC_CRITERION_2": "",
+            "BASE_CALC_CODE": ""
+          }
+        ],
+        "indicator": [
+          {
+            "CONTEST_CODE": "09_2026-0_23-1_3",
+            "INDICATOR_CALC_TYPE": "1",
+            "INDICATOR_ADD_CALC_TYPE": "",
+            "FULL_NAME": "WAIT",
+            "INDICATOR_CODE": "WAIT",
+            "INDICATOR_AGG_FUNCTION": "",
+            "INDICATOR_WEIGHT": "",
+            "INDICATOR_OBJECT": "",
+            "INDICATOR_MARK_TYPE": "CRITERION",
+            "INDICATOR_MATCH": ">=",
+            "INDICATOR_VALUE": "85",
+            "CONTEST_CRITERION": "",
+            "INDICATOR_FILTER": "",
+            "CONTESTANT_SELECTION": "",
+            "CALC_TYPE": "1",
+            "N": "346"
+          }
+        ],
+        "schedule": [
+          {
+            "TOURNAMENT_CODE": "4001",
+            "PERIOD_TYPE": "произвольный",
+            "START_DT": "2026-04-09",
+            "END_DT": "2026-06-11",
+            "RESULT_DT": "2026-07-01",
+            "PLAN_PERIOD_START_DT": "",
+            "PLAN_PERIOD_END_DT": "",
+            "CRITERION_MARK_TYPE": "",
+            "CRITERION_MARK_VALUE": "",
+            "FILTER_PERIOD_ARR": "",
+            "TOURNAMENT_STATUS": "ЗАВЕРШЕН",
+            "CONTEST_CODE": "09_2026-0_23-1_3",
+            "TARGET_TYPE": "{\"\"\"seasonCode\"\"\": \"\"\"SEASON_akm_2026\"\"\"}",
+            "CALC_TYPE": "1",
+            "TRN_INDICATOR_FILTER": ""
+          },
+          {
+            "TOURNAMENT_CODE": "4002",
+            "PERIOD_TYPE": "произвольный",
+            "START_DT": "2026-06-12",
+            "END_DT": "2026-07-24",
+            "RESULT_DT": "2026-07-25",
+            "PLAN_PERIOD_START_DT": "",
+            "PLAN_PERIOD_END_DT": "",
+            "CRITERION_MARK_TYPE": "",
+            "CRITERION_MARK_VALUE": "",
+            "FILTER_PERIOD_ARR": "",
+            "TOURNAMENT_STATUS": "ЗАВЕРШЕН",
+            "CONTEST_CODE": "09_2026-0_23-1_3",
+            "TARGET_TYPE": "{\"\"\"seasonCode\"\"\": \"\"\"SEASON_akm_2026\"\"\"}",
+            "CALC_TYPE": "1",
+            "TRN_INDICATOR_FILTER": ""
+          }
+        ]
+      }
+    },
+    {
+      "id": "ex_09_2026_0_23_1_4",
+      "name": "Передача ОСВ из 1С (11-15 задач)",
+      "data": {
+        "contest": {
+          "CONTEST_CODE": "09_2026-0_23-1_4",
+          "FULL_NAME": "Передача ОСВ из 1С (11-15 задач)",
+          "CREATE_DT": "2026-01-01",
+          "CLOSE_DT": "4000-01-01",
+          "BUSINESS_STATUS": "АКТИВНЫЙ",
+          "CONTEST_TYPE": "ИНДИВИДУАЛЬНЫЙ НАКОПИТЕЛЬНЫЙ",
+          "CONTEST_DESCRIPTION": "За награду борятся АКМ, перед которыми поставлены задачи по передаче ОСВ из 1С. Победители будут выбраны из числа участников, закрывших с успехом с отражением в комментариях результата (подписано ДС и клиент произвел настройку 1С) не менее 85% поставленных задач по доле отработки",
+          "SHOW_INDICATOR": "%",
+          "PRODUCT_GROUP": "Сервисные задачи",
+          "PRODUCT": "Передача ОСВ из 1С",
+          "CONTEST_SUBJECT": "EMPLOYEE",
+          "FACTOR_MARK_TYPE": "CRITERION",
+          "CONTEST_INDICATOR_METHOD": "INTEGRAL",
+          "CONTEST_FACTOR_METHOD": "FACT",
+          "PLAN_METHOD_CODE": "PRESET_VALUE",
+          "PLAN_MOD_METOD": "",
+          "PLAN_MOD_VALUE": "85",
+          "FACTOR_MATCH": ">=",
+          "CONTEST_PERIOD": "",
+          "TARGET_TYPE": "ПРОМ",
+          "SOURCE_UPD_FREQUENCY": "1",
+          "CALC_TYPE": "1",
+          "BUSINESS_BLOCK": "AKMKKSB",
+          "FACT_POST_PROCESSING": ""
+        },
+        "feature": {
+          "feature": "",
+          "vid": "ПРОМ",
+          "momentRewarding": "AFTER",
+          "minNumber": "1",
+          "capacity": "",
+          "accuracy": "1",
+          "masking": "N",
+          "tournamentStartMailing": "N",
+          "tournamentEndMailing": "N",
+          "tournamentLikeMailing": "Y",
+          "tournamentRewardingMailing": "Y",
+          "tournamentListMailing": "",
+          "persomanNumberVisible": "",
+          "persomanNumberHidden": "",
+          "gosbVisible": "",
+          "gosbHidden": "",
+          "tbVisible": "",
+          "tbHidden": "",
+          "businessBlock": "AKMKKSB",
+          "typeRewarding": "one"
+        },
+        "badges": [
+          {
+            "flat": {
+              "REWARD_CODE": "",
+              "REWARD_TYPE": "BADGE",
+              "FULL_NAME": "Передача ОСВ из 1С (11-15 задач)",
+              "REWARD_DESCRIPTION": "Награду получают АКМ, которые закрыли не менее 85% поставленных задач по передаче ОСВ из 1С и успешно отработали их в соответствии со своим диапазоном: от 11 до 15 задач",
+              "REWARD_CONDITION": "1",
+              "REWARD_COST": "9"
+            },
+            "add": {
+              "feature": "Учитываются успешно закрытые задачи с отражением в комментариях результата ««Успех» - Выполнена конфигурация программы 1С. ДС подписан. Отчетность передана посредством 1С»;Награда выдается при общем числе успешно закрытых задач от 11 до 15;Учёт ведётся в рамках каждой волны выставления задач в течение года, поэтому бейдж можно будет получить несколько раз;Факт получения бейджа попадает в ленту сообщества",
+              "nftFlg": "N",
+              "outstanding": "Y",
+              "newsType": "AIPROMPT",
+              "winCriterion": "Необходимо положительно закрыть не менее 85% задач по передаче ОСВ из 1С",
+              "rewardRule": "Бейдж получат участники, закрывшие более 85% выставленных на них задач по передаче ОСВ из 1С",
+              "rewardAgainGlobal": "Y",
+              "rewardAgainTournament": "N",
+              "hidden": "N",
+              "hiddenRewardList": "N",
+              "fileName": "",
+              "teamNews": "<span>[Имя_Фамилия]</span> и еще [n] [amount:менеджер] стали победителями турнира «Передача ОСВ из 1С (11-15 задач)». Они показали лучший результат в своем ТБ",
+              "singleNews": "Новое достижение! <span>[Имя]</span> [gender:1:стал|gender:2:стала] победителем турнира «Передача ОСВ из 1С (11-15 задач)». [gender:1:Он|gender:2:Она] [gender:1:показал|gender:2:показала] лучший результат по итогам турнира в своем ТБ",
+              "refreshOldNews": "Y",
+              "businessBlock": "AKMKKSB",
+              "recommendationLevel": "BANK",
+              "priority": "1",
+              "masterBadge": "Y",
+              "parentRewardCode": ""
+            }
+          }
+        ],
+        "reward_link": [
+          {
+            "CONTEST_CODE": "09_2026-0_23-1_4",
+            "GROUP_CODE": "BANK",
+            "REWARD_CODE": ""
+          }
+        ],
+        "group": [
+          {
+            "CONTEST_CODE": "09_2026-0_23-1_4",
+            "GROUP_CODE": "BANK",
+            "GROUP_VALUE": "*",
+            "GET_CALC_METHOD": "3",
+            "GET_CALC_CRITERION": "",
+            "ADD_CALC_CRITERION": "",
+            "ADD_CALC_CRITERION_2": "",
+            "BASE_CALC_CODE": ""
+          }
+        ],
+        "indicator": [
+          {
+            "CONTEST_CODE": "09_2026-0_23-1_4",
+            "INDICATOR_CALC_TYPE": "1",
+            "INDICATOR_ADD_CALC_TYPE": "",
+            "FULL_NAME": "WAIT",
+            "INDICATOR_CODE": "WAIT",
+            "INDICATOR_AGG_FUNCTION": "",
+            "INDICATOR_WEIGHT": "",
+            "INDICATOR_OBJECT": "",
+            "INDICATOR_MARK_TYPE": "CRITERION",
+            "INDICATOR_MATCH": ">=",
+            "INDICATOR_VALUE": "85",
+            "CONTEST_CRITERION": "",
+            "INDICATOR_FILTER": "",
+            "CONTESTANT_SELECTION": "",
+            "CALC_TYPE": "1",
+            "N": "347"
+          }
+        ],
+        "schedule": [
+          {
+            "TOURNAMENT_CODE": "4001",
+            "PERIOD_TYPE": "произвольный",
+            "START_DT": "2026-04-09",
+            "END_DT": "2026-06-11",
+            "RESULT_DT": "2026-06-11",
+            "PLAN_PERIOD_START_DT": "",
+            "PLAN_PERIOD_END_DT": "",
+            "CRITERION_MARK_TYPE": "",
+            "CRITERION_MARK_VALUE": "",
+            "FILTER_PERIOD_ARR": "",
+            "TOURNAMENT_STATUS": "ОТМЕНЕН",
+            "CONTEST_CODE": "09_2026-0_23-1_4",
+            "TARGET_TYPE": "{\"\"\"seasonCode\"\"\": \"\"\"SEASON_akm_2026\"\"\"}",
+            "CALC_TYPE": "1",
+            "TRN_INDICATOR_FILTER": ""
+          },
+          {
+            "TOURNAMENT_CODE": "4002",
+            "PERIOD_TYPE": "произвольный",
+            "START_DT": "2026-06-12",
+            "END_DT": "2026-07-24",
+            "RESULT_DT": "2026-07-25",
+            "PLAN_PERIOD_START_DT": "",
+            "PLAN_PERIOD_END_DT": "",
+            "CRITERION_MARK_TYPE": "",
+            "CRITERION_MARK_VALUE": "",
+            "FILTER_PERIOD_ARR": "",
+            "TOURNAMENT_STATUS": "ЗАВЕРШЕН",
+            "CONTEST_CODE": "09_2026-0_23-1_4",
+            "TARGET_TYPE": "{\"\"\"seasonCode\"\"\": \"\"\"SEASON_akm_2026\"\"\"}",
+            "CALC_TYPE": "1",
+            "TRN_INDICATOR_FILTER": ""
+          }
+        ]
+      }
+    },
+    {
+      "id": "ex_09_2026_0_23_1_5",
+      "name": "Передача ОСВ из 1С (более 15 задач)",
+      "data": {
+        "contest": {
+          "CONTEST_CODE": "09_2026-0_23-1_5",
+          "FULL_NAME": "Передача ОСВ из 1С (более 15 задач)",
+          "CREATE_DT": "2026-01-01",
+          "CLOSE_DT": "4000-01-01",
+          "BUSINESS_STATUS": "АКТИВНЫЙ",
+          "CONTEST_TYPE": "ИНДИВИДУАЛЬНЫЙ НАКОПИТЕЛЬНЫЙ",
+          "CONTEST_DESCRIPTION": "За награду борятся АКМ, перед которыми поставлены задачи по передаче ОСВ из 1С. Победители будут выбраны из числа участников, закрывших с успехом с отражением в комментариях результата (подписано ДС и клиент произвел настройку 1С) не менее 85% поставленных задач по доле отработки",
+          "SHOW_INDICATOR": "%",
+          "PRODUCT_GROUP": "Сервисные задачи",
+          "PRODUCT": "Передача ОСВ из 1С",
+          "CONTEST_SUBJECT": "EMPLOYEE",
+          "FACTOR_MARK_TYPE": "CRITERION",
+          "CONTEST_INDICATOR_METHOD": "INTEGRAL",
+          "CONTEST_FACTOR_METHOD": "FACT",
+          "PLAN_METHOD_CODE": "PRESET_VALUE",
+          "PLAN_MOD_METOD": "",
+          "PLAN_MOD_VALUE": "85",
+          "FACTOR_MATCH": ">=",
+          "CONTEST_PERIOD": "",
+          "TARGET_TYPE": "ПРОМ",
+          "SOURCE_UPD_FREQUENCY": "1",
+          "CALC_TYPE": "1",
+          "BUSINESS_BLOCK": "AKMKKSB",
+          "FACT_POST_PROCESSING": ""
+        },
+        "feature": {
+          "feature": "",
+          "vid": "ПРОМ",
+          "momentRewarding": "AFTER",
+          "minNumber": "1",
+          "capacity": "",
+          "accuracy": "1",
+          "masking": "N",
+          "tournamentStartMailing": "N",
+          "tournamentEndMailing": "N",
+          "tournamentLikeMailing": "Y",
+          "tournamentRewardingMailing": "Y",
+          "tournamentListMailing": "",
+          "persomanNumberVisible": "",
+          "persomanNumberHidden": "",
+          "gosbVisible": "",
+          "gosbHidden": "",
+          "tbVisible": "",
+          "tbHidden": "",
+          "businessBlock": "AKMKKSB",
+          "typeRewarding": "one"
+        },
+        "badges": [
+          {
+            "flat": {
+              "REWARD_CODE": "",
+              "REWARD_TYPE": "BADGE",
+              "FULL_NAME": "Передача ОСВ из 1С (более 15 задач)",
+              "REWARD_DESCRIPTION": "Награду получают АКМ, которые закрыли не менее 85% поставленных задач по передаче ОСВ из 1С и успешно отработали их в соответствии со своим диапазоном: более 15 задач",
+              "REWARD_CONDITION": "1",
+              "REWARD_COST": "13"
+            },
+            "add": {
+              "feature": "Учитываются успешно закрытые задачи с отражением в комментариях результата ««Успех» - Выполнена конфигурация программы 1С. ДС подписан. Отчетность передана посредством 1С»;Награда выдается при общем числе успешно закрытых задач более 15;Учёт ведётся в рамках каждой волны выставления задач в течение года, поэтому бейдж можно будет получить несколько раз;Факт получения бейджа попадает в ленту сообщества",
+              "nftFlg": "N",
+              "outstanding": "Y",
+              "newsType": "AIPROMPT",
+              "winCriterion": "Необходимо положительно закрыть не менее 85% задач по передаче ОСВ из 1С",
+              "rewardRule": "Бейдж получат участники, закрывшие более 85% выставленных на них задач по передаче ОСВ из 1С",
+              "rewardAgainGlobal": "Y",
+              "rewardAgainTournament": "N",
+              "hidden": "N",
+              "hiddenRewardList": "N",
+              "fileName": "",
+              "teamNews": "<span>[Имя_Фамилия]</span> и еще [n] [amount:менеджер] стали победителями турнира «Передача ОСВ из 1С (более 15 задач)». Они показали лучший результат в своем ТБ",
+              "singleNews": "Новое достижение! <span>[Имя]</span> [gender:1:стал|gender:2:стала] победителем турнира «Передача ОСВ из 1С (более 15 задач)». [gender:1:Он|gender:2:Она] [gender:1:показал|gender:2:показала] лучший результат по итогам турнира в своем ТБ",
+              "refreshOldNews": "Y",
+              "businessBlock": "AKMKKSB",
+              "recommendationLevel": "BANK",
+              "priority": "1",
+              "masterBadge": "Y",
+              "parentRewardCode": ""
+            }
+          }
+        ],
+        "reward_link": [
+          {
+            "CONTEST_CODE": "09_2026-0_23-1_5",
+            "GROUP_CODE": "BANK",
+            "REWARD_CODE": ""
+          }
+        ],
+        "group": [
+          {
+            "CONTEST_CODE": "09_2026-0_23-1_5",
+            "GROUP_CODE": "BANK",
+            "GROUP_VALUE": "*",
+            "GET_CALC_METHOD": "3",
+            "GET_CALC_CRITERION": "",
+            "ADD_CALC_CRITERION": "",
+            "ADD_CALC_CRITERION_2": "",
+            "BASE_CALC_CODE": ""
+          }
+        ],
+        "indicator": [
+          {
+            "CONTEST_CODE": "09_2026-0_23-1_5",
+            "INDICATOR_CALC_TYPE": "1",
+            "INDICATOR_ADD_CALC_TYPE": "",
+            "FULL_NAME": "WAIT",
+            "INDICATOR_CODE": "WAIT",
+            "INDICATOR_AGG_FUNCTION": "",
+            "INDICATOR_WEIGHT": "",
+            "INDICATOR_OBJECT": "",
+            "INDICATOR_MARK_TYPE": "CRITERION",
+            "INDICATOR_MATCH": ">=",
+            "INDICATOR_VALUE": "85",
+            "CONTEST_CRITERION": "",
+            "INDICATOR_FILTER": "",
+            "CONTESTANT_SELECTION": "",
+            "CALC_TYPE": "1",
+            "N": "348"
+          }
+        ],
+        "schedule": [
+          {
+            "TOURNAMENT_CODE": "4001",
+            "PERIOD_TYPE": "произвольный",
+            "START_DT": "2026-04-09",
+            "END_DT": "2026-06-11",
+            "RESULT_DT": "2026-06-11",
+            "PLAN_PERIOD_START_DT": "",
+            "PLAN_PERIOD_END_DT": "",
+            "CRITERION_MARK_TYPE": "",
+            "CRITERION_MARK_VALUE": "",
+            "FILTER_PERIOD_ARR": "",
+            "TOURNAMENT_STATUS": "ОТМЕНЕН",
+            "CONTEST_CODE": "09_2026-0_23-1_5",
+            "TARGET_TYPE": "{\"\"\"seasonCode\"\"\": \"\"\"SEASON_akm_2026\"\"\"}",
+            "CALC_TYPE": "1",
+            "TRN_INDICATOR_FILTER": ""
+          },
+          {
+            "TOURNAMENT_CODE": "4002",
+            "PERIOD_TYPE": "произвольный",
+            "START_DT": "2026-06-12",
+            "END_DT": "2026-07-24",
+            "RESULT_DT": "2026-07-25",
+            "PLAN_PERIOD_START_DT": "",
+            "PLAN_PERIOD_END_DT": "",
+            "CRITERION_MARK_TYPE": "",
+            "CRITERION_MARK_VALUE": "",
+            "FILTER_PERIOD_ARR": "",
+            "TOURNAMENT_STATUS": "ЗАВЕРШЕН",
+            "CONTEST_CODE": "09_2026-0_23-1_5",
+            "TARGET_TYPE": "{\"\"\"seasonCode\"\"\": \"\"\"SEASON_akm_2026\"\"\"}",
+            "CALC_TYPE": "1",
+            "TRN_INDICATOR_FILTER": ""
+          }
+        ]
+      }
+    }
+  ]
+}

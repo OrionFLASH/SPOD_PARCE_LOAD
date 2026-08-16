@@ -28,7 +28,8 @@ def embed_into_index(data: dict) -> None:
     )
     new_html, n = re.subn(
         r"/\* EMBEDDED_CATALOG_START \*/.*?/\* EMBEDDED_CATALOG_END \*/",
-        block,
+        # lambda: иначе re.sub разворачивает \n/\uXXXX из JSON в реальные символы
+        lambda _m: block,
         html,
         count=1,
         flags=re.S,

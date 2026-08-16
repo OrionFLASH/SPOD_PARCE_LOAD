@@ -245,25 +245,32 @@ def build_catalog() -> Dict[str, Any]:
     fields = []
     for leaf, schema_label, sk in schema.CONTEST_FEATURE_FIELDS:
         n += 1
-        key = f"FEATURE.{leaf}"
-        o = take_any("FEATURE", "CONTEST_FEATURE", key=key)
+        key = f"CONTEST_FEATURE.{leaf}"
+        form_key = f"FEATURE.{leaf}"  # ключ blank/Excel KV
+        o = take_any("FEATURE", "CONTEST_FEATURE", key=key) or take_any(
+            "FEATURE", "CONTEST_FEATURE", key=form_key
+        )
         kind = (o.get("kind") or input_kind_for_kv(
-            key, schema_kind=sk, has_dropdown=key in DROPDOWN_VALUES
+            form_key, schema_kind=sk, has_dropdown=form_key in DROPDOWN_VALUES
         )).split()[0]
-        variants = list(DROPDOWN_VALUES[key]) if key in DROPDOWN_VALUES else (o.get("variants") or [])
+        variants = (
+            list(DROPDOWN_VALUES[form_key])
+            if form_key in DROPDOWN_VALUES
+            else (o.get("variants") or [])
+        )
         fields.append(
             _field(
                 n=n,
                 key=key,
                 label=o.get("label") or schema_label,
                 kind=kind,
-                description=o.get("description") or description_for(key),
+                description=o.get("description") or description_for(form_key),
                 variants=variants,
-                default=o.get("default") if "default" in o else default_for(key),
+                default=o.get("default") if "default" in o else default_for(form_key),
                 allow_empty=o.get("allow_empty")
                 if "allow_empty" in o
-                else allow_empty_for(key),
-                json_target=json_pack_target(key),
+                else allow_empty_for(form_key),
+                json_target=json_pack_target(key) or json_pack_target(form_key),
                 status=o.get("status", "[ ]"),
                 note=o.get("note", ""),
             )
@@ -322,25 +329,32 @@ def build_catalog() -> Dict[str, Any]:
     fields = []
     for leaf, schema_label, sk in schema.REWARD_ADD_DATA_FIELDS:
         n += 1
-        key = f"ADD.{leaf}"
-        o = take_any("REWARD_ADD_DATA", "ADD", key=key)
+        key = f"REWARD_ADD_DATA.{leaf}"
+        form_key = f"ADD.{leaf}"  # ключ blank/Excel KV
+        o = take_any("REWARD_ADD_DATA", "ADD", key=key) or take_any(
+            "REWARD_ADD_DATA", "ADD", key=form_key
+        )
         kind = (o.get("kind") or input_kind_for_kv(
-            key, schema_kind=sk, has_dropdown=key in DROPDOWN_VALUES
+            form_key, schema_kind=sk, has_dropdown=form_key in DROPDOWN_VALUES
         )).split()[0]
-        variants = list(DROPDOWN_VALUES[key]) if key in DROPDOWN_VALUES else (o.get("variants") or [])
+        variants = (
+            list(DROPDOWN_VALUES[form_key])
+            if form_key in DROPDOWN_VALUES
+            else (o.get("variants") or [])
+        )
         fields.append(
             _field(
                 n=n,
                 key=key,
                 label=o.get("label") or schema_label,
                 kind=kind,
-                description=o.get("description") or description_for(key),
+                description=o.get("description") or description_for(form_key),
                 variants=variants,
-                default=o.get("default") if "default" in o else default_for(key),
+                default=o.get("default") if "default" in o else default_for(form_key),
                 allow_empty=o.get("allow_empty")
                 if "allow_empty" in o
-                else allow_empty_for(key),
-                json_target=json_pack_target(key),
+                else allow_empty_for(form_key),
+                json_target=json_pack_target(key) or json_pack_target(form_key),
                 status=o.get("status", "[ ]"),
                 note=o.get("note", ""),
             )
@@ -423,10 +437,12 @@ def main() -> None:
     targets = [OUT_DIR, WEB_EDIT_DIR]
     for dest in targets:
         (dest / "catalog.json").write_text(payload, encoding="utf-8")
-        (dest / "catalog.js").write_text(js_body, encoding="utf-8")
+    # catalog.js только в review (web-edit читает JSON через диалог / HTTP, не .js)
+    (OUT_DIR / "catalog.js").write_text(js_body, encoding="utf-8")
     total = sum(len(s["fields"]) for s in catalog["sections"])
     print(
-        f"OK: catalog.json + catalog.js → {OUT_DIR.name}/ и {WEB_EDIT_DIR.name}/ "
+        f"OK: catalog.json → {OUT_DIR.name}/ и {WEB_EDIT_DIR.name}/; "
+        f"catalog.js → {OUT_DIR.name}/ "
         f"({total} полей, {len(catalog['sections'])} секций)"
     )
 
