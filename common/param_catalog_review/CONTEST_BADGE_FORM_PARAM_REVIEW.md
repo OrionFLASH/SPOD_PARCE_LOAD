@@ -1,6 +1,6 @@
 # Каталог параметров формы BADGE
 
-> **Удобный ввод:** откройте [`../web-edit/index.html`](../web-edit/index.html)
+> **Удобный ввод:** откройте [`../web-edit/game_edit_parameters.html`](../web-edit/game_edit_parameters.html)
 > (данные: [`catalog.json`](catalog.json); Live Server / импорт; при `file://` — зеркало `catalog.js`).
 > Правки → «Сохранить JSON» → заменить `catalog.json` → `contest_badge_form_blank` пересоберёт BLANK.
 

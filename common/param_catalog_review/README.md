@@ -4,7 +4,7 @@ JSON, экспортируемый из веб-редактора [`../web-edit/
 
 | Файл | Назначение |
 |------|------------|
-| `catalog.json` | Рабочий каталог (blank + копия в `../web-edit/` для UI) |
+| `catalog.json` | Рабочий каталог (blank + копия в `../web-edit/game_edit_catalog.json` для UI) |
 | `catalog.js` | Зеркало для `file://` |
 | `CONTEST_BADGE_FORM_PARAM_REVIEW.md` | MD-снимок (архив / дифф) |
 

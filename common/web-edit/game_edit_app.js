@@ -5,8 +5,8 @@
   const LS_KEY = "spod_param_review_catalog_v6";
   const LS_BASELINE_KEY = "spod_param_review_baseline_v6";
   const LS_SOURCE_KEY = "spod_param_review_source_v6";
-  /** Рабочий источник — catalog.json (файл через диалог или «Перечитать» по HTTP). catalog.js не используется. */
-  const CATALOG_URL = "./catalog.json";
+  /** Рабочий источник — game_edit_catalog.json (файл через диалог или «Перечитать» по HTTP). */
+  const CATALOG_URL = "./game_edit_catalog.json";
   const KINDS = ["dropdown", "dropdown_custom", "text", "number", "list", "json", "date"];
   const KIND_LABELS = {
     dropdown: "Выбор из списка",
@@ -43,6 +43,23 @@
     date:
       '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18"/><path d="M8 3v4"/><path d="M16 3v4"/></svg>',
   };
+  /** Раздел с разбором ключей JSON (не колонка-оболочка в TABLE). */
+  function isJsonKeySection(sec) {
+    return !!sec && (sec.kind === "json" || sec.kind === "json_array");
+  }
+  /**
+   * Ключ должен присутствовать в JSON (по умолчанию да).
+   * false = ключа может не быть вовсе; true = ключ всегда есть.
+   * Пустота значения — отдельно через allow_empty.
+   */
+  function fieldJsonRequired(field) {
+    return field.json_required !== false;
+  }
+  /** Колонка TABLE с kind=json: allow_empty = весь JSON может отсутствовать. */
+  function isJsonColumnShell(field) {
+    return !!(field && field.kind === "json");
+  }
+
   const STATUSES = ["[ ]", "[w]", "[v]"];
   const STATUS_LABELS = {
     "[ ]": "Не готово",
@@ -112,12 +129,19 @@
   function showToast(text) {
     const toast = $("save-toast");
     const label = $("save-toast-text");
-    if (label) label.textContent = text || "Сохранено локально";
-    toast.hidden = false;
+    const idle = $("footer-status-idle");
+    const msg = text || "Сохранено локально";
+    if (label) label.textContent = msg;
+    if (toast) toast.hidden = false;
+    if (idle) idle.hidden = true;
     clearTimeout(saveTimer);
     saveTimer = setTimeout(() => {
-      toast.hidden = true;
-    }, 1400);
+      if (toast) toast.hidden = true;
+      if (idle) {
+        idle.hidden = false;
+        idle.textContent = "Статус: " + msg;
+      }
+    }, 2200);
   }
 
   function showApp() {
@@ -132,11 +156,15 @@
   function syncWorkspaceMode() {
     const empty = $("sidebar-empty");
     const loaded = $("sidebar-loaded");
-    const searchWrap = $("search-wrap");
+    const toolbar = $("header-toolbar");
     const on = hasCatalog();
     if (empty) empty.hidden = on;
     if (loaded) loaded.hidden = !on;
-    if (searchWrap) searchWrap.hidden = !on;
+    if (toolbar) toolbar.hidden = !on;
+    ["btn-export-json", "btn-reload"].forEach((id) => {
+      const el = $(id);
+      if (el) el.disabled = !on;
+    });
     if (!on) {
       const title = $("section-title");
       const intro = $("section-intro");
@@ -144,9 +172,11 @@
       if (title) title.textContent = "Настройка описания параметров";
       if (intro) {
         intro.textContent =
-          "Выберите catalog.json в панели слева, чтобы начать.";
+          "Выберите game_edit_catalog.json в нижнем колонтитуле, чтобы начать.";
       }
       if (fields) fields.innerHTML = "";
+      const stats = $("sidebar-stats");
+      if (stats) stats.innerHTML = "";
     }
   }
 
@@ -195,6 +225,7 @@
       variant_labels: labels.some(Boolean) ? labels : [],
       default: field.default || "",
       allow_empty: !!field.allow_empty,
+      json_required: field.json_required !== false,
       description: field.description || "",
       note: field.note || "",
       json_target: field.json_target || "",
@@ -219,6 +250,8 @@
       : [];
     field.default = snap.default || "";
     field.allow_empty = !!snap.allow_empty;
+    if (snap.json_required === undefined) field.json_required = true;
+    else field.json_required = !!snap.json_required;
     field.description = snap.description || "";
     field.note = snap.note || "";
     if (snap.json_target != null) field.json_target = snap.json_target;
@@ -401,7 +434,7 @@
   }
 
   /**
-   * Старт: пустой экран «выберите catalog.json».
+   * Старт: пустой экран «выберите game_edit_catalog.json».
    * Автозагрузка файла/черновика отключена — иначе сразу «отредактировано»
    * из старого baseline в браузере.
    */
@@ -409,12 +442,12 @@
     enterEmptyWorkspace();
   }
 
-  /** Явно перечитать ./catalog.json (Live Server / HTTP). */
+  /** Явно перечитать ./game_edit_catalog.json (Live Server / HTTP). */
   async function reloadCatalogFromDisk() {
     try {
       const fileData = await loadSourceCatalog();
       applyCatalog(fileData, { resetBaseline: true, persistDraft: true });
-      showToast("Загружен catalog.json");
+      showToast("Загружен game_edit_catalog.json");
     } catch (err) {
       const msg = err && err.message ? err.message : String(err);
       alert(
@@ -472,11 +505,11 @@
         "nav-btn" +
         (sec.id === activeSectionId ? " active" : "") +
         (isChild ? " nav-btn--child" : "") +
-        (kind === "json" ? " nav-btn--json" : " nav-btn--table");
+        (kind === "json" || kind === "json_array" ? " nav-btn--json" : " nav-btn--table");
       const p = sectionProgress(sec);
       const label = escapeHtml(sec.menu_label || sec.title);
       const kindBadge =
-        kind === "json"
+        kind === "json" || kind === "json_array"
           ? `<span class="nav-kind nav-kind--json">JSON</span>`
           : `<span class="nav-kind nav-kind--table">TABLE</span>`;
       const nest = isChild
@@ -489,7 +522,7 @@
       const tipParts = [];
       if (sec.intro) tipParts.push(sec.intro);
       if (sec.sheet) tipParts.push(`Лист Excel: ${sec.sheet}`);
-      tipParts.push(kind === "json" ? "Тип раздела: JSON" : "Тип раздела: TABLE");
+      tipParts.push(kind === "json_array" ? "Тип раздела: JSON-массив (элемент)" : (kind === "json" ? "Тип раздела: JSON" : "Тип раздела: TABLE"));
       tipParts.push(`Готово: ${p.done} из ${p.total}`);
       btn.setAttribute("data-tip", tipParts.join("\n"));
       btn.addEventListener("click", () => {
@@ -497,7 +530,9 @@
         const searchEl = $("search");
         if (searchEl && searchEl.value) searchEl.value = "";
         renderAll();
-        window.scrollTo({ top: 0, behavior: "smooth" });
+        const fieldsEl = $("fields");
+        if (fieldsEl) fieldsEl.scrollTo({ top: 0, behavior: "smooth" });
+        else window.scrollTo({ top: 0, behavior: "smooth" });
       });
       const q = searchQuery();
       if (q) {
@@ -1185,6 +1220,21 @@
 
     const kind = field.kind || "text";
     host.innerHTML = "";
+    const defaultWrap = card.querySelector(".field-default");
+    if (defaultWrap) defaultWrap.classList.toggle("is-disabled", kind === "json");
+
+    if (kind === "json") {
+      field.default = "";
+      field.variants = [];
+      delete field.variant_labels;
+      host.innerHTML =
+        `<div class="default-empty" data-tip="Дефолт и варианты задаются у ключей внутри JSON-раздела">Колонка JSON — дефолт не задаётся. Ключи и значения по умолчанию — в дочернем разделе.</div>`;
+      if (hint) {
+        hint.textContent =
+          "Колонка JSON: «JSON опционален» = весь JSON может отсутствовать. Ключи — в дочернем разделе («можно пусто» = пустое значение при наличии ключа; «ключ в JSON» = обязан быть / может отсутствовать).";
+      }
+      return;
+    }
 
     if (kind === "dropdown" || kind === "dropdown_custom") {
       // Для dropdown_custom дефолт — как у списка (чипы); поле «свой вариант» только в fill
@@ -1264,6 +1314,15 @@
     if (!data || !Array.isArray(data.sections)) return;
     for (const sec of data.sections) {
       for (const f of sec.fields || []) {
+        if (isJsonKeySection(sec) && !isJsonColumnShell(f)) {
+          if (f.json_required === undefined || f.json_required === null) {
+            f.json_required = true;
+          } else {
+            f.json_required = !!f.json_required;
+          }
+        } else if ("json_required" in f && !isJsonKeySection(sec)) {
+          delete f.json_required;
+        }
         if (!kindHasVariants(f.kind)) {
           if (!Array.isArray(f.variants)) f.variants = [];
           if (!(f.variants || []).length) delete f.variant_labels;
@@ -1442,11 +1501,17 @@
       if (ta) ta.value = "";
       if (taLab) taLab.value = "";
     }
+    if (field.kind === "json") {
+      field.default = "";
+      field.json_target = field.json_target || field.key;
+    }
     card.querySelectorAll(".kind-chip").forEach((b) => {
       const on = b.getAttribute("data-kind") === field.kind;
       b.classList.toggle("active", on);
       b.setAttribute("aria-checked", on ? "true" : "false");
     });
+    const kindWrap = card.querySelector(".field-kind");
+    if (kindWrap) kindWrap.classList.toggle("is-disabled", isJsonColumnShell(field));
     syncVariantsUi(card, field);
     syncDefaultUi(card, field, sectionId);
     afterFieldEdit(card, field, sectionId);
@@ -1516,24 +1581,53 @@
           <div class="status-toggle" data-role="status" role="radiogroup" aria-label="Готовность" data-tip="Готовность описания поля">
             ${statusBtns}
           </div>
-          <label class="allow-empty-chip glass-switch${field.allow_empty ? " is-on" : ""}" data-role="allow_empty_wrap" data-tip="Да — можно оставить пустым (в edit/fill снять все чипы). Нет — для списка/dropdown всегда должен быть выбран вариант.">
+          <label class="allow-empty-chip glass-switch${field.allow_empty ? " is-on" : ""}" data-role="allow_empty_wrap" data-tip="${
+            isJsonColumnShell(field)
+              ? "Да — весь JSON может вообще отсутствовать (пустая ячейка колонки в CSV). Нет — JSON обязателен."
+              : isJsonKeySection((catalog.sections || []).find((s) => s.id === sectionId))
+                ? "Да — ключ в JSON есть, но значение может быть пустым. Нет — если ключ есть, значение обязательно."
+                : "Да — значение можно оставить пустым. Нет — значение обязательно (для списка/dropdown нельзя снять все чипы)."
+          }">
             <input type="checkbox" data-role="allow_empty" role="switch" ${field.allow_empty ? "checked" : ""} />
             <span class="glass-switch__track" aria-hidden="true"><span class="glass-switch__thumb"></span></span>
-            <span class="allow-empty-text">Можно пусто</span>
+            <span class="allow-empty-text">${
+              isJsonColumnShell(field) ? "JSON опционален" : "Можно пусто"
+            }</span>
             <span class="glass-switch__label">${field.allow_empty ? "да" : "нет"}</span>
           </label>
+          ${
+            (() => {
+              const sec = (catalog.sections || []).find((s) => s.id === sectionId);
+              if (!isJsonKeySection(sec) || isJsonColumnShell(field)) return "";
+              const on = fieldJsonRequired(field);
+              return `<label class="allow-empty-chip json-req-chip glass-switch${on ? " is-on" : ""}" data-role="json_required_wrap" data-tip="Обязателен — ключ всегда присутствует в JSON (пустое значение — отдельный флаг «можно пусто»). Может отсутствовать — ключа в JSON может не быть вовсе (независимо от того, пустое было бы значение или нет).">
+            <input type="checkbox" data-role="json_required" role="switch" ${on ? "checked" : ""} />
+            <span class="glass-switch__track" aria-hidden="true"><span class="glass-switch__thumb"></span></span>
+            <span class="allow-empty-text">Ключ в JSON</span>
+            <span class="glass-switch__label">${on ? "обязателен" : "может отсутствовать"}</span>
+          </label>`;
+            })()
+          }
         </div>
       </div>
       <div class="field full">
         <label data-tip="Подпись колонки / строки в Excel-форме">Подпись</label>
         <input type="text" data-role="label" value="${escapeHtml(field.label)}" data-tip="Человекочитаемое имя поля в форме" />
       </div>
-      <div class="field full field-kind">
+      <div class="field full field-kind${isJsonColumnShell(field) ? " is-disabled" : ""}" data-tip="${
+        isJsonColumnShell(field)
+          ? "Колонка CSV с типом JSON — тип зафиксирован. Ключи редактируются в дочернем разделе."
+          : ""
+      }">
         <label data-tip="Как пользователь вводит значение в Excel">Тип ввода</label>
         ${kindToggleHtml(field.kind)}
       </div>
-      <div class="field full field-default">
-        <label data-tip="Что попадёт в пустой шаблон BLANK по умолчанию">Значение по умолчанию</label>
+      <div class="field full field-default${isJsonColumnShell(field) ? " is-disabled" : ""}">
+        <label data-tip="${
+          isJsonColumnShell(field)
+            ? "Для колонки JSON дефолт не используется"
+            : "Что попадёт в пустой шаблон BLANK по умолчанию"
+        }">Значение по умолчанию</label>
         <div class="default-host" data-role="default-host"></div>
         <div class="field-hint" data-role="default-hint"></div>
       </div>
@@ -1599,6 +1693,10 @@
       btn.addEventListener("click", () => {
         const next = btn.getAttribute("data-kind");
         if (!next || next === field.kind) return;
+        if (isJsonColumnShell(field) && next !== "json") {
+          showToast("Колонка JSON: тип зафиксирован");
+          return;
+        }
         applyKindChange(card, field, sectionId, next);
       });
     });
@@ -1614,7 +1712,7 @@
       field.label = e.target.value;
       afterFieldEdit(card, field, sectionId);
     });
-    bind("allow_empty", (e) => {
+        bind("allow_empty", (e) => {
       field.allow_empty = !!e.target.checked;
       const wrap = card.querySelector("[data-role='allow_empty_wrap']");
       const lab = wrap && wrap.querySelector(".glass-switch__label");
@@ -1624,6 +1722,14 @@
       if (!field.allow_empty && kindHasVariants(field.kind)) {
         syncDefaultUi(card, field, sectionId);
       }
+      afterFieldEdit(card, field, sectionId);
+    });
+    bind("json_required", (e) => {
+      field.json_required = !!e.target.checked;
+      const wrap = card.querySelector("[data-role='json_required_wrap']");
+      const lab = wrap && wrap.querySelector(".glass-switch__label");
+      if (wrap) wrap.classList.toggle("is-on", field.json_required);
+      if (lab) lab.textContent = field.json_required ? "обязателен" : "может отсутствовать";
       afterFieldEdit(card, field, sectionId);
     });
     bind("description", (e) => {
@@ -1708,14 +1814,14 @@
         const head = document.createElement("div");
         head.className = "search-group-head";
         const kind = sec.kind || "table";
-        const kindLabel = kind === "json" ? "JSON" : "TABLE";
+        const kindLabel = kind === "json" || kind === "json_array" ? "JSON" : "TABLE";
         head.innerHTML =
           `<button type="button" class="search-group-jump" data-sec="${escapeHtml(
             sec.id
           )}" data-tip="Открыть раздел «${escapeHtml(
             sec.menu_label || sec.title
           )}» и сбросить поиск">` +
-          `<span class="nav-kind nav-kind--${kind === "json" ? "json" : "table"}">${kindLabel}</span>` +
+          `<span class="nav-kind nav-kind--${kind === "json" || kind === "json_array" ? "json" : "table"}">${kindLabel}</span>` +
           `<span class="search-group-title">${escapeHtml(sec.menu_label || sec.title)}</span>` +
           `<span class="search-group-count">${fields.length}</span>` +
           `</button>`;
@@ -1723,7 +1829,9 @@
           activeSectionId = sec.id;
           $("search").value = "";
           renderAll();
-          window.scrollTo({ top: 0, behavior: "smooth" });
+          const fieldsEl = $("fields");
+        if (fieldsEl) fieldsEl.scrollTo({ top: 0, behavior: "smooth" });
+        else window.scrollTo({ top: 0, behavior: "smooth" });
         });
         wrap.appendChild(head);
         for (const field of fields) {
@@ -1735,7 +1843,7 @@
 
     const sec = activeSection();
     const kind = sec.kind || "table";
-    const kindLabel = kind === "json" ? "JSON" : "TABLE";
+    const kindLabel = kind === "json" || kind === "json_array" ? "JSON" : "TABLE";
     const sheetBit = sec.sheet ? ` · лист ${sec.sheet}` : "";
     $("section-title").textContent = `${kindLabel}: ${sec.menu_label || sec.title}`;
     $("section-intro").textContent =
@@ -1805,116 +1913,10 @@
       exported_at: new Date().toISOString(),
     };
     catalog.exported_at = payload.exported_at;
-    const name = `catalog_${stamp()}.json`;
+    const name = `game_edit_catalog_${stamp()}.json`;
     download(name, JSON.stringify(payload, null, 2) + "\n", "application/json");
     persist();
     showToast(`Скачан ${name}`);
-  }
-
-  function csvEscape(v) {
-    const s = String(v ?? "");
-    if (/[",\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
-    return s;
-  }
-
-  function exportCsv() {
-    if (!catalog) return;
-    persist();
-    const cols = [
-      "section",
-      "n",
-      "key",
-      "status",
-      "label",
-      "kind",
-      "variants",
-      "variant_labels",
-      "default",
-      "allow_empty",
-      "json_target",
-      "description",
-      "note",
-    ];
-    const lines = [cols.join(",")];
-    for (const sec of catalog.sections) {
-      for (const f of sec.fields) {
-        lines.push(
-          [
-            sec.id,
-            f.n,
-            f.key,
-            f.status,
-            f.label,
-            f.kind,
-            (f.variants || []).join(" | "),
-            (f.variant_labels || []).join(" | "),
-            f.default || "",
-            f.allow_empty ? "да" : "нет",
-            f.json_target || "",
-            f.description || "",
-            f.note || "",
-          ]
-            .map(csvEscape)
-            .join(",")
-          );
-      }
-    }
-    download(`param_review_${stamp()}.csv`, lines.join("\n") + "\n", "text/csv");
-  }
-
-  function mdCell(s) {
-    return String(s ?? "")
-      .replace(/\|/g, " · ")
-      .replace(/\r?\n/g, "<br>");
-  }
-
-  function exportMd() {
-    if (!catalog) return;
-    persist();
-    const lines = [];
-    lines.push("# Каталог параметров формы BADGE");
-    lines.push("");
-    lines.push("Выгрузка из HTML-редактора `common/web-edit/`.");
-    lines.push(`Экспорт: ${new Date().toISOString()}`);
-    lines.push("");
-    lines.push("После правок передайте JSON/CSV/MD в чат: **«примени каталог»**.");
-    lines.push("");
-    for (const sec of catalog.sections) {
-      lines.push(`## ${sec.title}`);
-      lines.push("");
-      if (sec.intro) {
-        lines.push(sec.intro);
-        lines.push("");
-      }
-      lines.push(
-        "| # | Ст | Ключ | Подпись | Описание | Тип | Варианты | Дефолт | Пусто | JSON | Заметка |"
-      );
-      lines.push(
-        "|---:|:--:|:-----|:--------|:---------|:----|:---------|:-------|:-----:|:-----|:--------|"
-      );
-      for (const f of sec.fields) {
-        const variants =
-          f.variants && f.variants.length
-            ? f.variants
-                .map((v, i) => {
-                  const lab = Array.isArray(f.variant_labels)
-                    ? String(f.variant_labels[i] || "").trim()
-                    : "";
-                  return lab ? `${mdCell(lab)} (${mdCell(v)})` : mdCell(v);
-                })
-                .join("<br>")
-            : "—";
-        lines.push(
-          `| ${f.n} | \`${f.status}\` | \`${f.key}\` | ${mdCell(f.label)} | ${mdCell(
-            f.description
-          )} | ${mdCell(f.kind)} | ${variants} | ${mdCell(f.default || "—")} | ${
-            f.allow_empty ? "да" : "нет"
-          } | ${mdCell(f.json_target || "—")} | ${mdCell(f.note || "")} |`
-        );
-      }
-      lines.push("");
-    }
-    download(`param_review_${stamp()}.md`, lines.join("\n"), "text/markdown");
   }
 
   function importJson(file) {
@@ -1936,7 +1938,7 @@
         if (raw.charCodeAt(0) === 0xfeff) raw = raw.slice(1);
         const data = JSON.parse(raw);
         applyCatalog(data, { resetBaseline: true, persistDraft: true });
-        showToast("Открыт catalog.json");
+        showToast("Открыт game_edit_catalog.json");
       } catch (err) {
         const msg = err && err.message ? err.message : String(err);
         alert("Не удалось открыть JSON: " + msg);
@@ -2187,13 +2189,11 @@
     }
 
     $("btn-export-json").addEventListener("click", exportJson);
-    $("btn-export-csv").addEventListener("click", exportCsv);
-    $("btn-export-md").addEventListener("click", exportMd);
 
     $("btn-reload").addEventListener("click", () => {
       if (
         !confirm(
-          "Сбросить черновик в браузере и заново прочитать catalog.json рядом со страницей?"
+          "Сбросить черновик в браузере и заново прочитать game_edit_catalog.json рядом со страницей?"
         )
       ) {
         return;

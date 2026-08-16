@@ -1,8 +1,8 @@
 /* зеркало catalog.json */
 window.PARAM_REVIEW_CATALOG = {
   "version": 2,
-  "generated_at": "2026-08-15T09:32:48Z",
-  "source": "schema + field_meta + web-edit (BUSINESS_BLOCK list KMMMB)",
+  "generated_at": "2026-08-16T17:32:07Z",
+  "source": "schema + field_meta + web-edit (BUSINESS_BLOCK list KMMMB) + JSON arrays CONTEST_PERIOD / FILTER_PERIOD_ARR / INDICATOR_FILTER / SCHEDULE TARGET_TYPE + json_required + table JSON column shells",
   "sections": [
     {
       "id": "CONTEST",
@@ -113,6 +113,19 @@ window.PARAM_REVIEW_CATALOG = {
         },
         {
           "n": 8,
+          "key": "CONTEST_FEATURE",
+          "status": "[v]",
+          "label": "CONTEST_FEATURE (JSON)",
+          "description": "Колонка CONTEST_FEATURE: JSON-объект особенностей конкурса. Пустота ячейки — флаг «можно пусто». Ключи — в разделе CONTEST_FEATURE.",
+          "kind": "json",
+          "variants": [],
+          "default": "",
+          "allow_empty": false,
+          "json_target": "CONTEST_FEATURE",
+          "note": "Колонка CSV с SPOD-JSON. Редактируются подпись, описание, заметка и «можно пусто». Ключи — в дочернем разделе JSON."
+        },
+        {
+          "n": 9,
           "key": "SHOW_INDICATOR",
           "status": "[v]",
           "label": "Единицы измерения показателя",
@@ -147,7 +160,7 @@ window.PARAM_REVIEW_CATALOG = {
           "note": ""
         },
         {
-          "n": 9,
+          "n": 10,
           "key": "PRODUCT_GROUP",
           "status": "[v]",
           "label": "Группа продукта",
@@ -160,7 +173,7 @@ window.PARAM_REVIEW_CATALOG = {
           "note": ""
         },
         {
-          "n": 10,
+          "n": 11,
           "key": "PRODUCT",
           "status": "[v]",
           "label": "Продукт",
@@ -173,22 +186,27 @@ window.PARAM_REVIEW_CATALOG = {
           "note": ""
         },
         {
-          "n": 11,
+          "n": 12,
           "key": "CONTEST_SUBJECT",
           "status": "[v]",
           "label": "Кто соревнуется",
-          "description": "Кто участник конкурса. Обычно: EMPLOYEE (сотрудники).",
+          "description": "Субъект конкурса (подразделение, сотрудник). Уровень группировки результатов.",
           "kind": "dropdown",
           "variants": [
-            "EMPLOYEE"
+            "EMPLOYEE",
+            "UNIT"
           ],
           "default": "EMPLOYEE",
           "allow_empty": false,
           "json_target": "",
-          "note": ""
+          "note": "",
+          "variant_labels": [
+            "Сотрудники",
+            "Подразделения"
+          ]
         },
         {
-          "n": 12,
+          "n": 13,
           "key": "FACTOR_MARK_TYPE",
           "status": "[v]",
           "label": "Как выбираем победителей",
@@ -208,11 +226,11 @@ window.PARAM_REVIEW_CATALOG = {
             "Достигни",
             "Больше - лучше",
             "Меньше - лучше",
-            ""
+            "Больше в X раз"
           ]
         },
         {
-          "n": 13,
+          "n": 14,
           "key": "CONTEST_INDICATOR_METHOD",
           "status": "[v]",
           "label": "Метод индикатора",
@@ -232,7 +250,7 @@ window.PARAM_REVIEW_CATALOG = {
           ]
         },
         {
-          "n": 14,
+          "n": 15,
           "key": "CONTEST_FACTOR_METHOD",
           "status": "[v]",
           "label": "Метод расчета показателя",
@@ -250,7 +268,7 @@ window.PARAM_REVIEW_CATALOG = {
           "note": ""
         },
         {
-          "n": 15,
+          "n": 16,
           "key": "PLAN_METHOD_CODE",
           "status": "[v]",
           "label": "Как вычисляется план",
@@ -270,7 +288,7 @@ window.PARAM_REVIEW_CATALOG = {
           ]
         },
         {
-          "n": 16,
+          "n": 17,
           "key": "PLAN_MOD_METOD",
           "status": "[v]",
           "label": "Метод модификации плана",
@@ -285,7 +303,7 @@ window.PARAM_REVIEW_CATALOG = {
           "note": ""
         },
         {
-          "n": 17,
+          "n": 18,
           "key": "PLAN_MOD_VALUE",
           "status": "[v]",
           "label": "Значение плана",
@@ -298,7 +316,7 @@ window.PARAM_REVIEW_CATALOG = {
           "note": ""
         },
         {
-          "n": 18,
+          "n": 19,
           "key": "FACTOR_MATCH",
           "status": "[v]",
           "label": "Символ сравнения с планом",
@@ -324,7 +342,20 @@ window.PARAM_REVIEW_CATALOG = {
           ]
         },
         {
-          "n": 19,
+          "n": 20,
+          "key": "CONTEST_PERIOD",
+          "status": "[v]",
+          "label": "Настройка периода",
+          "description": "Колонка CONTEST_PERIOD: JSON-массив периодов. Пустота ячейки — флаг «можно пусто». Элементы — в разделе CONTEST_PERIOD.",
+          "kind": "json",
+          "variants": [],
+          "default": "",
+          "allow_empty": false,
+          "json_target": "CONTEST_PERIOD",
+          "note": "Колонка CSV с SPOD-JSON. Редактируются подпись, описание, заметка и «можно пусто». Ключи — в дочернем разделе JSON."
+        },
+        {
+          "n": 21,
           "key": "TARGET_TYPE",
           "status": "[v]",
           "label": "Среда конкурса",
@@ -340,7 +371,7 @@ window.PARAM_REVIEW_CATALOG = {
           "note": ""
         },
         {
-          "n": 20,
+          "n": 22,
           "key": "SOURCE_UPD_FREQUENCY",
           "status": "[v]",
           "label": "Частота обновления источника",
@@ -357,7 +388,7 @@ window.PARAM_REVIEW_CATALOG = {
           "note": ""
         },
         {
-          "n": 21,
+          "n": 23,
           "key": "CALC_TYPE",
           "status": "[v]",
           "label": "Тип расчёта показателя",
@@ -377,7 +408,7 @@ window.PARAM_REVIEW_CATALOG = {
           ]
         },
         {
-          "n": 22,
+          "n": 24,
           "key": "FACT_POST_PROCESSING",
           "status": "[v]",
           "label": "Постобработка факта",
@@ -399,7 +430,7 @@ window.PARAM_REVIEW_CATALOG = {
           ]
         },
         {
-          "n": 23,
+          "n": 25,
           "key": "BUSINESS_BLOCK",
           "status": "[v]",
           "label": "Бизнес-блок конкурса",
@@ -408,8 +439,8 @@ window.PARAM_REVIEW_CATALOG = {
           "variants": [
             "KMMMB",
             "KMKKSB",
-            "CSM",
-            "AKMKKSB"
+            "AKMKKSB",
+            "CSM"
           ],
           "default": "KMMMB",
           "allow_empty": false,
@@ -418,22 +449,9 @@ window.PARAM_REVIEW_CATALOG = {
           "variant_labels": [
             "КМ ММБ",
             "КМ ККСБ",
-            "Руководитель по внедрению проектов",
-            "АКМ ККСБ"
+            "АКМ ККСБ",
+            "Руководитель по внедрению проектов"
           ]
-        },
-        {
-          "n": 24,
-          "key": "CONTEST_PERIOD",
-          "status": "[v]",
-          "label": "Периоды расчета конкурса",
-          "description": "Периоды через для расчета показателей конкурса",
-          "kind": "text",
-          "variants": [],
-          "default": "[]",
-          "allow_empty": true,
-          "json_target": "",
-          "note": ""
         }
       ]
     },
@@ -464,7 +482,8 @@ window.PARAM_REVIEW_CATALOG = {
           "variant_labels": [
             "Промышленный",
             "Тестовый"
-          ]
+          ],
+          "json_required": true
         },
         {
           "n": 26,
@@ -486,7 +505,8 @@ window.PARAM_REVIEW_CATALOG = {
             "# ##",
             "# ##.#",
             "# ##.##"
-          ]
+          ],
+          "json_required": true
         },
         {
           "n": 27,
@@ -506,7 +526,8 @@ window.PARAM_REVIEW_CATALOG = {
           "variant_labels": [
             "в миллионах",
             "в тысячах"
-          ]
+          ],
+          "json_required": true
         },
         {
           "n": 28,
@@ -526,7 +547,8 @@ window.PARAM_REVIEW_CATALOG = {
           "variant_labels": [
             "Да",
             "Нет"
-          ]
+          ],
+          "json_required": true
         },
         {
           "n": 29,
@@ -543,7 +565,8 @@ window.PARAM_REVIEW_CATALOG = {
           "default": "1",
           "allow_empty": false,
           "json_target": "CONTEST_FEATURE.minNumber",
-          "note": ""
+          "note": "",
+          "json_required": true
         },
         {
           "n": 30,
@@ -563,7 +586,8 @@ window.PARAM_REVIEW_CATALOG = {
           "variant_labels": [
             "По завершению",
             "Во время"
-          ]
+          ],
+          "json_required": true
         },
         {
           "n": 31,
@@ -583,7 +607,8 @@ window.PARAM_REVIEW_CATALOG = {
           "variant_labels": [
             "Вручаем одну",
             "Вручаем все"
-          ]
+          ],
+          "json_required": true
         },
         {
           "n": 32,
@@ -603,7 +628,8 @@ window.PARAM_REVIEW_CATALOG = {
           "variant_labels": [
             "Да",
             "Нет"
-          ]
+          ],
+          "json_required": true
         },
         {
           "n": 33,
@@ -623,7 +649,8 @@ window.PARAM_REVIEW_CATALOG = {
           "variant_labels": [
             "Да",
             "Нет"
-          ]
+          ],
+          "json_required": true
         },
         {
           "n": 34,
@@ -636,7 +663,8 @@ window.PARAM_REVIEW_CATALOG = {
           "default": "",
           "allow_empty": true,
           "json_target": "CONTEST_FEATURE.persomanNumberVisible",
-          "note": ""
+          "note": "",
+          "json_required": true
         },
         {
           "n": 35,
@@ -649,7 +677,8 @@ window.PARAM_REVIEW_CATALOG = {
           "default": "",
           "allow_empty": true,
           "json_target": "CONTEST_FEATURE.persomanNumberHidden",
-          "note": ""
+          "note": "",
+          "json_required": true
         },
         {
           "n": 36,
@@ -669,7 +698,8 @@ window.PARAM_REVIEW_CATALOG = {
           "variant_labels": [
             "Да",
             "Нет"
-          ]
+          ],
+          "json_required": true
         },
         {
           "n": 37,
@@ -689,7 +719,8 @@ window.PARAM_REVIEW_CATALOG = {
           "variant_labels": [
             "Да",
             "Нет"
-          ]
+          ],
+          "json_required": true
         },
         {
           "n": 38,
@@ -709,7 +740,8 @@ window.PARAM_REVIEW_CATALOG = {
           "variant_labels": [
             "Да",
             "Нет"
-          ]
+          ],
+          "json_required": true
         },
         {
           "n": 39,
@@ -722,7 +754,8 @@ window.PARAM_REVIEW_CATALOG = {
           "default": "",
           "allow_empty": true,
           "json_target": "CONTEST_FEATURE.tournamentListMailing",
-          "note": ""
+          "note": "",
+          "json_required": true
         },
         {
           "n": 40,
@@ -742,7 +775,8 @@ window.PARAM_REVIEW_CATALOG = {
           "variant_labels": [
             "Да",
             "Нет"
-          ]
+          ],
+          "json_required": true
         },
         {
           "n": 41,
@@ -755,7 +789,8 @@ window.PARAM_REVIEW_CATALOG = {
           "default": "",
           "allow_empty": true,
           "json_target": "CONTEST_FEATURE.feature",
-          "note": ""
+          "note": "",
+          "json_required": true
         },
         {
           "n": 42,
@@ -767,8 +802,8 @@ window.PARAM_REVIEW_CATALOG = {
           "variants": [
             "KMMMB",
             "KMKKSB",
-            "CSM",
-            "AKMKKSB"
+            "AKMKKSB",
+            "CSM"
           ],
           "default": "KMMMB",
           "allow_empty": false,
@@ -777,9 +812,10 @@ window.PARAM_REVIEW_CATALOG = {
           "variant_labels": [
             "КМ ММБ",
             "КМ ККСБ",
-            "Руководитель по внедрению проектов",
-            "АКМ ККСБ"
-          ]
+            "АКМ ККСБ",
+            "Руководитель по внедрению проектов"
+          ],
+          "json_required": true
         },
         {
           "n": 43,
@@ -792,7 +828,8 @@ window.PARAM_REVIEW_CATALOG = {
           "default": "",
           "allow_empty": true,
           "json_target": "CONTEST_FEATURE.helpCodeList",
-          "note": ""
+          "note": "",
+          "json_required": true
         },
         {
           "n": 44,
@@ -805,7 +842,8 @@ window.PARAM_REVIEW_CATALOG = {
           "default": "",
           "allow_empty": true,
           "json_target": "CONTEST_FEATURE.preferences",
-          "note": ""
+          "note": "",
+          "json_required": true
         },
         {
           "n": 45,
@@ -818,7 +856,8 @@ window.PARAM_REVIEW_CATALOG = {
           "default": "",
           "allow_empty": true,
           "json_target": "CONTEST_FEATURE.tbVisible",
-          "note": ""
+          "note": "",
+          "json_required": true
         },
         {
           "n": 46,
@@ -831,7 +870,8 @@ window.PARAM_REVIEW_CATALOG = {
           "default": "",
           "allow_empty": true,
           "json_target": "CONTEST_FEATURE.tbHidden",
-          "note": ""
+          "note": "",
+          "json_required": true
         },
         {
           "n": 47,
@@ -844,7 +884,8 @@ window.PARAM_REVIEW_CATALOG = {
           "default": "",
           "allow_empty": true,
           "json_target": "CONTEST_FEATURE.gosbVisible",
-          "note": ""
+          "note": "",
+          "json_required": true
         },
         {
           "n": 48,
@@ -857,7 +898,80 @@ window.PARAM_REVIEW_CATALOG = {
           "default": "",
           "allow_empty": true,
           "json_target": "CONTEST_FEATURE.gosbHidden",
-          "note": ""
+          "note": "",
+          "json_required": true
+        }
+      ],
+      "column": "CONTEST_FEATURE"
+    },
+    {
+      "id": "CONTEST_PERIOD",
+      "title": "CONTEST_PERIOD",
+      "menu_label": "CONTEST_PERIOD",
+      "intro": "JSON-массив в колонке CONTEST_PERIOD (лист CONTEST). Элемент: period_code (число), criterion_mark_type (оператор), criterion_mark_value (число). В CSV: массив в кавычках поля; ключи/строки в \"\"\"…\"\"\", числа без кавычек.",
+      "kind": "json_array",
+      "parent": "CONTEST",
+      "sheet": "CONTEST-DATA",
+      "column": "CONTEST_PERIOD",
+      "fields": [
+        {
+          "n": 120,
+          "status": "[w]",
+          "variants": [
+            "0",
+            "1",
+            "-1"
+          ],
+          "default": "0",
+          "allow_empty": false,
+          "json_target": "CONTEST_PERIOD[].period_code",
+          "note": "",
+          "description": "Номер/код периода в массиве CONTEST_PERIOD (часто 0, 1; бывает -1).",
+          "kind": "dropdown",
+          "label": "Код периода",
+          "key": "CONTEST_PERIOD.period_code",
+          "json_required": true
+        },
+        {
+          "n": 121,
+          "status": "[v]",
+          "variants": [
+            ">",
+            ">=",
+            "<",
+            "<=",
+            "="
+          ],
+          "default": ">",
+          "allow_empty": false,
+          "json_target": "CONTEST_PERIOD[].criterion_mark_type",
+          "note": "",
+          "description": "Оператор сравнения критерия периода.",
+          "kind": "dropdown",
+          "label": "Сравнение",
+          "key": "CONTEST_PERIOD.criterion_mark_type",
+          "variant_labels": [
+            "Больше",
+            "Больше или равно",
+            "Меньше",
+            "Меньше или равно",
+            "Равно"
+          ],
+          "json_required": true
+        },
+        {
+          "n": 122,
+          "status": "[v]",
+          "variants": [],
+          "default": "0",
+          "allow_empty": false,
+          "json_target": "CONTEST_PERIOD[].criterion_mark_value",
+          "note": "",
+          "description": "Числовое значение порога",
+          "kind": "number",
+          "label": "Порог критерия",
+          "key": "CONTEST_PERIOD.criterion_mark_value",
+          "json_required": true
         }
       ]
     },
@@ -965,6 +1079,19 @@ window.PARAM_REVIEW_CATALOG = {
           "allow_empty": false,
           "json_target": "",
           "note": ""
+        },
+        {
+          "n": 55,
+          "key": "REWARD_ADD_DATA",
+          "status": "[v]",
+          "label": "REWARD_ADD_DATA (JSON)",
+          "description": "Колонка REWARD_ADD_DATA: JSON-объект доп. данных награды. Пустота ячейки — флаг «можно пусто». Ключи — в разделе REWARD_ADD_DATA.",
+          "kind": "json",
+          "variants": [],
+          "default": "",
+          "allow_empty": false,
+          "json_target": "REWARD_ADD_DATA",
+          "note": "Колонка CSV с SPOD-JSON. Редактируются подпись, описание, заметка и «можно пусто». Ключи — в дочернем разделе JSON."
         }
       ]
     },
@@ -995,7 +1122,8 @@ window.PARAM_REVIEW_CATALOG = {
           "variant_labels": [
             "Да",
             "Нет"
-          ]
+          ],
+          "json_required": true
         },
         {
           "n": 56,
@@ -1015,7 +1143,8 @@ window.PARAM_REVIEW_CATALOG = {
           "variant_labels": [
             "Да",
             "Нет"
-          ]
+          ],
+          "json_required": true
         },
         {
           "n": 57,
@@ -1028,7 +1157,8 @@ window.PARAM_REVIEW_CATALOG = {
           "default": "",
           "allow_empty": true,
           "json_target": "REWARD_ADD_DATA.rewardRule",
-          "note": ""
+          "note": "",
+          "json_required": true
         },
         {
           "n": 58,
@@ -1048,7 +1178,8 @@ window.PARAM_REVIEW_CATALOG = {
           "variant_labels": [
             "Да",
             "Нет"
-          ]
+          ],
+          "json_required": true
         },
         {
           "n": 59,
@@ -1068,7 +1199,8 @@ window.PARAM_REVIEW_CATALOG = {
           "variant_labels": [
             "Да",
             "Нет"
-          ]
+          ],
+          "json_required": true
         },
         {
           "n": 60,
@@ -1088,7 +1220,8 @@ window.PARAM_REVIEW_CATALOG = {
           "variant_labels": [
             "Да",
             "Нет"
-          ]
+          ],
+          "json_required": true
         },
         {
           "n": 61,
@@ -1101,7 +1234,8 @@ window.PARAM_REVIEW_CATALOG = {
           "default": "",
           "allow_empty": false,
           "json_target": "REWARD_ADD_DATA.fileName",
-          "note": ""
+          "note": "",
+          "json_required": true
         },
         {
           "n": 62,
@@ -1114,7 +1248,8 @@ window.PARAM_REVIEW_CATALOG = {
           "default": "",
           "allow_empty": true,
           "json_target": "REWARD_ADD_DATA.teamNews",
-          "note": ""
+          "note": "",
+          "json_required": true
         },
         {
           "n": 63,
@@ -1127,7 +1262,8 @@ window.PARAM_REVIEW_CATALOG = {
           "default": "",
           "allow_empty": true,
           "json_target": "REWARD_ADD_DATA.singleNews",
-          "note": ""
+          "note": "",
+          "json_required": true
         },
         {
           "n": 64,
@@ -1147,7 +1283,8 @@ window.PARAM_REVIEW_CATALOG = {
           "variant_labels": [
             "Да",
             "Нет"
-          ]
+          ],
+          "json_required": true
         },
         {
           "n": 65,
@@ -1160,7 +1297,8 @@ window.PARAM_REVIEW_CATALOG = {
           "default": "",
           "allow_empty": false,
           "json_target": "REWARD_ADD_DATA.parentRewardCode",
-          "note": ""
+          "note": "",
+          "json_required": true
         },
         {
           "n": 66,
@@ -1182,7 +1320,8 @@ window.PARAM_REVIEW_CATALOG = {
             "Золото",
             "Серебро",
             "Бронза"
-          ]
+          ],
+          "json_required": true
         },
         {
           "n": 67,
@@ -1206,7 +1345,8 @@ window.PARAM_REVIEW_CATALOG = {
             "Тер. банк",
             "ГОСБ",
             "нет"
-          ]
+          ],
+          "json_required": true
         },
         {
           "n": 68,
@@ -1226,7 +1366,8 @@ window.PARAM_REVIEW_CATALOG = {
           "variant_labels": [
             "Да",
             "Нет"
-          ]
+          ],
+          "json_required": true
         },
         {
           "n": 69,
@@ -1246,7 +1387,8 @@ window.PARAM_REVIEW_CATALOG = {
           "variant_labels": [
             "Да",
             "Нет"
-          ]
+          ],
+          "json_required": true
         },
         {
           "n": 70,
@@ -1272,7 +1414,8 @@ window.PARAM_REVIEW_CATALOG = {
             "Сезон 2026 (АКМ)",
             "Сезон 2026  (CSM)",
             "Сезон 2026 (МНС)"
-          ]
+          ],
+          "json_required": true
         },
         {
           "n": 71,
@@ -1292,7 +1435,8 @@ window.PARAM_REVIEW_CATALOG = {
           "variant_labels": [
             "AI-генерация",
             "Шаблон"
-          ]
+          ],
+          "json_required": true
         },
         {
           "n": 72,
@@ -1305,7 +1449,8 @@ window.PARAM_REVIEW_CATALOG = {
           "default": "",
           "allow_empty": true,
           "json_target": "REWARD_ADD_DATA.winCriterion",
-          "note": ""
+          "note": "",
+          "json_required": true
         },
         {
           "n": 73,
@@ -1318,7 +1463,8 @@ window.PARAM_REVIEW_CATALOG = {
           "default": "",
           "allow_empty": true,
           "json_target": "REWARD_ADD_DATA.preferences",
-          "note": ""
+          "note": "",
+          "json_required": true
         },
         {
           "n": 74,
@@ -1331,7 +1477,8 @@ window.PARAM_REVIEW_CATALOG = {
           "default": "",
           "allow_empty": true,
           "json_target": "REWARD_ADD_DATA.feature",
-          "note": ""
+          "note": "",
+          "json_required": true
         },
         {
           "n": 75,
@@ -1343,13 +1490,20 @@ window.PARAM_REVIEW_CATALOG = {
           "variants": [
             "KMMMB",
             "KMKKSB",
-            "CSM",
-            "AKMKKSB"
+            "AKMKKSB",
+            "CSM"
           ],
           "default": "KMMMB",
           "allow_empty": true,
           "json_target": "REWARD_ADD_DATA.businessBlock",
-          "note": ""
+          "note": "",
+          "variant_labels": [
+            "КМ ММБ",
+            "КМ ККСБ",
+            "АКМ ККСБ",
+            "Руководитель по внедрению проектов"
+          ],
+          "json_required": true
         },
         {
           "n": 76,
@@ -1362,7 +1516,8 @@ window.PARAM_REVIEW_CATALOG = {
           "default": "",
           "allow_empty": true,
           "json_target": "REWARD_ADD_DATA.helpCodeList",
-          "note": ""
+          "note": "",
+          "json_required": true
         },
         {
           "n": 77,
@@ -1382,9 +1537,11 @@ window.PARAM_REVIEW_CATALOG = {
           "variant_labels": [
             "Да",
             "Нет"
-          ]
+          ],
+          "json_required": true
         }
-      ]
+      ],
+      "column": "REWARD_ADD_DATA"
     },
     {
       "id": "TABLE:REWARD-LINK",
@@ -1863,19 +2020,6 @@ window.PARAM_REVIEW_CATALOG = {
           "note": ""
         },
         {
-          "n": 101,
-          "key": "INDICATOR_FILTER",
-          "status": "[v]",
-          "label": "Фильтр индикатора",
-          "description": "Параметры для ограничения выбора операции (сделки). Фильтр для автоматического расчета",
-          "kind": "json",
-          "variants": [],
-          "default": "",
-          "allow_empty": true,
-          "json_target": "INDICATOR_FILTER",
-          "note": ""
-        },
-        {
           "n": 102,
           "key": "CONTESTANT_SELECTION",
           "status": "[v]",
@@ -1927,6 +2071,164 @@ window.PARAM_REVIEW_CATALOG = {
           "allow_empty": false,
           "json_target": "",
           "note": ""
+        },
+        {
+          "n": 138,
+          "key": "INDICATOR_FILTER",
+          "status": "[v]",
+          "label": "Фильтры индикатора",
+          "description": "Для автоматических турниров настройка фильтров для источника",
+          "kind": "json",
+          "variants": [],
+          "default": "",
+          "allow_empty": true,
+          "json_target": "INDICATOR_FILTER",
+          "note": "Колонка CSV с SPOD-JSON. «Можно пусто» — допустима ли пустая ячейка колонки целиком."
+        }
+      ]
+    },
+    {
+      "id": "INDICATOR_FILTER",
+      "title": "INDICATOR_FILTER",
+      "menu_label": "INDICATOR_FILTER",
+      "intro": "JSON-массив фильтров в колонке INDICATOR_FILTER. Элемент: filtered_attribute_code/type/match + condition (массив строк) или value/dt.",
+      "kind": "json_array",
+      "parent": "TABLE:INDICATOR",
+      "sheet": "INDICATOR",
+      "column": "INDICATOR_FILTER",
+      "fields": [
+        {
+          "n": 129,
+          "status": "[v]",
+          "variants": [
+            "segment",
+            "segment_mk",
+            "tb",
+            "product_group",
+            "product",
+            "is_manual_correct",
+            "is_cva_product",
+            "action_code",
+            "stage",
+            "deal_type",
+            "coa_type_id",
+            "customer_segment",
+            "e2e_product_code",
+            "kkp_status_code",
+            "deal_is_msh",
+            "ccy_code",
+            "category",
+            "coa_open_dt",
+            "offer_close_date",
+            "polis_dt"
+          ],
+          "default": "segment",
+          "allow_empty": false,
+          "json_target": "INDICATOR_FILTER[].filtered_attribute_code",
+          "note": "",
+          "description": "Код поля фильтра",
+          "kind": "dropdown_custom",
+          "label": "Код фильтра",
+          "key": "INDICATOR_FILTER.filtered_attribute_code",
+          "json_required": true
+        },
+        {
+          "n": 130,
+          "status": "[v]",
+          "variants": [
+            "STRING",
+            "DATE",
+            "INTEGER",
+            "DECIMAL (38,12)"
+          ],
+          "default": "STRING",
+          "allow_empty": false,
+          "json_target": "INDICATOR_FILTER[].filtered_attribute_type",
+          "note": "",
+          "description": "Тип данных в фильтре",
+          "kind": "dropdown_custom",
+          "label": "Тип атрибута",
+          "key": "INDICATOR_FILTER.filtered_attribute_type",
+          "variant_labels": [
+            "Строка",
+            "Дата",
+            "Целое число",
+            "Дробное число"
+          ],
+          "json_required": true
+        },
+        {
+          "n": 131,
+          "status": "[v]",
+          "variants": [
+            "IN",
+            "NOT_IN",
+            ">=",
+            ">",
+            "<=",
+            "<",
+            "="
+          ],
+          "default": "IN",
+          "allow_empty": false,
+          "json_target": "INDICATOR_FILTER[].filtered_attribute_match",
+          "note": "",
+          "description": "Оператор сравнения для фильтра",
+          "kind": "dropdown",
+          "label": "Оператор сравнения",
+          "key": "INDICATOR_FILTER.filtered_attribute_match",
+          "variant_labels": [
+            "Входит",
+            "Не входит",
+            "Больше или равно",
+            "Больше",
+            "Меньше или равно",
+            "Меньше",
+            "Равно"
+          ],
+          "json_required": true
+        },
+        {
+          "n": 132,
+          "status": "[v]",
+          "variants": [],
+          "default": "",
+          "allow_empty": true,
+          "json_target": "INDICATOR_FILTER[].filtered_attribute_condition",
+          "note": "",
+          "description": "Массив значений фильма в виде строк",
+          "kind": "list",
+          "label": "Значение фильтра строки",
+          "key": "INDICATOR_FILTER.filtered_attribute_condition",
+          "json_required": false
+        },
+        {
+          "n": 133,
+          "status": "[v]",
+          "variants": [],
+          "default": "",
+          "allow_empty": true,
+          "json_target": "INDICATOR_FILTER[].filtered_attribute_value",
+          "note": "",
+          "description": "Значение для фильтра числового",
+          "kind": "number",
+          "label": "Значение фильтра числа",
+          "key": "INDICATOR_FILTER.filtered_attribute_value",
+          "json_required": false
+        },
+        {
+          "n": 134,
+          "status": "[v]",
+          "variants": [],
+          "default": "",
+          "allow_empty": true,
+          "json_target": "INDICATOR_FILTER[].filtered_attribute_dt",
+          "note": "",
+          "description": "Значение для фильтра даты",
+          "kind": "date",
+          "label": "Значение фильтра даты",
+          "key": "INDICATOR_FILTER.filtered_attribute_dt",
+          "json_required": false
         }
       ]
     },
@@ -2091,19 +2393,6 @@ window.PARAM_REVIEW_CATALOG = {
           "note": ""
         },
         {
-          "n": 114,
-          "key": "FILTER_PERIOD_ARR",
-          "status": "[v]",
-          "label": "Фильтры для прошлых периодов",
-          "description": "Прошлые периоды турнира для определения критериев участия",
-          "kind": "json",
-          "variants": [],
-          "default": "",
-          "allow_empty": true,
-          "json_target": "FILTER_PERIOD_ARR",
-          "note": "period_code - код периода\nstart_dt - дата начала периода,\nend_dt - дата окончания периода\ncriterion_mark_type - условие (<=, <, =, >, >=,<>)\ncriterion_mark_value - значение для ограничения"
-        },
-        {
           "n": 115,
           "key": "TOURNAMENT_STATUS",
           "status": "[v]",
@@ -2134,32 +2423,6 @@ window.PARAM_REVIEW_CATALOG = {
           "allow_empty": false,
           "json_target": "",
           "note": ""
-        },
-        {
-          "n": 117,
-          "key": "TARGET_TYPE",
-          "status": "[w]",
-          "label": "Сезон и ...",
-          "description": "В каком сезоне разыгрываем награду (в каком рейтинге делаем расчет полученных кристаллов)",
-          "kind": "dropdown",
-          "variants": [
-            "SEASON_mmb_2026",
-            "SEASON_2026_1",
-            "SEASON_akm_2026",
-            "SEASON_csm_2026",
-            "SEASON_m_2026_1"
-          ],
-          "default": "SEASON_mmb_2026",
-          "allow_empty": false,
-          "json_target": "TARGET_TYPE",
-          "note": "",
-          "variant_labels": [
-            "Сезон 2026 (ММБ)",
-            "Сезон 2026 (ККСБ)",
-            "Сезон 2026 (АКМ)",
-            "Сезон 2026  (CSM)",
-            "Сезон 2026 (МНС)"
-          ]
         },
         {
           "n": 118,
@@ -2193,9 +2456,172 @@ window.PARAM_REVIEW_CATALOG = {
           "allow_empty": true,
           "json_target": "TRN_INDICATOR_FILTER",
           "note": ""
+        },
+        {
+          "n": 139,
+          "key": "TARGET_TYPE",
+          "status": "[v]",
+          "label": "Настройка сезонов",
+          "description": "Содержит настройку сезонов в JSON",
+          "kind": "json",
+          "variants": [],
+          "default": "",
+          "allow_empty": false,
+          "json_target": "TARGET_TYPE",
+          "note": "Колонка CSV с SPOD-JSON. «Можно пусто» — допустима ли пустая ячейка колонки целиком."
+        },
+        {
+          "n": 140,
+          "key": "FILTER_PERIOD_ARR",
+          "status": "[v]",
+          "label": "Настройки правовых периодов",
+          "description": "Содержит настройки для периода плана если их более двух",
+          "kind": "json",
+          "variants": [],
+          "default": "",
+          "allow_empty": false,
+          "json_target": "FILTER_PERIOD_ARR",
+          "note": "Колонка CSV с SPOD-JSON. «Можно пусто» — допустима ли пустая ячейка колонки целиком."
+        }
+      ]
+    },
+    {
+      "id": "SCHEDULE_TARGET_TYPE",
+      "title": "TARGET_TYPE (SCHEDULE)",
+      "menu_label": "TARGET_TYPE",
+      "intro": "JSON-объект в колонке TARGET_TYPE листа SCHEDULE: {\"\"\"seasonCode\"\"\": \"\"\"SEASON_…\"\"\"}. Не путать с TARGET_TYPE конкурса (ПРОМ/ТЕСТ).",
+      "kind": "json",
+      "parent": "TABLE:SCHEDULE",
+      "sheet": "TOURNAMENT-SCHEDULE",
+      "column": "TARGET_TYPE",
+      "fields": [
+        {
+          "n": 123,
+          "status": "[v]",
+          "variants": [
+            "SEASON_mmb_2026",
+            "SEASON_2026_1",
+            "SEASON_akm_2026",
+            "SEASON_csm_2026",
+            "SEASON_m_2026_1",
+            "NON"
+          ],
+          "default": "SEASON_mmb_2026",
+          "allow_empty": true,
+          "json_target": "TARGET_TYPE.seasonCode",
+          "note": "",
+          "description": "Сезон рейтинга / начисления кристаллов (seasonCode).",
+          "kind": "dropdown_custom",
+          "label": "Код сезона",
+          "key": "TARGET_TYPE.seasonCode",
+          "variant_labels": [
+            "Сезон 2026 (ММБ)",
+            "Сезон 2026 (ККСБ)",
+            "Сезон 2026 (АКМ)",
+            "Сезон 2026 (CSM)",
+            "Сезон 2026 (МНС)",
+            ""
+          ],
+          "json_required": false
+        }
+      ]
+    },
+    {
+      "id": "FILTER_PERIOD_ARR",
+      "title": "FILTER_PERIOD_ARR",
+      "menu_label": "FILTER_PERIOD_ARR",
+      "intro": "JSON-массив в колонке FILTER_PERIOD_ARR (SCHEDULE). Элемент: period_code, start_dt, end_dt; опционально criterion_mark_type / criterion_mark_value. Даты и строки в \"\"\"…\"\"\", числа без кавычек.",
+      "kind": "json_array",
+      "parent": "TABLE:SCHEDULE",
+      "sheet": "TOURNAMENT-SCHEDULE",
+      "column": "FILTER_PERIOD_ARR",
+      "fields": [
+        {
+          "n": 124,
+          "status": "[v]",
+          "variants": [],
+          "default": "1",
+          "allow_empty": false,
+          "json_target": "FILTER_PERIOD_ARR[].period_code",
+          "note": "",
+          "description": "Код периода в обратном порядке от текущего",
+          "kind": "number",
+          "label": "Код периода",
+          "key": "FILTER_PERIOD_ARR.period_code",
+          "json_required": true
+        },
+        {
+          "n": 125,
+          "status": "[v]",
+          "variants": [],
+          "default": "",
+          "allow_empty": false,
+          "json_target": "FILTER_PERIOD_ARR[].start_dt",
+          "note": "",
+          "description": "Дата начала анализируемого периода",
+          "kind": "date",
+          "label": "Дата начала",
+          "key": "FILTER_PERIOD_ARR.start_dt",
+          "json_required": true
+        },
+        {
+          "n": 126,
+          "status": "[v]",
+          "variants": [],
+          "default": "",
+          "allow_empty": false,
+          "json_target": "FILTER_PERIOD_ARR[].end_dt",
+          "note": "",
+          "description": "Дата конца анализируемого периода",
+          "kind": "date",
+          "label": "Дата конца",
+          "key": "FILTER_PERIOD_ARR.end_dt",
+          "json_required": true
+        },
+        {
+          "n": 127,
+          "status": "[v]",
+          "variants": [
+            ">",
+            ">=",
+            "<",
+            "<=",
+            "="
+          ],
+          "default": "",
+          "allow_empty": true,
+          "json_target": "FILTER_PERIOD_ARR[].criterion_mark_type",
+          "note": "",
+          "description": "Оператор; можно не заполнять.",
+          "kind": "dropdown",
+          "label": "Оператор сравнения",
+          "key": "FILTER_PERIOD_ARR.criterion_mark_type",
+          "variant_labels": [
+            "Больше",
+            "Больше или равно",
+            "Меньше",
+            "Меньше или равно",
+            "Равно"
+          ],
+          "json_required": false
+        },
+        {
+          "n": 128,
+          "status": "[v]",
+          "variants": [],
+          "default": "",
+          "allow_empty": true,
+          "json_target": "FILTER_PERIOD_ARR[].criterion_mark_value",
+          "note": "",
+          "description": "Пороховое значение",
+          "kind": "number",
+          "label": "Значение порога",
+          "key": "FILTER_PERIOD_ARR.criterion_mark_value",
+          "json_required": true
         }
       ]
     }
   ],
-  "exported_at": "2026-08-16T12:40:08.255Z"
+  "exported_at": "2026-08-16T18:24:55.216Z"
 };
+window.SPOD_PARAM_CATALOG = window.PARAM_REVIEW_CATALOG;

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Синхронизация catalog из web-edit → web-fill и встройка в index.html."""
+"""Синхронизация catalog из web-edit → web-fill и встройка EMBEDDED_CATALOG."""
 
 from __future__ import annotations
 
@@ -9,17 +9,20 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-SRC = ROOT / "common" / "web-edit" / "catalog.json"
+SRC = ROOT / "common" / "web-edit" / "game_edit_catalog.json"
 DST_DIR = ROOT / "common" / "web-fill"
-INDEX = DST_DIR / "index.html"
+# Однофайловые fill-страницы с маркерами EMBEDDED_CATALOG
+FILL_PAGES = (
+    DST_DIR / "game_fill_settings.html",
+    DST_DIR / "index.html",
+)
 
 
-def embed_into_index(data: dict) -> None:
-    """Обновить блок EMBEDDED_CATALOG в однофайловом fill."""
-    if not INDEX.exists():
-        print(f"Пропуск встройки: нет {INDEX}", file=sys.stderr)
-        return
-    html = INDEX.read_text(encoding="utf-8")
+def embed_into_html(path: Path, data: dict) -> bool:
+    """Обновить блок EMBEDDED_CATALOG в HTML. True если файл обновлён."""
+    if not path.exists():
+        return False
+    html = path.read_text(encoding="utf-8")
     payload = json.dumps(data, ensure_ascii=False)
     block = (
         "/* EMBEDDED_CATALOG_START */\n"
@@ -35,9 +38,13 @@ def embed_into_index(data: dict) -> None:
         flags=re.S,
     )
     if n != 1:
-        print("Ошибка: маркеры EMBEDDED_CATALOG_* не найдены в index.html", file=sys.stderr)
+        print(
+            f"Ошибка: маркеры EMBEDDED_CATALOG_* не найдены в {path.name}",
+            file=sys.stderr,
+        )
         raise SystemExit(2)
-    INDEX.write_text(new_html, encoding="utf-8")
+    path.write_text(new_html, encoding="utf-8")
+    return True
 
 
 def main() -> int:
@@ -53,9 +60,22 @@ def main() -> int:
         f"window.PARAM_REVIEW_CATALOG = {text.rstrip()};\n",
         encoding="utf-8",
     )
-    embed_into_index(data)
+    # зеркало для review (file://)
+    review = ROOT / "common" / "param_catalog_review"
+    if review.is_dir():
+        (review / "catalog.js").write_text(
+            "/* зеркало catalog.json */\n"
+            f"window.PARAM_REVIEW_CATALOG = {text.rstrip()};\n"
+            "window.SPOD_PARAM_CATALOG = window.PARAM_REVIEW_CATALOG;\n",
+            encoding="utf-8",
+        )
+    embedded: list[str] = []
+    for page in FILL_PAGES:
+        if embed_into_html(page, data):
+            embedded.append(page.name)
     n = sum(len(s.get("fields") or []) for s in data.get("sections") or [])
-    print(f"OK: web-fill/catalog.json + catalog.js + index.html EMBEDDED ({n} полей)")
+    emb = ", ".join(embedded) if embedded else "(нет HTML)"
+    print(f"OK: web-fill/catalog.json + catalog.js + EMBEDDED → {emb} ({n} полей)")
     return 0
 
 

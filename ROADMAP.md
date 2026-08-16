@@ -323,4 +323,6 @@ IN/
 | 15.10 | Тип ввода `dropdown_custom` (список + свой вариант): edit + fill; `SHOW_INDICATOR` | [v] |
 | 15.11 | Подписи вариантов (`variant_labels`): в edit — два блока; в fill — текст на чипе + код; CSV — исходное значение; Y/N → Да/Нет | [v] |
 | 15.12 | Архив web-fill: удалённые конкурсы/части, фильтр, восстановление и purge | [v] |
+| 15.13 | SPOD-JSON массивы/объекты: `CONTEST_PERIOD`, `FILTER_PERIOD_ARR`, `INDICATOR_FILTER`, `TARGET_TYPE`(schedule/`seasonCode`) — разделы edit + UI/экспорт fill | [v] |
+| 15.14 | JSON: `json_required` (ключ обязателен / может отсутствовать) + колонки-оболочки `kind: json` в TABLE для `allow_empty` ячейки | [v] |
 

@@ -82,7 +82,7 @@ Blank собирается из **`common/param_catalog_review/catalog.json`** (
 
 ### Каталог описаний полей (редактор)
 
-- HTML: **`common/web-edit/index.html`** (данные: **`common/param_catalog_review/catalog.json`**, зеркало `catalog.js`).
+- HTML: **`common/web-edit/game_edit_parameters.html`** (данные: **`common/param_catalog_review/catalog.json`**, зеркало `catalog.js`).
 - Пересборка из кода (опционально): `python src/Tools/build_param_review_editor.py`.
 - Цикл: правки в web → «Сохранить JSON» → заменить `catalog.json` → токен `contest_badge_form_blank` пересоберёт BLANK из JSON.
 - MD-снимок: `common/param_catalog_review/CONTEST_BADGE_FORM_PARAM_REVIEW.md`.
