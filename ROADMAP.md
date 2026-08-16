@@ -328,4 +328,5 @@ IN/
 | 15.15 | Fill: наборы JSON-массивов (`CONTEST_PERIOD` / `FILTER_PERIOD_ARR` / `INDICATOR_FILTER`) — UI список+редактор; примеры снимков со структурами | [v] |
 | 15.16 | Fill: подписи/описания только из каталога 2124 (без override layout); пилюля `json_required` у JSON-ключей | [v] |
 | 15.17 | Каталог 2304; UX fill: dirty↔baseline, P×N/F×N/SC, sch 2 ряда, Импорт JSON, раскладки, список+ | [v] |
+| 15.18 | `web-edit-full` / `web-fill-full`: полный каталог из PROM SPOD CSV; fill с отдельными css/js/catalog | [v] |
 

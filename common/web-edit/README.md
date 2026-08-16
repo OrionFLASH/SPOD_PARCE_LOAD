@@ -49,3 +49,5 @@ python src/Tools/sync_web_fill_catalog.py
 ```
 
 Страница: `../web-fill/game_fill_settings.html` (скрипт обновляет `catalog.json` / `catalog.js` **в web-fill** и блок `EMBEDDED_CATALOG` в `game_fill_settings.html`).
+
+Полный скан PROM → **`../web-edit-full/`** (`build_web_edit_full_catalog.py`). Fill с отдельными css/js: **`../web-fill-full/`**.

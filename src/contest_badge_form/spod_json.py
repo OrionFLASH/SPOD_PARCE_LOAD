@@ -11,12 +11,17 @@ JsonValue = Union[dict, list, str, int, float, bool, None]
 
 
 def normalize_spod_json_text(raw: Any) -> str:
-    """Тройные кавычки → обычные; снять внешнюю обёртку ``\"…\"`` вокруг объекта/массива."""
+    """Тройные кавычки → обычные; снять внешнюю обёртку ``\"…\"`` / ``'…'`` вокруг объекта/массива."""
     if raw is None:
         return ""
     s = str(raw).strip()
     if not s or s in {"-", "None", "null"}:
         return ""
+    # json_array из web-fill: весь блок в одинарных кавычках
+    if len(s) >= 2 and s[0] == "'" and s[-1] == "'":
+        inner = s[1:-1].strip()
+        if inner.startswith("{") or inner.startswith("["):
+            s = inner
     s = s.replace('"""', '"')
     while len(s) >= 2 and s[0] == '"' and s[-1] == '"':
         inner = s[1:-1].strip()

@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import csv
 import logging
 import os
 from datetime import datetime
@@ -288,7 +289,7 @@ def _write_csv_tables(
             if c not in df.columns:
                 df[c] = ""
         df = df[list(columns)]
-        df.to_csv(path, sep=";", index=False, encoding="utf-8-sig")
+        df.to_csv(path, sep=";", index=False, encoding="utf-8-sig", quoting=csv.QUOTE_NONE, escapechar="\\")
         paths.append(path)
         logging.info(
             "[contest_badge_form] CSV %s: %s строк → %s",

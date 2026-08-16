@@ -64,9 +64,12 @@ SPOD_PROM/
 │   ├── validation.py     # Валидация длины полей, проверка дубликатов
 │   ├── gender.py         # Определение пола (AUTO_GENDER)
 │   └── main_impl.py      # Полный пайплайн: загрузка, merge, summary, Excel, отчёты
-├── common/                 # Общие артефакты формы BADGE / web-edit
-│   ├── web-edit/           # HTML-редактор описаний параметров
-│   ├── param_catalog_review/  # catalog.json (+ MD-снимок)
+├── common/                 # Общие артефакты формы BADGE / web-edit / web-fill
+│   ├── web-edit/           # HTML-редактор описаний параметров (рабочий каталог)
+│   ├── web-edit-full/      # Полный каталог из скана IN/PROM/SPOD + тот же UI
+│   ├── web-fill/           # Заполнение SPOD (однофайловый HTML + catalog)
+│   ├── web-fill-full/      # То же fill, но css/js/catalog отдельными файлами
+│   ├── param_catalog_review/  # catalog.json (+ MD-снимок) для blank Excel
 │   └── templates/CONTEST_BADGE_FORM/  # CONTEST_BADGE_FORM_BLANK.xlsx
 ├── requirements.txt        # Зависимости (pandas, openpyxl и др.) для main.py
 ├── IN/                     # Корень входа: IN/<BLOCK>/{SPOD,FILE,POST,JS}/ (BLOCK=PROM|IFT|PSI)
@@ -1309,6 +1312,14 @@ python main.py
 ---
 
 ## История версий
+
+### Версия 1.7.69 — web-edit-full / web-fill-full, CSV SPOD-JSON, экспорт «Все 6»
+
+- **`common/web-edit-full/`**: копия UI edit + каталог после полного скана `IN/PROM/SPOD` (все колонки и JSON-ключи без исключений; новые поля `status: "[ ]"`). Сборка: `python src/Tools/build_web_edit_full_catalog.py`.
+- **`common/web-fill-full/`**: копия fill с отдельными `game_fill_styles.css`, `game_fill_app.js`, `catalog.json` / `catalog.js` (каталог пока как в web-fill).
+- web-fill: исправлен старт (`renderSchedule`), экспорт «Все 6» (папка / очередь), экранирование SPOD-JSON в CSV (`"""`, числа без кавычек, json_array в `'…'`).
+- `spod_json.normalize`: снятие одинарных кавычек у массивов; CSV формы BADGE — `QUOTE_NONE`.
+- Документация: README каталогов, `Docs/DOCS_INDEX.md`, ROADMAP §15.18.
 
 ### Версия 1.7.68 — web-fill: архив, фильтры списка, навигация групп
 

@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Заполнение SPOD — полный контур (web-fill-full)</title>
+  <link rel="stylesheet" href="game_fill_styles.css" />
+</head>
+<body>
+<div class="app">
+  <header class="chrome-top">
+    <nav class="top-nav" id="section-nav" hidden aria-label="Шаги заполнения"></nav>
+  </header>
+
+  <div class="chrome-mid">
+    <aside class="sidebar" id="contest-sidebar" aria-label="Список конкурсов">
+      <div class="sidebar-head">
+        <div class="side-block-title">Конкурсы</div>
+        <button type="button" class="btn-side-toggle" id="btn-sidebar-hide" aria-controls="contest-sidebar" aria-expanded="true" data-tip="Скрыть список конкурсов · настройки на весь экран">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>
+        </button>
+      </div>
+      <div class="contest-search" data-tip="Поиск по CONTEST_CODE, FULL_NAME, CONTEST_DESCRIPTION, REWARD_CODE, REWARD FULL_NAME/DESCRIPTION, TOURNAMENT_CODE">
+        <span class="contest-search__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg></span>
+        <input type="search" id="contest-search" class="contest-search__input" placeholder="Код конкурса, награды, турнира…" autocomplete="off" />
+      </div>
+      <div class="contest-kind-filters" role="group" aria-label="Фильтр типа конкурсов">
+        <button type="button" class="contest-kind-btn contest-kind-btn--tournament is-on" id="filter-tournaments" aria-pressed="true" data-tip="Показать турнирные конкурсы (нажмите, чтобы скрыть)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M8 21h8"/><path d="M12 17v4"/><path d="M7 4h10v5a5 5 0 0 1-10 0V4z"/><path d="M5 6H3a2 2 0 0 0 2 4h0"/><path d="M19 6h2a2 2 0 0 1-2 4h0"/></svg>
+          <span>Турниры</span>
+        </button>
+        <button type="button" class="contest-kind-btn contest-kind-btn--reward is-on" id="filter-rewards" aria-pressed="true" data-tip="Показать индивидуальные (награды); нажмите, чтобы скрыть">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="8" r="5"/><path d="M8.2 12.5 7 21l5-2 5 2-1.2-8.5"/><path d="M12 3v2"/></svg>
+          <span>Награды</span>
+        </button>
+        <button type="button" class="contest-kind-btn contest-kind-btn--archive" id="filter-archive" aria-pressed="false" data-tip="Показать архив удалённых конкурсов и частей (по умолчанию скрыт)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 7h18"/><path d="M5 7v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7"/><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/><path d="M10 12h4"/></svg>
+          <span>Архив</span>
+        </button>
+      </div>
+      <div class="contest-tabs-scroll">
+        <div class="contest-tabs" id="contest-tabs"></div>
+      </div>
+      <div class="sidebar-contest-actions">
+        <button type="button" class="btn btn-sidebar" id="btn-add-contest" data-tip="Добавить ещё один конкурс (свои BADGE / таблицы)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+          Добавить конкурс
+        </button>
+        <button type="button" class="btn btn-sidebar" id="btn-copy-contest" data-tip="Создать полную копию текущего конкурса с выбором групп, наград/связей и турниров">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
+          Копировать конкурс
+        </button>
+      </div>
+    </aside>
+    <main class="main">
+      <div id="workspace" class="workspace"></div>
+    </main>
+  </div>
+  <button type="button" class="sidebar-reopen" id="btn-sidebar-show" aria-controls="contest-sidebar" aria-expanded="false" data-tip="Показать список конкурсов и колонтитулы">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+    <span>Конкурсы</span>
+  </button>
+
+  <footer class="chrome-foot" id="chrome-foot">
+    <div class="foot-block foot-block--project">
+      <span class="foot-label">Проект</span>
+      <label class="btn btn-compact file-pick" id="btn-import-project-label" data-tip="Импорт снимка JSON: contests (активные) + archive (отдельно)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21V9"/><path d="M7 14l5-5 5 5"/><path d="M5 3h14"/></svg>
+        <span>Импорт JSON</span>
+        <input type="file" id="import-project" class="file-pick__input" accept=".json,application/json,text/json,text/plain" />
+      </label>
+      <button type="button" class="btn btn-primary btn-compact" id="btn-save-project" data-tip="Скачать JSON: активные contests и archive раздельно. В CSV архив не попадает.">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 21h14"/></svg>
+        Сохранить JSON
+      </button>
+      <button type="button" class="btn btn-compact" id="btn-reset-catalog" data-tip="Сбросить конкурсы к дефолтам каталога">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>
+        Сброс
+      </button>
+    </div>
+    <div class="foot-sep" aria-hidden="true"></div>
+    <div class="foot-block foot-block--meta" title="Заполнение параметров SPOD">
+      <p class="foot-meta__title" id="page-title">Заполнение параметров SPOD</p>
+      <p class="foot-meta__intro" id="page-intro">Каталог: —</p>
+    </div>
+    <div class="foot-sep" aria-hidden="true"></div>
+    <div class="foot-block foot-block--export">
+      <span class="foot-label">Экспорт CSV</span>
+      <div class="export-inline">
+        <button type="button" class="btn btn-primary btn-compact" id="btn-export-all" data-tip="Все 6 CSV в выбранную папку (Chrome) или по очереди · только активные конкурсы, без архива">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M8 7h12v14H8z"/><path d="M4 3h12v4"/><path d="M4 3v14h4"/><path d="M12 12v5"/><path d="M9.5 14.5 12 17l2.5-2.5"/></svg>
+          Все 6
+        </button>
+        <button type="button" class="btn btn-compact" data-export="contest" data-tip="CSV · CONTEST-DATA">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M8 21V11l4-2 4 2v10"/><path d="M6 21h12"/><path d="M10 14h4"/><path d="M12 9V5"/><circle cx="12" cy="4" r="1.5"/></svg>
+          CONTEST
+        </button>
+        <button type="button" class="btn btn-compact" data-export="reward" data-tip="CSV · REWARD (BADGE)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="9" r="5"/><path d="M8.5 13.5 7 21l5-2 5 2-1.5-7.5"/><path d="M12 4v2"/></svg>
+          REWARD
+        </button>
+        <button type="button" class="btn btn-compact" data-export="reward_link" data-tip="CSV · REWARD-LINK">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.07 0l1.41-1.41a5 5 0 0 0-7.07-7.07L10 5.93"/><path d="M14 11a5 5 0 0 0-7.07 0L5.52 12.4a5 5 0 0 0 7.07 7.07L14 18.07"/></svg>
+          LINK
+        </button>
+        <button type="button" class="btn btn-compact" data-export="group" data-tip="CSV · GROUP">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M3 19c0-2.8 2.7-5 6-5s6 2.2 6 5"/><path d="M14.5 19c.3-1.8 1.8-3.2 3.8-3.5 1.7.2 3.2 1.3 3.7 3.5"/></svg>
+          GROUP
+        </button>
+        <button type="button" class="btn btn-compact" data-export="indicator" data-tip="CSV · INDICATOR">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 19V5"/><path d="M4 19h16"/><path d="M8 16v-5"/><path d="M12 16V8"/><path d="M16 16v-3"/><path d="M8 11l4-4 4 3"/></svg>
+          INDICATOR
+        </button>
+        <button type="button" class="btn btn-compact" data-export="schedule" data-tip="CSV · TOURNAMENT-SCHEDULE">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18"/><path d="M8 3v4"/><path d="M16 3v4"/><path d="M8 14h3"/><path d="M13 14h3"/><path d="M8 17h8"/></svg>
+          SCHEDULE
+        </button>
+      </div>
+    </div>
+  </footer>
+</div>
+<div id="toast" class="toast" hidden><span id="toast-text">OK</span></div>
+<div id="glassTip" class="glass-tip" aria-hidden="true"></div>
+
+<script src="catalog.js"></script>
+<script src="game_fill_app.js"></script>
+</body>
+</html>

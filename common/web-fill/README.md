@@ -3,6 +3,8 @@
 **Один файл:** `game_fill_settings.html` (HTML + CSS + JS + встроенный каталог).  
 Типы полей, варианты и дефолты правятся в **web-edit**, затем синхронизируются сюда.
 
+Вариант с разнесёнными файлами: **`../web-fill-full/`**. Полный каталог параметров из PROM: **`../web-edit-full/`**.
+
 ## Как открыть
 
 Откройте `game_fill_settings.html` через **Live Server / HTTP** (тогда подхватывается свежий `catalog.json` рядом).  
@@ -120,7 +122,9 @@ python src/Tools/export_web_fill_examples_from_spod.py
 5. `INDICATOR (PROM) FORM_FILL.csv`
 6. `SCHEDULE (PROM) FORM_FILL.csv`
 
-`CONTEST_FEATURE` / `REWARD_ADD_DATA` / массивы — SPOD-JSON (`"""…"""`).
+`CONTEST_FEATURE` / `REWARD_ADD_DATA` / объекты — SPOD-JSON с `"""` у ключей и строк, **числа без кавычек**, без CSV-удвоения кавычек.  
+`json_array` (`CONTEST_PERIOD`, `FILTER_PERIOD_ARR`, `INDICATOR_FILTER`) — тот же SPOD внутри, весь блок в **одинарных** кавычках `'[…]'` (пустой `[]` без обёртки).  
+«Все 6»: в Chromium — выбор папки; иначе очередь скачиваний.
 
 ## Синхронизация каталога
 
@@ -136,5 +140,6 @@ python src/Tools/sync_web_fill_catalog.py
 
 | Когда | Что |
 |-------|-----|
+| 2026-08 | web-edit-full / web-fill-full; SPOD-JSON CSV (`"""`, числа, json_array в `'…'`); экспорт «Все 6» в папку; фикс старта (`renderSchedule`) |
 | 2026-08 | Архив удалений, фильтр «Архив», восстановление / purge; фильтры Турниры/Награды; подписи групп и `GET_CALC_METHOD`; копирование расписания; silent-normalize dirty |
 | 2026-08 | Сворачиваемый сайдбар, тона по статусам расписания, примеры BADGE / 2026 |
