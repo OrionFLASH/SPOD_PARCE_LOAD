@@ -1954,7 +1954,7 @@ window.PARAM_REVIEW_CATALOG = {
           "variant_labels": [
             "Достигни",
             "Рейтинг",
-            ""
+            "Больше в X раз"
           ]
         },
         {
@@ -2622,5 +2622,5 @@ window.PARAM_REVIEW_CATALOG = {
       ]
     }
   ],
-  "exported_at": "2026-08-16T18:24:55.216Z"
+  "exported_at": "2026-08-16T20:04:09.041Z"
 };

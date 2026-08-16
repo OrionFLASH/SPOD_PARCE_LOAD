@@ -819,7 +819,12 @@ const FEATURE_LAYOUT=[
   {title:"5. Видимость",hint:"Табельные, ТБ и ГОСБ — видимые / скрытые.",items:[{key:"CONTEST_FEATURE.persomanNumberVisible",span:6},{key:"CONTEST_FEATURE.persomanNumberHidden",span:6},{key:"CONTEST_FEATURE.tbVisible",span:6},{key:"CONTEST_FEATURE.tbHidden",span:6},{key:"CONTEST_FEATURE.gosbVisible",span:6},{key:"CONTEST_FEATURE.gosbHidden",span:6}]},
 ];
 const REWARD_LAYOUT=[
-  {title:"Основное",hint:"Код и тип — в заголовке. Здесь название, условие и описание.",items:[{key:"REWARD_COST",span:4},{key:"FULL_NAME",span:8},{key:"REWARD_CONDITION",span:12},{key:"REWARD_DESCRIPTION",span:12}]},
+  {title:"Основное",hint:"Код и тип — в заголовке. Название, условие, стоимость и описание.",items:[
+    {key:"FULL_NAME",span:6},
+    {key:"REWARD_CONDITION",span:3},
+    {key:"REWARD_COST",span:3},
+    {key:"REWARD_DESCRIPTION",span:12}
+  ]},
 ];
 const ADD_LAYOUT=[
   {title:"1. Приоритет и роль",hint:"Слот места, мастер-бейдж, уровень рекомендации.",items:[{key:"REWARD_ADD_DATA.priority",span:3},{key:"REWARD_ADD_DATA.masterBadge",span:3},{key:"REWARD_ADD_DATA.recommendationLevel",span:3},{key:"REWARD_ADD_DATA.parentRewardCode",span:3}]},
@@ -842,21 +847,19 @@ const SCHEDULE_LAYOUT=[
     {key:"PLAN_PERIOD_START_DT",span:6},
     {key:"PLAN_PERIOD_END_DT",span:6}
   ]},
-  {title:"4. Критерий",hint:"Тип сравнения и порог.",items:[
-    {key:"CRITERION_MARK_TYPE",span:4},
-    {key:"CRITERION_MARK_VALUE",span:8}
-  ]},
-  {title:"5. Расчёт",hint:"Тип расчёта и TRN_INDICATOR_FILTER. TARGET_TYPE (seasonCode) и FILTER_PERIOD_ARR — блоки ниже.",items:[
-    {key:"CALC_TYPE",span:6},
-    {key:"TRN_INDICATOR_FILTER",span:12}
+  {title:"4. Критерий и расчёт",hint:"Критерий участия/отбора, тип расчёта и TRN_INDICATOR_FILTER. TARGET_TYPE и FILTER_PERIOD_ARR — блоки ниже.",items:[
+    {key:"CRITERION_MARK_TYPE",span:8},
+    {key:"CRITERION_MARK_VALUE",span:4},
+    {key:"CALC_TYPE",span:8},
+    {key:"TRN_INDICATOR_FILTER",span:4}
   ]},
 ];
 
 const INDICATOR_LAYOUT=[
-  {title:"1. Код и название",hint:"Код конкурса — в заголовке. Код и имя индикатора — свои для строки.",items:[
-    {key:"INDICATOR_CODE",span:6},
-    {key:"N",span:6},
-    {key:"FULL_NAME",span:12}
+  {title:"1. Код и название",hint:"Код конкурса — в заголовке. Код, имя и ID индикатора — в одной строке.",items:[
+    {key:"INDICATOR_CODE",span:4},
+    {key:"FULL_NAME",span:4},
+    {key:"N",span:4}
   ]},
   {title:"2. Тип расчёта",hint:"Как считается показатель.",items:[
     {key:"INDICATOR_CALC_TYPE",span:4},
@@ -866,12 +869,12 @@ const INDICATOR_LAYOUT=[
     {key:"INDICATOR_WEIGHT",span:6}
   ]},
   {title:"3. Объект и порог",hint:"Что измеряем и как сравниваем.",items:[
-    {key:"INDICATOR_OBJECT",span:6},
-    {key:"INDICATOR_MARK_TYPE",span:6},
-    {key:"INDICATOR_MATCH",span:4},
-    {key:"INDICATOR_VALUE",span:4},
-    {key:"CONTEST_CRITERION",span:4},
-    {key:"CONTESTANT_SELECTION",span:12}
+    {key:"INDICATOR_MARK_TYPE",span:4},
+    {key:"CONTESTANT_SELECTION",span:4},
+    {key:"INDICATOR_OBJECT",span:4},
+    {key:"INDICATOR_MATCH",span:6},
+    {key:"INDICATOR_VALUE",span:3},
+    {key:"CONTEST_CRITERION",span:3}
   ]},
   {title:"4. Фильтр",hint:"INDICATOR_FILTER собирается блоком элементов ниже (не сырой JSON).",items:[]},
 ];
@@ -2999,27 +3002,51 @@ function mountChips(host, f, value, onChange, {multi}){
   host.appendChild(box);if(extra)host.appendChild(extra);paint();
 }
 
-/** Dropdown с полем «свой вариант»: в сохранение идёт выбранный чип или текст своего ввода. */
+/** Сопоставить значение списка+ с чипом или «своим вариантом» (импорт). */
+function resolveDropdownCustomValue(f, value){
+  const variants=(f.variants||[]).map(v=>String(v));
+  const labels=f.variant_labels||[];
+  const raw=value==null?"":String(value);
+  const t=raw.trim();
+  if(!t) return {mode:"empty", value:"", chip:null, custom:""};
+  for(const v of variants){
+    if(v===raw || String(v).trim()===t) return {mode:"chip", value:v, chip:v, custom:""};
+  }
+  for(let i=0;i<variants.length;i++){
+    const lab=String(labels[i]||"").trim();
+    if(lab && (lab===t || lab===raw)) return {mode:"chip", value:variants[i], chip:variants[i], custom:""};
+  }
+  return {mode:"custom", value:raw, chip:null, custom:raw};
+}
+
+/** Dropdown с полем «свой вариант»: в сохранение идёт выбранный чип или текст своего ввода.
+ *  Если при импорте значения нет в списке — оно показывается в «Свой вариант». */
 function mountDropdownCustom(host, f, value, onChange){
-  const variants=f.variants||[];
+  const variants=(f.variants||[]).map(v=>String(v));
   const required=selectionRequired(f);
-  let curVal=String(value||"");
-  if(required&&!String(curVal).trim()&&variants.length){
+  let resolved=resolveDropdownCustomValue(f, value);
+  let curVal=resolved.value;
+  if(required&&resolved.mode==="empty"&&variants.length){
     curVal=variants[0];
+    resolved={mode:"chip", value:curVal, chip:curVal, custom:""};
+    withSilentNormalize(()=>onChange(curVal));
+  }else if(resolved.mode==="chip"&&curVal!==String(value??"")){
+    // нормализация trim / подпись→код без пометки dirty
     withSilentNormalize(()=>onChange(curVal));
   }
   const wrap=document.createElement("div");
-  wrap.setAttribute("data-tip",tipFor(f)+(required?"\nОбязательно: чип или свой текст — пусто нельзя":"\nМожно пусто: можно снять чип и очистить свой вариант"));
+  wrap.setAttribute("data-tip",tipFor(f)+(required?"\nТребуется указать: чип или свой текст — пусто нельзя":"\nМожно не указывать: можно снять чип и очистить свой вариант"));
   const box=document.createElement("div");box.className="default-checks default-checks--single";
   const custom=document.createElement("div");custom.className="custom-variant";
   custom.innerHTML=`<div class="custom-variant__label">Свой вариант</div>`;
   const input=document.createElement("input");input.type="text";input.placeholder="Введите своё значение…";
-  input.setAttribute("data-tip","Если заполнено — в CSV/JSON попадёт этот текст");
+  input.setAttribute("data-tip","Если значения нет в списке (в т.ч. после импорта) — оно хранится здесь и уходит в CSV/JSON");
   custom.appendChild(input);
 
-  function isCustom(v){return !!String(v||"").trim()&&!variants.includes(String(v))}
+  function isCustom(v){return resolveDropdownCustomValue(f,v).mode==="custom"}
   function paintChips(){
-    const sel=new Set(variants.includes(curVal)?[curVal]:[]);
+    const r=resolveDropdownCustomValue(f, curVal);
+    const sel=new Set(r.chip?[r.chip]:[]);
     box.innerHTML="";
     variants.forEach(v=>{
       const btn=document.createElement("button");btn.type="button";btn.className="default-chip"+(sel.has(v)?" is-on":"");
@@ -3028,7 +3055,7 @@ function mountDropdownCustom(host, f, value, onChange){
       btn.innerHTML=`<span class="default-chip__mark">${markSvg()}</span>${chipFaceHtml(v,lab)}`;
       btn.addEventListener("click",()=>{
         if(curVal===v){
-          if(required){toast("«Можно пусто» = нет — оставьте чип или введите свой вариант");return}
+          if(required){toast("«можно не указывать» = нет — оставьте чип или введите свой вариант");return}
           curVal="";
           input.value="";
         }else{
@@ -3044,9 +3071,13 @@ function mountDropdownCustom(host, f, value, onChange){
     });
     custom.classList.toggle("is-on",isCustom(curVal));
   }
-  if(isCustom(curVal))input.value=curVal;
-  else if(variants.includes(curVal))input.value="";
-  else input.value=curVal;
+  // Импорт / неизвестное значение → сразу в «Свой вариант»
+  if(resolved.mode==="custom"){
+    input.value=resolved.custom;
+    custom.classList.add("is-on");
+  }else{
+    input.value="";
+  }
   input.addEventListener("input",()=>{
     curVal=input.value;
     onChange(curVal);
@@ -3057,9 +3088,12 @@ function mountDropdownCustom(host, f, value, onChange){
     if(required&&!curVal){
       curVal=variants[0]||"";
       input.value="";
-      toast("«Можно пусто» = нет — выбран первый вариант из списка");
+      toast("«можно не указывать» = нет — выбран первый вариант из списка");
     }else{
-      input.value=isCustom(curVal)?curVal:"";
+      const r=resolveDropdownCustomValue(f, curVal);
+      if(r.mode==="chip"){curVal=r.chip;input.value=""}
+      else if(r.mode==="custom"){input.value=r.custom}
+      else input.value="";
     }
     onChange(curVal);
     paintChips();
