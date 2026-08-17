@@ -2,7 +2,11 @@
 
 from __future__ import annotations
 
-from src.Tools.export_web_fill_examples_from_spod import code_ending, compose_from_ending
+from src.Tools.export_web_fill_examples_from_spod import (
+    build_contest_data,
+    code_ending,
+    compose_from_ending,
+)
 
 
 def test_reward_without_ending() -> None:
@@ -30,3 +34,61 @@ def test_tournament_without_ending() -> None:
     full = f"t_{cc}"
     assert code_ending(full, cc, "tournament") == ""
     assert compose_from_ending(cc, "", "tournament") == full
+
+
+def test_build_contest_data_no_stub_rows() -> None:
+    """Нет строк CSV → пустые массивы, без фантомного t_CODE / пустого индикатора."""
+    contest_row = {
+        "CONTEST_CODE": "CONTEST_00",
+        "FULL_NAME": "Приветственный",
+        "CONTEST_FEATURE": "",
+        "CONTEST_PERIOD": "",
+        "BUSINESS_BLOCK": "",
+    }
+    data = build_contest_data(
+        contest_row,
+        groups=[],
+        links=[],
+        rewards_by_code={},
+        indicators=[],
+        schedules=[],
+    )
+    assert data["schedule"] == []
+    assert data["indicator"] == []
+    assert data["group"] == []
+    assert data["badges"] == []
+    assert data["reward_link"] == []
+
+
+def test_build_contest_data_keeps_real_schedule() -> None:
+    contest_row = {"CONTEST_CODE": "C1", "FULL_NAME": "X", "CONTEST_FEATURE": "", "CONTEST_PERIOD": "", "BUSINESS_BLOCK": ""}
+    schedules = [
+        {
+            "TOURNAMENT_CODE": "t_C1_4001",
+            "PERIOD_TYPE": "произвольный",
+            "START_DT": "2026-01-01",
+            "END_DT": "2026-01-31",
+            "RESULT_DT": "",
+            "PLAN_PERIOD_START_DT": "",
+            "PLAN_PERIOD_END_DT": "",
+            "CRITERION_MARK_TYPE": ">=",
+            "CRITERION_MARK_VALUE": "0",
+            "TOURNAMENT_STATUS": "АКТИВНЫЙ",
+            "CONTEST_CODE": "C1",
+            "CALC_TYPE": "1",
+            "TRN_INDICATOR_FILTER": "",
+            "TARGET_TYPE": "",
+            "FILTER_PERIOD_ARR": "",
+        }
+    ]
+    data = build_contest_data(
+        contest_row,
+        groups=[],
+        links=[],
+        rewards_by_code={},
+        indicators=[],
+        schedules=schedules,
+    )
+    assert len(data["schedule"]) == 1
+    assert data["schedule"][0]["TOURNAMENT_CODE"] == "4001"
+    assert data["schedule"][0]["TOURNAMENT_STATUS"] == "АКТИВНЫЙ"

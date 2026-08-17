@@ -1,4 +1,4 @@
-/* зеркало catalog.json — из web-edit */
+/* зеркало catalog.json */
 window.PARAM_REVIEW_CATALOG = {
   "version": 2,
   "generated_at": "2026-08-16T17:32:07Z",
@@ -234,7 +234,7 @@ window.PARAM_REVIEW_CATALOG = {
           "key": "CONTEST_INDICATOR_METHOD",
           "status": "[v]",
           "label": "Метод индикатора",
-          "description": "Метод расчета показателя конкурса (фактическое значение  / вычисляемое значение)",
+          "description": "Метод расчета показателя конкурса: интегральный (по умолчанию) / отношение агрегированных значений.",
           "kind": "dropdown",
           "variants": [
             "INTEGRAL",
@@ -245,8 +245,8 @@ window.PARAM_REVIEW_CATALOG = {
           "json_target": "",
           "note": "",
           "variant_labels": [
-            "Фактическое",
-            "Расчетное"
+            "Интегральный",
+            "Отношение агрегатов"
           ]
         },
         {
@@ -254,27 +254,40 @@ window.PARAM_REVIEW_CATALOG = {
           "key": "CONTEST_FACTOR_METHOD",
           "status": "[v]",
           "label": "Метод расчета показателя",
-          "description": "Для автоматических турниров способ расчета на данных по источникам (для ручных данных всегда = FACT",
+          "description": "Способ расчета показателя. FACT — ручные данные; остальные — автоматические турниры (прирост / run rate).",
           "kind": "dropdown",
           "variants": [
             "FACT",
             "FACT0-FACT1",
+            "RUN_RATE",
+            "RUN_RATE-FACT1",
             "FACT0-RUN_RATE1_DOWN",
-            "RUN_RATE"
+            "RUN_RATE/FACT1",
+            "FACT0/RUN_RATE1_DOWN"
           ],
           "default": "FACT",
           "allow_empty": false,
           "json_target": "",
-          "note": ""
+          "note": "",
+          "variant_labels": [
+            "Факт",
+            "Прирост",
+            "Run rate",
+            "Run rate прирост",
+            "Run rate отклонение",
+            "Run rate % прироста",
+            "Run rate % отклонения"
+          ]
         },
         {
           "n": 16,
           "key": "PLAN_METHOD_CODE",
           "status": "[v]",
           "label": "Как вычисляется план",
-          "description": "Метод расчета планового показателя: из данных прошлого периода (вычисляемое) / фиксированное значение",
+          "description": "Как задаётся план: не задан / предустановленное значение (по умолчанию) / зависит от прошлого периода.",
           "kind": "dropdown",
           "variants": [
+            "NOT_USED",
             "PRESET_VALUE",
             "DEPENDS_PREVIOUS_PERIOD"
           ],
@@ -283,8 +296,9 @@ window.PARAM_REVIEW_CATALOG = {
           "json_target": "",
           "note": "",
           "variant_labels": [
-            "Фактическое",
-            "Вычисляемое"
+            "План не задан",
+            "Предустановленное",
+            "От прошлого периода"
           ]
         },
         {
@@ -292,15 +306,20 @@ window.PARAM_REVIEW_CATALOG = {
           "key": "PLAN_MOD_METOD",
           "status": "[v]",
           "label": "Метод модификации плана",
-          "description": "Модификатор плана. Обычно: MULTIPLIER.",
+          "description": "Модификатор плана от прошлого периода: умножить на коэффициент (по умолчанию) или добавить число.",
           "kind": "dropdown",
           "variants": [
-            "MULTIPLIER"
+            "MULTIPLIER",
+            "APPEND"
           ],
           "default": "MULTIPLIER",
           "allow_empty": false,
           "json_target": "",
-          "note": ""
+          "note": "",
+          "variant_labels": [
+            "× коэффициент",
+            "+ число к прошлому"
+          ]
         },
         {
           "n": 18,
@@ -412,21 +431,27 @@ window.PARAM_REVIEW_CATALOG = {
           "key": "FACT_POST_PROCESSING",
           "status": "[v]",
           "label": "Постобработка факта",
-          "description": "Правило постобработки показателя конкурса. PERCENTILE, SPECIAL_INDICATOR_1, COUNT_BIGGER",
+          "description": "Постобработка факта: процентили, уровень группы или число участников с лучшим результатом. Можно не указывать.",
           "kind": "dropdown",
           "variants": [
             "PERCENTILE",
-            "COUNT_BIGGER",
-            "SPECIAL_INDICATOR_1"
+            "PERCENTILE_DOWN",
+            "PERCENTILE_UPEST",
+            "PERCENTILE_UP",
+            "SPECIAL_INDICATOR_1",
+            "COUNT_BIGGER"
           ],
           "default": "",
           "allow_empty": true,
           "json_target": "",
           "note": "",
           "variant_labels": [
-            "Процентиль",
-            "Количество с лучшим показателем",
-            "Специальный показатель"
+            "% «лучше чем»",
+            "% «попал в»",
+            "% «лучше меня»",
+            "% «не хуже»",
+            "Уровень группы",
+            "Счётчик лучших"
           ]
         },
         {
@@ -1861,17 +1886,169 @@ window.PARAM_REVIEW_CATALOG = {
           "key": "INDICATOR_CODE",
           "status": "[v]",
           "label": "Код показателя",
-          "description": "Код показателя для расчетов",
-          "kind": "dropdown_custom",
+          "description": "Код показателя для расчётов. Только список (свой вариант нельзя). По умолчанию WAIT.",
+          "kind": "dropdown",
           "variants": [
-            "WAIT"
+            "WAIT",
+            "PPO_IN",
+            "PPO_ALL",
+            "PULMIS_BALANCE_OUT_RUB",
+            "PULMIS_BALANCE_OUT",
+            "PULMIS_SDO_IN_RUB",
+            "PULMIS_SDO_IN",
+            "PULMIS_INCOME",
+            "PULMIS_INCOME_RUB",
+            "PULMIS_AGRMNT_AMT_RUB",
+            "PULMIS_CUSTOMER_ID",
+            "LEAGUE",
+            "SUPERCUP",
+            "INCOME",
+            "PFIMIS_INCOME",
+            "PFIMIS_VOLUME",
+            "PFIMIS_INCOME_SOFT",
+            "PFIMIS_CUSTOMER_ID",
+            "PFIMIS_DEAL_CNT",
+            "PFIMIS_DEAL_ID",
+            "CC360_CLIENT_VOLUM_CHPDP_M",
+            "CC360_CLIENT_VOLUM_FOT_M",
+            "INSURANCEMIS_AGENT_COMMISION",
+            "INSURANCEMIS_BANK_COMMISION",
+            "INSURANCEMIS_COMMISION",
+            "INSURANCE_AMMOUNT",
+            "EFFICIENCYARSKKSB_EFF",
+            "EFFICIENCYARSKKSB_OD_YEAR",
+            "EFFICIENCYARSKKSB_OD_YEAR_APPG",
+            "EFFICIENCYARSKKSB_OD_QUARTER_APPG",
+            "EFFICIENCYARSKKSB_OD_YEAR_GROWTH",
+            "EFFICIENCYARSKKSB_OD_YEAR_TEMP",
+            "EFFICIENCYARSKKSB_OD_QUARTER_GROWTH",
+            "EFFICIENCYARSKKSB_OD_QUARTER_TEMP",
+            "EFFICIENCYARS_OVERBONUS",
+            "EFFICIENCYARS_OVERBONUS_YEAR",
+            "EFFICIENCYARS_OVERBONUS_YEAR_APPG",
+            "EFFICIENCYARS_OVERBONUS_QUARTER_APPG",
+            "EFFICIENCYARS_OVERBONUS_YEAR_GROWTH",
+            "EFFICIENCYARS_OVERBONUS_YEAR_TEMP",
+            "EFFICIENCYARS_OVERBONUS_QUARTER_GROWTH",
+            "EFFICIENCYARS_OVERBONUS_QUARTER_TEMP",
+            "TRUSTLEVELCC360_STAR_COUNT",
+            "TRUSTLEVELCC360_STAR_START_COUNT",
+            "TRUSTLEVELCC360_LEVEL0_COUNT",
+            "TRUSTLEVELCC360_LEVEL3_COUNT",
+            "TRUSTLEVELCC360_LEVEL4_COUNT",
+            "TRUSTLEVELCC360_LEVEL5_COUNT",
+            "FUNNELARS_ACTIVE_DEAL_ID",
+            "FUNNELARS_ACTIVE_DEAL_MARGIN",
+            "FUNNELARS_ACTIVE_DEAL_CHOD",
+            "FUNNELARS_ACTIVE_CUSTOMER_ID",
+            "COMPASARS_KKP_ID",
+            "CC360_NKD_DETAIL_CHKD",
+            "CC360_NKD_DETAIL_CHKD_PLAN",
+            "KANBANARS_OFFER_VALUE",
+            "KANBANARS_STAGE_VALUE",
+            "KANBANARS_STAGE_INC",
+            "KANBANARS_OFFER_INC",
+            "KANBANARS_STAGE_AMOUNT",
+            "KANBANARS_DEAL_AMOUNT",
+            "KANBANARS_DEAL_NUM",
+            "KANBANARS_OFFER_VALUE_VKS",
+            "KANBANARS_STAGE_VALUE_VKS",
+            "KANBANARS_STAGE_INC_VKS",
+            "KANBANARS_OFFER_INC_VKS",
+            "KANBANARS_STAGE_AMOUNT_VKS",
+            "KANBANARS_DEAL_AMOUNT_VKS",
+            "KANBANARS_DEAL_NUM_VKS",
+            "KANBANARS_OFFER_VALUE_VKO",
+            "KANBANARS_STAGE_VALUE_VKO",
+            "KANBANARS_STAGE_INC_VKO",
+            "KANBANARS_OFFER_INC_VKO",
+            "KANBANARS_STAGE_AMOUNT_VKO",
+            "KANBANARS_DEAL_AMOUNT_VKO",
+            "KANBANARS_DEAL_NUM_VKO",
+            "WD"
           ],
           "default": "WAIT",
           "allow_empty": false,
           "json_target": "",
           "note": "",
           "variant_labels": [
-            "Ручной"
+            "Ручной",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            ""
           ]
         },
         {
@@ -1879,14 +2056,18 @@ window.PARAM_REVIEW_CATALOG = {
           "key": "INDICATOR_AGG_FUNCTION",
           "status": "[v]",
           "label": "Функция агрегации",
-          "description": "Метод расчета показателя",
+          "description": "Функция агрегации показателя.",
           "kind": "dropdown",
           "variants": [
             "SUM",
             "MAX",
+            "MIN",
+            "AVG",
+            "COUNT",
             "COUNT_DISTINCT",
             "COUNT_DISTINCT_CUSTOMER",
-            "COUNT_DISTINCT_DEAL"
+            "COUNT_DISTINCT_DEAL",
+            "LAST_VALUE"
           ],
           "default": "SUM",
           "allow_empty": false,
@@ -1895,9 +2076,13 @@ window.PARAM_REVIEW_CATALOG = {
           "variant_labels": [
             "Сумма",
             "Максимум",
-            "Уникальные",
-            "Уникальные сотрудники",
-            "Уникальные клиенты"
+            "Минимум",
+            "Среднее",
+            "Количество",
+            "Уник. индикаторы",
+            "Уник. клиенты",
+            "Уник. договоры",
+            "Последнее по дате"
           ]
         },
         {
@@ -2622,5 +2807,6 @@ window.PARAM_REVIEW_CATALOG = {
       ]
     }
   ],
-  "exported_at": "2026-08-16T20:04:09.041Z"
+  "exported_at": "2026-08-17T13:42:19.465681Z"
 };
+window.SPOD_PARAM_CATALOG = window.PARAM_REVIEW_CATALOG;

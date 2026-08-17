@@ -317,7 +317,7 @@ table.grid th .empty-pill{margin-left:4px;vertical-align:middle}
 .app{position:relative;z-index:1;display:flex;flex-direction:column;height:100%;min-height:0;overflow:hidden}
 .chrome-top{flex:0 0 auto;z-index:50;padding:4px 10px 5px;background:linear-gradient(180deg,rgba(245,247,250,.97) 0%,rgba(245,247,250,.92) 75%,rgba(245,247,250,.78) 100%);backdrop-filter:blur(16px) saturate(160%);-webkit-backdrop-filter:blur(16px) saturate(160%);border-bottom:1px solid rgba(255,255,255,.75);box-shadow:0 6px 18px rgba(15,23,42,.05)}
 .chrome-top:has(#section-nav[hidden]){padding:0;border:0;box-shadow:none;background:transparent;backdrop-filter:none;-webkit-backdrop-filter:none}
-.chrome-mid{flex:1 1 auto;min-height:0;display:grid;grid-template-columns:var(--side-w,304px) minmax(0,1fr);overflow:hidden;transition:grid-template-columns .28s ease}
+.chrome-mid{flex:1 1 auto;min-height:0;display:grid;grid-template-columns:var(--side-w,304px) minmax(0,1fr) var(--filters-w,280px);overflow:hidden;transition:grid-template-columns .28s ease}
 .sidebar{height:100%;min-height:0;min-width:0;width:100%;padding:12px 10px 12px;display:flex;flex-direction:column;gap:8px;overflow:hidden;background:rgba(255,255,255,.82);backdrop-filter:blur(var(--blur)) saturate(180%);-webkit-backdrop-filter:blur(var(--blur)) saturate(180%);border-right:1px solid var(--glass-border);box-shadow:var(--glass-shadow);transition:opacity .22s ease,transform .28s ease,padding .28s ease,border-color .28s ease}
 .sidebar-head{display:flex;align-items:center;justify-content:space-between;gap:8px;flex:0 0 auto;min-width:0;margin:0 0 2px}
 .side-block-title{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--glass-muted);margin:0 4px;flex:1 1 auto;min-width:0}
@@ -328,12 +328,53 @@ table.grid th .empty-pill{margin-left:4px;vertical-align:middle}
 .sidebar-reopen svg{width:14px;height:14px;display:block;transform:rotate(90deg)}
 .sidebar-reopen:hover{background:#fff;padding-right:10px}
 .app.is-sidebar-collapsed{--side-w:0px}
-.app.is-sidebar-collapsed .sidebar{opacity:0;transform:translateX(-12px);pointer-events:none;padding:0;border-color:transparent;box-shadow:none}
-.app.is-sidebar-collapsed .chrome-top,
-.app.is-sidebar-collapsed .chrome-foot{display:none!important}
-.app.is-sidebar-collapsed .sidebar-reopen{display:inline-flex}
-.app.is-sidebar-collapsed .workspace{padding:18px 24px 24px}
-.app.is-sidebar-collapsed .toast{bottom:20px!important}
+.app.is-sidebar-collapsed .sidebar:not(.sidebar--filters){opacity:0;transform:translateX(-12px);pointer-events:none;padding:0;border-color:transparent;box-shadow:none}
+.app.is-sidebar-collapsed .sidebar-reopen:not(.sidebar-reopen--right){display:inline-flex}
+.app.is-filters-collapsed{--filters-w:0px}
+.app.is-filters-collapsed .sidebar--filters{opacity:0;transform:translateX(12px);pointer-events:none;padding:0;border-color:transparent;box-shadow:none}
+.app.is-filters-collapsed .sidebar-reopen--right{display:inline-flex}
+.sidebar--filters{border-right:0;border-left:1px solid var(--glass-border)}
+.filters-scroll{flex:1 1 auto;min-height:0;overflow-x:hidden;overflow-y:auto;padding-right:2px;display:flex;flex-direction:column;gap:10px}
+.filter-block{flex:0 0 auto}
+.filter-block__label{font-size:10px;font-weight:750;letter-spacing:.04em;text-transform:uppercase;color:var(--glass-muted);margin:0 4px 6px}
+.filter-block__hint{margin:0 4px 6px;font-size:10px;line-height:1.35;color:var(--glass-muted)}
+.status-filters{display:flex;flex-wrap:wrap;gap:6px}
+.status-filter-btn{flex:1 1 calc(50% - 6px);min-width:0;padding:6px 8px;border-radius:10px;border:1px solid rgba(15,23,42,.12);background:rgba(255,255,255,.55);color:var(--glass-muted);cursor:pointer;font:inherit;font-size:10px;font-weight:700}
+.status-filter-btn.is-on{color:var(--glass-text)}
+.status-filter-btn--active.is-on{background:rgba(52,199,89,.14);border-color:rgba(52,199,89,.4);color:#15803d}
+.status-filter-btn--results.is-on{background:rgba(0,122,255,.12);border-color:rgba(0,122,255,.4);color:var(--glass-blue)}
+.status-filter-btn--done.is-on{background:rgba(244,114,182,.14);border-color:rgba(219,39,119,.38);color:#be185d}
+.status-filter-btn--cancel.is-on,.status-filter-btn--deleted.is-on{background:rgba(148,163,184,.18);border-color:rgba(100,116,139,.4);color:#475569}
+.filter-date{min-height:36px}
+.tone-legend{flex:0 0 auto;margin-top:4px;padding:8px 8px 6px;border-radius:12px;background:rgba(15,23,42,.04);border:1px solid rgba(15,23,42,.08)}
+.tone-legend__title{font-size:10px;font-weight:750;letter-spacing:.04em;text-transform:uppercase;color:var(--glass-muted);margin:0 0 2px}
+.tone-legend__hint{margin:0 0 6px;font-size:9px;color:var(--glass-muted);line-height:1.3}
+.tone-legend__list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px}
+.tone-legend__item{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:650;line-height:1.2}
+.tone-legend__dot{width:10px;height:10px;border-radius:50%;flex:0 0 auto;border:1px solid transparent}
+.tone-legend__item--active{color:#15803d}
+.tone-legend__item--active .tone-legend__dot{background:rgba(52,199,89,.85);border-color:rgba(52,199,89,.5)}
+.tone-legend__item--results{color:var(--glass-blue)}
+.tone-legend__item--results .tone-legend__dot{background:rgba(0,122,255,.85);border-color:rgba(0,122,255,.45)}
+.tone-legend__item--done{color:#be185d}
+.tone-legend__item--done .tone-legend__dot{background:rgba(244,114,182,.9);border-color:rgba(219,39,119,.45)}
+.tone-legend__item--cancel{color:#64748b}
+.tone-legend__item--cancel .tone-legend__dot{background:rgba(148,163,184,.9);border-color:rgba(100,116,139,.45)}
+.tone-legend__item--empty{color:#a16207}
+.tone-legend__item--empty .tone-legend__dot{background:rgba(234,179,8,.9);border-color:rgba(202,138,4,.45)}
+.empty-table{padding:18px 8px;text-align:center}
+.empty-table__text{margin:0 0 12px;font-size:13px;line-height:1.45;color:var(--glass-muted)}
+.combo{position:relative}
+.combo__input{width:100%;box-sizing:border-box;padding:8px 10px;border-radius:12px;border:1px solid rgba(15,23,42,.12);background:rgba(255,255,255,.95);font:inherit;font-size:13px;font-weight:600}
+.combo__input:focus{outline:2px solid rgba(0,122,255,.28);border-color:rgba(0,122,255,.4)}
+.combo__list{position:absolute;z-index:80;left:0;right:0;top:calc(100% + 4px);max-height:280px;overflow:auto;padding:6px;border-radius:12px;border:1px solid rgba(255,255,255,.85);background:rgba(255,255,255,.98);box-shadow:var(--glass-shadow-hover)}
+.combo__group{font-size:10px;font-weight:750;letter-spacing:.04em;text-transform:uppercase;color:var(--glass-muted);padding:8px 8px 4px}
+.combo__opt{display:block;width:100%;text-align:left;border:0;background:transparent;padding:7px 8px;border-radius:8px;font:inherit;font-size:12px;font-weight:650;cursor:pointer}
+.combo__opt:hover,.combo__opt.is-hi{background:rgba(0,122,255,.1);color:var(--glass-blue)}
+.combo__opt.is-on{background:rgba(0,122,255,.16);color:var(--glass-blue)}
+.combo__empty{padding:10px 8px;font-size:12px;color:var(--glass-muted)}
+.sidebar-reopen--right{left:auto;right:0;border-left:1px solid rgba(255,255,255,.85);border-right:0;border-radius:14px 0 0 14px;padding:10px 6px 10px 8px}
+.sidebar-reopen--right svg{transform:rotate(-90deg)}
 .contest-tabs-scroll{flex:1 1 auto;min-height:0;overflow-x:hidden;overflow-y:auto;padding-right:2px}
 .contest-tabs{display:flex;flex-direction:column;gap:10px}
 .contest-tabs-group{display:flex;flex-direction:column;gap:6px}
@@ -587,24 +628,26 @@ table.grid th .empty-pill{margin-left:4px;vertical-align:middle}
 .btn-compact svg{width:14px;height:14px}
 .export-inline{display:inline-flex;flex-wrap:wrap;align-items:center;gap:6px}
 .toast{bottom:84px!important;z-index:60!important}
-.app.is-gated .contest-tabs,.app.is-gated #section-nav,.app.is-gated .export-inline,.app.is-gated #btn-add-contest,.app.is-gated #btn-copy-contest,.app.is-gated #btn-reset-catalog,.app.is-gated #btn-export-all,.app.is-gated #btn-save-project,.app.is-gated #btn-import-project-label,.app.is-gated #contest-search{opacity:.45;pointer-events:none}
+.app.is-gated .contest-tabs,.app.is-gated #section-nav,.app.is-gated .export-inline,.app.is-gated #btn-add-contest,.app.is-gated #btn-copy-contest,.app.is-gated #btn-reset-catalog,.app.is-gated #btn-export-all,.app.is-gated #btn-save-project,.app.is-gated #btn-import-project-label,.app.is-gated #contest-search,.app.is-gated #filters-sidebar{opacity:.45;pointer-events:none}
 @media(max-width:1100px){
   .chrome-foot{flex-wrap:wrap}
   .foot-block--meta{order:3;flex:1 1 100%;padding:0}
 }
 @media(max-width:960px){
-  .chrome-mid{grid-template-columns:1fr;overflow:auto;--side-w:unset}
-  .app:not(.is-sidebar-collapsed) .chrome-mid{grid-template-columns:1fr}
-  .app.is-sidebar-collapsed .chrome-mid{grid-template-columns:1fr}
+  .chrome-mid{grid-template-columns:1fr;overflow:auto;--side-w:unset;--filters-w:unset}
+  .app:not(.is-sidebar-collapsed):not(.is-filters-collapsed) .chrome-mid{grid-template-columns:1fr}
+  .app.is-sidebar-collapsed .chrome-mid,.app.is-filters-collapsed .chrome-mid{grid-template-columns:1fr}
   .sidebar{height:auto;max-height:42vh;overflow:hidden}
-  .app.is-sidebar-collapsed .sidebar{max-height:0;height:0;margin:0;transform:translateX(-8px)}
-  .contest-tabs-scroll{overflow:auto}
+  .app.is-sidebar-collapsed .sidebar:not(.sidebar--filters){max-height:0;height:0;margin:0;transform:translateX(-8px)}
+  .app.is-filters-collapsed .sidebar--filters{max-height:0;height:0;margin:0;transform:translateX(8px)}
+  .contest-tabs-scroll,.filters-scroll{overflow:auto}
   .main{height:auto;min-height:50vh}
   .workspace{overflow:auto}
   .sidebar-reopen{writing-mode:horizontal-tb;top:auto;bottom:72px;transform:none;border-radius:0 12px 12px 0;padding:8px 10px}
   .sidebar-reopen svg{transform:none}
+  .sidebar-reopen--right{left:auto;right:0;bottom:72px;border-radius:12px 0 0 12px}
+  .sidebar-reopen--right svg{transform:none}
 }
-
 </style>
 </head>
 <body>
@@ -617,26 +660,8 @@ table.grid th .empty-pill{margin-left:4px;vertical-align:middle}
     <aside class="sidebar" id="contest-sidebar" aria-label="Список конкурсов">
       <div class="sidebar-head">
         <div class="side-block-title">Конкурсы</div>
-        <button type="button" class="btn-side-toggle" id="btn-sidebar-hide" aria-controls="contest-sidebar" aria-expanded="true" data-tip="Скрыть список конкурсов · настройки на весь экран">
+        <button type="button" class="btn-side-toggle" id="btn-sidebar-hide" aria-controls="contest-sidebar" aria-expanded="true" data-tip="Скрыть список конкурсов">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>
-        </button>
-      </div>
-      <div class="contest-search" data-tip="Поиск по CONTEST_CODE, FULL_NAME, CONTEST_DESCRIPTION, REWARD_CODE, REWARD FULL_NAME/DESCRIPTION, TOURNAMENT_CODE">
-        <span class="contest-search__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg></span>
-        <input type="search" id="contest-search" class="contest-search__input" placeholder="Код конкурса, награды, турнира…" autocomplete="off" />
-      </div>
-      <div class="contest-kind-filters" role="group" aria-label="Фильтр типа конкурсов">
-        <button type="button" class="contest-kind-btn contest-kind-btn--tournament is-on" id="filter-tournaments" aria-pressed="true" data-tip="Показать турнирные конкурсы (нажмите, чтобы скрыть)">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M8 21h8"/><path d="M12 17v4"/><path d="M7 4h10v5a5 5 0 0 1-10 0V4z"/><path d="M5 6H3a2 2 0 0 0 2 4h0"/><path d="M19 6h2a2 2 0 0 1-2 4h0"/></svg>
-          <span>Турниры</span>
-        </button>
-        <button type="button" class="contest-kind-btn contest-kind-btn--reward is-on" id="filter-rewards" aria-pressed="true" data-tip="Показать индивидуальные (награды); нажмите, чтобы скрыть">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="8" r="5"/><path d="M8.2 12.5 7 21l5-2 5 2-1.2-8.5"/><path d="M12 3v2"/></svg>
-          <span>Награды</span>
-        </button>
-        <button type="button" class="contest-kind-btn contest-kind-btn--archive" id="filter-archive" aria-pressed="false" data-tip="Показать архив удалённых конкурсов и частей (по умолчанию скрыт)">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 7h18"/><path d="M5 7v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7"/><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/><path d="M10 12h4"/></svg>
-          <span>Архив</span>
         </button>
       </div>
       <div class="contest-tabs-scroll">
@@ -652,14 +677,84 @@ table.grid th .empty-pill{margin-left:4px;vertical-align:middle}
           Копировать конкурс
         </button>
       </div>
+      <div class="tone-legend" data-tip="Цвет вкладки — по самому «живому» статусу турниров в расписании: активный → подведение итогов → завершён → только отменён/удалён → нет турниров">
+        <div class="tone-legend__title">Цвет списка</div>
+        <p class="tone-legend__hint">по самому «живому» статусу</p>
+        <ul class="tone-legend__list">
+          <li class="tone-legend__item tone-legend__item--active"><span class="tone-legend__dot"></span>Активный</li>
+          <li class="tone-legend__item tone-legend__item--results"><span class="tone-legend__dot"></span>Подведение</li>
+          <li class="tone-legend__item tone-legend__item--done"><span class="tone-legend__dot"></span>Завершён</li>
+          <li class="tone-legend__item tone-legend__item--cancel"><span class="tone-legend__dot"></span>Отменён / удалён</li>
+          <li class="tone-legend__item tone-legend__item--empty"><span class="tone-legend__dot"></span>Нет турниров</li>
+        </ul>
+      </div>
     </aside>
     <main class="main">
       <div id="workspace" class="workspace"></div>
     </main>
+    <aside class="sidebar sidebar--filters" id="filters-sidebar" aria-label="Поиск и фильтры">
+      <div class="sidebar-head">
+        <div class="side-block-title">Поиск и фильтры</div>
+        <button type="button" class="btn-side-toggle" id="btn-filters-hide" aria-controls="filters-sidebar" aria-expanded="true" data-tip="Скрыть поиск и фильтры">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+        </button>
+      </div>
+      <div class="filters-scroll">
+        <div class="contest-search" data-tip="Поиск по CONTEST_CODE, FULL_NAME, CONTEST_DESCRIPTION, REWARD_CODE, REWARD FULL_NAME/DESCRIPTION, TOURNAMENT_CODE">
+          <span class="contest-search__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg></span>
+          <input type="search" id="contest-search" class="contest-search__input" placeholder="Код конкурса, награды, турнира…" autocomplete="off" />
+        </div>
+        <div class="filter-block">
+          <div class="filter-block__label">Тип</div>
+          <div class="contest-kind-filters" role="group" aria-label="Фильтр типа конкурсов">
+            <button type="button" class="contest-kind-btn contest-kind-btn--tournament is-on" id="filter-tournaments" aria-pressed="true" data-tip="Показать турнирные конкурсы (нажмите, чтобы скрыть)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M8 21h8"/><path d="M12 17v4"/><path d="M7 4h10v5a5 5 0 0 1-10 0V4z"/><path d="M5 6H3a2 2 0 0 0 2 4h0"/><path d="M19 6h2a2 2 0 0 1-2 4h0"/></svg>
+              <span>Турниры</span>
+            </button>
+            <button type="button" class="contest-kind-btn contest-kind-btn--reward is-on" id="filter-rewards" aria-pressed="true" data-tip="Показать индивидуальные (награды); нажмите, чтобы скрыть">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="8" r="5"/><path d="M8.2 12.5 7 21l5-2 5 2-1.2-8.5"/><path d="M12 3v2"/></svg>
+              <span>Награды</span>
+            </button>
+            <button type="button" class="contest-kind-btn contest-kind-btn--archive" id="filter-archive" aria-pressed="false" data-tip="Показать архив удалённых конкурсов и частей (по умолчанию скрыт)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 7h18"/><path d="M5 7v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7"/><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/><path d="M10 12h4"/></svg>
+              <span>Архив</span>
+            </button>
+          </div>
+        </div>
+        <div class="filter-block">
+          <div class="filter-block__label">Среда</div>
+          <div class="contest-kind-filters" role="group" aria-label="Фильтр ПРОМ / ТЕСТ">
+            <button type="button" class="contest-kind-btn is-on" id="filter-env-prom" aria-pressed="true" data-tip="Показать конкурсы, где в vid или TARGET_TYPE есть ПРОМ">ПРОМ</button>
+            <button type="button" class="contest-kind-btn is-on" id="filter-env-test" aria-pressed="true" data-tip="Показать конкурсы, где в vid или TARGET_TYPE есть ТЕСТ">ТЕСТ</button>
+          </div>
+        </div>
+        <div class="filter-block">
+          <div class="filter-block__label">Статус турнира</div>
+          <p class="filter-block__hint">Есть хотя бы один период с выбранным статусом</p>
+          <div class="status-filters" role="group" aria-label="Фильтр статуса расписания">
+            <button type="button" class="status-filter-btn status-filter-btn--active is-on" id="filter-st-active" aria-pressed="true" data-status="АКТИВНЫЙ">Активный</button>
+            <button type="button" class="status-filter-btn status-filter-btn--results is-on" id="filter-st-results" aria-pressed="true" data-status="ПОДВЕДЕНИЕ ИТОГОВ">Подведение</button>
+            <button type="button" class="status-filter-btn status-filter-btn--done is-on" id="filter-st-done" aria-pressed="true" data-status="ЗАВЕРШЕН">Завершён</button>
+            <button type="button" class="status-filter-btn status-filter-btn--cancel" id="filter-st-cancel" aria-pressed="false" data-status="ОТМЕНЕН">Отменён</button>
+            <button type="button" class="status-filter-btn status-filter-btn--deleted" id="filter-st-deleted" aria-pressed="false" data-status="УДАЛЕН">Удалён</button>
+          </div>
+        </div>
+        <div class="filter-block">
+          <div class="filter-block__label">Дата в периоде</div>
+          <p class="filter-block__hint">Попадает в START_DT…END_DT</p>
+          <div class="filter-date" id="filter-date-host"></div>
+          <button type="button" class="btn btn-compact" id="filter-date-clear" hidden>Сбросить дату</button>
+        </div>
+      </div>
+    </aside>
   </div>
-  <button type="button" class="sidebar-reopen" id="btn-sidebar-show" aria-controls="contest-sidebar" aria-expanded="false" data-tip="Показать список конкурсов и колонтитулы">
+  <button type="button" class="sidebar-reopen" id="btn-sidebar-show" aria-controls="contest-sidebar" aria-expanded="false" data-tip="Показать список конкурсов">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
     <span>Конкурсы</span>
+  </button>
+  <button type="button" class="sidebar-reopen sidebar-reopen--right" id="btn-filters-show" aria-controls="filters-sidebar" aria-expanded="false" data-tip="Показать поиск и фильтры">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>
+    <span>Фильтры</span>
   </button>
 
   <footer class="chrome-foot" id="chrome-foot">
@@ -726,7 +821,7 @@ table.grid th .empty-pill{margin-left:4px;vertical-align:middle}
 
 /* === Встроенный каталог (править здесь или через dual-edit HTML) === */
 /* EMBEDDED_CATALOG_START */
-const EMBEDDED_CATALOG = {"version": 2, "generated_at": "2026-08-16T17:32:07Z", "source": "schema + field_meta + web-edit (BUSINESS_BLOCK list KMMMB) + JSON arrays CONTEST_PERIOD / FILTER_PERIOD_ARR / INDICATOR_FILTER / SCHEDULE TARGET_TYPE + json_required + table JSON column shells", "sections": [{"id": "CONTEST", "title": "CONTEST", "menu_label": "CONTEST", "intro": "Таблица / лист CONTEST-DATA — плоские колонки конкурса", "kind": "table", "parent": null, "sheet": "CONTEST-DATA", "fields": [{"n": 1, "key": "CONTEST_CODE", "status": "[v]", "label": "Код конкурса", "description": "Уникальный код конкурса (ключ связей). Пример: 01_2025-0_11-1_1", "kind": "text", "variants": [], "default": "", "allow_empty": false, "json_target": "", "note": ""}, {"n": 2, "key": "FULL_NAME", "status": "[v]", "label": "Название конкурса", "description": "Отображаемое название конкурса/турнира (на странице Турниры и Детальная карточка турнира).", "kind": "text", "variants": [], "default": "", "allow_empty": false, "json_target": "", "note": ""}, {"n": 3, "key": "CREATE_DT", "status": "[v]", "label": "Дата создания конкурса", "description": "Дата начала действия конкурса. Почти всегда = начало года.", "kind": "date", "variants": [], "default": "2026-01-01", "allow_empty": false, "json_target": "", "note": ""}, {"n": 4, "key": "CLOSE_DT", "status": "[v]", "label": "Срок действия конкурса", "description": "Дата окончания действия конкурса; Почти всегда 4000-01-01 = без срока. формат: YYYY-MM-DD", "kind": "date", "variants": [], "default": "4000-01-01", "allow_empty": false, "json_target": "", "note": ""}, {"n": 5, "key": "BUSINESS_STATUS", "status": "[v]", "label": "Бизнес-статус", "description": "Статус работы конкурса Активный или Архивный (значение по умолчанию:АКТИВНЫЙ)", "kind": "dropdown", "variants": ["АКТИВНЫЙ", "АРХИВНЫЙ"], "default": "АКТИВНЫЙ", "allow_empty": false, "json_target": "", "note": ""}, {"n": 6, "key": "CONTEST_TYPE", "status": "[v]", "label": "Тип конкурса", "description": "ТУРНИРНЫЙ (соревнование \"будь лучше других\") (разыгрываем от 1 до 3 сезонных наград Золото Серебро Бронза)  |  ИНДИВИДУАЛЬНЫЙ  |  ИНДИВИДУАЛЬНЫЙ НАКОПИТЕЛЬНЫЙ (режим \"достигни результат\", получи одну награду).", "kind": "dropdown", "variants": ["ТУРНИРНЫЙ", "ИНДИВИДУАЛЬНЫЙ", "ИНДИВИДУАЛЬНЫЙ НАКОПИТЕЛЬНЫЙ"], "default": "ТУРНИРНЫЙ", "allow_empty": false, "json_target": "", "note": ""}, {"n": 7, "key": "CONTEST_DESCRIPTION", "status": "[v]", "label": "Описание турнира", "description": "Текст описания для конкурса/турнира для траницы Детальная карточка турнира", "kind": "text", "variants": [], "default": "", "allow_empty": false, "json_target": "", "note": ""}, {"n": 8, "key": "CONTEST_FEATURE", "status": "[v]", "label": "CONTEST_FEATURE (JSON)", "description": "Колонка CONTEST_FEATURE: JSON-объект особенностей конкурса. Пустота ячейки — флаг «можно пусто». Ключи — в разделе CONTEST_FEATURE.", "kind": "json", "variants": [], "default": "", "allow_empty": false, "json_target": "CONTEST_FEATURE", "note": "Колонка CSV с SPOD-JSON. Редактируются подпись, описание, заметка и «можно пусто». Ключи — в дочернем разделе JSON."}, {"n": 9, "key": "SHOW_INDICATOR", "status": "[v]", "label": "Единицы измерения показателя", "description": "Единица/подпись индикатора: шт.  |  Факт  |  %  |  … на списке показателей подпись к единицам данных", "kind": "dropdown_custom", "variants": ["%", "шт.", "Факт", "балл", "Темп %", "Ранг %%", "Ср. балл", "млн руб.", "К-во, шт.", "категория", "тыс. руб.", "Сумма, руб.", "Факт, млн руб.", "Сумма, млн руб.", "сборы, млн руб.", "Сумма, тыс. руб.", "Интегральный ранг", "Прирост, млн руб.", "Прирост, тыс. руб.", "Комиссия, тыс. руб.", "нетто-притоки, млн руб."], "default": "Факт", "allow_empty": false, "json_target": "", "note": ""}, {"n": 10, "key": "PRODUCT_GROUP", "status": "[v]", "label": "Группа продукта", "description": "Группа продукта (общее направление)", "kind": "text", "variants": [], "default": "", "allow_empty": false, "json_target": "", "note": ""}, {"n": 11, "key": "PRODUCT", "status": "[v]", "label": "Продукт", "description": "Продукт / тематика конкурса.", "kind": "text", "variants": [], "default": "", "allow_empty": false, "json_target": "", "note": ""}, {"n": 12, "key": "CONTEST_SUBJECT", "status": "[v]", "label": "Кто соревнуется", "description": "Субъект конкурса (подразделение, сотрудник). Уровень группировки результатов.", "kind": "dropdown", "variants": ["EMPLOYEE", "UNIT"], "default": "EMPLOYEE", "allow_empty": false, "json_target": "", "note": "", "variant_labels": ["Сотрудники", "Подразделения"]}, {"n": 13, "key": "FACTOR_MARK_TYPE", "status": "[v]", "label": "Как выбираем победителей", "description": "Способ выбора победителей: достиг показателя, сделал больше других или меньше других — меньше, например, для ранга", "kind": "dropdown", "variants": ["CRITERION", "RATING_MAX", "RATING_MIN", "GAIN"], "default": "CRITERION", "allow_empty": false, "json_target": "", "note": "", "variant_labels": ["Достигни", "Больше - лучше", "Меньше - лучше", "Больше в X раз"]}, {"n": 14, "key": "CONTEST_INDICATOR_METHOD", "status": "[v]", "label": "Метод индикатора", "description": "Метод расчета показателя конкурса (фактическое значение  / вычисляемое значение)", "kind": "dropdown", "variants": ["INTEGRAL", "RELATION"], "default": "INTEGRAL", "allow_empty": false, "json_target": "", "note": "", "variant_labels": ["Фактическое", "Расчетное"]}, {"n": 15, "key": "CONTEST_FACTOR_METHOD", "status": "[v]", "label": "Метод расчета показателя", "description": "Для автоматических турниров способ расчета на данных по источникам (для ручных данных всегда = FACT", "kind": "dropdown", "variants": ["FACT", "FACT0-FACT1", "FACT0-RUN_RATE1_DOWN", "RUN_RATE"], "default": "FACT", "allow_empty": false, "json_target": "", "note": ""}, {"n": 16, "key": "PLAN_METHOD_CODE", "status": "[v]", "label": "Как вычисляется план", "description": "Метод расчета планового показателя: из данных прошлого периода (вычисляемое) / фиксированное значение", "kind": "dropdown", "variants": ["PRESET_VALUE", "DEPENDS_PREVIOUS_PERIOD"], "default": "PRESET_VALUE", "allow_empty": false, "json_target": "", "note": "", "variant_labels": ["Фактическое", "Вычисляемое"]}, {"n": 17, "key": "PLAN_MOD_METOD", "status": "[v]", "label": "Метод модификации плана", "description": "Модификатор плана. Обычно: MULTIPLIER.", "kind": "dropdown", "variants": ["MULTIPLIER"], "default": "MULTIPLIER", "allow_empty": false, "json_target": "", "note": ""}, {"n": 18, "key": "PLAN_MOD_VALUE", "status": "[v]", "label": "Значение плана", "description": "Значение планового показателя (0, 1, 1000, …)", "kind": "number", "variants": [], "default": "0", "allow_empty": false, "json_target": "", "note": ""}, {"n": 19, "key": "FACTOR_MATCH", "status": "[v]", "label": "Символ сравнения с планом", "description": "Вид сравнения показателя с планом для определения участников", "kind": "dropdown", "variants": ["=", ">", ">=", "<", "<="], "default": ">=", "allow_empty": false, "json_target": "", "note": "", "variant_labels": ["Равно", "Больше", "Больше или равно", "Меньше", "Меньше или равно"]}, {"n": 20, "key": "CONTEST_PERIOD", "status": "[v]", "label": "Настройка периода", "description": "Колонка CONTEST_PERIOD: JSON-массив периодов. Пустота ячейки — флаг «можно пусто». Элементы — в разделе CONTEST_PERIOD.", "kind": "json", "variants": [], "default": "", "allow_empty": false, "json_target": "CONTEST_PERIOD", "note": "Колонка CSV с SPOD-JSON. Редактируются подпись, описание, заметка и «можно пусто». Ключи — в дочернем разделе JSON."}, {"n": 21, "key": "TARGET_TYPE", "status": "[v]", "label": "Среда конкурса", "description": "Выбор среды конкурсной", "kind": "dropdown", "variants": ["ПРОМ", "ТЕСТ"], "default": "ПРОМ", "allow_empty": false, "json_target": "", "note": ""}, {"n": 22, "key": "SOURCE_UPD_FREQUENCY", "status": "[v]", "label": "Частота обновления источника", "description": "Частота обновления источника данных в источника (не используется)", "kind": "dropdown_custom", "variants": ["1", "7", "14"], "default": "7", "allow_empty": false, "json_target": "", "note": ""}, {"n": 23, "key": "CALC_TYPE", "status": "[v]", "label": "Тип расчёта показателя", "description": "Тип расчёта: 0 — промышленный расчет / 1 — ручной расчет (не используется)", "kind": "dropdown", "variants": ["0", "1"], "default": "1", "allow_empty": false, "json_target": "", "note": "", "variant_labels": ["Промышленный расчет", "Ручные данные"]}, {"n": 24, "key": "FACT_POST_PROCESSING", "status": "[v]", "label": "Постобработка факта", "description": "Правило постобработки показателя конкурса. PERCENTILE, SPECIAL_INDICATOR_1, COUNT_BIGGER", "kind": "dropdown", "variants": ["PERCENTILE", "COUNT_BIGGER", "SPECIAL_INDICATOR_1"], "default": "", "allow_empty": true, "json_target": "", "note": "", "variant_labels": ["Процентиль", "Количество с лучшим показателем", "Специальный показатель"]}, {"n": 25, "key": "BUSINESS_BLOCK", "status": "[v]", "label": "Бизнес-блок конкурса", "description": "Бизнес-блок конкурса и его участников", "kind": "list", "variants": ["KMMMB", "KMKKSB", "AKMKKSB", "CSM"], "default": "KMMMB", "allow_empty": false, "json_target": "", "note": "", "variant_labels": ["КМ ММБ", "КМ ККСБ", "АКМ ККСБ", "Руководитель по внедрению проектов"]}]}, {"id": "CONTEST_FEATURE", "title": "CONTEST_FEATURE", "menu_label": "CONTEST_FEATURE", "intro": "JSON-колонка CONTEST_FEATURE внутри таблицы CONTEST", "kind": "json", "parent": "CONTEST", "sheet": "CONTEST-DATA", "fields": [{"n": 25, "key": "CONTEST_FEATURE.vid", "status": "[v]", "label": "Среда конкурса", "description": "Опредедяем среду для конкурса (по умолчанию ПРОМ)", "kind": "dropdown", "variants": ["ПРОМ", "ТЕСТ"], "default": "ПРОМ", "allow_empty": false, "json_target": "CONTEST_FEATURE.vid", "note": "ПРОМ (как TARGET_TYPE).", "variant_labels": ["Промышленный", "Тестовый"], "json_required": true}, {"n": 26, "key": "CONTEST_FEATURE.accuracy", "status": "[v]", "label": "Округление до...", "description": "Точность/разрядность: 0  |  1  |  2 . (число знаков после запятой для отображения)", "kind": "dropdown", "variants": ["0", "1", "2"], "default": "0", "allow_empty": false, "json_target": "CONTEST_FEATURE.accuracy", "note": "", "variant_labels": ["# ##", "# ##.#", "# ##.##"], "json_required": true}, {"n": 27, "key": "CONTEST_FEATURE.capacity", "status": "[v]", "label": "Приведение к млн / тыс.", "description": "Приведение отображаемого показателя к млн, к тыс.", "kind": "dropdown", "variants": ["MILLIONS", "THOUSANDS"], "default": "", "allow_empty": true, "json_target": "CONTEST_FEATURE.capacity", "note": "", "variant_labels": ["в миллионах", "в тысячах"], "json_required": true}, {"n": 28, "key": "CONTEST_FEATURE.masking", "status": "[v]", "label": "masking", "description": "Всегда ставами в Нет (N)", "kind": "dropdown", "variants": ["Y", "N"], "default": "N", "allow_empty": false, "json_target": "CONTEST_FEATURE.masking", "note": "N (часто N).", "variant_labels": ["Да", "Нет"], "json_required": true}, {"n": 29, "key": "CONTEST_FEATURE.minNumber", "status": "[v]", "label": "Минимум участников", "description": "Мин. число участников на уровне чтобы считать победителей (исключаем соревнование сам с собой): 1  |  2  |  3.", "kind": "dropdown", "variants": ["1", "2", "3"], "default": "1", "allow_empty": false, "json_target": "CONTEST_FEATURE.minNumber", "note": "", "json_required": true}, {"n": 30, "key": "CONTEST_FEATURE.momentRewarding", "status": "[v]", "label": "Когда выбираем победителей", "description": "Момент награждения после закрытия турнира / во время турнира", "kind": "dropdown", "variants": ["AFTER", "DURIN"], "default": "AFTER", "allow_empty": false, "json_target": "CONTEST_FEATURE.momentRewarding", "note": "DURIN (после закрытия турнира / во время турнира)", "variant_labels": ["По завершению", "Во время"], "json_required": true}, {"n": 31, "key": "CONTEST_FEATURE.typeRewarding", "status": "[v]", "label": "Сколько наград получает", "description": "Вручаем одну из 3 наград или все", "kind": "dropdown", "variants": ["one", "all"], "default": "one", "allow_empty": false, "json_target": "CONTEST_FEATURE.typeRewarding", "note": "", "variant_labels": ["Вручаем одну", "Вручаем все"], "json_required": true}, {"n": 32, "key": "CONTEST_FEATURE.avatarShow", "status": "[v]", "label": "Показывать аватар?", "description": "Управление показом фотографий участников", "kind": "dropdown", "variants": ["Y", "N"], "default": "Y", "allow_empty": false, "json_target": "CONTEST_FEATURE.avatarShow", "note": "N.", "variant_labels": ["Да", "Нет"], "json_required": true}, {"n": 33, "key": "CONTEST_FEATURE.tournamentTeam", "status": "[v]", "label": "Признак командного конкурса", "description": "При выборе командного турнира соревнуются не сотрудники, а команды (КПК/ Отдел/ ГОСБ/ ТБ)", "kind": "dropdown", "variants": ["Y", "N"], "default": "N", "allow_empty": false, "json_target": "CONTEST_FEATURE.tournamentTeam", "note": "N.", "variant_labels": ["Да", "Нет"], "json_required": true}, {"n": 34, "key": "CONTEST_FEATURE.persomanNumberVisible", "status": "[v]", "label": "Видимость для сотрудника", "description": "Если указаны табельные, то только эти сотрудники увидят турнир", "kind": "list", "variants": [], "default": "", "allow_empty": true, "json_target": "CONTEST_FEATURE.persomanNumberVisible", "note": "", "json_required": true}, {"n": 35, "key": "CONTEST_FEATURE.persomanNumberHidden", "status": "[v]", "label": "Скрытие для сотрудников", "description": "Если указаны табельные, то эти сотрудники не увидят турнир", "kind": "list", "variants": [], "default": "", "allow_empty": true, "json_target": "CONTEST_FEATURE.persomanNumberHidden", "note": "", "json_required": true}, {"n": 36, "key": "CONTEST_FEATURE.tournamentStartMailing", "status": "[v]", "label": "Письма о старте турнира", "description": "В дату старта турнира участникам из вертикали придет письмо с уведомлением о старте турнира", "kind": "dropdown", "variants": ["Y", "N"], "default": "Y", "allow_empty": false, "json_target": "CONTEST_FEATURE.tournamentStartMailing", "note": "", "variant_labels": ["Да", "Нет"], "json_required": true}, {"n": 37, "key": "CONTEST_FEATURE.tournamentEndMailing", "status": "[v]", "label": "Письмо о завершении турнира", "description": "Когда турнир закроется и подведут итоги участникам не победившим придет письмо о закрытии турнира", "kind": "dropdown", "variants": ["Y", "N"], "default": "Y", "allow_empty": false, "json_target": "CONTEST_FEATURE.tournamentEndMailing", "note": "", "variant_labels": ["Да", "Нет"], "json_required": true}, {"n": 38, "key": "CONTEST_FEATURE.tournamentLikeMailing", "status": "[v]", "label": "Письмо о лайке", "description": "Рассылка писем о лайках на новости с участием сотрудника", "kind": "dropdown", "variants": ["Y", "N"], "default": "Y", "allow_empty": false, "json_target": "CONTEST_FEATURE.tournamentLikeMailing", "note": "", "variant_labels": ["Да", "Нет"], "json_required": true}, {"n": 39, "key": "CONTEST_FEATURE.tournamentListMailing", "status": "[w]", "label": "Письмо о...", "description": "описание готовится (по умолчанию пусто)", "kind": "list", "variants": [], "default": "", "allow_empty": true, "json_target": "CONTEST_FEATURE.tournamentListMailing", "note": "", "json_required": true}, {"n": 40, "key": "CONTEST_FEATURE.tournamentRewardingMailing", "status": "[v]", "label": "Письмо о награждении", "description": "РАссылка письма получателям награды после ее вручения", "kind": "dropdown", "variants": ["Y", "N"], "default": "Y", "allow_empty": false, "json_target": "CONTEST_FEATURE.tournamentRewardingMailing", "note": "N.", "variant_labels": ["Да", "Нет"], "json_required": true}, {"n": 41, "key": "CONTEST_FEATURE.feature", "status": "[v]", "label": "Особенности конкурса", "description": "Тексты особенностей турнира. Показываем в детальной карточке турнира, можно указать несколько", "kind": "list", "variants": [], "default": "", "allow_empty": true, "json_target": "CONTEST_FEATURE.feature", "note": "", "json_required": true}, {"n": 42, "key": "CONTEST_FEATURE.businessBlock", "status": "[v]", "label": "Бизнес-блок", "description": "Бизнес блок конкурса и его участников", "kind": "list", "variants": ["KMMMB", "KMKKSB", "AKMKKSB", "CSM"], "default": "KMMMB", "allow_empty": false, "json_target": "CONTEST_FEATURE.businessBlock", "note": "", "variant_labels": ["КМ ММБ", "КМ ККСБ", "АКМ ККСБ", "Руководитель по внедрению проектов"], "json_required": true}, {"n": 43, "key": "CONTEST_FEATURE.helpCodeList", "status": "[v]", "label": "Код окна с описанием показателя", "description": "Коды для вывода окна с дополнительным описанием конкурса (доступно в детальной карточке турнира)", "kind": "list", "variants": [], "default": "", "allow_empty": true, "json_target": "CONTEST_FEATURE.helpCodeList", "note": "", "json_required": true}, {"n": 44, "key": "CONTEST_FEATURE.preferences", "status": "[v]", "label": "Преференции за победу", "description": "Преференции за победу в турнире если предусмотрены (отображаем в детальной карточке турнира)", "kind": "list", "variants": [], "default": "", "allow_empty": true, "json_target": "CONTEST_FEATURE.preferences", "note": "", "json_required": true}, {"n": 45, "key": "CONTEST_FEATURE.tbVisible", "status": "[v]", "label": "Видимость для ТБ", "description": "Только эти ТБ (если указаны) увидят конкурс", "kind": "list", "variants": [], "default": "", "allow_empty": true, "json_target": "CONTEST_FEATURE.tbVisible", "note": "", "json_required": true}, {"n": 46, "key": "CONTEST_FEATURE.tbHidden", "status": "[v]", "label": "Скрытие для ТБ", "description": "Конкурс видят все ТБ, кроме указанных здесь", "kind": "list", "variants": [], "default": "", "allow_empty": true, "json_target": "CONTEST_FEATURE.tbHidden", "note": "", "json_required": true}, {"n": 47, "key": "CONTEST_FEATURE.gosbVisible", "status": "[v]", "label": "Видимость для ГОСБ", "description": "Только эти ГОСБ (если указаны) увидят конкурс", "kind": "list", "variants": [], "default": "", "allow_empty": true, "json_target": "CONTEST_FEATURE.gosbVisible", "note": "", "json_required": true}, {"n": 48, "key": "CONTEST_FEATURE.gosbHidden", "status": "[v]", "label": "Скрытие для ГОСБ", "description": "Конкурс видят все ГОСБ, кроме указанных здесь", "kind": "list", "variants": [], "default": "", "allow_empty": true, "json_target": "CONTEST_FEATURE.gosbHidden", "note": "", "json_required": true}], "column": "CONTEST_FEATURE"}, {"id": "CONTEST_PERIOD", "title": "CONTEST_PERIOD", "menu_label": "CONTEST_PERIOD", "intro": "JSON-массив в колонке CONTEST_PERIOD (лист CONTEST). Элемент: period_code (число), criterion_mark_type (оператор), criterion_mark_value (число). В CSV: массив в кавычках поля; ключи/строки в \"\"\"…\"\"\", числа без кавычек.", "kind": "json_array", "parent": "CONTEST", "sheet": "CONTEST-DATA", "column": "CONTEST_PERIOD", "fields": [{"n": 120, "status": "[w]", "variants": ["0", "1", "-1"], "default": "0", "allow_empty": false, "json_target": "CONTEST_PERIOD[].period_code", "note": "", "description": "Номер/код периода в массиве CONTEST_PERIOD (часто 0, 1; бывает -1).", "kind": "dropdown", "label": "Код периода", "key": "CONTEST_PERIOD.period_code", "json_required": true}, {"n": 121, "status": "[v]", "variants": [">", ">=", "<", "<=", "="], "default": ">", "allow_empty": false, "json_target": "CONTEST_PERIOD[].criterion_mark_type", "note": "", "description": "Оператор сравнения критерия периода.", "kind": "dropdown", "label": "Сравнение", "key": "CONTEST_PERIOD.criterion_mark_type", "variant_labels": ["Больше", "Больше или равно", "Меньше", "Меньше или равно", "Равно"], "json_required": true}, {"n": 122, "status": "[v]", "variants": [], "default": "0", "allow_empty": false, "json_target": "CONTEST_PERIOD[].criterion_mark_value", "note": "", "description": "Числовое значение порога", "kind": "number", "label": "Порог критерия", "key": "CONTEST_PERIOD.criterion_mark_value", "json_required": true}]}, {"id": "REWARD", "title": "REWARD", "menu_label": "REWARD", "intro": "Таблица / лист REWARD — плоские колонки награды (в форме слоты BADGE)", "kind": "table", "parent": null, "sheet": "REWARD", "fields": [{"n": 49, "key": "REWARD_CODE", "status": "[v]", "label": "Код награды", "description": "Уникальный код награды, напр. r_01_2025-0_11-1_1_1.", "kind": "text", "variants": [], "default": "", "allow_empty": false, "json_target": "", "note": ""}, {"n": 50, "key": "REWARD_TYPE", "status": "[v]", "label": "Тип награды", "description": "Для этой формы всегда BADGE.", "kind": "dropdown", "variants": ["BADGE", "LABEL", "ITEM", "CRISTAL"], "default": "BADGE", "allow_empty": false, "json_target": "", "note": "", "variant_labels": ["Награда", "Метка", "Товар", "Кристалл"]}, {"n": 51, "key": "FULL_NAME", "status": "[v]", "label": "Название награды", "description": "Краткое название бейджа для показа в списке наград и детальной карточке награды (достижения)", "kind": "text", "variants": [], "default": "", "allow_empty": false, "json_target": "", "note": ""}, {"n": 52, "key": "REWARD_DESCRIPTION", "status": "[v]", "label": "Описание награды", "description": "Полное описание награды показываем в детальной карточке награды (достижения)", "kind": "text", "variants": [], "default": "", "allow_empty": false, "json_target": "", "note": ""}, {"n": 53, "key": "REWARD_CONDITION", "status": "[v]", "label": "Условия получения награды", "description": "Условия получения награды (1-победа в конкурсе, 2 - участие в конкурсе)", "kind": "dropdown", "variants": ["1", "2"], "default": "1", "allow_empty": false, "json_target": "", "note": "", "variant_labels": ["победа", "участие"]}, {"n": 54, "key": "REWARD_COST", "status": "[v]", "label": "Стоимость награды", "description": "Сколько кристаллов заработает участник за получение награды (целое число, по умолчанию 5).", "kind": "number", "variants": [], "default": "5", "allow_empty": false, "json_target": "", "note": ""}, {"n": 55, "key": "REWARD_ADD_DATA", "status": "[v]", "label": "REWARD_ADD_DATA (JSON)", "description": "Колонка REWARD_ADD_DATA: JSON-объект доп. данных награды. Пустота ячейки — флаг «можно пусто». Ключи — в разделе REWARD_ADD_DATA.", "kind": "json", "variants": [], "default": "", "allow_empty": false, "json_target": "REWARD_ADD_DATA", "note": "Колонка CSV с SPOD-JSON. Редактируются подпись, описание, заметка и «можно пусто». Ключи — в дочернем разделе JSON."}]}, {"id": "REWARD_ADD_DATA", "title": "REWARD_ADD_DATA", "menu_label": "REWARD_ADD_DATA", "intro": "JSON-колонка REWARD_ADD_DATA внутри таблицы REWARD", "kind": "json", "parent": "REWARD", "sheet": "REWARD", "fields": [{"n": 55, "key": "REWARD_ADD_DATA.nftFlg", "status": "[v]", "label": "Признак NFT", "description": "Ставить метку на награду / турнир?", "kind": "dropdown", "variants": ["Y", "N"], "default": "N", "allow_empty": false, "json_target": "REWARD_ADD_DATA.nftFlg", "note": "N (обычно N).", "variant_labels": ["Да", "Нет"], "json_required": true}, {"n": 56, "key": "REWARD_ADD_DATA.outstanding", "status": "[v]", "label": "Выпуск новостей", "description": "При получении награды выходит новость с поздравлением а Сообществе", "kind": "dropdown", "variants": ["Y", "N"], "default": "N", "allow_empty": false, "json_target": "REWARD_ADD_DATA.outstanding", "note": "N.", "variant_labels": ["Да", "Нет"], "json_required": true}, {"n": 57, "key": "REWARD_ADD_DATA.rewardRule", "status": "[v]", "label": "Правило получения", "description": "Текст правила получения награды для отображения в детальной карточке награды", "kind": "text", "variants": [], "default": "", "allow_empty": true, "json_target": "REWARD_ADD_DATA.rewardRule", "note": "", "json_required": true}, {"n": 58, "key": "REWARD_ADD_DATA.rewardAgainGlobal", "status": "[v]", "label": "Повтор в другом турнире", "description": "Можно ли награду получить больше одного раза в разных турнирах", "kind": "dropdown", "variants": ["Y", "N"], "default": "N", "allow_empty": false, "json_target": "REWARD_ADD_DATA.rewardAgainGlobal", "note": "N.", "variant_labels": ["Да", "Нет"], "json_required": true}, {"n": 59, "key": "REWARD_ADD_DATA.rewardAgainTournament", "status": "[v]", "label": "Повтор в текущем турнире", "description": "Можно ли награду получить больше одного раза в одном турнире (не используем всегда Нет (N))", "kind": "dropdown", "variants": ["Y", "N"], "default": "N", "allow_empty": false, "json_target": "REWARD_ADD_DATA.rewardAgainTournament", "note": "N (часто N).", "variant_labels": ["Да", "Нет"], "json_required": true}, {"n": 60, "key": "REWARD_ADD_DATA.hidden", "status": "[v]", "label": "Скрыть награду", "description": "Скрывает награду во всех местах", "kind": "dropdown", "variants": ["Y", "N"], "default": "N", "allow_empty": false, "json_target": "REWARD_ADD_DATA.hidden", "note": "N.", "variant_labels": ["Да", "Нет"], "json_required": true}, {"n": 61, "key": "REWARD_ADD_DATA.fileName", "status": "[v]", "label": "Техническое имя награды", "description": "Техническое наименование группы наград", "kind": "text", "variants": [], "default": "", "allow_empty": false, "json_target": "REWARD_ADD_DATA.fileName", "note": "", "json_required": true}, {"n": 62, "key": "REWARD_ADD_DATA.teamNews", "status": "[v]", "label": "Текст групповой новости", "description": "Текст новости с выпуском по шаблону, когда победителей более одного", "kind": "text", "variants": [], "default": "", "allow_empty": true, "json_target": "REWARD_ADD_DATA.teamNews", "note": "", "json_required": true}, {"n": 63, "key": "REWARD_ADD_DATA.singleNews", "status": "[v]", "label": "Текст одиночной новости", "description": "Текст новости с выпуском по шаблону, когда победитель один", "kind": "text", "variants": [], "default": "", "allow_empty": true, "json_target": "REWARD_ADD_DATA.singleNews", "note": "", "json_required": true}, {"n": 64, "key": "REWARD_ADD_DATA.masterBadge", "status": "[v]", "label": "Выбор мастер бейджа", "description": "Признак является ли данная награда основной для вручения (Награда - Да (Y) / Турнир - Нет (N))", "kind": "dropdown", "variants": ["Y", "N"], "default": "Y", "allow_empty": false, "json_target": "REWARD_ADD_DATA.masterBadge", "note": "N. (Y — для награды / N — для турнира)", "variant_labels": ["Да", "Нет"], "json_required": true}, {"n": 65, "key": "REWARD_ADD_DATA.parentRewardCode", "status": "[v]", "label": "Код Мастер-беджа", "description": "Код родительской (Мастер) награды. (Награда = коду награды / Турнир = коду сезонной награды)", "kind": "text", "variants": [], "default": "", "allow_empty": false, "json_target": "REWARD_ADD_DATA.parentRewardCode", "note": "", "json_required": true}, {"n": 66, "key": "REWARD_ADD_DATA.priority", "status": "[v]", "label": "Приоритет награды", "description": "Признак отнесения вида награды к Золоту/Серебру/Бронзе", "kind": "dropdown", "variants": ["1", "2", "3"], "default": "1", "allow_empty": false, "json_target": "REWARD_ADD_DATA.priority", "note": "", "variant_labels": ["Золото", "Серебро", "Бронза"], "json_required": true}, {"n": 67, "key": "REWARD_ADD_DATA.recommendationLevel", "status": "[v]", "label": "Уровень для рекомендаций", "description": "Уровень для отбора в рекомендательную систему", "kind": "dropdown", "variants": ["BANK", "TB", "GOSB", "NON"], "default": "BANK", "allow_empty": false, "json_target": "REWARD_ADD_DATA.recommendationLevel", "note": "", "variant_labels": ["Страна", "Тер. банк", "ГОСБ", "нет"], "json_required": true}, {"n": 68, "key": "REWARD_ADD_DATA.refreshOldNews", "status": "[v]", "label": "Обновление новости", "description": "Обновлять старые новости по этой награде или выпускать новую каждый раз", "kind": "dropdown", "variants": ["Y", "N"], "default": "N", "allow_empty": false, "json_target": "REWARD_ADD_DATA.refreshOldNews", "note": "", "variant_labels": ["Да", "Нет"], "json_required": true}, {"n": 69, "key": "REWARD_ADD_DATA.tournamentTeam", "status": "[v]", "label": "Коммандная награда", "description": "Командный режим награды", "kind": "dropdown", "variants": ["Y", "N"], "default": "N", "allow_empty": false, "json_target": "REWARD_ADD_DATA.tournamentTeam", "note": "", "variant_labels": ["Да", "Нет"], "json_required": true}, {"n": 70, "key": "REWARD_ADD_DATA.seasonItem", "status": "[v]", "label": "Код сезона товара", "description": "Код сезона для сезонной награды и товара", "kind": "dropdown", "variants": ["SEASON_mmb_2026", "SEASON_2026_1", "SEASON_akm_2026", "SEASON_csm_2026", "SEASON_m_2026_1"], "default": "SEASON_mmb_2026", "allow_empty": false, "json_target": "REWARD_ADD_DATA.seasonItem", "note": "", "variant_labels": ["Сезон 2026 (ММБ)", "Сезон 2026 (ККСБ)", "Сезон 2026 (АКМ)", "Сезон 2026  (CSM)", "Сезон 2026 (МНС)"], "json_required": true}, {"n": 71, "key": "REWARD_ADD_DATA.newsType", "status": "[v]", "label": "Тип выпускаемых новостей", "description": "Как формируются новости о награде (AI-генерация / Создание по шаблону)", "kind": "dropdown", "variants": ["AIPROMPT", "TEMPLATE"], "default": "AIPROMPT", "allow_empty": false, "json_target": "REWARD_ADD_DATA.newsType", "note": "TEMPLATE. (генерит ИИ / по шаблону)", "variant_labels": ["AI-генерация", "Шаблон"], "json_required": true}, {"n": 72, "key": "REWARD_ADD_DATA.winCriterion", "status": "[v]", "label": "Критерий победы для новости", "description": "Текст критерия победы для AI-создания новостей", "kind": "text", "variants": [], "default": "", "allow_empty": true, "json_target": "REWARD_ADD_DATA.winCriterion", "note": "", "json_required": true}, {"n": 73, "key": "REWARD_ADD_DATA.preferences", "status": "[v]", "label": "Преференции за победу", "description": "Преференции за получение награды если предусмотрены (отображаем в детальной карточке Бейджа (награды))", "kind": "list", "variants": [], "default": "", "allow_empty": true, "json_target": "REWARD_ADD_DATA.preferences", "note": "", "json_required": true}, {"n": 74, "key": "REWARD_ADD_DATA.feature", "status": "[v]", "label": "Особенности награды", "description": "Особенности награды для показа в Детальной карточке бейджа", "kind": "list", "variants": [], "default": "", "allow_empty": true, "json_target": "REWARD_ADD_DATA.feature", "note": "", "json_required": true}, {"n": 75, "key": "REWARD_ADD_DATA.businessBlock", "status": "[v]", "label": "Бизнес-блок награды", "description": "Бизнес блок награды и участников кто может претендовать", "kind": "list", "variants": ["KMMMB", "KMKKSB", "AKMKKSB", "CSM"], "default": "KMMMB", "allow_empty": true, "json_target": "REWARD_ADD_DATA.businessBlock", "note": "", "variant_labels": ["КМ ММБ", "КМ ККСБ", "АКМ ККСБ", "Руководитель по внедрению проектов"], "json_required": true}, {"n": 76, "key": "REWARD_ADD_DATA.helpCodeList", "status": "[v]", "label": "Код окна с описанием показателя", "description": "Коды для вывода окна с дополнительным описанием конкурса (доступно в детальной карточке награды)", "kind": "list", "variants": [], "default": "", "allow_empty": true, "json_target": "REWARD_ADD_DATA.helpCodeList", "note": "", "json_required": true}, {"n": 77, "key": "REWARD_ADD_DATA.hiddenRewardList", "status": "[v]", "label": "Скрыть в списках", "description": "Скрывает награду в списках", "kind": "dropdown", "variants": ["Y", "N"], "default": "N", "allow_empty": false, "json_target": "REWARD_ADD_DATA.hiddenRewardList", "note": "N.", "variant_labels": ["Да", "Нет"], "json_required": true}], "column": "REWARD_ADD_DATA"}, {"id": "TABLE:REWARD-LINK", "title": "REWARD-LINK", "menu_label": "REWARD-LINK", "intro": "Таблица / лист REWARD-LINK", "kind": "table", "parent": null, "sheet": "REWARD-LINK", "fields": [{"n": 78, "key": "CONTEST_CODE", "status": "[v]", "label": "Код конкурса", "description": "Уникальный код конкурса (ключ связей). Пример: 01_2025-0_11-1_1", "kind": "text", "variants": [], "default": "", "allow_empty": false, "json_target": "", "note": ""}, {"n": 79, "key": "GROUP_CODE", "status": "[v]", "label": "Код уровня награды", "description": "Выбор уровня на котором выбираем победителей (среди кого соревнуемся)", "kind": "dropdown", "variants": ["BANK", "TB", "GOSB", "GROUPING"], "default": "BANK", "allow_empty": false, "json_target": "", "note": "", "variant_labels": ["Вся страна", "Тер. банк", "ГОСБ", "Группа"]}, {"n": 80, "key": "REWARD_CODE", "status": "[v]", "label": "Код награды", "description": "Код награды для связи конкурса с уровнем", "kind": "text", "variants": [], "default": "", "allow_empty": true, "json_target": "", "note": ""}]}, {"id": "TABLE:GROUP", "title": "GROUP", "menu_label": "GROUP", "intro": "Таблица / лист GROUP", "kind": "table", "parent": null, "sheet": "GROUP", "fields": [{"n": 81, "key": "CONTEST_CODE", "status": "[v]", "label": "Код конкурса", "description": "Уникальный код конкурса (ключ связей). Пример: 01_2025-0_11-1_1", "kind": "text", "variants": [], "default": "", "allow_empty": false, "json_target": "", "note": ""}, {"n": 82, "key": "GROUP_CODE", "status": "[v]", "label": "Код уровня награды", "description": "Выбор уровня на котором выбираем победителей (среди кого соревнуемся)", "kind": "dropdown", "variants": ["BANK", "TB", "GOSB", "GROUPING"], "default": "BANK", "allow_empty": false, "json_target": "", "note": "", "variant_labels": ["Вся страна", "Тер. банк", "ГОСБ", "Группа"]}, {"n": 83, "key": "GROUP_VALUE", "status": "[v]", "label": "Фильтр по уровням", "description": "Отдельные настройки победителей для выбранного уровня", "kind": "dropdown_custom", "variants": ["*", "38", "40", "44", "18", "42", "70", "54", "55", "16", "13", "52"], "default": "*", "allow_empty": false, "json_target": "GROUP_VALUE", "note": "", "variant_labels": ["Все", "МБ", "СРБ", "СибБ", "ББ", "ВВБ", "ДВБ", "ПБ", "СЗБ", "УБ", "ЦЧБ", "ЮЗБ"]}, {"n": 84, "key": "GET_CALC_METHOD", "status": "[v]", "label": "Способ выбора победителей", "description": "Каким образом выбираем победителей турника", "kind": "dropdown", "variants": ["1", "2", "3", "0"], "default": "2", "allow_empty": false, "json_target": "", "note": "", "variant_labels": ["процент от", "первые Х", "достигни", "не вручаем"]}, {"n": 85, "key": "GET_CALC_CRITERION", "status": "[v]", "label": "Критерий Золото", "description": "Сколько лучших выбираем для уровня Золото", "kind": "number", "variants": [], "default": "0", "allow_empty": false, "json_target": "", "note": ""}, {"n": 86, "key": "ADD_CALC_CRITERION", "status": "[v]", "label": "Критерий Серебро", "description": "Сколько лучших выбираем для уровня Серебро", "kind": "number", "variants": [], "default": "0", "allow_empty": false, "json_target": "", "note": ""}, {"n": 87, "key": "ADD_CALC_CRITERION_2", "status": "[v]", "label": "Критерий Бронза", "description": "Сколько лучших выбираем для уровня Бронза", "kind": "number", "variants": [], "default": "0", "allow_empty": false, "json_target": "", "note": ""}, {"n": 88, "key": "BASE_CALC_CODE", "status": "[v]", "label": "Код уровня награды", "description": "Выбор уровня на котором выбираем победителей (среди кого соревнуемся)", "kind": "dropdown", "variants": ["BANK", "TB", "GOSB", "GROUPING"], "default": "", "allow_empty": true, "json_target": "", "note": "", "variant_labels": ["Вся страна", "Тер. банк", "ГОСБ", "Группа"]}]}, {"id": "TABLE:INDICATOR", "title": "INDICATOR", "menu_label": "INDICATOR", "intro": "Таблица / лист INDICATOR", "kind": "table", "parent": null, "sheet": "INDICATOR", "fields": [{"n": 89, "key": "CONTEST_CODE", "status": "[v]", "label": "Код конкурса", "description": "Уникальный код конкурса (ключ связей). Пример: 01_2025-0_11-1_1", "kind": "text", "variants": [], "default": "", "allow_empty": false, "json_target": "", "note": ""}, {"n": 90, "key": "INDICATOR_CALC_TYPE", "status": "[v]", "label": "Тип индикатора", "description": "Тип показателя (сейчас всегда используем 1-Расчетный", "kind": "dropdown", "variants": ["1", "2", "3"], "default": "1", "allow_empty": false, "json_target": "", "note": "", "variant_labels": ["Расчетный", "Абсолютный", "Относительный"]}, {"n": 91, "key": "INDICATOR_ADD_CALC_TYPE", "status": "[v]", "label": "Классификация показателя", "description": "Классификация показателя для определения расчета (числитель / знаменатель)", "kind": "dropdown", "variants": ["NUMERATOR", "DIVIDER"], "default": "", "allow_empty": true, "json_target": "", "note": "DIVIDER", "variant_labels": ["Числитель", "Знаменатель"]}, {"n": 92, "key": "FULL_NAME", "status": "[v]", "label": "Имя индикатора", "description": "Наименование показателя = коду показателя и не используется", "kind": "text", "variants": [], "default": "", "allow_empty": false, "json_target": "", "note": ""}, {"n": 93, "key": "INDICATOR_CODE", "status": "[v]", "label": "Код показателя", "description": "Код показателя для расчетов", "kind": "dropdown_custom", "variants": ["WAIT"], "default": "WAIT", "allow_empty": false, "json_target": "", "note": "", "variant_labels": ["Ручной"]}, {"n": 94, "key": "INDICATOR_AGG_FUNCTION", "status": "[v]", "label": "Функция агрегации", "description": "Метод расчета показателя", "kind": "dropdown", "variants": ["SUM", "MAX", "COUNT_DISTINCT", "COUNT_DISTINCT_CUSTOMER", "COUNT_DISTINCT_DEAL"], "default": "SUM", "allow_empty": false, "json_target": "", "note": "", "variant_labels": ["Сумма", "Максимум", "Уникальные", "Уникальные сотрудники", "Уникальные клиенты"]}, {"n": 95, "key": "INDICATOR_WEIGHT", "status": "[v]", "label": "Множитель показателя", "description": "Способ расчета показателя (множитель)", "kind": "dropdown", "variants": ["1", "-1", "1000"], "default": "1", "allow_empty": false, "json_target": "", "note": "", "variant_labels": ["Положительный", "Отрицательный", "Множитель x1000"]}, {"n": 96, "key": "INDICATOR_OBJECT", "status": "[v]", "label": "Объект конкурса", "description": "Параметр для определения объекта конкурса (для группировки в рамках одного сотрудника (поиск лучшей сделки) - для типа показателя - 2- Абсолютный показатель)", "kind": "text", "variants": [], "default": "", "allow_empty": true, "json_target": "", "note": ""}, {"n": 97, "key": "INDICATOR_MARK_TYPE", "status": "[v]", "label": "Как выбираем победителей", "description": "Способ выбора победителей: достиг показателя, сделал больше других или меньше других — меньше, например, для ранга", "kind": "dropdown", "variants": ["CRITERION", "RATING", "GAIN"], "default": "RATING", "allow_empty": false, "json_target": "", "note": "", "variant_labels": ["Достигни", "Рейтинг", ""]}, {"n": 98, "key": "INDICATOR_MATCH", "status": "[v]", "label": "Символ сравнения с планом", "description": "Вид сравнения показателя с планом для определения участников", "kind": "dropdown", "variants": ["=", ">", ">=", "<", "<=", "MAX", "MIN", "X2", "X3", "X4"], "default": "MAX", "allow_empty": false, "json_target": "", "note": "", "variant_labels": ["Равно", "Больше", "Больше или равно", "Меньше", "Меньше или равно", "Максимум", "Минимум", "Больше в 2 раза", "Больше в 3 раза", "Больше в 4 раза"]}, {"n": 99, "key": "INDICATOR_VALUE", "status": "[v]", "label": "Значение плана", "description": "Значение планового показателя (0, 1, 1000, …)", "kind": "number", "variants": [], "default": "", "allow_empty": true, "json_target": "", "note": ""}, {"n": 100, "key": "CONTEST_CRITERION", "status": "[v]", "label": "Ограничения сделки", "description": "Параметры для ограничения выбора сделки (не используется)", "kind": "text", "variants": [], "default": "", "allow_empty": true, "json_target": "", "note": ""}, {"n": 102, "key": "CONTESTANT_SELECTION", "status": "[v]", "label": "Как определять ВКО", "description": "Способ определения участника на данных источника", "kind": "dropdown", "variants": ["0", "1"], "default": "0", "allow_empty": false, "json_target": "", "note": "1", "variant_labels": ["На дату операции", "На конец турнира"]}, {"n": 103, "key": "CALC_TYPE", "status": "[v]", "label": "Тип расчёта показателя", "description": "Тип расчёта: 0 — промышленный расчет / 1 — ручной расчет (не используется)", "kind": "dropdown", "variants": ["0", "1"], "default": "1", "allow_empty": false, "json_target": "", "note": "1", "variant_labels": ["Промышленный расчет", "Ручные данные"]}, {"n": 104, "key": "N", "status": "[v]", "label": "Уникальный ID строки", "description": "Уникальный во всем файле настроек ID (порядковый номер)", "kind": "number", "variants": [], "default": "", "allow_empty": false, "json_target": "", "note": ""}, {"n": 138, "key": "INDICATOR_FILTER", "status": "[v]", "label": "Фильтры индикатора", "description": "Для автоматических турниров настройка фильтров для источника", "kind": "json", "variants": [], "default": "", "allow_empty": true, "json_target": "INDICATOR_FILTER", "note": "Колонка CSV с SPOD-JSON. «Можно пусто» — допустима ли пустая ячейка колонки целиком."}]}, {"id": "INDICATOR_FILTER", "title": "INDICATOR_FILTER", "menu_label": "INDICATOR_FILTER", "intro": "JSON-массив фильтров в колонке INDICATOR_FILTER. Элемент: filtered_attribute_code/type/match + condition (массив строк) или value/dt.", "kind": "json_array", "parent": "TABLE:INDICATOR", "sheet": "INDICATOR", "column": "INDICATOR_FILTER", "fields": [{"n": 129, "status": "[v]", "variants": ["segment", "segment_mk", "tb", "product_group", "product", "is_manual_correct", "is_cva_product", "action_code", "stage", "deal_type", "coa_type_id", "customer_segment", "e2e_product_code", "kkp_status_code", "deal_is_msh", "ccy_code", "category", "coa_open_dt", "offer_close_date", "polis_dt"], "default": "segment", "allow_empty": false, "json_target": "INDICATOR_FILTER[].filtered_attribute_code", "note": "", "description": "Код поля фильтра", "kind": "dropdown_custom", "label": "Код фильтра", "key": "INDICATOR_FILTER.filtered_attribute_code", "json_required": true}, {"n": 130, "status": "[v]", "variants": ["STRING", "DATE", "INTEGER", "DECIMAL (38,12)"], "default": "STRING", "allow_empty": false, "json_target": "INDICATOR_FILTER[].filtered_attribute_type", "note": "", "description": "Тип данных в фильтре", "kind": "dropdown_custom", "label": "Тип атрибута", "key": "INDICATOR_FILTER.filtered_attribute_type", "variant_labels": ["Строка", "Дата", "Целое число", "Дробное число"], "json_required": true}, {"n": 131, "status": "[v]", "variants": ["IN", "NOT_IN", ">=", ">", "<=", "<", "="], "default": "IN", "allow_empty": false, "json_target": "INDICATOR_FILTER[].filtered_attribute_match", "note": "", "description": "Оператор сравнения для фильтра", "kind": "dropdown", "label": "Оператор сравнения", "key": "INDICATOR_FILTER.filtered_attribute_match", "variant_labels": ["Входит", "Не входит", "Больше или равно", "Больше", "Меньше или равно", "Меньше", "Равно"], "json_required": true}, {"n": 132, "status": "[v]", "variants": [], "default": "", "allow_empty": true, "json_target": "INDICATOR_FILTER[].filtered_attribute_condition", "note": "", "description": "Массив значений фильма в виде строк", "kind": "list", "label": "Значение фильтра строки", "key": "INDICATOR_FILTER.filtered_attribute_condition", "json_required": false}, {"n": 133, "status": "[v]", "variants": [], "default": "", "allow_empty": true, "json_target": "INDICATOR_FILTER[].filtered_attribute_value", "note": "", "description": "Значение для фильтра числового", "kind": "number", "label": "Значение фильтра числа", "key": "INDICATOR_FILTER.filtered_attribute_value", "json_required": false}, {"n": 134, "status": "[v]", "variants": [], "default": "", "allow_empty": true, "json_target": "INDICATOR_FILTER[].filtered_attribute_dt", "note": "", "description": "Значение для фильтра даты", "kind": "date", "label": "Значение фильтра даты", "key": "INDICATOR_FILTER.filtered_attribute_dt", "json_required": false}]}, {"id": "TABLE:SCHEDULE", "title": "SCHEDULE", "menu_label": "SCHEDULE", "intro": "Таблица / лист TOURNAMENT-SCHEDULE", "kind": "table", "parent": null, "sheet": "TOURNAMENT-SCHEDULE", "fields": [{"n": 105, "key": "TOURNAMENT_CODE", "status": "[v]", "label": "Код турнира", "description": "Код для турнира в рамках конкурса", "kind": "text", "variants": [], "default": "", "allow_empty": false, "json_target": "", "note": ""}, {"n": 106, "key": "PERIOD_TYPE", "status": "[v]", "label": "Тип периодичность турнира", "description": "Текстовое описание периода турнира", "kind": "dropdown_custom", "variants": ["турнир года", "турнир 1 полугодия", "турнир 2 полугодия", "турнир 1 квартала", "турнир 2 квартала", "турнир 3 квартала", "турнир 4 квартала", "турнир января", "турнир февраля", "турнир марта", "турнир апреля", "турнир мая", "турнир июня", "турнир июля", "турнир августа", "турнир сентября", "турнир октября", "турнир ноября", "турнир декабря", "произвольный"], "default": "произвольный", "allow_empty": false, "json_target": "", "note": ""}, {"n": 107, "key": "START_DT", "status": "[v]", "label": "Дата начала турнира", "description": "Дата старта турнира", "kind": "date", "variants": [], "default": "", "allow_empty": false, "json_target": "", "note": ""}, {"n": 108, "key": "END_DT", "status": "[v]", "label": "Дата конца турнира", "description": "Дата окончания турнира", "kind": "date", "variants": [], "default": "", "allow_empty": false, "json_target": "", "note": ""}, {"n": 109, "key": "RESULT_DT", "status": "[v]", "label": "Дата подведения итога", "description": "Дата подведения итогов турнира и вручения наград", "kind": "date", "variants": [], "default": "", "allow_empty": true, "json_target": "", "note": ""}, {"n": 110, "key": "PLAN_PERIOD_START_DT", "status": "[v]", "label": "Дата старта периода плана", "description": "Дата старта для периода, где определяется плановое значение", "kind": "date", "variants": [], "default": "", "allow_empty": true, "json_target": "", "note": ""}, {"n": 111, "key": "PLAN_PERIOD_END_DT", "status": "[v]", "label": "Дата конца периода плана", "description": "Дата конца для периода, где определяется плановое значение", "kind": "date", "variants": [], "default": "", "allow_empty": true, "json_target": "", "note": ""}, {"n": 112, "key": "CRITERION_MARK_TYPE", "status": "[v]", "label": "Критерий участия", "description": "Критерий участия для перида конкурса. Оператор сравнения", "kind": "dropdown", "variants": ["=", ">", ">=", "<", "<="], "default": ">=", "allow_empty": false, "json_target": "", "note": "", "variant_labels": ["Равно", "Больше", "Больше или равно", "Меньше", "Меньше или равно"]}, {"n": 113, "key": "CRITERION_MARK_VALUE", "status": "[v]", "label": "Критерий отбора периода", "description": "Значение критерий для участия перида конкурса", "kind": "number", "variants": [], "default": "", "allow_empty": false, "json_target": "", "note": ""}, {"n": 115, "key": "TOURNAMENT_STATUS", "status": "[v]", "label": "Статус турнира", "description": "Выбор статуса активности турнира", "kind": "dropdown", "variants": ["АКТИВНЫЙ", "ЗАВЕРШЕН", "ОТМЕНЕН", "ПОДВЕДЕНИЕ ИТОГОВ", "УДАЛЕН"], "default": "АКТИВНЫЙ", "allow_empty": false, "json_target": "", "note": ""}, {"n": 116, "key": "CONTEST_CODE", "status": "[v]", "label": "Код конкурса", "description": "Уникальный код конкурса (ключ связей). Пример: 01_2025-0_11-1_1", "kind": "text", "variants": [], "default": "", "allow_empty": false, "json_target": "", "note": ""}, {"n": 118, "key": "CALC_TYPE", "status": "[v]", "label": "Тип расчёта показателя", "description": "Тип расчёта: 0 — промышленный расчет / 1 — ручной расчет", "kind": "dropdown", "variants": ["0", "1"], "default": "1", "allow_empty": false, "json_target": "", "note": "", "variant_labels": ["Промышленный расчет", "Ручные данные"]}, {"n": 119, "key": "TRN_INDICATOR_FILTER", "status": "[w]", "label": "TRN_INDICATOR_FILTER", "description": "Описание готовится... по умолчанию не заполняется", "kind": "text", "variants": [], "default": "", "allow_empty": true, "json_target": "TRN_INDICATOR_FILTER", "note": ""}, {"n": 139, "key": "TARGET_TYPE", "status": "[v]", "label": "Настройка сезонов", "description": "Содержит настройку сезонов в JSON", "kind": "json", "variants": [], "default": "", "allow_empty": false, "json_target": "TARGET_TYPE", "note": "Колонка CSV с SPOD-JSON. «Можно пусто» — допустима ли пустая ячейка колонки целиком."}, {"n": 140, "key": "FILTER_PERIOD_ARR", "status": "[v]", "label": "Настройки правовых периодов", "description": "Содержит настройки для периода плана если их более двух", "kind": "json", "variants": [], "default": "", "allow_empty": false, "json_target": "FILTER_PERIOD_ARR", "note": "Колонка CSV с SPOD-JSON. «Можно пусто» — допустима ли пустая ячейка колонки целиком."}]}, {"id": "SCHEDULE_TARGET_TYPE", "title": "TARGET_TYPE (SCHEDULE)", "menu_label": "TARGET_TYPE", "intro": "JSON-объект в колонке TARGET_TYPE листа SCHEDULE: {\"\"\"seasonCode\"\"\": \"\"\"SEASON_…\"\"\"}. Не путать с TARGET_TYPE конкурса (ПРОМ/ТЕСТ).", "kind": "json", "parent": "TABLE:SCHEDULE", "sheet": "TOURNAMENT-SCHEDULE", "column": "TARGET_TYPE", "fields": [{"n": 123, "status": "[v]", "variants": ["SEASON_mmb_2026", "SEASON_2026_1", "SEASON_akm_2026", "SEASON_csm_2026", "SEASON_m_2026_1", "NON"], "default": "SEASON_mmb_2026", "allow_empty": true, "json_target": "TARGET_TYPE.seasonCode", "note": "", "description": "Сезон рейтинга / начисления кристаллов (seasonCode).", "kind": "dropdown_custom", "label": "Код сезона", "key": "TARGET_TYPE.seasonCode", "variant_labels": ["Сезон 2026 (ММБ)", "Сезон 2026 (ККСБ)", "Сезон 2026 (АКМ)", "Сезон 2026 (CSM)", "Сезон 2026 (МНС)", ""], "json_required": false}]}, {"id": "FILTER_PERIOD_ARR", "title": "FILTER_PERIOD_ARR", "menu_label": "FILTER_PERIOD_ARR", "intro": "JSON-массив в колонке FILTER_PERIOD_ARR (SCHEDULE). Элемент: period_code, start_dt, end_dt; опционально criterion_mark_type / criterion_mark_value. Даты и строки в \"\"\"…\"\"\", числа без кавычек.", "kind": "json_array", "parent": "TABLE:SCHEDULE", "sheet": "TOURNAMENT-SCHEDULE", "column": "FILTER_PERIOD_ARR", "fields": [{"n": 124, "status": "[v]", "variants": [], "default": "1", "allow_empty": false, "json_target": "FILTER_PERIOD_ARR[].period_code", "note": "", "description": "Код периода в обратном порядке от текущего", "kind": "number", "label": "Код периода", "key": "FILTER_PERIOD_ARR.period_code", "json_required": true}, {"n": 125, "status": "[v]", "variants": [], "default": "", "allow_empty": false, "json_target": "FILTER_PERIOD_ARR[].start_dt", "note": "", "description": "Дата начала анализируемого периода", "kind": "date", "label": "Дата начала", "key": "FILTER_PERIOD_ARR.start_dt", "json_required": true}, {"n": 126, "status": "[v]", "variants": [], "default": "", "allow_empty": false, "json_target": "FILTER_PERIOD_ARR[].end_dt", "note": "", "description": "Дата конца анализируемого периода", "kind": "date", "label": "Дата конца", "key": "FILTER_PERIOD_ARR.end_dt", "json_required": true}, {"n": 127, "status": "[v]", "variants": [">", ">=", "<", "<=", "="], "default": "", "allow_empty": true, "json_target": "FILTER_PERIOD_ARR[].criterion_mark_type", "note": "", "description": "Оператор; можно не заполнять.", "kind": "dropdown", "label": "Оператор сравнения", "key": "FILTER_PERIOD_ARR.criterion_mark_type", "variant_labels": ["Больше", "Больше или равно", "Меньше", "Меньше или равно", "Равно"], "json_required": false}, {"n": 128, "status": "[v]", "variants": [], "default": "", "allow_empty": true, "json_target": "FILTER_PERIOD_ARR[].criterion_mark_value", "note": "", "description": "Пороховое значение", "kind": "number", "label": "Значение порога", "key": "FILTER_PERIOD_ARR.criterion_mark_value", "json_required": true}]}], "exported_at": "2026-08-16T18:24:55.216Z"};
+const EMBEDDED_CATALOG = {"version": 2, "generated_at": "2026-08-16T17:32:07Z", "source": "schema + field_meta + web-edit (BUSINESS_BLOCK list KMMMB) + JSON arrays CONTEST_PERIOD / FILTER_PERIOD_ARR / INDICATOR_FILTER / SCHEDULE TARGET_TYPE + json_required + table JSON column shells", "sections": [{"id": "CONTEST", "title": "CONTEST", "menu_label": "CONTEST", "intro": "Таблица / лист CONTEST-DATA — плоские колонки конкурса", "kind": "table", "parent": null, "sheet": "CONTEST-DATA", "fields": [{"n": 1, "key": "CONTEST_CODE", "status": "[v]", "label": "Код конкурса", "description": "Уникальный код конкурса (ключ связей). Пример: 01_2025-0_11-1_1", "kind": "text", "variants": [], "default": "", "allow_empty": false, "json_target": "", "note": ""}, {"n": 2, "key": "FULL_NAME", "status": "[v]", "label": "Название конкурса", "description": "Отображаемое название конкурса/турнира (на странице Турниры и Детальная карточка турнира).", "kind": "text", "variants": [], "default": "", "allow_empty": false, "json_target": "", "note": ""}, {"n": 3, "key": "CREATE_DT", "status": "[v]", "label": "Дата создания конкурса", "description": "Дата начала действия конкурса. Почти всегда = начало года.", "kind": "date", "variants": [], "default": "2026-01-01", "allow_empty": false, "json_target": "", "note": ""}, {"n": 4, "key": "CLOSE_DT", "status": "[v]", "label": "Срок действия конкурса", "description": "Дата окончания действия конкурса; Почти всегда 4000-01-01 = без срока. формат: YYYY-MM-DD", "kind": "date", "variants": [], "default": "4000-01-01", "allow_empty": false, "json_target": "", "note": ""}, {"n": 5, "key": "BUSINESS_STATUS", "status": "[v]", "label": "Бизнес-статус", "description": "Статус работы конкурса Активный или Архивный (значение по умолчанию:АКТИВНЫЙ)", "kind": "dropdown", "variants": ["АКТИВНЫЙ", "АРХИВНЫЙ"], "default": "АКТИВНЫЙ", "allow_empty": false, "json_target": "", "note": ""}, {"n": 6, "key": "CONTEST_TYPE", "status": "[v]", "label": "Тип конкурса", "description": "ТУРНИРНЫЙ (соревнование \"будь лучше других\") (разыгрываем от 1 до 3 сезонных наград Золото Серебро Бронза)  |  ИНДИВИДУАЛЬНЫЙ  |  ИНДИВИДУАЛЬНЫЙ НАКОПИТЕЛЬНЫЙ (режим \"достигни результат\", получи одну награду).", "kind": "dropdown", "variants": ["ТУРНИРНЫЙ", "ИНДИВИДУАЛЬНЫЙ", "ИНДИВИДУАЛЬНЫЙ НАКОПИТЕЛЬНЫЙ"], "default": "ТУРНИРНЫЙ", "allow_empty": false, "json_target": "", "note": ""}, {"n": 7, "key": "CONTEST_DESCRIPTION", "status": "[v]", "label": "Описание турнира", "description": "Текст описания для конкурса/турнира для траницы Детальная карточка турнира", "kind": "text", "variants": [], "default": "", "allow_empty": false, "json_target": "", "note": ""}, {"n": 8, "key": "CONTEST_FEATURE", "status": "[v]", "label": "CONTEST_FEATURE (JSON)", "description": "Колонка CONTEST_FEATURE: JSON-объект особенностей конкурса. Пустота ячейки — флаг «можно пусто». Ключи — в разделе CONTEST_FEATURE.", "kind": "json", "variants": [], "default": "", "allow_empty": false, "json_target": "CONTEST_FEATURE", "note": "Колонка CSV с SPOD-JSON. Редактируются подпись, описание, заметка и «можно пусто». Ключи — в дочернем разделе JSON."}, {"n": 9, "key": "SHOW_INDICATOR", "status": "[v]", "label": "Единицы измерения показателя", "description": "Единица/подпись индикатора: шт.  |  Факт  |  %  |  … на списке показателей подпись к единицам данных", "kind": "dropdown_custom", "variants": ["%", "шт.", "Факт", "балл", "Темп %", "Ранг %%", "Ср. балл", "млн руб.", "К-во, шт.", "категория", "тыс. руб.", "Сумма, руб.", "Факт, млн руб.", "Сумма, млн руб.", "сборы, млн руб.", "Сумма, тыс. руб.", "Интегральный ранг", "Прирост, млн руб.", "Прирост, тыс. руб.", "Комиссия, тыс. руб.", "нетто-притоки, млн руб."], "default": "Факт", "allow_empty": false, "json_target": "", "note": ""}, {"n": 10, "key": "PRODUCT_GROUP", "status": "[v]", "label": "Группа продукта", "description": "Группа продукта (общее направление)", "kind": "text", "variants": [], "default": "", "allow_empty": false, "json_target": "", "note": ""}, {"n": 11, "key": "PRODUCT", "status": "[v]", "label": "Продукт", "description": "Продукт / тематика конкурса.", "kind": "text", "variants": [], "default": "", "allow_empty": false, "json_target": "", "note": ""}, {"n": 12, "key": "CONTEST_SUBJECT", "status": "[v]", "label": "Кто соревнуется", "description": "Субъект конкурса (подразделение, сотрудник). Уровень группировки результатов.", "kind": "dropdown", "variants": ["EMPLOYEE", "UNIT"], "default": "EMPLOYEE", "allow_empty": false, "json_target": "", "note": "", "variant_labels": ["Сотрудники", "Подразделения"]}, {"n": 13, "key": "FACTOR_MARK_TYPE", "status": "[v]", "label": "Как выбираем победителей", "description": "Способ выбора победителей: достиг показателя, сделал больше других или меньше других — меньше, например, для ранга", "kind": "dropdown", "variants": ["CRITERION", "RATING_MAX", "RATING_MIN", "GAIN"], "default": "CRITERION", "allow_empty": false, "json_target": "", "note": "", "variant_labels": ["Достигни", "Больше - лучше", "Меньше - лучше", "Больше в X раз"]}, {"n": 14, "key": "CONTEST_INDICATOR_METHOD", "status": "[v]", "label": "Метод индикатора", "description": "Метод расчета показателя конкурса: интегральный (по умолчанию) / отношение агрегированных значений.", "kind": "dropdown", "variants": ["INTEGRAL", "RELATION"], "default": "INTEGRAL", "allow_empty": false, "json_target": "", "note": "", "variant_labels": ["Интегральный", "Отношение агрегатов"]}, {"n": 15, "key": "CONTEST_FACTOR_METHOD", "status": "[v]", "label": "Метод расчета показателя", "description": "Способ расчета показателя. FACT — ручные данные; остальные — автоматические турниры (прирост / run rate).", "kind": "dropdown", "variants": ["FACT", "FACT0-FACT1", "RUN_RATE", "RUN_RATE-FACT1", "FACT0-RUN_RATE1_DOWN", "RUN_RATE/FACT1", "FACT0/RUN_RATE1_DOWN"], "default": "FACT", "allow_empty": false, "json_target": "", "note": "", "variant_labels": ["Факт", "Прирост", "Run rate", "Run rate прирост", "Run rate отклонение", "Run rate % прироста", "Run rate % отклонения"]}, {"n": 16, "key": "PLAN_METHOD_CODE", "status": "[v]", "label": "Как вычисляется план", "description": "Как задаётся план: не задан / предустановленное значение (по умолчанию) / зависит от прошлого периода.", "kind": "dropdown", "variants": ["NOT_USED", "PRESET_VALUE", "DEPENDS_PREVIOUS_PERIOD"], "default": "PRESET_VALUE", "allow_empty": false, "json_target": "", "note": "", "variant_labels": ["План не задан", "Предустановленное", "От прошлого периода"]}, {"n": 17, "key": "PLAN_MOD_METOD", "status": "[v]", "label": "Метод модификации плана", "description": "Модификатор плана от прошлого периода: умножить на коэффициент (по умолчанию) или добавить число.", "kind": "dropdown", "variants": ["MULTIPLIER", "APPEND"], "default": "MULTIPLIER", "allow_empty": false, "json_target": "", "note": "", "variant_labels": ["× коэффициент", "+ число к прошлому"]}, {"n": 18, "key": "PLAN_MOD_VALUE", "status": "[v]", "label": "Значение плана", "description": "Значение планового показателя (0, 1, 1000, …)", "kind": "number", "variants": [], "default": "0", "allow_empty": false, "json_target": "", "note": ""}, {"n": 19, "key": "FACTOR_MATCH", "status": "[v]", "label": "Символ сравнения с планом", "description": "Вид сравнения показателя с планом для определения участников", "kind": "dropdown", "variants": ["=", ">", ">=", "<", "<="], "default": ">=", "allow_empty": false, "json_target": "", "note": "", "variant_labels": ["Равно", "Больше", "Больше или равно", "Меньше", "Меньше или равно"]}, {"n": 20, "key": "CONTEST_PERIOD", "status": "[v]", "label": "Настройка периода", "description": "Колонка CONTEST_PERIOD: JSON-массив периодов. Пустота ячейки — флаг «можно пусто». Элементы — в разделе CONTEST_PERIOD.", "kind": "json", "variants": [], "default": "", "allow_empty": false, "json_target": "CONTEST_PERIOD", "note": "Колонка CSV с SPOD-JSON. Редактируются подпись, описание, заметка и «можно пусто». Ключи — в дочернем разделе JSON."}, {"n": 21, "key": "TARGET_TYPE", "status": "[v]", "label": "Среда конкурса", "description": "Выбор среды конкурсной", "kind": "dropdown", "variants": ["ПРОМ", "ТЕСТ"], "default": "ПРОМ", "allow_empty": false, "json_target": "", "note": ""}, {"n": 22, "key": "SOURCE_UPD_FREQUENCY", "status": "[v]", "label": "Частота обновления источника", "description": "Частота обновления источника данных в источника (не используется)", "kind": "dropdown_custom", "variants": ["1", "7", "14"], "default": "7", "allow_empty": false, "json_target": "", "note": ""}, {"n": 23, "key": "CALC_TYPE", "status": "[v]", "label": "Тип расчёта показателя", "description": "Тип расчёта: 0 — промышленный расчет / 1 — ручной расчет (не используется)", "kind": "dropdown", "variants": ["0", "1"], "default": "1", "allow_empty": false, "json_target": "", "note": "", "variant_labels": ["Промышленный расчет", "Ручные данные"]}, {"n": 24, "key": "FACT_POST_PROCESSING", "status": "[v]", "label": "Постобработка факта", "description": "Постобработка факта: процентили, уровень группы или число участников с лучшим результатом. Можно не указывать.", "kind": "dropdown", "variants": ["PERCENTILE", "PERCENTILE_DOWN", "PERCENTILE_UPEST", "PERCENTILE_UP", "SPECIAL_INDICATOR_1", "COUNT_BIGGER"], "default": "", "allow_empty": true, "json_target": "", "note": "", "variant_labels": ["% «лучше чем»", "% «попал в»", "% «лучше меня»", "% «не хуже»", "Уровень группы", "Счётчик лучших"]}, {"n": 25, "key": "BUSINESS_BLOCK", "status": "[v]", "label": "Бизнес-блок конкурса", "description": "Бизнес-блок конкурса и его участников", "kind": "list", "variants": ["KMMMB", "KMKKSB", "AKMKKSB", "CSM"], "default": "KMMMB", "allow_empty": false, "json_target": "", "note": "", "variant_labels": ["КМ ММБ", "КМ ККСБ", "АКМ ККСБ", "Руководитель по внедрению проектов"]}]}, {"id": "CONTEST_FEATURE", "title": "CONTEST_FEATURE", "menu_label": "CONTEST_FEATURE", "intro": "JSON-колонка CONTEST_FEATURE внутри таблицы CONTEST", "kind": "json", "parent": "CONTEST", "sheet": "CONTEST-DATA", "fields": [{"n": 25, "key": "CONTEST_FEATURE.vid", "status": "[v]", "label": "Среда конкурса", "description": "Опредедяем среду для конкурса (по умолчанию ПРОМ)", "kind": "dropdown", "variants": ["ПРОМ", "ТЕСТ"], "default": "ПРОМ", "allow_empty": false, "json_target": "CONTEST_FEATURE.vid", "note": "ПРОМ (как TARGET_TYPE).", "variant_labels": ["Промышленный", "Тестовый"], "json_required": true}, {"n": 26, "key": "CONTEST_FEATURE.accuracy", "status": "[v]", "label": "Округление до...", "description": "Точность/разрядность: 0  |  1  |  2 . (число знаков после запятой для отображения)", "kind": "dropdown", "variants": ["0", "1", "2"], "default": "0", "allow_empty": false, "json_target": "CONTEST_FEATURE.accuracy", "note": "", "variant_labels": ["# ##", "# ##.#", "# ##.##"], "json_required": true}, {"n": 27, "key": "CONTEST_FEATURE.capacity", "status": "[v]", "label": "Приведение к млн / тыс.", "description": "Приведение отображаемого показателя к млн, к тыс.", "kind": "dropdown", "variants": ["MILLIONS", "THOUSANDS"], "default": "", "allow_empty": true, "json_target": "CONTEST_FEATURE.capacity", "note": "", "variant_labels": ["в миллионах", "в тысячах"], "json_required": true}, {"n": 28, "key": "CONTEST_FEATURE.masking", "status": "[v]", "label": "masking", "description": "Всегда ставами в Нет (N)", "kind": "dropdown", "variants": ["Y", "N"], "default": "N", "allow_empty": false, "json_target": "CONTEST_FEATURE.masking", "note": "N (часто N).", "variant_labels": ["Да", "Нет"], "json_required": true}, {"n": 29, "key": "CONTEST_FEATURE.minNumber", "status": "[v]", "label": "Минимум участников", "description": "Мин. число участников на уровне чтобы считать победителей (исключаем соревнование сам с собой): 1  |  2  |  3.", "kind": "dropdown", "variants": ["1", "2", "3"], "default": "1", "allow_empty": false, "json_target": "CONTEST_FEATURE.minNumber", "note": "", "json_required": true}, {"n": 30, "key": "CONTEST_FEATURE.momentRewarding", "status": "[v]", "label": "Когда выбираем победителей", "description": "Момент награждения после закрытия турнира / во время турнира", "kind": "dropdown", "variants": ["AFTER", "DURIN"], "default": "AFTER", "allow_empty": false, "json_target": "CONTEST_FEATURE.momentRewarding", "note": "DURIN (после закрытия турнира / во время турнира)", "variant_labels": ["По завершению", "Во время"], "json_required": true}, {"n": 31, "key": "CONTEST_FEATURE.typeRewarding", "status": "[v]", "label": "Сколько наград получает", "description": "Вручаем одну из 3 наград или все", "kind": "dropdown", "variants": ["one", "all"], "default": "one", "allow_empty": false, "json_target": "CONTEST_FEATURE.typeRewarding", "note": "", "variant_labels": ["Вручаем одну", "Вручаем все"], "json_required": true}, {"n": 32, "key": "CONTEST_FEATURE.avatarShow", "status": "[v]", "label": "Показывать аватар?", "description": "Управление показом фотографий участников", "kind": "dropdown", "variants": ["Y", "N"], "default": "Y", "allow_empty": false, "json_target": "CONTEST_FEATURE.avatarShow", "note": "N.", "variant_labels": ["Да", "Нет"], "json_required": true}, {"n": 33, "key": "CONTEST_FEATURE.tournamentTeam", "status": "[v]", "label": "Признак командного конкурса", "description": "При выборе командного турнира соревнуются не сотрудники, а команды (КПК/ Отдел/ ГОСБ/ ТБ)", "kind": "dropdown", "variants": ["Y", "N"], "default": "N", "allow_empty": false, "json_target": "CONTEST_FEATURE.tournamentTeam", "note": "N.", "variant_labels": ["Да", "Нет"], "json_required": true}, {"n": 34, "key": "CONTEST_FEATURE.persomanNumberVisible", "status": "[v]", "label": "Видимость для сотрудника", "description": "Если указаны табельные, то только эти сотрудники увидят турнир", "kind": "list", "variants": [], "default": "", "allow_empty": true, "json_target": "CONTEST_FEATURE.persomanNumberVisible", "note": "", "json_required": true}, {"n": 35, "key": "CONTEST_FEATURE.persomanNumberHidden", "status": "[v]", "label": "Скрытие для сотрудников", "description": "Если указаны табельные, то эти сотрудники не увидят турнир", "kind": "list", "variants": [], "default": "", "allow_empty": true, "json_target": "CONTEST_FEATURE.persomanNumberHidden", "note": "", "json_required": true}, {"n": 36, "key": "CONTEST_FEATURE.tournamentStartMailing", "status": "[v]", "label": "Письма о старте турнира", "description": "В дату старта турнира участникам из вертикали придет письмо с уведомлением о старте турнира", "kind": "dropdown", "variants": ["Y", "N"], "default": "Y", "allow_empty": false, "json_target": "CONTEST_FEATURE.tournamentStartMailing", "note": "", "variant_labels": ["Да", "Нет"], "json_required": true}, {"n": 37, "key": "CONTEST_FEATURE.tournamentEndMailing", "status": "[v]", "label": "Письмо о завершении турнира", "description": "Когда турнир закроется и подведут итоги участникам не победившим придет письмо о закрытии турнира", "kind": "dropdown", "variants": ["Y", "N"], "default": "Y", "allow_empty": false, "json_target": "CONTEST_FEATURE.tournamentEndMailing", "note": "", "variant_labels": ["Да", "Нет"], "json_required": true}, {"n": 38, "key": "CONTEST_FEATURE.tournamentLikeMailing", "status": "[v]", "label": "Письмо о лайке", "description": "Рассылка писем о лайках на новости с участием сотрудника", "kind": "dropdown", "variants": ["Y", "N"], "default": "Y", "allow_empty": false, "json_target": "CONTEST_FEATURE.tournamentLikeMailing", "note": "", "variant_labels": ["Да", "Нет"], "json_required": true}, {"n": 39, "key": "CONTEST_FEATURE.tournamentListMailing", "status": "[w]", "label": "Письмо о...", "description": "описание готовится (по умолчанию пусто)", "kind": "list", "variants": [], "default": "", "allow_empty": true, "json_target": "CONTEST_FEATURE.tournamentListMailing", "note": "", "json_required": true}, {"n": 40, "key": "CONTEST_FEATURE.tournamentRewardingMailing", "status": "[v]", "label": "Письмо о награждении", "description": "РАссылка письма получателям награды после ее вручения", "kind": "dropdown", "variants": ["Y", "N"], "default": "Y", "allow_empty": false, "json_target": "CONTEST_FEATURE.tournamentRewardingMailing", "note": "N.", "variant_labels": ["Да", "Нет"], "json_required": true}, {"n": 41, "key": "CONTEST_FEATURE.feature", "status": "[v]", "label": "Особенности конкурса", "description": "Тексты особенностей турнира. Показываем в детальной карточке турнира, можно указать несколько", "kind": "list", "variants": [], "default": "", "allow_empty": true, "json_target": "CONTEST_FEATURE.feature", "note": "", "json_required": true}, {"n": 42, "key": "CONTEST_FEATURE.businessBlock", "status": "[v]", "label": "Бизнес-блок", "description": "Бизнес блок конкурса и его участников", "kind": "list", "variants": ["KMMMB", "KMKKSB", "AKMKKSB", "CSM"], "default": "KMMMB", "allow_empty": false, "json_target": "CONTEST_FEATURE.businessBlock", "note": "", "variant_labels": ["КМ ММБ", "КМ ККСБ", "АКМ ККСБ", "Руководитель по внедрению проектов"], "json_required": true}, {"n": 43, "key": "CONTEST_FEATURE.helpCodeList", "status": "[v]", "label": "Код окна с описанием показателя", "description": "Коды для вывода окна с дополнительным описанием конкурса (доступно в детальной карточке турнира)", "kind": "list", "variants": [], "default": "", "allow_empty": true, "json_target": "CONTEST_FEATURE.helpCodeList", "note": "", "json_required": true}, {"n": 44, "key": "CONTEST_FEATURE.preferences", "status": "[v]", "label": "Преференции за победу", "description": "Преференции за победу в турнире если предусмотрены (отображаем в детальной карточке турнира)", "kind": "list", "variants": [], "default": "", "allow_empty": true, "json_target": "CONTEST_FEATURE.preferences", "note": "", "json_required": true}, {"n": 45, "key": "CONTEST_FEATURE.tbVisible", "status": "[v]", "label": "Видимость для ТБ", "description": "Только эти ТБ (если указаны) увидят конкурс", "kind": "list", "variants": [], "default": "", "allow_empty": true, "json_target": "CONTEST_FEATURE.tbVisible", "note": "", "json_required": true}, {"n": 46, "key": "CONTEST_FEATURE.tbHidden", "status": "[v]", "label": "Скрытие для ТБ", "description": "Конкурс видят все ТБ, кроме указанных здесь", "kind": "list", "variants": [], "default": "", "allow_empty": true, "json_target": "CONTEST_FEATURE.tbHidden", "note": "", "json_required": true}, {"n": 47, "key": "CONTEST_FEATURE.gosbVisible", "status": "[v]", "label": "Видимость для ГОСБ", "description": "Только эти ГОСБ (если указаны) увидят конкурс", "kind": "list", "variants": [], "default": "", "allow_empty": true, "json_target": "CONTEST_FEATURE.gosbVisible", "note": "", "json_required": true}, {"n": 48, "key": "CONTEST_FEATURE.gosbHidden", "status": "[v]", "label": "Скрытие для ГОСБ", "description": "Конкурс видят все ГОСБ, кроме указанных здесь", "kind": "list", "variants": [], "default": "", "allow_empty": true, "json_target": "CONTEST_FEATURE.gosbHidden", "note": "", "json_required": true}], "column": "CONTEST_FEATURE"}, {"id": "CONTEST_PERIOD", "title": "CONTEST_PERIOD", "menu_label": "CONTEST_PERIOD", "intro": "JSON-массив в колонке CONTEST_PERIOD (лист CONTEST). Элемент: period_code (число), criterion_mark_type (оператор), criterion_mark_value (число). В CSV: массив в кавычках поля; ключи/строки в \"\"\"…\"\"\", числа без кавычек.", "kind": "json_array", "parent": "CONTEST", "sheet": "CONTEST-DATA", "column": "CONTEST_PERIOD", "fields": [{"n": 120, "status": "[w]", "variants": ["0", "1", "-1"], "default": "0", "allow_empty": false, "json_target": "CONTEST_PERIOD[].period_code", "note": "", "description": "Номер/код периода в массиве CONTEST_PERIOD (часто 0, 1; бывает -1).", "kind": "dropdown", "label": "Код периода", "key": "CONTEST_PERIOD.period_code", "json_required": true}, {"n": 121, "status": "[v]", "variants": [">", ">=", "<", "<=", "="], "default": ">", "allow_empty": false, "json_target": "CONTEST_PERIOD[].criterion_mark_type", "note": "", "description": "Оператор сравнения критерия периода.", "kind": "dropdown", "label": "Сравнение", "key": "CONTEST_PERIOD.criterion_mark_type", "variant_labels": ["Больше", "Больше или равно", "Меньше", "Меньше или равно", "Равно"], "json_required": true}, {"n": 122, "status": "[v]", "variants": [], "default": "0", "allow_empty": false, "json_target": "CONTEST_PERIOD[].criterion_mark_value", "note": "", "description": "Числовое значение порога", "kind": "number", "label": "Порог критерия", "key": "CONTEST_PERIOD.criterion_mark_value", "json_required": true}]}, {"id": "REWARD", "title": "REWARD", "menu_label": "REWARD", "intro": "Таблица / лист REWARD — плоские колонки награды (в форме слоты BADGE)", "kind": "table", "parent": null, "sheet": "REWARD", "fields": [{"n": 49, "key": "REWARD_CODE", "status": "[v]", "label": "Код награды", "description": "Уникальный код награды, напр. r_01_2025-0_11-1_1_1.", "kind": "text", "variants": [], "default": "", "allow_empty": false, "json_target": "", "note": ""}, {"n": 50, "key": "REWARD_TYPE", "status": "[v]", "label": "Тип награды", "description": "Для этой формы всегда BADGE.", "kind": "dropdown", "variants": ["BADGE", "LABEL", "ITEM", "CRISTAL"], "default": "BADGE", "allow_empty": false, "json_target": "", "note": "", "variant_labels": ["Награда", "Метка", "Товар", "Кристалл"]}, {"n": 51, "key": "FULL_NAME", "status": "[v]", "label": "Название награды", "description": "Краткое название бейджа для показа в списке наград и детальной карточке награды (достижения)", "kind": "text", "variants": [], "default": "", "allow_empty": false, "json_target": "", "note": ""}, {"n": 52, "key": "REWARD_DESCRIPTION", "status": "[v]", "label": "Описание награды", "description": "Полное описание награды показываем в детальной карточке награды (достижения)", "kind": "text", "variants": [], "default": "", "allow_empty": false, "json_target": "", "note": ""}, {"n": 53, "key": "REWARD_CONDITION", "status": "[v]", "label": "Условия получения награды", "description": "Условия получения награды (1-победа в конкурсе, 2 - участие в конкурсе)", "kind": "dropdown", "variants": ["1", "2"], "default": "1", "allow_empty": false, "json_target": "", "note": "", "variant_labels": ["победа", "участие"]}, {"n": 54, "key": "REWARD_COST", "status": "[v]", "label": "Стоимость награды", "description": "Сколько кристаллов заработает участник за получение награды (целое число, по умолчанию 5).", "kind": "number", "variants": [], "default": "5", "allow_empty": false, "json_target": "", "note": ""}, {"n": 55, "key": "REWARD_ADD_DATA", "status": "[v]", "label": "REWARD_ADD_DATA (JSON)", "description": "Колонка REWARD_ADD_DATA: JSON-объект доп. данных награды. Пустота ячейки — флаг «можно пусто». Ключи — в разделе REWARD_ADD_DATA.", "kind": "json", "variants": [], "default": "", "allow_empty": false, "json_target": "REWARD_ADD_DATA", "note": "Колонка CSV с SPOD-JSON. Редактируются подпись, описание, заметка и «можно пусто». Ключи — в дочернем разделе JSON."}]}, {"id": "REWARD_ADD_DATA", "title": "REWARD_ADD_DATA", "menu_label": "REWARD_ADD_DATA", "intro": "JSON-колонка REWARD_ADD_DATA внутри таблицы REWARD", "kind": "json", "parent": "REWARD", "sheet": "REWARD", "fields": [{"n": 55, "key": "REWARD_ADD_DATA.nftFlg", "status": "[v]", "label": "Признак NFT", "description": "Ставить метку на награду / турнир?", "kind": "dropdown", "variants": ["Y", "N"], "default": "N", "allow_empty": false, "json_target": "REWARD_ADD_DATA.nftFlg", "note": "N (обычно N).", "variant_labels": ["Да", "Нет"], "json_required": true}, {"n": 56, "key": "REWARD_ADD_DATA.outstanding", "status": "[v]", "label": "Выпуск новостей", "description": "При получении награды выходит новость с поздравлением а Сообществе", "kind": "dropdown", "variants": ["Y", "N"], "default": "N", "allow_empty": false, "json_target": "REWARD_ADD_DATA.outstanding", "note": "N.", "variant_labels": ["Да", "Нет"], "json_required": true}, {"n": 57, "key": "REWARD_ADD_DATA.rewardRule", "status": "[v]", "label": "Правило получения", "description": "Текст правила получения награды для отображения в детальной карточке награды", "kind": "text", "variants": [], "default": "", "allow_empty": true, "json_target": "REWARD_ADD_DATA.rewardRule", "note": "", "json_required": true}, {"n": 58, "key": "REWARD_ADD_DATA.rewardAgainGlobal", "status": "[v]", "label": "Повтор в другом турнире", "description": "Можно ли награду получить больше одного раза в разных турнирах", "kind": "dropdown", "variants": ["Y", "N"], "default": "N", "allow_empty": false, "json_target": "REWARD_ADD_DATA.rewardAgainGlobal", "note": "N.", "variant_labels": ["Да", "Нет"], "json_required": true}, {"n": 59, "key": "REWARD_ADD_DATA.rewardAgainTournament", "status": "[v]", "label": "Повтор в текущем турнире", "description": "Можно ли награду получить больше одного раза в одном турнире (не используем всегда Нет (N))", "kind": "dropdown", "variants": ["Y", "N"], "default": "N", "allow_empty": false, "json_target": "REWARD_ADD_DATA.rewardAgainTournament", "note": "N (часто N).", "variant_labels": ["Да", "Нет"], "json_required": true}, {"n": 60, "key": "REWARD_ADD_DATA.hidden", "status": "[v]", "label": "Скрыть награду", "description": "Скрывает награду во всех местах", "kind": "dropdown", "variants": ["Y", "N"], "default": "N", "allow_empty": false, "json_target": "REWARD_ADD_DATA.hidden", "note": "N.", "variant_labels": ["Да", "Нет"], "json_required": true}, {"n": 61, "key": "REWARD_ADD_DATA.fileName", "status": "[v]", "label": "Техническое имя награды", "description": "Техническое наименование группы наград", "kind": "text", "variants": [], "default": "", "allow_empty": false, "json_target": "REWARD_ADD_DATA.fileName", "note": "", "json_required": true}, {"n": 62, "key": "REWARD_ADD_DATA.teamNews", "status": "[v]", "label": "Текст групповой новости", "description": "Текст новости с выпуском по шаблону, когда победителей более одного", "kind": "text", "variants": [], "default": "", "allow_empty": true, "json_target": "REWARD_ADD_DATA.teamNews", "note": "", "json_required": true}, {"n": 63, "key": "REWARD_ADD_DATA.singleNews", "status": "[v]", "label": "Текст одиночной новости", "description": "Текст новости с выпуском по шаблону, когда победитель один", "kind": "text", "variants": [], "default": "", "allow_empty": true, "json_target": "REWARD_ADD_DATA.singleNews", "note": "", "json_required": true}, {"n": 64, "key": "REWARD_ADD_DATA.masterBadge", "status": "[v]", "label": "Выбор мастер бейджа", "description": "Признак является ли данная награда основной для вручения (Награда - Да (Y) / Турнир - Нет (N))", "kind": "dropdown", "variants": ["Y", "N"], "default": "Y", "allow_empty": false, "json_target": "REWARD_ADD_DATA.masterBadge", "note": "N. (Y — для награды / N — для турнира)", "variant_labels": ["Да", "Нет"], "json_required": true}, {"n": 65, "key": "REWARD_ADD_DATA.parentRewardCode", "status": "[v]", "label": "Код Мастер-беджа", "description": "Код родительской (Мастер) награды. (Награда = коду награды / Турнир = коду сезонной награды)", "kind": "text", "variants": [], "default": "", "allow_empty": false, "json_target": "REWARD_ADD_DATA.parentRewardCode", "note": "", "json_required": true}, {"n": 66, "key": "REWARD_ADD_DATA.priority", "status": "[v]", "label": "Приоритет награды", "description": "Признак отнесения вида награды к Золоту/Серебру/Бронзе", "kind": "dropdown", "variants": ["1", "2", "3"], "default": "1", "allow_empty": false, "json_target": "REWARD_ADD_DATA.priority", "note": "", "variant_labels": ["Золото", "Серебро", "Бронза"], "json_required": true}, {"n": 67, "key": "REWARD_ADD_DATA.recommendationLevel", "status": "[v]", "label": "Уровень для рекомендаций", "description": "Уровень для отбора в рекомендательную систему", "kind": "dropdown", "variants": ["BANK", "TB", "GOSB", "NON"], "default": "BANK", "allow_empty": false, "json_target": "REWARD_ADD_DATA.recommendationLevel", "note": "", "variant_labels": ["Страна", "Тер. банк", "ГОСБ", "нет"], "json_required": true}, {"n": 68, "key": "REWARD_ADD_DATA.refreshOldNews", "status": "[v]", "label": "Обновление новости", "description": "Обновлять старые новости по этой награде или выпускать новую каждый раз", "kind": "dropdown", "variants": ["Y", "N"], "default": "N", "allow_empty": false, "json_target": "REWARD_ADD_DATA.refreshOldNews", "note": "", "variant_labels": ["Да", "Нет"], "json_required": true}, {"n": 69, "key": "REWARD_ADD_DATA.tournamentTeam", "status": "[v]", "label": "Коммандная награда", "description": "Командный режим награды", "kind": "dropdown", "variants": ["Y", "N"], "default": "N", "allow_empty": false, "json_target": "REWARD_ADD_DATA.tournamentTeam", "note": "", "variant_labels": ["Да", "Нет"], "json_required": true}, {"n": 70, "key": "REWARD_ADD_DATA.seasonItem", "status": "[v]", "label": "Код сезона товара", "description": "Код сезона для сезонной награды и товара", "kind": "dropdown", "variants": ["SEASON_mmb_2026", "SEASON_2026_1", "SEASON_akm_2026", "SEASON_csm_2026", "SEASON_m_2026_1"], "default": "SEASON_mmb_2026", "allow_empty": false, "json_target": "REWARD_ADD_DATA.seasonItem", "note": "", "variant_labels": ["Сезон 2026 (ММБ)", "Сезон 2026 (ККСБ)", "Сезон 2026 (АКМ)", "Сезон 2026  (CSM)", "Сезон 2026 (МНС)"], "json_required": true}, {"n": 71, "key": "REWARD_ADD_DATA.newsType", "status": "[v]", "label": "Тип выпускаемых новостей", "description": "Как формируются новости о награде (AI-генерация / Создание по шаблону)", "kind": "dropdown", "variants": ["AIPROMPT", "TEMPLATE"], "default": "AIPROMPT", "allow_empty": false, "json_target": "REWARD_ADD_DATA.newsType", "note": "TEMPLATE. (генерит ИИ / по шаблону)", "variant_labels": ["AI-генерация", "Шаблон"], "json_required": true}, {"n": 72, "key": "REWARD_ADD_DATA.winCriterion", "status": "[v]", "label": "Критерий победы для новости", "description": "Текст критерия победы для AI-создания новостей", "kind": "text", "variants": [], "default": "", "allow_empty": true, "json_target": "REWARD_ADD_DATA.winCriterion", "note": "", "json_required": true}, {"n": 73, "key": "REWARD_ADD_DATA.preferences", "status": "[v]", "label": "Преференции за победу", "description": "Преференции за получение награды если предусмотрены (отображаем в детальной карточке Бейджа (награды))", "kind": "list", "variants": [], "default": "", "allow_empty": true, "json_target": "REWARD_ADD_DATA.preferences", "note": "", "json_required": true}, {"n": 74, "key": "REWARD_ADD_DATA.feature", "status": "[v]", "label": "Особенности награды", "description": "Особенности награды для показа в Детальной карточке бейджа", "kind": "list", "variants": [], "default": "", "allow_empty": true, "json_target": "REWARD_ADD_DATA.feature", "note": "", "json_required": true}, {"n": 75, "key": "REWARD_ADD_DATA.businessBlock", "status": "[v]", "label": "Бизнес-блок награды", "description": "Бизнес блок награды и участников кто может претендовать", "kind": "list", "variants": ["KMMMB", "KMKKSB", "AKMKKSB", "CSM"], "default": "KMMMB", "allow_empty": true, "json_target": "REWARD_ADD_DATA.businessBlock", "note": "", "variant_labels": ["КМ ММБ", "КМ ККСБ", "АКМ ККСБ", "Руководитель по внедрению проектов"], "json_required": true}, {"n": 76, "key": "REWARD_ADD_DATA.helpCodeList", "status": "[v]", "label": "Код окна с описанием показателя", "description": "Коды для вывода окна с дополнительным описанием конкурса (доступно в детальной карточке награды)", "kind": "list", "variants": [], "default": "", "allow_empty": true, "json_target": "REWARD_ADD_DATA.helpCodeList", "note": "", "json_required": true}, {"n": 77, "key": "REWARD_ADD_DATA.hiddenRewardList", "status": "[v]", "label": "Скрыть в списках", "description": "Скрывает награду в списках", "kind": "dropdown", "variants": ["Y", "N"], "default": "N", "allow_empty": false, "json_target": "REWARD_ADD_DATA.hiddenRewardList", "note": "N.", "variant_labels": ["Да", "Нет"], "json_required": true}], "column": "REWARD_ADD_DATA"}, {"id": "TABLE:REWARD-LINK", "title": "REWARD-LINK", "menu_label": "REWARD-LINK", "intro": "Таблица / лист REWARD-LINK", "kind": "table", "parent": null, "sheet": "REWARD-LINK", "fields": [{"n": 78, "key": "CONTEST_CODE", "status": "[v]", "label": "Код конкурса", "description": "Уникальный код конкурса (ключ связей). Пример: 01_2025-0_11-1_1", "kind": "text", "variants": [], "default": "", "allow_empty": false, "json_target": "", "note": ""}, {"n": 79, "key": "GROUP_CODE", "status": "[v]", "label": "Код уровня награды", "description": "Выбор уровня на котором выбираем победителей (среди кого соревнуемся)", "kind": "dropdown", "variants": ["BANK", "TB", "GOSB", "GROUPING"], "default": "BANK", "allow_empty": false, "json_target": "", "note": "", "variant_labels": ["Вся страна", "Тер. банк", "ГОСБ", "Группа"]}, {"n": 80, "key": "REWARD_CODE", "status": "[v]", "label": "Код награды", "description": "Код награды для связи конкурса с уровнем", "kind": "text", "variants": [], "default": "", "allow_empty": true, "json_target": "", "note": ""}]}, {"id": "TABLE:GROUP", "title": "GROUP", "menu_label": "GROUP", "intro": "Таблица / лист GROUP", "kind": "table", "parent": null, "sheet": "GROUP", "fields": [{"n": 81, "key": "CONTEST_CODE", "status": "[v]", "label": "Код конкурса", "description": "Уникальный код конкурса (ключ связей). Пример: 01_2025-0_11-1_1", "kind": "text", "variants": [], "default": "", "allow_empty": false, "json_target": "", "note": ""}, {"n": 82, "key": "GROUP_CODE", "status": "[v]", "label": "Код уровня награды", "description": "Выбор уровня на котором выбираем победителей (среди кого соревнуемся)", "kind": "dropdown", "variants": ["BANK", "TB", "GOSB", "GROUPING"], "default": "BANK", "allow_empty": false, "json_target": "", "note": "", "variant_labels": ["Вся страна", "Тер. банк", "ГОСБ", "Группа"]}, {"n": 83, "key": "GROUP_VALUE", "status": "[v]", "label": "Фильтр по уровням", "description": "Отдельные настройки победителей для выбранного уровня", "kind": "dropdown_custom", "variants": ["*", "38", "40", "44", "18", "42", "70", "54", "55", "16", "13", "52"], "default": "*", "allow_empty": false, "json_target": "GROUP_VALUE", "note": "", "variant_labels": ["Все", "МБ", "СРБ", "СибБ", "ББ", "ВВБ", "ДВБ", "ПБ", "СЗБ", "УБ", "ЦЧБ", "ЮЗБ"]}, {"n": 84, "key": "GET_CALC_METHOD", "status": "[v]", "label": "Способ выбора победителей", "description": "Каким образом выбираем победителей турника", "kind": "dropdown", "variants": ["1", "2", "3", "0"], "default": "2", "allow_empty": false, "json_target": "", "note": "", "variant_labels": ["процент от", "первые Х", "достигни", "не вручаем"]}, {"n": 85, "key": "GET_CALC_CRITERION", "status": "[v]", "label": "Критерий Золото", "description": "Сколько лучших выбираем для уровня Золото", "kind": "number", "variants": [], "default": "0", "allow_empty": false, "json_target": "", "note": ""}, {"n": 86, "key": "ADD_CALC_CRITERION", "status": "[v]", "label": "Критерий Серебро", "description": "Сколько лучших выбираем для уровня Серебро", "kind": "number", "variants": [], "default": "0", "allow_empty": false, "json_target": "", "note": ""}, {"n": 87, "key": "ADD_CALC_CRITERION_2", "status": "[v]", "label": "Критерий Бронза", "description": "Сколько лучших выбираем для уровня Бронза", "kind": "number", "variants": [], "default": "0", "allow_empty": false, "json_target": "", "note": ""}, {"n": 88, "key": "BASE_CALC_CODE", "status": "[v]", "label": "Код уровня награды", "description": "Выбор уровня на котором выбираем победителей (среди кого соревнуемся)", "kind": "dropdown", "variants": ["BANK", "TB", "GOSB", "GROUPING"], "default": "", "allow_empty": true, "json_target": "", "note": "", "variant_labels": ["Вся страна", "Тер. банк", "ГОСБ", "Группа"]}]}, {"id": "TABLE:INDICATOR", "title": "INDICATOR", "menu_label": "INDICATOR", "intro": "Таблица / лист INDICATOR", "kind": "table", "parent": null, "sheet": "INDICATOR", "fields": [{"n": 89, "key": "CONTEST_CODE", "status": "[v]", "label": "Код конкурса", "description": "Уникальный код конкурса (ключ связей). Пример: 01_2025-0_11-1_1", "kind": "text", "variants": [], "default": "", "allow_empty": false, "json_target": "", "note": ""}, {"n": 90, "key": "INDICATOR_CALC_TYPE", "status": "[v]", "label": "Тип индикатора", "description": "Тип показателя (сейчас всегда используем 1-Расчетный", "kind": "dropdown", "variants": ["1", "2", "3"], "default": "1", "allow_empty": false, "json_target": "", "note": "", "variant_labels": ["Расчетный", "Абсолютный", "Относительный"]}, {"n": 91, "key": "INDICATOR_ADD_CALC_TYPE", "status": "[v]", "label": "Классификация показателя", "description": "Классификация показателя для определения расчета (числитель / знаменатель)", "kind": "dropdown", "variants": ["NUMERATOR", "DIVIDER"], "default": "", "allow_empty": true, "json_target": "", "note": "DIVIDER", "variant_labels": ["Числитель", "Знаменатель"]}, {"n": 92, "key": "FULL_NAME", "status": "[v]", "label": "Имя индикатора", "description": "Наименование показателя = коду показателя и не используется", "kind": "text", "variants": [], "default": "", "allow_empty": false, "json_target": "", "note": ""}, {"n": 93, "key": "INDICATOR_CODE", "status": "[v]", "label": "Код показателя", "description": "Код показателя для расчётов. Только список (свой вариант нельзя). По умолчанию WAIT.", "kind": "dropdown", "variants": ["WAIT", "PPO_IN", "PPO_ALL", "PULMIS_BALANCE_OUT_RUB", "PULMIS_BALANCE_OUT", "PULMIS_SDO_IN_RUB", "PULMIS_SDO_IN", "PULMIS_INCOME", "PULMIS_INCOME_RUB", "PULMIS_AGRMNT_AMT_RUB", "PULMIS_CUSTOMER_ID", "LEAGUE", "SUPERCUP", "INCOME", "PFIMIS_INCOME", "PFIMIS_VOLUME", "PFIMIS_INCOME_SOFT", "PFIMIS_CUSTOMER_ID", "PFIMIS_DEAL_CNT", "PFIMIS_DEAL_ID", "CC360_CLIENT_VOLUM_CHPDP_M", "CC360_CLIENT_VOLUM_FOT_M", "INSURANCEMIS_AGENT_COMMISION", "INSURANCEMIS_BANK_COMMISION", "INSURANCEMIS_COMMISION", "INSURANCE_AMMOUNT", "EFFICIENCYARSKKSB_EFF", "EFFICIENCYARSKKSB_OD_YEAR", "EFFICIENCYARSKKSB_OD_YEAR_APPG", "EFFICIENCYARSKKSB_OD_QUARTER_APPG", "EFFICIENCYARSKKSB_OD_YEAR_GROWTH", "EFFICIENCYARSKKSB_OD_YEAR_TEMP", "EFFICIENCYARSKKSB_OD_QUARTER_GROWTH", "EFFICIENCYARSKKSB_OD_QUARTER_TEMP", "EFFICIENCYARS_OVERBONUS", "EFFICIENCYARS_OVERBONUS_YEAR", "EFFICIENCYARS_OVERBONUS_YEAR_APPG", "EFFICIENCYARS_OVERBONUS_QUARTER_APPG", "EFFICIENCYARS_OVERBONUS_YEAR_GROWTH", "EFFICIENCYARS_OVERBONUS_YEAR_TEMP", "EFFICIENCYARS_OVERBONUS_QUARTER_GROWTH", "EFFICIENCYARS_OVERBONUS_QUARTER_TEMP", "TRUSTLEVELCC360_STAR_COUNT", "TRUSTLEVELCC360_STAR_START_COUNT", "TRUSTLEVELCC360_LEVEL0_COUNT", "TRUSTLEVELCC360_LEVEL3_COUNT", "TRUSTLEVELCC360_LEVEL4_COUNT", "TRUSTLEVELCC360_LEVEL5_COUNT", "FUNNELARS_ACTIVE_DEAL_ID", "FUNNELARS_ACTIVE_DEAL_MARGIN", "FUNNELARS_ACTIVE_DEAL_CHOD", "FUNNELARS_ACTIVE_CUSTOMER_ID", "COMPASARS_KKP_ID", "CC360_NKD_DETAIL_CHKD", "CC360_NKD_DETAIL_CHKD_PLAN", "KANBANARS_OFFER_VALUE", "KANBANARS_STAGE_VALUE", "KANBANARS_STAGE_INC", "KANBANARS_OFFER_INC", "KANBANARS_STAGE_AMOUNT", "KANBANARS_DEAL_AMOUNT", "KANBANARS_DEAL_NUM", "KANBANARS_OFFER_VALUE_VKS", "KANBANARS_STAGE_VALUE_VKS", "KANBANARS_STAGE_INC_VKS", "KANBANARS_OFFER_INC_VKS", "KANBANARS_STAGE_AMOUNT_VKS", "KANBANARS_DEAL_AMOUNT_VKS", "KANBANARS_DEAL_NUM_VKS", "KANBANARS_OFFER_VALUE_VKO", "KANBANARS_STAGE_VALUE_VKO", "KANBANARS_STAGE_INC_VKO", "KANBANARS_OFFER_INC_VKO", "KANBANARS_STAGE_AMOUNT_VKO", "KANBANARS_DEAL_AMOUNT_VKO", "KANBANARS_DEAL_NUM_VKO", "WD"], "default": "WAIT", "allow_empty": false, "json_target": "", "note": "", "variant_labels": ["Ручной", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""]}, {"n": 94, "key": "INDICATOR_AGG_FUNCTION", "status": "[v]", "label": "Функция агрегации", "description": "Функция агрегации показателя.", "kind": "dropdown", "variants": ["SUM", "MAX", "MIN", "AVG", "COUNT", "COUNT_DISTINCT", "COUNT_DISTINCT_CUSTOMER", "COUNT_DISTINCT_DEAL", "LAST_VALUE"], "default": "SUM", "allow_empty": false, "json_target": "", "note": "", "variant_labels": ["Сумма", "Максимум", "Минимум", "Среднее", "Количество", "Уник. индикаторы", "Уник. клиенты", "Уник. договоры", "Последнее по дате"]}, {"n": 95, "key": "INDICATOR_WEIGHT", "status": "[v]", "label": "Множитель показателя", "description": "Способ расчета показателя (множитель)", "kind": "dropdown", "variants": ["1", "-1", "1000"], "default": "1", "allow_empty": false, "json_target": "", "note": "", "variant_labels": ["Положительный", "Отрицательный", "Множитель x1000"]}, {"n": 96, "key": "INDICATOR_OBJECT", "status": "[v]", "label": "Объект конкурса", "description": "Параметр для определения объекта конкурса (для группировки в рамках одного сотрудника (поиск лучшей сделки) - для типа показателя - 2- Абсолютный показатель)", "kind": "text", "variants": [], "default": "", "allow_empty": true, "json_target": "", "note": ""}, {"n": 97, "key": "INDICATOR_MARK_TYPE", "status": "[v]", "label": "Как выбираем победителей", "description": "Способ выбора победителей: достиг показателя, сделал больше других или меньше других — меньше, например, для ранга", "kind": "dropdown", "variants": ["CRITERION", "RATING", "GAIN"], "default": "RATING", "allow_empty": false, "json_target": "", "note": "", "variant_labels": ["Достигни", "Рейтинг", "Больше в X раз"]}, {"n": 98, "key": "INDICATOR_MATCH", "status": "[v]", "label": "Символ сравнения с планом", "description": "Вид сравнения показателя с планом для определения участников", "kind": "dropdown", "variants": ["=", ">", ">=", "<", "<=", "MAX", "MIN", "X2", "X3", "X4"], "default": "MAX", "allow_empty": false, "json_target": "", "note": "", "variant_labels": ["Равно", "Больше", "Больше или равно", "Меньше", "Меньше или равно", "Максимум", "Минимум", "Больше в 2 раза", "Больше в 3 раза", "Больше в 4 раза"]}, {"n": 99, "key": "INDICATOR_VALUE", "status": "[v]", "label": "Значение плана", "description": "Значение планового показателя (0, 1, 1000, …)", "kind": "number", "variants": [], "default": "", "allow_empty": true, "json_target": "", "note": ""}, {"n": 100, "key": "CONTEST_CRITERION", "status": "[v]", "label": "Ограничения сделки", "description": "Параметры для ограничения выбора сделки (не используется)", "kind": "text", "variants": [], "default": "", "allow_empty": true, "json_target": "", "note": ""}, {"n": 102, "key": "CONTESTANT_SELECTION", "status": "[v]", "label": "Как определять ВКО", "description": "Способ определения участника на данных источника", "kind": "dropdown", "variants": ["0", "1"], "default": "0", "allow_empty": false, "json_target": "", "note": "1", "variant_labels": ["На дату операции", "На конец турнира"]}, {"n": 103, "key": "CALC_TYPE", "status": "[v]", "label": "Тип расчёта показателя", "description": "Тип расчёта: 0 — промышленный расчет / 1 — ручной расчет (не используется)", "kind": "dropdown", "variants": ["0", "1"], "default": "1", "allow_empty": false, "json_target": "", "note": "1", "variant_labels": ["Промышленный расчет", "Ручные данные"]}, {"n": 104, "key": "N", "status": "[v]", "label": "Уникальный ID строки", "description": "Уникальный во всем файле настроек ID (порядковый номер)", "kind": "number", "variants": [], "default": "", "allow_empty": false, "json_target": "", "note": ""}, {"n": 138, "key": "INDICATOR_FILTER", "status": "[v]", "label": "Фильтры индикатора", "description": "Для автоматических турниров настройка фильтров для источника", "kind": "json", "variants": [], "default": "", "allow_empty": true, "json_target": "INDICATOR_FILTER", "note": "Колонка CSV с SPOD-JSON. «Можно пусто» — допустима ли пустая ячейка колонки целиком."}]}, {"id": "INDICATOR_FILTER", "title": "INDICATOR_FILTER", "menu_label": "INDICATOR_FILTER", "intro": "JSON-массив фильтров в колонке INDICATOR_FILTER. Элемент: filtered_attribute_code/type/match + condition (массив строк) или value/dt.", "kind": "json_array", "parent": "TABLE:INDICATOR", "sheet": "INDICATOR", "column": "INDICATOR_FILTER", "fields": [{"n": 129, "status": "[v]", "variants": ["segment", "segment_mk", "tb", "product_group", "product", "is_manual_correct", "is_cva_product", "action_code", "stage", "deal_type", "coa_type_id", "customer_segment", "e2e_product_code", "kkp_status_code", "deal_is_msh", "ccy_code", "category", "coa_open_dt", "offer_close_date", "polis_dt"], "default": "segment", "allow_empty": false, "json_target": "INDICATOR_FILTER[].filtered_attribute_code", "note": "", "description": "Код поля фильтра", "kind": "dropdown_custom", "label": "Код фильтра", "key": "INDICATOR_FILTER.filtered_attribute_code", "json_required": true}, {"n": 130, "status": "[v]", "variants": ["STRING", "DATE", "INTEGER", "DECIMAL (38,12)"], "default": "STRING", "allow_empty": false, "json_target": "INDICATOR_FILTER[].filtered_attribute_type", "note": "", "description": "Тип данных в фильтре", "kind": "dropdown_custom", "label": "Тип атрибута", "key": "INDICATOR_FILTER.filtered_attribute_type", "variant_labels": ["Строка", "Дата", "Целое число", "Дробное число"], "json_required": true}, {"n": 131, "status": "[v]", "variants": ["IN", "NOT_IN", ">=", ">", "<=", "<", "="], "default": "IN", "allow_empty": false, "json_target": "INDICATOR_FILTER[].filtered_attribute_match", "note": "", "description": "Оператор сравнения для фильтра", "kind": "dropdown", "label": "Оператор сравнения", "key": "INDICATOR_FILTER.filtered_attribute_match", "variant_labels": ["Входит", "Не входит", "Больше или равно", "Больше", "Меньше или равно", "Меньше", "Равно"], "json_required": true}, {"n": 132, "status": "[v]", "variants": [], "default": "", "allow_empty": true, "json_target": "INDICATOR_FILTER[].filtered_attribute_condition", "note": "", "description": "Массив значений фильма в виде строк", "kind": "list", "label": "Значение фильтра строки", "key": "INDICATOR_FILTER.filtered_attribute_condition", "json_required": false}, {"n": 133, "status": "[v]", "variants": [], "default": "", "allow_empty": true, "json_target": "INDICATOR_FILTER[].filtered_attribute_value", "note": "", "description": "Значение для фильтра числового", "kind": "number", "label": "Значение фильтра числа", "key": "INDICATOR_FILTER.filtered_attribute_value", "json_required": false}, {"n": 134, "status": "[v]", "variants": [], "default": "", "allow_empty": true, "json_target": "INDICATOR_FILTER[].filtered_attribute_dt", "note": "", "description": "Значение для фильтра даты", "kind": "date", "label": "Значение фильтра даты", "key": "INDICATOR_FILTER.filtered_attribute_dt", "json_required": false}]}, {"id": "TABLE:SCHEDULE", "title": "SCHEDULE", "menu_label": "SCHEDULE", "intro": "Таблица / лист TOURNAMENT-SCHEDULE", "kind": "table", "parent": null, "sheet": "TOURNAMENT-SCHEDULE", "fields": [{"n": 105, "key": "TOURNAMENT_CODE", "status": "[v]", "label": "Код турнира", "description": "Код для турнира в рамках конкурса", "kind": "text", "variants": [], "default": "", "allow_empty": false, "json_target": "", "note": ""}, {"n": 106, "key": "PERIOD_TYPE", "status": "[v]", "label": "Тип периодичность турнира", "description": "Текстовое описание периода турнира", "kind": "dropdown_custom", "variants": ["турнир года", "турнир 1 полугодия", "турнир 2 полугодия", "турнир 1 квартала", "турнир 2 квартала", "турнир 3 квартала", "турнир 4 квартала", "турнир января", "турнир февраля", "турнир марта", "турнир апреля", "турнир мая", "турнир июня", "турнир июля", "турнир августа", "турнир сентября", "турнир октября", "турнир ноября", "турнир декабря", "произвольный"], "default": "произвольный", "allow_empty": false, "json_target": "", "note": ""}, {"n": 107, "key": "START_DT", "status": "[v]", "label": "Дата начала турнира", "description": "Дата старта турнира", "kind": "date", "variants": [], "default": "", "allow_empty": false, "json_target": "", "note": ""}, {"n": 108, "key": "END_DT", "status": "[v]", "label": "Дата конца турнира", "description": "Дата окончания турнира", "kind": "date", "variants": [], "default": "", "allow_empty": false, "json_target": "", "note": ""}, {"n": 109, "key": "RESULT_DT", "status": "[v]", "label": "Дата подведения итога", "description": "Дата подведения итогов турнира и вручения наград", "kind": "date", "variants": [], "default": "", "allow_empty": true, "json_target": "", "note": ""}, {"n": 110, "key": "PLAN_PERIOD_START_DT", "status": "[v]", "label": "Дата старта периода плана", "description": "Дата старта для периода, где определяется плановое значение", "kind": "date", "variants": [], "default": "", "allow_empty": true, "json_target": "", "note": ""}, {"n": 111, "key": "PLAN_PERIOD_END_DT", "status": "[v]", "label": "Дата конца периода плана", "description": "Дата конца для периода, где определяется плановое значение", "kind": "date", "variants": [], "default": "", "allow_empty": true, "json_target": "", "note": ""}, {"n": 112, "key": "CRITERION_MARK_TYPE", "status": "[v]", "label": "Критерий участия", "description": "Критерий участия для перида конкурса. Оператор сравнения", "kind": "dropdown", "variants": ["=", ">", ">=", "<", "<="], "default": ">=", "allow_empty": false, "json_target": "", "note": "", "variant_labels": ["Равно", "Больше", "Больше или равно", "Меньше", "Меньше или равно"]}, {"n": 113, "key": "CRITERION_MARK_VALUE", "status": "[v]", "label": "Критерий отбора периода", "description": "Значение критерий для участия перида конкурса", "kind": "number", "variants": [], "default": "", "allow_empty": false, "json_target": "", "note": ""}, {"n": 115, "key": "TOURNAMENT_STATUS", "status": "[v]", "label": "Статус турнира", "description": "Выбор статуса активности турнира", "kind": "dropdown", "variants": ["АКТИВНЫЙ", "ЗАВЕРШЕН", "ОТМЕНЕН", "ПОДВЕДЕНИЕ ИТОГОВ", "УДАЛЕН"], "default": "АКТИВНЫЙ", "allow_empty": false, "json_target": "", "note": ""}, {"n": 116, "key": "CONTEST_CODE", "status": "[v]", "label": "Код конкурса", "description": "Уникальный код конкурса (ключ связей). Пример: 01_2025-0_11-1_1", "kind": "text", "variants": [], "default": "", "allow_empty": false, "json_target": "", "note": ""}, {"n": 118, "key": "CALC_TYPE", "status": "[v]", "label": "Тип расчёта показателя", "description": "Тип расчёта: 0 — промышленный расчет / 1 — ручной расчет", "kind": "dropdown", "variants": ["0", "1"], "default": "1", "allow_empty": false, "json_target": "", "note": "", "variant_labels": ["Промышленный расчет", "Ручные данные"]}, {"n": 119, "key": "TRN_INDICATOR_FILTER", "status": "[w]", "label": "TRN_INDICATOR_FILTER", "description": "Описание готовится... по умолчанию не заполняется", "kind": "text", "variants": [], "default": "", "allow_empty": true, "json_target": "TRN_INDICATOR_FILTER", "note": ""}, {"n": 139, "key": "TARGET_TYPE", "status": "[v]", "label": "Настройка сезонов", "description": "Содержит настройку сезонов в JSON", "kind": "json", "variants": [], "default": "", "allow_empty": false, "json_target": "TARGET_TYPE", "note": "Колонка CSV с SPOD-JSON. «Можно пусто» — допустима ли пустая ячейка колонки целиком."}, {"n": 140, "key": "FILTER_PERIOD_ARR", "status": "[v]", "label": "Настройки правовых периодов", "description": "Содержит настройки для периода плана если их более двух", "kind": "json", "variants": [], "default": "", "allow_empty": false, "json_target": "FILTER_PERIOD_ARR", "note": "Колонка CSV с SPOD-JSON. «Можно пусто» — допустима ли пустая ячейка колонки целиком."}]}, {"id": "SCHEDULE_TARGET_TYPE", "title": "TARGET_TYPE (SCHEDULE)", "menu_label": "TARGET_TYPE", "intro": "JSON-объект в колонке TARGET_TYPE листа SCHEDULE: {\"\"\"seasonCode\"\"\": \"\"\"SEASON_…\"\"\"}. Не путать с TARGET_TYPE конкурса (ПРОМ/ТЕСТ).", "kind": "json", "parent": "TABLE:SCHEDULE", "sheet": "TOURNAMENT-SCHEDULE", "column": "TARGET_TYPE", "fields": [{"n": 123, "status": "[v]", "variants": ["SEASON_mmb_2026", "SEASON_2026_1", "SEASON_akm_2026", "SEASON_csm_2026", "SEASON_m_2026_1", "NON"], "default": "SEASON_mmb_2026", "allow_empty": true, "json_target": "TARGET_TYPE.seasonCode", "note": "", "description": "Сезон рейтинга / начисления кристаллов (seasonCode).", "kind": "dropdown_custom", "label": "Код сезона", "key": "TARGET_TYPE.seasonCode", "variant_labels": ["Сезон 2026 (ММБ)", "Сезон 2026 (ККСБ)", "Сезон 2026 (АКМ)", "Сезон 2026 (CSM)", "Сезон 2026 (МНС)", ""], "json_required": false}]}, {"id": "FILTER_PERIOD_ARR", "title": "FILTER_PERIOD_ARR", "menu_label": "FILTER_PERIOD_ARR", "intro": "JSON-массив в колонке FILTER_PERIOD_ARR (SCHEDULE). Элемент: period_code, start_dt, end_dt; опционально criterion_mark_type / criterion_mark_value. Даты и строки в \"\"\"…\"\"\", числа без кавычек.", "kind": "json_array", "parent": "TABLE:SCHEDULE", "sheet": "TOURNAMENT-SCHEDULE", "column": "FILTER_PERIOD_ARR", "fields": [{"n": 124, "status": "[v]", "variants": [], "default": "1", "allow_empty": false, "json_target": "FILTER_PERIOD_ARR[].period_code", "note": "", "description": "Код периода в обратном порядке от текущего", "kind": "number", "label": "Код периода", "key": "FILTER_PERIOD_ARR.period_code", "json_required": true}, {"n": 125, "status": "[v]", "variants": [], "default": "", "allow_empty": false, "json_target": "FILTER_PERIOD_ARR[].start_dt", "note": "", "description": "Дата начала анализируемого периода", "kind": "date", "label": "Дата начала", "key": "FILTER_PERIOD_ARR.start_dt", "json_required": true}, {"n": 126, "status": "[v]", "variants": [], "default": "", "allow_empty": false, "json_target": "FILTER_PERIOD_ARR[].end_dt", "note": "", "description": "Дата конца анализируемого периода", "kind": "date", "label": "Дата конца", "key": "FILTER_PERIOD_ARR.end_dt", "json_required": true}, {"n": 127, "status": "[v]", "variants": [">", ">=", "<", "<=", "="], "default": "", "allow_empty": true, "json_target": "FILTER_PERIOD_ARR[].criterion_mark_type", "note": "", "description": "Оператор; можно не заполнять.", "kind": "dropdown", "label": "Оператор сравнения", "key": "FILTER_PERIOD_ARR.criterion_mark_type", "variant_labels": ["Больше", "Больше или равно", "Меньше", "Меньше или равно", "Равно"], "json_required": false}, {"n": 128, "status": "[v]", "variants": [], "default": "", "allow_empty": true, "json_target": "FILTER_PERIOD_ARR[].criterion_mark_value", "note": "", "description": "Пороховое значение", "kind": "number", "label": "Значение порога", "key": "FILTER_PERIOD_ARR.criterion_mark_value", "json_required": true}]}], "exported_at": "2026-08-17T13:42:19.465681Z"};
 /* EMBEDDED_CATALOG_END */
 
 const BLOCK = "PROM";
@@ -759,6 +854,15 @@ let contestListShowTournament=true;
 let contestListShowReward=true;
 /** Показывать блок архива внизу списка (по умолчанию выкл.) */
 let contestListShowArchive=false;
+/** Фильтр среды: оба вкл. = не режем */
+let contestListShowProm=true;
+let contestListShowTest=true;
+/** Статусы расписания, по умолчанию «живые» */
+let contestListStatuses=new Set(["АКТИВНЫЙ","ПОДВЕДЕНИЕ ИТОГОВ","ЗАВЕРШЕН"]);
+/** Дата фильтра списка (YYYY-MM-DD) или "" */
+let contestListDate="";
+/** Порог: длинный список → combobox с поиском */
+const COMBOBOX_MIN_VARIANTS=16;
 /** @type {Array<object>} записи архива удалённых конкурсов и частей */
 let archiveEntries=[];
 /** id открытой карточки архива или null */
@@ -1955,9 +2059,8 @@ function deleteGroupAt(di, opts){
   const row=rows[di];
   archiveFragment("group",row,groupTitle(row,di),contestCodeOf());
   rows.splice(di,1);
-  if(!rows.length) rows.push(emptyGroupRow());
-  if(activeGroup>=rows.length) activeGroup=rows.length-1;
-  activeSection="GROUP:"+(activeGroup+1);
+  if(activeGroup>=rows.length) activeGroup=Math.max(0,rows.length-1);
+  activeSection=rows.length?"GROUP:"+(activeGroup+1):"GROUP";
   pruneLinkGroupCodes(data());
   persistLocal();markContestEdited();
   if(opts.toast!==false) toast("Группа перемещена в архив");
@@ -1971,9 +2074,8 @@ function deleteIndicatorAt(di, opts){
   const row=rows[di];
   archiveFragment("indicator",row,indicatorTitle(row,di),contestCodeOf());
   rows.splice(di,1);
-  if(!rows.length) rows.push(emptyIndicatorRow());
-  if(activeIndicator>=rows.length) activeIndicator=rows.length-1;
-  activeSection="INDICATOR:"+(activeIndicator+1);
+  if(activeIndicator>=rows.length) activeIndicator=Math.max(0,rows.length-1);
+  activeSection=rows.length?"INDICATOR:"+(activeIndicator+1):"INDICATOR";
   persistLocal();markContestEdited();
   if(opts.toast!==false) toast("Индикатор перемещён в архив");
   return true;
@@ -1986,9 +2088,8 @@ function deleteScheduleAt(di, opts){
   const row=rows[di];
   archiveFragment("schedule",row,scheduleTitle(row,di),scheduleSub(row)||contestCodeOf());
   rows.splice(di,1);
-  if(!rows.length) rows.push(emptyScheduleRow());
-  if(activeSchedule>=rows.length) activeSchedule=rows.length-1;
-  activeSection="SCHEDULE:"+(activeSchedule+1);
+  if(activeSchedule>=rows.length) activeSchedule=Math.max(0,rows.length-1);
+  activeSection=rows.length?"SCHEDULE:"+(activeSchedule+1):"SCHEDULE";
   persistLocal();markContestEdited();
   if(opts.toast!==false) toast("Турнир перемещён в архив");
   return true;
@@ -2004,13 +2105,9 @@ function deletePairAt(di, opts){
   archiveFragment("pair",{badge,link},pairNavTitle(di),contestCodeOf());
   badges.splice(di,1);
   links.splice(di,1);
-  if(!badges.length){
-    badges.push(emptyBadge());
-    links.push(emptyLinkRow());
-  }
-  if(activeLink>=badges.length) activeLink=badges.length-1;
+  if(activeLink>=badges.length) activeLink=Math.max(0,badges.length-1);
   activeBadge=activeLink;
-  activeSection="PAIR:"+(activeLink+1);
+  activeSection=badges.length?"PAIR:"+(activeLink+1):"PAIR";
   persistLocal();markContestEdited();
   if(opts.toast!==false) toast("Пара перемещена в архив");
   return true;
@@ -2782,9 +2879,63 @@ function expandStoredPrefixedCode(raw, kind, contestCode){
   if(s.startsWith("r_")||s.startsWith("t_")){
     return buildPrefixedCode(prefix, endingFromFullCode(s, cc, kind));
   }
-  // уже окончание
   return buildPrefixedCode(prefix, s);
 }
+function isBlankCell(v){
+  if(v==null) return true;
+  if(Array.isArray(v)) return v.length===0;
+  if(typeof v==="object") return Object.keys(v).length===0;
+  return String(v).trim()==="";
+}
+/** Строка-заглушка: кроме CONTEST_CODE все значимые поля пустые. */
+function isStubTableRow(row, extraSkip){
+  if(!row||typeof row!=="object") return true;
+  const skip=new Set(["CONTEST_CODE"].concat(extraSkip||[]));
+  for(const [k,v] of Object.entries(row)){
+    if(skip.has(k)) continue;
+    if(!isBlankCell(v)) return false;
+  }
+  return true;
+}
+function isStubBadge(b){
+  if(!b||typeof b!=="object") return true;
+  const flat=b.flat||{};
+  const add=b.add||{};
+  const skip=new Set(["REWARD_TYPE"]);
+  for(const [k,v] of Object.entries(flat)){
+    if(skip.has(k)) continue;
+    if(!isBlankCell(v)) return false;
+  }
+  for(const v of Object.values(add)){
+    if(!isBlankCell(v)) return false;
+  }
+  return true;
+}
+function isStubLink(row){
+  if(!row||typeof row!=="object") return true;
+  return isBlankCell(row.REWARD_CODE)&&isBlankCell(row.GROUP_CODE);
+}
+/** Убрать фантомные пустые строки, которых не было в CSV. */
+function pruneImportedEmptyRows(d){
+  if(!d||typeof d!=="object") return;
+  if(Array.isArray(d.schedule)) d.schedule=d.schedule.filter(r=>!isStubTableRow(r,["seasonCode","filter_period","TARGET_TYPE","FILTER_PERIOD_ARR"]));
+  if(Array.isArray(d.indicator)) d.indicator=d.indicator.filter(r=>!isStubTableRow(r,["filter_items","INDICATOR_FILTER"]));
+  if(Array.isArray(d.group)) d.group=d.group.filter(r=>!isStubTableRow(r));
+  if(Array.isArray(d.badges)&&Array.isArray(d.reward_link)){
+    const nextB=[];const nextL=[];
+    const n=Math.max(d.badges.length,d.reward_link.length);
+    for(let i=0;i<n;i++){
+      const b=d.badges[i];
+      const l=d.reward_link[i];
+      if(isStubBadge(b||{})&&isStubLink(l||{})) continue;
+      if(b) nextB.push(b);
+      if(l) nextL.push(l);
+    }
+    d.badges=nextB;
+    d.reward_link=nextL;
+  }
+}
+
 function expandContestPrefixedCodes(d){
   const cc=contestCodeOf(d);
   for(const row of d.reward_link||[]){
@@ -2935,8 +3086,6 @@ function syncBadgeSlots(data,force){
   if(force){
     // При смене типа: добить до рекомендации, лишние пары не удалять
     while(data.badges.length<rec) data.badges.push(emptyBadge());
-  }else if(!data.badges.length){
-    data.badges=[emptyBadge()];
   }
   const n=data.badges.length;
   const cc=String(data.contest.CONTEST_CODE||"").trim();
@@ -3162,6 +3311,125 @@ function mountChips(host, f, value, onChange, {multi}){
     });
   }
   host.appendChild(box);if(extra)host.appendChild(extra);paint();
+}
+
+/** Группа кода для combobox: хвост VKS/VKO или префикс до «_». */
+function variantGroupKey(code){
+  const s=String(code||"");
+  if(/_VKS$/.test(s)) return "KANBANARS · VKS";
+  if(/_VKO$/.test(s)) return "KANBANARS · VKO";
+  const i=s.indexOf("_");
+  if(i<=0) return "Прочее";
+  return s.slice(0,i);
+}
+function mountSearchCombobox(host, f, value, onChange){
+  const variants=(f.variants||[]).map(v=>String(v));
+  const required=selectionRequired(f);
+  let curVal=String(value||"");
+  if(required&&variants.length&&(!curVal.trim()||!variants.includes(curVal))){
+    curVal=String(f.default||variants[0]||"");
+    withSilentNormalize(()=>onChange(curVal));
+  }
+  const wrap=document.createElement("div");
+  wrap.className="combo";
+  wrap.setAttribute("data-tip",tipFor(f)+"\nПоиск по коду. Свой вариант нельзя.");
+  const inp=document.createElement("input");
+  inp.type="search";
+  inp.className="combo__input";
+  inp.autocomplete="off";
+  inp.placeholder="Найти код…";
+  const lab0=labelForVariant(f,curVal);
+  inp.value=lab0&&lab0!==curVal?(lab0+" · "+curVal):curVal;
+  const list=document.createElement("div");
+  list.className="combo__list";
+  list.hidden=true;
+  let hi=-1;
+  let shown=[];
+  function close(){list.hidden=true;hi=-1}
+  function grouped(q){
+    const needle=String(q||"").trim().toLowerCase();
+    const out=[];
+    const map=new Map();
+    variants.forEach(v=>{
+      const lab=labelForVariant(f,v);
+      const hay=(v+" "+lab).toLowerCase();
+      if(needle&&!hay.includes(needle)) return;
+      const g=variantGroupKey(v);
+      if(!map.has(g)) map.set(g,[]);
+      map.get(g).push(v);
+    });
+    for(const [g,arr] of map) out.push({g,arr});
+    return out;
+  }
+  function paint(q){
+    const groups=grouped(q);
+    shown=groups.flatMap(x=>x.arr);
+    if(!shown.length){
+      list.innerHTML=`<div class="combo__empty">Нет совпадений</div>`;
+      return;
+    }
+    let html="";
+    groups.forEach(gr=>{
+      html+=`<div class="combo__group">${esc(gr.g)}</div>`;
+      gr.arr.forEach(v=>{
+        const lab=labelForVariant(f,v);
+        const on=v===curVal?" is-on":"";
+        html+=`<button type="button" class="combo__opt${on}" data-v="${esc(v)}">${esc(lab&&lab!==v?lab+" · "+v:v)}</button>`;
+      });
+    });
+    list.innerHTML=html;
+    list.querySelectorAll("[data-v]").forEach(btn=>{
+      btn.addEventListener("mousedown",e=>e.preventDefault());
+      btn.addEventListener("click",()=>pick(btn.getAttribute("data-v")));
+    });
+  }
+  function pick(v){
+    curVal=String(v||"");
+    const lab=labelForVariant(f,curVal);
+    inp.value=lab&&lab!==curVal?(lab+" · "+curVal):curVal;
+    onChange(curVal);
+    close();
+    afterFieldKey(f.key);
+    refreshContestTabDirty();
+  }
+  function open(){
+    paint(inp.value===curVal||inp.value.indexOf(" · ")>=0?"":inp.value);
+    list.hidden=false;
+  }
+  inp.addEventListener("focus",()=>open());
+  inp.addEventListener("input",()=>{open();paint(inp.value)});
+  inp.addEventListener("blur",()=>{
+    setTimeout(()=>{
+      if(!variants.includes(curVal)&&required&&variants.length){
+        curVal=String(f.default||variants[0]);
+        onChange(curVal);
+      }
+      const lab=labelForVariant(f,curVal);
+      inp.value=lab&&lab!==curVal?(lab+" · "+curVal):curVal;
+      close();
+    },120);
+  });
+  inp.addEventListener("keydown",e=>{
+    if(e.key==="Escape"){close();inp.blur();return}
+    if(e.key==="ArrowDown"||e.key==="ArrowUp"){
+      e.preventDefault();
+      if(list.hidden) open();
+      if(!shown.length) return;
+      if(e.key==="ArrowDown") hi=Math.min(shown.length-1,hi+1);
+      else hi=Math.max(0,hi<0?shown.length-1:hi-1);
+      list.querySelectorAll(".combo__opt").forEach((el,i)=>el.classList.toggle("is-hi",i===hi));
+      const el=list.querySelectorAll(".combo__opt")[hi];
+      if(el) el.scrollIntoView({block:"nearest"});
+      return;
+    }
+    if(e.key==="Enter"){
+      e.preventDefault();
+      if(hi>=0&&shown[hi]) pick(shown[hi]);
+    }
+  });
+  wrap.appendChild(inp);
+  wrap.appendChild(list);
+  host.appendChild(wrap);
 }
 
 /** Сопоставить значение списка+ с чипом или «своим вариантом» (импорт). */
@@ -3397,6 +3665,7 @@ function renderFieldCard(f, value, path, onChange, opts){
     return card;
   }
   if(kind==="dropdown_custom") mountDropdownCustom(host,f,value,wrapChange);
+  else if(kind==="dropdown"&&(f.variants||[]).length>=COMBOBOX_MIN_VARIANTS) mountSearchCombobox(host,f,value,wrapChange);
   else if(kind==="dropdown"&&(f.variants||[]).length) mountChips(host,f,value,wrapChange,{multi:false});
   else if(kind==="list"){
     if((f.variants||[]).length) mountChips(host,f,value,(v)=>wrapChange(v),{multi:true});
@@ -3531,22 +3800,53 @@ function contestMatchesKindFilter(c){
   if(kind==="reward") return !!contestListShowReward;
   return !!contestListShowTournament;
 }
+function contestEnvHaystack(c){
+  const d=c&&c.data?c.data:{};
+  return [String((d.feature&&d.feature.vid)||""), String((d.contest&&d.contest.TARGET_TYPE)||"")].join(" ").toLowerCase();
+}
+function contestMatchesEnvFilter(c){
+  if(contestListShowProm===contestListShowTest) return true;
+  const hay=contestEnvHaystack(c);
+  if(contestListShowProm) return hay.includes("пром");
+  return hay.includes("тест");
+}
+function contestMatchesStatusFilter(c){
+  if(!contestListStatuses.size) return false;
+  const rows=Array.isArray(c.data&&c.data.schedule)?c.data.schedule:[];
+  if(!rows.length) return false;
+  return rows.some(row=>contestListStatuses.has(String(row.TOURNAMENT_STATUS||"").trim()));
+}
+function contestMatchesDateFilter(c){
+  const ymd=String(contestListDate||"").trim();
+  if(!isIsoDate(ymd)) return true;
+  const rows=Array.isArray(c.data&&c.data.schedule)?c.data.schedule:[];
+  return rows.some(row=>{
+    const start=String(row.START_DT||"").trim();
+    const end=String(row.END_DT||"").trim();
+    if(!isIsoDate(start)||!isIsoDate(end)) return false;
+    return start<=ymd && ymd<=end;
+  });
+}
+function contestMatchesLiveFilters(c){
+  return contestMatchesEnvFilter(c)&&contestMatchesStatusFilter(c)&&contestMatchesDateFilter(c);
+}
+function syncFilterBtn(el, on){
+  if(!el) return;
+  el.classList.toggle("is-on",!!on);
+  el.setAttribute("aria-pressed",on?"true":"false");
+}
 function syncContestKindFilterButtons(){
-  const t=$("filter-tournaments");
-  const r=$("filter-rewards");
-  const a=$("filter-archive");
-  if(t){
-    t.classList.toggle("is-on",contestListShowTournament);
-    t.setAttribute("aria-pressed",contestListShowTournament?"true":"false");
-  }
-  if(r){
-    r.classList.toggle("is-on",contestListShowReward);
-    r.setAttribute("aria-pressed",contestListShowReward?"true":"false");
-  }
-  if(a){
-    a.classList.toggle("is-on",contestListShowArchive);
-    a.setAttribute("aria-pressed",contestListShowArchive?"true":"false");
-  }
+  syncFilterBtn($("filter-tournaments"),contestListShowTournament);
+  syncFilterBtn($("filter-rewards"),contestListShowReward);
+  syncFilterBtn($("filter-archive"),contestListShowArchive);
+  syncFilterBtn($("filter-env-prom"),contestListShowProm);
+  syncFilterBtn($("filter-env-test"),contestListShowTest);
+  document.querySelectorAll("[data-status]").forEach(btn=>{
+    const st=btn.getAttribute("data-status")||"";
+    syncFilterBtn(btn, contestListStatuses.has(st));
+  });
+  const clear=$("filter-date-clear");
+  if(clear) clear.hidden=!isIsoDate(contestListDate);
 }
 
 function renderContestTabs(){
@@ -3558,6 +3858,7 @@ function renderContestTabs(){
   contests.forEach((c,i)=>{
     if(!contestMatchesKindFilter(c)) return;
     if(!contestMatchesListQuery(c,contestListQuery)) return;
+    if(!contestMatchesLiveFilters(c)) return;
     if(contestMenuKind(c)==="reward") rewards.push({c,i});
     else tournaments.push({c,i});
   });
@@ -3597,9 +3898,9 @@ function renderContestTabs(){
     }else if(contestListShowArchive&&!archiveEntries.length&&!rewards.length&&!tournaments.length){
       host.innerHTML=`<div class="contest-tabs-empty">Архив пуст</div>`;
     }else if(q){
-      host.innerHTML=`<div class="contest-tabs-empty">Нет конкурсов по запросу «${esc(q)}»</div>`;
+      host.innerHTML=`<div class="contest-tabs-empty">Нет конкурсов по запросу «${esc(q)}» и текущим фильтрам</div>`;
     }else{
-      host.innerHTML=`<div class="contest-tabs-empty">Нет конкурсов выбранного типа</div>`;
+      host.innerHTML=`<div class="contest-tabs-empty">Нет конкурсов по текущим фильтрам</div>`;
     }
   }
   host.querySelectorAll("[data-ci]").forEach(el=>{
@@ -3677,7 +3978,7 @@ function navItems(){
 
   rowMain.push({kind:"group",group:"ind",title:"Индикаторы",meta:indRows.length+" шт."});
   if(!indRows.length){
-    rowMain.push({id:"INDICATOR:1",title:"Индикатор 1",sub:"INDICATOR_CODE",tag:"table",tagLabel:"I1",slot:true});
+    rowMain.push({id:"INDICATOR",title:"Нет индикаторов",sub:"добавить",tag:"table",tagLabel:"I",slot:true,tip:"В снимке нет строк INDICATOR — добавить вручную"});
   }else{
     indRows.forEach((r,i)=>{
       const title=indicatorTitle(r,i);
@@ -3702,7 +4003,7 @@ function navItems(){
 
   rowMain.push({kind:"group",group:"groups",title:"Группы",meta:groupRows.length+" шт."});
   if(!groupRows.length){
-    rowMain.push({id:"GROUP:1",title:"Группа 1",sub:"GROUP_CODE",tag:"table",tagLabel:"G1",slot:true});
+    rowMain.push({id:"GROUP",title:"Нет групп",sub:"добавить",tag:"table",tagLabel:"G",slot:true,tip:"В снимке нет строк GROUP — добавить вручную"});
   }else{
     groupRows.forEach((r,i)=>{
       const title=groupTitle(r,i);
@@ -3725,7 +4026,10 @@ function navItems(){
   // Строка 2: Связи + награды (+ особенности JSON)
   const rowLinks=[];
   rowLinks.push({kind:"group",group:"pair",title:"Связи + награды",meta:n+(n>max?" · рек. "+max:" / рек. "+max)});
-  for(let i=0;i<Math.max(n,1);i++){
+  if(!n){
+    rowLinks.push({id:"PAIR",title:"Нет связей",sub:"добавить",tag:"table",tagLabel:"R",slot:true,tip:"В снимке нет пар связь+награда — добавить вручную"});
+  }else{
+  for(let i=0;i<n;i++){
     const label=pairNavTitle(i);
     const code=badgeRewardCode(i)||"";
     rowLinks.push({
@@ -3741,6 +4045,7 @@ function navItems(){
       tipAdd:"JSON REWARD_ADD_DATA для награды "+(code||("#"+(i+1))),
     });
   }
+  }
 
   // Строка 3: Расписание (всегда последняя) — порядок по TOURNAMENT_STATUS
   ensureScheduleSorted();
@@ -3748,7 +4053,7 @@ function navItems(){
   const rowSchedule=[];
   rowSchedule.push({kind:"group",group:"sch",title:"Расписание",meta:schSorted.length+" тур."});
   if(!schSorted.length){
-    rowSchedule.push({id:"SCHEDULE:1",title:"Период 1",sub:"TOURNAMENT_CODE",tag:"table",tagLabel:"T1",slot:true,codeSlot:true});
+    rowSchedule.push({id:"SCHEDULE",title:"Нет турниров",sub:"добавить",tag:"table",tagLabel:"T",slot:true,tip:"В снимке нет строк SCHEDULE — добавить вручную"});
   }else{
     schSorted.forEach((r,i)=>{
       const title=scheduleTitle(r,i);
@@ -3802,13 +4107,14 @@ function clampIndex(i,len){
 }
 function normalizeActiveSection(){
   if(activeSection==="REWARD-LINK"||activeSection==="BADGE"||activeSection==="LINK"){
-    activeSection="PAIR:"+(activeLink+1);
+    activeSection=(data().badges||[]).length?"PAIR:"+(activeLink+1):"PAIR";
   }
-  if(activeSection==="GROUP") activeSection="GROUP:"+(activeGroup+1);
-  if(activeSection==="INDICATOR") activeSection="INDICATOR:"+(activeIndicator+1);
-  if(activeSection==="SCHEDULE") activeSection="SCHEDULE:"+(activeSchedule+1);
+  if(activeSection==="GROUP"&&(data().group||[]).length) activeSection="GROUP:"+(activeGroup+1);
+  if(activeSection==="INDICATOR"&&(data().indicator||[]).length) activeSection="INDICATOR:"+(activeIndicator+1);
+  if(activeSection==="SCHEDULE"&&(data().schedule||[]).length) activeSection="SCHEDULE:"+(activeSchedule+1);
   if(activeSection.startsWith("ADD:")){
-    const n=(data().badges||[]).length||1;
+    const n=(data().badges||[]).length;
+    if(!n){activeSection="PAIR";return}
     let i=Number(activeSection.split(":")[1])-1;
     i=clampIndex(i,n);
     activeLink=i;activeBadge=i;
@@ -3816,28 +4122,32 @@ function normalizeActiveSection(){
     return;
   }
   if(activeSection.startsWith("BADGE:")||activeSection.startsWith("LINK:")||activeSection.startsWith("PAIR:")){
-    const n=(data().badges||[]).length||1;
+    const n=(data().badges||[]).length;
+    if(!n){activeSection="PAIR";return}
     let i=Number(activeSection.split(":")[1])-1;
     i=clampIndex(i,n);
     activeLink=i;activeBadge=i;
     activeSection="PAIR:"+(i+1);
   }
   if(activeSection.startsWith("GROUP:")){
-    const n=Math.max((data().group||[]).length,1);
+    const n=(data().group||[]).length;
+    if(!n){activeSection="GROUP";return}
     let i=Number(activeSection.split(":")[1])-1;
     i=clampIndex(i,n);
     activeGroup=i;
     activeSection="GROUP:"+(i+1);
   }
   if(activeSection.startsWith("INDICATOR:")){
-    const n=Math.max((data().indicator||[]).length,1);
+    const n=(data().indicator||[]).length;
+    if(!n){activeSection="INDICATOR";return}
     let i=Number(activeSection.split(":")[1])-1;
     i=clampIndex(i,n);
     activeIndicator=i;
     activeSection="INDICATOR:"+(i+1);
   }
   if(activeSection.startsWith("SCHEDULE:")){
-    const n=Math.max((data().schedule||[]).length,1);
+    const n=(data().schedule||[]).length;
+    if(!n){activeSection="SCHEDULE";return}
     let i=Number(activeSection.split(":")[1])-1;
     i=clampIndex(i,n);
     activeSchedule=i;
@@ -4002,11 +4312,78 @@ function renderContestPeriod(){
     onChange:()=>{persistLocal();refreshContestTabDirty();renderNav()}
   });
 }
+function emptyTableHtml(text, btnId, btnLabel){
+  return `<div class="empty-table"><p class="empty-table__text">${esc(text)}</p><button type="button" class="btn btn-primary" id="${esc(btnId)}">${esc(btnLabel)}</button></div>`;
+}
+function renderEmptyTableSection(title, intro, emptyText, btnId, btnLabel, onAdd){
+  $("workspace").innerHTML=`
+<section class="panel">
+  ${panelHeadHtml(title, [contestCtxPill()])}
+  <p class="intro">${intro}</p>
+  ${emptyTableHtml(emptyText, btnId, btnLabel)}
+</section>`;
+  $(btnId)?.addEventListener("click", onAdd);
+}
+function addGroupRow(){
+  const rows=data().group;
+  rows.push(emptyGroupRow());
+  activeGroup=rows.length-1;
+  activeSection="GROUP:"+(activeGroup+1);
+  persistLocal();
+  markContestEdited();
+  render();
+  toast("Добавлена группа");
+}
+function addIndicatorRow(){
+  const rows=data().indicator;
+  rows.push(emptyIndicatorRow());
+  activeIndicator=rows.length-1;
+  activeSection="INDICATOR:"+(activeIndicator+1);
+  persistLocal();
+  markContestEdited();
+  render();
+  toast("Добавлен индикатор");
+}
+function addScheduleRow(){
+  const rows=data().schedule;
+  rows.push(emptyScheduleRow());
+  activeSchedule=rows.length-1;
+  activeSection="SCHEDULE:"+(activeSchedule+1);
+  persistLocal();
+  markContestEdited();
+  render();
+  toast("Добавлен турнир");
+}
+function addPairRow(){
+  const max=maxBadges(data().contest.CONTEST_TYPE);
+  const curN=data().badges.length;
+  if(curN>=max){
+    if(!confirm("Для этого типа обычно до "+max+" пар(ы) связь+награда.\nСейчас уже "+curN+". Добавить ещё одну?")) return;
+  }
+  data().badges.push(emptyBadge());
+  data().reward_link.push(emptyLinkRow());
+  activeLink=data().badges.length-1;
+  activeBadge=activeLink;
+  activeSection="PAIR:"+(activeLink+1);
+  persistLocal();markContestEdited();render();
+  toast(curN+1>max?("Добавлена пара "+(curN+1)+" (выше рекомендации "+max+")"):"Добавлена пара");
+}
 function renderLinkRewardPair(){
   syncBadgeSlots(data(),false);
   seedLinked(data());
   const max=maxBadges(data().contest.CONTEST_TYPE);
   const n=data().badges.length;
+  if(!n){
+    renderEmptyTableSection(
+      "Связи + награды",
+      "В снимке нет пар связь+награда. Заглушка не создаётся, пока не нажмёте «добавить».",
+      "Нет связей и наград. Добавьте пару, если она нужна.",
+      "btn-add-pair-empty",
+      "добавить связь + награду",
+      addPairRow
+    );
+    return;
+  }
   if(activeLink>=n) activeLink=Math.max(0,n-1);
   if(activeLink<0) activeLink=0;
   activeBadge=activeLink;
@@ -4081,19 +4458,7 @@ function renderLinkRewardPair(){
     if(deletePairAt(activeLink)) render();
   });
   const addBtn=$("btn-add-pair");
-  if(addBtn) addBtn.addEventListener("click",()=>{
-    const curN=data().badges.length;
-    if(curN>=max){
-      if(!confirm("Для этого типа обычно до "+max+" пар(ы) связь+награда.\nСейчас уже "+curN+". Добавить ещё одну?")) return;
-    }
-    data().badges.push(emptyBadge());
-    data().reward_link.push(emptyLinkRow());
-    activeLink=data().badges.length-1;
-    activeBadge=activeLink;
-    activeSection="PAIR:"+(activeLink+1);
-    persistLocal();markContestEdited();render();
-    toast(curN+1>max?("Добавлена пара "+(curN+1)+" (выше рекомендации "+max+")"):"Добавлена пара");
-  });
+  if(addBtn) addBtn.addEventListener("click",()=>addPairRow());
   $("btn-copy-pairs")?.addEventListener("click",()=>copyActivePairToOthers());
   $("btn-goto-add")?.addEventListener("click",()=>{activeSection="ADD:"+(i+1);closeAllDatePops();render()});
 
@@ -4140,7 +4505,8 @@ function renderLinkRewardPair(){
 function renderRewardAdd(){
   syncBadgeSlots(data(),false);
   seedLinked(data());
-  const n=data().badges.length||1;
+  const n=data().badges.length;
+  if(!n){activeSection="PAIR";renderLinkRewardPair();return}
   if(activeLink>=n) activeLink=Math.max(0,n-1);
   if(activeLink<0) activeLink=0;
   activeBadge=activeLink;
@@ -4179,7 +4545,17 @@ function renderRewardLink(){activeSection="PAIR:"+(activeLink+1);renderLinkRewar
 function renderGroup(){
   seedLinked(data());
   const rows=data().group;
-  if(!rows.length) rows.push(emptyGroupRow());
+  if(!rows.length){
+    renderEmptyTableSection(
+      "Группы",
+      "Заполняйте до пар «Связи + награды». Значения <code>GROUP_CODE</code> станут вариантами выбора в связи.",
+      "Нет групп. Добавьте группу, если она есть в конкурсе.",
+      "btn-add-group-empty",
+      "Добавить группу",
+      addGroupRow
+    );
+    return;
+  }
   if(activeGroup>=rows.length) activeGroup=rows.length-1;
   if(activeGroup<0) activeGroup=0;
   const i=activeGroup;
@@ -4228,15 +4604,7 @@ function renderGroup(){
   $("btn-del-group")?.addEventListener("click",()=>{
     if(deleteGroupAt(activeGroup)) render();
   });
-  $("btn-add-group").addEventListener("click",()=>{
-    rows.push(emptyGroupRow());
-    activeGroup=rows.length-1;
-    activeSection="GROUP:"+(activeGroup+1);
-    persistLocal();
-    markContestEdited();
-    render();
-    toast("Добавлена группа");
-  });
+  $("btn-add-group").addEventListener("click",()=>addGroupRow());
   $("btn-copy-groups")?.addEventListener("click",()=>copyActiveGroupToOthers());
 
   $("group-groups").appendChild(renderGrouped(
@@ -4269,7 +4637,17 @@ function renderGroup(){
 function renderIndicator(){
   seedLinked(data());
   const rows=data().indicator;
-  if(!rows.length) rows.push(emptyIndicatorRow());
+  if(!rows.length){
+    renderEmptyTableSection(
+      "Индикаторы",
+      "Несколько индикаторов — вкладки. Код конкурса в заголовке, поля — в карточках.",
+      "Нет индикаторов. Добавьте индикатор, если он есть в конкурсе.",
+      "btn-add-indicator-empty",
+      "Добавить индикатор",
+      addIndicatorRow
+    );
+    return;
+  }
   if(activeIndicator>=rows.length) activeIndicator=rows.length-1;
   if(activeIndicator<0) activeIndicator=0;
   const i=activeIndicator;
@@ -4314,15 +4692,7 @@ function renderIndicator(){
   $("btn-del-indicator")?.addEventListener("click",()=>{
     if(deleteIndicatorAt(activeIndicator)) render();
   });
-  $("btn-add-indicator").addEventListener("click",()=>{
-    rows.push(emptyIndicatorRow());
-    activeIndicator=rows.length-1;
-    activeSection="INDICATOR:"+(activeIndicator+1);
-    persistLocal();
-    markContestEdited();
-    render();
-    toast("Добавлен индикатор");
-  });
+  $("btn-add-indicator").addEventListener("click",()=>addIndicatorRow());
 
   ensureIndicatorJson(row);
   $("indicator-groups").appendChild(renderGrouped(
@@ -4351,7 +4721,17 @@ function renderIndicator(){
 function renderSchedule(){
   ensureScheduleSorted();
   const rows=data().schedule;
-  if(!rows.length){rows.push(emptyScheduleRow());}
+  if(!rows.length){
+    renderEmptyTableSection(
+      "Расписание турнира",
+      "Каждый период — карточка. <code>TOURNAMENT_CODE</code> = <code>t_</code> + <code>CONTEST_CODE</code>; при непустом окончании — ещё <code>_</code> + окончание (иначе без хвостового <code>_</code>).",
+      "Нет турниров. Добавьте период, если он есть в конкурсе.",
+      "btn-add-period-empty",
+      "добавить турнир",
+      addScheduleRow
+    );
+    return;
+  }
   if(activeSchedule>=rows.length) activeSchedule=rows.length-1;
   if(activeSchedule<0) activeSchedule=0;
   const i=activeSchedule;
@@ -4405,15 +4785,7 @@ function renderSchedule(){
   $("btn-del-period")?.addEventListener("click",()=>{
     if(deleteScheduleAt(activeSchedule)) render();
   });
-  $("btn-add-period").addEventListener("click",()=>{
-    rows.push(emptyScheduleRow());
-    activeSchedule=rows.length-1;
-    activeSection="SCHEDULE:"+(activeSchedule+1);
-    persistLocal();
-    markContestEdited();
-    render();
-    toast("Добавлен турнир");
-  });
+  $("btn-add-period").addEventListener("click",()=>addScheduleRow());
   $("btn-copy-schedule")?.addEventListener("click",()=>copyActiveScheduleToOthers());
 
   ensureScheduleJson(row);
@@ -4510,7 +4882,6 @@ function renderTable(kind,title,cols,rowsKey){
   $("workspace").querySelectorAll("[data-del]").forEach(btn=>btn.addEventListener("click",()=>{
     const r=Number(btn.getAttribute("data-del"));
     data()[rowsKey].splice(r,1);
-    if(!data()[rowsKey].length){const row=Object.fromEntries(cols.map(c=>[c,""]));row.CONTEST_CODE=cc;data()[rowsKey].push(row)}
     if(rowsKey==="group") pruneLinkGroupCodes(data());
     persistLocal();render();
   }));
@@ -4544,7 +4915,7 @@ function render(){
   else if(activeSection==="CONTEST_FEATURE")renderFeature();
   else if(activeSection==="CONTEST_PERIOD")renderContestPeriod();
   else if(activeSection.startsWith("ADD:"))renderRewardAdd();
-  else if(activeSection.startsWith("PAIR:")||activeSection.startsWith("BADGE:")||activeSection.startsWith("LINK:")||activeSection==="REWARD-LINK")renderLinkRewardPair();
+  else if(activeSection.startsWith("PAIR:")||activeSection==="PAIR"||activeSection.startsWith("BADGE:")||activeSection.startsWith("LINK:")||activeSection==="REWARD-LINK")renderLinkRewardPair();
   else if(activeSection==="GROUP"||activeSection.startsWith("GROUP:"))renderGroup();
   else if(activeSection==="INDICATOR"||activeSection.startsWith("INDICATOR:"))renderIndicator();
   else if(activeSection==="SCHEDULE"||activeSection.startsWith("SCHEDULE:"))renderSchedule();
@@ -4758,7 +5129,7 @@ function ensureJsonStructures(d){
         src=null;
       }
     }
-    d.contestPeriod=Array.isArray(src)&&src.length?src.map(normalizeContestPeriodItem):[emptyContestPeriodItem()];
+    d.contestPeriod=Array.isArray(src)&&src.length?src.map(normalizeContestPeriodItem):[];
   }
   if("CONTEST_PERIOD" in d.contest) delete d.contest.CONTEST_PERIOD;
   for(const row of d.schedule||[]) ensureScheduleJson(row);
@@ -5167,6 +5538,7 @@ async function loadCatalogPreferFile(){
 }
 let sessionReady=false;
 let sidebarOpen=true;
+let filtersOpen=true;
 
 function setSidebarOpen(open){
   sidebarOpen=!!open;
@@ -5176,6 +5548,28 @@ function setSidebarOpen(open){
   const show=$("btn-sidebar-show");
   if(hide) hide.setAttribute("aria-expanded",sidebarOpen?"true":"false");
   if(show) show.setAttribute("aria-expanded",sidebarOpen?"true":"false");
+}
+function setFiltersOpen(open){
+  filtersOpen=!!open;
+  const app=document.querySelector(".app");
+  if(app) app.classList.toggle("is-filters-collapsed",!filtersOpen);
+  const hide=$("btn-filters-hide");
+  const show=$("btn-filters-show");
+  if(hide) hide.setAttribute("aria-expanded",filtersOpen?"true":"false");
+  if(show) show.setAttribute("aria-expanded",filtersOpen?"true":"false");
+}
+function remountContestListDateFilter(){
+  const host=$("filter-date-host");
+  if(!host) return;
+  host.innerHTML="";
+  mountDateUi(host, contestListDate, (v)=>{
+    contestListDate=String(v||"");
+    const clear=$("filter-date-clear");
+    if(clear) clear.hidden=!isIsoDate(contestListDate);
+    renderContestTabs();
+  }, "Дата внутри периода START_DT…END_DT");
+  const clear=$("filter-date-clear");
+  if(clear) clear.hidden=!isIsoDate(contestListDate);
 }
 let catalogSource="embedded";
 
@@ -5354,6 +5748,7 @@ function applyProjectObject(restored, opts){
   if(!restored||!Array.isArray(restored.contests)||!restored.contests.length)throw new Error("В файле нет contests[]");
   contests=restored.contests.map((c,i)=>{
     const data=c.data||emptyContestData();
+    pruneImportedEmptyRows(data);
     ensureJsonStructures(data);
     expandContestPrefixedCodes(data);
     syncBadgeSlots(data,false);
@@ -5521,8 +5916,12 @@ function wireOutsideDate(){
 function wire(){
   initTips();wireOutsideDate();
   setSidebarOpen(true);
+  setFiltersOpen(true);
+  remountContestListDateFilter();
   $("btn-sidebar-hide")?.addEventListener("click",()=>setSidebarOpen(false));
   $("btn-sidebar-show")?.addEventListener("click",()=>setSidebarOpen(true));
+  $("btn-filters-hide")?.addEventListener("click",()=>setFiltersOpen(false));
+  $("btn-filters-show")?.addEventListener("click",()=>setFiltersOpen(true));
   $("btn-add-contest").addEventListener("click",()=>addContest());
   $("btn-copy-contest")?.addEventListener("click",()=>openCopyContestModal());
   $("btn-save-project").addEventListener("click",()=>saveProjectFile());
@@ -5551,10 +5950,31 @@ function wire(){
     if(!contestListShowArchive&&activeArchiveId){activeArchiveId=null;render();return}
     renderContestTabs();
   });
+  $("filter-env-prom")?.addEventListener("click",()=>{
+    contestListShowProm=!contestListShowProm;
+    renderContestTabs();
+  });
+  $("filter-env-test")?.addEventListener("click",()=>{
+    contestListShowTest=!contestListShowTest;
+    renderContestTabs();
+  });
+  document.querySelectorAll("[data-status]").forEach(btn=>{
+    btn.addEventListener("click",()=>{
+      const st=btn.getAttribute("data-status")||"";
+      if(!st) return;
+      if(contestListStatuses.has(st)) contestListStatuses.delete(st);
+      else contestListStatuses.add(st);
+      renderContestTabs();
+    });
+  });
+  $("filter-date-clear")?.addEventListener("click",()=>{
+    contestListDate="";
+    remountContestListDateFilter();
+    renderContestTabs();
+  });
 }
 wire();boot();
 })();
-
 </script>
 </body>
 </html>

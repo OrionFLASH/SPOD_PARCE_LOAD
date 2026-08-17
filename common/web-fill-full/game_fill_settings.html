@@ -16,26 +16,8 @@
     <aside class="sidebar" id="contest-sidebar" aria-label="Список конкурсов">
       <div class="sidebar-head">
         <div class="side-block-title">Конкурсы</div>
-        <button type="button" class="btn-side-toggle" id="btn-sidebar-hide" aria-controls="contest-sidebar" aria-expanded="true" data-tip="Скрыть список конкурсов · настройки на весь экран">
+        <button type="button" class="btn-side-toggle" id="btn-sidebar-hide" aria-controls="contest-sidebar" aria-expanded="true" data-tip="Скрыть список конкурсов">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>
-        </button>
-      </div>
-      <div class="contest-search" data-tip="Поиск по CONTEST_CODE, FULL_NAME, CONTEST_DESCRIPTION, REWARD_CODE, REWARD FULL_NAME/DESCRIPTION, TOURNAMENT_CODE">
-        <span class="contest-search__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg></span>
-        <input type="search" id="contest-search" class="contest-search__input" placeholder="Код конкурса, награды, турнира…" autocomplete="off" />
-      </div>
-      <div class="contest-kind-filters" role="group" aria-label="Фильтр типа конкурсов">
-        <button type="button" class="contest-kind-btn contest-kind-btn--tournament is-on" id="filter-tournaments" aria-pressed="true" data-tip="Показать турнирные конкурсы (нажмите, чтобы скрыть)">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M8 21h8"/><path d="M12 17v4"/><path d="M7 4h10v5a5 5 0 0 1-10 0V4z"/><path d="M5 6H3a2 2 0 0 0 2 4h0"/><path d="M19 6h2a2 2 0 0 1-2 4h0"/></svg>
-          <span>Турниры</span>
-        </button>
-        <button type="button" class="contest-kind-btn contest-kind-btn--reward is-on" id="filter-rewards" aria-pressed="true" data-tip="Показать индивидуальные (награды); нажмите, чтобы скрыть">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="8" r="5"/><path d="M8.2 12.5 7 21l5-2 5 2-1.2-8.5"/><path d="M12 3v2"/></svg>
-          <span>Награды</span>
-        </button>
-        <button type="button" class="contest-kind-btn contest-kind-btn--archive" id="filter-archive" aria-pressed="false" data-tip="Показать архив удалённых конкурсов и частей (по умолчанию скрыт)">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 7h18"/><path d="M5 7v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7"/><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/><path d="M10 12h4"/></svg>
-          <span>Архив</span>
         </button>
       </div>
       <div class="contest-tabs-scroll">
@@ -51,14 +33,84 @@
           Копировать конкурс
         </button>
       </div>
+      <div class="tone-legend" data-tip="Цвет вкладки — по самому «живому» статусу турниров в расписании: активный → подведение итогов → завершён → только отменён/удалён → нет турниров">
+        <div class="tone-legend__title">Цвет списка</div>
+        <p class="tone-legend__hint">по самому «живому» статусу</p>
+        <ul class="tone-legend__list">
+          <li class="tone-legend__item tone-legend__item--active"><span class="tone-legend__dot"></span>Активный</li>
+          <li class="tone-legend__item tone-legend__item--results"><span class="tone-legend__dot"></span>Подведение</li>
+          <li class="tone-legend__item tone-legend__item--done"><span class="tone-legend__dot"></span>Завершён</li>
+          <li class="tone-legend__item tone-legend__item--cancel"><span class="tone-legend__dot"></span>Отменён / удалён</li>
+          <li class="tone-legend__item tone-legend__item--empty"><span class="tone-legend__dot"></span>Нет турниров</li>
+        </ul>
+      </div>
     </aside>
     <main class="main">
       <div id="workspace" class="workspace"></div>
     </main>
+    <aside class="sidebar sidebar--filters" id="filters-sidebar" aria-label="Поиск и фильтры">
+      <div class="sidebar-head">
+        <div class="side-block-title">Поиск и фильтры</div>
+        <button type="button" class="btn-side-toggle" id="btn-filters-hide" aria-controls="filters-sidebar" aria-expanded="true" data-tip="Скрыть поиск и фильтры">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+        </button>
+      </div>
+      <div class="filters-scroll">
+        <div class="contest-search" data-tip="Поиск по CONTEST_CODE, FULL_NAME, CONTEST_DESCRIPTION, REWARD_CODE, REWARD FULL_NAME/DESCRIPTION, TOURNAMENT_CODE">
+          <span class="contest-search__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg></span>
+          <input type="search" id="contest-search" class="contest-search__input" placeholder="Код конкурса, награды, турнира…" autocomplete="off" />
+        </div>
+        <div class="filter-block">
+          <div class="filter-block__label">Тип</div>
+          <div class="contest-kind-filters" role="group" aria-label="Фильтр типа конкурсов">
+            <button type="button" class="contest-kind-btn contest-kind-btn--tournament is-on" id="filter-tournaments" aria-pressed="true" data-tip="Показать турнирные конкурсы (нажмите, чтобы скрыть)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M8 21h8"/><path d="M12 17v4"/><path d="M7 4h10v5a5 5 0 0 1-10 0V4z"/><path d="M5 6H3a2 2 0 0 0 2 4h0"/><path d="M19 6h2a2 2 0 0 1-2 4h0"/></svg>
+              <span>Турниры</span>
+            </button>
+            <button type="button" class="contest-kind-btn contest-kind-btn--reward is-on" id="filter-rewards" aria-pressed="true" data-tip="Показать индивидуальные (награды); нажмите, чтобы скрыть">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="8" r="5"/><path d="M8.2 12.5 7 21l5-2 5 2-1.2-8.5"/><path d="M12 3v2"/></svg>
+              <span>Награды</span>
+            </button>
+            <button type="button" class="contest-kind-btn contest-kind-btn--archive" id="filter-archive" aria-pressed="false" data-tip="Показать архив удалённых конкурсов и частей (по умолчанию скрыт)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 7h18"/><path d="M5 7v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7"/><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/><path d="M10 12h4"/></svg>
+              <span>Архив</span>
+            </button>
+          </div>
+        </div>
+        <div class="filter-block">
+          <div class="filter-block__label">Среда</div>
+          <div class="contest-kind-filters" role="group" aria-label="Фильтр ПРОМ / ТЕСТ">
+            <button type="button" class="contest-kind-btn is-on" id="filter-env-prom" aria-pressed="true" data-tip="Показать конкурсы, где в vid или TARGET_TYPE есть ПРОМ">ПРОМ</button>
+            <button type="button" class="contest-kind-btn is-on" id="filter-env-test" aria-pressed="true" data-tip="Показать конкурсы, где в vid или TARGET_TYPE есть ТЕСТ">ТЕСТ</button>
+          </div>
+        </div>
+        <div class="filter-block">
+          <div class="filter-block__label">Статус турнира</div>
+          <p class="filter-block__hint">Есть хотя бы один период с выбранным статусом</p>
+          <div class="status-filters" role="group" aria-label="Фильтр статуса расписания">
+            <button type="button" class="status-filter-btn status-filter-btn--active is-on" id="filter-st-active" aria-pressed="true" data-status="АКТИВНЫЙ">Активный</button>
+            <button type="button" class="status-filter-btn status-filter-btn--results is-on" id="filter-st-results" aria-pressed="true" data-status="ПОДВЕДЕНИЕ ИТОГОВ">Подведение</button>
+            <button type="button" class="status-filter-btn status-filter-btn--done is-on" id="filter-st-done" aria-pressed="true" data-status="ЗАВЕРШЕН">Завершён</button>
+            <button type="button" class="status-filter-btn status-filter-btn--cancel" id="filter-st-cancel" aria-pressed="false" data-status="ОТМЕНЕН">Отменён</button>
+            <button type="button" class="status-filter-btn status-filter-btn--deleted" id="filter-st-deleted" aria-pressed="false" data-status="УДАЛЕН">Удалён</button>
+          </div>
+        </div>
+        <div class="filter-block">
+          <div class="filter-block__label">Дата в периоде</div>
+          <p class="filter-block__hint">Попадает в START_DT…END_DT</p>
+          <div class="filter-date" id="filter-date-host"></div>
+          <button type="button" class="btn btn-compact" id="filter-date-clear" hidden>Сбросить дату</button>
+        </div>
+      </div>
+    </aside>
   </div>
-  <button type="button" class="sidebar-reopen" id="btn-sidebar-show" aria-controls="contest-sidebar" aria-expanded="false" data-tip="Показать список конкурсов и колонтитулы">
+  <button type="button" class="sidebar-reopen" id="btn-sidebar-show" aria-controls="contest-sidebar" aria-expanded="false" data-tip="Показать список конкурсов">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
     <span>Конкурсы</span>
+  </button>
+  <button type="button" class="sidebar-reopen sidebar-reopen--right" id="btn-filters-show" aria-controls="filters-sidebar" aria-expanded="false" data-tip="Показать поиск и фильтры">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>
+    <span>Фильтры</span>
   </button>
 
   <footer class="chrome-foot" id="chrome-foot">

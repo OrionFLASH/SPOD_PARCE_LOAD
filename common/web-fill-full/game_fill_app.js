@@ -32,6 +32,15 @@ let contestListShowTournament=true;
 let contestListShowReward=true;
 /** Показывать блок архива внизу списка (по умолчанию выкл.) */
 let contestListShowArchive=false;
+/** Фильтр среды: оба вкл. = не режем */
+let contestListShowProm=true;
+let contestListShowTest=true;
+/** Статусы расписания, по умолчанию «живые» */
+let contestListStatuses=new Set(["АКТИВНЫЙ","ПОДВЕДЕНИЕ ИТОГОВ","ЗАВЕРШЕН"]);
+/** Дата фильтра списка (YYYY-MM-DD) или "" */
+let contestListDate="";
+/** Порог: длинный список → combobox с поиском */
+const COMBOBOX_MIN_VARIANTS=16;
 /** @type {Array<object>} записи архива удалённых конкурсов и частей */
 let archiveEntries=[];
 /** id открытой карточки архива или null */
@@ -1228,9 +1237,8 @@ function deleteGroupAt(di, opts){
   const row=rows[di];
   archiveFragment("group",row,groupTitle(row,di),contestCodeOf());
   rows.splice(di,1);
-  if(!rows.length) rows.push(emptyGroupRow());
-  if(activeGroup>=rows.length) activeGroup=rows.length-1;
-  activeSection="GROUP:"+(activeGroup+1);
+  if(activeGroup>=rows.length) activeGroup=Math.max(0,rows.length-1);
+  activeSection=rows.length?"GROUP:"+(activeGroup+1):"GROUP";
   pruneLinkGroupCodes(data());
   persistLocal();markContestEdited();
   if(opts.toast!==false) toast("Группа перемещена в архив");
@@ -1244,9 +1252,8 @@ function deleteIndicatorAt(di, opts){
   const row=rows[di];
   archiveFragment("indicator",row,indicatorTitle(row,di),contestCodeOf());
   rows.splice(di,1);
-  if(!rows.length) rows.push(emptyIndicatorRow());
-  if(activeIndicator>=rows.length) activeIndicator=rows.length-1;
-  activeSection="INDICATOR:"+(activeIndicator+1);
+  if(activeIndicator>=rows.length) activeIndicator=Math.max(0,rows.length-1);
+  activeSection=rows.length?"INDICATOR:"+(activeIndicator+1):"INDICATOR";
   persistLocal();markContestEdited();
   if(opts.toast!==false) toast("Индикатор перемещён в архив");
   return true;
@@ -1259,9 +1266,8 @@ function deleteScheduleAt(di, opts){
   const row=rows[di];
   archiveFragment("schedule",row,scheduleTitle(row,di),scheduleSub(row)||contestCodeOf());
   rows.splice(di,1);
-  if(!rows.length) rows.push(emptyScheduleRow());
-  if(activeSchedule>=rows.length) activeSchedule=rows.length-1;
-  activeSection="SCHEDULE:"+(activeSchedule+1);
+  if(activeSchedule>=rows.length) activeSchedule=Math.max(0,rows.length-1);
+  activeSection=rows.length?"SCHEDULE:"+(activeSchedule+1):"SCHEDULE";
   persistLocal();markContestEdited();
   if(opts.toast!==false) toast("Турнир перемещён в архив");
   return true;
@@ -1277,13 +1283,9 @@ function deletePairAt(di, opts){
   archiveFragment("pair",{badge,link},pairNavTitle(di),contestCodeOf());
   badges.splice(di,1);
   links.splice(di,1);
-  if(!badges.length){
-    badges.push(emptyBadge());
-    links.push(emptyLinkRow());
-  }
-  if(activeLink>=badges.length) activeLink=badges.length-1;
+  if(activeLink>=badges.length) activeLink=Math.max(0,badges.length-1);
   activeBadge=activeLink;
-  activeSection="PAIR:"+(activeLink+1);
+  activeSection=badges.length?"PAIR:"+(activeLink+1):"PAIR";
   persistLocal();markContestEdited();
   if(opts.toast!==false) toast("Пара перемещена в архив");
   return true;
@@ -2055,9 +2057,63 @@ function expandStoredPrefixedCode(raw, kind, contestCode){
   if(s.startsWith("r_")||s.startsWith("t_")){
     return buildPrefixedCode(prefix, endingFromFullCode(s, cc, kind));
   }
-  // уже окончание
   return buildPrefixedCode(prefix, s);
 }
+function isBlankCell(v){
+  if(v==null) return true;
+  if(Array.isArray(v)) return v.length===0;
+  if(typeof v==="object") return Object.keys(v).length===0;
+  return String(v).trim()==="";
+}
+/** Строка-заглушка: кроме CONTEST_CODE все значимые поля пустые. */
+function isStubTableRow(row, extraSkip){
+  if(!row||typeof row!=="object") return true;
+  const skip=new Set(["CONTEST_CODE"].concat(extraSkip||[]));
+  for(const [k,v] of Object.entries(row)){
+    if(skip.has(k)) continue;
+    if(!isBlankCell(v)) return false;
+  }
+  return true;
+}
+function isStubBadge(b){
+  if(!b||typeof b!=="object") return true;
+  const flat=b.flat||{};
+  const add=b.add||{};
+  const skip=new Set(["REWARD_TYPE"]);
+  for(const [k,v] of Object.entries(flat)){
+    if(skip.has(k)) continue;
+    if(!isBlankCell(v)) return false;
+  }
+  for(const v of Object.values(add)){
+    if(!isBlankCell(v)) return false;
+  }
+  return true;
+}
+function isStubLink(row){
+  if(!row||typeof row!=="object") return true;
+  return isBlankCell(row.REWARD_CODE)&&isBlankCell(row.GROUP_CODE);
+}
+/** Убрать фантомные пустые строки, которых не было в CSV. */
+function pruneImportedEmptyRows(d){
+  if(!d||typeof d!=="object") return;
+  if(Array.isArray(d.schedule)) d.schedule=d.schedule.filter(r=>!isStubTableRow(r,["seasonCode","filter_period","TARGET_TYPE","FILTER_PERIOD_ARR"]));
+  if(Array.isArray(d.indicator)) d.indicator=d.indicator.filter(r=>!isStubTableRow(r,["filter_items","INDICATOR_FILTER"]));
+  if(Array.isArray(d.group)) d.group=d.group.filter(r=>!isStubTableRow(r));
+  if(Array.isArray(d.badges)&&Array.isArray(d.reward_link)){
+    const nextB=[];const nextL=[];
+    const n=Math.max(d.badges.length,d.reward_link.length);
+    for(let i=0;i<n;i++){
+      const b=d.badges[i];
+      const l=d.reward_link[i];
+      if(isStubBadge(b||{})&&isStubLink(l||{})) continue;
+      if(b) nextB.push(b);
+      if(l) nextL.push(l);
+    }
+    d.badges=nextB;
+    d.reward_link=nextL;
+  }
+}
+
 function expandContestPrefixedCodes(d){
   const cc=contestCodeOf(d);
   for(const row of d.reward_link||[]){
@@ -2208,8 +2264,6 @@ function syncBadgeSlots(data,force){
   if(force){
     // При смене типа: добить до рекомендации, лишние пары не удалять
     while(data.badges.length<rec) data.badges.push(emptyBadge());
-  }else if(!data.badges.length){
-    data.badges=[emptyBadge()];
   }
   const n=data.badges.length;
   const cc=String(data.contest.CONTEST_CODE||"").trim();
@@ -2435,6 +2489,125 @@ function mountChips(host, f, value, onChange, {multi}){
     });
   }
   host.appendChild(box);if(extra)host.appendChild(extra);paint();
+}
+
+/** Группа кода для combobox: хвост VKS/VKO или префикс до «_». */
+function variantGroupKey(code){
+  const s=String(code||"");
+  if(/_VKS$/.test(s)) return "KANBANARS · VKS";
+  if(/_VKO$/.test(s)) return "KANBANARS · VKO";
+  const i=s.indexOf("_");
+  if(i<=0) return "Прочее";
+  return s.slice(0,i);
+}
+function mountSearchCombobox(host, f, value, onChange){
+  const variants=(f.variants||[]).map(v=>String(v));
+  const required=selectionRequired(f);
+  let curVal=String(value||"");
+  if(required&&variants.length&&(!curVal.trim()||!variants.includes(curVal))){
+    curVal=String(f.default||variants[0]||"");
+    withSilentNormalize(()=>onChange(curVal));
+  }
+  const wrap=document.createElement("div");
+  wrap.className="combo";
+  wrap.setAttribute("data-tip",tipFor(f)+"\nПоиск по коду. Свой вариант нельзя.");
+  const inp=document.createElement("input");
+  inp.type="search";
+  inp.className="combo__input";
+  inp.autocomplete="off";
+  inp.placeholder="Найти код…";
+  const lab0=labelForVariant(f,curVal);
+  inp.value=lab0&&lab0!==curVal?(lab0+" · "+curVal):curVal;
+  const list=document.createElement("div");
+  list.className="combo__list";
+  list.hidden=true;
+  let hi=-1;
+  let shown=[];
+  function close(){list.hidden=true;hi=-1}
+  function grouped(q){
+    const needle=String(q||"").trim().toLowerCase();
+    const out=[];
+    const map=new Map();
+    variants.forEach(v=>{
+      const lab=labelForVariant(f,v);
+      const hay=(v+" "+lab).toLowerCase();
+      if(needle&&!hay.includes(needle)) return;
+      const g=variantGroupKey(v);
+      if(!map.has(g)) map.set(g,[]);
+      map.get(g).push(v);
+    });
+    for(const [g,arr] of map) out.push({g,arr});
+    return out;
+  }
+  function paint(q){
+    const groups=grouped(q);
+    shown=groups.flatMap(x=>x.arr);
+    if(!shown.length){
+      list.innerHTML=`<div class="combo__empty">Нет совпадений</div>`;
+      return;
+    }
+    let html="";
+    groups.forEach(gr=>{
+      html+=`<div class="combo__group">${esc(gr.g)}</div>`;
+      gr.arr.forEach(v=>{
+        const lab=labelForVariant(f,v);
+        const on=v===curVal?" is-on":"";
+        html+=`<button type="button" class="combo__opt${on}" data-v="${esc(v)}">${esc(lab&&lab!==v?lab+" · "+v:v)}</button>`;
+      });
+    });
+    list.innerHTML=html;
+    list.querySelectorAll("[data-v]").forEach(btn=>{
+      btn.addEventListener("mousedown",e=>e.preventDefault());
+      btn.addEventListener("click",()=>pick(btn.getAttribute("data-v")));
+    });
+  }
+  function pick(v){
+    curVal=String(v||"");
+    const lab=labelForVariant(f,curVal);
+    inp.value=lab&&lab!==curVal?(lab+" · "+curVal):curVal;
+    onChange(curVal);
+    close();
+    afterFieldKey(f.key);
+    refreshContestTabDirty();
+  }
+  function open(){
+    paint(inp.value===curVal||inp.value.indexOf(" · ")>=0?"":inp.value);
+    list.hidden=false;
+  }
+  inp.addEventListener("focus",()=>open());
+  inp.addEventListener("input",()=>{open();paint(inp.value)});
+  inp.addEventListener("blur",()=>{
+    setTimeout(()=>{
+      if(!variants.includes(curVal)&&required&&variants.length){
+        curVal=String(f.default||variants[0]);
+        onChange(curVal);
+      }
+      const lab=labelForVariant(f,curVal);
+      inp.value=lab&&lab!==curVal?(lab+" · "+curVal):curVal;
+      close();
+    },120);
+  });
+  inp.addEventListener("keydown",e=>{
+    if(e.key==="Escape"){close();inp.blur();return}
+    if(e.key==="ArrowDown"||e.key==="ArrowUp"){
+      e.preventDefault();
+      if(list.hidden) open();
+      if(!shown.length) return;
+      if(e.key==="ArrowDown") hi=Math.min(shown.length-1,hi+1);
+      else hi=Math.max(0,hi<0?shown.length-1:hi-1);
+      list.querySelectorAll(".combo__opt").forEach((el,i)=>el.classList.toggle("is-hi",i===hi));
+      const el=list.querySelectorAll(".combo__opt")[hi];
+      if(el) el.scrollIntoView({block:"nearest"});
+      return;
+    }
+    if(e.key==="Enter"){
+      e.preventDefault();
+      if(hi>=0&&shown[hi]) pick(shown[hi]);
+    }
+  });
+  wrap.appendChild(inp);
+  wrap.appendChild(list);
+  host.appendChild(wrap);
 }
 
 /** Сопоставить значение списка+ с чипом или «своим вариантом» (импорт). */
@@ -2670,6 +2843,7 @@ function renderFieldCard(f, value, path, onChange, opts){
     return card;
   }
   if(kind==="dropdown_custom") mountDropdownCustom(host,f,value,wrapChange);
+  else if(kind==="dropdown"&&(f.variants||[]).length>=COMBOBOX_MIN_VARIANTS) mountSearchCombobox(host,f,value,wrapChange);
   else if(kind==="dropdown"&&(f.variants||[]).length) mountChips(host,f,value,wrapChange,{multi:false});
   else if(kind==="list"){
     if((f.variants||[]).length) mountChips(host,f,value,(v)=>wrapChange(v),{multi:true});
@@ -2804,22 +2978,53 @@ function contestMatchesKindFilter(c){
   if(kind==="reward") return !!contestListShowReward;
   return !!contestListShowTournament;
 }
+function contestEnvHaystack(c){
+  const d=c&&c.data?c.data:{};
+  return [String((d.feature&&d.feature.vid)||""), String((d.contest&&d.contest.TARGET_TYPE)||"")].join(" ").toLowerCase();
+}
+function contestMatchesEnvFilter(c){
+  if(contestListShowProm===contestListShowTest) return true;
+  const hay=contestEnvHaystack(c);
+  if(contestListShowProm) return hay.includes("пром");
+  return hay.includes("тест");
+}
+function contestMatchesStatusFilter(c){
+  if(!contestListStatuses.size) return false;
+  const rows=Array.isArray(c.data&&c.data.schedule)?c.data.schedule:[];
+  if(!rows.length) return false;
+  return rows.some(row=>contestListStatuses.has(String(row.TOURNAMENT_STATUS||"").trim()));
+}
+function contestMatchesDateFilter(c){
+  const ymd=String(contestListDate||"").trim();
+  if(!isIsoDate(ymd)) return true;
+  const rows=Array.isArray(c.data&&c.data.schedule)?c.data.schedule:[];
+  return rows.some(row=>{
+    const start=String(row.START_DT||"").trim();
+    const end=String(row.END_DT||"").trim();
+    if(!isIsoDate(start)||!isIsoDate(end)) return false;
+    return start<=ymd && ymd<=end;
+  });
+}
+function contestMatchesLiveFilters(c){
+  return contestMatchesEnvFilter(c)&&contestMatchesStatusFilter(c)&&contestMatchesDateFilter(c);
+}
+function syncFilterBtn(el, on){
+  if(!el) return;
+  el.classList.toggle("is-on",!!on);
+  el.setAttribute("aria-pressed",on?"true":"false");
+}
 function syncContestKindFilterButtons(){
-  const t=$("filter-tournaments");
-  const r=$("filter-rewards");
-  const a=$("filter-archive");
-  if(t){
-    t.classList.toggle("is-on",contestListShowTournament);
-    t.setAttribute("aria-pressed",contestListShowTournament?"true":"false");
-  }
-  if(r){
-    r.classList.toggle("is-on",contestListShowReward);
-    r.setAttribute("aria-pressed",contestListShowReward?"true":"false");
-  }
-  if(a){
-    a.classList.toggle("is-on",contestListShowArchive);
-    a.setAttribute("aria-pressed",contestListShowArchive?"true":"false");
-  }
+  syncFilterBtn($("filter-tournaments"),contestListShowTournament);
+  syncFilterBtn($("filter-rewards"),contestListShowReward);
+  syncFilterBtn($("filter-archive"),contestListShowArchive);
+  syncFilterBtn($("filter-env-prom"),contestListShowProm);
+  syncFilterBtn($("filter-env-test"),contestListShowTest);
+  document.querySelectorAll("[data-status]").forEach(btn=>{
+    const st=btn.getAttribute("data-status")||"";
+    syncFilterBtn(btn, contestListStatuses.has(st));
+  });
+  const clear=$("filter-date-clear");
+  if(clear) clear.hidden=!isIsoDate(contestListDate);
 }
 
 function renderContestTabs(){
@@ -2831,6 +3036,7 @@ function renderContestTabs(){
   contests.forEach((c,i)=>{
     if(!contestMatchesKindFilter(c)) return;
     if(!contestMatchesListQuery(c,contestListQuery)) return;
+    if(!contestMatchesLiveFilters(c)) return;
     if(contestMenuKind(c)==="reward") rewards.push({c,i});
     else tournaments.push({c,i});
   });
@@ -2870,9 +3076,9 @@ function renderContestTabs(){
     }else if(contestListShowArchive&&!archiveEntries.length&&!rewards.length&&!tournaments.length){
       host.innerHTML=`<div class="contest-tabs-empty">Архив пуст</div>`;
     }else if(q){
-      host.innerHTML=`<div class="contest-tabs-empty">Нет конкурсов по запросу «${esc(q)}»</div>`;
+      host.innerHTML=`<div class="contest-tabs-empty">Нет конкурсов по запросу «${esc(q)}» и текущим фильтрам</div>`;
     }else{
-      host.innerHTML=`<div class="contest-tabs-empty">Нет конкурсов выбранного типа</div>`;
+      host.innerHTML=`<div class="contest-tabs-empty">Нет конкурсов по текущим фильтрам</div>`;
     }
   }
   host.querySelectorAll("[data-ci]").forEach(el=>{
@@ -2950,7 +3156,7 @@ function navItems(){
 
   rowMain.push({kind:"group",group:"ind",title:"Индикаторы",meta:indRows.length+" шт."});
   if(!indRows.length){
-    rowMain.push({id:"INDICATOR:1",title:"Индикатор 1",sub:"INDICATOR_CODE",tag:"table",tagLabel:"I1",slot:true});
+    rowMain.push({id:"INDICATOR",title:"Нет индикаторов",sub:"добавить",tag:"table",tagLabel:"I",slot:true,tip:"В снимке нет строк INDICATOR — добавить вручную"});
   }else{
     indRows.forEach((r,i)=>{
       const title=indicatorTitle(r,i);
@@ -2975,7 +3181,7 @@ function navItems(){
 
   rowMain.push({kind:"group",group:"groups",title:"Группы",meta:groupRows.length+" шт."});
   if(!groupRows.length){
-    rowMain.push({id:"GROUP:1",title:"Группа 1",sub:"GROUP_CODE",tag:"table",tagLabel:"G1",slot:true});
+    rowMain.push({id:"GROUP",title:"Нет групп",sub:"добавить",tag:"table",tagLabel:"G",slot:true,tip:"В снимке нет строк GROUP — добавить вручную"});
   }else{
     groupRows.forEach((r,i)=>{
       const title=groupTitle(r,i);
@@ -2998,7 +3204,10 @@ function navItems(){
   // Строка 2: Связи + награды (+ особенности JSON)
   const rowLinks=[];
   rowLinks.push({kind:"group",group:"pair",title:"Связи + награды",meta:n+(n>max?" · рек. "+max:" / рек. "+max)});
-  for(let i=0;i<Math.max(n,1);i++){
+  if(!n){
+    rowLinks.push({id:"PAIR",title:"Нет связей",sub:"добавить",tag:"table",tagLabel:"R",slot:true,tip:"В снимке нет пар связь+награда — добавить вручную"});
+  }else{
+  for(let i=0;i<n;i++){
     const label=pairNavTitle(i);
     const code=badgeRewardCode(i)||"";
     rowLinks.push({
@@ -3014,6 +3223,7 @@ function navItems(){
       tipAdd:"JSON REWARD_ADD_DATA для награды "+(code||("#"+(i+1))),
     });
   }
+  }
 
   // Строка 3: Расписание (всегда последняя) — порядок по TOURNAMENT_STATUS
   ensureScheduleSorted();
@@ -3021,7 +3231,7 @@ function navItems(){
   const rowSchedule=[];
   rowSchedule.push({kind:"group",group:"sch",title:"Расписание",meta:schSorted.length+" тур."});
   if(!schSorted.length){
-    rowSchedule.push({id:"SCHEDULE:1",title:"Период 1",sub:"TOURNAMENT_CODE",tag:"table",tagLabel:"T1",slot:true,codeSlot:true});
+    rowSchedule.push({id:"SCHEDULE",title:"Нет турниров",sub:"добавить",tag:"table",tagLabel:"T",slot:true,tip:"В снимке нет строк SCHEDULE — добавить вручную"});
   }else{
     schSorted.forEach((r,i)=>{
       const title=scheduleTitle(r,i);
@@ -3075,13 +3285,14 @@ function clampIndex(i,len){
 }
 function normalizeActiveSection(){
   if(activeSection==="REWARD-LINK"||activeSection==="BADGE"||activeSection==="LINK"){
-    activeSection="PAIR:"+(activeLink+1);
+    activeSection=(data().badges||[]).length?"PAIR:"+(activeLink+1):"PAIR";
   }
-  if(activeSection==="GROUP") activeSection="GROUP:"+(activeGroup+1);
-  if(activeSection==="INDICATOR") activeSection="INDICATOR:"+(activeIndicator+1);
-  if(activeSection==="SCHEDULE") activeSection="SCHEDULE:"+(activeSchedule+1);
+  if(activeSection==="GROUP"&&(data().group||[]).length) activeSection="GROUP:"+(activeGroup+1);
+  if(activeSection==="INDICATOR"&&(data().indicator||[]).length) activeSection="INDICATOR:"+(activeIndicator+1);
+  if(activeSection==="SCHEDULE"&&(data().schedule||[]).length) activeSection="SCHEDULE:"+(activeSchedule+1);
   if(activeSection.startsWith("ADD:")){
-    const n=(data().badges||[]).length||1;
+    const n=(data().badges||[]).length;
+    if(!n){activeSection="PAIR";return}
     let i=Number(activeSection.split(":")[1])-1;
     i=clampIndex(i,n);
     activeLink=i;activeBadge=i;
@@ -3089,28 +3300,32 @@ function normalizeActiveSection(){
     return;
   }
   if(activeSection.startsWith("BADGE:")||activeSection.startsWith("LINK:")||activeSection.startsWith("PAIR:")){
-    const n=(data().badges||[]).length||1;
+    const n=(data().badges||[]).length;
+    if(!n){activeSection="PAIR";return}
     let i=Number(activeSection.split(":")[1])-1;
     i=clampIndex(i,n);
     activeLink=i;activeBadge=i;
     activeSection="PAIR:"+(i+1);
   }
   if(activeSection.startsWith("GROUP:")){
-    const n=Math.max((data().group||[]).length,1);
+    const n=(data().group||[]).length;
+    if(!n){activeSection="GROUP";return}
     let i=Number(activeSection.split(":")[1])-1;
     i=clampIndex(i,n);
     activeGroup=i;
     activeSection="GROUP:"+(i+1);
   }
   if(activeSection.startsWith("INDICATOR:")){
-    const n=Math.max((data().indicator||[]).length,1);
+    const n=(data().indicator||[]).length;
+    if(!n){activeSection="INDICATOR";return}
     let i=Number(activeSection.split(":")[1])-1;
     i=clampIndex(i,n);
     activeIndicator=i;
     activeSection="INDICATOR:"+(i+1);
   }
   if(activeSection.startsWith("SCHEDULE:")){
-    const n=Math.max((data().schedule||[]).length,1);
+    const n=(data().schedule||[]).length;
+    if(!n){activeSection="SCHEDULE";return}
     let i=Number(activeSection.split(":")[1])-1;
     i=clampIndex(i,n);
     activeSchedule=i;
@@ -3275,11 +3490,78 @@ function renderContestPeriod(){
     onChange:()=>{persistLocal();refreshContestTabDirty();renderNav()}
   });
 }
+function emptyTableHtml(text, btnId, btnLabel){
+  return `<div class="empty-table"><p class="empty-table__text">${esc(text)}</p><button type="button" class="btn btn-primary" id="${esc(btnId)}">${esc(btnLabel)}</button></div>`;
+}
+function renderEmptyTableSection(title, intro, emptyText, btnId, btnLabel, onAdd){
+  $("workspace").innerHTML=`
+<section class="panel">
+  ${panelHeadHtml(title, [contestCtxPill()])}
+  <p class="intro">${intro}</p>
+  ${emptyTableHtml(emptyText, btnId, btnLabel)}
+</section>`;
+  $(btnId)?.addEventListener("click", onAdd);
+}
+function addGroupRow(){
+  const rows=data().group;
+  rows.push(emptyGroupRow());
+  activeGroup=rows.length-1;
+  activeSection="GROUP:"+(activeGroup+1);
+  persistLocal();
+  markContestEdited();
+  render();
+  toast("Добавлена группа");
+}
+function addIndicatorRow(){
+  const rows=data().indicator;
+  rows.push(emptyIndicatorRow());
+  activeIndicator=rows.length-1;
+  activeSection="INDICATOR:"+(activeIndicator+1);
+  persistLocal();
+  markContestEdited();
+  render();
+  toast("Добавлен индикатор");
+}
+function addScheduleRow(){
+  const rows=data().schedule;
+  rows.push(emptyScheduleRow());
+  activeSchedule=rows.length-1;
+  activeSection="SCHEDULE:"+(activeSchedule+1);
+  persistLocal();
+  markContestEdited();
+  render();
+  toast("Добавлен турнир");
+}
+function addPairRow(){
+  const max=maxBadges(data().contest.CONTEST_TYPE);
+  const curN=data().badges.length;
+  if(curN>=max){
+    if(!confirm("Для этого типа обычно до "+max+" пар(ы) связь+награда.\nСейчас уже "+curN+". Добавить ещё одну?")) return;
+  }
+  data().badges.push(emptyBadge());
+  data().reward_link.push(emptyLinkRow());
+  activeLink=data().badges.length-1;
+  activeBadge=activeLink;
+  activeSection="PAIR:"+(activeLink+1);
+  persistLocal();markContestEdited();render();
+  toast(curN+1>max?("Добавлена пара "+(curN+1)+" (выше рекомендации "+max+")"):"Добавлена пара");
+}
 function renderLinkRewardPair(){
   syncBadgeSlots(data(),false);
   seedLinked(data());
   const max=maxBadges(data().contest.CONTEST_TYPE);
   const n=data().badges.length;
+  if(!n){
+    renderEmptyTableSection(
+      "Связи + награды",
+      "В снимке нет пар связь+награда. Заглушка не создаётся, пока не нажмёте «добавить».",
+      "Нет связей и наград. Добавьте пару, если она нужна.",
+      "btn-add-pair-empty",
+      "добавить связь + награду",
+      addPairRow
+    );
+    return;
+  }
   if(activeLink>=n) activeLink=Math.max(0,n-1);
   if(activeLink<0) activeLink=0;
   activeBadge=activeLink;
@@ -3354,19 +3636,7 @@ function renderLinkRewardPair(){
     if(deletePairAt(activeLink)) render();
   });
   const addBtn=$("btn-add-pair");
-  if(addBtn) addBtn.addEventListener("click",()=>{
-    const curN=data().badges.length;
-    if(curN>=max){
-      if(!confirm("Для этого типа обычно до "+max+" пар(ы) связь+награда.\nСейчас уже "+curN+". Добавить ещё одну?")) return;
-    }
-    data().badges.push(emptyBadge());
-    data().reward_link.push(emptyLinkRow());
-    activeLink=data().badges.length-1;
-    activeBadge=activeLink;
-    activeSection="PAIR:"+(activeLink+1);
-    persistLocal();markContestEdited();render();
-    toast(curN+1>max?("Добавлена пара "+(curN+1)+" (выше рекомендации "+max+")"):"Добавлена пара");
-  });
+  if(addBtn) addBtn.addEventListener("click",()=>addPairRow());
   $("btn-copy-pairs")?.addEventListener("click",()=>copyActivePairToOthers());
   $("btn-goto-add")?.addEventListener("click",()=>{activeSection="ADD:"+(i+1);closeAllDatePops();render()});
 
@@ -3413,7 +3683,8 @@ function renderLinkRewardPair(){
 function renderRewardAdd(){
   syncBadgeSlots(data(),false);
   seedLinked(data());
-  const n=data().badges.length||1;
+  const n=data().badges.length;
+  if(!n){activeSection="PAIR";renderLinkRewardPair();return}
   if(activeLink>=n) activeLink=Math.max(0,n-1);
   if(activeLink<0) activeLink=0;
   activeBadge=activeLink;
@@ -3452,7 +3723,17 @@ function renderRewardLink(){activeSection="PAIR:"+(activeLink+1);renderLinkRewar
 function renderGroup(){
   seedLinked(data());
   const rows=data().group;
-  if(!rows.length) rows.push(emptyGroupRow());
+  if(!rows.length){
+    renderEmptyTableSection(
+      "Группы",
+      "Заполняйте до пар «Связи + награды». Значения <code>GROUP_CODE</code> станут вариантами выбора в связи.",
+      "Нет групп. Добавьте группу, если она есть в конкурсе.",
+      "btn-add-group-empty",
+      "Добавить группу",
+      addGroupRow
+    );
+    return;
+  }
   if(activeGroup>=rows.length) activeGroup=rows.length-1;
   if(activeGroup<0) activeGroup=0;
   const i=activeGroup;
@@ -3501,15 +3782,7 @@ function renderGroup(){
   $("btn-del-group")?.addEventListener("click",()=>{
     if(deleteGroupAt(activeGroup)) render();
   });
-  $("btn-add-group").addEventListener("click",()=>{
-    rows.push(emptyGroupRow());
-    activeGroup=rows.length-1;
-    activeSection="GROUP:"+(activeGroup+1);
-    persistLocal();
-    markContestEdited();
-    render();
-    toast("Добавлена группа");
-  });
+  $("btn-add-group").addEventListener("click",()=>addGroupRow());
   $("btn-copy-groups")?.addEventListener("click",()=>copyActiveGroupToOthers());
 
   $("group-groups").appendChild(renderGrouped(
@@ -3542,7 +3815,17 @@ function renderGroup(){
 function renderIndicator(){
   seedLinked(data());
   const rows=data().indicator;
-  if(!rows.length) rows.push(emptyIndicatorRow());
+  if(!rows.length){
+    renderEmptyTableSection(
+      "Индикаторы",
+      "Несколько индикаторов — вкладки. Код конкурса в заголовке, поля — в карточках.",
+      "Нет индикаторов. Добавьте индикатор, если он есть в конкурсе.",
+      "btn-add-indicator-empty",
+      "Добавить индикатор",
+      addIndicatorRow
+    );
+    return;
+  }
   if(activeIndicator>=rows.length) activeIndicator=rows.length-1;
   if(activeIndicator<0) activeIndicator=0;
   const i=activeIndicator;
@@ -3587,15 +3870,7 @@ function renderIndicator(){
   $("btn-del-indicator")?.addEventListener("click",()=>{
     if(deleteIndicatorAt(activeIndicator)) render();
   });
-  $("btn-add-indicator").addEventListener("click",()=>{
-    rows.push(emptyIndicatorRow());
-    activeIndicator=rows.length-1;
-    activeSection="INDICATOR:"+(activeIndicator+1);
-    persistLocal();
-    markContestEdited();
-    render();
-    toast("Добавлен индикатор");
-  });
+  $("btn-add-indicator").addEventListener("click",()=>addIndicatorRow());
 
   ensureIndicatorJson(row);
   $("indicator-groups").appendChild(renderGrouped(
@@ -3624,7 +3899,17 @@ function renderIndicator(){
 function renderSchedule(){
   ensureScheduleSorted();
   const rows=data().schedule;
-  if(!rows.length){rows.push(emptyScheduleRow());}
+  if(!rows.length){
+    renderEmptyTableSection(
+      "Расписание турнира",
+      "Каждый период — карточка. <code>TOURNAMENT_CODE</code> = <code>t_</code> + <code>CONTEST_CODE</code>; при непустом окончании — ещё <code>_</code> + окончание (иначе без хвостового <code>_</code>).",
+      "Нет турниров. Добавьте период, если он есть в конкурсе.",
+      "btn-add-period-empty",
+      "добавить турнир",
+      addScheduleRow
+    );
+    return;
+  }
   if(activeSchedule>=rows.length) activeSchedule=rows.length-1;
   if(activeSchedule<0) activeSchedule=0;
   const i=activeSchedule;
@@ -3678,15 +3963,7 @@ function renderSchedule(){
   $("btn-del-period")?.addEventListener("click",()=>{
     if(deleteScheduleAt(activeSchedule)) render();
   });
-  $("btn-add-period").addEventListener("click",()=>{
-    rows.push(emptyScheduleRow());
-    activeSchedule=rows.length-1;
-    activeSection="SCHEDULE:"+(activeSchedule+1);
-    persistLocal();
-    markContestEdited();
-    render();
-    toast("Добавлен турнир");
-  });
+  $("btn-add-period").addEventListener("click",()=>addScheduleRow());
   $("btn-copy-schedule")?.addEventListener("click",()=>copyActiveScheduleToOthers());
 
   ensureScheduleJson(row);
@@ -3783,7 +4060,6 @@ function renderTable(kind,title,cols,rowsKey){
   $("workspace").querySelectorAll("[data-del]").forEach(btn=>btn.addEventListener("click",()=>{
     const r=Number(btn.getAttribute("data-del"));
     data()[rowsKey].splice(r,1);
-    if(!data()[rowsKey].length){const row=Object.fromEntries(cols.map(c=>[c,""]));row.CONTEST_CODE=cc;data()[rowsKey].push(row)}
     if(rowsKey==="group") pruneLinkGroupCodes(data());
     persistLocal();render();
   }));
@@ -3817,7 +4093,7 @@ function render(){
   else if(activeSection==="CONTEST_FEATURE")renderFeature();
   else if(activeSection==="CONTEST_PERIOD")renderContestPeriod();
   else if(activeSection.startsWith("ADD:"))renderRewardAdd();
-  else if(activeSection.startsWith("PAIR:")||activeSection.startsWith("BADGE:")||activeSection.startsWith("LINK:")||activeSection==="REWARD-LINK")renderLinkRewardPair();
+  else if(activeSection.startsWith("PAIR:")||activeSection==="PAIR"||activeSection.startsWith("BADGE:")||activeSection.startsWith("LINK:")||activeSection==="REWARD-LINK")renderLinkRewardPair();
   else if(activeSection==="GROUP"||activeSection.startsWith("GROUP:"))renderGroup();
   else if(activeSection==="INDICATOR"||activeSection.startsWith("INDICATOR:"))renderIndicator();
   else if(activeSection==="SCHEDULE"||activeSection.startsWith("SCHEDULE:"))renderSchedule();
@@ -4031,7 +4307,7 @@ function ensureJsonStructures(d){
         src=null;
       }
     }
-    d.contestPeriod=Array.isArray(src)&&src.length?src.map(normalizeContestPeriodItem):[emptyContestPeriodItem()];
+    d.contestPeriod=Array.isArray(src)&&src.length?src.map(normalizeContestPeriodItem):[];
   }
   if("CONTEST_PERIOD" in d.contest) delete d.contest.CONTEST_PERIOD;
   for(const row of d.schedule||[]) ensureScheduleJson(row);
@@ -4440,6 +4716,7 @@ async function loadCatalogPreferFile(){
 }
 let sessionReady=false;
 let sidebarOpen=true;
+let filtersOpen=true;
 
 function setSidebarOpen(open){
   sidebarOpen=!!open;
@@ -4449,6 +4726,28 @@ function setSidebarOpen(open){
   const show=$("btn-sidebar-show");
   if(hide) hide.setAttribute("aria-expanded",sidebarOpen?"true":"false");
   if(show) show.setAttribute("aria-expanded",sidebarOpen?"true":"false");
+}
+function setFiltersOpen(open){
+  filtersOpen=!!open;
+  const app=document.querySelector(".app");
+  if(app) app.classList.toggle("is-filters-collapsed",!filtersOpen);
+  const hide=$("btn-filters-hide");
+  const show=$("btn-filters-show");
+  if(hide) hide.setAttribute("aria-expanded",filtersOpen?"true":"false");
+  if(show) show.setAttribute("aria-expanded",filtersOpen?"true":"false");
+}
+function remountContestListDateFilter(){
+  const host=$("filter-date-host");
+  if(!host) return;
+  host.innerHTML="";
+  mountDateUi(host, contestListDate, (v)=>{
+    contestListDate=String(v||"");
+    const clear=$("filter-date-clear");
+    if(clear) clear.hidden=!isIsoDate(contestListDate);
+    renderContestTabs();
+  }, "Дата внутри периода START_DT…END_DT");
+  const clear=$("filter-date-clear");
+  if(clear) clear.hidden=!isIsoDate(contestListDate);
 }
 let catalogSource="embedded";
 
@@ -4627,6 +4926,7 @@ function applyProjectObject(restored, opts){
   if(!restored||!Array.isArray(restored.contests)||!restored.contests.length)throw new Error("В файле нет contests[]");
   contests=restored.contests.map((c,i)=>{
     const data=c.data||emptyContestData();
+    pruneImportedEmptyRows(data);
     ensureJsonStructures(data);
     expandContestPrefixedCodes(data);
     syncBadgeSlots(data,false);
@@ -4794,8 +5094,12 @@ function wireOutsideDate(){
 function wire(){
   initTips();wireOutsideDate();
   setSidebarOpen(true);
+  setFiltersOpen(true);
+  remountContestListDateFilter();
   $("btn-sidebar-hide")?.addEventListener("click",()=>setSidebarOpen(false));
   $("btn-sidebar-show")?.addEventListener("click",()=>setSidebarOpen(true));
+  $("btn-filters-hide")?.addEventListener("click",()=>setFiltersOpen(false));
+  $("btn-filters-show")?.addEventListener("click",()=>setFiltersOpen(true));
   $("btn-add-contest").addEventListener("click",()=>addContest());
   $("btn-copy-contest")?.addEventListener("click",()=>openCopyContestModal());
   $("btn-save-project").addEventListener("click",()=>saveProjectFile());
@@ -4822,6 +5126,28 @@ function wire(){
   $("filter-archive")?.addEventListener("click",()=>{
     contestListShowArchive=!contestListShowArchive;
     if(!contestListShowArchive&&activeArchiveId){activeArchiveId=null;render();return}
+    renderContestTabs();
+  });
+  $("filter-env-prom")?.addEventListener("click",()=>{
+    contestListShowProm=!contestListShowProm;
+    renderContestTabs();
+  });
+  $("filter-env-test")?.addEventListener("click",()=>{
+    contestListShowTest=!contestListShowTest;
+    renderContestTabs();
+  });
+  document.querySelectorAll("[data-status]").forEach(btn=>{
+    btn.addEventListener("click",()=>{
+      const st=btn.getAttribute("data-status")||"";
+      if(!st) return;
+      if(contestListStatuses.has(st)) contestListStatuses.delete(st);
+      else contestListStatuses.add(st);
+      renderContestTabs();
+    });
+  });
+  $("filter-date-clear")?.addEventListener("click",()=>{
+    contestListDate="";
+    remountContestListDateFilter();
     renderContestTabs();
   });
 }

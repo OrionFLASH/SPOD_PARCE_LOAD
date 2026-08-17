@@ -1,8 +1,8 @@
 # Заполнение SPOD — полный контур (web-fill-full)
 
-Копия `web-fill` с **разделением на файлы** (не всё в одном HTML).
+Копия `web-fill` с **разделением на файлы** (не всё в одном HTML). Поведение совпадает с однофайловым fill.
 
-Пока каталог параметров — тот же, что в `web-fill` (синхрон с текущим edit). Полный перечень из `web-edit-full` подключим отдельно.
+Каталог параметров синхронизируется из `web-edit` скриптом `sync_web_fill_catalog.py`. Примеры снимков JSON — в **`../web-fill/examples/`**.
 
 ## Файлы
 
@@ -27,6 +27,24 @@ cd common/web-fill-full && python3 -m http.server 8766
 
 Черновик в `localStorage` ключ: `spod_web_fill_full_project_v2` (отдельно от обычного fill).
 
-## Синхронизация каталога (пока с web-edit)
+## Интерфейс
 
-Пока вручную копируйте `catalog.json` / `catalog.js` из `web-fill` после `sync_web_fill_catalog.py`, либо укажите путь на каталог из `web-edit-full`, когда будете переключать fill-full на полный список.
+Как в `../web-fill/README.md`: слева список + легенда, справа «Поиск и фильтры» (тип, ПРОМ/ТЕСТ, статус, дата). Скрытие панелей независимое; колонтитулы остаются.
+
+Пустые массивы GROUP / INDICATOR / SCHEDULE / пары не дополняются заглушками при импорте — только кнопка «Добавить».
+
+## Синхронизация
+
+Из web-edit:
+
+```bash
+python3 src/Tools/sync_web_fill_catalog.py
+```
+
+После правок css/html/js здесь — зеркало в однофайловый fill:
+
+```bash
+python3 src/Tools/sync_web_fill_singlefile.py
+```
+
+Пересборка `examples/*.json` из CSV PROM-SPOD — локально (`export_web_fill_examples_from_spod.py`); в репозитории исходных CSV нет.
