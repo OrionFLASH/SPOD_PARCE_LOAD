@@ -57,7 +57,21 @@ python src/Tools/build_param_review_editor.py
 
 ```bash
 python src/Tools/sync_web_fill_catalog.py
+python src/Tools/enrich_catalog_marks.py   # порядок marks после allow_empty
 ```
+
+## Метки ПКАП / ФАБРИКА
+
+У каждого поля каталога — массив **`marks`** в JSON (сразу после **`allow_empty`**):
+
+```json
+"allow_empty": false,
+"marks": ["ПКАП", "ФАБРИКА"],
+"json_target": "",
+"note": ""
+```
+
+В UI чипы **ПКАП / ФАБРИКА** — в шапке карточки **после переключателя «Можно пусто»**. Можно включить одну, обе или снять все (`marks: []`). При экспорте JSON метки и **`marksManifest`** сохраняются в файл.
 
 Страница: `../web-fill/game_fill_settings.html` (скрипт обновляет `catalog.json` / `catalog.js` **в web-fill** и блок `EMBEDDED_CATALOG` в `game_fill_settings.html`).
 

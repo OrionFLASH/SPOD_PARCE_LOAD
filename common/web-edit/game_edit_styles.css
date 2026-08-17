@@ -1290,6 +1290,10 @@ body::after {
 .combo__empty { padding: 10px 8px; font-size: 12px; color: var(--glass-text-secondary); }
 
 .default-chips-filter { margin: 0 0 8px; }
+.default-checks--chips-scroll {
+  max-height: min(40vh, 280px);
+  overflow: auto;
+}
 
 .card--long-list .grid-2 { grid-template-columns: 1fr; }
 
@@ -1577,6 +1581,78 @@ body::after {
 .status-chip--ready.active {
   color: #1e8449;
   border-color: rgba(52, 199, 89, 0.4);
+}
+
+.param-marks-toggle {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.45);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.param-mark-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px 3px 5px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background: rgba(255, 255, 255, 0.65);
+  cursor: pointer;
+  font: inherit;
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: 0.03em;
+  line-height: 1.1;
+  color: var(--glass-text-secondary);
+  transition: background 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s;
+}
+
+.param-mark-chip:hover {
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.param-mark-chip__icon {
+  display: inline-flex;
+  width: 14px;
+  height: 14px;
+  flex: 0 0 14px;
+  opacity: 0.85;
+}
+
+.param-mark-chip__icon svg {
+  width: 14px;
+  height: 14px;
+}
+
+.param-mark-chip__label {
+  white-space: nowrap;
+}
+
+.param-mark-chip--pkap.active {
+  background: rgba(0, 122, 255, 0.16);
+  border-color: rgba(0, 122, 255, 0.42);
+  color: #0055b3;
+  box-shadow: 0 0 0 1px rgba(0, 122, 255, 0.12);
+}
+
+.param-mark-chip--fabrika.active {
+  background: rgba(245, 158, 11, 0.18);
+  border-color: rgba(217, 119, 6, 0.45);
+  color: #b45309;
+  box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.14);
+}
+
+.param-mark-chip:not(.active) {
+  opacity: 0.55;
+}
+
+.param-mark-chip:not(.active):hover {
+  opacity: 0.85;
 }
 
 .revert-chip {

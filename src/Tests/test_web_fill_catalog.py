@@ -50,3 +50,18 @@ def test_reward_type_list() -> None:
     assert f["kind"] == "dropdown"
     assert f["variants"] == ["BADGE", "LABEL", "ITEM", "CRYSTAL"]
     assert "CRISTAL" not in f["variants"]
+
+
+def test_marks_after_allow_empty() -> None:
+    data = json.loads(CATALOG.read_text(encoding="utf-8"))
+    total = 0
+    for sec in data["sections"]:
+        for f in sec["fields"]:
+            total += 1
+            keys = list(f.keys())
+            assert "marks" in f, f"{sec['id']}::{f['key']}"
+            assert keys.index("marks") == keys.index("allow_empty") + 1, (
+                f"{sec['id']}::{f['key']}"
+            )
+    assert total >= 100
+    assert data.get("marksManifest") == ["ПКАП", "ФАБРИКА"]

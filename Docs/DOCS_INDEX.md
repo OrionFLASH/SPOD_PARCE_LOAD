@@ -21,7 +21,7 @@
 - `CONTEST_BADGE_FORM.md` — Excel-форма конкурса BADGE (export/import через `run_outputs`).
 - `CONTEST_BADGE_FORM_FILLING.md` — **заполнение шаблона**: цвета, порядок полей, типичные ошибки, цикл export→import.
 - `CONTEST_BADGE_FORM_PARAM_REVIEW.md` — stub: актуальный MD-снимок в **`common/param_catalog_review/`**.
-- Редактор описаний: **`common/web-edit/`** (данные **`common/param_catalog_review/catalog.json`**). Сборка: `python src/Tools/build_param_review_editor.py`. Длинные списки (≥16 вариантов, в т.ч. `INDICATOR_CODE`) — combobox сверху карточки.
+- Редактор описаний: **`common/web-edit/`** (данные **`common/param_catalog_review/catalog.json`**). Сборка: `python src/Tools/build_param_review_editor.py`. Длинные списки (≥16 вариантов, в т.ч. `INDICATOR_CODE`) — combobox сверху карточки. Метки **ПКАП / ФАБРИКА** — поле `marks[]` в каталоге (после `allow_empty`), UI в web-edit / web-edit-full.
 - Полный каталог (скан PROM SPOD): **`common/web-edit-full/`** — `README.md`, `game_edit_catalog.json`; пересборка `python src/Tools/build_web_edit_full_catalog.py`.
 - Заполнение параметров SPOD: **`common/web-fill/`** (однофайловый HTML) и **`common/web-fill-full/`** (html + css + js + catalog). С 16.16 UX дорабатывается только в fill-full.
 - Примеры снимков JSON для импорта: **`common/examples/`** (`README.md`, подпапки `web-fill/{curated,badges,contests}/`). Каталоги UI и «Сохранить JSON» остаются в папках приложений.
@@ -52,6 +52,7 @@
 
 - `POST_ENCRYPTED_TRANSFER.md` — шифрованный bundle для почты.
 - `POST_SNAPSHOT/` — шаблоны `КУДА_ПОЛОЖИТЬ_ФАЙЛЫ.txt`, `restore_names_from_txt.bat` (копируются в `POST/`).
+- **WEB-снимок:** `python src/Tools/sync_post_web_bundle.py` → **`POST/SPOD_PROM/`** (common web-edit/fill, примеры JSON, Docs WEB, Tools экспорта). Состав — **`POST/SPOD_PROM/СОСТАВ_ПАКЕТА.txt`**.
 
 ## Прочее (живой / генерируемый)
 

@@ -3,7 +3,7 @@
   "block": "PROM",
   "title": "BADGE · SCHEDULE START_DT содержит 2026",
   "source": "config/CONFIG_RUN_INPUT.json · PROM · листы каталога fill · contest=IN/PROM/SPOD/CONTEST (PROM) 05-08 v0.csv; reward=IN/PROM/SPOD/REWARD (PROM) 05-08 v0.csv; reward_link=IN/PROM/SPOD/REWARD-LINK (PROM) 05-08 v1.csv; group=IN/PROM/SPOD/GROUP (PROM) 05-08 v1.csv; indicator=IN/PROM/SPOD/INDICATOR (PROM) 05-08 v0.csv; schedule=IN/PROM/SPOD/SCHEDULE (PROM) 05-08 v0.csv · только конкурсы со связью REWARD_TYPE=BADGE",
-  "saved_at": "2026-08-17T16:35:01.943211Z",
+  "saved_at": "2026-08-17T22:55:35.993821Z",
   "catalog_stamp": "2026-08-17T13:42:19.465681Z",
   "activeContest": 0,
   "contests": [
@@ -150,7 +150,7 @@
             "filter_period": []
           },
           {
-            "TOURNAMENT_CODE": "01_2026-1_10-2_1_2012",
+            "TOURNAMENT_CODE": "t_01_2026-1_10-2_1_2012",
             "PERIOD_TYPE": "турнир 1 квартала",
             "START_DT": "2026-01-01",
             "END_DT": "2026-03-31",
@@ -167,7 +167,7 @@
             "filter_period": []
           },
           {
-            "TOURNAMENT_CODE": "01_2026-1_10-2_1_2022",
+            "TOURNAMENT_CODE": "t_01_2026-1_10-2_1_2022",
             "PERIOD_TYPE": "турнир 2 квартала",
             "START_DT": "2026-04-01",
             "END_DT": "2026-06-30",
@@ -184,7 +184,7 @@
             "filter_period": []
           },
           {
-            "TOURNAMENT_CODE": "01_2026-1_10-2_1_2032",
+            "TOURNAMENT_CODE": "t_01_2026-1_10-2_1_2032",
             "PERIOD_TYPE": "турнир 3 квартала",
             "START_DT": "2026-07-01",
             "END_DT": "2026-09-30",
@@ -345,7 +345,7 @@
             "filter_period": []
           },
           {
-            "TOURNAMENT_CODE": "01_2026-0_01-6_4001",
+            "TOURNAMENT_CODE": "t_01_2026-0_01-6_4001",
             "PERIOD_TYPE": "произвольный",
             "START_DT": "2026-01-01",
             "END_DT": "2026-12-31",
@@ -505,7 +505,7 @@
             "filter_period": []
           },
           {
-            "TOURNAMENT_CODE": "01_2026-1_01-8_2011",
+            "TOURNAMENT_CODE": "t_01_2026-1_01-8_2011",
             "PERIOD_TYPE": "турнир 1 квартала",
             "START_DT": "2026-01-01",
             "END_DT": "2026-03-31",
@@ -522,7 +522,7 @@
             "filter_period": []
           },
           {
-            "TOURNAMENT_CODE": "01_2026-1_01-8_2021",
+            "TOURNAMENT_CODE": "t_01_2026-1_01-8_2021",
             "PERIOD_TYPE": "турнир 2 квартала",
             "START_DT": "2026-04-01",
             "END_DT": "2026-06-30",
@@ -539,7 +539,7 @@
             "filter_period": []
           },
           {
-            "TOURNAMENT_CODE": "01_2026-1_01-8_2031",
+            "TOURNAMENT_CODE": "t_01_2026-1_01-8_2031",
             "PERIOD_TYPE": "турнир 3 квартала",
             "START_DT": "2026-07-01",
             "END_DT": "2026-09-30",
@@ -637,7 +637,7 @@
               "recommendationLevel": "BANK",
               "priority": "1",
               "masterBadge": "N",
-              "parentRewardCode": "01_2026-1_00-1_1"
+              "parentRewardCode": "r_01_2026-1_00-1_1"
             }
           },
           {
@@ -666,7 +666,7 @@
               "recommendationLevel": "TB",
               "priority": "2",
               "masterBadge": "N",
-              "parentRewardCode": "01_2026-1_00-1_2"
+              "parentRewardCode": "r_01_2026-1_00-1_2"
             }
           },
           {
@@ -695,7 +695,7 @@
               "recommendationLevel": "GOSB",
               "priority": "3",
               "masterBadge": "N",
-              "parentRewardCode": "01_2026-1_00-1_3"
+              "parentRewardCode": "r_01_2026-1_00-1_3"
             }
           }
         ],
@@ -944,7 +944,7 @@
             ]
           },
           {
-            "TOURNAMENT_CODE": "01_2026-1_05-1_2t_3021",
+            "TOURNAMENT_CODE": "t_01_2026-1_05-1_2t_3021",
             "PERIOD_TYPE": "турнир февраля",
             "START_DT": "2026-02-01",
             "END_DT": "2026-02-28",
@@ -969,7 +969,7 @@
             ]
           },
           {
-            "TOURNAMENT_CODE": "01_2026-1_05-1_2t_3031",
+            "TOURNAMENT_CODE": "t_01_2026-1_05-1_2t_3031",
             "PERIOD_TYPE": "турнир марта",
             "START_DT": "2026-03-01",
             "END_DT": "2026-03-31",
@@ -1253,7 +1253,7 @@
             ]
           },
           {
-            "TOURNAMENT_CODE": "01_2026-1_08-1_2_3041",
+            "TOURNAMENT_CODE": "t_01_2026-1_08-1_2_3041",
             "PERIOD_TYPE": "турнир апреля",
             "START_DT": "2026-04-01",
             "END_DT": "2026-04-30",
@@ -1278,7 +1278,7 @@
             ]
           },
           {
-            "TOURNAMENT_CODE": "01_2026-1_08-1_2_3051",
+            "TOURNAMENT_CODE": "t_01_2026-1_08-1_2_3051",
             "PERIOD_TYPE": "турнир мая",
             "START_DT": "2026-05-01",
             "END_DT": "2026-05-31",
@@ -1303,7 +1303,7 @@
             ]
           },
           {
-            "TOURNAMENT_CODE": "01_2026-1_08-1_2_3061",
+            "TOURNAMENT_CODE": "t_01_2026-1_08-1_2_3061",
             "PERIOD_TYPE": "турнир июня",
             "START_DT": "2026-06-01",
             "END_DT": "2026-06-30",
@@ -1982,7 +1982,7 @@
               "recommendationLevel": "BANK",
               "priority": "1",
               "masterBadge": "N",
-              "parentRewardCode": "01_2026-1_00-1_1"
+              "parentRewardCode": "r_01_2026-1_00-1_1"
             }
           },
           {
@@ -2011,7 +2011,7 @@
               "recommendationLevel": "TB",
               "priority": "2",
               "masterBadge": "N",
-              "parentRewardCode": "01_2026-1_00-1_2"
+              "parentRewardCode": "r_01_2026-1_00-1_2"
             }
           },
           {
@@ -2040,7 +2040,7 @@
               "recommendationLevel": "GOSB",
               "priority": "3",
               "masterBadge": "N",
-              "parentRewardCode": "01_2026-1_00-1_3"
+              "parentRewardCode": "r_01_2026-1_00-1_3"
             }
           }
         ],
@@ -3681,7 +3681,7 @@
               "recommendationLevel": "BANK",
               "priority": "1",
               "masterBadge": "N",
-              "parentRewardCode": "01_2026-1_00-1_2_1",
+              "parentRewardCode": "r_01_2026-1_00-1_2_1",
               "tournamentTeam": "Y"
             }
           }
@@ -3828,7 +3828,7 @@
               "recommendationLevel": "BANK",
               "priority": "1",
               "masterBadge": "N",
-              "parentRewardCode": "01_2026-1_00-1_2_1",
+              "parentRewardCode": "r_01_2026-1_00-1_2_1",
               "tournamentTeam": "Y"
             }
           }
@@ -3975,7 +3975,7 @@
               "recommendationLevel": "BANK",
               "priority": "1",
               "masterBadge": "N",
-              "parentRewardCode": "01_2026-1_00-1_2_1",
+              "parentRewardCode": "r_01_2026-1_00-1_2_1",
               "tournamentTeam": "Y"
             }
           }
@@ -4122,7 +4122,7 @@
               "recommendationLevel": "BANK",
               "priority": "1",
               "masterBadge": "N",
-              "parentRewardCode": "01_2026-1_00-1_2_1",
+              "parentRewardCode": "r_01_2026-1_00-1_2_1",
               "tournamentTeam": "Y"
             }
           }
@@ -4269,7 +4269,7 @@
               "recommendationLevel": "BANK",
               "priority": "1",
               "masterBadge": "N",
-              "parentRewardCode": "01_2026-1_00-1_2_1",
+              "parentRewardCode": "r_01_2026-1_00-1_2_1",
               "tournamentTeam": "Y"
             }
           }
@@ -4416,7 +4416,7 @@
               "recommendationLevel": "BANK",
               "priority": "1",
               "masterBadge": "N",
-              "parentRewardCode": "01_2026-1_00-1_2_1",
+              "parentRewardCode": "r_01_2026-1_00-1_2_1",
               "tournamentTeam": "Y"
             }
           }
@@ -4563,7 +4563,7 @@
               "recommendationLevel": "BANK",
               "priority": "1",
               "masterBadge": "N",
-              "parentRewardCode": "01_2026-1_00-1_2_1",
+              "parentRewardCode": "r_01_2026-1_00-1_2_1",
               "tournamentTeam": "Y"
             }
           }
@@ -4710,7 +4710,7 @@
               "recommendationLevel": "BANK",
               "priority": "1",
               "masterBadge": "N",
-              "parentRewardCode": "01_2026-1_00-1_2_1",
+              "parentRewardCode": "r_01_2026-1_00-1_2_1",
               "tournamentTeam": "Y"
             }
           }
@@ -4857,7 +4857,7 @@
               "recommendationLevel": "BANK",
               "priority": "1",
               "masterBadge": "N",
-              "parentRewardCode": "01_2026-1_00-1_2_1",
+              "parentRewardCode": "r_01_2026-1_00-1_2_1",
               "tournamentTeam": "Y"
             }
           }
@@ -6790,7 +6790,7 @@
               "recommendationLevel": "BANK",
               "priority": "1",
               "masterBadge": "N",
-              "parentRewardCode": "01_2026-1_00-1_1"
+              "parentRewardCode": "r_01_2026-1_00-1_1"
             }
           }
         ],
@@ -6976,7 +6976,7 @@
               "recommendationLevel": "BANK",
               "priority": "1",
               "masterBadge": "N",
-              "parentRewardCode": "01_2026-1_00-1_1"
+              "parentRewardCode": "r_01_2026-1_00-1_1"
             }
           }
         ],
@@ -7162,7 +7162,7 @@
               "recommendationLevel": "BANK",
               "priority": "1",
               "masterBadge": "N",
-              "parentRewardCode": "01_2026-1_00-1_1"
+              "parentRewardCode": "r_01_2026-1_00-1_1"
             }
           }
         ],
@@ -7348,7 +7348,7 @@
               "recommendationLevel": "BANK",
               "priority": "1",
               "masterBadge": "N",
-              "parentRewardCode": "01_2026-1_00-1_1"
+              "parentRewardCode": "r_01_2026-1_00-1_1"
             }
           }
         ],
@@ -7681,7 +7681,7 @@
               "recommendationLevel": "BANK",
               "priority": "1",
               "masterBadge": "N",
-              "parentRewardCode": "01_2026-1_00-1_1"
+              "parentRewardCode": "r_01_2026-1_00-1_1"
             }
           },
           {
@@ -7710,7 +7710,7 @@
               "recommendationLevel": "TB",
               "priority": "2",
               "masterBadge": "N",
-              "parentRewardCode": "01_2026-1_00-1_2"
+              "parentRewardCode": "r_01_2026-1_00-1_2"
             }
           },
           {
@@ -7739,7 +7739,7 @@
               "recommendationLevel": "GOSB",
               "priority": "3",
               "masterBadge": "N",
-              "parentRewardCode": "01_2026-1_00-1_3"
+              "parentRewardCode": "r_01_2026-1_00-1_3"
             }
           }
         ],
@@ -7921,7 +7921,7 @@
               "recommendationLevel": "BANK",
               "priority": "1",
               "masterBadge": "N",
-              "parentRewardCode": "01_2026-1_00-1_1"
+              "parentRewardCode": "r_01_2026-1_00-1_1"
             }
           },
           {
@@ -7949,7 +7949,7 @@
               "recommendationLevel": "TB",
               "priority": "2",
               "masterBadge": "N",
-              "parentRewardCode": "01_2026-1_00-1_2"
+              "parentRewardCode": "r_01_2026-1_00-1_2"
             }
           },
           {
@@ -7977,7 +7977,7 @@
               "recommendationLevel": "GOSB",
               "priority": "3",
               "masterBadge": "N",
-              "parentRewardCode": "01_2026-1_00-1_3"
+              "parentRewardCode": "r_01_2026-1_00-1_3"
             }
           }
         ],
@@ -8790,7 +8790,7 @@
               "recommendationLevel": "BANK",
               "priority": "1",
               "masterBadge": "N",
-              "parentRewardCode": "01_2026-1_00-1_1"
+              "parentRewardCode": "r_01_2026-1_00-1_1"
             }
           }
         ],
@@ -9586,7 +9586,7 @@
               "recommendationLevel": "BANK",
               "priority": "1",
               "masterBadge": "N",
-              "parentRewardCode": "01_2026-1_00-1_1"
+              "parentRewardCode": "r_01_2026-1_00-1_1"
             }
           },
           {
@@ -9614,7 +9614,7 @@
               "recommendationLevel": "TB",
               "priority": "2",
               "masterBadge": "N",
-              "parentRewardCode": "01_2026-1_00-1_2"
+              "parentRewardCode": "r_01_2026-1_00-1_2"
             }
           },
           {
@@ -9642,7 +9642,7 @@
               "recommendationLevel": "GOSB",
               "priority": "3",
               "masterBadge": "N",
-              "parentRewardCode": "01_2026-1_00-1_3"
+              "parentRewardCode": "r_01_2026-1_00-1_3"
             }
           }
         ],
@@ -9940,7 +9940,7 @@
               "recommendationLevel": "BANK",
               "priority": "1",
               "masterBadge": "N",
-              "parentRewardCode": "01_2026-1_00-1_1"
+              "parentRewardCode": "r_01_2026-1_00-1_1"
             }
           },
           {
@@ -9968,7 +9968,7 @@
               "recommendationLevel": "TB",
               "priority": "2",
               "masterBadge": "N",
-              "parentRewardCode": "01_2026-1_00-1_2"
+              "parentRewardCode": "r_01_2026-1_00-1_2"
             }
           },
           {
@@ -9996,7 +9996,7 @@
               "recommendationLevel": "GOSB",
               "priority": "3",
               "masterBadge": "N",
-              "parentRewardCode": "01_2026-1_00-1_3"
+              "parentRewardCode": "r_01_2026-1_00-1_3"
             }
           }
         ],
@@ -10329,7 +10329,7 @@
               "recommendationLevel": "BANK",
               "priority": "1",
               "masterBadge": "N",
-              "parentRewardCode": "01_2026-1_00-1_1"
+              "parentRewardCode": "r_01_2026-1_00-1_1"
             }
           },
           {
@@ -10356,7 +10356,7 @@
               "recommendationLevel": "TB",
               "priority": "2",
               "masterBadge": "N",
-              "parentRewardCode": "01_2026-1_00-1_2"
+              "parentRewardCode": "r_01_2026-1_00-1_2"
             }
           },
           {
@@ -10383,7 +10383,7 @@
               "recommendationLevel": "GOSB",
               "priority": "3",
               "masterBadge": "N",
-              "parentRewardCode": "01_2026-1_00-1_3"
+              "parentRewardCode": "r_01_2026-1_00-1_3"
             }
           }
         ],
@@ -10734,7 +10734,7 @@
               "recommendationLevel": "BANK",
               "priority": "1",
               "masterBadge": "N",
-              "parentRewardCode": "01_2026-1_00-1_2_1",
+              "parentRewardCode": "r_01_2026-1_00-1_2_1",
               "tournamentTeam": "Y"
             }
           },
@@ -10763,7 +10763,7 @@
               "recommendationLevel": "BANK",
               "priority": "2",
               "masterBadge": "N",
-              "parentRewardCode": "01_2026-1_00-1_2_2",
+              "parentRewardCode": "r_01_2026-1_00-1_2_2",
               "tournamentTeam": "Y"
             }
           },
@@ -10792,7 +10792,7 @@
               "recommendationLevel": "BANK",
               "priority": "3",
               "masterBadge": "N",
-              "parentRewardCode": "01_2026-1_00-1_2_3",
+              "parentRewardCode": "r_01_2026-1_00-1_2_3",
               "tournamentTeam": "Y"
             }
           }
@@ -10992,7 +10992,7 @@
               "recommendationLevel": "BANK",
               "priority": "1",
               "masterBadge": "N",
-              "parentRewardCode": "01_2026-1_00-1_1"
+              "parentRewardCode": "r_01_2026-1_00-1_1"
             }
           },
           {
@@ -11019,7 +11019,7 @@
               "recommendationLevel": "TB",
               "priority": "2",
               "masterBadge": "N",
-              "parentRewardCode": "01_2026-1_00-1_2"
+              "parentRewardCode": "r_01_2026-1_00-1_2"
             }
           },
           {
@@ -11046,7 +11046,7 @@
               "recommendationLevel": "GOSB",
               "priority": "3",
               "masterBadge": "N",
-              "parentRewardCode": "01_2026-1_00-1_3"
+              "parentRewardCode": "r_01_2026-1_00-1_3"
             }
           }
         ],
@@ -12262,7 +12262,7 @@
               "recommendationLevel": "BANK",
               "priority": "1",
               "masterBadge": "N",
-              "parentRewardCode": "01_2026-1_00-1_1"
+              "parentRewardCode": "r_01_2026-1_00-1_1"
             }
           }
         ],
@@ -12405,7 +12405,7 @@
               "recommendationLevel": "BANK",
               "priority": "1",
               "masterBadge": "N",
-              "parentRewardCode": "01_2026-1_00-1_1"
+              "parentRewardCode": "r_01_2026-1_00-1_1"
             }
           },
           {
@@ -12432,7 +12432,7 @@
               "recommendationLevel": "TB",
               "priority": "2",
               "masterBadge": "N",
-              "parentRewardCode": "01_2026-1_00-1_2"
+              "parentRewardCode": "r_01_2026-1_00-1_2"
             }
           },
           {
@@ -12459,7 +12459,7 @@
               "recommendationLevel": "GOSB",
               "priority": "3",
               "masterBadge": "N",
-              "parentRewardCode": "01_2026-1_00-1_3"
+              "parentRewardCode": "r_01_2026-1_00-1_3"
             }
           }
         ],
@@ -12647,7 +12647,7 @@
               "recommendationLevel": "BANK",
               "priority": "1",
               "masterBadge": "N",
-              "parentRewardCode": "01_2026-1_00-1_1"
+              "parentRewardCode": "r_01_2026-1_00-1_1"
             }
           },
           {
@@ -12675,7 +12675,7 @@
               "recommendationLevel": "TB",
               "priority": "2",
               "masterBadge": "N",
-              "parentRewardCode": "01_2026-1_00-1_2"
+              "parentRewardCode": "r_01_2026-1_00-1_2"
             }
           },
           {
@@ -12703,7 +12703,7 @@
               "recommendationLevel": "GOSB",
               "priority": "3",
               "masterBadge": "N",
-              "parentRewardCode": "01_2026-1_00-1_3"
+              "parentRewardCode": "r_01_2026-1_00-1_3"
             }
           }
         ],
@@ -13578,7 +13578,7 @@
               "recommendationLevel": "BANK",
               "priority": "1",
               "masterBadge": "N",
-              "parentRewardCode": "04_2026-0_00-1_1"
+              "parentRewardCode": "r_04_2026-0_00-1_1"
             }
           },
           {
@@ -13606,7 +13606,7 @@
               "recommendationLevel": "NON",
               "priority": "2",
               "masterBadge": "N",
-              "parentRewardCode": "04_2026-0_00-1_2"
+              "parentRewardCode": "r_04_2026-0_00-1_2"
             }
           },
           {
@@ -13634,7 +13634,7 @@
               "recommendationLevel": "NON",
               "priority": "3",
               "masterBadge": "N",
-              "parentRewardCode": "04_2026-0_00-1_3"
+              "parentRewardCode": "r_04_2026-0_00-1_3"
             }
           }
         ],
@@ -13833,7 +13833,7 @@
               "recommendationLevel": "BANK",
               "priority": "1",
               "masterBadge": "N",
-              "parentRewardCode": "04_2026-0_00-1_1"
+              "parentRewardCode": "r_04_2026-0_00-1_1"
             }
           },
           {
@@ -13861,7 +13861,7 @@
               "recommendationLevel": "NON",
               "priority": "2",
               "masterBadge": "N",
-              "parentRewardCode": "04_2026-0_00-1_2"
+              "parentRewardCode": "r_04_2026-0_00-1_2"
             }
           },
           {
@@ -13889,7 +13889,7 @@
               "recommendationLevel": "NON",
               "priority": "3",
               "masterBadge": "N",
-              "parentRewardCode": "04_2026-0_00-1_3"
+              "parentRewardCode": "r_04_2026-0_00-1_3"
             }
           }
         ],
@@ -14088,7 +14088,7 @@
               "recommendationLevel": "BANK",
               "priority": "1",
               "masterBadge": "N",
-              "parentRewardCode": "04_2026-0_00-1_1"
+              "parentRewardCode": "r_04_2026-0_00-1_1"
             }
           },
           {
@@ -14116,7 +14116,7 @@
               "recommendationLevel": "NON",
               "priority": "2",
               "masterBadge": "N",
-              "parentRewardCode": "04_2026-0_00-1_2"
+              "parentRewardCode": "r_04_2026-0_00-1_2"
             }
           },
           {
@@ -14144,7 +14144,7 @@
               "recommendationLevel": "NON",
               "priority": "3",
               "masterBadge": "N",
-              "parentRewardCode": "04_2026-0_00-1_3"
+              "parentRewardCode": "r_04_2026-0_00-1_3"
             }
           }
         ],
@@ -14333,7 +14333,7 @@
               "recommendationLevel": "BANK",
               "priority": "1",
               "masterBadge": "N",
-              "parentRewardCode": "09_2026-0_00-1_1"
+              "parentRewardCode": "r_09_2026-0_00-1_1"
             }
           },
           {
@@ -14362,7 +14362,7 @@
               "recommendationLevel": "TB",
               "priority": "2",
               "masterBadge": "N",
-              "parentRewardCode": "09_2026-0_00-1_2"
+              "parentRewardCode": "r_09_2026-0_00-1_2"
             }
           },
           {
@@ -14391,7 +14391,7 @@
               "recommendationLevel": "GOSB",
               "priority": "3",
               "masterBadge": "N",
-              "parentRewardCode": "09_2026-0_00-1_3"
+              "parentRewardCode": "r_09_2026-0_00-1_3"
             }
           }
         ],
@@ -16278,7 +16278,7 @@
               "recommendationLevel": "BANK",
               "priority": "1",
               "masterBadge": "N",
-              "parentRewardCode": "10_2026-0_00-1_1"
+              "parentRewardCode": "r_10_2026-0_00-1_1"
             }
           }
         ],

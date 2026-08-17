@@ -3,7 +3,7 @@
   "block": "PROM",
   "title": "Смешанный пример: награды + турниры",
   "source": "config/CONFIG_RUN_INPUT.json · PROM · листы каталога fill · contest=IN/PROM/SPOD/CONTEST (PROM) 05-08 v0.csv; reward=IN/PROM/SPOD/REWARD (PROM) 05-08 v0.csv; reward_link=IN/PROM/SPOD/REWARD-LINK (PROM) 05-08 v1.csv; group=IN/PROM/SPOD/GROUP (PROM) 05-08 v1.csv; indicator=IN/PROM/SPOD/INDICATOR (PROM) 05-08 v0.csv; schedule=IN/PROM/SPOD/SCHEDULE (PROM) 05-08 v0.csv",
-  "saved_at": "2026-08-17T16:35:01.848328Z",
+  "saved_at": "2026-08-17T22:55:35.892254Z",
   "catalog_stamp": "2026-08-17T13:42:19.465681Z",
   "activeContest": 0,
   "contests": [
@@ -737,7 +737,7 @@
               "recommendationLevel": "BANK",
               "priority": "1",
               "masterBadge": "N",
-              "parentRewardCode": "01_2026-1_00-1_1"
+              "parentRewardCode": "r_01_2026-1_00-1_1"
             }
           }
         ],
@@ -883,7 +883,7 @@
               "recommendationLevel": "BANK",
               "priority": "1",
               "masterBadge": "N",
-              "parentRewardCode": "10_2026-0_00-1_1"
+              "parentRewardCode": "r_10_2026-0_00-1_1"
             }
           }
         ],
@@ -1028,7 +1028,7 @@
               "recommendationLevel": "BANK",
               "priority": "1",
               "masterBadge": "N",
-              "parentRewardCode": "01_2026-1_00-1_1"
+              "parentRewardCode": "r_01_2026-1_00-1_1"
             }
           },
           {
@@ -1057,7 +1057,7 @@
               "recommendationLevel": "TB",
               "priority": "2",
               "masterBadge": "N",
-              "parentRewardCode": "01_2026-1_00-1_2"
+              "parentRewardCode": "r_01_2026-1_00-1_2"
             }
           },
           {
@@ -1086,7 +1086,7 @@
               "recommendationLevel": "GOSB",
               "priority": "3",
               "masterBadge": "N",
-              "parentRewardCode": "01_2026-1_00-1_3"
+              "parentRewardCode": "r_01_2026-1_00-1_3"
             }
           }
         ],
@@ -1251,7 +1251,7 @@
               "recommendationLevel": "BANK",
               "priority": "1",
               "masterBadge": "N",
-              "parentRewardCode": "01_2026-1_00-1_1"
+              "parentRewardCode": "r_01_2026-1_00-1_1"
             }
           },
           {
@@ -1278,7 +1278,7 @@
               "recommendationLevel": "TB",
               "priority": "2",
               "masterBadge": "N",
-              "parentRewardCode": "01_2026-1_00-1_2"
+              "parentRewardCode": "r_01_2026-1_00-1_2"
             }
           },
           {
@@ -1305,7 +1305,7 @@
               "recommendationLevel": "GOSB",
               "priority": "3",
               "masterBadge": "N",
-              "parentRewardCode": "01_2026-1_00-1_3"
+              "parentRewardCode": "r_01_2026-1_00-1_3"
             }
           }
         ],

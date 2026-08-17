@@ -23,6 +23,10 @@ window.PARAM_REVIEW_CATALOG = {
           "variants": [],
           "default": "",
           "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
           "json_target": "",
           "note": ""
         },
@@ -36,6 +40,10 @@ window.PARAM_REVIEW_CATALOG = {
           "variants": [],
           "default": "",
           "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
           "json_target": "",
           "note": ""
         },
@@ -49,6 +57,10 @@ window.PARAM_REVIEW_CATALOG = {
           "variants": [],
           "default": "2026-01-01",
           "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
           "json_target": "",
           "note": ""
         },
@@ -62,6 +74,10 @@ window.PARAM_REVIEW_CATALOG = {
           "variants": [],
           "default": "4000-01-01",
           "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
           "json_target": "",
           "note": ""
         },
@@ -78,6 +94,10 @@ window.PARAM_REVIEW_CATALOG = {
           ],
           "default": "АКТИВНЫЙ",
           "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
           "json_target": "",
           "note": ""
         },
@@ -95,6 +115,10 @@ window.PARAM_REVIEW_CATALOG = {
           ],
           "default": "ТУРНИРНЫЙ",
           "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
           "json_target": "",
           "note": ""
         },
@@ -108,6 +132,10 @@ window.PARAM_REVIEW_CATALOG = {
           "variants": [],
           "default": "",
           "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
           "json_target": "",
           "note": ""
         },
@@ -121,6 +149,10 @@ window.PARAM_REVIEW_CATALOG = {
           "variants": [],
           "default": "",
           "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
           "json_target": "CONTEST_FEATURE",
           "note": "Колонка CSV с SPOD-JSON. Редактируются подпись, описание, заметка и «можно пусто». Ключи — в дочернем разделе JSON."
         },
@@ -156,6 +188,10 @@ window.PARAM_REVIEW_CATALOG = {
           ],
           "default": "Факт",
           "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
           "json_target": "",
           "note": ""
         },
@@ -169,6 +205,10 @@ window.PARAM_REVIEW_CATALOG = {
           "variants": [],
           "default": "",
           "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
           "json_target": "",
           "note": ""
         },
@@ -182,6 +222,10 @@ window.PARAM_REVIEW_CATALOG = {
           "variants": [],
           "default": "",
           "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
           "json_target": "",
           "note": ""
         },
@@ -196,14 +240,18 @@ window.PARAM_REVIEW_CATALOG = {
             "EMPLOYEE",
             "UNIT"
           ],
-          "default": "EMPLOYEE",
-          "allow_empty": false,
-          "json_target": "",
-          "note": "",
           "variant_labels": [
             "Сотрудники",
             "Подразделения"
-          ]
+          ],
+          "default": "EMPLOYEE",
+          "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_target": "",
+          "note": ""
         },
         {
           "n": 13,
@@ -218,16 +266,20 @@ window.PARAM_REVIEW_CATALOG = {
             "RATING_MIN",
             "GAIN"
           ],
-          "default": "CRITERION",
-          "allow_empty": false,
-          "json_target": "",
-          "note": "",
           "variant_labels": [
             "Достигни",
             "Больше - лучше",
             "Меньше - лучше",
             "Больше в X раз"
-          ]
+          ],
+          "default": "CRITERION",
+          "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_target": "",
+          "note": ""
         },
         {
           "n": 14,
@@ -240,14 +292,18 @@ window.PARAM_REVIEW_CATALOG = {
             "INTEGRAL",
             "RELATION"
           ],
-          "default": "INTEGRAL",
-          "allow_empty": false,
-          "json_target": "",
-          "note": "",
           "variant_labels": [
             "Интегральный",
             "Отношение агрегатов"
-          ]
+          ],
+          "default": "INTEGRAL",
+          "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_target": "",
+          "note": ""
         },
         {
           "n": 15,
@@ -265,10 +321,6 @@ window.PARAM_REVIEW_CATALOG = {
             "RUN_RATE/FACT1",
             "FACT0/RUN_RATE1_DOWN"
           ],
-          "default": "FACT",
-          "allow_empty": false,
-          "json_target": "",
-          "note": "",
           "variant_labels": [
             "Факт",
             "Прирост",
@@ -277,7 +329,15 @@ window.PARAM_REVIEW_CATALOG = {
             "Run rate отклонение",
             "Run rate % прироста",
             "Run rate % отклонения"
-          ]
+          ],
+          "default": "FACT",
+          "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_target": "",
+          "note": ""
         },
         {
           "n": 16,
@@ -291,15 +351,19 @@ window.PARAM_REVIEW_CATALOG = {
             "PRESET_VALUE",
             "DEPENDS_PREVIOUS_PERIOD"
           ],
-          "default": "PRESET_VALUE",
-          "allow_empty": false,
-          "json_target": "",
-          "note": "",
           "variant_labels": [
             "План не задан",
             "Предустановленное",
             "От прошлого периода"
-          ]
+          ],
+          "default": "PRESET_VALUE",
+          "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_target": "",
+          "note": ""
         },
         {
           "n": 17,
@@ -312,14 +376,18 @@ window.PARAM_REVIEW_CATALOG = {
             "MULTIPLIER",
             "APPEND"
           ],
-          "default": "MULTIPLIER",
-          "allow_empty": false,
-          "json_target": "",
-          "note": "",
           "variant_labels": [
             "× коэффициент",
             "+ число к прошлому"
-          ]
+          ],
+          "default": "MULTIPLIER",
+          "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_target": "",
+          "note": ""
         },
         {
           "n": 18,
@@ -331,6 +399,10 @@ window.PARAM_REVIEW_CATALOG = {
           "variants": [],
           "default": "0",
           "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
           "json_target": "",
           "note": ""
         },
@@ -348,17 +420,21 @@ window.PARAM_REVIEW_CATALOG = {
             "<",
             "<="
           ],
-          "default": ">=",
-          "allow_empty": false,
-          "json_target": "",
-          "note": "",
           "variant_labels": [
             "Равно",
             "Больше",
             "Больше или равно",
             "Меньше",
             "Меньше или равно"
-          ]
+          ],
+          "default": ">=",
+          "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_target": "",
+          "note": ""
         },
         {
           "n": 20,
@@ -370,6 +446,10 @@ window.PARAM_REVIEW_CATALOG = {
           "variants": [],
           "default": "",
           "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
           "json_target": "CONTEST_PERIOD",
           "note": "Колонка CSV с SPOD-JSON. Редактируются подпись, описание, заметка и «можно пусто». Ключи — в дочернем разделе JSON."
         },
@@ -386,6 +466,10 @@ window.PARAM_REVIEW_CATALOG = {
           ],
           "default": "ПРОМ",
           "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
           "json_target": "",
           "note": ""
         },
@@ -403,6 +487,10 @@ window.PARAM_REVIEW_CATALOG = {
           ],
           "default": "7",
           "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
           "json_target": "",
           "note": ""
         },
@@ -417,14 +505,18 @@ window.PARAM_REVIEW_CATALOG = {
             "0",
             "1"
           ],
-          "default": "1",
-          "allow_empty": false,
-          "json_target": "",
-          "note": "",
           "variant_labels": [
             "Промышленный расчет",
             "Ручные данные"
-          ]
+          ],
+          "default": "1",
+          "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_target": "",
+          "note": ""
         },
         {
           "n": 24,
@@ -441,10 +533,6 @@ window.PARAM_REVIEW_CATALOG = {
             "SPECIAL_INDICATOR_1",
             "COUNT_BIGGER"
           ],
-          "default": "",
-          "allow_empty": true,
-          "json_target": "",
-          "note": "",
           "variant_labels": [
             "% «лучше чем»",
             "% «попал в»",
@@ -452,7 +540,15 @@ window.PARAM_REVIEW_CATALOG = {
             "% «не хуже»",
             "Уровень группы",
             "Счётчик лучших"
-          ]
+          ],
+          "default": "",
+          "allow_empty": true,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_target": "",
+          "note": ""
         },
         {
           "n": 25,
@@ -467,16 +563,20 @@ window.PARAM_REVIEW_CATALOG = {
             "AKMKKSB",
             "CSM"
           ],
-          "default": "KMMMB",
-          "allow_empty": false,
-          "json_target": "",
-          "note": "",
           "variant_labels": [
             "КМ ММБ",
             "КМ ККСБ",
             "АКМ ККСБ",
             "Руководитель по внедрению проектов"
-          ]
+          ],
+          "default": "KMMMB",
+          "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_target": "",
+          "note": ""
         }
       ]
     },
@@ -500,15 +600,19 @@ window.PARAM_REVIEW_CATALOG = {
             "ПРОМ",
             "ТЕСТ"
           ],
-          "default": "ПРОМ",
-          "allow_empty": false,
-          "json_target": "CONTEST_FEATURE.vid",
-          "note": "ПРОМ (как TARGET_TYPE).",
           "variant_labels": [
             "Промышленный",
             "Тестовый"
           ],
-          "json_required": true
+          "default": "ПРОМ",
+          "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_required": true,
+          "json_target": "CONTEST_FEATURE.vid",
+          "note": "ПРОМ (как TARGET_TYPE)."
         },
         {
           "n": 26,
@@ -522,16 +626,20 @@ window.PARAM_REVIEW_CATALOG = {
             "1",
             "2"
           ],
-          "default": "0",
-          "allow_empty": false,
-          "json_target": "CONTEST_FEATURE.accuracy",
-          "note": "",
           "variant_labels": [
             "# ##",
             "# ##.#",
             "# ##.##"
           ],
-          "json_required": true
+          "default": "0",
+          "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_required": true,
+          "json_target": "CONTEST_FEATURE.accuracy",
+          "note": ""
         },
         {
           "n": 27,
@@ -544,15 +652,19 @@ window.PARAM_REVIEW_CATALOG = {
             "MILLIONS",
             "THOUSANDS"
           ],
-          "default": "",
-          "allow_empty": true,
-          "json_target": "CONTEST_FEATURE.capacity",
-          "note": "",
           "variant_labels": [
             "в миллионах",
             "в тысячах"
           ],
-          "json_required": true
+          "default": "",
+          "allow_empty": true,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_required": true,
+          "json_target": "CONTEST_FEATURE.capacity",
+          "note": ""
         },
         {
           "n": 28,
@@ -565,15 +677,19 @@ window.PARAM_REVIEW_CATALOG = {
             "Y",
             "N"
           ],
-          "default": "N",
-          "allow_empty": false,
-          "json_target": "CONTEST_FEATURE.masking",
-          "note": "N (часто N).",
           "variant_labels": [
             "Да",
             "Нет"
           ],
-          "json_required": true
+          "default": "N",
+          "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_required": true,
+          "json_target": "CONTEST_FEATURE.masking",
+          "note": "N (часто N)."
         },
         {
           "n": 29,
@@ -589,9 +705,13 @@ window.PARAM_REVIEW_CATALOG = {
           ],
           "default": "1",
           "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_required": true,
           "json_target": "CONTEST_FEATURE.minNumber",
-          "note": "",
-          "json_required": true
+          "note": ""
         },
         {
           "n": 30,
@@ -604,15 +724,19 @@ window.PARAM_REVIEW_CATALOG = {
             "AFTER",
             "DURIN"
           ],
-          "default": "AFTER",
-          "allow_empty": false,
-          "json_target": "CONTEST_FEATURE.momentRewarding",
-          "note": "DURIN (после закрытия турнира / во время турнира)",
           "variant_labels": [
             "По завершению",
             "Во время"
           ],
-          "json_required": true
+          "default": "AFTER",
+          "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_required": true,
+          "json_target": "CONTEST_FEATURE.momentRewarding",
+          "note": "DURIN (после закрытия турнира / во время турнира)"
         },
         {
           "n": 31,
@@ -625,15 +749,19 @@ window.PARAM_REVIEW_CATALOG = {
             "one",
             "all"
           ],
-          "default": "one",
-          "allow_empty": false,
-          "json_target": "CONTEST_FEATURE.typeRewarding",
-          "note": "",
           "variant_labels": [
             "Вручаем одну",
             "Вручаем все"
           ],
-          "json_required": true
+          "default": "one",
+          "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_required": true,
+          "json_target": "CONTEST_FEATURE.typeRewarding",
+          "note": ""
         },
         {
           "n": 32,
@@ -646,15 +774,19 @@ window.PARAM_REVIEW_CATALOG = {
             "Y",
             "N"
           ],
-          "default": "Y",
-          "allow_empty": false,
-          "json_target": "CONTEST_FEATURE.avatarShow",
-          "note": "N.",
           "variant_labels": [
             "Да",
             "Нет"
           ],
-          "json_required": true
+          "default": "Y",
+          "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_required": true,
+          "json_target": "CONTEST_FEATURE.avatarShow",
+          "note": "N."
         },
         {
           "n": 33,
@@ -667,15 +799,19 @@ window.PARAM_REVIEW_CATALOG = {
             "Y",
             "N"
           ],
-          "default": "N",
-          "allow_empty": false,
-          "json_target": "CONTEST_FEATURE.tournamentTeam",
-          "note": "N.",
           "variant_labels": [
             "Да",
             "Нет"
           ],
-          "json_required": true
+          "default": "N",
+          "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_required": true,
+          "json_target": "CONTEST_FEATURE.tournamentTeam",
+          "note": "N."
         },
         {
           "n": 34,
@@ -687,9 +823,13 @@ window.PARAM_REVIEW_CATALOG = {
           "variants": [],
           "default": "",
           "allow_empty": true,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_required": true,
           "json_target": "CONTEST_FEATURE.persomanNumberVisible",
-          "note": "",
-          "json_required": true
+          "note": ""
         },
         {
           "n": 35,
@@ -701,9 +841,13 @@ window.PARAM_REVIEW_CATALOG = {
           "variants": [],
           "default": "",
           "allow_empty": true,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_required": true,
           "json_target": "CONTEST_FEATURE.persomanNumberHidden",
-          "note": "",
-          "json_required": true
+          "note": ""
         },
         {
           "n": 36,
@@ -716,15 +860,19 @@ window.PARAM_REVIEW_CATALOG = {
             "Y",
             "N"
           ],
-          "default": "Y",
-          "allow_empty": false,
-          "json_target": "CONTEST_FEATURE.tournamentStartMailing",
-          "note": "",
           "variant_labels": [
             "Да",
             "Нет"
           ],
-          "json_required": true
+          "default": "Y",
+          "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_required": true,
+          "json_target": "CONTEST_FEATURE.tournamentStartMailing",
+          "note": ""
         },
         {
           "n": 37,
@@ -737,15 +885,19 @@ window.PARAM_REVIEW_CATALOG = {
             "Y",
             "N"
           ],
-          "default": "Y",
-          "allow_empty": false,
-          "json_target": "CONTEST_FEATURE.tournamentEndMailing",
-          "note": "",
           "variant_labels": [
             "Да",
             "Нет"
           ],
-          "json_required": true
+          "default": "Y",
+          "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_required": true,
+          "json_target": "CONTEST_FEATURE.tournamentEndMailing",
+          "note": ""
         },
         {
           "n": 38,
@@ -758,15 +910,19 @@ window.PARAM_REVIEW_CATALOG = {
             "Y",
             "N"
           ],
-          "default": "Y",
-          "allow_empty": false,
-          "json_target": "CONTEST_FEATURE.tournamentLikeMailing",
-          "note": "",
           "variant_labels": [
             "Да",
             "Нет"
           ],
-          "json_required": true
+          "default": "Y",
+          "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_required": true,
+          "json_target": "CONTEST_FEATURE.tournamentLikeMailing",
+          "note": ""
         },
         {
           "n": 39,
@@ -778,9 +934,13 @@ window.PARAM_REVIEW_CATALOG = {
           "variants": [],
           "default": "",
           "allow_empty": true,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_required": true,
           "json_target": "CONTEST_FEATURE.tournamentListMailing",
-          "note": "",
-          "json_required": true
+          "note": ""
         },
         {
           "n": 40,
@@ -793,15 +953,19 @@ window.PARAM_REVIEW_CATALOG = {
             "Y",
             "N"
           ],
-          "default": "Y",
-          "allow_empty": false,
-          "json_target": "CONTEST_FEATURE.tournamentRewardingMailing",
-          "note": "N.",
           "variant_labels": [
             "Да",
             "Нет"
           ],
-          "json_required": true
+          "default": "Y",
+          "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_required": true,
+          "json_target": "CONTEST_FEATURE.tournamentRewardingMailing",
+          "note": "N."
         },
         {
           "n": 41,
@@ -813,9 +977,13 @@ window.PARAM_REVIEW_CATALOG = {
           "variants": [],
           "default": "",
           "allow_empty": true,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_required": true,
           "json_target": "CONTEST_FEATURE.feature",
-          "note": "",
-          "json_required": true
+          "note": ""
         },
         {
           "n": 42,
@@ -830,17 +998,21 @@ window.PARAM_REVIEW_CATALOG = {
             "AKMKKSB",
             "CSM"
           ],
-          "default": "KMMMB",
-          "allow_empty": false,
-          "json_target": "CONTEST_FEATURE.businessBlock",
-          "note": "",
           "variant_labels": [
             "КМ ММБ",
             "КМ ККСБ",
             "АКМ ККСБ",
             "Руководитель по внедрению проектов"
           ],
-          "json_required": true
+          "default": "KMMMB",
+          "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_required": true,
+          "json_target": "CONTEST_FEATURE.businessBlock",
+          "note": ""
         },
         {
           "n": 43,
@@ -852,9 +1024,13 @@ window.PARAM_REVIEW_CATALOG = {
           "variants": [],
           "default": "",
           "allow_empty": true,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_required": true,
           "json_target": "CONTEST_FEATURE.helpCodeList",
-          "note": "",
-          "json_required": true
+          "note": ""
         },
         {
           "n": 44,
@@ -866,9 +1042,13 @@ window.PARAM_REVIEW_CATALOG = {
           "variants": [],
           "default": "",
           "allow_empty": true,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_required": true,
           "json_target": "CONTEST_FEATURE.preferences",
-          "note": "",
-          "json_required": true
+          "note": ""
         },
         {
           "n": 45,
@@ -880,9 +1060,13 @@ window.PARAM_REVIEW_CATALOG = {
           "variants": [],
           "default": "",
           "allow_empty": true,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_required": true,
           "json_target": "CONTEST_FEATURE.tbVisible",
-          "note": "",
-          "json_required": true
+          "note": ""
         },
         {
           "n": 46,
@@ -894,9 +1078,13 @@ window.PARAM_REVIEW_CATALOG = {
           "variants": [],
           "default": "",
           "allow_empty": true,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_required": true,
           "json_target": "CONTEST_FEATURE.tbHidden",
-          "note": "",
-          "json_required": true
+          "note": ""
         },
         {
           "n": 47,
@@ -908,9 +1096,13 @@ window.PARAM_REVIEW_CATALOG = {
           "variants": [],
           "default": "",
           "allow_empty": true,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_required": true,
           "json_target": "CONTEST_FEATURE.gosbVisible",
-          "note": "",
-          "json_required": true
+          "note": ""
         },
         {
           "n": 48,
@@ -922,9 +1114,13 @@ window.PARAM_REVIEW_CATALOG = {
           "variants": [],
           "default": "",
           "allow_empty": true,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_required": true,
           "json_target": "CONTEST_FEATURE.gosbHidden",
-          "note": "",
-          "json_required": true
+          "note": ""
         }
       ],
       "column": "CONTEST_FEATURE"
@@ -941,7 +1137,11 @@ window.PARAM_REVIEW_CATALOG = {
       "fields": [
         {
           "n": 120,
+          "key": "CONTEST_PERIOD.period_code",
           "status": "[w]",
+          "label": "Код периода",
+          "description": "Номер/код периода в массиве CONTEST_PERIOD (часто 0, 1; бывает -1).",
+          "kind": "dropdown",
           "variants": [
             "0",
             "1",
@@ -949,17 +1149,21 @@ window.PARAM_REVIEW_CATALOG = {
           ],
           "default": "0",
           "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_required": true,
           "json_target": "CONTEST_PERIOD[].period_code",
-          "note": "",
-          "description": "Номер/код периода в массиве CONTEST_PERIOD (часто 0, 1; бывает -1).",
-          "kind": "dropdown",
-          "label": "Код периода",
-          "key": "CONTEST_PERIOD.period_code",
-          "json_required": true
+          "note": ""
         },
         {
           "n": 121,
+          "key": "CONTEST_PERIOD.criterion_mark_type",
           "status": "[v]",
+          "label": "Сравнение",
+          "description": "Оператор сравнения критерия периода.",
+          "kind": "dropdown",
           "variants": [
             ">",
             ">=",
@@ -967,14 +1171,6 @@ window.PARAM_REVIEW_CATALOG = {
             "<=",
             "="
           ],
-          "default": ">",
-          "allow_empty": false,
-          "json_target": "CONTEST_PERIOD[].criterion_mark_type",
-          "note": "",
-          "description": "Оператор сравнения критерия периода.",
-          "kind": "dropdown",
-          "label": "Сравнение",
-          "key": "CONTEST_PERIOD.criterion_mark_type",
           "variant_labels": [
             "Больше",
             "Больше или равно",
@@ -982,21 +1178,33 @@ window.PARAM_REVIEW_CATALOG = {
             "Меньше или равно",
             "Равно"
           ],
-          "json_required": true
+          "default": ">",
+          "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_required": true,
+          "json_target": "CONTEST_PERIOD[].criterion_mark_type",
+          "note": ""
         },
         {
           "n": 122,
+          "key": "CONTEST_PERIOD.criterion_mark_value",
           "status": "[v]",
+          "label": "Порог критерия",
+          "description": "Числовое значение порога",
+          "kind": "number",
           "variants": [],
           "default": "0",
           "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_required": true,
           "json_target": "CONTEST_PERIOD[].criterion_mark_value",
-          "note": "",
-          "description": "Числовое значение порога",
-          "kind": "number",
-          "label": "Порог критерия",
-          "key": "CONTEST_PERIOD.criterion_mark_value",
-          "json_required": true
+          "note": ""
         }
       ]
     },
@@ -1019,6 +1227,10 @@ window.PARAM_REVIEW_CATALOG = {
           "variants": [],
           "default": "",
           "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
           "json_target": "",
           "note": ""
         },
@@ -1035,16 +1247,20 @@ window.PARAM_REVIEW_CATALOG = {
             "ITEM",
             "CRYSTAL"
           ],
-          "default": "BADGE",
-          "allow_empty": false,
-          "json_target": "",
-          "note": "",
           "variant_labels": [
             "Награда",
             "Метка",
             "Товар",
             "Кристалл"
-          ]
+          ],
+          "default": "BADGE",
+          "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_target": "",
+          "note": ""
         },
         {
           "n": 51,
@@ -1056,6 +1272,10 @@ window.PARAM_REVIEW_CATALOG = {
           "variants": [],
           "default": "",
           "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
           "json_target": "",
           "note": ""
         },
@@ -1069,6 +1289,10 @@ window.PARAM_REVIEW_CATALOG = {
           "variants": [],
           "default": "",
           "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
           "json_target": "",
           "note": ""
         },
@@ -1083,14 +1307,18 @@ window.PARAM_REVIEW_CATALOG = {
             "1",
             "2"
           ],
-          "default": "1",
-          "allow_empty": false,
-          "json_target": "",
-          "note": "",
           "variant_labels": [
             "победа",
             "участие"
-          ]
+          ],
+          "default": "1",
+          "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_target": "",
+          "note": ""
         },
         {
           "n": 54,
@@ -1102,6 +1330,10 @@ window.PARAM_REVIEW_CATALOG = {
           "variants": [],
           "default": "5",
           "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
           "json_target": "",
           "note": ""
         },
@@ -1115,6 +1347,10 @@ window.PARAM_REVIEW_CATALOG = {
           "variants": [],
           "default": "",
           "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
           "json_target": "REWARD_ADD_DATA",
           "note": "Колонка CSV с SPOD-JSON. Редактируются подпись, описание, заметка и «можно пусто». Ключи — в дочернем разделе JSON."
         }
@@ -1140,15 +1376,19 @@ window.PARAM_REVIEW_CATALOG = {
             "Y",
             "N"
           ],
-          "default": "N",
-          "allow_empty": false,
-          "json_target": "REWARD_ADD_DATA.nftFlg",
-          "note": "N (обычно N).",
           "variant_labels": [
             "Да",
             "Нет"
           ],
-          "json_required": true
+          "default": "N",
+          "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_required": true,
+          "json_target": "REWARD_ADD_DATA.nftFlg",
+          "note": "N (обычно N)."
         },
         {
           "n": 56,
@@ -1161,15 +1401,19 @@ window.PARAM_REVIEW_CATALOG = {
             "Y",
             "N"
           ],
-          "default": "N",
-          "allow_empty": false,
-          "json_target": "REWARD_ADD_DATA.outstanding",
-          "note": "N.",
           "variant_labels": [
             "Да",
             "Нет"
           ],
-          "json_required": true
+          "default": "N",
+          "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_required": true,
+          "json_target": "REWARD_ADD_DATA.outstanding",
+          "note": "N."
         },
         {
           "n": 57,
@@ -1181,9 +1425,13 @@ window.PARAM_REVIEW_CATALOG = {
           "variants": [],
           "default": "",
           "allow_empty": true,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_required": true,
           "json_target": "REWARD_ADD_DATA.rewardRule",
-          "note": "",
-          "json_required": true
+          "note": ""
         },
         {
           "n": 58,
@@ -1196,15 +1444,19 @@ window.PARAM_REVIEW_CATALOG = {
             "Y",
             "N"
           ],
-          "default": "N",
-          "allow_empty": false,
-          "json_target": "REWARD_ADD_DATA.rewardAgainGlobal",
-          "note": "N.",
           "variant_labels": [
             "Да",
             "Нет"
           ],
-          "json_required": true
+          "default": "N",
+          "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_required": true,
+          "json_target": "REWARD_ADD_DATA.rewardAgainGlobal",
+          "note": "N."
         },
         {
           "n": 59,
@@ -1217,15 +1469,19 @@ window.PARAM_REVIEW_CATALOG = {
             "Y",
             "N"
           ],
-          "default": "N",
-          "allow_empty": false,
-          "json_target": "REWARD_ADD_DATA.rewardAgainTournament",
-          "note": "N (часто N).",
           "variant_labels": [
             "Да",
             "Нет"
           ],
-          "json_required": true
+          "default": "N",
+          "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_required": true,
+          "json_target": "REWARD_ADD_DATA.rewardAgainTournament",
+          "note": "N (часто N)."
         },
         {
           "n": 60,
@@ -1238,15 +1494,19 @@ window.PARAM_REVIEW_CATALOG = {
             "Y",
             "N"
           ],
-          "default": "N",
-          "allow_empty": false,
-          "json_target": "REWARD_ADD_DATA.hidden",
-          "note": "N.",
           "variant_labels": [
             "Да",
             "Нет"
           ],
-          "json_required": true
+          "default": "N",
+          "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_required": true,
+          "json_target": "REWARD_ADD_DATA.hidden",
+          "note": "N."
         },
         {
           "n": 61,
@@ -1258,9 +1518,13 @@ window.PARAM_REVIEW_CATALOG = {
           "variants": [],
           "default": "",
           "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_required": true,
           "json_target": "REWARD_ADD_DATA.fileName",
-          "note": "",
-          "json_required": true
+          "note": ""
         },
         {
           "n": 62,
@@ -1272,9 +1536,13 @@ window.PARAM_REVIEW_CATALOG = {
           "variants": [],
           "default": "",
           "allow_empty": true,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_required": true,
           "json_target": "REWARD_ADD_DATA.teamNews",
-          "note": "",
-          "json_required": true
+          "note": ""
         },
         {
           "n": 63,
@@ -1286,9 +1554,13 @@ window.PARAM_REVIEW_CATALOG = {
           "variants": [],
           "default": "",
           "allow_empty": true,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_required": true,
           "json_target": "REWARD_ADD_DATA.singleNews",
-          "note": "",
-          "json_required": true
+          "note": ""
         },
         {
           "n": 64,
@@ -1301,15 +1573,19 @@ window.PARAM_REVIEW_CATALOG = {
             "Y",
             "N"
           ],
-          "default": "Y",
-          "allow_empty": false,
-          "json_target": "REWARD_ADD_DATA.masterBadge",
-          "note": "N. (Y — для награды / N — для турнира)",
           "variant_labels": [
             "Да",
             "Нет"
           ],
-          "json_required": true
+          "default": "Y",
+          "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_required": true,
+          "json_target": "REWARD_ADD_DATA.masterBadge",
+          "note": "N. (Y — для награды / N — для турнира)"
         },
         {
           "n": 65,
@@ -1321,9 +1597,13 @@ window.PARAM_REVIEW_CATALOG = {
           "variants": [],
           "default": "",
           "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_required": true,
           "json_target": "REWARD_ADD_DATA.parentRewardCode",
-          "note": "",
-          "json_required": true
+          "note": ""
         },
         {
           "n": 66,
@@ -1337,16 +1617,20 @@ window.PARAM_REVIEW_CATALOG = {
             "2",
             "3"
           ],
-          "default": "1",
-          "allow_empty": false,
-          "json_target": "REWARD_ADD_DATA.priority",
-          "note": "",
           "variant_labels": [
             "Золото",
             "Серебро",
             "Бронза"
           ],
-          "json_required": true
+          "default": "1",
+          "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_required": true,
+          "json_target": "REWARD_ADD_DATA.priority",
+          "note": ""
         },
         {
           "n": 67,
@@ -1361,17 +1645,21 @@ window.PARAM_REVIEW_CATALOG = {
             "GOSB",
             "NON"
           ],
-          "default": "BANK",
-          "allow_empty": false,
-          "json_target": "REWARD_ADD_DATA.recommendationLevel",
-          "note": "",
           "variant_labels": [
             "Страна",
             "Тер. банк",
             "ГОСБ",
             "нет"
           ],
-          "json_required": true
+          "default": "BANK",
+          "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_required": true,
+          "json_target": "REWARD_ADD_DATA.recommendationLevel",
+          "note": ""
         },
         {
           "n": 68,
@@ -1384,15 +1672,19 @@ window.PARAM_REVIEW_CATALOG = {
             "Y",
             "N"
           ],
-          "default": "N",
-          "allow_empty": false,
-          "json_target": "REWARD_ADD_DATA.refreshOldNews",
-          "note": "",
           "variant_labels": [
             "Да",
             "Нет"
           ],
-          "json_required": true
+          "default": "N",
+          "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_required": true,
+          "json_target": "REWARD_ADD_DATA.refreshOldNews",
+          "note": ""
         },
         {
           "n": 69,
@@ -1405,15 +1697,19 @@ window.PARAM_REVIEW_CATALOG = {
             "Y",
             "N"
           ],
-          "default": "N",
-          "allow_empty": false,
-          "json_target": "REWARD_ADD_DATA.tournamentTeam",
-          "note": "",
           "variant_labels": [
             "Да",
             "Нет"
           ],
-          "json_required": true
+          "default": "N",
+          "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_required": true,
+          "json_target": "REWARD_ADD_DATA.tournamentTeam",
+          "note": ""
         },
         {
           "n": 70,
@@ -1429,10 +1725,6 @@ window.PARAM_REVIEW_CATALOG = {
             "SEASON_csm_2026",
             "SEASON_m_2026_1"
           ],
-          "default": "SEASON_mmb_2026",
-          "allow_empty": false,
-          "json_target": "REWARD_ADD_DATA.seasonItem",
-          "note": "",
           "variant_labels": [
             "Сезон 2026 (ММБ)",
             "Сезон 2026 (ККСБ)",
@@ -1440,7 +1732,15 @@ window.PARAM_REVIEW_CATALOG = {
             "Сезон 2026  (CSM)",
             "Сезон 2026 (МНС)"
           ],
-          "json_required": true
+          "default": "SEASON_mmb_2026",
+          "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_required": true,
+          "json_target": "REWARD_ADD_DATA.seasonItem",
+          "note": ""
         },
         {
           "n": 71,
@@ -1453,15 +1753,19 @@ window.PARAM_REVIEW_CATALOG = {
             "AIPROMPT",
             "TEMPLATE"
           ],
-          "default": "AIPROMPT",
-          "allow_empty": false,
-          "json_target": "REWARD_ADD_DATA.newsType",
-          "note": "TEMPLATE. (генерит ИИ / по шаблону)",
           "variant_labels": [
             "AI-генерация",
             "Шаблон"
           ],
-          "json_required": true
+          "default": "AIPROMPT",
+          "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_required": true,
+          "json_target": "REWARD_ADD_DATA.newsType",
+          "note": "TEMPLATE. (генерит ИИ / по шаблону)"
         },
         {
           "n": 72,
@@ -1473,9 +1777,13 @@ window.PARAM_REVIEW_CATALOG = {
           "variants": [],
           "default": "",
           "allow_empty": true,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_required": true,
           "json_target": "REWARD_ADD_DATA.winCriterion",
-          "note": "",
-          "json_required": true
+          "note": ""
         },
         {
           "n": 73,
@@ -1487,9 +1795,13 @@ window.PARAM_REVIEW_CATALOG = {
           "variants": [],
           "default": "",
           "allow_empty": true,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_required": true,
           "json_target": "REWARD_ADD_DATA.preferences",
-          "note": "",
-          "json_required": true
+          "note": ""
         },
         {
           "n": 74,
@@ -1501,9 +1813,13 @@ window.PARAM_REVIEW_CATALOG = {
           "variants": [],
           "default": "",
           "allow_empty": true,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_required": true,
           "json_target": "REWARD_ADD_DATA.feature",
-          "note": "",
-          "json_required": true
+          "note": ""
         },
         {
           "n": 75,
@@ -1518,17 +1834,21 @@ window.PARAM_REVIEW_CATALOG = {
             "AKMKKSB",
             "CSM"
           ],
-          "default": "KMMMB",
-          "allow_empty": true,
-          "json_target": "REWARD_ADD_DATA.businessBlock",
-          "note": "",
           "variant_labels": [
             "КМ ММБ",
             "КМ ККСБ",
             "АКМ ККСБ",
             "Руководитель по внедрению проектов"
           ],
-          "json_required": true
+          "default": "KMMMB",
+          "allow_empty": true,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_required": true,
+          "json_target": "REWARD_ADD_DATA.businessBlock",
+          "note": ""
         },
         {
           "n": 76,
@@ -1540,9 +1860,13 @@ window.PARAM_REVIEW_CATALOG = {
           "variants": [],
           "default": "",
           "allow_empty": true,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_required": true,
           "json_target": "REWARD_ADD_DATA.helpCodeList",
-          "note": "",
-          "json_required": true
+          "note": ""
         },
         {
           "n": 77,
@@ -1555,15 +1879,19 @@ window.PARAM_REVIEW_CATALOG = {
             "Y",
             "N"
           ],
-          "default": "N",
-          "allow_empty": false,
-          "json_target": "REWARD_ADD_DATA.hiddenRewardList",
-          "note": "N.",
           "variant_labels": [
             "Да",
             "Нет"
           ],
-          "json_required": true
+          "default": "N",
+          "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_required": true,
+          "json_target": "REWARD_ADD_DATA.hiddenRewardList",
+          "note": "N."
         }
       ],
       "column": "REWARD_ADD_DATA"
@@ -1587,6 +1915,10 @@ window.PARAM_REVIEW_CATALOG = {
           "variants": [],
           "default": "",
           "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
           "json_target": "",
           "note": ""
         },
@@ -1603,16 +1935,20 @@ window.PARAM_REVIEW_CATALOG = {
             "GOSB",
             "GROUPING"
           ],
-          "default": "BANK",
-          "allow_empty": false,
-          "json_target": "",
-          "note": "",
           "variant_labels": [
             "Вся страна",
             "Тер. банк",
             "ГОСБ",
             "Группа"
-          ]
+          ],
+          "default": "BANK",
+          "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_target": "",
+          "note": ""
         },
         {
           "n": 80,
@@ -1624,6 +1960,10 @@ window.PARAM_REVIEW_CATALOG = {
           "variants": [],
           "default": "",
           "allow_empty": true,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
           "json_target": "",
           "note": ""
         }
@@ -1648,6 +1988,10 @@ window.PARAM_REVIEW_CATALOG = {
           "variants": [],
           "default": "",
           "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
           "json_target": "",
           "note": ""
         },
@@ -1664,16 +2008,20 @@ window.PARAM_REVIEW_CATALOG = {
             "GOSB",
             "GROUPING"
           ],
-          "default": "BANK",
-          "allow_empty": false,
-          "json_target": "",
-          "note": "",
           "variant_labels": [
             "Вся страна",
             "Тер. банк",
             "ГОСБ",
             "Группа"
-          ]
+          ],
+          "default": "BANK",
+          "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_target": "",
+          "note": ""
         },
         {
           "n": 83,
@@ -1696,10 +2044,6 @@ window.PARAM_REVIEW_CATALOG = {
             "13",
             "52"
           ],
-          "default": "*",
-          "allow_empty": false,
-          "json_target": "GROUP_VALUE",
-          "note": "",
           "variant_labels": [
             "Все",
             "МБ",
@@ -1713,7 +2057,15 @@ window.PARAM_REVIEW_CATALOG = {
             "УБ",
             "ЦЧБ",
             "ЮЗБ"
-          ]
+          ],
+          "default": "*",
+          "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_target": "GROUP_VALUE",
+          "note": ""
         },
         {
           "n": 84,
@@ -1728,16 +2080,20 @@ window.PARAM_REVIEW_CATALOG = {
             "3",
             "0"
           ],
-          "default": "2",
-          "allow_empty": false,
-          "json_target": "",
-          "note": "",
           "variant_labels": [
             "процент от",
             "первые Х",
             "достигни",
             "не вручаем"
-          ]
+          ],
+          "default": "2",
+          "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_target": "",
+          "note": ""
         },
         {
           "n": 85,
@@ -1749,6 +2105,10 @@ window.PARAM_REVIEW_CATALOG = {
           "variants": [],
           "default": "0",
           "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
           "json_target": "",
           "note": ""
         },
@@ -1762,6 +2122,10 @@ window.PARAM_REVIEW_CATALOG = {
           "variants": [],
           "default": "0",
           "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
           "json_target": "",
           "note": ""
         },
@@ -1775,6 +2139,10 @@ window.PARAM_REVIEW_CATALOG = {
           "variants": [],
           "default": "0",
           "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
           "json_target": "",
           "note": ""
         },
@@ -1791,16 +2159,20 @@ window.PARAM_REVIEW_CATALOG = {
             "GOSB",
             "GROUPING"
           ],
-          "default": "",
-          "allow_empty": true,
-          "json_target": "",
-          "note": "",
           "variant_labels": [
             "Вся страна",
             "Тер. банк",
             "ГОСБ",
             "Группа"
-          ]
+          ],
+          "default": "",
+          "allow_empty": true,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_target": "",
+          "note": ""
         }
       ]
     },
@@ -1823,6 +2195,10 @@ window.PARAM_REVIEW_CATALOG = {
           "variants": [],
           "default": "",
           "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
           "json_target": "",
           "note": ""
         },
@@ -1838,15 +2214,19 @@ window.PARAM_REVIEW_CATALOG = {
             "2",
             "3"
           ],
-          "default": "1",
-          "allow_empty": false,
-          "json_target": "",
-          "note": "",
           "variant_labels": [
             "Расчетный",
             "Абсолютный",
             "Относительный"
-          ]
+          ],
+          "default": "1",
+          "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_target": "",
+          "note": ""
         },
         {
           "n": 91,
@@ -1859,14 +2239,18 @@ window.PARAM_REVIEW_CATALOG = {
             "NUMERATOR",
             "DIVIDER"
           ],
-          "default": "",
-          "allow_empty": true,
-          "json_target": "",
-          "note": "DIVIDER",
           "variant_labels": [
             "Числитель",
             "Знаменатель"
-          ]
+          ],
+          "default": "",
+          "allow_empty": true,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_target": "",
+          "note": "DIVIDER"
         },
         {
           "n": 92,
@@ -1878,6 +2262,10 @@ window.PARAM_REVIEW_CATALOG = {
           "variants": [],
           "default": "",
           "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
           "json_target": "",
           "note": ""
         },
@@ -1967,10 +2355,6 @@ window.PARAM_REVIEW_CATALOG = {
             "KANBANARS_DEAL_NUM_VKO",
             "WD"
           ],
-          "default": "WAIT",
-          "allow_empty": false,
-          "json_target": "",
-          "note": "",
           "variant_labels": [
             "Ручной",
             "",
@@ -2049,7 +2433,15 @@ window.PARAM_REVIEW_CATALOG = {
             "",
             "",
             ""
-          ]
+          ],
+          "default": "WAIT",
+          "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_target": "",
+          "note": ""
         },
         {
           "n": 94,
@@ -2069,10 +2461,6 @@ window.PARAM_REVIEW_CATALOG = {
             "COUNT_DISTINCT_DEAL",
             "LAST_VALUE"
           ],
-          "default": "SUM",
-          "allow_empty": false,
-          "json_target": "",
-          "note": "",
           "variant_labels": [
             "Сумма",
             "Максимум",
@@ -2083,7 +2471,15 @@ window.PARAM_REVIEW_CATALOG = {
             "Уник. клиенты",
             "Уник. договоры",
             "Последнее по дате"
-          ]
+          ],
+          "default": "SUM",
+          "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_target": "",
+          "note": ""
         },
         {
           "n": 95,
@@ -2097,15 +2493,19 @@ window.PARAM_REVIEW_CATALOG = {
             "-1",
             "1000"
           ],
-          "default": "1",
-          "allow_empty": false,
-          "json_target": "",
-          "note": "",
           "variant_labels": [
             "Положительный",
             "Отрицательный",
             "Множитель x1000"
-          ]
+          ],
+          "default": "1",
+          "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_target": "",
+          "note": ""
         },
         {
           "n": 96,
@@ -2117,6 +2517,10 @@ window.PARAM_REVIEW_CATALOG = {
           "variants": [],
           "default": "",
           "allow_empty": true,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
           "json_target": "",
           "note": ""
         },
@@ -2132,15 +2536,19 @@ window.PARAM_REVIEW_CATALOG = {
             "RATING",
             "GAIN"
           ],
-          "default": "RATING",
-          "allow_empty": false,
-          "json_target": "",
-          "note": "",
           "variant_labels": [
             "Достигни",
             "Рейтинг",
             "Больше в X раз"
-          ]
+          ],
+          "default": "RATING",
+          "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_target": "",
+          "note": ""
         },
         {
           "n": 98,
@@ -2161,10 +2569,6 @@ window.PARAM_REVIEW_CATALOG = {
             "X3",
             "X4"
           ],
-          "default": "MAX",
-          "allow_empty": false,
-          "json_target": "",
-          "note": "",
           "variant_labels": [
             "Равно",
             "Больше",
@@ -2176,7 +2580,15 @@ window.PARAM_REVIEW_CATALOG = {
             "Больше в 2 раза",
             "Больше в 3 раза",
             "Больше в 4 раза"
-          ]
+          ],
+          "default": "MAX",
+          "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_target": "",
+          "note": ""
         },
         {
           "n": 99,
@@ -2188,6 +2600,10 @@ window.PARAM_REVIEW_CATALOG = {
           "variants": [],
           "default": "",
           "allow_empty": true,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
           "json_target": "",
           "note": ""
         },
@@ -2201,6 +2617,10 @@ window.PARAM_REVIEW_CATALOG = {
           "variants": [],
           "default": "",
           "allow_empty": true,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
           "json_target": "",
           "note": ""
         },
@@ -2215,14 +2635,18 @@ window.PARAM_REVIEW_CATALOG = {
             "0",
             "1"
           ],
-          "default": "0",
-          "allow_empty": false,
-          "json_target": "",
-          "note": "1",
           "variant_labels": [
             "На дату операции",
             "На конец турнира"
-          ]
+          ],
+          "default": "0",
+          "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_target": "",
+          "note": "1"
         },
         {
           "n": 103,
@@ -2235,14 +2659,18 @@ window.PARAM_REVIEW_CATALOG = {
             "0",
             "1"
           ],
-          "default": "1",
-          "allow_empty": false,
-          "json_target": "",
-          "note": "1",
           "variant_labels": [
             "Промышленный расчет",
             "Ручные данные"
-          ]
+          ],
+          "default": "1",
+          "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_target": "",
+          "note": "1"
         },
         {
           "n": 104,
@@ -2254,6 +2682,10 @@ window.PARAM_REVIEW_CATALOG = {
           "variants": [],
           "default": "",
           "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
           "json_target": "",
           "note": ""
         },
@@ -2267,6 +2699,10 @@ window.PARAM_REVIEW_CATALOG = {
           "variants": [],
           "default": "",
           "allow_empty": true,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
           "json_target": "INDICATOR_FILTER",
           "note": "Колонка CSV с SPOD-JSON. «Можно пусто» — допустима ли пустая ячейка колонки целиком."
         }
@@ -2284,7 +2720,11 @@ window.PARAM_REVIEW_CATALOG = {
       "fields": [
         {
           "n": 129,
+          "key": "INDICATOR_FILTER.filtered_attribute_code",
           "status": "[v]",
+          "label": "Код фильтра",
+          "description": "Код поля фильтра",
+          "kind": "dropdown_custom",
           "variants": [
             "segment",
             "segment_mk",
@@ -2309,42 +2749,50 @@ window.PARAM_REVIEW_CATALOG = {
           ],
           "default": "segment",
           "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_required": true,
           "json_target": "INDICATOR_FILTER[].filtered_attribute_code",
-          "note": "",
-          "description": "Код поля фильтра",
-          "kind": "dropdown_custom",
-          "label": "Код фильтра",
-          "key": "INDICATOR_FILTER.filtered_attribute_code",
-          "json_required": true
+          "note": ""
         },
         {
           "n": 130,
+          "key": "INDICATOR_FILTER.filtered_attribute_type",
           "status": "[v]",
+          "label": "Тип атрибута",
+          "description": "Тип данных в фильтре",
+          "kind": "dropdown_custom",
           "variants": [
             "STRING",
             "DATE",
             "INTEGER",
             "DECIMAL (38,12)"
           ],
-          "default": "STRING",
-          "allow_empty": false,
-          "json_target": "INDICATOR_FILTER[].filtered_attribute_type",
-          "note": "",
-          "description": "Тип данных в фильтре",
-          "kind": "dropdown_custom",
-          "label": "Тип атрибута",
-          "key": "INDICATOR_FILTER.filtered_attribute_type",
           "variant_labels": [
             "Строка",
             "Дата",
             "Целое число",
             "Дробное число"
           ],
-          "json_required": true
+          "default": "STRING",
+          "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_required": true,
+          "json_target": "INDICATOR_FILTER[].filtered_attribute_type",
+          "note": ""
         },
         {
           "n": 131,
+          "key": "INDICATOR_FILTER.filtered_attribute_match",
           "status": "[v]",
+          "label": "Оператор сравнения",
+          "description": "Оператор сравнения для фильтра",
+          "kind": "dropdown",
           "variants": [
             "IN",
             "NOT_IN",
@@ -2354,14 +2802,6 @@ window.PARAM_REVIEW_CATALOG = {
             "<",
             "="
           ],
-          "default": "IN",
-          "allow_empty": false,
-          "json_target": "INDICATOR_FILTER[].filtered_attribute_match",
-          "note": "",
-          "description": "Оператор сравнения для фильтра",
-          "kind": "dropdown",
-          "label": "Оператор сравнения",
-          "key": "INDICATOR_FILTER.filtered_attribute_match",
           "variant_labels": [
             "Входит",
             "Не входит",
@@ -2371,49 +2811,69 @@ window.PARAM_REVIEW_CATALOG = {
             "Меньше",
             "Равно"
           ],
-          "json_required": true
+          "default": "IN",
+          "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_required": true,
+          "json_target": "INDICATOR_FILTER[].filtered_attribute_match",
+          "note": ""
         },
         {
           "n": 132,
+          "key": "INDICATOR_FILTER.filtered_attribute_condition",
           "status": "[v]",
+          "label": "Значение фильтра строки",
+          "description": "Массив значений фильма в виде строк",
+          "kind": "list",
           "variants": [],
           "default": "",
           "allow_empty": true,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_required": false,
           "json_target": "INDICATOR_FILTER[].filtered_attribute_condition",
-          "note": "",
-          "description": "Массив значений фильма в виде строк",
-          "kind": "list",
-          "label": "Значение фильтра строки",
-          "key": "INDICATOR_FILTER.filtered_attribute_condition",
-          "json_required": false
+          "note": ""
         },
         {
           "n": 133,
+          "key": "INDICATOR_FILTER.filtered_attribute_value",
           "status": "[v]",
+          "label": "Значение фильтра числа",
+          "description": "Значение для фильтра числового",
+          "kind": "number",
           "variants": [],
           "default": "",
           "allow_empty": true,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_required": false,
           "json_target": "INDICATOR_FILTER[].filtered_attribute_value",
-          "note": "",
-          "description": "Значение для фильтра числового",
-          "kind": "number",
-          "label": "Значение фильтра числа",
-          "key": "INDICATOR_FILTER.filtered_attribute_value",
-          "json_required": false
+          "note": ""
         },
         {
           "n": 134,
+          "key": "INDICATOR_FILTER.filtered_attribute_dt",
           "status": "[v]",
+          "label": "Значение фильтра даты",
+          "description": "Значение для фильтра даты",
+          "kind": "date",
           "variants": [],
           "default": "",
           "allow_empty": true,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_required": false,
           "json_target": "INDICATOR_FILTER[].filtered_attribute_dt",
-          "note": "",
-          "description": "Значение для фильтра даты",
-          "kind": "date",
-          "label": "Значение фильтра даты",
-          "key": "INDICATOR_FILTER.filtered_attribute_dt",
-          "json_required": false
+          "note": ""
         }
       ]
     },
@@ -2436,6 +2896,10 @@ window.PARAM_REVIEW_CATALOG = {
           "variants": [],
           "default": "",
           "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
           "json_target": "",
           "note": ""
         },
@@ -2470,6 +2934,10 @@ window.PARAM_REVIEW_CATALOG = {
           ],
           "default": "произвольный",
           "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
           "json_target": "",
           "note": ""
         },
@@ -2483,6 +2951,10 @@ window.PARAM_REVIEW_CATALOG = {
           "variants": [],
           "default": "",
           "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
           "json_target": "",
           "note": ""
         },
@@ -2496,6 +2968,10 @@ window.PARAM_REVIEW_CATALOG = {
           "variants": [],
           "default": "",
           "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
           "json_target": "",
           "note": ""
         },
@@ -2509,6 +2985,10 @@ window.PARAM_REVIEW_CATALOG = {
           "variants": [],
           "default": "",
           "allow_empty": true,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
           "json_target": "",
           "note": ""
         },
@@ -2522,6 +3002,10 @@ window.PARAM_REVIEW_CATALOG = {
           "variants": [],
           "default": "",
           "allow_empty": true,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
           "json_target": "",
           "note": ""
         },
@@ -2535,6 +3019,10 @@ window.PARAM_REVIEW_CATALOG = {
           "variants": [],
           "default": "",
           "allow_empty": true,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
           "json_target": "",
           "note": ""
         },
@@ -2552,17 +3040,21 @@ window.PARAM_REVIEW_CATALOG = {
             "<",
             "<="
           ],
-          "default": ">=",
-          "allow_empty": false,
-          "json_target": "",
-          "note": "",
           "variant_labels": [
             "Равно",
             "Больше",
             "Больше или равно",
             "Меньше",
             "Меньше или равно"
-          ]
+          ],
+          "default": ">=",
+          "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_target": "",
+          "note": ""
         },
         {
           "n": 113,
@@ -2574,6 +3066,10 @@ window.PARAM_REVIEW_CATALOG = {
           "variants": [],
           "default": "",
           "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
           "json_target": "",
           "note": ""
         },
@@ -2593,6 +3089,10 @@ window.PARAM_REVIEW_CATALOG = {
           ],
           "default": "АКТИВНЫЙ",
           "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
           "json_target": "",
           "note": ""
         },
@@ -2606,6 +3106,10 @@ window.PARAM_REVIEW_CATALOG = {
           "variants": [],
           "default": "",
           "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
           "json_target": "",
           "note": ""
         },
@@ -2620,14 +3124,18 @@ window.PARAM_REVIEW_CATALOG = {
             "0",
             "1"
           ],
-          "default": "1",
-          "allow_empty": false,
-          "json_target": "",
-          "note": "",
           "variant_labels": [
             "Промышленный расчет",
             "Ручные данные"
-          ]
+          ],
+          "default": "1",
+          "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_target": "",
+          "note": ""
         },
         {
           "n": 119,
@@ -2639,6 +3147,10 @@ window.PARAM_REVIEW_CATALOG = {
           "variants": [],
           "default": "",
           "allow_empty": true,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
           "json_target": "TRN_INDICATOR_FILTER",
           "note": ""
         },
@@ -2652,6 +3164,10 @@ window.PARAM_REVIEW_CATALOG = {
           "variants": [],
           "default": "",
           "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
           "json_target": "TARGET_TYPE",
           "note": "Колонка CSV с SPOD-JSON. «Можно пусто» — допустима ли пустая ячейка колонки целиком."
         },
@@ -2665,6 +3181,10 @@ window.PARAM_REVIEW_CATALOG = {
           "variants": [],
           "default": "",
           "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
           "json_target": "FILTER_PERIOD_ARR",
           "note": "Колонка CSV с SPOD-JSON. «Можно пусто» — допустима ли пустая ячейка колонки целиком."
         }
@@ -2682,7 +3202,11 @@ window.PARAM_REVIEW_CATALOG = {
       "fields": [
         {
           "n": 123,
+          "key": "TARGET_TYPE.seasonCode",
           "status": "[v]",
+          "label": "Код сезона",
+          "description": "Сезон рейтинга / начисления кристаллов (seasonCode).",
+          "kind": "dropdown_custom",
           "variants": [
             "SEASON_mmb_2026",
             "SEASON_2026_1",
@@ -2691,14 +3215,6 @@ window.PARAM_REVIEW_CATALOG = {
             "SEASON_m_2026_1",
             "NON"
           ],
-          "default": "SEASON_mmb_2026",
-          "allow_empty": true,
-          "json_target": "TARGET_TYPE.seasonCode",
-          "note": "",
-          "description": "Сезон рейтинга / начисления кристаллов (seasonCode).",
-          "kind": "dropdown_custom",
-          "label": "Код сезона",
-          "key": "TARGET_TYPE.seasonCode",
           "variant_labels": [
             "Сезон 2026 (ММБ)",
             "Сезон 2026 (ККСБ)",
@@ -2707,7 +3223,15 @@ window.PARAM_REVIEW_CATALOG = {
             "Сезон 2026 (МНС)",
             ""
           ],
-          "json_required": false
+          "default": "SEASON_mmb_2026",
+          "allow_empty": true,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_required": false,
+          "json_target": "TARGET_TYPE.seasonCode",
+          "note": ""
         }
       ]
     },
@@ -2723,49 +3247,65 @@ window.PARAM_REVIEW_CATALOG = {
       "fields": [
         {
           "n": 124,
+          "key": "FILTER_PERIOD_ARR.period_code",
           "status": "[v]",
+          "label": "Код периода",
+          "description": "Код периода в обратном порядке от текущего",
+          "kind": "number",
           "variants": [],
           "default": "1",
           "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_required": true,
           "json_target": "FILTER_PERIOD_ARR[].period_code",
-          "note": "",
-          "description": "Код периода в обратном порядке от текущего",
-          "kind": "number",
-          "label": "Код периода",
-          "key": "FILTER_PERIOD_ARR.period_code",
-          "json_required": true
+          "note": ""
         },
         {
           "n": 125,
+          "key": "FILTER_PERIOD_ARR.start_dt",
           "status": "[v]",
+          "label": "Дата начала",
+          "description": "Дата начала анализируемого периода",
+          "kind": "date",
           "variants": [],
           "default": "",
           "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_required": true,
           "json_target": "FILTER_PERIOD_ARR[].start_dt",
-          "note": "",
-          "description": "Дата начала анализируемого периода",
-          "kind": "date",
-          "label": "Дата начала",
-          "key": "FILTER_PERIOD_ARR.start_dt",
-          "json_required": true
+          "note": ""
         },
         {
           "n": 126,
+          "key": "FILTER_PERIOD_ARR.end_dt",
           "status": "[v]",
+          "label": "Дата конца",
+          "description": "Дата конца анализируемого периода",
+          "kind": "date",
           "variants": [],
           "default": "",
           "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_required": true,
           "json_target": "FILTER_PERIOD_ARR[].end_dt",
-          "note": "",
-          "description": "Дата конца анализируемого периода",
-          "kind": "date",
-          "label": "Дата конца",
-          "key": "FILTER_PERIOD_ARR.end_dt",
-          "json_required": true
+          "note": ""
         },
         {
           "n": 127,
+          "key": "FILTER_PERIOD_ARR.criterion_mark_type",
           "status": "[v]",
+          "label": "Оператор сравнения",
+          "description": "Оператор; можно не заполнять.",
+          "kind": "dropdown",
           "variants": [
             ">",
             ">=",
@@ -2773,14 +3313,6 @@ window.PARAM_REVIEW_CATALOG = {
             "<=",
             "="
           ],
-          "default": "",
-          "allow_empty": true,
-          "json_target": "FILTER_PERIOD_ARR[].criterion_mark_type",
-          "note": "",
-          "description": "Оператор; можно не заполнять.",
-          "kind": "dropdown",
-          "label": "Оператор сравнения",
-          "key": "FILTER_PERIOD_ARR.criterion_mark_type",
           "variant_labels": [
             "Больше",
             "Больше или равно",
@@ -2788,24 +3320,40 @@ window.PARAM_REVIEW_CATALOG = {
             "Меньше или равно",
             "Равно"
           ],
-          "json_required": false
+          "default": "",
+          "allow_empty": true,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_required": false,
+          "json_target": "FILTER_PERIOD_ARR[].criterion_mark_type",
+          "note": ""
         },
         {
           "n": 128,
+          "key": "FILTER_PERIOD_ARR.criterion_mark_value",
           "status": "[v]",
+          "label": "Значение порога",
+          "description": "Пороховое значение",
+          "kind": "number",
           "variants": [],
           "default": "",
           "allow_empty": true,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_required": true,
           "json_target": "FILTER_PERIOD_ARR[].criterion_mark_value",
-          "note": "",
-          "description": "Пороховое значение",
-          "kind": "number",
-          "label": "Значение порога",
-          "key": "FILTER_PERIOD_ARR.criterion_mark_value",
-          "json_required": true
+          "note": ""
         }
       ]
     }
   ],
-  "exported_at": "2026-08-17T13:42:19.465681Z"
+  "exported_at": "2026-08-17T13:42:19.465681Z",
+  "marksManifest": [
+    "ПКАП",
+    "ФАБРИКА"
+  ]
 };

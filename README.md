@@ -858,7 +858,21 @@ SPOD_PROM/
 
 **Каталог POST/ целиком в `.gitignore`** — в репозиторий не попадает; на каждой машине содержимое создаётся скриптом.
 
-**История состава POST:** с **1.7.36** — только **`.py`** и **config.json**; с **1.7.43** — **README**, **requirements**, **Docs/**; с **1.7.49** — зашифрованный bundle для почты.
+#### Режим C — WEB-снимок (`sync_post_web_bundle.py`)
+
+**Назначение:** перенос **WEB-страниц** (edit/fill), **каталогов**, **примеров JSON** и **утилит экспорта** без переименования файлов.
+
+**Состав:** **`POST/SPOD_PROM/`** — `common/{web-edit,web-edit-full,web-fill,web-fill-full,param_catalog_review,examples}`, фрагмент **`Docs/`** (PLAN_WEB_FILL, TODO, param_review), **`src/Tools/`** (export/sync каталогов), **`src/Tests/`** (web-fill), **`config/CONFIG_RUN_INPUT.json`**. Карта — **`POST/SPOD_PROM/СОСТАВ_ПАКЕТА.txt`**.
+
+**Обновление:** **`python src/Tools/sync_post_web_bundle.py`** (папка **`POST/SPOD_PROM/`** перед сборкой удаляется и создаётся заново).
+
+**История состава POST:** с **1.7.36** — только **`.py`** и **config.json**; с **1.7.43** — **README**, **requirements**, **Docs/**; с **1.7.49** — зашифрованный bundle для почты; с **1.7.70** — WEB-снимок **`sync_post_web_bundle.py`**.
+
+### Версия 1.7.70 — WEB: метки ПКАП/ФАБРИКА, POST WEB-снимок
+
+- Каталог параметров: поле **`marks[]`** у каждого поля (после **`allow_empty`**), UI в **web-edit** / **web-edit-full** (чипы после «Можно пусто»).
+- **`src/Tools/enrich_catalog_marks.py`** — нормализация меток и порядка ключей; **`sync_post_web_bundle.py`** → **`POST/SPOD_PROM/`** (WEB-страницы, примеры, Docs, Tools экспорта).
+- Обновлены **`game_edit_catalog.json`**, зеркала fill/review, примеры **`common/examples/web-fill/`**.
 
 ---
 

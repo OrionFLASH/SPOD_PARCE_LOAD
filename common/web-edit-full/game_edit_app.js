@@ -2,9 +2,9 @@
 (function () {
   "use strict";
 
-  const LS_KEY = "spod_param_review_catalog_v6";
-  const LS_BASELINE_KEY = "spod_param_review_baseline_v6";
-  const LS_SOURCE_KEY = "spod_param_review_source_v6";
+  const LS_KEY = "spod_param_review_catalog_v7";
+  const LS_BASELINE_KEY = "spod_param_review_baseline_v7";
+  const LS_SOURCE_KEY = "spod_param_review_source_v7";
   /** Рабочий источник — game_edit_catalog.json (файл через диалог или «Перечитать» по HTTP). */
   const CATALOG_URL = "./game_edit_catalog.json";
   const KINDS = ["dropdown", "dropdown_custom", "text", "number", "list", "json", "date"];
@@ -81,6 +81,19 @@
     "[v]":
       '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8.5 12.5l2.2 2.2 4.8-5"/></svg>',
   };
+  /** Пометки размещения параметра (можно одну или обе). */
+  const PARAM_MARKS = ["ПКАП", "ФАБРИКА"];
+  const DEFAULT_PARAM_MARKS = ["ПКАП", "ФАБРИКА"];
+  const PARAM_MARK_TIPS = {
+    ПКАП: "Параметр относится к контуру ПКАП",
+    ФАБРИКА: "Параметр относится к контуру ФАБРИКА",
+  };
+  const PARAM_MARK_ICONS = {
+    ПКАП:
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v6c0 1.7 3.1 3 7 3s7-1.3 7-3V6"/><path d="M5 12v6c0 1.7 3.1 3 7 3s7-1.3 7-3v-6"/></svg>',
+    ФАБРИКА:
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21V9l5-3v3l4-2v16"/><path d="M9 21V11l6-3v13"/><path d="M15 10l3-1.5V21"/><path d="M19 9V21"/><path d="M3 21h18"/></svg>',
+  };
   const KIND_TIPS = {
     dropdown: "Выбор из списка — одно значение из вариантов (выпадающий список в Excel)",
     dropdown_custom:
@@ -94,6 +107,57 @@
 
   function kindHasVariants(kind) {
     return kind === "dropdown" || kind === "dropdown_custom" || kind === "list";
+  }
+
+  function normalizeParamMarks(raw) {
+    if (!Array.isArray(raw) || !raw.length) return DEFAULT_PARAM_MARKS.slice();
+    const out = [];
+    for (const item of raw) {
+      let t = String(item ?? "").trim();
+      if (!t) continue;
+      const upper = t.toUpperCase();
+      if (upper === "PKAP") t = "ПКАП";
+      if (upper === "FABRIKA" || upper === "FABRIC") t = "ФАБРИКА";
+      if (PARAM_MARKS.includes(t) && !out.includes(t)) out.push(t);
+    }
+    return out.length ? out : DEFAULT_PARAM_MARKS.slice();
+  }
+
+  function fieldParamMarks(field) {
+    return normalizeParamMarks(field && field.marks);
+  }
+
+  function paramMarkChipHtml(mark, field) {
+    const active = fieldParamMarks(field).includes(mark);
+    const slug = mark === "ПКАП" ? "pkap" : "fabrika";
+    return (
+      `<button type="button" class="param-mark-chip param-mark-chip--${slug}${
+        active ? " active" : ""
+      }" data-mark="${escapeHtml(mark)}" aria-pressed="${active ? "true" : "false"}" data-tip="${escapeHtml(
+        PARAM_MARK_TIPS[mark] || mark
+      )}">` +
+      `<span class="param-mark-chip__icon">${PARAM_MARK_ICONS[mark] || ""}</span>` +
+      `<span class="param-mark-chip__label">${escapeHtml(mark)}</span>` +
+      `</button>`
+    );
+  }
+
+  function paramMarksToggleHtml(field) {
+    return (
+      `<div class="param-marks-toggle" data-role="param_marks" role="group" aria-label="Пометки ПКАП / ФАБРИКА" data-tip="Где используется параметр — можно включить одну или обе пометки">` +
+      PARAM_MARKS.map((m) => paramMarkChipHtml(m, field)).join("") +
+      `</div>`
+    );
+  }
+
+  function syncParamMarksUi(card, field) {
+    const marks = fieldParamMarks(field);
+    card.querySelectorAll(".param-mark-chip[data-mark]").forEach((btn) => {
+      const mark = btn.getAttribute("data-mark") || "";
+      const on = marks.includes(mark);
+      btn.classList.toggle("active", on);
+      btn.setAttribute("aria-pressed", on ? "true" : "false");
+    });
   }
 
   /** @type {any} */
@@ -231,6 +295,7 @@
       description: field.description || "",
       note: field.note || "",
       json_target: field.json_target || "",
+      marks: fieldParamMarks(field),
     };
   }
 
@@ -257,6 +322,7 @@
     field.description = snap.description || "";
     field.note = snap.note || "";
     if (snap.json_target != null) field.json_target = snap.json_target;
+    field.marks = normalizeParamMarks(snap.marks);
     alignVariantLabels(field);
   }
 
@@ -589,6 +655,7 @@
       field.kind,
       variants,
       labels,
+      (fieldParamMarks(field) || []).join(" "),
     ]
       .map((x) => String(x ?? ""))
       .join(" ")
@@ -1502,27 +1569,28 @@
         if (!kindHasVariants(f.kind)) {
           if (!Array.isArray(f.variants)) f.variants = [];
           if (!(f.variants || []).length) delete f.variant_labels;
-          continue;
-        }
-        alignVariantLabels(f, { fillKnownEmpty: true });
-        const variants = Array.isArray(f.variants) ? f.variants.filter(Boolean) : [];
-        f.variants = variants;
-        if (!variants.length) {
-          f.default = "";
-          continue;
-        }
-        const multi = f.kind === "list";
-        ensureDefaultSelection(f, variants, multi);
-        if (multi) {
-          const selected = parseDefaultList(f.default).filter((v) =>
-            variants.includes(v)
-          );
-          f.default = formatDefaultList(selected);
         } else {
-          const cur = String(f.default || "").trim();
-          f.default = cur && variants.includes(cur) ? cur : "";
-          if (selectionRequired(f) && !f.default) f.default = variants[0] || "";
+          alignVariantLabels(f, { fillKnownEmpty: true });
+          const variants = Array.isArray(f.variants) ? f.variants.filter(Boolean) : [];
+          f.variants = variants;
+          if (!variants.length) {
+            f.default = "";
+          } else {
+            const multi = f.kind === "list";
+            ensureDefaultSelection(f, variants, multi);
+            if (multi) {
+              const selected = parseDefaultList(f.default).filter((v) =>
+                variants.includes(v)
+              );
+              f.default = formatDefaultList(selected);
+            } else {
+              const cur = String(f.default || "").trim();
+              f.default = cur && variants.includes(cur) ? cur : "";
+              if (selectionRequired(f) && !f.default) f.default = variants[0] || "";
+            }
+          }
         }
+        f.marks = fieldParamMarks(f);
       }
     }
   }
@@ -1757,6 +1825,7 @@
           }
           <span class="edited-badge" data-role="edited-badge" data-tip="Поле изменено после загрузки или импорта. Можно вернуть исходное кнопкой слева от готовности."${dirty ? "" : " hidden"}>отредактировано</span>
         </div>
+        ${paramMarksToggleHtml(field)}
         <div class="card-head-actions">
           <button type="button" class="revert-chip${
             dirty ? "" : " is-disabled"
@@ -1863,6 +1932,26 @@
         });
         afterFieldEdit(card, field, sectionId);
         renderNav();
+      });
+    });
+
+    card.querySelectorAll(".param-mark-chip[data-mark]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const mark = btn.getAttribute("data-mark") || "";
+        if (!mark || !PARAM_MARKS.includes(mark)) return;
+        let marks = fieldParamMarks(field);
+        if (marks.includes(mark)) {
+          if (marks.length <= 1) {
+            showToast("Должна остаться хотя бы одна пометка");
+            return;
+          }
+          marks = marks.filter((m) => m !== mark);
+        } else {
+          marks = PARAM_MARKS.filter((m) => marks.includes(m) || m === mark);
+        }
+        field.marks = marks;
+        syncParamMarksUi(card, field);
+        afterFieldEdit(card, field, sectionId);
       });
     });
 
