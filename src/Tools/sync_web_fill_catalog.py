@@ -59,7 +59,14 @@ def main() -> int:
         f"window.PARAM_REVIEW_CATALOG = {text.rstrip()};\n",
         encoding="utf-8",
     )
-    # зеркало для review (file://)
+    full_dir = ROOT / "common" / "web-fill-full"
+    if full_dir.is_dir():
+        (full_dir / "catalog.json").write_text(text, encoding="utf-8")
+        (full_dir / "catalog.js").write_text(
+            "/* зеркало catalog.json — sync_web_fill_catalog.py */\n"
+            f"window.PARAM_REVIEW_CATALOG = {text.rstrip()};\n",
+            encoding="utf-8",
+        )
     review = ROOT / "common" / "param_catalog_review"
     if review.is_dir():
         (review / "catalog.js").write_text(
@@ -74,7 +81,8 @@ def main() -> int:
             embedded.append(page.name)
     n = sum(len(s.get("fields") or []) for s in data.get("sections") or [])
     emb = ", ".join(embedded) if embedded else "(нет HTML)"
-    print(f"OK: web-fill/catalog.json + catalog.js + EMBEDDED → {emb} ({n} полей)")
+    extra = " + web-fill-full catalog" if full_dir.is_dir() else ""
+    print(f"OK: web-fill/catalog.json + catalog.js + EMBEDDED → {emb} ({n} полей){extra}")
     return 0
 
 

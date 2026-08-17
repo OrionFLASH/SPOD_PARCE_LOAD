@@ -1313,6 +1313,14 @@ python main.py
 
 ## История версий
 
+### Версия 1.7.70 — fill: JSON без заглушек, панели фильтров, каталог
+
+- Экспортер снимков fill не подставляет пустые строки SCHEDULE / INDICATOR / GROUP / BADGE; пустой CSV → `[]`. Пересборка `examples/` отложена (нет исходных CSV в репозитории).
+- Импорт fill: фантомные пустые строки отсекаются; пустой массив не дополняется `emptyScheduleRow`. Expand `t_CODE` / `r_CODE` для реальных строк сохранён.
+- Левая панель скрывается без колонтитулов; справа — «Поиск и фильтры» (Турниры/Награды/Архив, ПРОМ/ТЕСТ, статус, дата).
+- Легенда цветов вкладок слева. `INDICATOR_CODE` — dropdown + combobox; списки методов/агрегаций обновлены в каталоге.
+- Fill ≡ fill-full (`sync_web_fill_singlefile.py`). Документы: `Docs/PLAN_WEB_FILL.md`, `Docs/TODO_WEB_FILL.md`, ROADMAP §16.
+
 ### Версия 1.7.69 — web-edit-full / web-fill-full, CSV SPOD-JSON, экспорт «Все 6»
 
 - **`common/web-edit-full/`**: копия UI edit + каталог после полного скана `IN/PROM/SPOD` (все колонки и JSON-ключи без исключений; новые поля `status: "[ ]"`). Сборка: `python src/Tools/build_web_edit_full_catalog.py`.

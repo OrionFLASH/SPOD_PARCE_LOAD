@@ -26,6 +26,8 @@
 - Заполнение параметров SPOD: **`common/web-fill/`** (`game_fill_settings.html` + `README.md`) — шаги, CSV, снимок JSON, архив удалений.
 - Fill с разнесёнными файлами: **`common/web-fill-full/`** (html + css + js + catalog); примеры снимков — в `common/web-fill/examples/`.
 - `PLAN_CONTEST_BADGE_FORM.md` — согласованный план формы BADGE.
+- `PLAN_WEB_FILL.md` — план fill / fill-full (JSON без заглушек, панели, фильтры, каталог). Код сделан; пересборка `examples/` отложена.
+- `TODO_WEB_FILL.md` — чеклист к пункту 16 ROADMAP.
 - Шаблон BLANK: **`common/templates/CONTEST_BADGE_FORM/CONTEST_BADGE_FORM_BLANK.xlsx`** (stub в `Docs/templates/…`).
 
 ## Консистентность

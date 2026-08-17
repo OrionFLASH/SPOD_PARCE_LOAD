@@ -310,31 +310,8 @@ def build_contest_data(
             add[str(leaf)] = v
         badges.append({"flat": flat, "add": add})
 
-    if not badges:
-        badges = [
-            {
-                "flat": {
-                    "REWARD_CODE": "",
-                    "REWARD_TYPE": "BADGE",
-                    "FULL_NAME": "",
-                    "REWARD_DESCRIPTION": "",
-                    "REWARD_CONDITION": "1",
-                    "REWARD_COST": "5",
-                },
-                "add": {},
-            }
-        ]
-        reward_link = [
-            {
-                "CONTEST_CODE": cc,
-                "GROUP_CODE": "",
-                "REWARD_CODE": "",
-            }
-        ]
-
-    group_rows = [_row_subset(r, GROUP_COLS) for r in groups] or [
-        {c: "" for c in GROUP_COLS}
-    ]
+    # Нет строк в CSV — в снимке пустой массив, без заглушек.
+    group_rows = [_row_subset(r, GROUP_COLS) for r in groups]
     for g in group_rows:
         g["CONTEST_CODE"] = cc
 
@@ -347,11 +324,6 @@ def build_contest_data(
             for x in _parse_array_cell(r.get("INDICATOR_FILTER", ""))
         ]
         ind_rows.append(row)
-    if not ind_rows:
-        empty_ind: Dict[str, Any] = {c: "" for c in IND_COLS}
-        empty_ind["CONTEST_CODE"] = cc
-        empty_ind["filter_items"] = []
-        ind_rows = [empty_ind]
 
     sch_rows: List[Dict[str, Any]] = []
     for r in schedules:
@@ -365,12 +337,6 @@ def build_contest_data(
             for x in _parse_array_cell(r.get("FILTER_PERIOD_ARR", ""))
         ]
         sch_rows.append(row)
-    if not sch_rows:
-        empty_sch: Dict[str, Any] = {c: "" for c in SCH_COLS}
-        empty_sch["CONTEST_CODE"] = cc
-        empty_sch["seasonCode"] = ""
-        empty_sch["filter_period"] = []
-        sch_rows = [empty_sch]
 
     return {
         "contest": contest,
