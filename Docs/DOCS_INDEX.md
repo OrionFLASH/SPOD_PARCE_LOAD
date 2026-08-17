@@ -21,12 +21,12 @@
 - `CONTEST_BADGE_FORM.md` — Excel-форма конкурса BADGE (export/import через `run_outputs`).
 - `CONTEST_BADGE_FORM_FILLING.md` — **заполнение шаблона**: цвета, порядок полей, типичные ошибки, цикл export→import.
 - `CONTEST_BADGE_FORM_PARAM_REVIEW.md` — stub: актуальный MD-снимок в **`common/param_catalog_review/`**.
-- Редактор описаний: **`common/web-edit/`** (данные **`common/param_catalog_review/catalog.json`**). Сборка: `python src/Tools/build_param_review_editor.py`.
+- Редактор описаний: **`common/web-edit/`** (данные **`common/param_catalog_review/catalog.json`**). Сборка: `python src/Tools/build_param_review_editor.py`. Длинные списки (≥16 вариантов, в т.ч. `INDICATOR_CODE`) — combobox сверху карточки.
 - Полный каталог (скан PROM SPOD): **`common/web-edit-full/`** — `README.md`, `game_edit_catalog.json`; пересборка `python src/Tools/build_web_edit_full_catalog.py`.
-- Заполнение параметров SPOD: **`common/web-fill/`** (`game_fill_settings.html` + `README.md`) — шаги, CSV, снимок JSON, архив удалений.
-- Fill с разнесёнными файлами: **`common/web-fill-full/`** (html + css + js + catalog); примеры снимков — в `common/web-fill/examples/`.
+- Заполнение параметров SPOD: **`common/web-fill/`** (однофайловый HTML) и **`common/web-fill-full/`** (html + css + js + catalog). С 16.16 UX дорабатывается только в fill-full.
+- Примеры снимков JSON для импорта: **`common/examples/`** (`README.md`, подпапки `web-fill/{curated,badges,contests}/`). Каталоги UI и «Сохранить JSON» остаются в папках приложений.
 - `PLAN_CONTEST_BADGE_FORM.md` — согласованный план формы BADGE.
-- `PLAN_WEB_FILL.md` — план fill / fill-full (JSON без заглушек, панели, фильтры, каталог). Код сделан; пересборка `examples/` отложена.
+- `PLAN_WEB_FILL.md` — план fill / fill-full. Пункт 16 выполнен (16.16–16.18 — только fill-full). Снимки `common/examples/web-fill/` из CSV `CONFIG_RUN_INPUT.json`.
 - `TODO_WEB_FILL.md` — чеклист к пункту 16 ROADMAP.
 - Шаблон BLANK: **`common/templates/CONTEST_BADGE_FORM/CONTEST_BADGE_FORM_BLANK.xlsx`** (stub в `Docs/templates/…`).
 

@@ -56,12 +56,20 @@
         </button>
       </div>
       <div class="filters-scroll">
-        <div class="contest-search" data-tip="Поиск по CONTEST_CODE, FULL_NAME, CONTEST_DESCRIPTION, REWARD_CODE, REWARD FULL_NAME/DESCRIPTION, TOURNAMENT_CODE">
-          <span class="contest-search__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg></span>
-          <input type="search" id="contest-search" class="contest-search__input" placeholder="Код конкурса, награды, турнира…" autocomplete="off" />
+        <div class="filter-block filter-block--search">
+          <div class="filter-block__label" data-tip="Поиск по коду и названиям конкурса, награды, турнира, бизнес-блоку">Поиск</div>
+          <div class="contest-search" data-tip="Поиск по CONTEST_CODE, FULL_NAME, CONTEST_DESCRIPTION, REWARD_CODE, REWARD_TYPE, REWARD FULL_NAME/DESCRIPTION, TOURNAMENT_CODE, бизнес-блоку">
+            <span class="contest-search__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg></span>
+            <input type="search" id="contest-search" class="contest-search__input" placeholder="Код конкурса, награды, турнира…" autocomplete="off" />
+          </div>
+          <div class="contest-kind-filters contest-search-mode" role="radiogroup" aria-label="Режим поиска">
+            <button type="button" class="contest-kind-btn" data-search-mode="starts" aria-pressed="false" data-tip="Поле начинается с введённой строки">Начинается с</button>
+            <button type="button" class="contest-kind-btn is-on" data-search-mode="contains" aria-pressed="true" data-tip="Поле содержит подстроку (по умолчанию)">Содержит</button>
+            <button type="button" class="contest-kind-btn" data-search-mode="equals" aria-pressed="false" data-tip="Поле в точности равно строке">Равно</button>
+          </div>
         </div>
         <div class="filter-block">
-          <div class="filter-block__label">Тип</div>
+          <div class="filter-block__label" data-tip="Показать турнирные, индивидуальные или архив. Выкл. — скрыть">Тип</div>
           <div class="contest-kind-filters" role="group" aria-label="Фильтр типа конкурсов">
             <button type="button" class="contest-kind-btn contest-kind-btn--tournament is-on" id="filter-tournaments" aria-pressed="true" data-tip="Показать турнирные конкурсы (нажмите, чтобы скрыть)">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M8 21h8"/><path d="M12 17v4"/><path d="M7 4h10v5a5 5 0 0 1-10 0V4z"/><path d="M5 6H3a2 2 0 0 0 2 4h0"/><path d="M19 6h2a2 2 0 0 1-2 4h0"/></svg>
@@ -78,28 +86,49 @@
           </div>
         </div>
         <div class="filter-block">
-          <div class="filter-block__label">Среда</div>
+          <div class="filter-block__label" data-tip="ИЛИ по полям vid и TARGET_TYPE: подстрока ПРОМ / ТЕСТ">Среда</div>
           <div class="contest-kind-filters" role="group" aria-label="Фильтр ПРОМ / ТЕСТ">
             <button type="button" class="contest-kind-btn is-on" id="filter-env-prom" aria-pressed="true" data-tip="Показать конкурсы, где в vid или TARGET_TYPE есть ПРОМ">ПРОМ</button>
             <button type="button" class="contest-kind-btn is-on" id="filter-env-test" aria-pressed="true" data-tip="Показать конкурсы, где в vid или TARGET_TYPE есть ТЕСТ">ТЕСТ</button>
           </div>
         </div>
         <div class="filter-block">
-          <div class="filter-block__label">Статус турнира</div>
-          <p class="filter-block__hint">Есть хотя бы один период с выбранным статусом</p>
+          <div class="filter-block__label" data-tip="ИЛИ: CONTEST.BUSINESS_BLOCK · FEATURE.businessBlock · ADD.businessBlock. «Остальные» — не четыре каталожных кода. «Пусто» — во всех трёх пусто">Бизнес-блок</div>
+          <div class="contest-kind-filters" role="group" aria-label="Фильтр бизнес-блока">
+            <button type="button" class="contest-kind-btn is-on" data-bb="KMMMB" aria-pressed="true" data-tip="КМ ММБ">KMMMB</button>
+            <button type="button" class="contest-kind-btn is-on" data-bb="KMKKSB" aria-pressed="true" data-tip="КМ ККСБ">KMKKSB</button>
+            <button type="button" class="contest-kind-btn is-on" data-bb="AKMKKSB" aria-pressed="true" data-tip="АКМ ККСБ">AKMKKSB</button>
+            <button type="button" class="contest-kind-btn is-on" data-bb="CSM" aria-pressed="true" data-tip="Руководитель по внедрению проектов">CSM</button>
+            <button type="button" class="contest-kind-btn contest-kind-btn--bb-other is-on" data-bb="__OTHER__" aria-pressed="true" data-tip="Любой код кроме KMMMB, KMKKSB, AKMKKSB, CSM (MNS, SERVICEMEN, …)">Остальные</button>
+            <button type="button" class="contest-kind-btn contest-kind-btn--bb-empty is-on" data-bb="__EMPTY__" aria-pressed="true" data-tip="Во всех трёх полях пусто">Пусто</button>
+          </div>
+        </div>
+        <div class="filter-block">
+          <div class="filter-block__label" data-tip="Есть хотя бы одна награда выбранного типа. «Пусто» — наград нет или REWARD_TYPE пустой">Тип награды</div>
+          <div class="contest-kind-filters" role="group" aria-label="Фильтр REWARD_TYPE" id="filter-reward-types"></div>
+        </div>
+        <div class="filter-block">
+          <div class="filter-block__label" data-tip="Хотя бы один период с выбранным статусом. «Нет турниров» — расписания нет или оно пустое">Статус турнира</div>
           <div class="status-filters" role="group" aria-label="Фильтр статуса расписания">
             <button type="button" class="status-filter-btn status-filter-btn--active is-on" id="filter-st-active" aria-pressed="true" data-status="АКТИВНЫЙ">Активный</button>
             <button type="button" class="status-filter-btn status-filter-btn--results is-on" id="filter-st-results" aria-pressed="true" data-status="ПОДВЕДЕНИЕ ИТОГОВ">Подведение</button>
             <button type="button" class="status-filter-btn status-filter-btn--done is-on" id="filter-st-done" aria-pressed="true" data-status="ЗАВЕРШЕН">Завершён</button>
             <button type="button" class="status-filter-btn status-filter-btn--cancel" id="filter-st-cancel" aria-pressed="false" data-status="ОТМЕНЕН">Отменён</button>
             <button type="button" class="status-filter-btn status-filter-btn--deleted" id="filter-st-deleted" aria-pressed="false" data-status="УДАЛЕН">Удалён</button>
+            <button type="button" class="status-filter-btn status-filter-btn--empty is-on" id="filter-st-empty" aria-pressed="true" data-status="__EMPTY__" data-tip="Нет строк SCHEDULE, ключа нет, либо статус и код турнира пустые">Нет турниров</button>
           </div>
         </div>
         <div class="filter-block">
-          <div class="filter-block__label">Дата в периоде</div>
-          <p class="filter-block__hint">Попадает в START_DT…END_DT</p>
+          <div class="filter-block__label" data-tip="Дата попадает в START_DT…END_DT. Пустое расписание дату не проходит — сбросьте дату">Дата в периоде</div>
           <div class="filter-date" id="filter-date-host"></div>
           <button type="button" class="btn btn-compact" id="filter-date-clear" hidden>Сбросить дату</button>
+        </div>
+        <div class="filter-block filter-block--bulk" role="group" aria-label="Пакетное включение фильтров">
+          <div class="filter-block__label">Все фильтры</div>
+          <div class="filter-bulk">
+            <button type="button" class="btn btn-compact filter-bulk__btn" id="filter-all-off" data-tip="Выключить все чипы фильтров и сбросить дату">Сбросить все фильтры</button>
+            <button type="button" class="btn btn-compact filter-bulk__btn filter-bulk__btn--on" id="filter-all-on" data-tip="Включить все чипы: тип, среда, бизнес-блок, награды, статусы (включая архив и пустые). Дату не ставит">Установить все</button>
+          </div>
         </div>
       </div>
     </aside>

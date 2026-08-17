@@ -1,6 +1,6 @@
 # План: fill / fill-full — JSON без выдумок, панели, фильтры, каталог
 
-Статус: **реализация в коде; пересборка `examples/*.json` отложена** (исходные CSV PROM-SPOD есть только локально).  
+Статус: **выполнено** (код + пересборка примеров JSON из CSV PROM SPOD в `config/CONFIG_RUN_INPUT.json`).  
 Страницы: `common/web-fill/` и `common/web-fill-full/`.  
 Каталог полей: `web-edit` / `web-edit-full` → sync в fill.
 
@@ -21,7 +21,7 @@ ToDo-чеклист: [`TODO_WEB_FILL.md`](TODO_WEB_FILL.md).
 
 ## Диагностика (п. 1) — откуда берётся `t_CONTEST_00`
 
-Пример: конкурс `CONTEST_00` («Приветственный»). В CSV `SCHEDULE` для него **нет строк**. В снимке `common/web-fill/examples/spod_fill_all_badges.json` уже лежит пустой объект `schedule[0]` с `TOURNAMENT_CODE: ""`.
+Пример: конкурс `CONTEST_00` («Приветственный»). В CSV `SCHEDULE` для него **нет строк**. В снимке `common/examples/web-fill/badges/spod_fill_all_badges.json` уже лежит пустой объект `schedule[0]` с `TOURNAMENT_CODE: ""`.
 
 Дальше цепочка:
 
@@ -44,12 +44,12 @@ ToDo-чеклист: [`TODO_WEB_FILL.md`](TODO_WEB_FILL.md).
 | Зона | Файлы |
 |------|--------|
 | Экспорт примеров | `src/Tools/export_web_fill_examples_from_spod.py`, тесты `src/Tests/` |
-| Снимки | `common/web-fill/examples/*.json` (fill-full ссылается на ту же папку) |
+| Снимки | `common/examples/web-fill/` (fill-full ссылается на ту же папку) |
 | Fill (монолит) | `common/web-fill/game_fill_settings.html` |
 | Fill-full | `common/web-fill-full/game_fill_app.js`, `game_fill_styles.css`, `game_fill_settings.html` |
 | Каталог | `common/web-edit/`, `common/web-edit-full/`, sync `src/Tools/sync_web_fill_catalog.py` → fill + fill-full + `param_catalog_review` |
 
-Два UI держим **синхронно**: правка логики в fill-full (js/css), зеркало в однофайловый fill.
+До **16.15** два UI держали синхронно (fill-full → однофайловый `sync_web_fill_singlefile.py`). С **16.16** UX дорабатывается **только в `web-fill-full`**; однофайловый fill не зеркалим, пока явно не попросят.
 
 ---
 
@@ -62,7 +62,7 @@ ToDo-чеклист: [`TODO_WEB_FILL.md`](TODO_WEB_FILL.md).
 3. Импорт fill: пустой `TOURNAMENT_CODE` / `REWARD_CODE` **не** разворачивать в `t_CODE` / `r_CODE`, если это единственная пустая заглушка; пустой массив расписания **не** дополнять `emptyScheduleRow()` при загрузке снимка.
 4. `emptyScheduleRow()` / пустой индикатор — только по явной кнопке «Добавить».
 5. Прогон сверки: все конкурсы из `IN/PROM/SPOD` × листы CONTEST, GROUP, INDICATOR, SCHEDULE, REWARD, REWARD-LINK. Число строк в JSON = число строк CSV с тем же `CONTEST_CODE`.
-6. Пересобрать все `examples/*.json`.
+6. Пересобрать все примеры в `common/examples/web-fill/`.
 
 ### Не путать
 
@@ -86,6 +86,8 @@ ToDo-чеклист: [`TODO_WEB_FILL.md`](TODO_WEB_FILL.md).
 
 **Справа переносится:** поиск; чипы «Турниры / Награды / Архив».
 
+Режим поиска (под полем): **начинается с** / **содержит** (по умолчанию) / **равно**. Сравнение с отдельными полями (код, название, награда, турнир), без учёта регистра. Пустой запрос не режет.
+
 Скрытие правой панели **независимо** от левой (`is-filters-collapsed`, своя кнопка по правому краю). На узком экране панели складываются над/под workspace, не ломая колонтитулы.
 
 ---
@@ -106,6 +108,14 @@ ToDo-чеклист: [`TODO_WEB_FILL.md`](TODO_WEB_FILL.md).
 
 Регистр не важен. Пустые оба поля — не проходят узкий фильтр «только ПРОМ» / «только ТЕСТ».
 
+### Бизнес-блок
+
+Поля (ИЛИ, как ПРОМ по `vid` / `TARGET_TYPE`): `CONTEST.BUSINESS_BLOCK`, `CONTEST_FEATURE.businessBlock`, `REWARD_ADD_DATA.businessBlock`.
+
+Чипы: **KMMMB**, **KMKKSB**, **AKMKKSB**, **CSM**, **Остальные** (любой другой код), **Пусто** (все три поля пустые). Внутри группы — ИЛИ.
+
+У товаров ITEM в списке слева строка смотрит на `ADD.businessBlock`; если пусто — наследует блок конкурса / FEATURE.
+
 ### Статус расписания `TOURNAMENT_STATUS`
 
 Чипы: АКТИВНЫЙ, ПОДВЕДЕНИЕ ИТОГОВ, ЗАВЕРШЕН, ОТМЕНЕН, УДАЛЕН.  
@@ -117,6 +127,19 @@ ToDo-чеклист: [`TODO_WEB_FILL.md`](TODO_WEB_FILL.md).
 ### Дата
 
 Один date-picker (уже есть в fill). Конкурс виден, если у **хотя бы одного** периода дата попадает в `[START_DT, END_DT]` включительно. Пустой фильтр даты — не режет. Битые/пустые даты периода — период не матчится.
+
+### Пакет: сброс / установить все
+
+Внизу правой панели:
+
+- **Сбросить все фильтры** — все чипы выкл., дата пустая (поиск не трогаем).
+- **Установить все** — все чипы вкл. (тип, среда, награды, статусы, архив, «пусто»), дату не ставит и сбрасывает, если была.
+
+### ITEM: много товаров на одном конкурсе
+
+Сценарий `CONTEST_999` («товары»): десятки `REWARD_TYPE=ITEM` на одном `CONTEST_CODE`. В списке слева конкурс остаётся родителем, товары — дочерние строки (код + название) со смещением. Только тип ITEM.
+
+Шапка при выбранном товаре: конкурс, индикаторы, группы — общие; «Связи + награды» — только этот reward. Переключение товара — в списке слева, не 66 чипов в колонтитуле.
 
 ---
 
@@ -262,7 +285,7 @@ ToDo-чеклист: [`TODO_WEB_FILL.md`](TODO_WEB_FILL.md).
 - ПРОМ/ТЕСТ / статус / дата — по правилам выше на снимке `spod_fill_all_badges.json`.
 - Легенда совпадает с цветом вкладок.
 - `INDICATOR_CODE`: нельзя ввести произвольный код; `WAIT` по умолчанию; список ищется.
-- Fill и fill-full ведут себя одинаково.
+- До 16.15 fill и fill-full ведут себя одинаково. С 16.16 отличия UX — только в fill-full (панель фильтров, коды r_/t_, список ITEM).
 
 ---
 

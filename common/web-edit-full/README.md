@@ -28,3 +28,7 @@ python src/Tools/build_web_edit_full_catalog.py
 ## Как открыть
 
 Live Server / `python -m http.server` из `common/web-edit-full/` → открыть `game_edit_parameters.html` → выбрать `game_edit_catalog.json`.
+
+## Длинные списки
+
+Как в `web-edit`: ≥ 16 вариантов — дефолт сверху карточки, combobox с поиском (не стена чипов). См. `../web-edit/README.md`.

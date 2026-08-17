@@ -43,3 +43,10 @@ def test_plan_and_factor_lists() -> None:
     agg = _field("TABLE:INDICATOR", "INDICATOR_AGG_FUNCTION")
     for code in ("MIN", "AVG", "COUNT", "LAST_VALUE"):
         assert code in agg["variants"]
+
+
+def test_reward_type_list() -> None:
+    f = _field("REWARD", "REWARD_TYPE")
+    assert f["kind"] == "dropdown"
+    assert f["variants"] == ["BADGE", "LABEL", "ITEM", "CRYSTAL"]
+    assert "CRISTAL" not in f["variants"]

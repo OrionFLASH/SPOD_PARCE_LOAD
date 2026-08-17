@@ -60,6 +60,77 @@ def test_build_contest_data_no_stub_rows() -> None:
     assert data["reward_link"] == []
 
 
+def test_nonstandard_tournament_code_kept_full() -> None:
+    """Старый код без t_+CONTEST_CODE в снимке хранится целиком."""
+    contest_row = {
+        "CONTEST_CODE": "C1",
+        "FULL_NAME": "X",
+        "CONTEST_FEATURE": "",
+        "CONTEST_PERIOD": "",
+        "BUSINESS_BLOCK": "",
+    }
+    schedules = [
+        {
+            "TOURNAMENT_CODE": "LEGACY_C1_OLD",
+            "PERIOD_TYPE": "произвольный",
+            "START_DT": "2026-01-01",
+            "END_DT": "2026-01-31",
+            "RESULT_DT": "",
+            "PLAN_PERIOD_START_DT": "",
+            "PLAN_PERIOD_END_DT": "",
+            "CRITERION_MARK_TYPE": ">=",
+            "CRITERION_MARK_VALUE": "0",
+            "TOURNAMENT_STATUS": "АКТИВНЫЙ",
+            "CONTEST_CODE": "C1",
+            "CALC_TYPE": "1",
+            "TRN_INDICATOR_FILTER": "",
+            "TARGET_TYPE": "",
+            "FILTER_PERIOD_ARR": "",
+        }
+    ]
+    data = build_contest_data(
+        contest_row,
+        groups=[],
+        links=[],
+        rewards_by_code={},
+        indicators=[],
+        schedules=schedules,
+    )
+    assert data["schedule"][0]["TOURNAMENT_CODE"] == "LEGACY_C1_OLD"
+
+
+def test_nonstandard_reward_code_kept_full() -> None:
+    contest_row = {
+        "CONTEST_CODE": "C1",
+        "FULL_NAME": "X",
+        "CONTEST_FEATURE": "",
+        "CONTEST_PERIOD": "",
+        "BUSINESS_BLOCK": "",
+    }
+    links = [{"CONTEST_CODE": "C1", "GROUP_CODE": "G1", "REWARD_CODE": "ITEM_99"}]
+    rewards_by_code = {
+        "ITEM_99": {
+            "REWARD_CODE": "ITEM_99",
+            "REWARD_TYPE": "ITEM",
+            "FULL_NAME": "Товар",
+            "REWARD_DESCRIPTION": "",
+            "REWARD_CONDITION": "",
+            "REWARD_COST": "5",
+            "REWARD_ADD_DATA": "",
+        }
+    }
+    data = build_contest_data(
+        contest_row,
+        groups=[],
+        links=links,
+        rewards_by_code=rewards_by_code,
+        indicators=[],
+        schedules=[],
+    )
+    assert data["reward_link"][0]["REWARD_CODE"] == "ITEM_99"
+    assert data["badges"][0]["flat"]["REWARD_CODE"] == "ITEM_99"
+
+
 def test_build_contest_data_keeps_real_schedule() -> None:
     contest_row = {"CONTEST_CODE": "C1", "FULL_NAME": "X", "CONTEST_FEATURE": "", "CONTEST_PERIOD": "", "BUSINESS_BLOCK": ""}
     schedules = [

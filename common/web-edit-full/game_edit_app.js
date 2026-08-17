@@ -8,6 +8,8 @@
   /** Рабочий источник — game_edit_catalog.json (файл через диалог или «Перечитать» по HTTP). */
   const CATALOG_URL = "./game_edit_catalog.json";
   const KINDS = ["dropdown", "dropdown_custom", "text", "number", "list", "json", "date"];
+  /** Длинный список вариантов → combobox / блок на всю ширину сверху карточки */
+  const COMBOBOX_MIN_VARIANTS = 16;
   const KIND_LABELS = {
     dropdown: "Выбор из списка",
     dropdown_custom: "Список + свой вариант",
@@ -1213,15 +1215,183 @@
 
   }
 
+  function isLongVariantList(field) {
+    const n = Array.isArray(field.variants)
+      ? field.variants.filter(Boolean).length
+      : 0;
+    return n >= COMBOBOX_MIN_VARIANTS;
+  }
+
+  /** Группа кода для combobox: хвост VKS/VKO или префикс до «_». */
+  function variantGroupKey(code) {
+    const s = String(code || "");
+    if (/_VKS$/.test(s)) return "KANBANARS · VKS";
+    if (/_VKO$/.test(s)) return "KANBANARS · VKO";
+    const i = s.indexOf("_");
+    if (i <= 0) return "Прочее";
+    return s.slice(0, i);
+  }
+
+  function mountDefaultCombobox(host, field, sectionId, card) {
+    const variants = Array.isArray(field.variants)
+      ? field.variants.map((x) => String(x)).filter(Boolean)
+      : [];
+    const required = selectionRequired(field);
+    ensureDefaultSelection(field, variants, false);
+    let curVal = String(field.default || "");
+    const wrap = document.createElement("div");
+    wrap.className = "combo";
+    wrap.setAttribute(
+      "data-tip",
+      "Поиск по коду и подписи. Свой вариант нельзя — только значение из списка."
+    );
+    const inp = document.createElement("input");
+    inp.type = "search";
+    inp.className = "combo__input";
+    inp.autocomplete = "off";
+    inp.placeholder = "Найти среди " + variants.length + " кодов…";
+    const lab0 = labelForVariant(field, curVal);
+    inp.value = lab0 && lab0 !== curVal ? lab0 + " · " + curVal : curVal;
+    const list = document.createElement("div");
+    list.className = "combo__list";
+    list.hidden = true;
+    let hi = -1;
+    let shown = [];
+    function close() {
+      list.hidden = true;
+      hi = -1;
+    }
+    function grouped(q) {
+      const needle = String(q || "").trim().toLowerCase();
+      const map = new Map();
+      variants.forEach((v) => {
+        const lab = labelForVariant(field, v);
+        const hay = (v + " " + lab).toLowerCase();
+        if (needle && !hay.includes(needle)) return;
+        const g = variantGroupKey(v);
+        if (!map.has(g)) map.set(g, []);
+        map.get(g).push(v);
+      });
+      return Array.from(map, ([g, arr]) => ({ g, arr }));
+    }
+    function paint(q) {
+      const groups = grouped(q);
+      shown = groups.flatMap((x) => x.arr);
+      if (!shown.length) {
+        list.innerHTML = `<div class="combo__empty">Нет совпадений</div>`;
+        return;
+      }
+      let html = "";
+      groups.forEach((gr) => {
+        html += `<div class="combo__group">${escapeHtml(gr.g)}</div>`;
+        gr.arr.forEach((v) => {
+          const lab = labelForVariant(field, v);
+          const on = v === curVal ? " is-on" : "";
+          html +=
+            `<button type="button" class="combo__opt${on}" data-v="${escapeHtml(v)}">` +
+            escapeHtml(lab && lab !== v ? lab + " · " + v : v) +
+            `</button>`;
+        });
+      });
+      list.innerHTML = html;
+      list.querySelectorAll("[data-v]").forEach((btn) => {
+        btn.addEventListener("mousedown", (e) => e.preventDefault());
+        btn.addEventListener("click", () => pick(btn.getAttribute("data-v")));
+      });
+    }
+    function pick(v) {
+      curVal = String(v || "");
+      field.default = curVal;
+      const lab = labelForVariant(field, curVal);
+      inp.value = lab && lab !== curVal ? lab + " · " + curVal : curVal;
+      afterFieldEdit(card, field, sectionId);
+      close();
+    }
+    function openList() {
+      const q =
+        inp.value === curVal || inp.value.indexOf(" · ") >= 0 ? "" : inp.value;
+      paint(q);
+      list.hidden = false;
+    }
+    inp.addEventListener("focus", () => {
+      openList();
+      inp.select();
+    });
+    inp.addEventListener("input", () => {
+      paint(inp.value);
+      list.hidden = false;
+    });
+    inp.addEventListener("blur", () => {
+      setTimeout(() => {
+        if (!variants.includes(curVal) && required && variants.length) {
+          curVal = String(field.default || variants[0]);
+          field.default = curVal;
+        }
+        const lab = labelForVariant(field, curVal);
+        inp.value = lab && lab !== curVal ? lab + " · " + curVal : curVal;
+        close();
+      }, 120);
+    });
+    inp.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") {
+        close();
+        inp.blur();
+        return;
+      }
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+        e.preventDefault();
+        if (list.hidden) openList();
+        if (!shown.length) return;
+        if (e.key === "ArrowDown") hi = Math.min(shown.length - 1, hi + 1);
+        else hi = Math.max(0, hi < 0 ? shown.length - 1 : hi - 1);
+        list.querySelectorAll(".combo__opt").forEach((el, i) =>
+          el.classList.toggle("is-hi", i === hi)
+        );
+        const el = list.querySelectorAll(".combo__opt")[hi];
+        if (el) el.scrollIntoView({ block: "nearest" });
+        return;
+      }
+      if (e.key === "Enter") {
+        e.preventDefault();
+        if (hi >= 0 && shown[hi]) pick(shown[hi]);
+      }
+    });
+    wrap.appendChild(inp);
+    wrap.appendChild(list);
+    host.appendChild(wrap);
+  }
+
   function syncDefaultUi(card, field, sectionId) {
-    const host = card.querySelector("[data-role='default-host']");
-    const hint = card.querySelector("[data-role='default-hint']");
+    const kind = field.kind || "text";
+    const longList =
+      (kind === "dropdown" || kind === "dropdown_custom" || kind === "list") &&
+      isLongVariantList(field);
+
+    const lead = card.querySelector("[data-role='default-lead']");
+    const fieldDefault = card.querySelector(".field-default");
+    card.classList.toggle("card--long-list", !!longList);
+    if (lead) lead.hidden = !longList;
+    if (fieldDefault) {
+      fieldDefault.hidden = !!longList;
+      fieldDefault.classList.toggle("is-disabled", kind === "json");
+    }
+
+    const host = longList
+      ? card.querySelector("[data-role='default-lead-host']")
+      : card.querySelector("[data-role='default-host']");
+    const hint = longList
+      ? card.querySelector("[data-role='default-lead-hint']")
+      : card.querySelector("[data-role='default-hint']");
+    const countEl = card.querySelector("[data-role='default-lead-count']");
+    const variantsN = Array.isArray(field.variants)
+      ? field.variants.filter(Boolean).length
+      : 0;
+    if (countEl) {
+      countEl.textContent = longList ? variantsN + " вариантов" : "";
+    }
     if (!host) return;
 
-    const kind = field.kind || "text";
     host.innerHTML = "";
-    const defaultWrap = card.querySelector(".field-default");
-    if (defaultWrap) defaultWrap.classList.toggle("is-disabled", kind === "json");
 
     if (kind === "json") {
       field.default = "";
@@ -1237,8 +1407,8 @@
     }
 
     if (kind === "dropdown" || kind === "dropdown_custom") {
-      // Для dropdown_custom дефолт — как у списка (чипы); поле «свой вариант» только в fill
-      renderDefaultChips(host, field, sectionId, card, { multi: false });
+      if (longList) mountDefaultCombobox(host, field, sectionId, card);
+      else renderDefaultChips(host, field, sectionId, card, { multi: false });
     } else if (kind === "list") {
       renderDefaultChips(host, field, sectionId, card, { multi: true });
     } else if (kind === "date") {
@@ -1265,7 +1435,13 @@
       host.appendChild(input);
     }
 
-    if (hint) hint.textContent = defaultHint(kind);
+    if (hint) {
+      hint.textContent = longList
+        ? (kind === "list"
+            ? "Длинный список: найдите чип поиском. Дефолт — отмеченные значения."
+            : "Длинный список: найдите код поиском и выберите дефолт. Свой вариант нельзя.")
+        : defaultHint(kind);
+    }
   }
 
   function defaultChipMarkHtml() {
@@ -1468,6 +1644,22 @@
       });
       box.appendChild(btn);
     }
+    if (variants.length >= COMBOBOX_MIN_VARIANTS) {
+      box.classList.add("default-checks--chips-scroll");
+      const filter = document.createElement("input");
+      filter.type = "search";
+      filter.className = "combo__input default-chips-filter";
+      filter.placeholder = "Найти среди " + variants.length + "…";
+      filter.setAttribute("data-tip", "Фильтр чипов по коду и подписи");
+      filter.addEventListener("input", () => {
+        const q = String(filter.value || "").trim().toLowerCase();
+        box.querySelectorAll(".default-chip").forEach((btn) => {
+          const hay = (btn.value + " " + (btn.textContent || "")).toLowerCase();
+          btn.hidden = !!(q && !hay.includes(q));
+        });
+      });
+      host.appendChild(filter);
+    }
     host.appendChild(box);
   }
 
@@ -1609,6 +1801,11 @@
             })()
           }
         </div>
+      </div>
+      <div class="field full field-default-lead" data-role="default-lead" hidden>
+        <label data-tip="Дефолт для длинного списка — на всю ширину карточки, сверху. Поиск по коду и подписи.">Значение по умолчанию <span class="default-lead__count" data-role="default-lead-count"></span></label>
+        <div class="default-lead__host" data-role="default-lead-host"></div>
+        <div class="field-hint" data-role="default-lead-hint"></div>
       </div>
       <div class="field full">
         <label data-tip="Подпись колонки / строки в Excel-форме">Подпись</label>

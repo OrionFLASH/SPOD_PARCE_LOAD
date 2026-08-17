@@ -1026,13 +1026,13 @@
           "key": "REWARD_TYPE",
           "status": "[v]",
           "label": "Тип награды",
-          "description": "Для этой формы всегда BADGE.",
+          "description": "Тип награды: BADGE (награда), LABEL (метка), ITEM (товар), CRYSTAL (кристалл).",
           "kind": "dropdown",
           "variants": [
             "BADGE",
             "LABEL",
             "ITEM",
-            "CRISTAL"
+            "CRYSTAL"
           ],
           "default": "BADGE",
           "allow_empty": false,

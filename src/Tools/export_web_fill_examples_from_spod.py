@@ -1,26 +1,67 @@
 # -*- coding: utf-8 -*-
-"""Собрать примеры снимков web-fill из CSV IN/PROM/SPOD по кодам конкурсов."""
+"""Собрать снимки web-fill из CSV PROM SPOD (файлы из CONFIG_RUN_INPUT.json).
+
+Выход: common/examples/web-fill/{curated,badges,contests}/ — не каталоги edit/fill и не сохранения UI.
+"""
 
 from __future__ import annotations
 
 import csv
 import json
+import logging
+import os
 import sys
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Sequence
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
+from src.config_loader import (  # noqa: E402
+    default_config_path,
+    load_config_dict,
+    resolve_project_base_dir,
+)
+from src.contest_badge_form.csv_load import resolve_sheet_file  # noqa: E402
 from src.contest_badge_form.spod_json import (  # noqa: E402
     form_cell_from_list,
     parse_spod_json,
 )
 
-SPOD_DIR = ROOT / "IN" / "PROM" / "SPOD"
-OUT_DIR = ROOT / "common" / "web-fill" / "examples"
+logger = logging.getLogger(__name__)
+
+EXAMPLES_ROOT = ROOT / "common" / "examples" / "web-fill"
+DIR_CURATED = EXAMPLES_ROOT / "curated"
+DIR_BADGES = EXAMPLES_ROOT / "badges"
+DIR_CONTESTS = EXAMPLES_ROOT / "contests"
 CATALOG = ROOT / "common" / "web-fill" / "catalog.json"
+DEFAULT_BLOCK = "PROM"
+
+# Секции каталога fill/edit → лист input_files в CONFIG_RUN_INPUT.json
+CATALOG_SECTION_TO_SHEET: Dict[str, str] = {
+    "CONTEST": "CONTEST-DATA",
+    "CONTEST_FEATURE": "CONTEST-DATA",
+    "CONTEST_PERIOD": "CONTEST-DATA",
+    "REWARD": "REWARD",
+    "REWARD_ADD_DATA": "REWARD",
+    "TABLE:REWARD-LINK": "REWARD-LINK",
+    "TABLE:GROUP": "GROUP",
+    "TABLE:INDICATOR": "INDICATOR",
+    "INDICATOR_FILTER": "INDICATOR",
+    "TABLE:SCHEDULE": "TOURNAMENT-SCHEDULE",
+    "SCHEDULE_TARGET_TYPE": "TOURNAMENT-SCHEDULE",
+    "FILTER_PERIOD_ARR": "TOURNAMENT-SCHEDULE",
+}
+SHEET_TO_TABLE_KEY: Dict[str, str] = {
+    "CONTEST-DATA": "contest",
+    "GROUP": "group",
+    "INDICATOR": "indicator",
+    "REWARD": "reward",
+    "REWARD-LINK": "reward_link",
+    "TOURNAMENT-SCHEDULE": "schedule",
+}
 
 CONTEST_FLAT_KEYS = [
     "CONTEST_CODE",
@@ -115,11 +156,105 @@ FEATURE_LIST_LEAVES = {
 ADD_LIST_LEAVES = {"preferences", "feature", "businessBlock", "helpCodeList"}
 
 
-def _latest(pattern: str) -> Path:
-    files = sorted(SPOD_DIR.glob(pattern), key=lambda p: p.stat().st_mtime, reverse=True)
-    if not files:
-        raise FileNotFoundError(f"Нет файлов {pattern} в {SPOD_DIR}")
-    return files[0]
+def _setup_logging() -> None:
+    """Формат лога Tools: дата время - [LEVEL] - сообщение [def: имя]."""
+    if logging.getLogger().handlers:
+        return
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s - [%(levelname)s] - %(message)s [def: %(funcName)s]",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
+
+
+def fill_sheets_from_catalog(catalog: Optional[Dict[str, Any]] = None) -> List[str]:
+    """Листы SPOD, которые есть в каталоге fill (порядок первого появления)."""
+    data = catalog
+    if data is None and CATALOG.is_file():
+        data = json.loads(CATALOG.read_text(encoding="utf-8"))
+    sheets: List[str] = []
+    seen: set[str] = set()
+    sections = (data or {}).get("sections") or []
+    for sec in sections:
+        sid = str(sec.get("id") or "")
+        sheet = CATALOG_SECTION_TO_SHEET.get(sid)
+        if not sheet or sheet in seen:
+            continue
+        seen.add(sheet)
+        sheets.append(sheet)
+    if sheets:
+        return sheets
+    return list(SHEET_TO_TABLE_KEY.keys())
+
+
+@dataclass
+class SpodTables:
+    """Таблицы PROM SPOD, нужные fill (листы каталога)."""
+
+    contest: List[Dict[str, str]]
+    group: List[Dict[str, str]]
+    indicator: List[Dict[str, str]]
+    reward: List[Dict[str, str]]
+    reward_link: List[Dict[str, str]]
+    schedule: List[Dict[str, str]]
+    source_files: Dict[str, str] = field(default_factory=dict)
+    block: str = DEFAULT_BLOCK
+
+    def rows_for(self, table_key: str, contest_code: str) -> List[Dict[str, str]]:
+        """Строки таблицы с данным CONTEST_CODE."""
+        table = getattr(self, table_key)
+        return [r for r in table if str(r.get("CONTEST_CODE") or "") == contest_code]
+
+
+def load_prom_spod_tables(
+    *,
+    block: str = DEFAULT_BLOCK,
+    catalog: Optional[Dict[str, Any]] = None,
+) -> SpodTables:
+    """
+    Прочитать CSV PROM SPOD из input_files CONFIG_RUN_INPUT.json.
+    Берутся только листы, которые есть в каталоге fill.
+    """
+    config_path = default_config_path(str(ROOT))
+    cfg = load_config_dict(config_path)
+    base_dir = resolve_project_base_dir(config_path)
+    sheets = fill_sheets_from_catalog(catalog)
+    loaded: Dict[str, List[Dict[str, str]]] = {}
+    source_files: Dict[str, str] = {}
+    for sheet in sheets:
+        table_key = SHEET_TO_TABLE_KEY.get(sheet)
+        if not table_key:
+            logger.debug("Лист каталога %s не входит в снимок fill", sheet)
+            continue
+        path_s = resolve_sheet_file(base_dir, cfg, block, sheet)
+        if not path_s or not os.path.isfile(path_s):
+            raise FileNotFoundError(
+                f"Нет CSV листа {sheet} блока {block} из CONFIG_RUN_INPUT.json: {path_s}"
+            )
+        path = Path(path_s)
+        rows = _read_csv(path)
+        loaded[table_key] = rows
+        try:
+            rel = str(path.relative_to(ROOT))
+        except ValueError:
+            rel = str(path)
+        source_files[table_key] = rel
+        logger.info("Загружен %s → %s (%s строк)", sheet, rel, len(rows))
+    missing = [k for k in SHEET_TO_TABLE_KEY.values() if k not in loaded]
+    if missing:
+        raise FileNotFoundError(
+            "В конфиге нет файлов каталога fill для таблиц: " + ", ".join(missing)
+        )
+    return SpodTables(
+        contest=loaded["contest"],
+        group=loaded["group"],
+        indicator=loaded["indicator"],
+        reward=loaded["reward"],
+        reward_link=loaded["reward_link"],
+        schedule=loaded["schedule"],
+        source_files=source_files,
+        block=block,
+    )
 
 
 def _read_csv(path: Path) -> List[Dict[str, str]]:
@@ -219,6 +354,16 @@ def _row_subset(row: Dict[str, str], cols: Sequence[str]) -> Dict[str, str]:
     return {c: str(row.get(c, "") or "") for c in cols}
 
 
+def follows_prefixed_principle(full: str, contest_code: str, kind: str) -> bool:
+    """Код = r_/t_ + CONTEST_CODE или r_/t_ + CONTEST_CODE + _ + окончание."""
+    s = (full or "").strip()
+    cc = (contest_code or "").strip()
+    if not s or not cc:
+        return False
+    prefix = ("r_" if kind == "reward" else "t_") + cc
+    return s == prefix or s.startswith(prefix + "_")
+
+
 def code_ending(full: str, contest_code: str, kind: str) -> str:
     """
     Полный код SPOD → окончание для поля fill.
@@ -286,18 +431,21 @@ def build_contest_data(
     reward_link: List[Dict[str, str]] = []
     for link in links:
         rc_full = str(link.get("REWARD_CODE", "") or "").strip()
-        ending = code_ending(rc_full, cc, "reward")
-        # в снимке fill храним окончание (поле «Окончание REWARD_CODE»)
+        stored_rc = (
+            code_ending(rc_full, cc, "reward")
+            if follows_prefixed_principle(rc_full, cc, "reward")
+            else rc_full
+        )
         link_row = _row_subset(link, LINK_COLS)
         link_row["CONTEST_CODE"] = cc
-        link_row["REWARD_CODE"] = ending
+        link_row["REWARD_CODE"] = stored_rc
         reward_link.append(link_row)
 
         brow = rewards_by_code.get(rc_full) or {}
         flat = {k: str(brow.get(k, "") or "") for k in REWARD_FLAT_KEYS}
         if not flat.get("REWARD_TYPE"):
             flat["REWARD_TYPE"] = "BADGE"
-        flat["REWARD_CODE"] = ending
+        flat["REWARD_CODE"] = stored_rc
         add_obj = parse_spod_json(brow.get("REWARD_ADD_DATA", ""))
         if not isinstance(add_obj, dict):
             add_obj = {}
@@ -305,8 +453,8 @@ def build_contest_data(
         for leaf, val in add_obj.items():
             v = _leaf_value(val, as_list=str(leaf) in ADD_LIST_LEAVES)
             if str(leaf) == "parentRewardCode" and v:
-                # тоже только окончание, если это код награды этого конкурса
-                v = code_ending(v, cc, "reward")
+                if follows_prefixed_principle(v, cc, "reward"):
+                    v = code_ending(v, cc, "reward")
             add[str(leaf)] = v
         badges.append({"flat": flat, "add": add})
 
@@ -330,7 +478,11 @@ def build_contest_data(
         row = _row_subset(r, SCH_COLS)
         row["CONTEST_CODE"] = cc
         tc_full = str(row.get("TOURNAMENT_CODE", "") or "").strip()
-        row["TOURNAMENT_CODE"] = code_ending(tc_full, cc, "tournament")
+        row["TOURNAMENT_CODE"] = (
+            code_ending(tc_full, cc, "tournament")
+            if follows_prefixed_principle(tc_full, cc, "tournament")
+            else tc_full
+        )
         row["seasonCode"] = _season_code_from_target(r.get("TARGET_TYPE", ""))
         row["filter_period"] = [
             _norm_filter_period_item(x)
@@ -350,20 +502,31 @@ def build_contest_data(
     }
 
 
-def collect_badge_contest_codes() -> List[str]:
-    """Все CONTEST_CODE из SPOD, у которых в REWARD-LINK есть награда с REWARD_TYPE=BADGE."""
-    link_all = _read_csv(_latest("REWARD-LINK (PROM)*.csv"))
-    reward_all = _read_csv(_latest("REWARD (PROM)*.csv"))
+def collect_all_contest_codes(tables: SpodTables) -> List[str]:
+    """Все CONTEST_CODE из CONTEST-DATA (порядок CSV, без пустых)."""
+    codes: List[str] = []
+    seen: set[str] = set()
+    for row in tables.contest:
+        code = str(row.get("CONTEST_CODE") or "").strip()
+        if not code or code in seen:
+            continue
+        seen.add(code)
+        codes.append(code)
+    return codes
+
+
+def collect_badge_contest_codes(tables: SpodTables) -> List[str]:
+    """Все CONTEST_CODE, у которых в REWARD-LINK есть награда с REWARD_TYPE=BADGE."""
     badge_codes = {
         str(r.get("REWARD_CODE") or "").strip()
-        for r in reward_all
+        for r in tables.reward
         if str(r.get("REWARD_TYPE") or "").strip().upper() == "BADGE"
         and str(r.get("REWARD_CODE") or "").strip()
     }
     codes = sorted(
         {
             str(r.get("CONTEST_CODE") or "").strip()
-            for r in link_all
+            for r in tables.reward_link
             if str(r.get("CONTEST_CODE") or "").strip()
             and str(r.get("REWARD_CODE") or "").strip() in badge_codes
         }
@@ -371,33 +534,126 @@ def collect_badge_contest_codes() -> List[str]:
     return codes
 
 
-def collect_badge_contest_codes_with_schedule_start(needle: str = "2026") -> List[str]:
+def collect_badge_contest_codes_with_schedule_start(
+    tables: SpodTables, needle: str = "2026"
+) -> List[str]:
     """
     Конкурсы с BADGE и хотя бы одним периодом SCHEDULE,
     у которого START_DT содержит needle (например «2026»).
     """
-    badge = set(collect_badge_contest_codes())
-    sch_all = _read_csv(_latest("SCHEDULE (PROM)*.csv"))
+    badge = set(collect_badge_contest_codes(tables))
     with_start = {
         str(r.get("CONTEST_CODE") or "").strip()
-        for r in sch_all
+        for r in tables.schedule
         if str(r.get("CONTEST_CODE") or "").strip()
         and needle in str(r.get("START_DT") or "")
     }
     return sorted(badge & with_start)
 
+
+def _badge_reward_codes(tables: SpodTables) -> set[str]:
+    return {
+        str(r.get("REWARD_CODE") or "").strip()
+        for r in tables.reward
+        if str(r.get("REWARD_TYPE") or "").strip().upper() == "BADGE"
+        and str(r.get("REWARD_CODE") or "").strip()
+    }
+
+
+def expected_row_counts(
+    tables: SpodTables,
+    contest_code: str,
+    *,
+    badge_only: bool = False,
+) -> Dict[str, int]:
+    """Ожидаемые длины массивов снимка для CONTEST_CODE."""
+    links = tables.rows_for("reward_link", contest_code)
+    if badge_only:
+        badge_codes = _badge_reward_codes(tables)
+        links = [
+            r
+            for r in links
+            if str(r.get("REWARD_CODE") or "").strip() in badge_codes
+        ]
+    return {
+        "group": len(tables.rows_for("group", contest_code)),
+        "indicator": len(tables.rows_for("indicator", contest_code)),
+        "schedule": len(tables.rows_for("schedule", contest_code)),
+        "reward_link": len(links),
+        "badges": len(links),
+    }
+
+
+def reconcile_snapshot_with_csv(
+    payload: Dict[str, Any],
+    tables: SpodTables,
+    *,
+    badge_only: bool = False,
+    expected_codes: Optional[Sequence[str]] = None,
+) -> List[str]:
+    """
+    Сверка JSON-снимка с CSV по каждому CONTEST_CODE.
+    Возвращает список расхождений (пустой = совпало).
+    """
+    errors: List[str] = []
+    contests = payload.get("contests") or []
+    by_code: Dict[str, Dict[str, Any]] = {}
+    for item in contests:
+        data = item.get("data") or {}
+        contest = data.get("contest") or {}
+        code = str(contest.get("CONTEST_CODE") or "").strip()
+        if not code:
+            errors.append("снимок: конкурс без CONTEST_CODE")
+            continue
+        if code in by_code:
+            errors.append(f"{code}: дубль в снимке")
+        by_code[code] = data
+
+    want = list(expected_codes) if expected_codes is not None else collect_all_contest_codes(tables)
+    want_set = set(want)
+    got_set = set(by_code)
+    missing = sorted(want_set - got_set)
+    extra = sorted(got_set - want_set)
+    if missing:
+        errors.append("нет в JSON: " + ", ".join(missing[:20]) + (f" …+{len(missing)-20}" if len(missing) > 20 else ""))
+    if extra:
+        errors.append("лишние в JSON: " + ", ".join(extra[:20]) + (f" …+{len(extra)-20}" if len(extra) > 20 else ""))
+
+    for code in sorted(want_set & got_set):
+        data = by_code[code]
+        exp = expected_row_counts(tables, code, badge_only=badge_only)
+        for key in ("group", "indicator", "schedule", "reward_link", "badges"):
+            arr = data.get(key)
+            if not isinstance(arr, list):
+                errors.append(f"{code}.{key}: ожидался массив, получено {type(arr).__name__}")
+                continue
+            got = len(arr)
+            if got != exp[key]:
+                errors.append(f"{code}.{key}: JSON={got} CSV={exp[key]}")
+        csv_name = ""
+        for row in tables.contest:
+            if str(row.get("CONTEST_CODE") or "") == code:
+                csv_name = str(row.get("FULL_NAME") or "")
+                break
+        json_name = str((data.get("contest") or {}).get("FULL_NAME") or "")
+        if csv_name and json_name and csv_name != json_name:
+            errors.append(f"{code}.FULL_NAME: JSON={json_name!r} CSV={csv_name!r}")
+    return errors
+
+
 def build_project(
     codes: Sequence[str],
     *,
     title: str,
+    tables: SpodTables,
     badge_only: bool = False,
 ) -> Dict[str, Any]:
-    contest_rows = {r["CONTEST_CODE"]: r for r in _read_csv(_latest("CONTEST (PROM)*.csv"))}
-    group_all = _read_csv(_latest("GROUP (PROM)*.csv"))
-    link_all = _read_csv(_latest("REWARD-LINK (PROM)*.csv"))
-    reward_all = _read_csv(_latest("REWARD (PROM)*.csv"))
-    ind_all = _read_csv(_latest("INDICATOR (PROM)*.csv"))
-    sch_all = _read_csv(_latest("SCHEDULE (PROM)*.csv"))
+    contest_rows = {r["CONTEST_CODE"]: r for r in tables.contest if r.get("CONTEST_CODE")}
+    group_all = tables.group
+    link_all = tables.reward_link
+    reward_all = tables.reward
+    ind_all = tables.indicator
+    sch_all = tables.schedule
     rewards_by_code = {r["REWARD_CODE"]: r for r in reward_all if r.get("REWARD_CODE")}
 
     catalog_stamp = ""
@@ -447,13 +703,19 @@ def build_project(
     if missing:
         raise SystemExit("Нет конкурсов в CONTEST: " + ", ".join(missing))
 
-    source = "IN/PROM/SPOD (latest CONTEST/GROUP/REWARD*/INDICATOR/SCHEDULE)"
+    files_note = "; ".join(
+        f"{key}={name}" for key, name in tables.source_files.items()
+    )
+    source = (
+        f"config/CONFIG_RUN_INPUT.json · {tables.block} · листы каталога fill"
+        + (f" · {files_note}" if files_note else "")
+    )
     if badge_only:
         source += " · только конкурсы со связью REWARD_TYPE=BADGE"
 
     return {
         "version": 2,
-        "block": "PROM",
+        "block": tables.block,
         "title": title,
         "source": source,
         "saved_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
@@ -463,11 +725,46 @@ def build_project(
     }
 
 
+def _write_snapshot(
+    path: Path,
+    payload: Dict[str, Any],
+    tables: SpodTables,
+    *,
+    badge_only: bool,
+    expected_codes: Sequence[str],
+) -> None:
+    """Записать JSON и сверить длины массивов с CSV."""
+    mismatches = reconcile_snapshot_with_csv(
+        payload,
+        tables,
+        badge_only=badge_only,
+        expected_codes=expected_codes,
+    )
+    if mismatches:
+        for msg in mismatches:
+            logger.error("%s", msg)
+        raise SystemExit(
+            f"Сверка JSON=CSV не прошла для {path.name}: {len(mismatches)} расхожд."
+        )
+    path.write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    )
+    logger.info(
+        "OK %s · %s конкурс.",
+        path.relative_to(ROOT),
+        len(payload["contests"]),
+    )
+    print(f"OK {path.relative_to(ROOT)} · {len(payload['contests'])} конкурс.")
+
+
 def main() -> int:
-    OUT_DIR.mkdir(parents=True, exist_ok=True)
-    packs = [
+    _setup_logging()
+    for folder in (DIR_CURATED, DIR_BADGES, DIR_CONTESTS):
+        folder.mkdir(parents=True, exist_ok=True)
+    tables = load_prom_spod_tables(block=DEFAULT_BLOCK)
+    packs: List[Tuple[Path, str, List[str], bool]] = [
         (
-            "spod_fill_example_rewards.json",
+            DIR_CURATED / "spod_fill_example_rewards.json",
             "Примеры наград (индивидуальные накопительные)",
             [
                 "09_2026-0_23-1_2",
@@ -478,7 +775,7 @@ def main() -> int:
             False,
         ),
         (
-            "spod_fill_example_tournaments.json",
+            DIR_CURATED / "spod_fill_example_tournaments.json",
             "Примеры турниров",
             [
                 "01_2026-1_05-3_1",
@@ -489,7 +786,7 @@ def main() -> int:
             False,
         ),
         (
-            "spod_fill_example_mixed.json",
+            DIR_CURATED / "spod_fill_example_mixed.json",
             "Смешанный пример: награды + турниры",
             [
                 "09_2026-0_23-1_2",
@@ -504,7 +801,7 @@ def main() -> int:
             False,
         ),
         (
-            "spod_fill_example_json_arrays.json",
+            DIR_CURATED / "spod_fill_example_json_arrays.json",
             "Примеры JSON-массивов: CONTEST_PERIOD / FILTER_PERIOD_ARR / INDICATOR_FILTER",
             [
                 "01_2026-1_14-1_1",  # CONTEST_PERIOD: 2 периода
@@ -515,45 +812,65 @@ def main() -> int:
             False,
         ),
     ]
-    for filename, title, codes, badge_only in packs:
-        payload = build_project(codes, title=title, badge_only=badge_only)
-        path = OUT_DIR / filename
-        path.write_text(
-            json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    for out_path, title, codes, badge_only in packs:
+        payload = build_project(
+            codes, title=title, tables=tables, badge_only=badge_only
         )
-        print(f"OK {path.relative_to(ROOT)} · {len(payload['contests'])} конкурс.")
+        _write_snapshot(
+            out_path,
+            payload,
+            tables,
+            badge_only=badge_only,
+            expected_codes=codes,
+        )
 
-    # Полный снимок: все конкурсы PROM-SPOD со связью на BADGE
-    badge_codes = collect_badge_contest_codes()
+    badge_codes = collect_badge_contest_codes(tables)
     all_payload = build_project(
         badge_codes,
         title="Все конкурсы PROM-SPOD с наградами типа BADGE",
+        tables=tables,
         badge_only=True,
     )
-    all_path = OUT_DIR / "spod_fill_all_badges.json"
-    all_path.write_text(
-        json.dumps(all_payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    _write_snapshot(
+        DIR_BADGES / "spod_fill_all_badges.json",
+        all_payload,
+        tables,
+        badge_only=True,
+        expected_codes=badge_codes,
     )
-    print(
-        f"OK {all_path.relative_to(ROOT)} · {len(all_payload['contests'])} конкурс. "
-        f"(REWARD_TYPE=BADGE)"
-    )
+    print(f"  (REWARD_TYPE=BADGE)")
 
-    # BADGE + в SCHEDULE есть турнир с START_DT, содержащим 2026
-    y2026_codes = collect_badge_contest_codes_with_schedule_start("2026")
+    y2026_codes = collect_badge_contest_codes_with_schedule_start(tables, "2026")
     y2026_payload = build_project(
         y2026_codes,
         title="BADGE · SCHEDULE START_DT содержит 2026",
+        tables=tables,
         badge_only=True,
     )
-    y2026_path = OUT_DIR / "spod_fill_badges_schedule_2026.json"
-    y2026_path.write_text(
-        json.dumps(y2026_payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    _write_snapshot(
+        DIR_BADGES / "spod_fill_badges_schedule_2026.json",
+        y2026_payload,
+        tables,
+        badge_only=True,
+        expected_codes=y2026_codes,
     )
-    print(
-        f"OK {y2026_path.relative_to(ROOT)} · {len(y2026_payload['contests'])} конкурс. "
-        f"(BADGE + START_DT∋2026)"
+    print("  (BADGE + START_DT∋2026)")
+
+    all_codes = collect_all_contest_codes(tables)
+    full_payload = build_project(
+        all_codes,
+        title="Все конкурсы PROM SPOD (листы каталога fill из CONFIG_RUN_INPUT.json)",
+        tables=tables,
+        badge_only=False,
     )
+    _write_snapshot(
+        DIR_CONTESTS / "spod_fill_all_contests.json",
+        full_payload,
+        tables,
+        badge_only=False,
+        expected_codes=all_codes,
+    )
+    print(f"  (все CONTEST_CODE, {len(all_codes)} шт.)")
     return 0
 
 

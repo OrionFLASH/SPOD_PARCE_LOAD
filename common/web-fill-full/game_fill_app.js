@@ -25,8 +25,12 @@ let activeIndicator=0;
 let activeGroup=0;
 let activeLink=0;
 let activeContest=0;
+/** Индекс пары ITEM, выбранной в списке слева; null = смотрим конкурс целиком */
+let activePairFocus=null;
 /** Фильтр списка конкурсов в сайдбаре */
 let contestListQuery="";
+/** Режим поиска: starts | contains | equals */
+let contestListSearchMode="contains";
 /** Показывать турнирные / индивидуальные (награды) в списке и в поиске */
 let contestListShowTournament=true;
 let contestListShowReward=true;
@@ -35,8 +39,18 @@ let contestListShowArchive=false;
 /** Фильтр среды: оба вкл. = не режем */
 let contestListShowProm=true;
 let contestListShowTest=true;
-/** Статусы расписания, по умолчанию «живые» */
-let contestListStatuses=new Set(["АКТИВНЫЙ","ПОДВЕДЕНИЕ ИТОГОВ","ЗАВЕРШЕН"]);
+/** Сентинел фильтра: поле пустое или массива/ключа нет */
+const FILTER_EMPTY="__EMPTY__";
+/** Бизнес-блок не из четырёх каталожных кодов */
+const FILTER_BB_OTHER="__OTHER__";
+const BUSINESS_BLOCK_NAMED=["KMMMB","KMKKSB","AKMKKSB","CSM"];
+/** Статусы расписания, по умолчанию «живые» + пустое расписание */
+let contestListStatuses=new Set(["АКТИВНЫЙ","ПОДВЕДЕНИЕ ИТОГОВ","ЗАВЕРШЕН",FILTER_EMPTY]);
+/** Типы наград REWARD_TYPE (по умолчанию все из каталога) */
+const REWARD_TYPE_FILTER_FALLBACK=["BADGE","LABEL","ITEM","CRYSTAL"];
+let contestListRewardTypes=new Set(REWARD_TYPE_FILTER_FALLBACK);
+/** Бизнес-блок: 4 кода каталога + остальные + пусто (по умолчанию все) */
+let contestListBusinessBlocks=new Set(BUSINESS_BLOCK_NAMED.concat([FILTER_BB_OTHER,FILTER_EMPTY]));
 /** Дата фильтра списка (YYYY-MM-DD) или "" */
 let contestListDate="";
 /** Порог: длинный список → combobox с поиском */
@@ -145,8 +159,9 @@ const FEATURE_LAYOUT=[
   {title:"5. Видимость",hint:"Табельные, ТБ и ГОСБ — видимые / скрытые.",items:[{key:"CONTEST_FEATURE.persomanNumberVisible",span:6},{key:"CONTEST_FEATURE.persomanNumberHidden",span:6},{key:"CONTEST_FEATURE.tbVisible",span:6},{key:"CONTEST_FEATURE.tbHidden",span:6},{key:"CONTEST_FEATURE.gosbVisible",span:6},{key:"CONTEST_FEATURE.gosbHidden",span:6}]},
 ];
 const REWARD_LAYOUT=[
-  {title:"Основное",hint:"Код и тип — в заголовке. Название, условие, стоимость и описание.",items:[
-    {key:"FULL_NAME",span:6},
+  {title:"Основное",hint:"Тип награды, название, условие, стоимость и описание.",items:[
+    {key:"REWARD_TYPE",span:4},
+    {key:"FULL_NAME",span:8},
     {key:"REWARD_CONDITION",span:3},
     {key:"REWARD_COST",span:3},
     {key:"REWARD_DESCRIPTION",span:12}
@@ -159,7 +174,7 @@ const ADD_LAYOUT=[
   {title:"4. Списки REWARD_ADD_DATA",hint:"Преференции и массивы через ;.",items:[{key:"REWARD_ADD_DATA.preferences",span:12},{key:"REWARD_ADD_DATA.feature",span:12},{key:"REWARD_ADD_DATA.businessBlock",span:6},{key:"REWARD_ADD_DATA.helpCodeList",span:6}]},
 ];
 const SCHEDULE_LAYOUT=[
-  {title:"1. Коды и статус",hint:"TOURNAMENT = t_ + CONTEST_CODE; «_» + окончание — только если окончание непустое. Подписи — из каталога.",items:[
+  {title:"1. Коды и статус",hint:"Новые: TOURNAMENT = t_ + CONTEST_CODE. Если в коде нет t_+CONTEST_CODE — поле правится целиком (старый формат).",items:[
     {key:"TOURNAMENT_CODE",span:6,compositeKind:"tournament"},
     {key:"TOURNAMENT_STATUS",span:6},
     {key:"PERIOD_TYPE",span:12}
@@ -220,7 +235,7 @@ const GROUP_LAYOUT=[
 ];
 
 const LINK_LAYOUT=[
-  {title:"Связь группы и награды",hint:"REWARD_CODE = r_ + CONTEST_CODE; «_» + окончание — только если окончание заполнено (часто при нескольких наградах).",items:[
+  {title:"Связь группы и награды",hint:"Новые: REWARD_CODE = r_ + CONTEST_CODE. Если в коде нет r_+CONTEST_CODE — поле правится целиком (старый формат).",items:[
     {key:"GROUP_CODE",span:6,pickFromGroups:true},
     {key:"REWARD_CODE",span:6,compositeKind:"reward"}
   ]},
@@ -256,7 +271,7 @@ function ctxPillsHtml(pills){
   if(!pills||!pills.length) return "";
   return `<div class="ctx-pills" aria-label="Связанные коды">${pills.map(p=>{
     const empty=!String(p.v||"").trim();
-    return `<span class="ctx-pill${empty?" is-empty":""}" data-tip="${esc(p.tip||"")}"><span class="ctx-pill__k">${esc(p.k)}</span><span class="ctx-pill__v">${esc(empty?"—":p.v)}</span></span>`;
+    return `<span class="ctx-pill${empty?" is-empty":""}" data-k="${esc(p.k||"")}" data-tip="${esc(p.tip||"")}"><span class="ctx-pill__k">${esc(p.k)}</span><span class="ctx-pill__v">${esc(empty?"—":p.v)}</span></span>`;
   }).join("")}</div>`;
 }
 function panelHeadHtml(title, pills){
@@ -671,11 +686,11 @@ function applyPairCopy(fromIdx, toIdxs){
     links[j].REWARD_CODE=keepRc;
     const flat={};
     for(const k of flatKeys){
-      if(k==="REWARD_CODE"||k==="REWARD_TYPE") continue;
+      if(k==="REWARD_CODE") continue;
       flat[k]=srcBadge.flat&&srcBadge.flat[k]!=null?String(srcBadge.flat[k]):"";
     }
     flat.REWARD_CODE=keepRc;
-    flat.REWARD_TYPE="BADGE";
+    if(!flat.REWARD_TYPE) flat.REWARD_TYPE="BADGE";
     const add={};
     for(const leaf of addLeaves){
       let v=srcBadge.add&&srcBadge.add[leaf]!=null?String(srcBadge.add[leaf]):"";
@@ -1041,6 +1056,7 @@ function openCopyContestModal(){
     activeArchiveId=null;
     activeSection="CONTEST";
     activeBadge=0;activeSchedule=0;activeIndicator=0;activeGroup=0;activeLink=0;
+    activePairFocus=null;
     persistLocal();
     render();
     toast(`Копия создана · ${newCode} · G:${groupIdxs.length} R:${pairIdxs.length} T:${scheduleIdxs.length}`);
@@ -1281,11 +1297,28 @@ function deletePairAt(di, opts){
   const badge=badges[di];
   const link=links[di];
   archiveFragment("pair",{badge,link},pairNavTitle(di),contestCodeOf());
+  const itemsBefore=contestItemPairIndexes(cur());
+  let nextFocus=activePairFocus;
+  if(activePairFocus===di){
+    const after=itemsBefore.filter(x=>x>di);
+    const before=itemsBefore.filter(x=>x<di);
+    const pick=after.length?after[0]:(before.length?before[before.length-1]:null);
+    nextFocus=pick==null?null:(pick>di?pick-1:pick);
+  }else if(activePairFocus!=null && activePairFocus>di){
+    nextFocus=activePairFocus-1;
+  }
   badges.splice(di,1);
   links.splice(di,1);
   if(activeLink>=badges.length) activeLink=Math.max(0,badges.length-1);
-  activeBadge=activeLink;
-  activeSection=badges.length?"PAIR:"+(activeLink+1):"PAIR";
+  activePairFocus=nextFocus;
+  if(nextFocus!=null){
+    activeLink=nextFocus;
+    activeBadge=nextFocus;
+    activeSection="PAIR:"+(nextFocus+1);
+  }else{
+    activeBadge=activeLink;
+    activeSection=badges.length?"PAIR:"+(activeLink+1):"PAIR";
+  }
   persistLocal();markContestEdited();
   if(opts.toast!==false) toast("Пара перемещена в архив");
   return true;
@@ -1331,7 +1364,7 @@ function archiveBundleListHtml(b){
     `<span class="ct-sep" aria-hidden="true">·</span><span class="ct-stat">T:&nbsp;${st.t}</span>`+
     `<span class="ct-sep" aria-hidden="true">·</span><span class="ct-stat">G:&nbsp;${st.g}</span></span>`;
 }
-function archiveEntrySearchHaystack(e){
+function archiveEntrySearchTokens(e){
   const parts=[e.label,e.contestCode,e.contestName,e.deletedAt,e.kind];
   if(e.whole) parts.push("целиком","contest");
   for(const f of (e.fragments||[])){
@@ -1341,12 +1374,10 @@ function archiveEntrySearchHaystack(e){
     const d=e.snapshot.data;
     parts.push((d.contest||{}).CONTEST_CODE,(d.contest||{}).FULL_NAME);
   }
-  return parts.map(x=>String(x??"")).join("\n").toLowerCase();
+  return searchFieldTokens(parts);
 }
 function archiveMatchesListQuery(e,q){
-  const needle=String(q||"").trim().toLowerCase();
-  if(!needle) return true;
-  return archiveEntrySearchHaystack(e).includes(needle);
+  return tokensMatchQuery(archiveEntrySearchTokens(e), q);
 }
 function formatArchiveWhen(iso){
   const s=String(iso||"");
@@ -1377,6 +1408,13 @@ function liveTournamentCodes(d){
 function uniquifyPrefixedCode(fullCode, existing, kind, cc){
   const code=String(fullCode||"").trim();
   if(code&&!existing.has(code)) return code;
+  if(code && !followsPrefixedPrinciple(code, kind, cc)){
+    for(let n=2;n<200;n++){
+      const next=code+"_"+n;
+      if(!existing.has(next)) return next;
+    }
+    return code+"_r"+Date.now().toString(36);
+  }
   const prefix=kind==="reward"?rewardCodePrefix(cc):tournamentCodePrefix(cc);
   let suf=endingFromFullCode(code, cc, kind);
   if(suf==null) suf="";
@@ -1566,6 +1604,7 @@ function restoreContestWholeFromBundle(bundle, parts){
   activeArchiveId=null;
   activeSection="CONTEST";
   activeBadge=0;activeSchedule=0;activeIndicator=0;activeGroup=0;activeLink=0;
+  activePairFocus=null;
   if(parts&&!parts.all){
     bundle.whole=false;
     bundle.snapshot=null;
@@ -1810,9 +1849,9 @@ function renderArchiveNav(entry){
         items.push({
           kind:"pairUnit",index:i,hideDelete:true,
           pairId:"PAIR:"+(i+1), addId:"ADD:"+(i+1),
-          pairTitle:label, pairSub:"связь + BADGE",
+          pairTitle:label, pairSub:pairTypeSub(badges[i]),
           addTitle:"Особенности", addSub:code?("JSON · "+code):"REWARD_ADD_DATA",
-          tipPair:label, tipAdd:"JSON ADD",
+          tipPair:label+" · "+pairTypeSub(badges[i]), tipAdd:"JSON ADD",
         });
       }
     }
@@ -1851,9 +1890,9 @@ function renderArchiveNav(entry){
         items.push({
           kind:"pairUnit",index:i,hideDelete:true,
           pairId:"PAIR:"+f.id, addId:"ADD:"+f.id,
-          pairTitle:label, pairSub:"связь + BADGE",
+          pairTitle:label, pairSub:pairTypeSub(p.badge),
           addTitle:"Особенности", addSub:code?("JSON · "+code):"REWARD_ADD_DATA",
-          tipPair:label, tipAdd:"JSON ADD",
+          tipPair:label+" · "+pairTypeSub(p.badge), tipAdd:"JSON ADD",
         });
       });
     }
@@ -2027,6 +2066,23 @@ function normalizeCodeSuffix(suffix){
   return String(suffix??"").replace(/^_+/,"");
 }
 /**
+ * Код следует правилу r_/t_ + CONTEST_CODE (+ _ + окончание).
+ * Новые конкурсы — всегда так; старые PROM могут быть иначе.
+ */
+function followsPrefixedPrinciple(full, kind, contestCode){
+  const s=String(full||"").trim();
+  const cc=String(contestCode||"").trim();
+  if(!s||!cc) return false;
+  const prefix=kind==="reward"?rewardCodePrefix(cc):tournamentCodePrefix(cc);
+  return s===prefix||s.startsWith(prefix+"_");
+}
+/** Окончание в снимке (пусто / 1 / 4001 / P1), не полный чужой код. */
+function isSnapshotCodeEnding(s){
+  const t=String(s||"").trim();
+  if(!t) return true;
+  return /^(P)?\d+$/i.test(t);
+}
+/**
  * Полный код: base + (окончание ? "_" + окончание : "").
  * Пустое окончание → r_CODE / t_CODE без завершающего "_".
  */
@@ -2052,12 +2108,11 @@ function expandStoredPrefixedCode(raw, kind, contestCode){
   const cc=String(contestCode||"").trim();
   const prefix=kind==="reward"?rewardCodePrefix(cc):tournamentCodePrefix(cc);
   const s=String(raw||"").trim();
-  // пустое окончание в снимке → полный код без суффикса (r_CODE / t_CODE)
   if(!s) return cc?buildPrefixedCode(prefix, ""):"";
-  if(s.startsWith("r_")||s.startsWith("t_")){
-    return buildPrefixedCode(prefix, endingFromFullCode(s, cc, kind));
-  }
-  return buildPrefixedCode(prefix, s);
+  if(followsPrefixedPrinciple(s, kind, cc)) return s;
+  if(/^[rt]_/i.test(s)) return s;
+  if(isSnapshotCodeEnding(s)) return buildPrefixedCode(prefix, s);
+  return s;
 }
 function isBlankCell(v){
   if(v==null) return true;
@@ -2165,41 +2220,27 @@ function resyncPrefixedCodes(d, prevCc){
   const rNow=rewardCodePrefix(cc);
   const tPrev=tournamentCodePrefix(prevCc);
   const tNow=tournamentCodePrefix(cc);
-  for(const row of d.reward_link||[]){
-    let s=extractCodeSuffix(row.REWARD_CODE, rNow, rPrev);
-    const full=String(row.REWARD_CODE||"");
-    if(prevCc && full.startsWith(prevCc) && !full.startsWith("r_")) s=normalizeCodeSuffix(full.slice(prevCc.length));
-    else if(full.startsWith("r_")){
-      const rest=full.slice(2);
-      if(prevCc && rest.startsWith(prevCc)) s=normalizeCodeSuffix(rest.slice(prevCc.length));
-      else if(cc && rest.startsWith(cc)) s=normalizeCodeSuffix(rest.slice(cc.length));
+  function rewrite(full, kind, nowP, prevP){
+    const s=String(full||"").trim();
+    if(!s) return buildPrefixedCode(nowP, "");
+    if(followsPrefixedPrinciple(s, kind, cc)) return s;
+    if(prevCc && followsPrefixedPrinciple(s, kind, prevCc)){
+      return buildPrefixedCode(nowP, extractCodeSuffix(s, nowP, prevP));
     }
-    row.REWARD_CODE=buildPrefixedCode(rNow, s);
+    return s;
+  }
+  for(const row of d.reward_link||[]){
+    row.REWARD_CODE=rewrite(row.REWARD_CODE, "reward", rNow, rPrev);
   }
   for(const row of d.schedule||[]){
-    let s=extractCodeSuffix(row.TOURNAMENT_CODE, tNow, tPrev);
-    const full=String(row.TOURNAMENT_CODE||"");
-    if(prevCc && full.startsWith(prevCc) && !full.startsWith("t_")) s=normalizeCodeSuffix(full.slice(prevCc.length));
-    else if(full.startsWith("t_")){
-      const rest=full.slice(2);
-      if(prevCc && rest.startsWith(prevCc)) s=normalizeCodeSuffix(rest.slice(prevCc.length));
-      else if(cc && rest.startsWith(cc)) s=normalizeCodeSuffix(rest.slice(cc.length));
-    }
-    row.TOURNAMENT_CODE=buildPrefixedCode(tNow, s);
+    row.TOURNAMENT_CODE=rewrite(row.TOURNAMENT_CODE, "tournament", tNow, tPrev);
   }
   const allowed=new Set(linkRewardCodes(d));
   for(const b of d.badges||[]){
     const rc=String((b.flat&&b.flat.REWARD_CODE)||"").trim();
     if(rc && !allowed.has(rc)){
-      let s=extractCodeSuffix(rc, rNow, rPrev);
-      if(prevCc && rc.startsWith(prevCc) && !rc.startsWith("r_")) s=normalizeCodeSuffix(rc.slice(prevCc.length));
-      else if(rc.startsWith("r_")){
-        const rest=rc.slice(2);
-        if(prevCc && rest.startsWith(prevCc)) s=normalizeCodeSuffix(rest.slice(prevCc.length));
-        else if(cc && rest.startsWith(cc)) s=normalizeCodeSuffix(rest.slice(cc.length));
-      }
-      const next=buildPrefixedCode(rNow, s);
-      b.flat.REWARD_CODE=allowed.has(next)?next:(allowed.size===1?[...allowed][0]:"");
+      const next=rewrite(rc, "reward", rNow, rPrev);
+      b.flat.REWARD_CODE=allowed.has(next)?next:(allowed.size===1?[...allowed][0]:rc);
     }
   }
 }
@@ -2323,8 +2364,9 @@ function syncContestDirtyState(contestIndex){
   }
   const dirty=contestDiffersFromBaseline(c);
   c.userEdited=dirty;
-  const el=$("contest-tabs")&&$("contest-tabs").querySelector(`.contest-tab[data-ci="${i}"]`);
-  if(el) el.classList.toggle("is-dirty", dirty);
+  const host=$("contest-tabs");
+  if(!host) return;
+  host.querySelectorAll(`.contest-tab[data-ci="${i}"]:not([data-pair])`).forEach(el=>el.classList.toggle("is-dirty", dirty));
 }
 function markContestEdited(){
   syncContestDirtyState(activeContest);
@@ -2742,6 +2784,30 @@ function jsonPackLeaf(f, prefix){
   return jsonStoreLeaf(f, prefix, prefix==="CONTEST_FEATURE"?"FEATURE":prefix==="REWARD_ADD_DATA"?"ADD":"");
 }
 
+function mountFullCodeField(host, f, fullValue, onChange, tip, kind){
+  const wrap=document.createElement("div");
+  wrap.className="code-full-wrap";
+  wrap.setAttribute("data-tip", tip+"\nКод не в формате "+(kind==="reward"?"r_":"t_")+" + CONTEST_CODE — правится целиком, без префикса и окончания.");
+  const inp=document.createElement("input");
+  inp.type="text";
+  inp.className="code-full-input";
+  inp.value=String(fullValue||"");
+  inp.placeholder="полный код";
+  inp.setAttribute("data-tip", wrap.getAttribute("data-tip"));
+  const note=document.createElement("div");
+  note.className="code-composite__full";
+  note.textContent="формат r_/t_ + код конкурса не найден — редактируется весь код";
+  inp.addEventListener("input",()=>onChange(inp.value));
+  inp.addEventListener("focus",()=>host.closest(".field")?.classList.add("is-focus"));
+  inp.addEventListener("blur",()=>{
+    host.closest(".field")?.classList.remove("is-focus");
+    onChange(String(inp.value||"").trim());
+  });
+  wrap.appendChild(inp);
+  wrap.appendChild(note);
+  host.appendChild(wrap);
+}
+
 function mountCompositeCode(host, f, fullValue, onChange, tip, prefix){
   const cc=contestCodeOf();
   const miss=!cc;
@@ -2772,7 +2838,6 @@ function mountCompositeCode(host, f, fullValue, onChange, tip, prefix){
   function paintPrefix(){
     if(miss){pre.textContent=String(prefix||"").slice(0,2)+"…";return}
     const s=normalizeCodeSuffix(inp.value);
-    // «_» в превью только когда есть окончание
     pre.textContent=s?(prefix+"_"):prefix;
   }
   function paintFull(){
@@ -2788,7 +2853,6 @@ function mountCompositeCode(host, f, fullValue, onChange, tip, prefix){
   wrap.appendChild(box);wrap.appendChild(fullEl);
   host.appendChild(wrap);
   paintFull();
-  // нормализовать пустое окончание → r_CODE / t_CODE (без хвостового _)
   if(!miss){
     const built=buildPrefixedCode(prefix, inp.value);
     if(built && built!==full) withSilentNormalize(()=>onChange(built));
@@ -2838,8 +2902,14 @@ function renderFieldCard(f, value, path, onChange, opts){
     return card;
   }
   if(compositeKind==="reward"||compositeKind==="tournament"){
-    const prefix=compositeKind==="reward"?rewardCodePrefix(contestCodeOf()):tournamentCodePrefix(contestCodeOf());
-    mountCompositeCode(host,f,value,wrapChange,tip,prefix);
+    const cc=contestCodeOf();
+    const prefix=compositeKind==="reward"?rewardCodePrefix(cc):tournamentCodePrefix(cc);
+    const raw=String(value||"").trim();
+    if(raw && !followsPrefixedPrinciple(raw, compositeKind, cc)){
+      mountFullCodeField(host,f,value,wrapChange,tip,compositeKind);
+    }else{
+      mountCompositeCode(host,f,value,wrapChange,tip,prefix);
+    }
     return card;
   }
   if(kind==="dropdown_custom") mountDropdownCustom(host,f,value,wrapChange);
@@ -2941,24 +3011,58 @@ function contestMenuKind(c){
 
 /** Обновить заголовок вкладки конкурса без полной перерисовки workspace (иначе текстовые поля теряют фокус). */
 function refreshActiveContestTabTitle(){
-  const tab=$("contest-tabs")&&$("contest-tabs").querySelector(".contest-tab.active .ct-text");
-  if(!tab)return;
+  const host=$("contest-tabs");
+  if(!host)return;
+  const tab=host.querySelector(`.contest-tab[data-ci="${activeContest}"]:not([data-pair]) .ct-text`);
+  if(tab){
+    const c=cur();
+    const codeEl=tab.querySelector(".ct-code");
+    const nameEl=tab.querySelector(".ct-fullname");
+    if(codeEl) codeEl.innerHTML=contestCodeLineHtml(c,activeContest);
+    if(nameEl) nameEl.textContent=contestNameLine(c);
+    tab.setAttribute("data-tip",contestMenuTip(c,activeContest));
+  }
+  refreshActiveItemTabTitle();
+}
+function refreshActiveItemTabTitle(){
+  if(activePairFocus==null) return;
+  const tab=$("contest-tabs")?.querySelector(`.contest-tab[data-ci="${activeContest}"][data-pair="${activePairFocus}"]`);
+  if(!tab) return;
   const c=cur();
   const codeEl=tab.querySelector(".ct-code");
   const nameEl=tab.querySelector(".ct-fullname");
-  if(codeEl) codeEl.innerHTML=contestCodeLineHtml(c,activeContest);
-  if(nameEl) nameEl.textContent=contestNameLine(c);
-  tab.setAttribute("data-tip",contestMenuTip(c,activeContest));
+  if(codeEl) codeEl.innerHTML=itemCodeLineHtml(c,activePairFocus);
+  if(nameEl) nameEl.textContent=itemListName(c,activePairFocus);
+  const amt=itemListAmount(c,activePairFocus);
+  const tip=(itemListName(c,activePairFocus)||itemListCode(c,activePairFocus))+(amt?" · Ct: "+amt:"");
+  tab.setAttribute("data-tip",tip);
+  const text=tab.querySelector(".ct-text");
+  if(text) text.setAttribute("data-tip",tip);
 }
 
-function contestSearchHaystack(c){
+function searchFieldTokens(parts){
+  return (parts||[]).map(x=>String(x??"").trim().toLowerCase()).filter(Boolean);
+}
+function tokensMatchQuery(tokens, q, mode){
+  const needle=String(q||"").trim().toLowerCase();
+  if(!needle) return true;
+  const m=mode||contestListSearchMode||"contains";
+  return (tokens||[]).some(t=>{
+    if(m==="starts") return t.startsWith(needle);
+    if(m==="equals") return t===needle;
+    return t.includes(needle);
+  });
+}
+function contestSearchTokens(c){
   const d=c&&c.data?c.data:{};
   const parts=[];
   const ct=d.contest||{};
-  parts.push(ct.CONTEST_CODE,ct.FULL_NAME,ct.CONTEST_DESCRIPTION);
+  parts.push(ct.CONTEST_CODE,ct.FULL_NAME,ct.CONTEST_DESCRIPTION,ct.BUSINESS_BLOCK);
+  parts.push(d.feature&&d.feature.businessBlock);
   for(const b of d.badges||[]){
     const flat=b&&b.flat?b.flat:{};
-    parts.push(flat.FULL_NAME,flat.REWARD_DESCRIPTION,flat.REWARD_CODE);
+    const add=b&&b.add?b.add:{};
+    parts.push(flat.FULL_NAME,flat.REWARD_DESCRIPTION,flat.REWARD_CODE,flat.REWARD_TYPE,add.businessBlock,add.itemAmount);
   }
   for(const link of d.reward_link||[]){
     parts.push(link&&link.REWARD_CODE);
@@ -2966,12 +3070,10 @@ function contestSearchHaystack(c){
   for(const row of d.schedule||[]){
     parts.push(row&&row.TOURNAMENT_CODE);
   }
-  return parts.map(x=>String(x??"")).join("\n").toLowerCase();
+  return searchFieldTokens(parts);
 }
 function contestMatchesListQuery(c,q){
-  const needle=String(q||"").trim().toLowerCase();
-  if(!needle) return true;
-  return contestSearchHaystack(c).includes(needle);
+  return tokensMatchQuery(contestSearchTokens(c), q);
 }
 function contestMatchesKindFilter(c){
   const kind=contestMenuKind(c);
@@ -2988,32 +3090,247 @@ function contestMatchesEnvFilter(c){
   if(contestListShowProm) return hay.includes("пром");
   return hay.includes("тест");
 }
+function splitBusinessBlockTokens(raw){
+  const out=[];
+  function push(v){
+    if(v==null) return;
+    if(Array.isArray(v)){v.forEach(push);return}
+    if(typeof v==="object"){Object.values(v).forEach(push);return}
+    const s=String(v).trim();
+    if(!s) return;
+    if((s.startsWith("[")||s.startsWith("{"))&&(s.endsWith("]")||s.endsWith("}"))){
+      try{push(JSON.parse(s.replace(/'/g,'"')));return}catch(_){}
+    }
+    if(s.includes(";")){
+      s.split(";").forEach(p=>{const t=p.trim();if(t) out.push(t.toUpperCase())});
+      return;
+    }
+    out.push(s.toUpperCase());
+  }
+  push(raw);
+  return out;
+}
+function businessBlockNamedSet(){
+  return new Set(BUSINESS_BLOCK_NAMED.map(x=>String(x).toUpperCase()));
+}
+function tokensToBbBuckets(toks){
+  const named=businessBlockNamedSet();
+  const buckets=new Set();
+  if(!toks.length){buckets.add(FILTER_EMPTY);return buckets}
+  for(const t of toks){
+    if(!t){buckets.add(FILTER_EMPTY);continue}
+    if(named.has(t)) buckets.add(t);
+    else buckets.add(FILTER_BB_OTHER);
+  }
+  return buckets;
+}
+function contestBusinessBlockTokens(c){
+  const d=c&&c.data?c.data:{};
+  const out=[];
+  out.push(...splitBusinessBlockTokens(d.contest&&d.contest.BUSINESS_BLOCK));
+  out.push(...splitBusinessBlockTokens(d.feature&&d.feature.businessBlock));
+  for(const b of d.badges||[]){
+    out.push(...splitBusinessBlockTokens(b&&b.add&&b.add.businessBlock));
+  }
+  return out;
+}
+function contestMatchesBusinessBlockFilter(c){
+  if(!contestListBusinessBlocks.size) return false;
+  const buckets=tokensToBbBuckets(contestBusinessBlockTokens(c));
+  for(const b of buckets){
+    if(contestListBusinessBlocks.has(b)) return true;
+  }
+  return false;
+}
+function itemMatchesBusinessBlockFilter(c, pairIdx){
+  if(!contestListBusinessBlocks.size) return false;
+  const b=((c&&c.data&&c.data.badges)||[])[pairIdx];
+  let toks=splitBusinessBlockTokens(b&&b.add&&b.add.businessBlock);
+  if(!toks.length){
+    const d=(c&&c.data)||{};
+    toks=splitBusinessBlockTokens(d.contest&&d.contest.BUSINESS_BLOCK)
+      .concat(splitBusinessBlockTokens(d.feature&&d.feature.businessBlock));
+  }
+  const buckets=tokensToBbBuckets(toks);
+  for(const x of buckets){
+    if(contestListBusinessBlocks.has(x)) return true;
+  }
+  return false;
+}
+function contestScheduleRows(c){
+  const sch=c&&c.data?c.data.schedule:undefined;
+  return Array.isArray(sch)?sch:[];
+}
+/** Нет листа/массива, пустой массив, либо строки без статуса и кода турнира. */
+function contestScheduleIsEmpty(c){
+  const rows=contestScheduleRows(c);
+  if(!rows.length) return true;
+  return rows.every(row=>{
+    const st=String((row&&row.TOURNAMENT_STATUS)||"").trim();
+    const tc=String((row&&row.TOURNAMENT_CODE)||"").trim();
+    return !st&&!tc;
+  });
+}
 function contestMatchesStatusFilter(c){
   if(!contestListStatuses.size) return false;
-  const rows=Array.isArray(c.data&&c.data.schedule)?c.data.schedule:[];
-  if(!rows.length) return false;
-  return rows.some(row=>contestListStatuses.has(String(row.TOURNAMENT_STATUS||"").trim()));
+  if(contestScheduleIsEmpty(c)) return contestListStatuses.has(FILTER_EMPTY);
+  return contestScheduleRows(c).some(row=>{
+    const st=String((row&&row.TOURNAMENT_STATUS)||"").trim();
+    if(!st) return contestListStatuses.has(FILTER_EMPTY);
+    return contestListStatuses.has(st);
+  });
+}
+function contestRewardTypeCodes(c){
+  const out=[];
+  const badges=(c&&c.data&&c.data.badges);
+  if(!Array.isArray(badges)||!badges.length) return out;
+  for(const b of badges){
+    const t=String((b&&b.flat&&b.flat.REWARD_TYPE)||"").trim();
+    if(t) out.push(t);
+  }
+  return out;
+}
+function isItemBadge(badge){
+  return String((badge&&badge.flat&&badge.flat.REWARD_TYPE)||"").trim()==="ITEM";
+}
+function contestItemPairIndexes(c){
+  const badges=(c&&c.data&&c.data.badges)||[];
+  const out=[];
+  badges.forEach((b,i)=>{if(isItemBadge(b)) out.push(i)});
+  return out;
+}
+function contestIsItemCatalog(c){
+  const badges=(c&&c.data&&c.data.badges)||[];
+  return !!badges.length&&badges.every(isItemBadge);
+}
+function itemListCode(c, pairIdx){
+  const b=((c&&c.data&&c.data.badges)||[])[pairIdx];
+  const code=String((b&&b.flat&&b.flat.REWARD_CODE)||"").trim();
+  if(code) return code;
+  const link=(((c&&c.data&&c.data.reward_link)||[])[pairIdx])||{};
+  const rc=String(link.REWARD_CODE||"").trim();
+  return rc||("Товар "+(pairIdx+1));
+}
+function itemListName(c, pairIdx){
+  const b=((c&&c.data&&c.data.badges)||[])[pairIdx];
+  return String((b&&b.flat&&b.flat.FULL_NAME)||"").trim();
+}
+function itemListAmount(c, pairIdx){
+  const b=((c&&c.data&&c.data.badges)||[])[pairIdx];
+  const add=(b&&b.add)||{};
+  const v=add.itemAmount!=null?add.itemAmount:add.item_amount;
+  const s=String(v??"").trim();
+  return s;
+}
+function itemCodeLineHtml(c, pairIdx){
+  const code=esc(itemListCode(c, pairIdx));
+  const amt=itemListAmount(c, pairIdx);
+  const shown=amt||"—";
+  return code+`<span class="ct-dash" aria-hidden="true">-</span><span class="ct-stat">Ct:&nbsp;${esc(shown)}</span>`;
+}
+function itemListTokens(c, pairIdx){
+  const b=((c&&c.data&&c.data.badges)||[])[pairIdx];
+  const flat=(b&&b.flat)||{};
+  const add=(b&&b.add)||{};
+  const link=(((c&&c.data&&c.data.reward_link)||[])[pairIdx])||{};
+  return searchFieldTokens([flat.REWARD_CODE,flat.FULL_NAME,flat.REWARD_DESCRIPTION,flat.REWARD_TYPE,add.businessBlock,add.itemAmount,link.REWARD_CODE]);
+}
+function visibleItemPairIndexes(c){
+  if(!contestListRewardTypes.has("ITEM")) return [];
+  const all=contestItemPairIndexes(c).filter(idx=>itemMatchesBusinessBlockFilter(c,idx));
+  if(!all.length) return [];
+  const needle=String(contestListQuery||"").trim().toLowerCase();
+  if(!needle) return all;
+  const hits=all.filter(idx=>tokensMatchQuery(itemListTokens(c,idx), needle));
+  return hits.length?hits:all;
+}
+function itemFocusActive(){
+  if(activePairFocus==null||activeArchiveId) return false;
+  const b=((data().badges)||[])[activePairFocus];
+  return isItemBadge(b);
+}
+/** Пары в шапке и во вкладках workspace: ITEM только выбранный, остальные типы как раньше. */
+function navVisiblePairIndexes(){
+  const c=cur();
+  const n=((c&&c.data&&c.data.badges)||[]).length;
+  const itemSet=new Set(contestItemPairIndexes(c));
+  if(!itemSet.size) return Array.from({length:n},(_,i)=>i);
+  const nonItem=Array.from({length:n},(_,i)=>i).filter(i=>!itemSet.has(i));
+  if(itemFocusActive()) return [activePairFocus].concat(nonItem.filter(i=>i!==activePairFocus));
+  return nonItem;
+}
+function clampActivePairFocus(){
+  if(activePairFocus==null) return;
+  const n=((data().badges)||[]).length;
+  if(!n||activePairFocus<0||activePairFocus>=n||!isItemBadge(data().badges[activePairFocus])){
+    activePairFocus=null;
+  }
+}
+function contestRewardsAreEmpty(c){
+  const badges=c&&c.data?c.data.badges:undefined;
+  if(!Array.isArray(badges)||!badges.length) return true;
+  return contestRewardTypeCodes(c).length===0;
+}
+function contestMatchesRewardTypeFilter(c){
+  if(!contestListRewardTypes.size) return false;
+  if(contestRewardsAreEmpty(c)) return contestListRewardTypes.has(FILTER_EMPTY);
+  return contestRewardTypeCodes(c).some(t=>contestListRewardTypes.has(t));
 }
 function contestMatchesDateFilter(c){
   const ymd=String(contestListDate||"").trim();
   if(!isIsoDate(ymd)) return true;
-  const rows=Array.isArray(c.data&&c.data.schedule)?c.data.schedule:[];
-  return rows.some(row=>{
-    const start=String(row.START_DT||"").trim();
-    const end=String(row.END_DT||"").trim();
+  return contestScheduleRows(c).some(row=>{
+    const start=String((row&&row.START_DT)||"").trim();
+    const end=String((row&&row.END_DT)||"").trim();
     if(!isIsoDate(start)||!isIsoDate(end)) return false;
     return start<=ymd && ymd<=end;
   });
 }
 function contestMatchesLiveFilters(c){
-  return contestMatchesEnvFilter(c)&&contestMatchesStatusFilter(c)&&contestMatchesDateFilter(c);
+  return contestMatchesEnvFilter(c)&&contestMatchesBusinessBlockFilter(c)&&contestMatchesStatusFilter(c)&&contestMatchesDateFilter(c)&&contestMatchesRewardTypeFilter(c);
 }
 function syncFilterBtn(el, on){
   if(!el) return;
   el.classList.toggle("is-on",!!on);
   el.setAttribute("aria-pressed",on?"true":"false");
 }
+function rewardTypeFilterOptions(){
+  const f=typeof rewardTypeField==="function"?rewardTypeField():null;
+  const variants=(f&&Array.isArray(f.variants)&&f.variants.length)?f.variants.map(v=>String(v)):REWARD_TYPE_FILTER_FALLBACK.slice();
+  return variants.map(code=>{
+    const lab=labelForVariant(f||{}, code);
+    return {code, label:lab&&lab!==code?lab:code};
+  });
+}
+function ensureRewardTypeFilterButtons(){
+  const host=$("filter-reward-types");
+  if(!host) return;
+  if(host.dataset.ready==="1") return;
+  const opts=rewardTypeFilterOptions();
+  opts.push({code:FILTER_EMPTY, label:"Пусто"});
+  if(!opts.length) return;
+  contestListRewardTypes=new Set(opts.map(o=>o.code));
+  host.innerHTML=opts.map(o=>{
+    const empty=o.code===FILTER_EMPTY;
+    const cls="contest-kind-btn contest-kind-btn--rtype"+(empty?" contest-kind-btn--rtype-empty":"");
+    const tip=empty
+      ?"Нет наград: массив badges пуст / ключа нет, либо REWARD_TYPE пустой"
+      :"Показать конкурсы, где есть награда "+o.label+" ("+o.code+")";
+    return `<button type="button" class="${cls} is-on" data-reward-type="${esc(o.code)}" aria-pressed="true" data-tip="${esc(tip)}">${esc(o.label)}</button>`;
+  }).join("");
+  host.dataset.ready="1";
+  host.querySelectorAll("[data-reward-type]").forEach(btn=>{
+    btn.addEventListener("click",()=>{
+      const t=btn.getAttribute("data-reward-type")||"";
+      if(!t) return;
+      if(contestListRewardTypes.has(t)) contestListRewardTypes.delete(t);
+      else contestListRewardTypes.add(t);
+      renderContestTabs();
+    });
+  });
+}
 function syncContestKindFilterButtons(){
+  ensureRewardTypeFilterButtons();
   syncFilterBtn($("filter-tournaments"),contestListShowTournament);
   syncFilterBtn($("filter-rewards"),contestListShowReward);
   syncFilterBtn($("filter-archive"),contestListShowArchive);
@@ -3023,10 +3340,96 @@ function syncContestKindFilterButtons(){
     const st=btn.getAttribute("data-status")||"";
     syncFilterBtn(btn, contestListStatuses.has(st));
   });
+  document.querySelectorAll("[data-reward-type]").forEach(btn=>{
+    const t=btn.getAttribute("data-reward-type")||"";
+    syncFilterBtn(btn, contestListRewardTypes.has(t));
+  });
+  document.querySelectorAll("[data-bb]").forEach(btn=>{
+    const t=btn.getAttribute("data-bb")||"";
+    syncFilterBtn(btn, contestListBusinessBlocks.has(t));
+  });
+  document.querySelectorAll("[data-search-mode]").forEach(btn=>{
+    syncFilterBtn(btn, (btn.getAttribute("data-search-mode")||"")==contestListSearchMode);
+  });
   const clear=$("filter-date-clear");
   if(clear) clear.hidden=!isIsoDate(contestListDate);
 }
+function collectedFilterCodes(attr){
+  return Array.from(document.querySelectorAll("["+attr+"]"))
+    .map(btn=>btn.getAttribute(attr)||"")
+    .filter(Boolean);
+}
+function refreshListAfterFilterPreset(){
+  remountContestListDateFilter();
+  if(!contestListShowArchive&&activeArchiveId){activeArchiveId=null;render();return}
+  renderContestTabs();
+}
+/** Все чипы выкл., дата пустая. Поиск не трогаем. */
+function clearAllListFilters(){
+  contestListShowTournament=false;
+  contestListShowReward=false;
+  contestListShowArchive=false;
+  contestListShowProm=false;
+  contestListShowTest=false;
+  contestListStatuses=new Set();
+  contestListRewardTypes=new Set();
+  contestListBusinessBlocks=new Set();
+  contestListDate="";
+  refreshListAfterFilterPreset();
+}
+/** Все чипы вкл. (в т.ч. архив и пустые), дату сбрасываем. */
+function enableAllListFiltersExceptDate(){
+  ensureRewardTypeFilterButtons();
+  contestListShowTournament=true;
+  contestListShowReward=true;
+  contestListShowArchive=true;
+  contestListShowProm=true;
+  contestListShowTest=true;
+  contestListStatuses=new Set(collectedFilterCodes("data-status"));
+  contestListRewardTypes=new Set(collectedFilterCodes("data-reward-type"));
+  contestListBusinessBlocks=new Set(collectedFilterCodes("data-bb"));
+  contestListDate="";
+  refreshListAfterFilterPreset();
+}
 
+function openContestFromList(i, pairIdx){
+  activeArchiveId=null;
+  activeContest=i;
+  closeAllDatePops();
+  const c=cur();
+  seedLinked(c.data);
+  ensureScheduleSorted();
+  realignBaselineIfPristine(c);
+  if(pairIdx==null){
+    activePairFocus=null;
+    activeSection="CONTEST";
+    activeBadge=0;activeSchedule=0;activeIndicator=0;activeGroup=0;activeLink=0;
+  }else{
+    activePairFocus=pairIdx;
+    activeLink=pairIdx;
+    activeBadge=pairIdx;
+    activeSection="PAIR:"+(pairIdx+1);
+  }
+  render();
+}
+function contestParentTabHtml(c,i){
+  const dirty=isContestDirty(c);
+  const tone=contestScheduleListTone(c);
+  const tip=contestMenuTip(c,i)+(dirty?" · есть несохранённые правки":"")+(tone.label?" · "+tone.label:"");
+  const tabTip=dirty?"Есть правки параметров":(tone.label||"Текущий конкурс");
+  const on=i===activeContest&&!activeArchiveId;
+  const childOn=on&&activePairFocus!=null;
+  const selfOn=on&&activePairFocus==null;
+  return `<div class="contest-tab ${tone.cls}${selfOn?" active":""}${childOn?" is-parent-on":""}${dirty?" is-dirty":""}" data-ci="${i}" data-tip="${esc(tabTip)}"><span class="ct-text" data-tip="${esc(tip)}"><span class="ct-code">${contestCodeLineHtml(c,i)}</span><span class="ct-fullname">${esc(contestNameLine(c))}</span></span>${contests.length>1?`<button type="button" class="ct-x" data-del="${i}" data-tip="В архив">×</button>`:""}</div>`;
+}
+function contestItemTabHtml(c,i,pairIdx){
+  const code=itemListCode(c,pairIdx);
+  const name=itemListName(c,pairIdx);
+  const amt=itemListAmount(c,pairIdx);
+  const tip=(name?code+" · "+name:code)+(amt?" · Ct: "+amt:"");
+  const on=i===activeContest&&!activeArchiveId&&activePairFocus===pairIdx;
+  return `<div class="contest-tab contest-tab--item${on?" active":""}" data-ci="${i}" data-pair="${pairIdx}" data-tip="${esc(tip)}"><span class="ct-text" data-tip="${esc(tip)}"><span class="ct-code">${itemCodeLineHtml(c,pairIdx)}</span><span class="ct-fullname">${esc(name)}</span></span><button type="button" class="ct-x" data-del-pair="${pairIdx}" data-tip="В архив">×</button></div>`;
+}
 function renderContestTabs(){
   const host=$("contest-tabs");
   if(!host)return;
@@ -3042,14 +3445,15 @@ function renderContestTabs(){
   });
   function groupHtml(kind, title, items){
     if(!items.length) return "";
+    const itemN=items.reduce((n,{c})=>n+visibleItemPairIndexes(c).length,0);
+    const count=items.length+(itemN?` · товаров ${itemN}`:"");
     return `<div class="contest-tabs-group contest-tabs-group--${kind}">`+
-      `<div class="contest-tabs-group__title">${esc(title)}${items.length?` · ${items.length}`:""}</div>`+
+      `<div class="contest-tabs-group__title">${esc(title)} · ${count}</div>`+
       items.map(({c,i})=>{
-        const dirty=isContestDirty(c);
-        const tone=contestScheduleListTone(c);
-        const tip=contestMenuTip(c,i)+(dirty?" · есть несохранённые правки":"")+(tone.label?" · "+tone.label:"");
-        const tabTip=dirty?"Есть правки параметров":(tone.label||"Текущий конкурс");
-        return `<div class="contest-tab ${tone.cls}${i===activeContest&&!activeArchiveId?" active":""}${dirty?" is-dirty":""}" data-ci="${i}" data-tip="${esc(tabTip)}"><span class="ct-text" data-tip="${esc(tip)}"><span class="ct-code">${contestCodeLineHtml(c,i)}</span><span class="ct-fullname">${esc(contestNameLine(c))}</span></span>${contests.length>1?`<button type="button" class="ct-x" data-del="${i}" data-tip="В архив">×</button>`:""}</div>`;
+        const kids=visibleItemPairIndexes(c);
+        const parent=contestParentTabHtml(c,i);
+        if(!kids.length) return parent;
+        return `<div class="contest-tab-tree">${parent}${kids.map(j=>contestItemTabHtml(c,i,j)).join("")}</div>`;
       }).join("")+
       `</div>`;
   }
@@ -3084,15 +3488,11 @@ function renderContestTabs(){
   host.querySelectorAll("[data-ci]").forEach(el=>{
     el.addEventListener("click",e=>{
       if(e.target.closest("[data-del]"))return;
-      activeArchiveId=null;
-      activeContest=Number(el.getAttribute("data-ci"));
-      activeSection="CONTEST";activeBadge=0;activeSchedule=0;activeIndicator=0;activeGroup=0;activeLink=0;
-      closeAllDatePops();
-      const c=cur();
-      seedLinked(c.data);
-      ensureScheduleSorted();
-      realignBaselineIfPristine(c);
-      render();
+      if(e.target.closest("[data-del-pair]"))return;
+      const i=Number(el.getAttribute("data-ci"));
+      const pairRaw=el.getAttribute("data-pair");
+      const pairIdx=pairRaw==null?null:Number(pairRaw);
+      openContestFromList(i, Number.isFinite(pairIdx)?pairIdx:null);
     });
   });
   host.querySelectorAll("[data-del]").forEach(btn=>{
@@ -3103,9 +3503,26 @@ function renderContestTabs(){
       archiveContestAt(i);
     });
   });
+  host.querySelectorAll("[data-del-pair]").forEach(btn=>{
+    btn.addEventListener("click",e=>{
+      e.stopPropagation();
+      const wrap=btn.closest("[data-ci]");
+      const i=Number(wrap&&wrap.getAttribute("data-ci"));
+      const j=Number(btn.getAttribute("data-del-pair"));
+      if(!Number.isFinite(i)||!Number.isFinite(j)) return;
+      if(activeContest!==i){
+        activeArchiveId=null;
+        activeContest=i;
+        seedLinked(cur().data);
+        ensureScheduleSorted();
+      }
+      if(deletePairAt(j)) render();
+    });
+  });
   host.querySelectorAll("[data-arch]").forEach(el=>{
     el.addEventListener("click",()=>{
       activeArchiveId=el.getAttribute("data-arch");
+      activePairFocus=null;
       const entry=findArchiveEntry(activeArchiveId);
       activeArchiveSection=defaultArchiveSection(entry);
       activeSection="ARCHIVE";
@@ -3201,13 +3618,24 @@ function navItems(){
     });
   }
 
-  // Строка 2: Связи + награды (+ особенности JSON)
+  // Строка 2: Связи + награды (+ особенности JSON). ITEM — только выбранный в списке.
   const rowLinks=[];
-  rowLinks.push({kind:"group",group:"pair",title:"Связи + награды",meta:n+(n>max?" · рек. "+max:" / рек. "+max)});
+  const pairIdxs=navVisiblePairIndexes();
+  const itemN=contestItemPairIndexes(cur()).length;
+  let pairMeta=n+(n>max?" · рек. "+max:" / рек. "+max);
+  if(itemN){
+    pairMeta=itemFocusActive()
+      ?"товар "+(contestItemPairIndexes(cur()).indexOf(activePairFocus)+1)+" из "+itemN
+      :(itemN+" товаров · выберите слева");
+    if(pairIdxs.length&&pairIdxs.some(i=>!isItemBadge(data().badges[i]))) pairMeta+=" · ещё "+pairIdxs.filter(i=>!isItemBadge(data().badges[i])).length;
+  }
+  rowLinks.push({kind:"group",group:"pair",title:"Связи + награды",meta:pairMeta});
   if(!n){
     rowLinks.push({id:"PAIR",title:"Нет связей",sub:"добавить",tag:"table",tagLabel:"R",slot:true,tip:"В снимке нет пар связь+награда — добавить вручную"});
+  }else if(!pairIdxs.length){
+    rowLinks.push({id:"CONTEST",title:"Выберите товар",sub:"в списке слева · "+itemN+" шт.",tag:"table",tagLabel:"ITEM",slot:true,tip:"У конкурса много товаров (ITEM). Выберите строку под конкурсом — в шапке останется только этот reward"});
   }else{
-  for(let i=0;i<n;i++){
+  for(const i of pairIdxs){
     const label=pairNavTitle(i);
     const code=badgeRewardCode(i)||"";
     rowLinks.push({
@@ -3216,10 +3644,10 @@ function navItems(){
       pairId:"PAIR:"+(i+1),
       addId:"ADD:"+(i+1),
       pairTitle:label,
-      pairSub:"связь + BADGE",
+      pairSub:pairTypeSub(data().badges[i]),
       addTitle:"Особенности",
       addSub:code?("JSON · "+code):"REWARD_ADD_DATA",
-      tipPair:label+" · связь + BADGE",
+      tipPair:label+" · "+pairTypeSub(data().badges[i]),
       tipAdd:"JSON REWARD_ADD_DATA для награды "+(code||("#"+(i+1))),
     });
   }
@@ -3277,6 +3705,34 @@ function linkNavTitle(i){
 function pairNavTitle(i){
   return badgeRewardCode(i)||linkNavTitle(i)||("Пара "+(i+1));
 }
+function rewardTypeField(){
+  return ((catalog.sections.find(s=>s.id==="REWARD")||{fields:[]}).fields||[]).find(f=>f.key==="REWARD_TYPE")||null;
+}
+function rewardTypeCode(badge){
+  const t=String((badge&&badge.flat&&badge.flat.REWARD_TYPE)||"").trim();
+  return t||"BADGE";
+}
+function rewardTypeFace(code){
+  const c=String(code||"").trim()||"BADGE";
+  const lab=labelForVariant(rewardTypeField()||{}, c);
+  return lab&&lab!==c?lab+" · "+c:c;
+}
+function pairTypeSub(badge){
+  return "связь + "+rewardTypeFace(rewardTypeCode(badge));
+}
+function pairRewardHint(i, badge){
+  const rc=badgeRewardCode(i)||"";
+  return (rc||"код из связи выше")+" · "+rewardTypeFace(rewardTypeCode(badge));
+}
+function refreshPairTypeChrome(i, badge){
+  const face=rewardTypeFace(rewardTypeCode(badge));
+  const hint=$("workspace")?.querySelector(".pair-block--reward .pair-block__hint");
+  if(hint) hint.textContent=pairRewardHint(i, badge);
+  const pill=$("workspace")?.querySelector('.ctx-pill[data-k="TYPE"] .ctx-pill__v');
+  if(pill) pill.textContent=face;
+  const tipEl=$("workspace")?.querySelector('.ctx-pill[data-k="TYPE"]');
+  if(tipEl) tipEl.setAttribute("data-tip","Тип награды (REWARD_TYPE): "+face);
+}
 function clampIndex(i,len){
   if(!len) return 0;
   if(!Number.isFinite(i)||i<0) return 0;
@@ -3284,6 +3740,7 @@ function clampIndex(i,len){
   return i;
 }
 function normalizeActiveSection(){
+  clampActivePairFocus();
   if(activeSection==="REWARD-LINK"||activeSection==="BADGE"||activeSection==="LINK"){
     activeSection=(data().badges||[]).length?"PAIR:"+(activeLink+1):"PAIR";
   }
@@ -3297,15 +3754,19 @@ function normalizeActiveSection(){
     i=clampIndex(i,n);
     activeLink=i;activeBadge=i;
     activeSection="ADD:"+(i+1);
+    if(isItemBadge((data().badges||[])[i])) activePairFocus=i;
+    else activePairFocus=null;
     return;
   }
   if(activeSection.startsWith("BADGE:")||activeSection.startsWith("LINK:")||activeSection.startsWith("PAIR:")){
     const n=(data().badges||[]).length;
-    if(!n){activeSection="PAIR";return}
+    if(!n){activeSection="PAIR";activePairFocus=null;return}
     let i=Number(activeSection.split(":")[1])-1;
     i=clampIndex(i,n);
     activeLink=i;activeBadge=i;
     activeSection="PAIR:"+(i+1);
+    if(isItemBadge((data().badges||[])[i])) activePairFocus=i;
+    else activePairFocus=null;
   }
   if(activeSection.startsWith("GROUP:")){
     const n=(data().group||[]).length;
@@ -3538,11 +3999,20 @@ function addPairRow(){
   if(curN>=max){
     if(!confirm("Для этого типа обычно до "+max+" пар(ы) связь+награда.\nСейчас уже "+curN+". Добавить ещё одну?")) return;
   }
-  data().badges.push(emptyBadge());
-  data().reward_link.push(emptyLinkRow());
+  const preferItem=contestIsItemCatalog(cur())||itemFocusActive();
+  const badge=emptyBadge();
+  if(preferItem) badge.flat.REWARD_TYPE="ITEM";
+  const link=emptyLinkRow();
+  const cc=contestCodeOf();
+  const rc=uniquifyPrefixedCode(buildPrefixedCode(rewardCodePrefix(cc), ""), liveRewardCodes(data()), "reward", cc);
+  link.REWARD_CODE=rc;
+  badge.flat.REWARD_CODE=rc;
+  data().badges.push(badge);
+  data().reward_link.push(link);
   activeLink=data().badges.length-1;
   activeBadge=activeLink;
   activeSection="PAIR:"+(activeLink+1);
+  activePairFocus=preferItem?activeLink:null;
   persistLocal();markContestEdited();render();
   toast(curN+1>max?("Добавлена пара "+(curN+1)+" (выше рекомендации "+max+")"):"Добавлена пара");
 }
@@ -3572,23 +4042,34 @@ function renderLinkRewardPair(){
   if(!badge.flat.REWARD_TYPE) badge.flat.REWARD_TYPE="BADGE";
   badge.flat.REWARD_CODE=String(row.REWARD_CODE||"");
   const curRc=String(row.REWARD_CODE||"").trim();
+  const typeFace=rewardTypeFace(rewardTypeCode(badge));
   const gCodes=groupCodesOf();
 
-  const tabs=data().badges.map((_,idx)=>{
+  const tabIdxs=navVisiblePairIndexes();
+  const itemOn=itemFocusActive();
+  const itemIdxs=contestItemPairIndexes(cur());
+  const itemPos=itemOn?itemIdxs.indexOf(i)+1:0;
+  const tabs=tabIdxs.map(idx=>{
     const label=pairNavTitle(idx);
     return `<button type="button" class="period-tab${idx===i?" active":""}" data-pair="${idx}"><span class="pt-name" data-tip="${esc(label)}">${esc(label)}</span><span class="pt-x" data-del-pair="${idx}" data-tip="В архив">×</span></button>`;
   }).join("");
+  const intro=itemOn
+    ?"Товар выбран в списке слева. Конкурс, группы и индикаторы общие; в шапке только эта награда. Другой товар — клик по строке под конкурсом."
+    :"Одна вкладка = одна пара: сверху связь, снизу награда того же слота. Код награды: <code>r_</code>+код конкурса; если есть окончание — ещё <code>_</code>+окончание (без окончания хвостовой <code>_</code> не ставится).";
+  const meta=itemOn
+    ?`Товар ${itemPos} из ${itemIdxs.length} · ${esc(pairNavTitle(i))}`
+    :`Пара ${i+1} из ${n} · обычно для типа: до ${max}${n>max?" (сейчас больше рекомендации)":""}`;
 
   $("workspace").innerHTML=`
 <section class="panel">
   ${panelHeadHtml("Связи + награды", [
     contestCtxPill(),
     {k:"REWARD",v:curRc,tip:curRc?"Код этой пары":"Задайте окончание REWARD_CODE в блоке связи"},
-    {k:"TYPE",v:"BADGE",tip:"Тип награды всегда BADGE"}
+    {k:"TYPE",v:typeFace,tip:"Тип награды (REWARD_TYPE): "+typeFace}
   ])}
-  <p class="intro">Одна вкладка = одна пара: сверху связь, снизу награда того же слота. Код награды: <code>r_</code>+код конкурса; если есть окончание — ещё <code>_</code>+окончание (без окончания хвостовой <code>_</code> не ставится).</p>
+  <p class="intro">${intro}</p>
   <div class="period-bar">
-    <div class="period-tabs">${tabs}</div>
+    ${itemOn?"":`<div class="period-tabs">${tabs}</div>`}
     <div class="period-bar__actions">
       <button type="button" class="btn btn-primary" id="btn-add-pair" data-tip="${n>=max?("Рекомендация для типа: до "+max+". Сейчас "+n+" — можно добавить ещё"):("Добавить связь + награду (сейчас "+n+", обычно до "+max+")")}">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
@@ -3601,7 +4082,7 @@ function renderLinkRewardPair(){
       </button>
     </div>
   </div>
-  <p class="period-meta">Пара ${i+1} из ${n} · обычно для типа: до ${max}${n>max?" (сейчас больше рекомендации)":""}</p>
+  <p class="period-meta">${meta}</p>
   ${!gCodes.length?`<div class="link-hint">Сначала задайте <code>GROUP_CODE</code> на шаге <strong>«3. Группы»</strong>.</div>`:""}
 
   <div class="pair-block pair-block--link">
@@ -3610,7 +4091,7 @@ function renderLinkRewardPair(){
   </div>
 
   <div class="pair-block pair-block--reward">
-    <div class="pair-block__label"><span>Награда</span><span class="pair-block__hint">${curRc?esc(curRc):"код из связи выше"} · BADGE</span></div>
+    <div class="pair-block__label"><span>Награда</span><span class="pair-block__hint">${esc(pairRewardHint(i, badge))}</span></div>
     <div id="reward-groups"></div>
     <button type="button" class="nav-goto" id="btn-goto-add" data-tip="Открыть JSON REWARD_ADD_DATA этой награды">Особенности награды (ADD_DATA) →</button>
   </div>
@@ -3622,6 +4103,8 @@ function renderLinkRewardPair(){
       activeLink=Number(btn.getAttribute("data-pair"));
       activeBadge=activeLink;
       activeSection="PAIR:"+(activeLink+1);
+      if(isItemBadge((data().badges||[])[activeLink])) activePairFocus=activeLink;
+      else activePairFocus=null;
       closeAllDatePops();
       render();
     });
@@ -3653,11 +4136,10 @@ function renderLinkRewardPair(){
       row[f.key]=v;
       if(f.key==="REWARD_CODE"){
         badge.flat.REWARD_CODE=v;
-        badge.flat.REWARD_TYPE="BADGE";
-        const head=$("workspace").querySelector(".pair-block--reward .pair-block__hint");
-        if(head) head.textContent=(v||"код из связи выше")+" · BADGE";
+        refreshPairTypeChrome(i, badge);
         const tab=$("workspace").querySelector(`.period-tab.active .pt-name`);
         if(tab){const t=pairNavTitle(i);tab.textContent=t;tab.setAttribute("data-tip",t)}
+        refreshActiveItemTabTitle();
         renderNav();
       }
       if(f.key==="GROUP_CODE"){
@@ -3673,10 +4155,22 @@ function renderLinkRewardPair(){
 
   $("reward-groups").appendChild(renderGrouped(
     "REWARD", REWARD_LAYOUT,
-    f=>f.key==="REWARD_TYPE"?"BADGE":(f.key==="REWARD_CODE"?curRc:(badge.flat[f.key]||"")),
-    (f,v)=>{if(f.key==="REWARD_TYPE"||f.key==="REWARD_CODE")return;badge.flat[f.key]=v;persistLocal();refreshContestTabDirty()},
+    f=>f.key==="REWARD_CODE"?curRc:(badge.flat[f.key]||""),
+    (f,v)=>{
+      if(f.key==="REWARD_CODE") return;
+      badge.flat[f.key]=v;
+      if(f.key==="REWARD_TYPE"){
+        refreshPairTypeChrome(i, badge);
+        if(isItemBadge(badge)) activePairFocus=i;
+        else if(activePairFocus===i) activePairFocus=null;
+        renderContestTabs();
+        renderNav();
+      }
+      if(f.key==="FULL_NAME") refreshActiveItemTabTitle();
+      persistLocal();refreshContestTabDirty();
+    },
     f=>"badges."+i+".flat."+f.key,
-    ["REWARD_CODE","REWARD_TYPE"]
+    ["REWARD_CODE"]
   ));
 }
 
@@ -3700,7 +4194,7 @@ function renderRewardAdd(){
 <section class="panel">
   ${panelHeadHtml("Особенности награды", [
     contestCtxPill(),
-    {k:"PARA",v:String(i+1)+"/"+n,tip:"Номер пары среди связей+наград"},
+    {k:"PARA",v:itemFocusActive()?("товар "+(contestItemPairIndexes(cur()).indexOf(i)+1)+"/"+contestItemPairIndexes(cur()).length):String(i+1)+"/"+n,tip:itemFocusActive()?"Номер товара ITEM в списке слева":"Номер пары среди связей+наград"},
     {k:"REWARD",v:curRc||label,tip:curRc?"Код этой награды":"Сначала задайте REWARD_CODE в связи пары"}
   ])}
   <p class="intro">JSON <code>REWARD_ADD_DATA</code> только для пары <strong>${esc(label)}</strong>. В шапке у этой пары выделен блок «${i+1}» и пункт ADD — так не перепутаете с другими наградами.</p>
@@ -4940,7 +5434,7 @@ function applyProjectObject(restored, opts){
   archiveEntries=readArchiveFromProject(restored);
   activeArchiveId=null;
   activeArchiveSection="";
-  activeSection="CONTEST";activeBadge=0;activeSchedule=0;activeIndicator=0;activeGroup=0;activeLink=0;
+  activeSection="CONTEST";activeBadge=0;activeSchedule=0;activeIndicator=0;activeGroup=0;activeLink=0;activePairFocus=null;
   sessionReady=true;
   setGated(false);
   persistLocal();
@@ -4962,7 +5456,7 @@ function startFresh(opts){
   const c={id:"c"+Date.now(),name:"",data,baseline:null,userEdited:false};
   markBaseline(c);
   contests.push(c);
-  activeContest=0;activeSection="CONTEST";activeBadge=0;activeSchedule=0;activeIndicator=0;activeGroup=0;activeLink=0;
+  activeContest=0;activeSection="CONTEST";activeBadge=0;activeSchedule=0;activeIndicator=0;activeGroup=0;activeLink=0;activePairFocus=null;
   sessionReady=true;
   setGated(false);
   persistLocal();
@@ -4976,7 +5470,7 @@ function addContest(){
   const c={id:"c"+Date.now(),name:"",data,baseline:null,userEdited:false};
   markBaseline(c);
   contests.push(c);
-  activeContest=contests.length-1;activeSection="CONTEST";activeBadge=0;activeSchedule=0;activeIndicator=0;activeGroup=0;activeLink=0;
+  activeContest=contests.length-1;activeSection="CONTEST";activeBadge=0;activeSchedule=0;activeIndicator=0;activeGroup=0;activeLink=0;activePairFocus=null;
   persistLocal();render();toast("Добавлен конкурс");
 }
 function resetToCatalogDefaults(){
@@ -5065,6 +5559,8 @@ async function boot(){
   const loaded=await loadCatalogPreferFile();
   catalog=loaded.data;
   catalogSource=loaded.source;
+  ensureRewardTypeFilterButtons();
+  syncContestKindFilterButtons();
   if(!catalog||!Array.isArray(catalog.sections)){
     $("workspace").innerHTML=`<section class="panel"><h2>Нет каталога</h2><p class="intro">Нужен <code>catalog.json</code> рядом со страницей или блок EMBEDDED_CATALOG.</p></section>`;
     return;
@@ -5115,6 +5611,14 @@ function wire(){
     contestListQuery=String(e.target.value||"");
     renderContestTabs();
   });
+  document.querySelectorAll("[data-search-mode]").forEach(btn=>{
+    btn.addEventListener("click",()=>{
+      const m=btn.getAttribute("data-search-mode")||"contains";
+      if(m!=="starts"&&m!=="contains"&&m!=="equals") return;
+      contestListSearchMode=m;
+      renderContestTabs();
+    });
+  });
   $("filter-tournaments")?.addEventListener("click",()=>{
     contestListShowTournament=!contestListShowTournament;
     renderContestTabs();
@@ -5145,11 +5649,22 @@ function wire(){
       renderContestTabs();
     });
   });
+  document.querySelectorAll("[data-bb]").forEach(btn=>{
+    btn.addEventListener("click",()=>{
+      const t=btn.getAttribute("data-bb")||"";
+      if(!t) return;
+      if(contestListBusinessBlocks.has(t)) contestListBusinessBlocks.delete(t);
+      else contestListBusinessBlocks.add(t);
+      renderContestTabs();
+    });
+  });
   $("filter-date-clear")?.addEventListener("click",()=>{
     contestListDate="";
     remountContestListDateFilter();
     renderContestTabs();
   });
+  $("filter-all-off")?.addEventListener("click",()=>clearAllListFilters());
+  $("filter-all-on")?.addEventListener("click",()=>enableAllListFiltersExceptDate());
 }
 wire();boot();
 })();
