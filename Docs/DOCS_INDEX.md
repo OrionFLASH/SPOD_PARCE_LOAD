@@ -28,6 +28,10 @@
 - `PLAN_CONTEST_BADGE_FORM.md` — согласованный план формы BADGE.
 - `PLAN_WEB_FILL.md` — план fill / fill-full. Пункт 16 выполнен (16.16–16.18 — только fill-full). Снимки `common/examples/web-fill/` из CSV `CONFIG_RUN_INPUT.json`.
 - `TODO_WEB_FILL.md` — чеклист к пункту 16 ROADMAP.
+- `PLAN_WEB_FILL_FULL.md` — план волны fill-full (выбор выгрузки, бизнес-блок, ITEM/`r_`, полный код в JSON, разбиение JS). Пункт **18** выполнен в fill-full.
+- `TODO_WEB_FILL_FULL.md` — чеклист к пункту 18. Пожелания: `common/ToDo FILL EDIT.txt`.
+- `PLAN_WEB_FILL_STANDS.md` — стенды PROM/PSI, merge, фильтр стенда. Пункт **19** (не перезаписывает 18).
+- `TODO_WEB_FILL_STANDS.md` — чеклист к пункту 19.
 - Шаблон BLANK: **`common/templates/CONTEST_BADGE_FORM/CONTEST_BADGE_FORM_BLANK.xlsx`** (stub в `Docs/templates/…`).
 
 ## Консистентность

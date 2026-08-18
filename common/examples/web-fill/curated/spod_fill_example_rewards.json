@@ -1,9 +1,9 @@
 {
-  "version": 2,
+  "version": 5,
   "block": "PROM",
   "title": "Примеры наград (индивидуальные накопительные)",
   "source": "config/CONFIG_RUN_INPUT.json · PROM · листы каталога fill · contest=IN/PROM/SPOD/CONTEST (PROM) 05-08 v0.csv; reward=IN/PROM/SPOD/REWARD (PROM) 05-08 v0.csv; reward_link=IN/PROM/SPOD/REWARD-LINK (PROM) 05-08 v1.csv; group=IN/PROM/SPOD/GROUP (PROM) 05-08 v1.csv; indicator=IN/PROM/SPOD/INDICATOR (PROM) 05-08 v0.csv; schedule=IN/PROM/SPOD/SCHEDULE (PROM) 05-08 v0.csv",
-  "saved_at": "2026-08-17T22:55:35.889205Z",
+  "saved_at": "2026-08-18T17:43:52.186679Z",
   "catalog_stamp": "2026-08-17T13:42:19.465681Z",
   "activeContest": 0,
   "contests": [
@@ -34,7 +34,10 @@
           "SOURCE_UPD_FREQUENCY": "1",
           "CALC_TYPE": "1",
           "BUSINESS_BLOCK": "AKMKKSB",
-          "FACT_POST_PROCESSING": ""
+          "FACT_POST_PROCESSING": "",
+          "stands": [
+            "PROM"
+          ]
         },
         "feature": {
           "feature": "",
@@ -62,12 +65,13 @@
         "badges": [
           {
             "flat": {
-              "REWARD_CODE": "",
+              "REWARD_CODE": "r_09_2026-0_23-1_2",
               "REWARD_TYPE": "BADGE",
               "FULL_NAME": "Передача ОСВ из 1С (до 5 задач)",
               "REWARD_DESCRIPTION": "Награду получают АКМ, которые закрыли не менее 85% поставленных задач по передаче ОСВ из 1С и успешно отработали их в соответствии со своим диапазоном: от 1 до 5 задач",
               "REWARD_CONDITION": "1",
-              "REWARD_COST": "2"
+              "REWARD_COST": "2",
+              "REWARD_CODE_ENDING": ""
             },
             "add": {
               "feature": "Учитываются успешно закрытые задачи с отражением в комментариях результата ««Успех» - Выполнена конфигурация программы 1С. ДС подписан. Отчетность передана посредством 1С»;Награда выдается при общем числе успешно закрытых задач до 5;Учёт ведётся в рамках каждой волны выставления задач в течение года, поэтому бейдж можно будет получить несколько раз",
@@ -88,15 +92,22 @@
               "recommendationLevel": "GOSB",
               "priority": "1",
               "masterBadge": "Y",
-              "parentRewardCode": ""
-            }
+              "parentRewardCode": "r_09_2026-0_23-1_2"
+            },
+            "stands": [
+              "PROM"
+            ]
           }
         ],
         "reward_link": [
           {
             "CONTEST_CODE": "09_2026-0_23-1_2",
             "GROUP_CODE": "BANK",
-            "REWARD_CODE": ""
+            "REWARD_CODE": "r_09_2026-0_23-1_2",
+            "REWARD_CODE_ENDING": "",
+            "stands": [
+              "PROM"
+            ]
           }
         ],
         "group": [
@@ -108,7 +119,10 @@
             "GET_CALC_CRITERION": "",
             "ADD_CALC_CRITERION": "",
             "ADD_CALC_CRITERION_2": "",
-            "BASE_CALC_CODE": ""
+            "BASE_CALC_CODE": "",
+            "stands": [
+              "PROM"
+            ]
           }
         ],
         "indicator": [
@@ -128,12 +142,15 @@
             "CONTESTANT_SELECTION": "",
             "CALC_TYPE": "1",
             "N": "345",
-            "filter_items": []
+            "filter_items": [],
+            "stands": [
+              "PROM"
+            ]
           }
         ],
         "schedule": [
           {
-            "TOURNAMENT_CODE": "4001",
+            "TOURNAMENT_CODE": "t_09_2026-0_23-1_2_4001",
             "PERIOD_TYPE": "произвольный",
             "START_DT": "2026-04-09",
             "END_DT": "2026-06-11",
@@ -146,11 +163,15 @@
             "CONTEST_CODE": "09_2026-0_23-1_2",
             "CALC_TYPE": "1",
             "TRN_INDICATOR_FILTER": "",
+            "TOURNAMENT_CODE_ENDING": "4001",
             "seasonCode": "SEASON_akm_2026",
-            "filter_period": []
+            "filter_period": [],
+            "stands": [
+              "PROM"
+            ]
           },
           {
-            "TOURNAMENT_CODE": "4002",
+            "TOURNAMENT_CODE": "t_09_2026-0_23-1_2_4002",
             "PERIOD_TYPE": "произвольный",
             "START_DT": "2026-06-12",
             "END_DT": "2026-07-24",
@@ -163,11 +184,18 @@
             "CONTEST_CODE": "09_2026-0_23-1_2",
             "CALC_TYPE": "1",
             "TRN_INDICATOR_FILTER": "",
+            "TOURNAMENT_CODE_ENDING": "4002",
             "seasonCode": "SEASON_akm_2026",
-            "filter_period": []
+            "filter_period": [],
+            "stands": [
+              "PROM"
+            ]
           }
         ]
-      }
+      },
+      "stands": [
+        "PROM"
+      ]
     },
     {
       "id": "ex_09_2026_0_23_1_3",
@@ -196,7 +224,10 @@
           "SOURCE_UPD_FREQUENCY": "1",
           "CALC_TYPE": "1",
           "BUSINESS_BLOCK": "AKMKKSB",
-          "FACT_POST_PROCESSING": ""
+          "FACT_POST_PROCESSING": "",
+          "stands": [
+            "PROM"
+          ]
         },
         "feature": {
           "feature": "",
@@ -224,12 +255,13 @@
         "badges": [
           {
             "flat": {
-              "REWARD_CODE": "",
+              "REWARD_CODE": "r_09_2026-0_23-1_3",
               "REWARD_TYPE": "BADGE",
               "FULL_NAME": "Передача ОСВ из 1С (6-10 задач)",
               "REWARD_DESCRIPTION": "Награду получают АКМ, которые закрыли не менее 85% поставленных задач по передаче ОСВ из 1С и успешно отработали их в соответствии со своим диапазоном: от 6 до 10 задач",
               "REWARD_CONDITION": "1",
-              "REWARD_COST": "5"
+              "REWARD_COST": "5",
+              "REWARD_CODE_ENDING": ""
             },
             "add": {
               "feature": "Учитываются успешно закрытые задачи с отражением в комментариях результата ««Успех» - Выполнена конфигурация программы 1С. ДС подписан. Отчетность передана посредством 1С»;Награда выдается при общем числе успешно закрытых задач от 6 до 10;Учёт ведётся в рамках каждой волны выставления задач в течение года, поэтому бейдж можно будет получить несколько раз;Факт получения бейджа попадает в ленту сообщества",
@@ -250,15 +282,22 @@
               "recommendationLevel": "TB",
               "priority": "1",
               "masterBadge": "Y",
-              "parentRewardCode": ""
-            }
+              "parentRewardCode": "r_09_2026-0_23-1_3"
+            },
+            "stands": [
+              "PROM"
+            ]
           }
         ],
         "reward_link": [
           {
             "CONTEST_CODE": "09_2026-0_23-1_3",
             "GROUP_CODE": "BANK",
-            "REWARD_CODE": ""
+            "REWARD_CODE": "r_09_2026-0_23-1_3",
+            "REWARD_CODE_ENDING": "",
+            "stands": [
+              "PROM"
+            ]
           }
         ],
         "group": [
@@ -270,7 +309,10 @@
             "GET_CALC_CRITERION": "",
             "ADD_CALC_CRITERION": "",
             "ADD_CALC_CRITERION_2": "",
-            "BASE_CALC_CODE": ""
+            "BASE_CALC_CODE": "",
+            "stands": [
+              "PROM"
+            ]
           }
         ],
         "indicator": [
@@ -290,12 +332,15 @@
             "CONTESTANT_SELECTION": "",
             "CALC_TYPE": "1",
             "N": "346",
-            "filter_items": []
+            "filter_items": [],
+            "stands": [
+              "PROM"
+            ]
           }
         ],
         "schedule": [
           {
-            "TOURNAMENT_CODE": "4001",
+            "TOURNAMENT_CODE": "t_09_2026-0_23-1_3_4001",
             "PERIOD_TYPE": "произвольный",
             "START_DT": "2026-04-09",
             "END_DT": "2026-06-11",
@@ -308,11 +353,15 @@
             "CONTEST_CODE": "09_2026-0_23-1_3",
             "CALC_TYPE": "1",
             "TRN_INDICATOR_FILTER": "",
+            "TOURNAMENT_CODE_ENDING": "4001",
             "seasonCode": "SEASON_akm_2026",
-            "filter_period": []
+            "filter_period": [],
+            "stands": [
+              "PROM"
+            ]
           },
           {
-            "TOURNAMENT_CODE": "4002",
+            "TOURNAMENT_CODE": "t_09_2026-0_23-1_3_4002",
             "PERIOD_TYPE": "произвольный",
             "START_DT": "2026-06-12",
             "END_DT": "2026-07-24",
@@ -325,11 +374,18 @@
             "CONTEST_CODE": "09_2026-0_23-1_3",
             "CALC_TYPE": "1",
             "TRN_INDICATOR_FILTER": "",
+            "TOURNAMENT_CODE_ENDING": "4002",
             "seasonCode": "SEASON_akm_2026",
-            "filter_period": []
+            "filter_period": [],
+            "stands": [
+              "PROM"
+            ]
           }
         ]
-      }
+      },
+      "stands": [
+        "PROM"
+      ]
     },
     {
       "id": "ex_09_2026_0_23_1_4",
@@ -358,7 +414,10 @@
           "SOURCE_UPD_FREQUENCY": "1",
           "CALC_TYPE": "1",
           "BUSINESS_BLOCK": "AKMKKSB",
-          "FACT_POST_PROCESSING": ""
+          "FACT_POST_PROCESSING": "",
+          "stands": [
+            "PROM"
+          ]
         },
         "feature": {
           "feature": "",
@@ -386,12 +445,13 @@
         "badges": [
           {
             "flat": {
-              "REWARD_CODE": "",
+              "REWARD_CODE": "r_09_2026-0_23-1_4",
               "REWARD_TYPE": "BADGE",
               "FULL_NAME": "Передача ОСВ из 1С (11-15 задач)",
               "REWARD_DESCRIPTION": "Награду получают АКМ, которые закрыли не менее 85% поставленных задач по передаче ОСВ из 1С и успешно отработали их в соответствии со своим диапазоном: от 11 до 15 задач",
               "REWARD_CONDITION": "1",
-              "REWARD_COST": "9"
+              "REWARD_COST": "9",
+              "REWARD_CODE_ENDING": ""
             },
             "add": {
               "feature": "Учитываются успешно закрытые задачи с отражением в комментариях результата ««Успех» - Выполнена конфигурация программы 1С. ДС подписан. Отчетность передана посредством 1С»;Награда выдается при общем числе успешно закрытых задач от 11 до 15;Учёт ведётся в рамках каждой волны выставления задач в течение года, поэтому бейдж можно будет получить несколько раз;Факт получения бейджа попадает в ленту сообщества",
@@ -412,15 +472,22 @@
               "recommendationLevel": "BANK",
               "priority": "1",
               "masterBadge": "Y",
-              "parentRewardCode": ""
-            }
+              "parentRewardCode": "r_09_2026-0_23-1_4"
+            },
+            "stands": [
+              "PROM"
+            ]
           }
         ],
         "reward_link": [
           {
             "CONTEST_CODE": "09_2026-0_23-1_4",
             "GROUP_CODE": "BANK",
-            "REWARD_CODE": ""
+            "REWARD_CODE": "r_09_2026-0_23-1_4",
+            "REWARD_CODE_ENDING": "",
+            "stands": [
+              "PROM"
+            ]
           }
         ],
         "group": [
@@ -432,7 +499,10 @@
             "GET_CALC_CRITERION": "",
             "ADD_CALC_CRITERION": "",
             "ADD_CALC_CRITERION_2": "",
-            "BASE_CALC_CODE": ""
+            "BASE_CALC_CODE": "",
+            "stands": [
+              "PROM"
+            ]
           }
         ],
         "indicator": [
@@ -452,12 +522,15 @@
             "CONTESTANT_SELECTION": "",
             "CALC_TYPE": "1",
             "N": "347",
-            "filter_items": []
+            "filter_items": [],
+            "stands": [
+              "PROM"
+            ]
           }
         ],
         "schedule": [
           {
-            "TOURNAMENT_CODE": "4001",
+            "TOURNAMENT_CODE": "t_09_2026-0_23-1_4_4001",
             "PERIOD_TYPE": "произвольный",
             "START_DT": "2026-04-09",
             "END_DT": "2026-06-11",
@@ -470,11 +543,15 @@
             "CONTEST_CODE": "09_2026-0_23-1_4",
             "CALC_TYPE": "1",
             "TRN_INDICATOR_FILTER": "",
+            "TOURNAMENT_CODE_ENDING": "4001",
             "seasonCode": "SEASON_akm_2026",
-            "filter_period": []
+            "filter_period": [],
+            "stands": [
+              "PROM"
+            ]
           },
           {
-            "TOURNAMENT_CODE": "4002",
+            "TOURNAMENT_CODE": "t_09_2026-0_23-1_4_4002",
             "PERIOD_TYPE": "произвольный",
             "START_DT": "2026-06-12",
             "END_DT": "2026-07-24",
@@ -487,11 +564,18 @@
             "CONTEST_CODE": "09_2026-0_23-1_4",
             "CALC_TYPE": "1",
             "TRN_INDICATOR_FILTER": "",
+            "TOURNAMENT_CODE_ENDING": "4002",
             "seasonCode": "SEASON_akm_2026",
-            "filter_period": []
+            "filter_period": [],
+            "stands": [
+              "PROM"
+            ]
           }
         ]
-      }
+      },
+      "stands": [
+        "PROM"
+      ]
     },
     {
       "id": "ex_09_2026_0_23_1_5",
@@ -520,7 +604,10 @@
           "SOURCE_UPD_FREQUENCY": "1",
           "CALC_TYPE": "1",
           "BUSINESS_BLOCK": "AKMKKSB",
-          "FACT_POST_PROCESSING": ""
+          "FACT_POST_PROCESSING": "",
+          "stands": [
+            "PROM"
+          ]
         },
         "feature": {
           "feature": "",
@@ -548,12 +635,13 @@
         "badges": [
           {
             "flat": {
-              "REWARD_CODE": "",
+              "REWARD_CODE": "r_09_2026-0_23-1_5",
               "REWARD_TYPE": "BADGE",
               "FULL_NAME": "Передача ОСВ из 1С (более 15 задач)",
               "REWARD_DESCRIPTION": "Награду получают АКМ, которые закрыли не менее 85% поставленных задач по передаче ОСВ из 1С и успешно отработали их в соответствии со своим диапазоном: более 15 задач",
               "REWARD_CONDITION": "1",
-              "REWARD_COST": "13"
+              "REWARD_COST": "13",
+              "REWARD_CODE_ENDING": ""
             },
             "add": {
               "feature": "Учитываются успешно закрытые задачи с отражением в комментариях результата ««Успех» - Выполнена конфигурация программы 1С. ДС подписан. Отчетность передана посредством 1С»;Награда выдается при общем числе успешно закрытых задач более 15;Учёт ведётся в рамках каждой волны выставления задач в течение года, поэтому бейдж можно будет получить несколько раз;Факт получения бейджа попадает в ленту сообщества",
@@ -574,15 +662,22 @@
               "recommendationLevel": "BANK",
               "priority": "1",
               "masterBadge": "Y",
-              "parentRewardCode": ""
-            }
+              "parentRewardCode": "r_09_2026-0_23-1_5"
+            },
+            "stands": [
+              "PROM"
+            ]
           }
         ],
         "reward_link": [
           {
             "CONTEST_CODE": "09_2026-0_23-1_5",
             "GROUP_CODE": "BANK",
-            "REWARD_CODE": ""
+            "REWARD_CODE": "r_09_2026-0_23-1_5",
+            "REWARD_CODE_ENDING": "",
+            "stands": [
+              "PROM"
+            ]
           }
         ],
         "group": [
@@ -594,7 +689,10 @@
             "GET_CALC_CRITERION": "",
             "ADD_CALC_CRITERION": "",
             "ADD_CALC_CRITERION_2": "",
-            "BASE_CALC_CODE": ""
+            "BASE_CALC_CODE": "",
+            "stands": [
+              "PROM"
+            ]
           }
         ],
         "indicator": [
@@ -614,12 +712,15 @@
             "CONTESTANT_SELECTION": "",
             "CALC_TYPE": "1",
             "N": "348",
-            "filter_items": []
+            "filter_items": [],
+            "stands": [
+              "PROM"
+            ]
           }
         ],
         "schedule": [
           {
-            "TOURNAMENT_CODE": "4001",
+            "TOURNAMENT_CODE": "t_09_2026-0_23-1_5_4001",
             "PERIOD_TYPE": "произвольный",
             "START_DT": "2026-04-09",
             "END_DT": "2026-06-11",
@@ -632,11 +733,15 @@
             "CONTEST_CODE": "09_2026-0_23-1_5",
             "CALC_TYPE": "1",
             "TRN_INDICATOR_FILTER": "",
+            "TOURNAMENT_CODE_ENDING": "4001",
             "seasonCode": "SEASON_akm_2026",
-            "filter_period": []
+            "filter_period": [],
+            "stands": [
+              "PROM"
+            ]
           },
           {
-            "TOURNAMENT_CODE": "4002",
+            "TOURNAMENT_CODE": "t_09_2026-0_23-1_5_4002",
             "PERIOD_TYPE": "произвольный",
             "START_DT": "2026-06-12",
             "END_DT": "2026-07-24",
@@ -649,11 +754,21 @@
             "CONTEST_CODE": "09_2026-0_23-1_5",
             "CALC_TYPE": "1",
             "TRN_INDICATOR_FILTER": "",
+            "TOURNAMENT_CODE_ENDING": "4002",
             "seasonCode": "SEASON_akm_2026",
-            "filter_period": []
+            "filter_period": [],
+            "stands": [
+              "PROM"
+            ]
           }
         ]
-      }
+      },
+      "stands": [
+        "PROM"
+      ]
     }
+  ],
+  "standsManifest": [
+    "PROM"
   ]
 }

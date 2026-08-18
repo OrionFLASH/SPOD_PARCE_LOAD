@@ -29,6 +29,13 @@ from src.contest_badge_form.spod_json import (  # noqa: E402
     form_cell_from_list,
     parse_spod_json,
 )
+from src.Tools.merge_spod_fill_stands import (  # noqa: E402
+    STAND_PSI,
+    STAND_PROM,
+    annotate_stand_tags,
+    merge_fill_projects,
+    verify_prom_preserved,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -354,6 +361,9 @@ def _row_subset(row: Dict[str, str], cols: Sequence[str]) -> Dict[str, str]:
     return {c: str(row.get(c, "") or "") for c in cols}
 
 
+ITEM_CODE_PREFIX = "ITEM_"
+
+
 def follows_prefixed_principle(full: str, contest_code: str, kind: str) -> bool:
     """Код = r_/t_ + CONTEST_CODE или r_/t_ + CONTEST_CODE + _ + окончание."""
     s = (full or "").strip()
@@ -364,14 +374,27 @@ def follows_prefixed_principle(full: str, contest_code: str, kind: str) -> bool:
     return s == prefix or s.startswith(prefix + "_")
 
 
+def follows_item_prefix(full: str) -> bool:
+    return (full or "").strip().startswith(ITEM_CODE_PREFIX)
+
+
+def item_code_ending(full: str) -> str:
+    s = (full or "").strip()
+    if s.startswith(ITEM_CODE_PREFIX):
+        return s[len(ITEM_CODE_PREFIX) :]
+    return ""
+
+
 def code_ending(full: str, contest_code: str, kind: str) -> str:
     """
-    Полный код SPOD → окончание для поля fill.
+    Полный код SPOD → окончание.
     Снять r_/t_, снять CONTEST_CODE, остаток без ведущих _.
     Если полного хвоста нет (r_CODE / t_CODE) — пустая строка.
     """
     s = (full or "").strip()
     cc = (contest_code or "").strip()
+    if kind == "item":
+        return item_code_ending(s)
     if kind == "reward" and s.startswith("r_"):
         s = s[2:]
     elif kind == "tournament" and s.startswith("t_"):
@@ -389,12 +412,33 @@ def compose_from_ending(contest_code: str, ending: str, kind: str) -> str:
     """
     cc = (contest_code or "").strip()
     e = (ending or "").lstrip("_")
+    if kind == "item":
+        return ITEM_CODE_PREFIX + e
     prefix = "r_" if kind == "reward" else "t_"
     if not cc:
         return e
     if not e:
         return f"{prefix}{cc}"
     return f"{prefix}{cc}_{e}"
+
+
+def stored_reward_code_fields(full: str, contest_code: str, reward_type: str) -> tuple[str, str]:
+    """Полный REWARD_CODE + окончание для снимка fill."""
+    rc_full = (full or "").strip()
+    rt = (reward_type or "").strip().upper()
+    if rt == "ITEM" and follows_item_prefix(rc_full):
+        return rc_full, item_code_ending(rc_full)
+    if follows_prefixed_principle(rc_full, contest_code, "reward"):
+        return rc_full, code_ending(rc_full, contest_code, "reward")
+    return rc_full, ""
+
+
+def stored_tournament_code_fields(full: str, contest_code: str) -> tuple[str, str]:
+    """Полный TOURNAMENT_CODE + окончание для снимка fill."""
+    tc_full = (full or "").strip()
+    if follows_prefixed_principle(tc_full, contest_code, "tournament"):
+        return tc_full, code_ending(tc_full, contest_code, "tournament")
+    return tc_full, ""
 
 
 def build_contest_data(
@@ -431,30 +475,26 @@ def build_contest_data(
     reward_link: List[Dict[str, str]] = []
     for link in links:
         rc_full = str(link.get("REWARD_CODE", "") or "").strip()
-        stored_rc = (
-            code_ending(rc_full, cc, "reward")
-            if follows_prefixed_principle(rc_full, cc, "reward")
-            else rc_full
-        )
+        brow = rewards_by_code.get(rc_full) or {}
+        rt = str(brow.get("REWARD_TYPE", "") or "").strip()
+        stored_rc, stored_ending = stored_reward_code_fields(rc_full, cc, rt)
         link_row = _row_subset(link, LINK_COLS)
         link_row["CONTEST_CODE"] = cc
         link_row["REWARD_CODE"] = stored_rc
+        link_row["REWARD_CODE_ENDING"] = stored_ending
         reward_link.append(link_row)
 
-        brow = rewards_by_code.get(rc_full) or {}
         flat = {k: str(brow.get(k, "") or "") for k in REWARD_FLAT_KEYS}
         if not flat.get("REWARD_TYPE"):
             flat["REWARD_TYPE"] = "BADGE"
         flat["REWARD_CODE"] = stored_rc
+        flat["REWARD_CODE_ENDING"] = stored_ending
         add_obj = parse_spod_json(brow.get("REWARD_ADD_DATA", ""))
         if not isinstance(add_obj, dict):
             add_obj = {}
         add: Dict[str, str] = {}
         for leaf, val in add_obj.items():
             v = _leaf_value(val, as_list=str(leaf) in ADD_LIST_LEAVES)
-            if str(leaf) == "parentRewardCode" and v:
-                if follows_prefixed_principle(v, cc, "reward"):
-                    v = code_ending(v, cc, "reward")
             add[str(leaf)] = v
         badges.append({"flat": flat, "add": add})
 
@@ -478,11 +518,9 @@ def build_contest_data(
         row = _row_subset(r, SCH_COLS)
         row["CONTEST_CODE"] = cc
         tc_full = str(row.get("TOURNAMENT_CODE", "") or "").strip()
-        row["TOURNAMENT_CODE"] = (
-            code_ending(tc_full, cc, "tournament")
-            if follows_prefixed_principle(tc_full, cc, "tournament")
-            else tc_full
-        )
+        stored_tc, stored_t_ending = stored_tournament_code_fields(tc_full, cc)
+        row["TOURNAMENT_CODE"] = stored_tc
+        row["TOURNAMENT_CODE_ENDING"] = stored_t_ending
         row["seasonCode"] = _season_code_from_target(r.get("TARGET_TYPE", ""))
         row["filter_period"] = [
             _norm_filter_period_item(x)
@@ -713,16 +751,19 @@ def build_project(
     if badge_only:
         source += " · только конкурсы со связью REWARD_TYPE=BADGE"
 
-    return {
-        "version": 2,
-        "block": tables.block,
-        "title": title,
-        "source": source,
-        "saved_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
-        "catalog_stamp": catalog_stamp,
-        "activeContest": 0,
-        "contests": contests,
-    }
+    return annotate_stand_tags(
+        {
+            "version": 5,
+            "block": tables.block,
+            "title": title,
+            "source": source,
+            "saved_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+            "catalog_stamp": catalog_stamp,
+            "activeContest": 0,
+            "contests": contests,
+        },
+        STAND_PSI if str(tables.block).upper() == "PSI" else STAND_PROM,
+    )
 
 
 def _write_snapshot(
@@ -871,6 +912,57 @@ def main() -> int:
         expected_codes=all_codes,
     )
     print(f"  (все CONTEST_CODE, {len(all_codes)} шт.)")
+
+    try:
+        psi_tables = load_prom_spod_tables(block="PSI")
+    except FileNotFoundError as exc:
+        logger.warning("PSI CSV нет — merge пропущен: %s", exc)
+        print("SKIP PSI/merged: нет CSV блока PSI")
+        return 0
+
+    psi_codes = collect_all_contest_codes(psi_tables)
+    psi_payload = build_project(
+        psi_codes,
+        title="Все конкурсы PSI SPOD (листы каталога fill из CONFIG_RUN_INPUT.json)",
+        tables=psi_tables,
+        badge_only=False,
+    )
+    _write_snapshot(
+        DIR_CONTESTS / "spod_fill_all_contests_PSI.json",
+        psi_payload,
+        psi_tables,
+        badge_only=False,
+        expected_codes=psi_codes,
+    )
+    print(f"  (PSI, {len(psi_codes)} шт.)")
+
+    merged_payload, warnings = merge_fill_projects(
+        full_payload,
+        psi_payload,
+        title="Все конкурсы PROM+PSI SPOD (merge, приоритет PROM)",
+    )
+    prom_errors = verify_prom_preserved(full_payload, merged_payload)
+    if prom_errors:
+        for msg in prom_errors[:30]:
+            logger.error("%s", msg)
+        raise SystemExit(
+            f"merged сломал PROM: {len(prom_errors)} ошибок"
+        )
+    merged_path = DIR_CONTESTS / "spod_fill_all_contests_merged.json"
+    merged_path.write_text(
+        json.dumps(merged_payload, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    logger.info(
+        "OK %s · %s конкурс. · предупреждений merge: %s",
+        merged_path.relative_to(ROOT),
+        len(merged_payload["contests"]),
+        len(warnings),
+    )
+    print(
+        f"OK {merged_path.relative_to(ROOT)} · {len(merged_payload['contests'])} конкурс."
+        f" · merge warn {len(warnings)}"
+    )
     return 0
 
 

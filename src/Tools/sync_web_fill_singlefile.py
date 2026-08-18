@@ -14,8 +14,16 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 FULL_DIR = ROOT / "common" / "web-fill-full"
 FILL_HTML = ROOT / "common" / "web-fill" / "game_fill_settings.html"
-LS_FULL = 'const LS_PROJECT = "spod_web_fill_full_project_v2";'
-LS_SINGLE = 'const LS_PROJECT = "spod_web_fill_project_v2";'
+JS_PARTS = (
+    "game_fill_core.js",
+    "game_fill_model.js",
+    "game_fill_filters.js",
+    "game_fill_ui.js",
+    "game_fill_io.js",
+    "game_fill_boot.js",
+)
+LS_FULL = 'var LS_PROJECT = "spod_web_fill_full_project_v2";'
+LS_SINGLE = 'var LS_PROJECT = "spod_web_fill_project_v2";'
 TITLE = "Заполнение SPOD — Герои продаж (Геймификация)"
 
 
@@ -38,10 +46,17 @@ def extract_full_body_markup(html: str) -> str:
 
 
 def js_for_singlefile(js: str, embedded: str) -> str:
-    idx = js.find("const BLOCK")
+    idx = js.find("var BLOCK")
     if idx < 0:
-        raise SystemExit("В fill-full JS нет const BLOCK")
+        idx = js.find("const BLOCK")
+    if idx < 0:
+        raise SystemExit("В fill-full JS нет BLOCK")
     js = js[idx:].replace(LS_FULL, LS_SINGLE, 1)
+    js = js.replace(
+        'const LS_PROJECT = "spod_web_fill_full_project_v2";',
+        LS_SINGLE,
+        1,
+    )
     if LS_SINGLE not in js:
         raise SystemExit("Не удалось выставить LS_PROJECT однофайлового fill")
     return (
@@ -76,7 +91,13 @@ def build_html(css: str, body: str, script: str) -> str:
 def main() -> int:
     css = (FULL_DIR / "game_fill_styles.css").read_text(encoding="utf-8")
     full_html = (FULL_DIR / "game_fill_settings.html").read_text(encoding="utf-8")
-    js = (FULL_DIR / "game_fill_app.js").read_text(encoding="utf-8")
+    parts: list[str] = []
+    for name in JS_PARTS:
+        path = FULL_DIR / name
+        if not path.is_file():
+            raise SystemExit(f"Нет {path.relative_to(ROOT)}")
+        parts.append(path.read_text(encoding="utf-8"))
+    js = "\n".join(parts)
     old = FILL_HTML.read_text(encoding="utf-8")
     embedded = extract_embedded_catalog(old)
     body = extract_full_body_markup(full_html)

@@ -862,7 +862,7 @@ SPOD_PROM/
 
 **Назначение:** перенос **WEB-страниц** (edit/fill), **каталогов**, **примеров JSON** и **утилит экспорта** без переименования файлов.
 
-**Состав:** **`POST/SPOD_PROM/`** — `common/{web-edit,web-edit-full,web-fill,web-fill-full,param_catalog_review,examples}`, фрагмент **`Docs/`** (PLAN_WEB_FILL, TODO, param_review), **`src/Tools/`** (export/sync каталогов), **`src/Tests/`** (web-fill), **`config/CONFIG_RUN_INPUT.json`**. Карта — **`POST/SPOD_PROM/СОСТАВ_ПАКЕТА.txt`**.
+**Состав:** **`POST/SPOD_PROM/`** — `common/{web-edit,web-edit-full,web-fill,web-fill-full,param_catalog_review,examples}`, фрагмент **`Docs/`** (PLAN_WEB_FILL, PLAN_WEB_FILL_FULL, TODO, param_review), **`src/Tools/`** (export/sync каталогов), **`src/Tests/`** (web-fill), **`config/CONFIG_RUN_INPUT.json`**. Карта — **`POST/SPOD_PROM/СОСТАВ_ПАКЕТА.txt`**.
 
 **Обновление:** **`python src/Tools/sync_post_web_bundle.py`** (папка **`POST/SPOD_PROM/`** перед сборкой удаляется и создаётся заново).
 
@@ -1328,6 +1328,33 @@ python main.py
 ---
 
 ## История версий
+
+### Версия 1.7.88 — fill-full: цвет меток стенда PROM / PSI
+
+- Кнопки стенда на карточке конкурса, строках (группа, индикатор, награда, турнир), в фильтре и в списке: **вкл** — заливка (PROM синий, PSI фиолетовый, белый текст); **выкл** — серые.
+
+### Версия 1.7.87 — fill-full: CONTEST_PERIOD на карточке, раскладка фильтров, edge-кнопки
+
+- Периоды `CONTEST_PERIOD` редактируются внизу страницы «Конкурс»; чип P×N скроллит к блоку.
+- Статус турнира: вторая строка Отменён / Удалён / Нет турниров. Тип награды: Награда / Товар / Метка, затем Кристалл / «Нет награды».
+- Кнопки «Конкурсы» / «Фильтры» на стыке колонок, стрелки сверху и снизу текста.
+
+### Версия 1.7.86 — восстановление стендов PROM/PSI, фильтры, ПКАП
+
+- Fill-full: фильтр **Стенд** PROM/PSI, «Среда» под датой, мини-кнопки все/снять у каждого фильтра.
+- Merge Python + снимки PROM / PSI / merged с `stands[]`; CSV по умолчанию только PROM. Пункт **18** сохранён (выбор JSON, `ITEM_`, `*_ENDING`, split JS).
+- Edit: ПКАП / ФАБРИКА справа после «Можно пусто»; можно отжать обе (`marks: []`).
+
+### Версия 1.7.85 — fill-full: выбор выгрузки, бизнес-блок, коды, разбиение JS
+
+- Режим «Выбрать» на левой панели: отметки конкурсов для JSON/CSV; подписи «все / выбранные»; без новых кнопок скачивания.
+- Бизнес-блок правится только на конкурсе; в FEATURE и REWARD — показ того же значения.
+- Награды ITEM: префикс `ITEM_` + окончание; в JSON полный `REWARD_CODE` / `TOURNAMENT_CODE` и поля `*_ENDING`.
+- JS fill-full: `game_fill_{core,model,filters,ui,io,boot}.js`. Примеры `common/examples/web-fill/` пересобраны.
+
+### Версия 1.7.84 — план fill-full (выбор, бизнес-блок, коды, JSON, JS)
+
+- Документы волны **18** (код не начат): `Docs/PLAN_WEB_FILL_FULL.md`, `Docs/TODO_WEB_FILL_FULL.md`, пункт ROADMAP. Пожелания — `common/ToDo FILL EDIT.txt`.
 
 ### Версия 1.7.83 — fill-full: коды r_/t_ и список ITEM
 

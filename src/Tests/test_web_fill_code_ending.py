@@ -97,6 +97,7 @@ def test_nonstandard_tournament_code_kept_full() -> None:
         schedules=schedules,
     )
     assert data["schedule"][0]["TOURNAMENT_CODE"] == "LEGACY_C1_OLD"
+    assert data["schedule"][0]["TOURNAMENT_CODE_ENDING"] == ""
 
 
 def test_nonstandard_reward_code_kept_full() -> None:
@@ -128,7 +129,9 @@ def test_nonstandard_reward_code_kept_full() -> None:
         schedules=[],
     )
     assert data["reward_link"][0]["REWARD_CODE"] == "ITEM_99"
+    assert data["reward_link"][0]["REWARD_CODE_ENDING"] == "99"
     assert data["badges"][0]["flat"]["REWARD_CODE"] == "ITEM_99"
+    assert data["badges"][0]["flat"]["REWARD_CODE_ENDING"] == "99"
 
 
 def test_build_contest_data_keeps_real_schedule() -> None:
@@ -161,5 +164,40 @@ def test_build_contest_data_keeps_real_schedule() -> None:
         schedules=schedules,
     )
     assert len(data["schedule"]) == 1
-    assert data["schedule"][0]["TOURNAMENT_CODE"] == "4001"
+    assert data["schedule"][0]["TOURNAMENT_CODE"] == "t_C1_4001"
+    assert data["schedule"][0]["TOURNAMENT_CODE_ENDING"] == "4001"
     assert data["schedule"][0]["TOURNAMENT_STATUS"] == "АКТИВНЫЙ"
+
+
+def test_prefixed_reward_full_code_and_ending() -> None:
+    contest_row = {
+        "CONTEST_CODE": "C1",
+        "FULL_NAME": "X",
+        "CONTEST_FEATURE": "",
+        "CONTEST_PERIOD": "",
+        "BUSINESS_BLOCK": "",
+    }
+    links = [{"CONTEST_CODE": "C1", "GROUP_CODE": "G1", "REWARD_CODE": "r_C1_1"}]
+    rewards_by_code = {
+        "r_C1_1": {
+            "REWARD_CODE": "r_C1_1",
+            "REWARD_TYPE": "BADGE",
+            "FULL_NAME": "Бейдж",
+            "REWARD_DESCRIPTION": "",
+            "REWARD_CONDITION": "",
+            "REWARD_COST": "1",
+            "REWARD_ADD_DATA": "",
+        }
+    }
+    data = build_contest_data(
+        contest_row,
+        groups=[],
+        links=links,
+        rewards_by_code=rewards_by_code,
+        indicators=[],
+        schedules=[],
+    )
+    assert data["reward_link"][0]["REWARD_CODE"] == "r_C1_1"
+    assert data["reward_link"][0]["REWARD_CODE_ENDING"] == "1"
+    assert data["badges"][0]["flat"]["REWARD_CODE"] == "r_C1_1"
+    assert data["badges"][0]["flat"]["REWARD_CODE_ENDING"] == "1"

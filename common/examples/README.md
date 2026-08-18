@@ -8,7 +8,7 @@
 |-------|--------|
 | `web-fill/curated/` | Короткие снимки fill: награды, турниры, смесь, JSON-массивы |
 | `web-fill/badges/` | Полные снимки конкурсов с `REWARD_TYPE=BADGE` (все / с периодом 2026) |
-| `web-fill/contests/` | Полный снимок **всех** конкурсов PROM SPOD |
+| `web-fill/contests/` | Полные снимки конкурсов: PROM, PSI, merged |
 
 Новый пример JSON в `common/` — в подпапку по задаче (fill / edit / …) и смыслу (curated / полный дамп / тема). Имена файлов — понятные (`spod_fill_…`, не `data.json`).
 
@@ -36,7 +36,9 @@
 | `web-fill/curated/spod_fill_example_json_arrays.json` | Шаблоны `CONTEST_PERIOD` / `FILTER_PERIOD_ARR` / `INDICATOR_FILTER` |
 | `web-fill/badges/spod_fill_all_badges.json` | Все конкурсы со связью на BADGE |
 | `web-fill/badges/spod_fill_badges_schedule_2026.json` | BADGE и период SCHEDULE с `START_DT`, содержащим `2026` |
-| `web-fill/contests/spod_fill_all_contests.json` | Все конкурсы PROM SPOD из файлов `CONFIG_RUN_INPUT.json` |
+| `web-fill/contests/spod_fill_all_contests.json` | Все конкурсы PROM SPOD; `stands: ["PROM"]` |
+| `web-fill/contests/spod_fill_all_contests_PSI.json` | Все конкурсы PSI |
+| `web-fill/contests/spod_fill_all_contests_merged.json` | PROM+PSI, приоритет PROM; основной рабочий файл |
 
 Пересборка из CSV PROM SPOD:
 

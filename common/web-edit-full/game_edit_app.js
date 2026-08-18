@@ -110,7 +110,7 @@
   }
 
   function normalizeParamMarks(raw) {
-    if (!Array.isArray(raw) || !raw.length) return DEFAULT_PARAM_MARKS.slice();
+    if (!Array.isArray(raw)) return [];
     const out = [];
     for (const item of raw) {
       let t = String(item ?? "").trim();
@@ -120,11 +120,15 @@
       if (upper === "FABRIKA" || upper === "FABRIC") t = "ФАБРИКА";
       if (PARAM_MARKS.includes(t) && !out.includes(t)) out.push(t);
     }
-    return out.length ? out : DEFAULT_PARAM_MARKS.slice();
+    return out;
   }
 
+  /** Нет ключа marks — обе по умолчанию (старые JSON). Пустой массив — обе отжаты. */
   function fieldParamMarks(field) {
-    return normalizeParamMarks(field && field.marks);
+    if (!field || !Object.prototype.hasOwnProperty.call(field, "marks")) {
+      return DEFAULT_PARAM_MARKS.slice();
+    }
+    return normalizeParamMarks(field.marks);
   }
 
   function paramMarkChipHtml(mark, field) {
@@ -144,7 +148,7 @@
 
   function paramMarksToggleHtml(field) {
     return (
-      `<div class="param-marks-toggle" data-role="param_marks" role="group" aria-label="Пометки ПКАП / ФАБРИКА" data-tip="Где используется параметр — можно включить одну или обе пометки">` +
+      `<div class="param-marks-toggle" data-role="param_marks" role="group" aria-label="Пометки ПКАП / ФАБРИКА" data-tip="Где используется параметр — можно включить одну, обе или снять все">` +
       PARAM_MARKS.map((m) => paramMarkChipHtml(m, field)).join("") +
       `</div>`
     );
@@ -1825,7 +1829,6 @@
           }
           <span class="edited-badge" data-role="edited-badge" data-tip="Поле изменено после загрузки или импорта. Можно вернуть исходное кнопкой слева от готовности."${dirty ? "" : " hidden"}>отредактировано</span>
         </div>
-        ${paramMarksToggleHtml(field)}
         <div class="card-head-actions">
           <button type="button" class="revert-chip${
             dirty ? "" : " is-disabled"
@@ -1856,6 +1859,7 @@
             }</span>
             <span class="glass-switch__label">${field.allow_empty ? "да" : "нет"}</span>
           </label>
+          ${paramMarksToggleHtml(field)}
           ${
             (() => {
               const sec = (catalog.sections || []).find((s) => s.id === sectionId);
@@ -1941,10 +1945,6 @@
         if (!mark || !PARAM_MARKS.includes(mark)) return;
         let marks = fieldParamMarks(field);
         if (marks.includes(mark)) {
-          if (marks.length <= 1) {
-            showToast("Должна остаться хотя бы одна пометка");
-            return;
-          }
           marks = marks.filter((m) => m !== mark);
         } else {
           marks = PARAM_MARKS.filter((m) => marks.includes(m) || m === mark);

@@ -66,7 +66,7 @@ def test_reconcile_counts_match() -> None:
                     "contest": {"CONTEST_CODE": "C1", "FULL_NAME": "A"},
                     "group": [],
                     "indicator": [],
-                    "schedule": [{"TOURNAMENT_CODE": "1"}],
+                    "schedule": [{"TOURNAMENT_CODE": "t_C1_1", "TOURNAMENT_CODE_ENDING": "1"}],
                     "reward_link": [],
                     "badges": [],
                 }

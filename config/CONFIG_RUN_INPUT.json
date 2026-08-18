@@ -1241,7 +1241,7 @@
         "archive_db_path": "OUT/DB/{BLOCK}/spod_input_archive_{BLOCK}.sqlite"
       },
       {
-        "file": "contest_reward_IFT_2026-07-29.csv",
+        "file": "contest_reward_IFT_2026-07-09.csv",
         "sheet": "REWARD",
         "subdir": "PSI/SPOD",
         "archive_to_db": true,
@@ -1263,7 +1263,7 @@
         "archive_db_path": "OUT/DB/{BLOCK}/spod_input_archive_{BLOCK}.sqlite"
       },
       {
-        "file": "contest_reward_link_IFT_2026-07-29.csv",
+        "file": "contest_reward_link_IFT_2026-07-09.csv",
         "sheet": "REWARD-LINK",
         "subdir": "PSI/SPOD",
         "archive_to_db": true,
@@ -1285,7 +1285,7 @@
         "archive_db_path": "OUT/DB/{BLOCK}/spod_input_archive_{BLOCK}.sqlite"
       },
       {
-        "file": "tournament_schedule_IFT_2026-07-29.csv",
+        "file": "tournament_schedule_IFT_2026-07-09.csv",
         "sheet": "TOURNAMENT-SCHEDULE",
         "subdir": "PSI/SPOD",
         "archive_to_db": true,

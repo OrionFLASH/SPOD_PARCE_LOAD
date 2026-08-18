@@ -1,9 +1,9 @@
 {
-  "version": 2,
+  "version": 5,
   "block": "PROM",
   "title": "Примеры JSON-массивов: CONTEST_PERIOD / FILTER_PERIOD_ARR / INDICATOR_FILTER",
   "source": "config/CONFIG_RUN_INPUT.json · PROM · листы каталога fill · contest=IN/PROM/SPOD/CONTEST (PROM) 05-08 v0.csv; reward=IN/PROM/SPOD/REWARD (PROM) 05-08 v0.csv; reward_link=IN/PROM/SPOD/REWARD-LINK (PROM) 05-08 v1.csv; group=IN/PROM/SPOD/GROUP (PROM) 05-08 v1.csv; indicator=IN/PROM/SPOD/INDICATOR (PROM) 05-08 v0.csv; schedule=IN/PROM/SPOD/SCHEDULE (PROM) 05-08 v0.csv",
-  "saved_at": "2026-08-17T22:55:35.893748Z",
+  "saved_at": "2026-08-18T17:43:52.191355Z",
   "catalog_stamp": "2026-08-17T13:42:19.465681Z",
   "activeContest": 0,
   "contests": [
@@ -34,7 +34,10 @@
           "SOURCE_UPD_FREQUENCY": "7",
           "CALC_TYPE": "1",
           "BUSINESS_BLOCK": "KMKKSB",
-          "FACT_POST_PROCESSING": ""
+          "FACT_POST_PROCESSING": "",
+          "stands": [
+            "PROM"
+          ]
         },
         "feature": {
           "feature": "Победители получают один максимальный по достоинству бейдж;Данные основаны на ДБ QlikSense;Обновление информации происходит 1 раз в неделю;Награда по ГОСБ вручается, если число участников не менее 2х",
@@ -73,12 +76,13 @@
         "badges": [
           {
             "flat": {
-              "REWARD_CODE": "1",
+              "REWARD_CODE": "r_01_2026-1_14-1_1_1",
               "REWARD_TYPE": "BADGE",
               "FULL_NAME": "Золото#по приросту остатка Активов",
               "REWARD_DESCRIPTION": "Войди в число ТОП-5 участников в турнире Активы. Максимизируй прирост остатка на уровне всей страны",
               "REWARD_CONDITION": "1",
-              "REWARD_COST": "10"
+              "REWARD_COST": "10",
+              "REWARD_CODE_ENDING": "1"
             },
             "add": {
               "feature": "Факт получения бейджа попадает в ленту сообщества",
@@ -99,16 +103,20 @@
               "priority": "1",
               "masterBadge": "N",
               "parentRewardCode": "r_01_2026-1_00-1_1"
-            }
+            },
+            "stands": [
+              "PROM"
+            ]
           },
           {
             "flat": {
-              "REWARD_CODE": "2",
+              "REWARD_CODE": "r_01_2026-1_14-1_1_2",
               "REWARD_TYPE": "BADGE",
               "FULL_NAME": "Серебро#по приросту остатка Активов",
               "REWARD_DESCRIPTION": "Войти в число ТОП-3 участников на уровне своего территориального банка в рамках турнира Активы. Максимизируй прирост остатка",
               "REWARD_CONDITION": "1",
-              "REWARD_COST": "6"
+              "REWARD_COST": "6",
+              "REWARD_CODE_ENDING": "2"
             },
             "add": {
               "feature": "",
@@ -126,16 +134,20 @@
               "priority": "2",
               "masterBadge": "N",
               "parentRewardCode": "r_01_2026-1_00-1_2"
-            }
+            },
+            "stands": [
+              "PROM"
+            ]
           },
           {
             "flat": {
-              "REWARD_CODE": "3",
+              "REWARD_CODE": "r_01_2026-1_14-1_1_3",
               "REWARD_TYPE": "BADGE",
               "FULL_NAME": "Бронза#по приросту остатка Активов",
               "REWARD_DESCRIPTION": "Победи в турнире Активы. Максимизируй прирост остатка в рамках своего ГОСБ / Управления",
               "REWARD_CONDITION": "1",
-              "REWARD_COST": "4"
+              "REWARD_COST": "4",
+              "REWARD_CODE_ENDING": "3"
             },
             "add": {
               "feature": "",
@@ -153,24 +165,39 @@
               "priority": "3",
               "masterBadge": "N",
               "parentRewardCode": "r_01_2026-1_00-1_3"
-            }
+            },
+            "stands": [
+              "PROM"
+            ]
           }
         ],
         "reward_link": [
           {
             "CONTEST_CODE": "01_2026-1_14-1_1",
             "GROUP_CODE": "BANK",
-            "REWARD_CODE": "1"
+            "REWARD_CODE": "r_01_2026-1_14-1_1_1",
+            "REWARD_CODE_ENDING": "1",
+            "stands": [
+              "PROM"
+            ]
           },
           {
             "CONTEST_CODE": "01_2026-1_14-1_1",
             "GROUP_CODE": "TB",
-            "REWARD_CODE": "2"
+            "REWARD_CODE": "r_01_2026-1_14-1_1_2",
+            "REWARD_CODE_ENDING": "2",
+            "stands": [
+              "PROM"
+            ]
           },
           {
             "CONTEST_CODE": "01_2026-1_14-1_1",
             "GROUP_CODE": "GOSB",
-            "REWARD_CODE": "3"
+            "REWARD_CODE": "r_01_2026-1_14-1_1_3",
+            "REWARD_CODE_ENDING": "3",
+            "stands": [
+              "PROM"
+            ]
           }
         ],
         "group": [
@@ -182,7 +209,10 @@
             "GET_CALC_CRITERION": "5",
             "ADD_CALC_CRITERION": "0",
             "ADD_CALC_CRITERION_2": "0",
-            "BASE_CALC_CODE": "BANK"
+            "BASE_CALC_CODE": "BANK",
+            "stands": [
+              "PROM"
+            ]
           },
           {
             "CONTEST_CODE": "01_2026-1_14-1_1",
@@ -192,7 +222,10 @@
             "GET_CALC_CRITERION": "0.00000",
             "ADD_CALC_CRITERION": "0.00000",
             "ADD_CALC_CRITERION_2": "0.10000",
-            "BASE_CALC_CODE": "GOSB"
+            "BASE_CALC_CODE": "GOSB",
+            "stands": [
+              "PROM"
+            ]
           },
           {
             "CONTEST_CODE": "01_2026-1_14-1_1",
@@ -202,7 +235,10 @@
             "GET_CALC_CRITERION": "0",
             "ADD_CALC_CRITERION": "3",
             "ADD_CALC_CRITERION_2": "0",
-            "BASE_CALC_CODE": "TB"
+            "BASE_CALC_CODE": "TB",
+            "stands": [
+              "PROM"
+            ]
           }
         ],
         "indicator": [
@@ -222,12 +258,15 @@
             "CONTESTANT_SELECTION": "",
             "CALC_TYPE": "1",
             "N": "164",
-            "filter_items": []
+            "filter_items": [],
+            "stands": [
+              "PROM"
+            ]
           }
         ],
         "schedule": [
           {
-            "TOURNAMENT_CODE": "3021",
+            "TOURNAMENT_CODE": "t_01_2026-1_14-1_1_3021",
             "PERIOD_TYPE": "турнир февраля",
             "START_DT": "2026-02-01",
             "END_DT": "2026-02-28",
@@ -240,11 +279,15 @@
             "CONTEST_CODE": "01_2026-1_14-1_1",
             "CALC_TYPE": "1",
             "TRN_INDICATOR_FILTER": "",
+            "TOURNAMENT_CODE_ENDING": "3021",
             "seasonCode": "SEASON_2026_1",
-            "filter_period": []
+            "filter_period": [],
+            "stands": [
+              "PROM"
+            ]
           },
           {
-            "TOURNAMENT_CODE": "3031",
+            "TOURNAMENT_CODE": "t_01_2026-1_14-1_1_3031",
             "PERIOD_TYPE": "турнир марта",
             "START_DT": "2026-03-01",
             "END_DT": "2026-03-31",
@@ -257,11 +300,15 @@
             "CONTEST_CODE": "01_2026-1_14-1_1",
             "CALC_TYPE": "1",
             "TRN_INDICATOR_FILTER": "",
+            "TOURNAMENT_CODE_ENDING": "3031",
             "seasonCode": "SEASON_2026_1",
-            "filter_period": []
+            "filter_period": [],
+            "stands": [
+              "PROM"
+            ]
           },
           {
-            "TOURNAMENT_CODE": "3041",
+            "TOURNAMENT_CODE": "t_01_2026-1_14-1_1_3041",
             "PERIOD_TYPE": "турнир апреля",
             "START_DT": "2026-04-01",
             "END_DT": "2026-04-30",
@@ -274,11 +321,15 @@
             "CONTEST_CODE": "01_2026-1_14-1_1",
             "CALC_TYPE": "1",
             "TRN_INDICATOR_FILTER": "",
+            "TOURNAMENT_CODE_ENDING": "3041",
             "seasonCode": "SEASON_2026_1",
-            "filter_period": []
+            "filter_period": [],
+            "stands": [
+              "PROM"
+            ]
           },
           {
-            "TOURNAMENT_CODE": "3051",
+            "TOURNAMENT_CODE": "t_01_2026-1_14-1_1_3051",
             "PERIOD_TYPE": "турнир мая",
             "START_DT": "2026-05-01",
             "END_DT": "2026-05-31",
@@ -291,11 +342,15 @@
             "CONTEST_CODE": "01_2026-1_14-1_1",
             "CALC_TYPE": "1",
             "TRN_INDICATOR_FILTER": "",
+            "TOURNAMENT_CODE_ENDING": "3051",
             "seasonCode": "SEASON_2026_1",
-            "filter_period": []
+            "filter_period": [],
+            "stands": [
+              "PROM"
+            ]
           },
           {
-            "TOURNAMENT_CODE": "3061",
+            "TOURNAMENT_CODE": "t_01_2026-1_14-1_1_3061",
             "PERIOD_TYPE": "турнир июня",
             "START_DT": "2026-06-01",
             "END_DT": "2026-06-30",
@@ -308,11 +363,15 @@
             "CONTEST_CODE": "01_2026-1_14-1_1",
             "CALC_TYPE": "1",
             "TRN_INDICATOR_FILTER": "",
+            "TOURNAMENT_CODE_ENDING": "3061",
             "seasonCode": "SEASON_2026_1",
-            "filter_period": []
+            "filter_period": [],
+            "stands": [
+              "PROM"
+            ]
           },
           {
-            "TOURNAMENT_CODE": "3071",
+            "TOURNAMENT_CODE": "t_01_2026-1_14-1_1_3071",
             "PERIOD_TYPE": "турнир июля",
             "START_DT": "2026-07-01",
             "END_DT": "2026-07-31",
@@ -325,11 +384,15 @@
             "CONTEST_CODE": "01_2026-1_14-1_1",
             "CALC_TYPE": "1",
             "TRN_INDICATOR_FILTER": "",
+            "TOURNAMENT_CODE_ENDING": "3071",
             "seasonCode": "SEASON_2026_1",
-            "filter_period": []
+            "filter_period": [],
+            "stands": [
+              "PROM"
+            ]
           },
           {
-            "TOURNAMENT_CODE": "3081",
+            "TOURNAMENT_CODE": "t_01_2026-1_14-1_1_3081",
             "PERIOD_TYPE": "турнир августа",
             "START_DT": "2026-08-01",
             "END_DT": "2026-08-31",
@@ -342,11 +405,18 @@
             "CONTEST_CODE": "01_2026-1_14-1_1",
             "CALC_TYPE": "1",
             "TRN_INDICATOR_FILTER": "",
+            "TOURNAMENT_CODE_ENDING": "3081",
             "seasonCode": "SEASON_2026_1",
-            "filter_period": []
+            "filter_period": [],
+            "stands": [
+              "PROM"
+            ]
           }
         ]
-      }
+      },
+      "stands": [
+        "PROM"
+      ]
     },
     {
       "id": "ex_01_2025_0_13_1_1",
@@ -375,7 +445,10 @@
           "SOURCE_UPD_FREQUENCY": "7",
           "CALC_TYPE": "0",
           "BUSINESS_BLOCK": "KMKKSB",
-          "FACT_POST_PROCESSING": ""
+          "FACT_POST_PROCESSING": "",
+          "stands": [
+            "PROM"
+          ]
         },
         "feature": {
           "feature": "",
@@ -403,12 +476,13 @@
         "badges": [
           {
             "flat": {
-              "REWARD_CODE": "",
+              "REWARD_CODE": "r_01_2025-0_13-1_1",
               "REWARD_TYPE": "BADGE",
               "FULL_NAME": "1 клиент с процентными ПФИ",
               "REWARD_DESCRIPTION": "Награда для опытных менеджеров, выстраивающих стратегические партнерские отношения с клиентом, управляя процентным риском. Бейдж вручается за 1 клиента, заключившего сделку процентного хеджирования кредитов в 2025 году.",
               "REWARD_CONDITION": "1",
-              "REWARD_COST": "5"
+              "REWARD_COST": "5",
+              "REWARD_CODE_ENDING": ""
             },
             "add": {
               "feature": "Бейдж можно получить только один раз за год",
@@ -427,15 +501,22 @@
               "recommendationLevel": "GOSB",
               "priority": "1",
               "masterBadge": "Y",
-              "parentRewardCode": ""
-            }
+              "parentRewardCode": "r_01_2025-0_13-1_1"
+            },
+            "stands": [
+              "PROM"
+            ]
           }
         ],
         "reward_link": [
           {
             "CONTEST_CODE": "01_2025-0_13-1_1",
             "GROUP_CODE": "BANK",
-            "REWARD_CODE": ""
+            "REWARD_CODE": "r_01_2025-0_13-1_1",
+            "REWARD_CODE_ENDING": "",
+            "stands": [
+              "PROM"
+            ]
           }
         ],
         "group": [
@@ -447,7 +528,10 @@
             "GET_CALC_CRITERION": "",
             "ADD_CALC_CRITERION": "",
             "ADD_CALC_CRITERION_2": "",
-            "BASE_CALC_CODE": ""
+            "BASE_CALC_CODE": "",
+            "stands": [
+              "PROM"
+            ]
           }
         ],
         "indicator": [
@@ -508,12 +592,15 @@
                 "filtered_attribute_value": "",
                 "filtered_attribute_dt": ""
               }
+            ],
+            "stands": [
+              "PROM"
             ]
           }
         ],
         "schedule": [
           {
-            "TOURNAMENT_CODE": "1001",
+            "TOURNAMENT_CODE": "t_01_2025-0_13-1_1_1001",
             "PERIOD_TYPE": "турнир года",
             "START_DT": "2025-01-01",
             "END_DT": "2025-12-31",
@@ -526,11 +613,18 @@
             "CONTEST_CODE": "01_2025-0_13-1_1",
             "CALC_TYPE": "0",
             "TRN_INDICATOR_FILTER": "",
+            "TOURNAMENT_CODE_ENDING": "1001",
             "seasonCode": "",
-            "filter_period": []
+            "filter_period": [],
+            "stands": [
+              "PROM"
+            ]
           }
         ]
-      }
+      },
+      "stands": [
+        "PROM"
+      ]
     },
     {
       "id": "ex_01_2025_1_02_2_2",
@@ -559,7 +653,10 @@
           "SOURCE_UPD_FREQUENCY": "1",
           "CALC_TYPE": "0",
           "BUSINESS_BLOCK": "KMKKSB",
-          "FACT_POST_PROCESSING": ""
+          "FACT_POST_PROCESSING": "",
+          "stands": [
+            "PROM"
+          ]
         },
         "feature": {
           "feature": "Победители получают один максимальный по достоинству бейдж;Данные основаны на оперативных кубах MIS;Обновление информации происходит 1 раз в неделю",
@@ -598,12 +695,13 @@
         "badges": [
           {
             "flat": {
-              "REWARD_CODE": "1",
+              "REWARD_CODE": "r_01_2025-1_02-2_2_1",
               "REWARD_TYPE": "BADGE",
               "FULL_NAME": "Золото#по приросту остатка долгосрочных депозитов",
               "REWARD_DESCRIPTION": "Войди в ТОП-10 участников в турнире Пассивы. Прирост остатка долгосрочных депозитов на уровне всей страны",
               "REWARD_CONDITION": "1",
-              "REWARD_COST": "8"
+              "REWARD_COST": "8",
+              "REWARD_CODE_ENDING": "1"
             },
             "add": {
               "feature": "Факт получения бейджа попадает в ленту сообщества",
@@ -622,16 +720,20 @@
               "priority": "1",
               "masterBadge": "N",
               "parentRewardCode": "r_01_2025-1_00-1_1"
-            }
+            },
+            "stands": [
+              "PROM"
+            ]
           },
           {
             "flat": {
-              "REWARD_CODE": "2",
+              "REWARD_CODE": "r_01_2025-1_02-2_2_2",
               "REWARD_TYPE": "BADGE",
               "FULL_NAME": "Серебро#по приросту остатка долгосрочных депозитов",
               "REWARD_DESCRIPTION": "Войди в ТОП-5 участников в турнире Пассивы. Прирост остатка долгосрочных депозитов на уровне своего территориального банка",
               "REWARD_CONDITION": "1",
-              "REWARD_COST": "5"
+              "REWARD_COST": "5",
+              "REWARD_CODE_ENDING": "2"
             },
             "add": {
               "feature": "",
@@ -649,16 +751,20 @@
               "priority": "2",
               "masterBadge": "N",
               "parentRewardCode": "r_01_2025-1_00-1_2"
-            }
+            },
+            "stands": [
+              "PROM"
+            ]
           },
           {
             "flat": {
-              "REWARD_CODE": "3",
+              "REWARD_CODE": "r_01_2025-1_02-2_2_3",
               "REWARD_TYPE": "BADGE",
               "FULL_NAME": "Бронза#по приросту остатка долгосрочных депозитов",
               "REWARD_DESCRIPTION": "Победи в турнире Пассивы. Прирост остатка долгосрочных депозитов в рамках своего ГОСБ / Управления",
               "REWARD_CONDITION": "1",
-              "REWARD_COST": "2"
+              "REWARD_COST": "2",
+              "REWARD_CODE_ENDING": "3"
             },
             "add": {
               "feature": "",
@@ -676,24 +782,39 @@
               "priority": "3",
               "masterBadge": "N",
               "parentRewardCode": "r_01_2025-1_00-1_3"
-            }
+            },
+            "stands": [
+              "PROM"
+            ]
           }
         ],
         "reward_link": [
           {
             "CONTEST_CODE": "01_2025-1_02-2_2",
             "GROUP_CODE": "BANK",
-            "REWARD_CODE": "1"
+            "REWARD_CODE": "r_01_2025-1_02-2_2_1",
+            "REWARD_CODE_ENDING": "1",
+            "stands": [
+              "PROM"
+            ]
           },
           {
             "CONTEST_CODE": "01_2025-1_02-2_2",
             "GROUP_CODE": "BANK",
-            "REWARD_CODE": "2"
+            "REWARD_CODE": "r_01_2025-1_02-2_2_2",
+            "REWARD_CODE_ENDING": "2",
+            "stands": [
+              "PROM"
+            ]
           },
           {
             "CONTEST_CODE": "01_2025-1_02-2_2",
             "GROUP_CODE": "TB",
-            "REWARD_CODE": "3"
+            "REWARD_CODE": "r_01_2025-1_02-2_2_3",
+            "REWARD_CODE_ENDING": "3",
+            "stands": [
+              "PROM"
+            ]
           }
         ],
         "group": [
@@ -705,7 +826,10 @@
             "GET_CALC_CRITERION": "5",
             "ADD_CALC_CRITERION": "5",
             "ADD_CALC_CRITERION_2": "0",
-            "BASE_CALC_CODE": "BANK"
+            "BASE_CALC_CODE": "BANK",
+            "stands": [
+              "PROM"
+            ]
           },
           {
             "CONTEST_CODE": "01_2025-1_02-2_2",
@@ -715,7 +839,10 @@
             "GET_CALC_CRITERION": "0",
             "ADD_CALC_CRITERION": "0",
             "ADD_CALC_CRITERION_2": "5",
-            "BASE_CALC_CODE": "TB"
+            "BASE_CALC_CODE": "TB",
+            "stands": [
+              "PROM"
+            ]
           }
         ],
         "indicator": [
@@ -776,12 +903,15 @@
                 "filtered_attribute_value": "31",
                 "filtered_attribute_dt": ""
               }
+            ],
+            "stands": [
+              "PROM"
             ]
           }
         ],
         "schedule": [
           {
-            "TOURNAMENT_CODE": "3021",
+            "TOURNAMENT_CODE": "t_01_2025-1_02-2_2_3021",
             "PERIOD_TYPE": "турнир февраля",
             "START_DT": "2025-02-01",
             "END_DT": "2025-02-28",
@@ -794,6 +924,7 @@
             "CONTEST_CODE": "01_2025-1_02-2_2",
             "CALC_TYPE": "0",
             "TRN_INDICATOR_FILTER": "",
+            "TOURNAMENT_CODE_ENDING": "3021",
             "seasonCode": "SEASON_2025_1",
             "filter_period": [
               {
@@ -803,10 +934,13 @@
                 "criterion_mark_type": ">=",
                 "criterion_mark_value": "0"
               }
+            ],
+            "stands": [
+              "PROM"
             ]
           },
           {
-            "TOURNAMENT_CODE": "3031",
+            "TOURNAMENT_CODE": "t_01_2025-1_02-2_2_3031",
             "PERIOD_TYPE": "турнир марта",
             "START_DT": "2025-03-01",
             "END_DT": "2025-03-31",
@@ -819,6 +953,7 @@
             "CONTEST_CODE": "01_2025-1_02-2_2",
             "CALC_TYPE": "0",
             "TRN_INDICATOR_FILTER": "",
+            "TOURNAMENT_CODE_ENDING": "3031",
             "seasonCode": "SEASON_2025_1",
             "filter_period": [
               {
@@ -828,10 +963,16 @@
                 "criterion_mark_type": ">=",
                 "criterion_mark_value": "0"
               }
+            ],
+            "stands": [
+              "PROM"
             ]
           }
         ]
-      }
+      },
+      "stands": [
+        "PROM"
+      ]
     },
     {
       "id": "ex_01_2026_1_09_1_1",
@@ -860,7 +1001,10 @@
           "SOURCE_UPD_FREQUENCY": "7",
           "CALC_TYPE": "0",
           "BUSINESS_BLOCK": "KMKKSB",
-          "FACT_POST_PROCESSING": ""
+          "FACT_POST_PROCESSING": "",
+          "stands": [
+            "PROM"
+          ]
         },
         "feature": {
           "feature": "Победители получают один максимальный по достоинству бейдж;Данные основаны на оперативных кубах MIS;Награда по ГОСБ вручается, если число участников не менее 2х",
@@ -888,12 +1032,13 @@
         "badges": [
           {
             "flat": {
-              "REWARD_CODE": "1",
+              "REWARD_CODE": "r_01_2026-1_09-1_1_1",
               "REWARD_TYPE": "BADGE",
               "FULL_NAME": "Золото#по гарантиям",
               "REWARD_DESCRIPTION": "Войди в ТОП-5 участников в турнире Гарантии. Прирост комиссии на уровне всей страны",
               "REWARD_CONDITION": "1",
-              "REWARD_COST": "8"
+              "REWARD_COST": "8",
+              "REWARD_CODE_ENDING": "1"
             },
             "add": {
               "feature": "Факт получения бейджа попадает в ленту сообщества",
@@ -914,16 +1059,20 @@
               "priority": "1",
               "masterBadge": "N",
               "parentRewardCode": "r_01_2026-1_00-1_1"
-            }
+            },
+            "stands": [
+              "PROM"
+            ]
           },
           {
             "flat": {
-              "REWARD_CODE": "2",
+              "REWARD_CODE": "r_01_2026-1_09-1_1_2",
               "REWARD_TYPE": "BADGE",
               "FULL_NAME": "Серебро#по гарантиям",
               "REWARD_DESCRIPTION": "Войди в ТОП-15 участников в турнире Гарантии. Прирост комиссии на уровне всей страны",
               "REWARD_CONDITION": "1",
-              "REWARD_COST": "5"
+              "REWARD_COST": "5",
+              "REWARD_CODE_ENDING": "2"
             },
             "add": {
               "feature": "",
@@ -942,16 +1091,20 @@
               "priority": "2",
               "masterBadge": "N",
               "parentRewardCode": "r_01_2026-1_00-1_2"
-            }
+            },
+            "stands": [
+              "PROM"
+            ]
           },
           {
             "flat": {
-              "REWARD_CODE": "3",
+              "REWARD_CODE": "r_01_2026-1_09-1_1_3",
               "REWARD_TYPE": "BADGE",
               "FULL_NAME": "Бронза#по гарантиям",
               "REWARD_DESCRIPTION": "Стань одним из лучших в турнире Гарантии. Прирост комиссии на уровне своего подразделения",
               "REWARD_CONDITION": "1",
-              "REWARD_COST": "3"
+              "REWARD_COST": "3",
+              "REWARD_CODE_ENDING": "3"
             },
             "add": {
               "feature": "",
@@ -970,24 +1123,39 @@
               "priority": "3",
               "masterBadge": "N",
               "parentRewardCode": "r_01_2026-1_00-1_3"
-            }
+            },
+            "stands": [
+              "PROM"
+            ]
           }
         ],
         "reward_link": [
           {
             "CONTEST_CODE": "01_2026-1_09-1_1",
             "GROUP_CODE": "BANK",
-            "REWARD_CODE": "1"
+            "REWARD_CODE": "r_01_2026-1_09-1_1_1",
+            "REWARD_CODE_ENDING": "1",
+            "stands": [
+              "PROM"
+            ]
           },
           {
             "CONTEST_CODE": "01_2026-1_09-1_1",
             "GROUP_CODE": "BANK",
-            "REWARD_CODE": "2"
+            "REWARD_CODE": "r_01_2026-1_09-1_1_2",
+            "REWARD_CODE_ENDING": "2",
+            "stands": [
+              "PROM"
+            ]
           },
           {
             "CONTEST_CODE": "01_2026-1_09-1_1",
             "GROUP_CODE": "GOSB",
-            "REWARD_CODE": "3"
+            "REWARD_CODE": "r_01_2026-1_09-1_1_3",
+            "REWARD_CODE_ENDING": "3",
+            "stands": [
+              "PROM"
+            ]
           }
         ],
         "group": [
@@ -999,7 +1167,10 @@
             "GET_CALC_CRITERION": "5",
             "ADD_CALC_CRITERION": "10",
             "ADD_CALC_CRITERION_2": "0",
-            "BASE_CALC_CODE": "BANK"
+            "BASE_CALC_CODE": "BANK",
+            "stands": [
+              "PROM"
+            ]
           },
           {
             "CONTEST_CODE": "01_2026-1_09-1_1",
@@ -1009,7 +1180,10 @@
             "GET_CALC_CRITERION": "0",
             "ADD_CALC_CRITERION": "0",
             "ADD_CALC_CRITERION_2": "1",
-            "BASE_CALC_CODE": "GOSB"
+            "BASE_CALC_CODE": "GOSB",
+            "stands": [
+              "PROM"
+            ]
           }
         ],
         "indicator": [
@@ -1038,12 +1212,15 @@
                 "filtered_attribute_value": "",
                 "filtered_attribute_dt": ""
               }
+            ],
+            "stands": [
+              "PROM"
             ]
           }
         ],
         "schedule": [
           {
-            "TOURNAMENT_CODE": "3021",
+            "TOURNAMENT_CODE": "t_01_2026-1_09-1_1_3021",
             "PERIOD_TYPE": "турнир февраля",
             "START_DT": "2026-02-01",
             "END_DT": "2026-02-28",
@@ -1056,6 +1233,7 @@
             "CONTEST_CODE": "01_2026-1_09-1_1",
             "CALC_TYPE": "0",
             "TRN_INDICATOR_FILTER": "",
+            "TOURNAMENT_CODE_ENDING": "3021",
             "seasonCode": "SEASON_2026_1",
             "filter_period": [
               {
@@ -1065,10 +1243,13 @@
                 "criterion_mark_type": "",
                 "criterion_mark_value": ""
               }
+            ],
+            "stands": [
+              "PROM"
             ]
           },
           {
-            "TOURNAMENT_CODE": "3031",
+            "TOURNAMENT_CODE": "t_01_2026-1_09-1_1_3031",
             "PERIOD_TYPE": "турнир марта",
             "START_DT": "2026-03-01",
             "END_DT": "2026-03-31",
@@ -1081,6 +1262,7 @@
             "CONTEST_CODE": "01_2026-1_09-1_1",
             "CALC_TYPE": "0",
             "TRN_INDICATOR_FILTER": "",
+            "TOURNAMENT_CODE_ENDING": "3031",
             "seasonCode": "SEASON_2026_1",
             "filter_period": [
               {
@@ -1090,10 +1272,13 @@
                 "criterion_mark_type": "",
                 "criterion_mark_value": ""
               }
+            ],
+            "stands": [
+              "PROM"
             ]
           },
           {
-            "TOURNAMENT_CODE": "3041",
+            "TOURNAMENT_CODE": "t_01_2026-1_09-1_1_3041",
             "PERIOD_TYPE": "турнир апреля",
             "START_DT": "2026-04-01",
             "END_DT": "2026-04-30",
@@ -1106,6 +1291,7 @@
             "CONTEST_CODE": "01_2026-1_09-1_1",
             "CALC_TYPE": "0",
             "TRN_INDICATOR_FILTER": "",
+            "TOURNAMENT_CODE_ENDING": "3041",
             "seasonCode": "SEASON_2026_1",
             "filter_period": [
               {
@@ -1115,10 +1301,13 @@
                 "criterion_mark_type": "",
                 "criterion_mark_value": ""
               }
+            ],
+            "stands": [
+              "PROM"
             ]
           },
           {
-            "TOURNAMENT_CODE": "3051",
+            "TOURNAMENT_CODE": "t_01_2026-1_09-1_1_3051",
             "PERIOD_TYPE": "турнир мая",
             "START_DT": "2026-05-01",
             "END_DT": "2026-05-31",
@@ -1131,6 +1320,7 @@
             "CONTEST_CODE": "01_2026-1_09-1_1",
             "CALC_TYPE": "0",
             "TRN_INDICATOR_FILTER": "",
+            "TOURNAMENT_CODE_ENDING": "3051",
             "seasonCode": "SEASON_2026_1",
             "filter_period": [
               {
@@ -1140,10 +1330,13 @@
                 "criterion_mark_type": "",
                 "criterion_mark_value": ""
               }
+            ],
+            "stands": [
+              "PROM"
             ]
           },
           {
-            "TOURNAMENT_CODE": "3061",
+            "TOURNAMENT_CODE": "t_01_2026-1_09-1_1_3061",
             "PERIOD_TYPE": "турнир июня",
             "START_DT": "2026-06-01",
             "END_DT": "2026-06-30",
@@ -1156,6 +1349,7 @@
             "CONTEST_CODE": "01_2026-1_09-1_1",
             "CALC_TYPE": "0",
             "TRN_INDICATOR_FILTER": "",
+            "TOURNAMENT_CODE_ENDING": "3061",
             "seasonCode": "SEASON_2026_1",
             "filter_period": [
               {
@@ -1165,10 +1359,13 @@
                 "criterion_mark_type": "",
                 "criterion_mark_value": ""
               }
+            ],
+            "stands": [
+              "PROM"
             ]
           },
           {
-            "TOURNAMENT_CODE": "3071",
+            "TOURNAMENT_CODE": "t_01_2026-1_09-1_1_3071",
             "PERIOD_TYPE": "турнир июля",
             "START_DT": "2026-07-01",
             "END_DT": "2026-07-31",
@@ -1181,6 +1378,7 @@
             "CONTEST_CODE": "01_2026-1_09-1_1",
             "CALC_TYPE": "0",
             "TRN_INDICATOR_FILTER": "",
+            "TOURNAMENT_CODE_ENDING": "3071",
             "seasonCode": "SEASON_2026_1",
             "filter_period": [
               {
@@ -1190,10 +1388,13 @@
                 "criterion_mark_type": "",
                 "criterion_mark_value": ""
               }
+            ],
+            "stands": [
+              "PROM"
             ]
           },
           {
-            "TOURNAMENT_CODE": "3081",
+            "TOURNAMENT_CODE": "t_01_2026-1_09-1_1_3081",
             "PERIOD_TYPE": "турнир августа",
             "START_DT": "2026-08-01",
             "END_DT": "2026-08-31",
@@ -1206,6 +1407,7 @@
             "CONTEST_CODE": "01_2026-1_09-1_1",
             "CALC_TYPE": "0",
             "TRN_INDICATOR_FILTER": "",
+            "TOURNAMENT_CODE_ENDING": "3081",
             "seasonCode": "SEASON_2026_1",
             "filter_period": [
               {
@@ -1215,10 +1417,19 @@
                 "criterion_mark_type": "",
                 "criterion_mark_value": ""
               }
+            ],
+            "stands": [
+              "PROM"
             ]
           }
         ]
-      }
+      },
+      "stands": [
+        "PROM"
+      ]
     }
+  ],
+  "standsManifest": [
+    "PROM"
   ]
 }

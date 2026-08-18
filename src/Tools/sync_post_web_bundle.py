@@ -32,6 +32,8 @@ COMMON_DIRS = (
 DOCS_PATHS = (
     "PLAN_WEB_FILL.md",
     "TODO_WEB_FILL.md",
+    "PLAN_WEB_FILL_FULL.md",
+    "TODO_WEB_FILL_FULL.md",
     "CONTEST_BADGE_FORM_PARAM_REVIEW.md",
     "CONTEST_BADGE_FORM_FILLING.md",
     "JSON/README.md",
@@ -119,7 +121,7 @@ def write_compose_txt(bundle: Path, stats: dict[str, int]) -> None:
         "  common/web-fill, web-fill-full — заполнение SPOD (HTML + catalog)",
         "  common/param_catalog_review — каталог для blank/review",
         "  common/examples/web-fill — примеры JSON для импорта",
-        "  Docs/ — документация WEB (PLAN_WEB_FILL, TODO, param_review)",
+        "  Docs/ — документация WEB (PLAN_WEB_FILL, PLAN_WEB_FILL_FULL, TODO, param_review)",
         "  src/Tools/ — экспорт и синхронизация JSON/каталогов",
         "  src/Tests/ — тесты web-fill",
         "  config/CONFIG_RUN_INPUT.json — вход для export_web_fill_examples_from_spod.py",
