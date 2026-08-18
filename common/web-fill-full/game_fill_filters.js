@@ -648,8 +648,10 @@ function syncContestKindFilterButtons(){
   syncFilterBtn($("filter-archive"),contestListShowArchive);
   syncFilterBtn($("filter-env-prom"),contestListShowProm);
   syncFilterBtn($("filter-env-test"),contestListShowTest);
-  syncFilterBtn($("filter-stand-prom"),contestListStandFilter.has("PROM"));
-  syncFilterBtn($("filter-stand-psi"),contestListStandFilter.has("PSI"));
+  document.querySelectorAll("[data-stand]").forEach(btn=>{
+    const t=btn.getAttribute("data-stand")||"";
+    syncFilterBtn(btn, contestListStandFilter.has(t));
+  });
   document.querySelectorAll("[data-status]").forEach(btn=>{
     const st=btn.getAttribute("data-status")||"";
     syncFilterBtn(btn, contestListStatuses.has(st));
@@ -738,7 +740,8 @@ function enableFilterGroup(group){
       contestListShowTest=true;
       break;
     case "stand":
-      contestListStandFilter=new Set(["PROM","PSI"]);
+      contestListStandFilter=new Set(collectedFilterCodes("data-stand"));
+      if(!contestListStandFilter.size) contestListStandFilter=new Set(STAND_FILTER_CODES);
       break;
     case "bb":
       contestListBusinessBlocks=new Set(collectedFilterCodes("data-bb"));

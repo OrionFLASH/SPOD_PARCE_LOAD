@@ -10,6 +10,10 @@ var STANDS_UI = ["PROM", "PSI"];
 var DEFAULT_STAND = "PROM";
 var CSV_EXPORT_STAND_PROM = new Set(["PROM"]);
 var projectBlock = "PROM";
+/** Чипы фильтра стенда: наличие PROM/PSI и «только один» */
+var STAND_FILTER_PROM_ONLY = "PROM_ONLY";
+var STAND_FILTER_PSI_ONLY = "PSI_ONLY";
+var STAND_FILTER_CODES = ["PROM", "PSI", STAND_FILTER_PROM_ONLY, STAND_FILTER_PSI_ONLY];
 var contestListStandFilter = new Set(["PROM"]);
 var LS_PROJECT = "spod_web_fill_full_project_v2";
 var CATALOG_URL = "./catalog.json";
@@ -488,9 +492,19 @@ function tagNewEntityStands(entity){
   if(!Array.isArray(entity.stands)) entity.stands=[DEFAULT_STAND];
   return entity;
 }
+function standFilterSetMatchesTags(fs, tags){
+  if(!fs||!fs.size) return false;
+  const list=Array.isArray(tags)?tags:[];
+  const prom=list.includes("PROM");
+  const psi=list.includes("PSI");
+  if(fs.has("PROM")&&prom) return true;
+  if(fs.has("PSI")&&psi) return true;
+  if(fs.has(STAND_FILTER_PROM_ONLY)&&prom&&!psi) return true;
+  if(fs.has(STAND_FILTER_PSI_ONLY)&&psi&&!prom) return true;
+  return false;
+}
 function contestMatchesStandFilter(c){
-  if(!contestListStandFilter.size) return false;
-  return contestItemStands(c).some(t=>contestListStandFilter.has(t));
+  return standFilterSetMatchesTags(contestListStandFilter, contestItemStands(c));
 }
 function standFilterShowsAllRows(){
   return contestListStandFilter.has("PROM")&&contestListStandFilter.has("PSI");
@@ -499,7 +513,7 @@ function rowMatchesStandFilter(row, c, filterSet){
   const fs=filterSet||contestListStandFilter;
   if(!fs||!fs.size) return false;
   if(fs.has("PROM")&&fs.has("PSI")) return true;
-  return rowStands(row, c).some(t=>fs.has(t));
+  return standFilterSetMatchesTags(fs, rowStands(row, c));
 }
 function filterRowIndices(rows, c){
   if(!Array.isArray(rows)) return [];

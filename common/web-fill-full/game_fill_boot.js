@@ -56,15 +56,14 @@ function wire(){
     contestListShowTest=!contestListShowTest;
     renderContestTabs();
   });
-  $("filter-stand-prom")?.addEventListener("click",()=>{
-    if(contestListStandFilter.has("PROM")) contestListStandFilter.delete("PROM");
-    else contestListStandFilter.add("PROM");
-    renderContestTabs();
-  });
-  $("filter-stand-psi")?.addEventListener("click",()=>{
-    if(contestListStandFilter.has("PSI")) contestListStandFilter.delete("PSI");
-    else contestListStandFilter.add("PSI");
-    renderContestTabs();
+  document.querySelectorAll("[data-stand]").forEach(btn=>{
+    btn.addEventListener("click",()=>{
+      const t=btn.getAttribute("data-stand")||"";
+      if(!t) return;
+      if(contestListStandFilter.has(t)) contestListStandFilter.delete(t);
+      else contestListStandFilter.add(t);
+      renderContestTabs();
+    });
   });
   document.querySelectorAll("[data-status]").forEach(btn=>{
     btn.addEventListener("click",()=>{

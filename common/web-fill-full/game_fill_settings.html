@@ -168,15 +168,21 @@
         </div>
         <div class="filter-block" data-filter-group="stand">
           <div class="filter-block__head">
-            <div class="filter-block__label" data-tip="Источник выгрузки SPOD: PROM / PSI. Не путать со «Средой» (vid / TARGET_TYPE)">Стенд</div>
+            <div class="filter-block__label" data-tip="Источник выгрузки SPOD. PROM / PSI — есть метка (в т.ч. оба сразу). Только PROM / только PSI — ровно один стенд, без пары. Не путать со «Средой»">Стенд</div>
           <div class="filter-block__acts" role="group" aria-label="Все чипы: стенд">
-              <button type="button" class="filter-block__act filter-block__act--on" data-filter-act="on" aria-label="Включить все" data-tip="Включить PROM и PSI"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></button>
-              <button type="button" class="filter-block__act filter-block__act--off" data-filter-act="off" aria-label="Сбросить" data-tip="Выключить PROM и PSI"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 12h8"/></svg></button>
+              <button type="button" class="filter-block__act filter-block__act--on" data-filter-act="on" aria-label="Включить все" data-tip="Включить PROM, PSI и «только PROM/PSI»"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></button>
+              <button type="button" class="filter-block__act filter-block__act--off" data-filter-act="off" aria-label="Сбросить" data-tip="Выключить все чипы стенда"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 12h8"/></svg></button>
             </div>
           </div>
-          <div class="contest-kind-filters" role="group" aria-label="Фильтр стенда PROM / PSI">
-            <button type="button" class="contest-kind-btn contest-kind-btn--stand-prom is-on" id="filter-stand-prom" aria-pressed="true" data-stand="PROM" data-tip="Конкурсы с меткой стенда PROM">PROM</button>
-            <button type="button" class="contest-kind-btn contest-kind-btn--stand-psi" id="filter-stand-psi" aria-pressed="false" data-stand="PSI" data-tip="Конкурсы с меткой стенда PSI">PSI</button>
+          <div class="stand-filter-rows" role="group" aria-label="Фильтр стенда PROM / PSI">
+            <div class="contest-kind-filters">
+              <button type="button" class="contest-kind-btn contest-kind-btn--stand-prom is-on" id="filter-stand-prom" aria-pressed="true" data-stand="PROM" data-tip="Есть метка PROM, в том числе вместе с PSI">PROM</button>
+              <button type="button" class="contest-kind-btn contest-kind-btn--stand-psi" id="filter-stand-psi" aria-pressed="false" data-stand="PSI" data-tip="Есть метка PSI, в том числе вместе с PROM">PSI</button>
+            </div>
+            <div class="contest-kind-filters">
+              <button type="button" class="contest-kind-btn contest-kind-btn--stand-prom-only" id="filter-stand-prom-only" aria-pressed="false" data-stand="PROM_ONLY" data-tip="Только PROM: метка PROM есть, PSI нет">Только PROM</button>
+              <button type="button" class="contest-kind-btn contest-kind-btn--stand-psi-only" id="filter-stand-psi-only" aria-pressed="false" data-stand="PSI_ONLY" data-tip="Только PSI: метка PSI есть, PROM нет">Только PSI</button>
+            </div>
           </div>
         </div>
         <div class="filter-block filter-block--bulk" role="group" aria-label="Пакетное включение фильтров">

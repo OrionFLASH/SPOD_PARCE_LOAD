@@ -68,10 +68,15 @@ body::after{width:380px;height:380px;right:-60px;bottom:10%;background:#ffd4a8}
 .stand-toggle--prom.is-on:hover{background:#0066d6;color:#fff}
 .stand-toggle--psi.is-on{background:#9333ea;border-color:#7e22ce;color:#fff;box-shadow:0 0 0 2px rgba(147,51,234,.35)}
 .stand-toggle--psi.is-on:hover{background:#7e22ce;color:#fff}
-.contest-kind-btn--stand-prom{color:#64748b}
-.contest-kind-btn--stand-psi{color:#64748b}
-.contest-kind-btn--stand-prom.is-on{background:#007aff;border-color:#0066d6;color:#fff;box-shadow:0 0 0 2px rgba(0,122,255,.28)}
-.contest-kind-btn--stand-psi.is-on{background:#9333ea;border-color:#7e22ce;color:#fff;box-shadow:0 0 0 2px rgba(147,51,234,.28)}
+.stand-filter-rows{display:flex;flex-direction:column;gap:6px}
+.contest-kind-btn--stand-prom,
+.contest-kind-btn--stand-psi,
+.contest-kind-btn--stand-prom-only,
+.contest-kind-btn--stand-psi-only{color:#64748b}
+.contest-kind-btn--stand-prom.is-on,
+.contest-kind-btn--stand-prom-only.is-on{background:#007aff;border-color:#0066d6;color:#fff;box-shadow:0 0 0 2px rgba(0,122,255,.28)}
+.contest-kind-btn--stand-psi.is-on,
+.contest-kind-btn--stand-psi-only.is-on{background:#9333ea;border-color:#7e22ce;color:#fff;box-shadow:0 0 0 2px rgba(147,51,234,.28)}
 .top-nav .nav-btn .stand-badges,.nav-pair-unit__stands{flex:0 0 auto;align-self:center;margin:0 2px}
 .nav-pair-unit__stands .stand-badges--inline{margin-left:0}
 .nav{display:flex;flex-direction:column;gap:6px}
@@ -394,7 +399,8 @@ table.grid th .empty-pill{margin-left:4px;vertical-align:middle}
 .filter-block__label[data-tip]{cursor:help;border-bottom:1px dotted rgba(90,101,120,.45);width:fit-content}
 .filter-block .contest-kind-filters,
 .filter-block .status-filters,
-.filter-block .rtype-rows{margin:0}
+.filter-block .rtype-rows,
+.filter-block .stand-filter-rows{margin:0}
 .filter-block .contest-search{margin:0 0 8px}
 .status-filters,.rtype-rows{display:flex;flex-direction:column;gap:6px}
 .status-filters__row,.rtype-row,.contest-kind-filters{display:flex;flex-wrap:wrap;gap:6px}
