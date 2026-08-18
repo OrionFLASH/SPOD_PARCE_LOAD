@@ -1,0 +1,262 @@
+{
+  "version": 2,
+  "block": "PROM",
+  "saved_at": "2026-08-16T13:09:24.864Z",
+  "catalog_stamp": "2026-08-16T12:40:08.255Z",
+  "activeContest": 0,
+  "contests": [
+    {
+      "id": "c1786884658635",
+      "name": "01_2025-0_11-1_1 · Проверочное наименование",
+      "data": {
+        "contest": {
+          "CONTEST_CODE": "01_2025-0_11-1_1",
+          "FULL_NAME": "Проверочное наименование",
+          "CREATE_DT": "2026-01-01",
+          "CLOSE_DT": "4000-01-01",
+          "BUSINESS_STATUS": "АКТИВНЫЙ",
+          "CONTEST_TYPE": "ТУРНИРНЫЙ",
+          "CONTEST_DESCRIPTION": "Описание для конкурса",
+          "SHOW_INDICATOR": "млн руб.",
+          "PRODUCT_GROUP": "Активы",
+          "PRODUCT": "Средние остатки",
+          "CONTEST_SUBJECT": "EMPLOYEE",
+          "FACTOR_MARK_TYPE": "RATING_MAX",
+          "CONTEST_INDICATOR_METHOD": "INTEGRAL",
+          "CONTEST_FACTOR_METHOD": "FACT",
+          "PLAN_METHOD_CODE": "PRESET_VALUE",
+          "PLAN_MOD_METOD": "MULTIPLIER",
+          "PLAN_MOD_VALUE": "0",
+          "FACTOR_MATCH": ">=",
+          "TARGET_TYPE": "ПРОМ",
+          "SOURCE_UPD_FREQUENCY": "7",
+          "CALC_TYPE": "1",
+          "FACT_POST_PROCESSING": "",
+          "BUSINESS_BLOCK": "KMMMB",
+          "CONTEST_PERIOD": "[]"
+        },
+        "feature": {
+          "vid": "ПРОМ",
+          "accuracy": "2",
+          "capacity": "MILLIONS",
+          "masking": "N",
+          "minNumber": "1",
+          "momentRewarding": "AFTER",
+          "typeRewarding": "one",
+          "avatarShow": "Y",
+          "tournamentTeam": "N",
+          "persomanNumberVisible": "00673892",
+          "persomanNumberHidden": "",
+          "tournamentStartMailing": "Y",
+          "tournamentEndMailing": "Y",
+          "tournamentLikeMailing": "Y",
+          "tournamentListMailing": "",
+          "tournamentRewardingMailing": "Y",
+          "feature": "Вручаем в конце турнира;Данные на MIS",
+          "businessBlock": "KMMMB",
+          "helpCodeList": "",
+          "preferences": "Поездка в Марию",
+          "tbVisible": "",
+          "tbHidden": "",
+          "gosbVisible": "",
+          "gosbHidden": ""
+        },
+        "badges": [
+          {
+            "flat": {
+              "REWARD_CODE": "r_01_2025-0_11-1_1_1",
+              "REWARD_TYPE": "BADGE",
+              "FULL_NAME": "Вручаем Золото",
+              "REWARD_DESCRIPTION": "Лучшая награда из всех",
+              "REWARD_CONDITION": "1",
+              "REWARD_COST": "5"
+            },
+            "add": {
+              "nftFlg": "N",
+              "outstanding": "Y",
+              "rewardRule": "Надо быть лучшим",
+              "rewardAgainGlobal": "N",
+              "rewardAgainTournament": "N",
+              "hidden": "N",
+              "fileName": "",
+              "teamNews": "",
+              "singleNews": "",
+              "masterBadge": "Y",
+              "parentRewardCode": "1_01_2025-00-1",
+              "priority": "1",
+              "recommendationLevel": "BANK",
+              "refreshOldNews": "N",
+              "tournamentTeam": "N",
+              "seasonItem": "SEASON_mmb_2026",
+              "newsType": "AIPROMPT",
+              "winCriterion": "Сделай лучше чем остальные",
+              "preferences": "",
+              "feature": "",
+              "businessBlock": "KMMMB",
+              "helpCodeList": "",
+              "hiddenRewardList": "N"
+            }
+          },
+          {
+            "flat": {
+              "REWARD_CODE": "",
+              "REWARD_TYPE": "BADGE",
+              "FULL_NAME": "",
+              "REWARD_DESCRIPTION": "",
+              "REWARD_CONDITION": "1",
+              "REWARD_COST": "5"
+            },
+            "add": {
+              "nftFlg": "N",
+              "outstanding": "N",
+              "rewardRule": "",
+              "rewardAgainGlobal": "N",
+              "rewardAgainTournament": "N",
+              "hidden": "N",
+              "fileName": "",
+              "teamNews": "",
+              "singleNews": "",
+              "masterBadge": "Y",
+              "parentRewardCode": "",
+              "priority": "1",
+              "recommendationLevel": "BANK",
+              "refreshOldNews": "N",
+              "tournamentTeam": "N",
+              "seasonItem": "SEASON_mmb_2026",
+              "newsType": "AIPROMPT",
+              "winCriterion": "",
+              "preferences": "",
+              "feature": "",
+              "businessBlock": "KMMMB",
+              "helpCodeList": "",
+              "hiddenRewardList": "N"
+            }
+          },
+          {
+            "flat": {
+              "REWARD_CODE": "",
+              "REWARD_TYPE": "BADGE",
+              "FULL_NAME": "",
+              "REWARD_DESCRIPTION": "",
+              "REWARD_CONDITION": "1",
+              "REWARD_COST": "5"
+            },
+            "add": {
+              "nftFlg": "N",
+              "outstanding": "N",
+              "rewardRule": "",
+              "rewardAgainGlobal": "N",
+              "rewardAgainTournament": "N",
+              "hidden": "N",
+              "fileName": "",
+              "teamNews": "",
+              "singleNews": "",
+              "masterBadge": "Y",
+              "parentRewardCode": "",
+              "priority": "1",
+              "recommendationLevel": "BANK",
+              "refreshOldNews": "N",
+              "tournamentTeam": "N",
+              "seasonItem": "SEASON_mmb_2026",
+              "newsType": "AIPROMPT",
+              "winCriterion": "",
+              "preferences": "",
+              "feature": "",
+              "businessBlock": "KMMMB",
+              "helpCodeList": "",
+              "hiddenRewardList": "N"
+            }
+          }
+        ],
+        "reward_link": [
+          {
+            "CONTEST_CODE": "01_2025-0_11-1_1",
+            "GROUP_CODE": "BANK",
+            "REWARD_CODE": "r_01_2025-0_11-1_1_1"
+          },
+          {
+            "CONTEST_CODE": "01_2025-0_11-1_1",
+            "GROUP_CODE": "BANK",
+            "REWARD_CODE": ""
+          },
+          {
+            "CONTEST_CODE": "01_2025-0_11-1_1",
+            "GROUP_CODE": "",
+            "REWARD_CODE": ""
+          }
+        ],
+        "group": [
+          {
+            "CONTEST_CODE": "01_2025-0_11-1_1",
+            "GROUP_CODE": "BANK",
+            "GROUP_VALUE": "*",
+            "GET_CALC_METHOD": "2",
+            "GET_CALC_CRITERION": "3",
+            "ADD_CALC_CRITERION": "0",
+            "ADD_CALC_CRITERION_2": "0",
+            "BASE_CALC_CODE": "BANK"
+          },
+          {
+            "CONTEST_CODE": "01_2025-0_11-1_1",
+            "GROUP_CODE": "TB",
+            "GROUP_VALUE": "*",
+            "GET_CALC_METHOD": "2",
+            "GET_CALC_CRITERION": "0",
+            "ADD_CALC_CRITERION": "1",
+            "ADD_CALC_CRITERION_2": "0",
+            "BASE_CALC_CODE": "BANK"
+          },
+          {
+            "CONTEST_CODE": "01_2025-0_11-1_1",
+            "GROUP_CODE": "GOSB",
+            "GROUP_VALUE": "*",
+            "GET_CALC_METHOD": "2",
+            "GET_CALC_CRITERION": "0",
+            "ADD_CALC_CRITERION": "0",
+            "ADD_CALC_CRITERION_2": "1",
+            "BASE_CALC_CODE": "GOSB"
+          }
+        ],
+        "indicator": [
+          {
+            "CONTEST_CODE": "01_2025-0_11-1_1",
+            "INDICATOR_CALC_TYPE": "1",
+            "INDICATOR_ADD_CALC_TYPE": "",
+            "FULL_NAME": "",
+            "INDICATOR_CODE": "WAIT",
+            "INDICATOR_AGG_FUNCTION": "SUM",
+            "INDICATOR_WEIGHT": "1",
+            "INDICATOR_OBJECT": "",
+            "INDICATOR_MARK_TYPE": "RATING",
+            "INDICATOR_MATCH": "MAX",
+            "INDICATOR_VALUE": "",
+            "CONTEST_CRITERION": "",
+            "INDICATOR_FILTER": "",
+            "CONTESTANT_SELECTION": "0",
+            "CALC_TYPE": "1",
+            "N": ""
+          }
+        ],
+        "schedule": [
+          {
+            "TOURNAMENT_CODE": "",
+            "PERIOD_TYPE": "произвольный",
+            "START_DT": "",
+            "END_DT": "",
+            "RESULT_DT": "",
+            "PLAN_PERIOD_START_DT": "",
+            "PLAN_PERIOD_END_DT": "",
+            "CRITERION_MARK_TYPE": ">=",
+            "CRITERION_MARK_VALUE": "",
+            "FILTER_PERIOD_ARR": "",
+            "TOURNAMENT_STATUS": "АКТИВНЫЙ",
+            "CONTEST_CODE": "01_2025-0_11-1_1",
+            "TARGET_TYPE": "SEASON_mmb_2026",
+            "CALC_TYPE": "1",
+            "TRN_INDICATOR_FILTER": ""
+          }
+        ]
+      }
+    }
+  ]
+}
