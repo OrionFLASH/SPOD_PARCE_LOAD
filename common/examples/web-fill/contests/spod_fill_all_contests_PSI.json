@@ -3,7 +3,7 @@
   "block": "PSI",
   "title": "Все конкурсы PSI SPOD (листы каталога fill из CONFIG_RUN_INPUT.json)",
   "source": "config/CONFIG_RUN_INPUT.json · PSI · листы каталога fill · contest=IN/PSI/SPOD/contest_data_IFT_2026-07-14.csv; reward=IN/PSI/SPOD/contest_reward_IFT_2026-07-09.csv; reward_link=IN/PSI/SPOD/contest_reward_link_IFT_2026-07-09.csv; group=IN/PSI/SPOD/contest_group_IFT_2026-07-09.csv; indicator=IN/PSI/SPOD/contest_indicator_V20_IFT_2026-07-09.csv; schedule=IN/PSI/SPOD/tournament_schedule_IFT_2026-07-09.csv",
-  "saved_at": "2026-08-18T17:43:52.405015Z",
+  "saved_at": "2026-08-18T21:38:00.974141Z",
   "catalog_stamp": "2026-08-17T13:42:19.465681Z",
   "activeContest": 0,
   "contests": [

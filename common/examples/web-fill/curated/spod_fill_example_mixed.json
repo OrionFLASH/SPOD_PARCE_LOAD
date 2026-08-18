@@ -3,7 +3,7 @@
   "block": "PROM",
   "title": "Смешанный пример: награды + турниры",
   "source": "config/CONFIG_RUN_INPUT.json · PROM · листы каталога fill · contest=IN/PROM/SPOD/CONTEST (PROM) 05-08 v0.csv; reward=IN/PROM/SPOD/REWARD (PROM) 05-08 v0.csv; reward_link=IN/PROM/SPOD/REWARD-LINK (PROM) 05-08 v1.csv; group=IN/PROM/SPOD/GROUP (PROM) 05-08 v1.csv; indicator=IN/PROM/SPOD/INDICATOR (PROM) 05-08 v0.csv; schedule=IN/PROM/SPOD/SCHEDULE (PROM) 05-08 v0.csv",
-  "saved_at": "2026-08-18T17:43:52.189764Z",
+  "saved_at": "2026-08-18T21:38:00.762579Z",
   "catalog_stamp": "2026-08-17T13:42:19.465681Z",
   "activeContest": 0,
   "contests": [
