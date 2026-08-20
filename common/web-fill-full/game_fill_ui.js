@@ -37,7 +37,9 @@ function renderContest(){
       if(f.key==="CONTEST_CODE") renderNav();
       refreshContestTabDirty();
     },
-    f=>"contest."+f.key
+    f=>"contest."+f.key,
+    null,
+    {storeOf:()=>data().contest, leafOf:f=>f.key}
   ));
   const periodHost=document.createElement("div");
   periodHost.id="contest-period-block";
@@ -74,7 +76,9 @@ function renderFeature(){
       if(leaf==="businessBlock") return;
       data().feature[leaf]=v;persistLocal();refreshContestTabDirty();
     },
-    f=>{const leaf=jsonStoreLeaf(f,"CONTEST_FEATURE","FEATURE");return "feature."+leaf}
+    f=>{const leaf=jsonStoreLeaf(f,"CONTEST_FEATURE","FEATURE");return "feature."+leaf},
+    null,
+    {storeOf:()=>data().feature, leafOf:f=>jsonStoreLeaf(f,"CONTEST_FEATURE","FEATURE")}
   ));
 }
 function renderContestPeriod(){
@@ -290,7 +294,8 @@ function renderLinkRewardPair(){
       persistLocal();refreshContestTabDirty();
     },
     f=>"reward_link."+i+"."+f.key,
-    ["CONTEST_CODE"]
+    ["CONTEST_CODE"],
+    {storeOf:()=>row, leafOf:f=>f.key}
   ));
 
   $("reward-groups").appendChild(renderGrouped(
@@ -317,7 +322,8 @@ function renderLinkRewardPair(){
       persistLocal();refreshContestTabDirty();
     },
     f=>"badges."+i+".flat."+f.key,
-    ["REWARD_CODE"]
+    ["REWARD_CODE"],
+    {storeOf:()=>badge.flat, leafOf:f=>f.key}
   ));
 }
 
@@ -361,7 +367,9 @@ function renderRewardAdd(){
       if(leaf==="businessBlock") return;
       badge.add[leaf]=v;persistLocal();refreshContestTabDirty();
     },
-    f=>{const leaf=jsonStoreLeaf(f,"REWARD_ADD_DATA","ADD");return "badges."+i+".add."+leaf}
+    f=>{const leaf=jsonStoreLeaf(f,"REWARD_ADD_DATA","ADD");return "badges."+i+".add."+leaf},
+    null,
+    {storeOf:()=>badge.add, leafOf:f=>jsonStoreLeaf(f,"REWARD_ADD_DATA","ADD")}
   ));
 }
 
@@ -458,7 +466,8 @@ function renderGroup(){
       ) renderNav();
     },
     f=>"group."+i+"."+f.key,
-    ["CONTEST_CODE"]
+    ["CONTEST_CODE"],
+    {storeOf:()=>row, leafOf:f=>f.key}
   ));
 }
 
@@ -538,7 +547,8 @@ function renderIndicator(){
       }
     },
     f=>"indicator."+i+"."+f.key,
-    ["CONTEST_CODE","INDICATOR_FILTER"]
+    ["CONTEST_CODE","INDICATOR_FILTER"],
+    {storeOf:()=>row, leafOf:f=>f.key}
   ));
   appendJsonArrayEditor($("indicator-groups"), "INDICATOR_FILTER", row.filter_items, {
     title:"INDICATOR_FILTER",
@@ -657,7 +667,8 @@ function renderSchedule(){
       }
     },
     f=>"schedule."+i+"."+f.key,
-    ["CONTEST_CODE","TARGET_TYPE","FILTER_PERIOD_ARR"]
+    ["CONTEST_CODE","TARGET_TYPE","FILTER_PERIOD_ARR"],
+    {storeOf:()=>row, leafOf:f=>f.key}
   ));
   const schExtra=$("schedule-groups");
   appendScheduleTargetTypeEditor(schExtra, row, {onChange:()=>{persistLocal();refreshContestTabDirty();renderNav()}});
@@ -1157,14 +1168,7 @@ function dumpsSpod(obj){
   }
   return'"""'+String(obj)+'"""';
 }
-/** Ячейка json_array: SPOD внутри + весь блок в одинарных кавычках (пустой [] — как в PROM, без обёртки). */
-function dumpsSpodJsonArrayCell(obj){
-  const inner=dumpsSpod(obj);
-  if(!inner||inner==="[]") return inner||"[]";
-  if(inner.startsWith("'")&&inner.endsWith("'")) return inner;
-  return"'"+inner+"'";
-}
-/** Скаляр для SPOD: number → число без кавычек; иначе строка. */
+/** Скаляр для SPOD: number → число без кавычек; list → всегда массив; иначе строка. */
 function coerceSpodPackValue(f, raw, empty){
   if(empty){
     if(f&&f.kind==="number") return 0;
@@ -1179,16 +1183,61 @@ function coerceSpodPackValue(f, raw, empty){
   }
   return String(raw??"");
 }
-function featureObject(d){
+/** Значение для depends_on: плоское поле таблицы или json_key в store. */
+function resolveDependValue(dep, ctx){
+  if(!dep||typeof dep!=="object") return "";
+  const jsonKey=String(dep.json_key||dep.json_path||"").trim();
+  const field=String(dep.field||"").trim();
+  const table=String(dep.table||dep.section||"").trim().toUpperCase();
+  const storeName=String(dep.store||"").trim().toLowerCase();
+  if(jsonKey){
+    if(storeName==="feature"&&ctx.feature) return ctx.feature[jsonKey];
+    if(storeName==="add"&&ctx.add) return ctx.add[jsonKey];
+    if(ctx.add&&Object.prototype.hasOwnProperty.call(ctx.add, jsonKey)) return ctx.add[jsonKey];
+    if(ctx.feature&&Object.prototype.hasOwnProperty.call(ctx.feature, jsonKey)) return ctx.feature[jsonKey];
+  }
+  if(!field) return "";
+  if(table==="REWARD"||field==="REWARD_TYPE"||field==="REWARD_CODE"){
+    const flat=(ctx.badge&&ctx.badge.flat)||ctx.rewardFlat||{};
+    return flat[field];
+  }
+  if(table==="CONTEST"||field.indexOf("CONTEST_")==0){
+    return (ctx.contest||{})[field];
+  }
+  if(table==="TABLE:REWARD-LINK"||table==="REWARD-LINK"){
+    return (ctx.link||{})[field];
+  }
+  if(ctx.add&&Object.prototype.hasOwnProperty.call(ctx.add, field)) return ctx.add[field];
+  if(ctx.feature&&Object.prototype.hasOwnProperty.call(ctx.feature, field)) return ctx.feature[field];
+  if(ctx.contest&&Object.prototype.hasOwnProperty.call(ctx.contest, field)) return ctx.contest[field];
+  return "";
+}
+/** Все условия depends_on (1–3) должны совпасть (AND). */
+function fieldDependsOk(f, ctx){
+  const deps=Array.isArray(f&&f.depends_on)?f.depends_on.filter(Boolean):[];
+  if(!deps.length) return true;
+  return deps.every(dep=>{
+    const got=resolveDependValue(dep, ctx);
+    const expect=dep.equals!=null?dep.equals:(dep.value!=null?dep.value:"");
+    return String(got??"").trim()===String(expect??"").trim();
+  });
+}
+function fieldOmitWhenEmpty(f){return !!(f&&f.omit_when_empty)}
+/** Упаковка JSON-листьев FEATURE/ADD с учётом omit / depends / list→array. */
+function packJsonLeaves(sectionId, store, prefix, ctx){
   const out={};
-  const fields=(catalog.sections.find(s=>s.id==="CONTEST_FEATURE")||{fields:[]}).fields;
+  const fields=(catalog.sections.find(s=>s.id===sectionId)||{fields:[]}).fields;
   for(const f of fields){
-    if(f.kind==="json")continue;
-    const storeLeaf=jsonStoreLeaf(f,"CONTEST_FEATURE","FEATURE");
-    const packLeaf=jsonPackLeaf(f,"CONTEST_FEATURE");
-    const raw=d.feature[storeLeaf];
-    const empty=isEmptyRaw(raw);
-    if(empty&&!fieldJsonRequired(f))continue;
+    if(f.kind==="json") continue;
+    if(!fieldDependsOk(f, ctx)) continue;
+    const storeLeaf=jsonStoreLeaf(f, sectionId, prefix);
+    const packLeaf=jsonPackLeaf(f, sectionId);
+    const hasKey=store&&Object.prototype.hasOwnProperty.call(store, storeLeaf);
+    const raw=hasKey?store[storeLeaf]:undefined;
+    const empty=isEmptyRaw(raw)||(Array.isArray(raw)&&!raw.length);
+    if(empty&&fieldOmitWhenEmpty(f)) continue;
+    if(empty&&!fieldJsonRequired(f)) continue;
+    // Обязательный ключ: пишем даже пустым (без автовыбора значения).
     if(packLeaf==="accuracy"||packLeaf==="minNumber"){
       const n=Number(raw);
       out[packLeaf]=Number.isFinite(n)?n:(empty?0:raw);
@@ -1196,24 +1245,52 @@ function featureObject(d){
   }
   return out;
 }
-function addObject(add){
-  const out={};
-  const fields=(catalog.sections.find(s=>s.id==="REWARD_ADD_DATA")||{fields:[]}).fields;
-  for(const f of fields){
-    if(f.kind==="json")continue;
-    const storeLeaf=jsonStoreLeaf(f,"REWARD_ADD_DATA","ADD");
-    const packLeaf=jsonPackLeaf(f,"REWARD_ADD_DATA");
-    const raw=add[storeLeaf];
-    const empty=isEmptyRaw(raw);
-    if(empty&&!fieldJsonRequired(f))continue;
-    out[packLeaf]=coerceSpodPackValue(f, raw, empty);
-  }
-  return out;
+function featureObject(d){
+  ensureJsonStructures(d);
+  return packJsonLeaves("CONTEST_FEATURE", d.feature, "FEATURE", {
+    contest:d.contest, feature:d.feature
+  });
+}
+function addObject(add, badge){
+  const flat=(badge&&badge.flat)||{};
+  return packJsonLeaves("REWARD_ADD_DATA", add||{}, "ADD", {
+    add:add||{}, badge:badge||{flat}, rewardFlat:flat, contest:data().contest
+  });
 }
 function contestPeriodPacked(d){
   ensureJsonStructures(d);
-  const arr=(d.contestPeriod||[]).map(packContestPeriodItem);
-  return arr.length?arr:[packContestPeriodItem(emptyContestPeriodItem())];
+  return (d.contestPeriod||[]).map(packContestPeriodItem);
+}
+/** Режим пустой JSON-колонки из каталога. */
+function jsonColumnEmptyMode(tableSectionId, columnKey){
+  const f=((catalog.sections.find(s=>s.id===tableSectionId)||{fields:[]}).fields||[]).find(x=>x.key===columnKey&&x.kind==="json");
+  const mode=f&&f.empty_json_mode?String(f.empty_json_mode):"empty";
+  if(mode==="brackets"||mode==="brackets_quoted") return mode;
+  return "empty";
+}
+function jsonColumnWrapQuotes(tableSectionId, columnKey){
+  const f=((catalog.sections.find(s=>s.id===tableSectionId)||{fields:[]}).fields||[]).find(x=>x.key===columnKey&&x.kind==="json");
+  if(f&&f.json_wrap_quotes===false) return false;
+  if(f&&f.json_wrap_quotes===true) return true;
+  // по умолчанию: оборачивать непустой массив в "
+  return true;
+}
+/** Ячейка json_array: по каталогу empty / [] / "…" (не одинарные кавычки). */
+function dumpsSpodJsonArrayCell(obj, tableSectionId, columnKey){
+  const empty=isSpodJsonEmpty(obj);
+  const mode=jsonColumnEmptyMode(tableSectionId, columnKey);
+  if(empty){
+    if(mode==="brackets"||mode==="brackets_quoted"){
+      return mode==="brackets_quoted"?'"[]"':"[]";
+    }
+    return "";
+  }
+  const inner=dumpsSpod(obj);
+  if(jsonColumnWrapQuotes(tableSectionId, columnKey)){
+    // Обёртка SPOD — двойные кавычки (не одинарные). CSV-экранирование — в toCsv.
+    return '"'+inner+'"';
+  }
+  return inner;
 }
 function contestRow(d){
   ensureJsonStructures(d);
@@ -1227,7 +1304,7 @@ function contestRow(d){
   const feat=featureObject(d);
   row.CONTEST_FEATURE=(isSpodJsonEmpty(feat)&&jsonColumnAllowEmpty("CONTEST","CONTEST_FEATURE"))?"":dumpsSpod(feat);
   const periods=contestPeriodPacked(d);
-  row.CONTEST_PERIOD=(isSpodJsonEmpty(periods)&&jsonColumnAllowEmpty("CONTEST","CONTEST_PERIOD"))?"":dumpsSpodJsonArrayCell(periods);
+  row.CONTEST_PERIOD=dumpsSpodJsonArrayCell(periods,"CONTEST","CONTEST_PERIOD");
   return row;
 }
 function scheduleRows(d){
@@ -1237,7 +1314,7 @@ function scheduleRows(d){
     SCH_COLS.forEach(c=>{
       if(c==="FILTER_PERIOD_ARR"){
         const packed=(r.filter_period||[]).map(packFilterPeriodItem);
-        out[c]=packed.length?dumpsSpodJsonArrayCell(packed):(jsonColumnAllowEmpty("TABLE:SCHEDULE","FILTER_PERIOD_ARR")?"":dumpsSpodJsonArrayCell([]));
+        out[c]=dumpsSpodJsonArrayCell(packed,"TABLE:SCHEDULE","FILTER_PERIOD_ARR");
       }else if(c==="TARGET_TYPE"){
         const sc=String(r.seasonCode||"").trim();
         if(sc) out[c]=dumpsSpod({seasonCode:sc});
@@ -1254,24 +1331,26 @@ function indicatorRows(d){
     IND_COLS.forEach(c=>{
       if(c==="INDICATOR_FILTER"){
         const packed=(r.filter_items||[]).map(packIndicatorFilterItem).filter(x=>String(x.filtered_attribute_code||"").trim());
-        out[c]=packed.length?dumpsSpodJsonArrayCell(packed):(jsonColumnAllowEmpty("TABLE:INDICATOR","INDICATOR_FILTER")?"":dumpsSpodJsonArrayCell([]));
+        out[c]=dumpsSpodJsonArrayCell(packed,"TABLE:INDICATOR","INDICATOR_FILTER");
       }else out[c]=String(r[c]??"");
     });
     return out;
   }).filter(r=>IND_COLS.some(c=>String(r[c]||"").trim()));
 }
-function rewardRows(d){return (d.badges||[]).map(b=>{const row={};for(const c of REWARD_CSV_COLS)row[c]="";for(const[k,v] of Object.entries((b&&b.flat)||{})){if(REWARD_CSV_COLS.includes(k))row[k]=String(v??"")}if(!row.REWARD_TYPE)row.REWARD_TYPE="BADGE";const addObj=addObject((b&&b.add)||{});row.REWARD_ADD_DATA=(isSpodJsonEmpty(addObj)&&jsonColumnAllowEmpty("REWARD","REWARD_ADD_DATA"))?"":dumpsSpod(addObj);return row})}
+function rewardRows(d){return (d.badges||[]).map(b=>{const row={};for(const c of REWARD_CSV_COLS)row[c]="";for(const[k,v] of Object.entries((b&&b.flat)||{})){if(REWARD_CSV_COLS.includes(k))row[k]=String(v??"")}if(!row.REWARD_TYPE)row.REWARD_TYPE="BADGE";const addObj=addObject((b&&b.add)||{}, b);row.REWARD_ADD_DATA=(isSpodJsonEmpty(addObj)&&jsonColumnAllowEmpty("REWARD","REWARD_ADD_DATA"))?"":dumpsSpod(addObj);return row})}
 function tableRows(rows,cols){return rows.filter(r=>cols.some(c=>String(r[c]||"").trim())).map(r=>{const out={};cols.forEach(c=>out[c]=String(r[c]??""));return out})}
 function csvEscape(val){
   const s=String(val??"");
   if(s==="") return "";
   // SPOD-JSON: ключи/строки уже в """…""" (как PROM). Не удваивать " → иначе """""" .
-  // Объекты пишем как есть; json_array — в '…'; ; внутри обычно нет.
+  // json_array: обёртка "…" или '…' / голый [] — без повторного CSV-экранирования кавычек.
   const isSpodJson=
     s.includes('"""')||
     s==="[]"||s==="{}"||
     (s.startsWith("'[")&&s.endsWith("]'"))||
     (s.startsWith("'{")&&s.endsWith("}'"))||
+    (s.startsWith('"[')&&s.endsWith(']"'))||
+    (s.startsWith('"{')&&s.endsWith('}"'))||
     ((s.startsWith("{")||s.startsWith("["))&&(s.includes('"""')||s==="[]"||s==="{}"));
   if(isSpodJson){
     if(/[;\n\r]/.test(s)){

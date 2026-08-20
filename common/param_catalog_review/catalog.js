@@ -1,8 +1,66 @@
 /* зеркало catalog.json */
 window.PARAM_REVIEW_CATALOG = {
-  "version": 2,
-  "generated_at": "2026-08-16T17:32:07Z",
-  "source": "schema + field_meta + web-edit (BUSINESS_BLOCK list KMMMB) + JSON arrays CONTEST_PERIOD / FILTER_PERIOD_ARR / INDICATOR_FILTER / SCHEDULE TARGET_TYPE + json_required + table JSON column shells",
+  "version": 3,
+  "generated_at": "2026-08-16T21:23:11.008Z",
+  "exported_at": "2026-08-17T13:42:19.467663Z",
+  "source": "web-edit-full: baseline 2026-08-16T20:04:09.041Z + полный скан IN/PROM/SPOD (27 csv)",
+  "scan_files": [
+    "CONTEST (PROM) 01-07 v0.csv",
+    "CONTEST (PROM) 03-07 v0.csv",
+    "CONTEST (PROM) 05-08 v0.csv",
+    "CONTEST (PROM) 16-07 v0.csv",
+    "CONTEST (PROM) 31-07 v0.csv",
+    "REWARD (PROM) 01-07 v0.csv",
+    "REWARD (PROM) 03-07 v0.csv",
+    "REWARD (PROM) 05-08 v0.csv",
+    "REWARD (PROM) 28-07 v0.csv",
+    "REWARD-LINK (PROM) 03-07 v0.csv",
+    "REWARD-LINK (PROM) 05-08 v1.csv",
+    "REWARD-LINK (PROM) 28-07 v0.csv",
+    "REWARD-LINK (PROM) 30-06 v0.csv",
+    "GROUP (PROM) 03-07 v0.csv",
+    "GROUP (PROM) 05-08 v1.csv",
+    "GROUP (PROM) 28-07 v0.csv",
+    "GROUP (PROM) 30-06 v0.csv",
+    "INDICATOR (PROM) 03-07 v0.csv",
+    "INDICATOR (PROM) 05-08 v0.csv",
+    "INDICATOR (PROM) 28-07 v0.csv",
+    "INDICATOR (PROM) 29-06 v1.csv",
+    "SCHEDULE (PROM) 01-07 v0.csv",
+    "SCHEDULE (PROM) 03-07 v0.csv",
+    "SCHEDULE (PROM) 05-08 v0.csv",
+    "SCHEDULE (PROM) 09-07 v0.csv",
+    "SCHEDULE (PROM) 16-07 v1.csv",
+    "SCHEDULE (PROM) 31-07 v0.csv"
+  ],
+  "added_fields": [
+    "REWARD_ADD_DATA.bookingRequired",
+    "REWARD_ADD_DATA.commingSoon",
+    "REWARD_ADD_DATA.deliveryRequired",
+    "REWARD_ADD_DATA.getCondition",
+    "REWARD_ADD_DATA.getCondition.employeeRating",
+    "REWARD_ADD_DATA.getCondition.employeeRating.minCrystalEarnedTotal",
+    "REWARD_ADD_DATA.getCondition.employeeRating.minRatingBANK",
+    "REWARD_ADD_DATA.getCondition.employeeRating.minRatingGOSB",
+    "REWARD_ADD_DATA.getCondition.employeeRating.minRatingTB",
+    "REWARD_ADD_DATA.getCondition.employeeRating.seasonCode",
+    "REWARD_ADD_DATA.getCondition.nonRewards",
+    "REWARD_ADD_DATA.getCondition.rewards",
+    "REWARD_ADD_DATA.ignoreConditions",
+    "REWARD_ADD_DATA.isGrouping",
+    "REWARD_ADD_DATA.isGroupingName",
+    "REWARD_ADD_DATA.isGroupingTitle",
+    "REWARD_ADD_DATA.isGroupingTultip",
+    "REWARD_ADD_DATA.itemAmount",
+    "REWARD_ADD_DATA.itemFeature",
+    "REWARD_ADD_DATA.itemGroupAmount",
+    "REWARD_ADD_DATA.itemLimitCount",
+    "REWARD_ADD_DATA.itemLimitPeriod",
+    "REWARD_ADD_DATA.itemMinShow",
+    "REWARD_ADD_DATA.persomanNumberVisible",
+    "REWARD_ADD_DATA.tagColor",
+    "REWARD_ADD_DATA.tagEndDT"
+  ],
   "sections": [
     {
       "id": "CONTEST",
@@ -445,13 +503,15 @@ window.PARAM_REVIEW_CATALOG = {
           "kind": "json",
           "variants": [],
           "default": "",
-          "allow_empty": false,
+          "allow_empty": true,
           "marks": [
             "ПКАП",
             "ФАБРИКА"
           ],
           "json_target": "CONTEST_PERIOD",
-          "note": "Колонка CSV с SPOD-JSON. Редактируются подпись, описание, заметка и «можно пусто». Ключи — в дочернем разделе JSON."
+          "note": "Колонка CSV с SPOD-JSON. Редактируются подпись, описание, заметка и «можно пусто». Ключи — в дочернем разделе JSON.",
+          "empty_json_mode": "brackets",
+          "json_wrap_quotes": true
         },
         {
           "n": 21,
@@ -558,18 +618,18 @@ window.PARAM_REVIEW_CATALOG = {
           "description": "Бизнес-блок конкурса и его участников",
           "kind": "list",
           "variants": [
-            "KMMMB",
+            "MKKMMB",
             "KMKKSB",
             "AKMKKSB",
             "CSM"
           ],
           "variant_labels": [
-            "КМ ММБ",
+            "МКК ММБ",
             "КМ ККСБ",
             "АКМ ККСБ",
             "Руководитель по внедрению проектов"
           ],
-          "default": "KMMMB",
+          "default": "MKKMMB",
           "allow_empty": false,
           "marks": [
             "ПКАП",
@@ -671,7 +731,7 @@ window.PARAM_REVIEW_CATALOG = {
           "key": "CONTEST_FEATURE.masking",
           "status": "[v]",
           "label": "masking",
-          "description": "Всегда ставами в Нет (N)",
+          "description": "Всегда ставим в Нет (N)",
           "kind": "dropdown",
           "variants": [
             "Y",
@@ -947,7 +1007,7 @@ window.PARAM_REVIEW_CATALOG = {
           "key": "CONTEST_FEATURE.tournamentRewardingMailing",
           "status": "[v]",
           "label": "Письмо о награждении",
-          "description": "РАссылка письма получателям награды после ее вручения",
+          "description": "Рассылка письма получателям награды после ее вручения",
           "kind": "dropdown",
           "variants": [
             "Y",
@@ -993,18 +1053,18 @@ window.PARAM_REVIEW_CATALOG = {
           "description": "Бизнес блок конкурса и его участников",
           "kind": "list",
           "variants": [
-            "KMMMB",
+            "MKKMMB",
             "KMKKSB",
             "AKMKKSB",
             "CSM"
           ],
           "variant_labels": [
-            "КМ ММБ",
+            "МКК ММБ",
             "КМ ККСБ",
             "АКМ ККСБ",
             "Руководитель по внедрению проектов"
           ],
-          "default": "KMMMB",
+          "default": "MKKMMB",
           "allow_empty": false,
           "marks": [
             "ПКАП",
@@ -1239,13 +1299,13 @@ window.PARAM_REVIEW_CATALOG = {
           "key": "REWARD_TYPE",
           "status": "[v]",
           "label": "Тип награды",
-          "description": "Тип награды: BADGE (награда), LABEL (метка), ITEM (товар), CRYSTAL (кристалл).",
+          "description": "Для этой формы всегда BADGE.",
           "kind": "dropdown",
           "variants": [
             "BADGE",
             "LABEL",
             "ITEM",
-            "CRYSTAL"
+            "CRISTAL"
           ],
           "variant_labels": [
             "Награда",
@@ -1370,7 +1430,7 @@ window.PARAM_REVIEW_CATALOG = {
           "key": "REWARD_ADD_DATA.nftFlg",
           "status": "[v]",
           "label": "Признак NFT",
-          "description": "Ставить метку на награду / турнир?",
+          "description": "Ставить метку NFT на награду / турнир?",
           "kind": "dropdown",
           "variants": [
             "Y",
@@ -1517,7 +1577,7 @@ window.PARAM_REVIEW_CATALOG = {
           "kind": "text",
           "variants": [],
           "default": "",
-          "allow_empty": false,
+          "allow_empty": true,
           "marks": [
             "ПКАП",
             "ФАБРИКА"
@@ -1717,30 +1777,31 @@ window.PARAM_REVIEW_CATALOG = {
           "status": "[v]",
           "label": "Код сезона товара",
           "description": "Код сезона для сезонной награды и товара",
-          "kind": "dropdown",
+          "kind": "list",
           "variants": [
-            "SEASON_mmb_2026",
+            "SEASON_mkk_2026",
             "SEASON_2026_1",
             "SEASON_akm_2026",
             "SEASON_csm_2026",
             "SEASON_m_2026_1"
           ],
           "variant_labels": [
-            "Сезон 2026 (ММБ)",
+            "Сезон 2026 (МКК)",
             "Сезон 2026 (ККСБ)",
             "Сезон 2026 (АКМ)",
             "Сезон 2026  (CSM)",
             "Сезон 2026 (МНС)"
           ],
-          "default": "SEASON_mmb_2026",
-          "allow_empty": false,
+          "default": "SEASON_mkk_2026",
+          "allow_empty": true,
           "marks": [
             "ПКАП",
             "ФАБРИКА"
           ],
           "json_required": true,
           "json_target": "REWARD_ADD_DATA.seasonItem",
-          "note": ""
+          "note": "",
+          "omit_when_empty": true
         },
         {
           "n": 71,
@@ -1829,18 +1890,18 @@ window.PARAM_REVIEW_CATALOG = {
           "description": "Бизнес блок награды и участников кто может претендовать",
           "kind": "list",
           "variants": [
-            "KMMMB",
+            "MKKMMB",
             "KMKKSB",
             "AKMKKSB",
             "CSM"
           ],
           "variant_labels": [
-            "КМ ММБ",
+            "МКК ММБ",
             "КМ ККСБ",
             "АКМ ККСБ",
             "Руководитель по внедрению проектов"
           ],
-          "default": "KMMMB",
+          "default": "MKKMMB",
           "allow_empty": true,
           "marks": [
             "ПКАП",
@@ -1892,6 +1953,592 @@ window.PARAM_REVIEW_CATALOG = {
           "json_required": true,
           "json_target": "REWARD_ADD_DATA.hiddenRewardList",
           "note": "N."
+        },
+        {
+          "n": 141,
+          "key": "REWARD_ADD_DATA.bookingRequired",
+          "status": "[ ]",
+          "label": "Нужно бронирование",
+          "description": "Требуется бронь (Y/N).",
+          "kind": "dropdown",
+          "variants": [
+            "Y",
+            "N"
+          ],
+          "variant_labels": [
+            "Да",
+            "Нет"
+          ],
+          "default": "Y",
+          "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_required": false,
+          "json_target": "REWARD_ADD_DATA.bookingRequired",
+          "note": "auto: PROM SPOD scan"
+        },
+        {
+          "n": 142,
+          "key": "REWARD_ADD_DATA.commingSoon",
+          "status": "[ ]",
+          "label": "Скоро в наличии",
+          "description": "Метка «скоро» (Y/N). Опечатка comming в SPOD сохранена.",
+          "kind": "dropdown",
+          "variants": [
+            "Y",
+            "N"
+          ],
+          "variant_labels": [
+            "Да",
+            "Нет"
+          ],
+          "default": "N",
+          "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_required": false,
+          "json_target": "REWARD_ADD_DATA.commingSoon",
+          "note": "auto: PROM SPOD scan"
+        },
+        {
+          "n": 143,
+          "key": "REWARD_ADD_DATA.deliveryRequired",
+          "status": "[ ]",
+          "label": "Нужна доставка",
+          "description": "Требуется доставка (Y/N).",
+          "kind": "dropdown",
+          "variants": [
+            "Y",
+            "N"
+          ],
+          "variant_labels": [
+            "Да",
+            "Нет"
+          ],
+          "default": "Y",
+          "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_required": false,
+          "json_target": "REWARD_ADD_DATA.deliveryRequired",
+          "note": "auto: PROM SPOD scan"
+        },
+        {
+          "n": 144,
+          "key": "REWARD_ADD_DATA.getCondition",
+          "status": "[ ]",
+          "label": "Условия получения (объект)",
+          "description": "Вложенный объект условий получения награды/товара.",
+          "kind": "text",
+          "variants": [],
+          "default": "",
+          "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_required": false,
+          "json_target": "REWARD_ADD_DATA.getCondition",
+          "note": "auto: PROM SPOD scan"
+        },
+        {
+          "n": 145,
+          "key": "REWARD_ADD_DATA.getCondition.employeeRating",
+          "status": "[ ]",
+          "label": "Условие: рейтинг сотрудника",
+          "description": "Пороговые условия по рейтингу/кристаллам сезона.",
+          "kind": "text",
+          "variants": [],
+          "default": "",
+          "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_required": false,
+          "json_target": "REWARD_ADD_DATA.getCondition.employeeRating",
+          "note": "auto: PROM SPOD scan"
+        },
+        {
+          "n": 146,
+          "key": "REWARD_ADD_DATA.getCondition.employeeRating.minCrystalEarnedTotal",
+          "status": "[ ]",
+          "label": "Мин. кристаллов",
+          "description": "Минимум заработанных кристаллов за сезон.",
+          "kind": "number",
+          "variants": [
+            "3",
+            "10"
+          ],
+          "default": "3",
+          "allow_empty": true,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_required": false,
+          "json_target": "REWARD_ADD_DATA.getCondition.employeeRating.minCrystalEarnedTotal",
+          "note": "auto: PROM SPOD scan"
+        },
+        {
+          "n": 147,
+          "key": "REWARD_ADD_DATA.getCondition.employeeRating.minRatingBANK",
+          "status": "[ ]",
+          "label": "Мин. рейтинг BANK",
+          "description": "Минимальный рейтинг на уровне страны.",
+          "kind": "number",
+          "variants": [
+            "35",
+            "50",
+            "3",
+            "15",
+            "10",
+            "100",
+            "5",
+            "40",
+            "30",
+            "25",
+            "1"
+          ],
+          "default": "35",
+          "allow_empty": true,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_required": false,
+          "json_target": "REWARD_ADD_DATA.getCondition.employeeRating.minRatingBANK",
+          "note": "auto: PROM SPOD scan"
+        },
+        {
+          "n": 148,
+          "key": "REWARD_ADD_DATA.getCondition.employeeRating.minRatingGOSB",
+          "status": "[ ]",
+          "label": "Мин. рейтинг GOSB",
+          "description": "Минимальный рейтинг на уровне ГОСБ.",
+          "kind": "number",
+          "variants": [
+            "1",
+            "3"
+          ],
+          "default": "1",
+          "allow_empty": true,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_required": false,
+          "json_target": "REWARD_ADD_DATA.getCondition.employeeRating.minRatingGOSB",
+          "note": "auto: PROM SPOD scan"
+        },
+        {
+          "n": 149,
+          "key": "REWARD_ADD_DATA.getCondition.employeeRating.minRatingTB",
+          "status": "[ ]",
+          "label": "Мин. рейтинг TB",
+          "description": "Минимальный рейтинг на уровне ТБ.",
+          "kind": "number",
+          "variants": [
+            "3",
+            "5",
+            "1",
+            "2"
+          ],
+          "default": "3",
+          "allow_empty": true,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_required": false,
+          "json_target": "REWARD_ADD_DATA.getCondition.employeeRating.minRatingTB",
+          "note": "auto: PROM SPOD scan"
+        },
+        {
+          "n": 150,
+          "key": "REWARD_ADD_DATA.getCondition.employeeRating.seasonCode",
+          "status": "[ ]",
+          "label": "Сезон рейтинга",
+          "description": "Код сезона для проверки рейтинга.",
+          "kind": "dropdown_custom",
+          "variants": [
+            "SEASON_2024",
+            "SEASON_m_2025_2",
+            "SEASON_2025_1",
+            "SEASON_m_2025_1",
+            "SEASON_m_2024",
+            "SEASON_2025_2",
+            "SEASON_2026_1",
+            "SEASON_csm_2026"
+          ],
+          "default": "SEASON_2024",
+          "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_required": false,
+          "json_target": "REWARD_ADD_DATA.getCondition.employeeRating.seasonCode",
+          "note": "auto: PROM SPOD scan"
+        },
+        {
+          "n": 151,
+          "key": "REWARD_ADD_DATA.getCondition.nonRewards",
+          "status": "[ ]",
+          "label": "Условие: исключить награды",
+          "description": "Список кодов наград, при которых условие не выполняется.",
+          "kind": "list",
+          "variants": [],
+          "default": "",
+          "allow_empty": true,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_required": false,
+          "json_target": "REWARD_ADD_DATA.getCondition.nonRewards",
+          "note": "auto: PROM SPOD scan"
+        },
+        {
+          "n": 152,
+          "key": "REWARD_ADD_DATA.getCondition.rewards",
+          "status": "[ ]",
+          "label": "Условие: награды",
+          "description": "Список кодов наград-условий.",
+          "kind": "list",
+          "variants": [],
+          "default": "",
+          "allow_empty": true,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_required": false,
+          "json_target": "REWARD_ADD_DATA.getCondition.rewards",
+          "note": "auto: PROM SPOD scan"
+        },
+        {
+          "n": 153,
+          "key": "REWARD_ADD_DATA.ignoreConditions",
+          "status": "[ ]",
+          "label": "Игнор условий",
+          "description": "Список условий, которые не проверяются при выдаче.",
+          "kind": "list",
+          "variants": [],
+          "default": "",
+          "allow_empty": true,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_required": false,
+          "json_target": "REWARD_ADD_DATA.ignoreConditions",
+          "note": "auto: PROM SPOD scan"
+        },
+        {
+          "n": 154,
+          "key": "REWARD_ADD_DATA.isGrouping",
+          "status": "[ ]",
+          "label": "Группировка",
+          "description": "Признак группировки позиций (Y/N).",
+          "kind": "dropdown",
+          "variants": [
+            "Y",
+            "N"
+          ],
+          "variant_labels": [
+            "Да",
+            "Нет"
+          ],
+          "default": "N",
+          "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_required": false,
+          "json_target": "REWARD_ADD_DATA.isGrouping",
+          "note": "auto: PROM SPOD scan"
+        },
+        {
+          "n": 155,
+          "key": "REWARD_ADD_DATA.isGroupingName",
+          "status": "[ ]",
+          "label": "Имя группы",
+          "description": "Техническое/отображаемое имя группы.",
+          "kind": "text",
+          "variants": [
+            "очная стажировка",
+            "SberShop",
+            "гаджет",
+            "Онлайн с Меламедом СВ",
+            "Благодарственное письмо",
+            "Книга от Ситнова ВВ",
+            "Манжерок",
+            "встреча лидеров",
+            "Стажировка ДРКБ",
+            "обед",
+            "Стажировка Сберздоровье",
+            "Стажировка ДГР",
+            "Мрия",
+            "Гемба ДВБ",
+            "Благодарность",
+            "гемба ЦА",
+            "проектная деятельность"
+          ],
+          "default": "очная стажировка",
+          "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_required": false,
+          "json_target": "REWARD_ADD_DATA.isGroupingName",
+          "note": "auto: PROM SPOD scan"
+        },
+        {
+          "n": 156,
+          "key": "REWARD_ADD_DATA.isGroupingTitle",
+          "status": "[ ]",
+          "label": "Заголовок группы",
+          "description": "Заголовок группы в UI.",
+          "kind": "text",
+          "variants": [
+            "Месяц мероприятия"
+          ],
+          "default": "Месяц мероприятия",
+          "allow_empty": true,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_required": false,
+          "json_target": "REWARD_ADD_DATA.isGroupingTitle",
+          "note": "auto: PROM SPOD scan"
+        },
+        {
+          "n": 157,
+          "key": "REWARD_ADD_DATA.isGroupingTultip",
+          "status": "[ ]",
+          "label": "Подсказка группы",
+          "description": "Tooltip группы (опечатка Tultip в SPOD сохранена).",
+          "kind": "text",
+          "variants": [
+            "Выберите месяц"
+          ],
+          "default": "Выберите месяц",
+          "allow_empty": true,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_required": false,
+          "json_target": "REWARD_ADD_DATA.isGroupingTultip",
+          "note": "auto: PROM SPOD scan"
+        },
+        {
+          "n": 158,
+          "key": "REWARD_ADD_DATA.itemAmount",
+          "status": "[ ]",
+          "label": "Количество товара",
+          "description": "Лимит/количество экземпляров товара.",
+          "kind": "number",
+          "variants": [
+            "5",
+            "3",
+            "10",
+            "1",
+            "11",
+            "14",
+            "15",
+            "100",
+            "7",
+            "105",
+            "20",
+            "16",
+            "4",
+            "30",
+            "110",
+            "40",
+            "103",
+            "2"
+          ],
+          "default": "5",
+          "allow_empty": true,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_required": false,
+          "json_target": "REWARD_ADD_DATA.itemAmount",
+          "note": "auto: PROM SPOD scan"
+        },
+        {
+          "n": 159,
+          "key": "REWARD_ADD_DATA.itemFeature",
+          "status": "[ ]",
+          "label": "Особенности товара",
+          "description": "Тексты особенностей товара/награды для карточки (массив строк).",
+          "kind": "list",
+          "variants": [],
+          "default": "",
+          "allow_empty": true,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_required": false,
+          "json_target": "REWARD_ADD_DATA.itemFeature",
+          "note": "auto: PROM SPOD scan"
+        },
+        {
+          "n": 160,
+          "key": "REWARD_ADD_DATA.itemGroupAmount",
+          "status": "[ ]",
+          "label": "Количество в группе",
+          "description": "Лимит количества в группе товаров.",
+          "kind": "number",
+          "variants": [],
+          "default": "",
+          "allow_empty": true,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_required": false,
+          "json_target": "REWARD_ADD_DATA.itemGroupAmount",
+          "note": "auto: PROM SPOD scan"
+        },
+        {
+          "n": 161,
+          "key": "REWARD_ADD_DATA.itemLimitCount",
+          "status": "[ ]",
+          "label": "Лимит заказов",
+          "description": "Максимальное число заказов/получений.",
+          "kind": "number",
+          "variants": [
+            "1"
+          ],
+          "default": "1",
+          "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_required": false,
+          "json_target": "REWARD_ADD_DATA.itemLimitCount",
+          "note": "auto: PROM SPOD scan"
+        },
+        {
+          "n": 162,
+          "key": "REWARD_ADD_DATA.itemLimitPeriod",
+          "status": "[ ]",
+          "label": "Период лимита",
+          "description": "Период действия лимита заказов.",
+          "kind": "text",
+          "variants": [
+            "once"
+          ],
+          "default": "once",
+          "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_required": false,
+          "json_target": "REWARD_ADD_DATA.itemLimitPeriod",
+          "note": "auto: PROM SPOD scan"
+        },
+        {
+          "n": 163,
+          "key": "REWARD_ADD_DATA.itemMinShow",
+          "status": "[ ]",
+          "label": "Мин. показ остатка",
+          "description": "С какого остатка показывать количество.",
+          "kind": "number",
+          "variants": [
+            "1",
+            "4",
+            "2",
+            "3",
+            "5",
+            "10"
+          ],
+          "default": "1",
+          "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_required": false,
+          "json_target": "REWARD_ADD_DATA.itemMinShow",
+          "note": "auto: PROM SPOD scan"
+        },
+        {
+          "n": 164,
+          "key": "REWARD_ADD_DATA.persomanNumberVisible",
+          "status": "[ ]",
+          "label": "Видимость для сотрудников",
+          "description": "Табельные, которым видна награда/товар (массив).",
+          "kind": "list",
+          "variants": [],
+          "default": "",
+          "allow_empty": true,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_required": false,
+          "json_target": "REWARD_ADD_DATA.persomanNumberVisible",
+          "note": "auto: PROM SPOD scan"
+        },
+        {
+          "n": 165,
+          "key": "REWARD_ADD_DATA.tagColor",
+          "status": "[ ]",
+          "label": "Цвет тега",
+          "description": "Цвет метки/тега награды.",
+          "kind": "text",
+          "variants": [
+            "purple-80",
+            "orange-80",
+            "green-70",
+            "pink-80",
+            "light-blue-80"
+          ],
+          "default": "purple-80",
+          "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_required": false,
+          "json_target": "REWARD_ADD_DATA.tagColor",
+          "note": "auto: PROM SPOD scan"
+        },
+        {
+          "n": 166,
+          "key": "REWARD_ADD_DATA.tagEndDT",
+          "status": "[ ]",
+          "label": "Дата конца тега",
+          "description": "До какой даты показывать тег.",
+          "kind": "date",
+          "variants": [],
+          "default": "2024-12-31",
+          "allow_empty": false,
+          "marks": [
+            "ПКАП",
+            "ФАБРИКА"
+          ],
+          "json_required": false,
+          "json_target": "REWARD_ADD_DATA.tagEndDT",
+          "note": "auto: PROM SPOD scan"
         }
       ],
       "column": "REWARD_ADD_DATA"
@@ -2704,7 +3351,9 @@ window.PARAM_REVIEW_CATALOG = {
             "ФАБРИКА"
           ],
           "json_target": "INDICATOR_FILTER",
-          "note": "Колонка CSV с SPOD-JSON. «Можно пусто» — допустима ли пустая ячейка колонки целиком."
+          "note": "Колонка CSV с SPOD-JSON. «Можно пусто» — допустима ли пустая ячейка колонки целиком.",
+          "empty_json_mode": "brackets",
+          "json_wrap_quotes": true
         }
       ]
     },
@@ -3186,7 +3835,9 @@ window.PARAM_REVIEW_CATALOG = {
             "ФАБРИКА"
           ],
           "json_target": "FILTER_PERIOD_ARR",
-          "note": "Колонка CSV с SPOD-JSON. «Можно пусто» — допустима ли пустая ячейка колонки целиком."
+          "note": "Колонка CSV с SPOD-JSON. «Можно пусто» — допустима ли пустая ячейка колонки целиком.",
+          "empty_json_mode": "brackets",
+          "json_wrap_quotes": true
         }
       ]
     },
@@ -3208,7 +3859,7 @@ window.PARAM_REVIEW_CATALOG = {
           "description": "Сезон рейтинга / начисления кристаллов (seasonCode).",
           "kind": "dropdown_custom",
           "variants": [
-            "SEASON_mmb_2026",
+            "SEASON_mkk_2026",
             "SEASON_2026_1",
             "SEASON_akm_2026",
             "SEASON_csm_2026",
@@ -3216,14 +3867,14 @@ window.PARAM_REVIEW_CATALOG = {
             "NON"
           ],
           "variant_labels": [
-            "Сезон 2026 (ММБ)",
+            "Сезон 2026 (МКК)",
             "Сезон 2026 (ККСБ)",
             "Сезон 2026 (АКМ)",
             "Сезон 2026 (CSM)",
             "Сезон 2026 (МНС)",
             ""
           ],
-          "default": "SEASON_mmb_2026",
+          "default": "SEASON_mkk_2026",
           "allow_empty": true,
           "marks": [
             "ПКАП",
@@ -3351,7 +4002,6 @@ window.PARAM_REVIEW_CATALOG = {
       ]
     }
   ],
-  "exported_at": "2026-08-17T13:42:19.465681Z",
   "marksManifest": [
     "ПКАП",
     "ФАБРИКА"

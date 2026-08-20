@@ -204,14 +204,26 @@ function normalizeContestData(d){
 
 function contestTypeNavLabel(t){
   const u=String(t||"").trim().toUpperCase();
-  if(u==="ТУРНИРНЫЙ") return "Турнирный";
-  if(u==="ИНДИВИДУАЛЬНЫЙ") return "Индивидуальный";
-  if(u==="ИНДИВИДУАЛЬНЫЙ НАКОПИТЕЛЬНЫЙ") return "Индивидуальный накопительный";
+  if(u==="ТУРНИРНЫЙ") return "ТУРНИРНЫЙ";
+  if(u==="ИНДИВИДУАЛЬНЫЙ") return "ИНДИВИДУАЛЬНЫЙ";
+  if(u==="ИНДИВИДУАЛЬНЫЙ НАКОПИТЕЛЬНЫЙ") return "ИНДИВИДУАЛЬНЫЙ НАКОПИТЕЛЬНЫЙ";
   const raw=String(t||"").trim();
   return raw||"Карточка";
 }
+/** Подпись группы «Конкурс» в шапке: ТУРНИР / НАГРАДА. */
+function contestGroupMetaLabel(t){
+  const u=String(t||"").trim().toUpperCase();
+  if(u==="ТУРНИРНЫЙ") return "ТУРНИР";
+  if(u==="ИНДИВИДУАЛЬНЫЙ"||u==="ИНДИВИДУАЛЬНЫЙ НАКОПИТЕЛЬНЫЙ") return "НАГРАДА";
+  return "конкурс";
+}
 function contestCardSub(){
   return String((data().contest&&data().contest.FULL_NAME)||"").trim();
+}
+/** На кнопке карточки конкурса в шапке — CONTEST_CODE. */
+function contestNavButtonTitle(){
+  const code=String((data().contest&&data().contest.CONTEST_CODE)||"").trim();
+  return code||contestTypeNavLabel(data().contest&&data().contest.CONTEST_TYPE);
 }
 
 function emptyIndicatorRow(){
@@ -2284,25 +2296,29 @@ function mountDateUi(host, value, onChange, tip){
   fieldWrap.appendChild(text);fieldWrap.appendChild(calBtn);document.body.appendChild(pop);row.appendChild(fieldWrap);row.appendChild(presets);wrap.appendChild(row);host.appendChild(wrap);syncPreset();
 }
 
-function listFromCell(raw){return String(raw||"").split(";").map(x=>x.trim()).filter(x=>x!=="")}
+function listFromCell(raw){
+  return String(raw||"").split(/[;\n]+/).map(x=>x.trim()).filter(x=>x!=="");
+}
+function listToCell(items){
+  return (Array.isArray(items)?items:listFromCell(items)).join("\n");
+}
 function selectionRequired(f){const kind=f.kind||"text";return !f.allow_empty&&(kind==="dropdown"||kind==="dropdown_custom"||kind==="list")}
 
-/** Свободный массив через ; (list без заранее заданных variants). */
+/** Свободный массив: одна строка = один элемент (разделитель — перевод строки). */
 function mountListFreeform(host, f, value, onChange){
   const required=selectionRequired(f);
   const wrap=document.createElement("div");
   wrap.className="list-freeform";
-  wrap.setAttribute("data-tip",tipFor(f)+"\nМассив: элементы через ;");
+  wrap.setAttribute("data-tip",tipFor(f)+"\nМассив: каждый элемент с новой строки");
   const ta=document.createElement("textarea");
-  ta.value=value||"";
-  ta.placeholder="значения через ; …";
-  ta.rows=3;
-  ta.addEventListener("input",()=>onChange(ta.value));
+  ta.value=listToCell(value||"");
+  ta.placeholder="каждый элемент с новой строки…";
+  ta.rows=Math.max(3, listFromCell(value||"").length||3);
+  ta.addEventListener("input",()=>onChange(listToCell(ta.value)));
   ta.addEventListener("change",()=>{
-    let next=ta.value.trim();
-    if(required&&!next){toast("«можно не указывать» = нет — требуется указать значение");ta.value=value||"";return}
-    // нормализуем пробелы вокруг ;
-    next=listFromCell(next).join(";");
+    let items=listFromCell(ta.value);
+    if(required&&!items.length){toast("«можно не указывать» = нет — требуется указать значение");ta.value=listToCell(value||"");return}
+    const next=listToCell(items);
     ta.value=next;
     onChange(next);
   });
@@ -2317,21 +2333,16 @@ function mountChips(host, f, value, onChange, {multi}){
   const variants=f.variants||[];
   const required=selectionRequired(f);
   let curVal=value||"";
-  if(required&&variants.length){
-    if(multi){
-      if(!listFromCell(curVal).filter(x=>variants.includes(x)).length){
-        curVal=variants[0];
-        withSilentNormalize(()=>onChange(curVal));
-      }
-    }else if(!String(curVal).trim()||!variants.includes(String(curVal))){
-      curVal=variants[0];
-      withSilentNormalize(()=>onChange(curVal));
-    }
-  }
-  box.setAttribute("data-tip",tipFor(f)+(required?"\nТребуется указать: нельзя снять все варианты":"\nМожно не указывать: повторный клик снимает выбор"));
+  // Не подставляем значение за пользователя: только подсветка «нужно выбрать»
+  const needPick=required&&variants.length&&(
+    multi?!listFromCell(curVal).filter(x=>variants.includes(x)).length
+         :(!String(curVal).trim()||!variants.includes(String(curVal)))
+  );
+  if(needPick) box.classList.add("is-need-pick");
+  box.setAttribute("data-tip",tipFor(f)+(required?"\nТребуется указать: нельзя снять все варианты (выбор за вас не делается)":"\nМожно не указывать: повторный клик снимает выбор"));
   const extra=multi?document.createElement("input"):null;
-  if(extra){extra.type="text";extra.placeholder="дополнительно через ;";extra.value=curVal;extra.style.marginTop="6px";extra.addEventListener("change",()=>{
-    let next=extra.value;
+  if(extra){extra.type="text";extra.placeholder="дополнительно (строки или ;)";extra.value=listToCell(curVal);extra.style.marginTop="6px";extra.addEventListener("change",()=>{
+    let next=listToCell(extra.value);
     if(required){const parts=listFromCell(next);if(!parts.length){toast("«можно не указывать» = нет — требуется указать значение");extra.value=curVal;return}}
     curVal=next;onChange(curVal);paint()
   })}
@@ -2351,13 +2362,15 @@ function mountChips(host, f, value, onChange, {multi}){
             if(required&&cur.length<=1){toast("«можно не указывать» = нет — оставьте хотя бы один");return}
             cur=cur.filter(x=>x!==v);
           }else cur.push(v);
-          curVal=cur.join(";");if(extra)extra.value=curVal;onChange(curVal);paint();refreshContestTabDirty();
+          curVal=listToCell(cur);if(extra)extra.value=curVal;onChange(curVal);paint();refreshContestTabDirty();
+          box.classList.toggle("is-need-pick", required&&!listFromCell(curVal).length);
         }else{
           if(curVal===v){
             if(required){toast("«можно не указывать» = нет — требуется указать значение");return}
             curVal="";
           }else curVal=v;
           onChange(curVal);paint();afterFieldKey(f.key);
+          box.classList.toggle("is-need-pick", required&&!String(curVal||"").trim());
           // Полный render только когда меняется структура (тип → число наград)
           if(f.key==="CONTEST_TYPE") render();
           else refreshContestTabDirty();

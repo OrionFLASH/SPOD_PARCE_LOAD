@@ -53,7 +53,7 @@ var contestListShowTest=true;
 var FILTER_EMPTY="__EMPTY__";
 /** Бизнес-блок не из четырёх каталожных кодов */
 var FILTER_BB_OTHER="__OTHER__";
-var BUSINESS_BLOCK_NAMED=["KMMMB","KMKKSB","AKMKKSB","CSM"];
+var BUSINESS_BLOCK_NAMED=["MKKMMB","KMKKSB","AKMKKSB","CSM"];
 /** Статусы расписания, по умолчанию «живые» + пустое расписание */
 var contestListStatuses=new Set(["АКТИВНЫЙ","ПОДВЕДЕНИЕ ИТОГОВ","ЗАВЕРШЕН",FILTER_EMPTY]);
 /** Типы наград REWARD_TYPE (по умолчанию все из каталога) */
@@ -125,6 +125,23 @@ function jsonRequiredPillHtml(f){
   const on=fieldJsonRequired(f);
   if(on) return `<span class="empty-pill is-json-req" data-tip="Ключ обязателен в JSON: при экспорте всегда присутствует. Пустое значение — отдельно флаг «можно не указывать»">ключ обязателен</span>`;
   return `<span class="empty-pill is-json-opt" data-tip="Ключ может отсутствовать в JSON: при пустом значении ключ не пишется">ключ может отсутствовать</span>`;
+}
+/** Проблема обязательности: нет ключа / пустое обязательное. */
+function fieldRequirementIssue(f, storeObj, leaf, opts){
+  if(!f||(opts&&opts.locked)) return null;
+  const allow=fieldAllowEmpty(f,opts);
+  const requiredKey=fieldJsonRequired(f);
+  const hasStore=storeObj&&typeof storeObj==="object";
+  const hasKey=hasStore&&Object.prototype.hasOwnProperty.call(storeObj, leaf);
+  const raw=hasKey?storeObj[leaf]:undefined;
+  const empty=isEmptyRaw(raw)||(Array.isArray(raw)&&!raw.length);
+  if(!hasKey&&requiredKey) return {kind:"missing_key",text:"Нет ключа в данных — обязателен в JSON"};
+  if(empty&&!allow) return {kind:"empty_required",text:"Не заполнено (можно пусто = нет)"};
+  return null;
+}
+function requirementBadgeHtml(issue){
+  if(!issue) return "";
+  return `<span class="req-warn" data-tip="${esc(issue.text)}" aria-label="${esc(issue.text)}"><span class="req-warn__dot" aria-hidden="true"></span></span>`;
 }
 function tipFor(f, opts){
   const parts=[];
@@ -249,10 +266,10 @@ var GROUP_LAYOUT=[
     {key:"GROUP_VALUE",span:12}
   ]},
   {title:"2. Методы и пороги",hint:"Как считается группа и дополнительные критерии.",items:[
-    {key:"GET_CALC_METHOD",span:4},
+    {key:"GET_CALC_METHOD",span:12},
     {key:"GET_CALC_CRITERION",span:4},
     {key:"ADD_CALC_CRITERION",span:4},
-    {key:"ADD_CALC_CRITERION_2",span:12}
+    {key:"ADD_CALC_CRITERION_2",span:4}
   ]},
 ];
 
@@ -307,6 +324,8 @@ function renderGrouped(sectionId, layout, getValue, setValue, pathOf, omitKeys, 
   viewOpts=viewOpts||{};
   const forceLocked=!!viewOpts.locked;
   const forceHint=viewOpts.lockedHint||"";
+  const storeOf=typeof viewOpts.storeOf==="function"?viewOpts.storeOf:null;
+  const leafOf=typeof viewOpts.leafOf==="function"?viewOpts.leafOf:null;
   const map=fieldsByKey(sectionId);
   const omit=new Set(omitKeys||[]);
   const used=new Set(omit);
@@ -320,7 +339,9 @@ function renderGrouped(sectionId, layout, getValue, setValue, pathOf, omitKeys, 
       const base=map[it.key];if(!base)continue;used.add(it.key);
       const cardEl=renderFieldCard(base,getValue(base),pathOf(base),v=>setValue(base,v),{
         span:it.span||12,hero:!!it.hero,locked:forceLocked||!!it.locked,pickVariants:forceLocked?null:(it.pickVariants||null),lockedHint:it.lockedHint||forceHint||"",
-        emptyPickHint:it.emptyPickHint||"",pickAllowEmpty:!!it.pickAllowEmpty,compositeKind:forceLocked?"":(it.compositeKind||"")
+        emptyPickHint:it.emptyPickHint||"",pickAllowEmpty:!!it.pickAllowEmpty,compositeKind:forceLocked?"":(it.compositeKind||""),
+        storeObj:storeOf?storeOf(base):null,
+        storeLeaf:leafOf?leafOf(base):(base.key||"")
       });
       grid.appendChild(cardEl);
     }
@@ -331,7 +352,13 @@ function renderGrouped(sectionId, layout, getValue, setValue, pathOf, omitKeys, 
     const card=document.createElement("section");card.className="group-card";
     card.innerHTML=`<div class="group-card__head"><h3 class="group-card__title">Прочее</h3><p class="group-card__hint">Поля каталога вне основной раскладки.</p></div><div class="fields-grid"></div>`;
     const grid=card.querySelector(".fields-grid");
-    for(const k of rest){const f=map[k];grid.appendChild(renderFieldCard(f,getValue(f),pathOf(f),v=>setValue(f,v),{span:12,locked:forceLocked,lockedHint:forceHint||"Архив — только просмотр"}))}
+    for(const k of rest){
+      const f=map[k];
+      grid.appendChild(renderFieldCard(f,getValue(f),pathOf(f),v=>setValue(f,v),{
+        span:12,locked:forceLocked,lockedHint:forceHint||"Архив — только просмотр",
+        storeObj:storeOf?storeOf(f):null,storeLeaf:leafOf?leafOf(f):(f.key||"")
+      }));
+    }
     root.appendChild(card);
   }
   return root;
@@ -480,12 +507,51 @@ function ensureDataStands(data, contestStands){
     }
   }
 }
+function migrateCatalogRenamesInData(d){
+  if(!d||typeof d!=="object") return;
+  function renameBb(v){
+    if(v==null) return v;
+    if(Array.isArray(v)) return v.map(renameBb);
+    const s=String(v);
+    if(s==="KMMMB") return "MKKMMB";
+    if(s.includes("KMMMB")) return s.split(";").map(x=>x.trim()==="KMMMB"?"MKKMMB":x.trim()).filter(Boolean).join(";");
+    return v;
+  }
+  function renameSeason(v){
+    if(v==null) return v;
+    if(Array.isArray(v)) return v.map(renameSeason);
+    return String(v)==="SEASON_mmb_2026"?"SEASON_mkk_2026":v;
+  }
+  if(d.contest&&typeof d.contest==="object"){
+    if("BUSINESS_BLOCK" in d.contest) d.contest.BUSINESS_BLOCK=renameBb(d.contest.BUSINESS_BLOCK);
+  }
+  if(d.feature&&typeof d.feature==="object"){
+    if("businessBlock" in d.feature) d.feature.businessBlock=renameBb(d.feature.businessBlock);
+  }
+  if(Array.isArray(d.badges)){
+    for(const b of d.badges){
+      if(!b||typeof b!=="object") continue;
+      if(b.add&&typeof b.add==="object"){
+        if("businessBlock" in b.add) b.add.businessBlock=renameBb(b.add.businessBlock);
+        if("seasonItem" in b.add) b.add.seasonItem=renameSeason(b.add.seasonItem);
+      }
+    }
+  }
+  if(Array.isArray(d.schedule)){
+    for(const row of d.schedule){
+      if(row&&row.seasonCode!=null) row.seasonCode=renameSeason(row.seasonCode);
+    }
+  }
+}
 function migrateContestStands(c, projectMeta){
   if(!c||typeof c!=="object") return;
   const block=String((projectMeta&&projectMeta.block)||projectBlock||DEFAULT_STAND).toUpperCase();
   const fb=block==="PSI"?["PSI"]:[DEFAULT_STAND];
   c.stands=normalizeStandsList(c.stands, fb);
-  if(c.data) ensureDataStands(c.data, c.stands);
+  if(c.data){
+    ensureDataStands(c.data, c.stands);
+    migrateCatalogRenamesInData(c.data);
+  }
 }
 function tagNewEntityStands(entity){
   if(!entity||typeof entity!=="object") return entity;

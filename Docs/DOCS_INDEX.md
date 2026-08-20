@@ -32,11 +32,13 @@
 - `TODO_WEB_FILL_FULL.md` — чеклист к пункту 18. Пожелания: `common/ToDo FILL EDIT.txt`.
 - `PLAN_WEB_FILL_STANDS.md` — стенды PROM/PSI, merge, фильтр стенда. Пункт **19** (не перезаписывает 18).
 - `TODO_WEB_FILL_STANDS.md` — чеклист к пункту 19.
+- `PLAN_WEB_FILL_EDIT_WAVE20.md` — волна 20: тексты каталога, JSON-пусто, зависимости ключей (fill-full + edit-full).
+- `TODO_WEB_FILL_EDIT_WAVE20.md` — чеклист к пункту 20. Пожелания: `common/ToDo FILL EDIT.txt`.
 - Шаблон BLANK: **`common/templates/CONTEST_BADGE_FORM/CONTEST_BADGE_FORM_BLANK.xlsx`** (stub в `Docs/templates/…`).
 
 ## Консистентность
 
-- `CONSISTENCY_CHECKS_FORMAT.md` — типы правил, поля, id, лист CONSISTENCY.
+- `CONSISTENCY_CHECKS_FORMAT.md` — типы правил, поля, id, лист CONSISTENCY (п. 2.8: обёртка `"`, `array_value_keys`).
 - `CONSISTENCY_SAMPLE_FORMAT.md` — формат колонки `sample`.
 - `SPOD_CONSISTENCY_CHECKS_SQL_MIRROR.md` + `.sql` (+ `_PLAIN.sql`) — SQL-зеркало части правил (не из Python).
 

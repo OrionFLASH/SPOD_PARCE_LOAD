@@ -2,9 +2,9 @@
   "version": 5,
   "block": "PROM",
   "title": "Все конкурсы PROM SPOD (листы каталога fill из CONFIG_RUN_INPUT.json)",
-  "source": "config/CONFIG_RUN_INPUT.json · PROM · листы каталога fill · contest=IN/PROM/SPOD/CONTEST (PROM) 05-08 v0.csv; reward=IN/PROM/SPOD/REWARD (PROM) 05-08 v0.csv; reward_link=IN/PROM/SPOD/REWARD-LINK (PROM) 05-08 v1.csv; group=IN/PROM/SPOD/GROUP (PROM) 05-08 v1.csv; indicator=IN/PROM/SPOD/INDICATOR (PROM) 05-08 v0.csv; schedule=IN/PROM/SPOD/SCHEDULE (PROM) 05-08 v0.csv",
-  "saved_at": "2026-08-18T21:38:00.898211Z",
-  "catalog_stamp": "2026-08-17T13:42:19.465681Z",
+  "source": "config/CONFIG_RUN_INPUT.json · PROM · листы каталога fill · contest=IN/PROM/SPOD/CONTEST (PROM) 20-08 v0.csv; reward=IN/PROM/SPOD/REWARD (PROM) 21-08 v0.csv; reward_link=IN/PROM/SPOD/REWARD-LINK (PROM) 19-08 v0.csv; group=IN/PROM/SPOD/GROUP (PROM) 19-08 v0.csv; indicator=IN/PROM/SPOD/INDICATOR (PROM) 19-08 v0.csv; schedule=IN/PROM/SPOD/SCHEDULE (PROM) 20-08 v0.csv",
+  "saved_at": "2026-08-20T18:26:37.670994Z",
+  "catalog_stamp": "2026-08-17T13:42:19.467663Z",
   "activeContest": 0,
   "contests": [
     {
@@ -33860,7 +33860,7 @@
             "CRITERION_MARK_VALUE": "",
             "TOURNAMENT_STATUS": "АКТИВНЫЙ",
             "CONTEST_CODE": "01_2026-0_14-1_3",
-            "CALC_TYPE": "0",
+            "CALC_TYPE": "1",
             "TRN_INDICATOR_FILTER": "",
             "TOURNAMENT_CODE_ENDING": "1001",
             "seasonCode": "SEASON_2026_1",
@@ -37511,7 +37511,7 @@
             "PLAN_PERIOD_END_DT": "",
             "CRITERION_MARK_TYPE": "",
             "CRITERION_MARK_VALUE": "",
-            "TOURNAMENT_STATUS": "ПОДВЕДЕНИЕ ИТОГОВ",
+            "TOURNAMENT_STATUS": "ЗАВЕРШЕН",
             "CONTEST_CODE": "01_2026-1_08-2_6",
             "CALC_TYPE": "1",
             "TRN_INDICATOR_FILTER": "",
@@ -38478,6 +38478,27 @@
             "stands": [
               "PROM"
             ]
+          },
+          {
+            "TOURNAMENT_CODE": "t_01_2026-1_10-2_1_2031",
+            "PERIOD_TYPE": "турнир 3 квартала",
+            "START_DT": "2026-07-01",
+            "END_DT": "2026-09-30",
+            "RESULT_DT": "2026-10-20",
+            "PLAN_PERIOD_START_DT": "",
+            "PLAN_PERIOD_END_DT": "",
+            "CRITERION_MARK_TYPE": "",
+            "CRITERION_MARK_VALUE": "",
+            "TOURNAMENT_STATUS": "АКТИВНЫЙ",
+            "CONTEST_CODE": "01_2026-1_10-2_1",
+            "CALC_TYPE": "1",
+            "TRN_INDICATOR_FILTER": "",
+            "TOURNAMENT_CODE_ENDING": "2031",
+            "seasonCode": "SEASON_2026_1",
+            "filter_period": [],
+            "stands": [
+              "PROM"
+            ]
           }
         ]
       },
@@ -39363,7 +39384,7 @@
             "PLAN_PERIOD_END_DT": "",
             "CRITERION_MARK_TYPE": "",
             "CRITERION_MARK_VALUE": "",
-            "TOURNAMENT_STATUS": "ПОДВЕДЕНИЕ ИТОГОВ",
+            "TOURNAMENT_STATUS": "ЗАВЕРШЕН",
             "CONTEST_CODE": "01_2026-1_14-2_1",
             "CALC_TYPE": "1",
             "TRN_INDICATOR_FILTER": "",
@@ -39572,7 +39593,7 @@
             "PLAN_PERIOD_END_DT": "",
             "CRITERION_MARK_TYPE": "",
             "CRITERION_MARK_VALUE": "",
-            "TOURNAMENT_STATUS": "ПОДВЕДЕНИЕ ИТОГОВ",
+            "TOURNAMENT_STATUS": "ЗАВЕРШЕН",
             "CONTEST_CODE": "01_2026-1_14-2_2",
             "CALC_TYPE": "1",
             "TRN_INDICATOR_FILTER": "",
@@ -39781,7 +39802,7 @@
             "PLAN_PERIOD_END_DT": "",
             "CRITERION_MARK_TYPE": "",
             "CRITERION_MARK_VALUE": "",
-            "TOURNAMENT_STATUS": "ПОДВЕДЕНИЕ ИТОГОВ",
+            "TOURNAMENT_STATUS": "ЗАВЕРШЕН",
             "CONTEST_CODE": "01_2026-1_14-2_3",
             "CALC_TYPE": "1",
             "TRN_INDICATOR_FILTER": "",
@@ -62451,7 +62472,7 @@
           "CLOSE_DT": "4000-01-01",
           "BUSINESS_STATUS": "АКТИВНЫЙ",
           "CONTEST_TYPE": "ИНДИВИДУАЛЬНЫЙ НАКОПИТЕЛЬНЫЙ",
-          "CONTEST_DESCRIPTION": "Награду получают АКМ, которые закрыли не менее 85% поставленных задач  по переводу клиентов на агента и успешно отработали их в соответствии со своим диапазоном: до 20 задач",
+          "CONTEST_DESCRIPTION": "Награду получают АКМ, которые закрыли не менее 85% поставленных задач  по переводу клиентов на агента или автокотировку и успешно отработали их в соответствии со своим диапазоном: до 20 задач",
           "SHOW_INDICATOR": "%",
           "PRODUCT_GROUP": "Сервисные задачи",
           "PRODUCT": "Автокотировка",
@@ -62485,7 +62506,7 @@
           "tournamentLikeMailing": "Y",
           "tournamentRewardingMailing": "Y",
           "tournamentListMailing": "",
-          "persomanNumberVisible": "00673892;01340230;017366622",
+          "persomanNumberVisible": "",
           "persomanNumberHidden": "",
           "gosbVisible": "",
           "gosbHidden": "",
@@ -62501,13 +62522,13 @@
               "REWARD_CODE": "r_09_2026-0_23-3_1",
               "REWARD_TYPE": "BADGE",
               "FULL_NAME": "Автокотировка с агентом (до 20 задач)",
-              "REWARD_DESCRIPTION": "Награду получают АКМ, которые закрыли не менее 85% поставленных задач  по переводу клиентов на агента и успешно отработали их в соответствии со своим диапазоном: до 20 задач",
+              "REWARD_DESCRIPTION": "Награду получают АКМ, которые закрыли не менее 85% поставленных задач  по переводу клиентов на агента или автокотировку и успешно отработали их в соответствии со своим диапазоном: до 20 задач",
               "REWARD_CONDITION": "1",
               "REWARD_COST": "2",
               "REWARD_CODE_ENDING": ""
             },
             "add": {
-              "feature": "Учитываются успешно закрытые задачи с отражением в комментариях результата «Успех» -Клиент разместил денежные средства через агента;Награда выдается при общем числе успешно закрытых задач до 20;Учёт ведётся в рамках каждой волны выставления задач в течение года",
+              "feature": "Учитываются успешно закрытые задачи с отражением в комментариях результата «Успех» и фиксацией сделки с каналом «агент» или «автокотировка Сбербизнес» в отчете;Награда выдается при общем числе успешно закрытых задач до 20;Учёт ведётся в рамках каждой волны выставления задач в течение года",
               "nftFlg": "N",
               "outstanding": "N",
               "newsType": "AIPROMPT",
@@ -62585,9 +62606,9 @@
           {
             "TOURNAMENT_CODE": "t_09_2026-0_23-3_1_4001",
             "PERIOD_TYPE": "произвольный",
-            "START_DT": "2026-08-01",
-            "END_DT": "2026-08-31",
-            "RESULT_DT": "2026-09-20",
+            "START_DT": "2026-08-25",
+            "END_DT": "2026-09-25",
+            "RESULT_DT": "2026-10-10",
             "PLAN_PERIOD_START_DT": "",
             "PLAN_PERIOD_END_DT": "",
             "CRITERION_MARK_TYPE": "",
@@ -62620,7 +62641,7 @@
           "CLOSE_DT": "4000-01-01",
           "BUSINESS_STATUS": "АКТИВНЫЙ",
           "CONTEST_TYPE": "ИНДИВИДУАЛЬНЫЙ НАКОПИТЕЛЬНЫЙ",
-          "CONTEST_DESCRIPTION": "Награду получают АКМ, которые закрыли не менее 85% поставленных задач  по переводу клиентов на агента и успешно отработали их в соответствии со своим диапазоном: от 21 до 50 задач",
+          "CONTEST_DESCRIPTION": "Награду получают АКМ, которые закрыли не менее 85% поставленных задач  по переводу клиентов на агента или автокотировку и успешно отработали их в соответствии со своим диапазоном: от 21 до 50 задач",
           "SHOW_INDICATOR": "%",
           "PRODUCT_GROUP": "Сервисные задачи",
           "PRODUCT": "Автокотировка",
@@ -62654,7 +62675,7 @@
           "tournamentLikeMailing": "Y",
           "tournamentRewardingMailing": "Y",
           "tournamentListMailing": "",
-          "persomanNumberVisible": "00673892;01340230;017366622",
+          "persomanNumberVisible": "",
           "persomanNumberHidden": "",
           "gosbVisible": "",
           "gosbHidden": "",
@@ -62670,13 +62691,13 @@
               "REWARD_CODE": "r_09_2026-0_23-3_2",
               "REWARD_TYPE": "BADGE",
               "FULL_NAME": "Автокотировка с агентом (21-50 задач)",
-              "REWARD_DESCRIPTION": "Награду получают АКМ, которые закрыли не менее 85% поставленных задач  по переводу клиентов на агента и успешно отработали их в соответствии со своим диапазоном: от 21 до 50 задач",
+              "REWARD_DESCRIPTION": "Награду получают АКМ, которые закрыли не менее 85% поставленных задач  по переводу клиентов на агента или автокотировку и успешно отработали их в соответствии со своим диапазоном: от 21 до 50 задач",
               "REWARD_CONDITION": "1",
               "REWARD_COST": "5",
               "REWARD_CODE_ENDING": ""
             },
             "add": {
-              "feature": "Учитываются успешно закрытые задачи с отражением в комментариях результата «Успех» -Клиент разместил денежные средства через агента;Награда выдается при общем числе успешно закрытых задач от 21 до 50;Учёт ведётся в рамках каждой волны выставления задач в течение года;Факт получения бейджа попадает в ленту сообщества",
+              "feature": "Учитываются успешно закрытые задачи с отражением в комментариях результата «Успех» и фиксацией сделки с каналом «агент» или «автокотировка Сбербизнес» в отчете;Награда выдается при общем числе успешно закрытых задач от 21 до 50;Учёт ведётся в рамках каждой волны выставления задач в течение года;Факт получения бейджа попадает в ленту сообщества",
               "nftFlg": "N",
               "outstanding": "Y",
               "newsType": "AIPROMPT",
@@ -62754,9 +62775,9 @@
           {
             "TOURNAMENT_CODE": "t_09_2026-0_23-3_2_4001",
             "PERIOD_TYPE": "произвольный",
-            "START_DT": "2026-08-01",
-            "END_DT": "2026-08-31",
-            "RESULT_DT": "2026-09-20",
+            "START_DT": "2026-08-25",
+            "END_DT": "2026-09-25",
+            "RESULT_DT": "2026-10-10",
             "PLAN_PERIOD_START_DT": "",
             "PLAN_PERIOD_END_DT": "",
             "CRITERION_MARK_TYPE": "",
@@ -62789,7 +62810,7 @@
           "CLOSE_DT": "4000-01-01",
           "BUSINESS_STATUS": "АКТИВНЫЙ",
           "CONTEST_TYPE": "ИНДИВИДУАЛЬНЫЙ НАКОПИТЕЛЬНЫЙ",
-          "CONTEST_DESCRIPTION": "Награду получают АКМ, которые закрыли не менее 85% поставленных задач  по переводу клиентов на агента и успешно отработали их в соответствии со своим диапазоном: более 51 задачи",
+          "CONTEST_DESCRIPTION": "Награду получают АКМ, которые закрыли не менее 85% поставленных задач  по переводу клиентов на агента или автокотировку и успешно отработали их в соответствии со своим диапазоном: более 51 задачи",
           "SHOW_INDICATOR": "%",
           "PRODUCT_GROUP": "Сервисные задачи",
           "PRODUCT": "Автокотировка",
@@ -62823,7 +62844,7 @@
           "tournamentLikeMailing": "Y",
           "tournamentRewardingMailing": "Y",
           "tournamentListMailing": "",
-          "persomanNumberVisible": "00673892;01340230;017366622",
+          "persomanNumberVisible": "",
           "persomanNumberHidden": "",
           "gosbVisible": "",
           "gosbHidden": "",
@@ -62839,13 +62860,13 @@
               "REWARD_CODE": "r_09_2026-0_23-3_3",
               "REWARD_TYPE": "BADGE",
               "FULL_NAME": "Автокотировка с агентом (более 51 задачи)",
-              "REWARD_DESCRIPTION": "Награду получают АКМ, которые закрыли не менее 85% поставленных задач  по переводу клиентов на агента и успешно отработали их в соответствии со своим диапазоном: более 51 задачи",
+              "REWARD_DESCRIPTION": "Награду получают АКМ, которые закрыли не менее 85% поставленных задач  по переводу клиентов на агента или автокотировку и успешно отработали их в соответствии со своим диапазоном: более 51 задачи",
               "REWARD_CONDITION": "1",
               "REWARD_COST": "9",
               "REWARD_CODE_ENDING": ""
             },
             "add": {
-              "feature": "Учитываются успешно закрытые задачи с отражением в комментариях результата «Успех» -Клиент разместил денежные средства через агента;Награда выдается при общем числе успешно закрытых задач более 51;Учёт ведётся в рамках каждой волны выставления задач в течение года;Факт получения бейджа попадает в ленту сообщества",
+              "feature": "Учитываются успешно закрытые задачи с отражением в комментариях результата «Успех» и фиксацией сделки с каналом «агент» или «автокотировка Сбербизнес» в отчете;Награда выдается при общем числе успешно закрытых задач более 51;Учёт ведётся в рамках каждой волны выставления задач в течение года;Факт получения бейджа попадает в ленту сообщества",
               "nftFlg": "N",
               "outstanding": "Y",
               "newsType": "AIPROMPT",
@@ -62923,9 +62944,9 @@
           {
             "TOURNAMENT_CODE": "t_09_2026-0_23-3_3_4001",
             "PERIOD_TYPE": "произвольный",
-            "START_DT": "2026-08-01",
-            "END_DT": "2026-08-31",
-            "RESULT_DT": "2026-09-20",
+            "START_DT": "2026-08-25",
+            "END_DT": "2026-09-25",
+            "RESULT_DT": "2026-10-10",
             "PLAN_PERIOD_START_DT": "",
             "PLAN_PERIOD_END_DT": "",
             "CRITERION_MARK_TYPE": "",
@@ -84978,6 +84999,598 @@
             "TRN_INDICATOR_FILTER": "",
             "TOURNAMENT_CODE_ENDING": "",
             "seasonCode": "SEASON_s_2024",
+            "filter_period": [],
+            "stands": [
+              "PROM"
+            ]
+          }
+        ]
+      },
+      "stands": [
+        "PROM"
+      ]
+    },
+    {
+      "id": "ex_11_2026_0_23_1_1",
+      "name": "Чемпион по конверсии фокусных задач",
+      "data": {
+        "contest": {
+          "CONTEST_CODE": "11_2026-0_23-1_1",
+          "FULL_NAME": "Чемпион по конверсии фокусных задач",
+          "CREATE_DT": "2026-01-01",
+          "CLOSE_DT": "2026-12-31",
+          "BUSINESS_STATUS": "АКТИВНЫЙ",
+          "CONTEST_TYPE": "ТУРНИРНЫЙ",
+          "CONTEST_DESCRIPTION": "Покажи максимальную конверсию фокусных задач в заключенные сделки и стань лучшим! ТОР-3 МКК на уровне ГОСБ получат бронзовый бедж, ТОР-3 по ТБ - серебряный, а ТОР-5 по стране - золотой. Победители смогут выбрать понравившуюся преференцию из каталога. Удачи!",
+          "SHOW_INDICATOR": "%",
+          "PRODUCT_GROUP": "Модель работы",
+          "PRODUCT": "Фокусные ЦКП",
+          "CONTEST_SUBJECT": "EMPLOYEE",
+          "FACTOR_MARK_TYPE": "RATING_MAX",
+          "CONTEST_INDICATOR_METHOD": "INTEGRAL",
+          "CONTEST_FACTOR_METHOD": "FACT",
+          "PLAN_METHOD_CODE": "PRESET_VALUE",
+          "PLAN_MOD_METOD": "MULTIPLIER",
+          "PLAN_MOD_VALUE": "100",
+          "FACTOR_MATCH": ">=",
+          "TARGET_TYPE": "ПРОМ",
+          "SOURCE_UPD_FREQUENCY": "7",
+          "CALC_TYPE": "1",
+          "BUSINESS_BLOCK": "KMKKSB",
+          "FACT_POST_PROCESSING": "",
+          "stands": [
+            "PROM"
+          ]
+        },
+        "feature": {
+          "vid": "ПРОМ",
+          "accuracy": "1",
+          "capacity": "",
+          "masking": "N",
+          "minNumber": "1",
+          "momentRewarding": "AFTER",
+          "typeRewarding": "one",
+          "avatarShow": "Y",
+          "tournamentTeam": "N",
+          "persomanNumberVisible": "00673892;01660097;01683649;00031031;01526806;01340230;01610903",
+          "persomanNumberHidden": "",
+          "tournamentStartMailing": "Y",
+          "tournamentEndMailing": "Y",
+          "tournamentLikeMailing": "Y",
+          "tournamentListMailing": "",
+          "tournamentRewardingMailing": "Y",
+          "feature": "Победители получают один максимальный по достоинству бейдж;Данные основаны на ДБ «Созвездие» 1КИБ, при этом, суммарное количество задач на МКК – не менее 50 шт., а конвертация рассчитывается как среднее по 5 продуктам и должна быть не менее норматива – 9,4%;Победителем или призером может стать только МКК с Крез. за квартал ≥1;Если у нескольких МКК одинаковый уровень выполнения показателя, то приоритет в рейтинге отдается МКК с наибольшим количеством отработанных фокусных задач в шт.",
+          "businessBlock": "KMKKSB",
+          "helpCodeList": "",
+          "preferences": "",
+          "tbVisible": "",
+          "tbHidden": "",
+          "gosbVisible": "",
+          "gosbHidden": ""
+        },
+        "contestPeriod": [],
+        "badges": [
+          {
+            "flat": {
+              "REWARD_CODE": "r_11_2026-0_23-1_1_1",
+              "REWARD_TYPE": "BADGE",
+              "FULL_NAME": "Золото#по конверсии фокусных задач",
+              "REWARD_DESCRIPTION": "",
+              "REWARD_CONDITION": "1",
+              "REWARD_COST": "10",
+              "REWARD_CODE_ENDING": "1"
+            },
+            "add": {
+              "nftFlg": "N",
+              "outstanding": "Y",
+              "rewardRule": "",
+              "rewardAgainGlobal": "Y",
+              "rewardAgainTournament": "N",
+              "hidden": "N",
+              "fileName": "",
+              "teamNews": "",
+              "singleNews": "",
+              "masterBadge": "N",
+              "parentRewardCode": "r_01_2026-1_00-1_1",
+              "priority": "1",
+              "recommendationLevel": "BANK",
+              "refreshOldNews": "N",
+              "tournamentTeam": "N",
+              "newsType": "AIPROMPT",
+              "winCriterion": "Покажи максимальную конверсию фокусных задач в заключенные сделки и стань одним из ТОР-5 по стране.",
+              "preferences": "",
+              "feature": "",
+              "businessBlock": "KMKKSB",
+              "helpCodeList": "",
+              "hiddenRewardList": "N"
+            },
+            "stands": [
+              "PROM"
+            ]
+          },
+          {
+            "flat": {
+              "REWARD_CODE": "r_11_2026-0_23-1_1_2",
+              "REWARD_TYPE": "BADGE",
+              "FULL_NAME": "Серебро#по конверсии фокусных задач",
+              "REWARD_DESCRIPTION": "",
+              "REWARD_CONDITION": "1",
+              "REWARD_COST": "7",
+              "REWARD_CODE_ENDING": "2"
+            },
+            "add": {
+              "nftFlg": "N",
+              "outstanding": "N",
+              "rewardRule": "",
+              "rewardAgainGlobal": "Y",
+              "rewardAgainTournament": "N",
+              "hidden": "N",
+              "fileName": "",
+              "teamNews": "",
+              "singleNews": "",
+              "masterBadge": "N",
+              "parentRewardCode": "r_01_2026-1_00-1_2",
+              "priority": "2",
+              "recommendationLevel": "TB",
+              "refreshOldNews": "N",
+              "tournamentTeam": "N",
+              "newsType": "AIPROMPT",
+              "winCriterion": "",
+              "preferences": "",
+              "feature": "",
+              "businessBlock": "KMKKSB",
+              "helpCodeList": "",
+              "hiddenRewardList": "N"
+            },
+            "stands": [
+              "PROM"
+            ]
+          },
+          {
+            "flat": {
+              "REWARD_CODE": "r_11_2026-0_23-1_1_3",
+              "REWARD_TYPE": "BADGE",
+              "FULL_NAME": "Бронза#по конверсии фокусных задач",
+              "REWARD_DESCRIPTION": "",
+              "REWARD_CONDITION": "1",
+              "REWARD_COST": "5",
+              "REWARD_CODE_ENDING": "3"
+            },
+            "add": {
+              "nftFlg": "N",
+              "outstanding": "N",
+              "rewardRule": "",
+              "rewardAgainGlobal": "Y",
+              "rewardAgainTournament": "N",
+              "hidden": "N",
+              "fileName": "",
+              "teamNews": "",
+              "singleNews": "",
+              "masterBadge": "N",
+              "parentRewardCode": "r_01_2026-1_00-1_3",
+              "priority": "3",
+              "recommendationLevel": "GOSB",
+              "refreshOldNews": "N",
+              "tournamentTeam": "N",
+              "newsType": "AIPROMPT",
+              "winCriterion": "",
+              "preferences": "",
+              "feature": "",
+              "businessBlock": "KMKKSB",
+              "helpCodeList": "",
+              "hiddenRewardList": "N"
+            },
+            "stands": [
+              "PROM"
+            ]
+          }
+        ],
+        "reward_link": [
+          {
+            "CONTEST_CODE": "11_2026-0_23-1_1",
+            "GROUP_CODE": "BANK",
+            "REWARD_CODE": "r_11_2026-0_23-1_1_1",
+            "REWARD_CODE_ENDING": "1",
+            "stands": [
+              "PROM"
+            ]
+          },
+          {
+            "CONTEST_CODE": "11_2026-0_23-1_1",
+            "GROUP_CODE": "TB",
+            "REWARD_CODE": "r_11_2026-0_23-1_1_2",
+            "REWARD_CODE_ENDING": "2",
+            "stands": [
+              "PROM"
+            ]
+          },
+          {
+            "CONTEST_CODE": "11_2026-0_23-1_1",
+            "GROUP_CODE": "GOSB",
+            "REWARD_CODE": "r_11_2026-0_23-1_1_3",
+            "REWARD_CODE_ENDING": "3",
+            "stands": [
+              "PROM"
+            ]
+          }
+        ],
+        "group": [
+          {
+            "CONTEST_CODE": "11_2026-0_23-1_1",
+            "GROUP_CODE": "BANK",
+            "GROUP_VALUE": "*",
+            "GET_CALC_METHOD": "2",
+            "GET_CALC_CRITERION": "5",
+            "ADD_CALC_CRITERION": "0",
+            "ADD_CALC_CRITERION_2": "0",
+            "BASE_CALC_CODE": "BANK",
+            "stands": [
+              "PROM"
+            ]
+          },
+          {
+            "CONTEST_CODE": "11_2026-0_23-1_1",
+            "GROUP_CODE": "TB",
+            "GROUP_VALUE": "*",
+            "GET_CALC_METHOD": "2",
+            "GET_CALC_CRITERION": "0",
+            "ADD_CALC_CRITERION": "3",
+            "ADD_CALC_CRITERION_2": "0",
+            "BASE_CALC_CODE": "TB",
+            "stands": [
+              "PROM"
+            ]
+          },
+          {
+            "CONTEST_CODE": "11_2026-0_23-1_1",
+            "GROUP_CODE": "GOSB",
+            "GROUP_VALUE": "*",
+            "GET_CALC_METHOD": "2",
+            "GET_CALC_CRITERION": "0",
+            "ADD_CALC_CRITERION": "0",
+            "ADD_CALC_CRITERION_2": "3",
+            "BASE_CALC_CODE": "GOSB",
+            "stands": [
+              "PROM"
+            ]
+          }
+        ],
+        "indicator": [
+          {
+            "CONTEST_CODE": "11_2026-0_23-1_1",
+            "INDICATOR_CALC_TYPE": "1",
+            "INDICATOR_ADD_CALC_TYPE": "",
+            "FULL_NAME": "WAIT",
+            "INDICATOR_CODE": "WAIT",
+            "INDICATOR_AGG_FUNCTION": "SUM",
+            "INDICATOR_WEIGHT": "1",
+            "INDICATOR_OBJECT": "",
+            "INDICATOR_MARK_TYPE": "RATING",
+            "INDICATOR_MATCH": "MAX",
+            "INDICATOR_VALUE": "100",
+            "CONTEST_CRITERION": "",
+            "CONTESTANT_SELECTION": "0",
+            "CALC_TYPE": "1",
+            "N": "371",
+            "filter_items": [],
+            "stands": [
+              "PROM"
+            ]
+          }
+        ],
+        "schedule": [
+          {
+            "TOURNAMENT_CODE": "t_11_2026-0_23-1_1_2031",
+            "PERIOD_TYPE": "турнир 3 квартала",
+            "START_DT": "2026-07-01",
+            "END_DT": "2026-09-30",
+            "RESULT_DT": "2026-10-26",
+            "PLAN_PERIOD_START_DT": "",
+            "PLAN_PERIOD_END_DT": "",
+            "CRITERION_MARK_TYPE": ">=",
+            "CRITERION_MARK_VALUE": "0",
+            "TOURNAMENT_STATUS": "АКТИВНЫЙ",
+            "CONTEST_CODE": "11_2026-0_23-1_1",
+            "CALC_TYPE": "1",
+            "TRN_INDICATOR_FILTER": "",
+            "TOURNAMENT_CODE_ENDING": "2031",
+            "seasonCode": "SEASON_2026_1",
+            "filter_period": [],
+            "stands": [
+              "PROM"
+            ]
+          }
+        ]
+      },
+      "stands": [
+        "PROM"
+      ]
+    },
+    {
+      "id": "ex_11_2026_0_23_2_1",
+      "name": "НаВСТРЕЧУ бизнесу",
+      "data": {
+        "contest": {
+          "CONTEST_CODE": "11_2026-0_23-2_1",
+          "FULL_NAME": "НаВСТРЕЧУ бизнесу",
+          "CREATE_DT": "2026-01-01",
+          "CLOSE_DT": "2026-12-31",
+          "BUSINESS_STATUS": "АКТИВНЫЙ",
+          "CONTEST_TYPE": "ТУРНИРНЫЙ",
+          "CONTEST_DESCRIPTION": "Покажи лучший в квартале результат по модели общения или встречам с клиентами АВ и поднимись на вершину рейтинга в турнире! ТОР-3 МКК на уровне ГОСБ получат бронзовый бедж, ТОР-3 по ТБ - серебряный, а ТОР-5 по стране - золотой. Победители смогут выбрать понравившуюся преференцию из каталога. Удачи!",
+          "SHOW_INDICATOR": "%",
+          "PRODUCT_GROUP": "Модель работы",
+          "PRODUCT": "Модель общения",
+          "CONTEST_SUBJECT": "EMPLOYEE",
+          "FACTOR_MARK_TYPE": "RATING_MAX",
+          "CONTEST_INDICATOR_METHOD": "INTEGRAL",
+          "CONTEST_FACTOR_METHOD": "FACT",
+          "PLAN_METHOD_CODE": "PRESET_VALUE",
+          "PLAN_MOD_METOD": "MULTIPLIER",
+          "PLAN_MOD_VALUE": "100",
+          "FACTOR_MATCH": ">=",
+          "TARGET_TYPE": "ПРОМ",
+          "SOURCE_UPD_FREQUENCY": "7",
+          "CALC_TYPE": "1",
+          "BUSINESS_BLOCK": "KMKKSB",
+          "FACT_POST_PROCESSING": "",
+          "stands": [
+            "PROM"
+          ]
+        },
+        "feature": {
+          "vid": "ПРОМ",
+          "accuracy": "1",
+          "capacity": "",
+          "masking": "N",
+          "minNumber": "1",
+          "momentRewarding": "AFTER",
+          "typeRewarding": "one",
+          "avatarShow": "Y",
+          "tournamentTeam": "N",
+          "persomanNumberVisible": "00673892;01660097;01683649;00031031;01526806;01340230;01610903",
+          "persomanNumberHidden": "",
+          "tournamentStartMailing": "Y",
+          "tournamentEndMailing": "Y",
+          "tournamentLikeMailing": "Y",
+          "tournamentListMailing": "",
+          "tournamentRewardingMailing": "Y",
+          "feature": "Победители получают один максимальный по достоинству бейдж;Данные основаны на ДБ «Созвездие» 1КИБ. В рейтинг берётся наибольший из двух показателей по % выполнения, но не менее установленных нормативов – встречи с клиентами АВ - 100%, модель общения – 50%;Победителем или призером может стать только МКК с Крез. за квартал >=1;Если у нескольких МКК одинаковый уровень выполнения показателя, то приоритет в рейтинге отдается МКК с наибольшим количеством встреч с клиентами АВ в шт.",
+          "businessBlock": "KMKKSB",
+          "helpCodeList": "",
+          "preferences": "",
+          "tbVisible": "",
+          "tbHidden": "",
+          "gosbVisible": "",
+          "gosbHidden": ""
+        },
+        "contestPeriod": [],
+        "badges": [
+          {
+            "flat": {
+              "REWARD_CODE": "r_11_2026-0_23-2_1_1",
+              "REWARD_TYPE": "BADGE",
+              "FULL_NAME": "Золото#НаВСТРЕЧУ бизнесу",
+              "REWARD_DESCRIPTION": "",
+              "REWARD_CONDITION": "1",
+              "REWARD_COST": "10",
+              "REWARD_CODE_ENDING": "1"
+            },
+            "add": {
+              "nftFlg": "N",
+              "outstanding": "Y",
+              "rewardRule": "",
+              "rewardAgainGlobal": "Y",
+              "rewardAgainTournament": "N",
+              "hidden": "N",
+              "fileName": "",
+              "teamNews": "",
+              "singleNews": "",
+              "masterBadge": "N",
+              "parentRewardCode": "r_01_2026-1_00-1_1",
+              "priority": "1",
+              "recommendationLevel": "BANK",
+              "refreshOldNews": "N",
+              "tournamentTeam": "N",
+              "newsType": "AIPROMPT",
+              "winCriterion": "Покажи лучший в квартале результат по модели общения или встречам с клиентами АВ и поднимись на вершину рейтинга в турнире, стань ТОР-5 по стране.",
+              "preferences": "",
+              "feature": "",
+              "businessBlock": "KMKKSB",
+              "helpCodeList": "",
+              "hiddenRewardList": "N"
+            },
+            "stands": [
+              "PROM"
+            ]
+          },
+          {
+            "flat": {
+              "REWARD_CODE": "r_11_2026-0_23-2_1_2",
+              "REWARD_TYPE": "BADGE",
+              "FULL_NAME": "Серебро#НаВСТРЕЧУ бизнесу",
+              "REWARD_DESCRIPTION": "",
+              "REWARD_CONDITION": "1",
+              "REWARD_COST": "7",
+              "REWARD_CODE_ENDING": "2"
+            },
+            "add": {
+              "nftFlg": "N",
+              "outstanding": "N",
+              "rewardRule": "",
+              "rewardAgainGlobal": "Y",
+              "rewardAgainTournament": "N",
+              "hidden": "N",
+              "fileName": "",
+              "teamNews": "",
+              "singleNews": "",
+              "masterBadge": "N",
+              "parentRewardCode": "r_01_2026-1_00-1_2",
+              "priority": "2",
+              "recommendationLevel": "TB",
+              "refreshOldNews": "N",
+              "tournamentTeam": "N",
+              "newsType": "AIPROMPT",
+              "winCriterion": "",
+              "preferences": "",
+              "feature": "",
+              "businessBlock": "KMKKSB",
+              "helpCodeList": "",
+              "hiddenRewardList": "N"
+            },
+            "stands": [
+              "PROM"
+            ]
+          },
+          {
+            "flat": {
+              "REWARD_CODE": "r_11_2026-0_23-2_1_3",
+              "REWARD_TYPE": "BADGE",
+              "FULL_NAME": "Бронза#НаВСТРЕЧУ бизнесу",
+              "REWARD_DESCRIPTION": "",
+              "REWARD_CONDITION": "1",
+              "REWARD_COST": "5",
+              "REWARD_CODE_ENDING": "3"
+            },
+            "add": {
+              "nftFlg": "N",
+              "outstanding": "N",
+              "rewardRule": "",
+              "rewardAgainGlobal": "Y",
+              "rewardAgainTournament": "N",
+              "hidden": "N",
+              "fileName": "",
+              "teamNews": "",
+              "singleNews": "",
+              "masterBadge": "N",
+              "parentRewardCode": "r_01_2026-1_00-1_3",
+              "priority": "3",
+              "recommendationLevel": "GOSB",
+              "refreshOldNews": "N",
+              "tournamentTeam": "N",
+              "newsType": "AIPROMPT",
+              "winCriterion": "",
+              "preferences": "",
+              "feature": "",
+              "businessBlock": "KMKKSB",
+              "helpCodeList": "",
+              "hiddenRewardList": "N"
+            },
+            "stands": [
+              "PROM"
+            ]
+          }
+        ],
+        "reward_link": [
+          {
+            "CONTEST_CODE": "11_2026-0_23-2_1",
+            "GROUP_CODE": "BANK",
+            "REWARD_CODE": "r_11_2026-0_23-2_1_1",
+            "REWARD_CODE_ENDING": "1",
+            "stands": [
+              "PROM"
+            ]
+          },
+          {
+            "CONTEST_CODE": "11_2026-0_23-2_1",
+            "GROUP_CODE": "TB",
+            "REWARD_CODE": "r_11_2026-0_23-2_1_2",
+            "REWARD_CODE_ENDING": "2",
+            "stands": [
+              "PROM"
+            ]
+          },
+          {
+            "CONTEST_CODE": "11_2026-0_23-2_1",
+            "GROUP_CODE": "GOSB",
+            "REWARD_CODE": "r_11_2026-0_23-2_1_3",
+            "REWARD_CODE_ENDING": "3",
+            "stands": [
+              "PROM"
+            ]
+          }
+        ],
+        "group": [
+          {
+            "CONTEST_CODE": "11_2026-0_23-2_1",
+            "GROUP_CODE": "BANK",
+            "GROUP_VALUE": "*",
+            "GET_CALC_METHOD": "2",
+            "GET_CALC_CRITERION": "5",
+            "ADD_CALC_CRITERION": "0",
+            "ADD_CALC_CRITERION_2": "0",
+            "BASE_CALC_CODE": "BANK",
+            "stands": [
+              "PROM"
+            ]
+          },
+          {
+            "CONTEST_CODE": "11_2026-0_23-2_1",
+            "GROUP_CODE": "TB",
+            "GROUP_VALUE": "*",
+            "GET_CALC_METHOD": "2",
+            "GET_CALC_CRITERION": "0",
+            "ADD_CALC_CRITERION": "3",
+            "ADD_CALC_CRITERION_2": "0",
+            "BASE_CALC_CODE": "TB",
+            "stands": [
+              "PROM"
+            ]
+          },
+          {
+            "CONTEST_CODE": "11_2026-0_23-2_1",
+            "GROUP_CODE": "GOSB",
+            "GROUP_VALUE": "*",
+            "GET_CALC_METHOD": "2",
+            "GET_CALC_CRITERION": "0",
+            "ADD_CALC_CRITERION": "0",
+            "ADD_CALC_CRITERION_2": "3",
+            "BASE_CALC_CODE": "GOSB",
+            "stands": [
+              "PROM"
+            ]
+          }
+        ],
+        "indicator": [
+          {
+            "CONTEST_CODE": "11_2026-0_23-2_1",
+            "INDICATOR_CALC_TYPE": "1",
+            "INDICATOR_ADD_CALC_TYPE": "",
+            "FULL_NAME": "WAIT",
+            "INDICATOR_CODE": "WAIT",
+            "INDICATOR_AGG_FUNCTION": "SUM",
+            "INDICATOR_WEIGHT": "1",
+            "INDICATOR_OBJECT": "",
+            "INDICATOR_MARK_TYPE": "RATING",
+            "INDICATOR_MATCH": "MAX",
+            "INDICATOR_VALUE": "100",
+            "CONTEST_CRITERION": "",
+            "CONTESTANT_SELECTION": "0",
+            "CALC_TYPE": "1",
+            "N": "372",
+            "filter_items": [],
+            "stands": [
+              "PROM"
+            ]
+          }
+        ],
+        "schedule": [
+          {
+            "TOURNAMENT_CODE": "t_11_2026-0_23-2_1_2031",
+            "PERIOD_TYPE": "турнир 3 квартала",
+            "START_DT": "2026-07-01",
+            "END_DT": "2026-09-30",
+            "RESULT_DT": "2026-10-26",
+            "PLAN_PERIOD_START_DT": "",
+            "PLAN_PERIOD_END_DT": "",
+            "CRITERION_MARK_TYPE": ">=",
+            "CRITERION_MARK_VALUE": "0",
+            "TOURNAMENT_STATUS": "АКТИВНЫЙ",
+            "CONTEST_CODE": "11_2026-0_23-2_1",
+            "CALC_TYPE": "1",
+            "TRN_INDICATOR_FILTER": "",
+            "TOURNAMENT_CODE_ENDING": "2031",
+            "seasonCode": "SEASON_2026_1",
             "filter_period": [],
             "stands": [
               "PROM"

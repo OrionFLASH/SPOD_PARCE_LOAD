@@ -9,7 +9,9 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-SRC = ROOT / "common" / "web-edit" / "game_edit_catalog.json"
+SRC_FULL = ROOT / "common" / "web-edit-full" / "game_edit_catalog.json"
+SRC_LEGACY = ROOT / "common" / "web-edit" / "game_edit_catalog.json"
+SRC = SRC_FULL if SRC_FULL.exists() else SRC_LEGACY
 DST_DIR = ROOT / "common" / "web-fill"
 # Однофайловые fill-страницы с маркерами EMBEDDED_CATALOG
 FILL_PAGES = (

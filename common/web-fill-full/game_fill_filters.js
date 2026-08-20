@@ -105,8 +105,11 @@ function renderFieldCard(f, value, path, onChange, opts){
   const pick=Array.isArray(opts.pickVariants)?opts.pickVariants:null;
   const allow=fieldAllowEmpty(f,opts);
   const compositeKind=opts.compositeKind||"";
-  card.className="field span-"+span+(opts.hero?" field--hero":"")+(dirty?" is-edited":"")+(locked?" is-locked":"")+(pick?" field--pick":"")+(allow?"":" is-required");
-  const showKey=jsonFact||String(f.key||"");const showJson=jsonFact&&jsonFact!==String(f.key||"");card.innerHTML=`<div class="field-head"><span class="field-label">${esc(f.label||f.key)}</span><span class="edited-badge">изменено</span>${emptyPillHtml(f,opts)}${jsonRequiredPillHtml(f)}<span class="field-key" data-tip="Ключ параметра / путь в JSON">${esc(showKey)}</span>${showJson?`<span class="json-fact" data-tip="Полный путь в JSON SPOD: ${esc(jsonFact)}">${esc(jsonFact)}</span>`:""}<span class="kind-pill ${esc(kind)}" data-tip="${esc(kindLabel(kind))}">${esc(kindShort(kind))}</span></div>${f.description?`<div class="field-desc">${esc(f.description)}</div>`:""}<div class="field-control"></div>`;
+  const storeObj=opts.storeObj||null;
+  const storeLeaf=opts.storeLeaf!=null?opts.storeLeaf:f.key;
+  const reqIssue=fieldRequirementIssue(f, storeObj, storeLeaf, opts);
+  card.className="field span-"+span+(opts.hero?" field--hero":"")+(dirty?" is-edited":"")+(locked?" is-locked":"")+(pick?" field--pick":"")+(allow?"":" is-required")+(reqIssue?" is-req-warn":"");
+  const showKey=jsonFact||String(f.key||"");const showJson=jsonFact&&jsonFact!==String(f.key||"");card.innerHTML=`<div class="field-head"><span class="field-label">${requirementBadgeHtml(reqIssue)}${esc(f.label||f.key)}</span><span class="edited-badge">изменено</span>${emptyPillHtml(f,opts)}${jsonRequiredPillHtml(f)}<span class="field-key" data-tip="Ключ параметра / путь в JSON">${esc(showKey)}</span>${showJson?`<span class="json-fact" data-tip="Полный путь в JSON SPOD: ${esc(jsonFact)}">${esc(jsonFact)}</span>`:""}<span class="kind-pill ${esc(kind)}" data-tip="${esc(kindLabel(kind))}">${esc(kindShort(kind))}</span></div>${reqIssue?`<div class="field-req-msg">${esc(reqIssue.text)}</div>`:""}${f.description?`<div class="field-desc">${esc(f.description)}</div>`:""}<div class="field-control"></div>`;
   const host=card.querySelector(".field-control");
   const wrapChange=v=>{
     onChange(v);
@@ -928,10 +931,11 @@ function navItems(){
 
   // Строка 1: Конкурс → Индикаторы → Группы
   const rowMain=[];
-  rowMain.push({kind:"group",group:"contest",title:"Конкурс",meta:"карточка + FEATURE"});
+  rowMain.push({kind:"group",group:"contest",title:"Конкурс",meta:contestGroupMetaLabel(data().contest.CONTEST_TYPE)});
   {
-    const title=contestTypeNavLabel(data().contest.CONTEST_TYPE);
+    const title=contestNavButtonTitle();
     const sub=contestCardSub();
+    const typeLab=contestTypeNavLabel(data().contest.CONTEST_TYPE);
     rowMain.push({
       id:"CONTEST",
       title,
@@ -940,7 +944,7 @@ function navItems(){
       tagLabel:"DATA",
       slot:true,
       nameSlot:true,
-      tip:sub?title+" · "+sub:title,
+      tip:(sub?title+" · "+sub:title)+(typeLab?" · "+typeLab:""),
     });
   }
   {

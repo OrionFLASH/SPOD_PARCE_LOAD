@@ -1748,6 +1748,27 @@ body::after {
   align-items: stretch;
 }
 
+.json-meta-block,
+.omit-depends-block {
+  margin-top: 8px;
+  padding-top: 10px;
+  border-top: 1px dashed rgba(100, 116, 139, 0.35);
+}
+.depends-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+.depends-row {
+  display: grid;
+  grid-template-columns: 1.1fr 1.2fr 1fr 1fr;
+  gap: 6px;
+}
+@media (max-width: 900px) {
+  .depends-row { grid-template-columns: 1fr 1fr; }
+}
+
 .field-kind {
   margin-bottom: 12px;
 }

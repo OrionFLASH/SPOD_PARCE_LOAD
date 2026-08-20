@@ -1,7 +1,7 @@
 {
   "version": 2,
   "generated_at": "2026-08-16T17:32:07Z",
-  "source": "schema + field_meta + web-edit (BUSINESS_BLOCK list KMMMB) + JSON arrays CONTEST_PERIOD / FILTER_PERIOD_ARR / INDICATOR_FILTER / SCHEDULE TARGET_TYPE + json_required + table JSON column shells",
+  "source": "schema + field_meta + web-edit (BUSINESS_BLOCK list MKKMMB) + JSON arrays CONTEST_PERIOD / FILTER_PERIOD_ARR / INDICATOR_FILTER / SCHEDULE TARGET_TYPE + json_required + table JSON column shells",
   "sections": [
     {
       "id": "CONTEST",
@@ -444,13 +444,15 @@
           "kind": "json",
           "variants": [],
           "default": "",
-          "allow_empty": false,
+          "allow_empty": true,
           "marks": [
             "ПКАП",
             "ФАБРИКА"
           ],
           "json_target": "CONTEST_PERIOD",
-          "note": "Колонка CSV с SPOD-JSON. Редактируются подпись, описание, заметка и «можно пусто». Ключи — в дочернем разделе JSON."
+          "note": "Колонка CSV с SPOD-JSON. Редактируются подпись, описание, заметка и «можно пусто». Ключи — в дочернем разделе JSON.",
+          "empty_json_mode": "brackets",
+          "json_wrap_quotes": true
         },
         {
           "n": 21,
@@ -557,18 +559,18 @@
           "description": "Бизнес-блок конкурса и его участников",
           "kind": "list",
           "variants": [
-            "KMMMB",
+            "MKKMMB",
             "KMKKSB",
             "AKMKKSB",
             "CSM"
           ],
           "variant_labels": [
-            "КМ ММБ",
+            "МКК ММБ",
             "КМ ККСБ",
             "АКМ ККСБ",
             "Руководитель по внедрению проектов"
           ],
-          "default": "KMMMB",
+          "default": "MKKMMB",
           "allow_empty": false,
           "marks": [
             "ПКАП",
@@ -670,7 +672,7 @@
           "key": "CONTEST_FEATURE.masking",
           "status": "[v]",
           "label": "masking",
-          "description": "Всегда ставами в Нет (N)",
+          "description": "Всегда ставим в Нет (N)",
           "kind": "dropdown",
           "variants": [
             "Y",
@@ -946,7 +948,7 @@
           "key": "CONTEST_FEATURE.tournamentRewardingMailing",
           "status": "[v]",
           "label": "Письмо о награждении",
-          "description": "РАссылка письма получателям награды после ее вручения",
+          "description": "Рассылка письма получателям награды после ее вручения",
           "kind": "dropdown",
           "variants": [
             "Y",
@@ -992,18 +994,18 @@
           "description": "Бизнес блок конкурса и его участников",
           "kind": "list",
           "variants": [
-            "KMMMB",
+            "MKKMMB",
             "KMKKSB",
             "AKMKKSB",
             "CSM"
           ],
           "variant_labels": [
-            "КМ ММБ",
+            "МКК ММБ",
             "КМ ККСБ",
             "АКМ ККСБ",
             "Руководитель по внедрению проектов"
           ],
-          "default": "KMMMB",
+          "default": "MKKMMB",
           "allow_empty": false,
           "marks": [
             "ПКАП",
@@ -1369,7 +1371,7 @@
           "key": "REWARD_ADD_DATA.nftFlg",
           "status": "[v]",
           "label": "Признак NFT",
-          "description": "Ставить метку на награду / турнир?",
+          "description": "Ставить метку NFT на награду / турнир?",
           "kind": "dropdown",
           "variants": [
             "Y",
@@ -1516,7 +1518,7 @@
           "kind": "text",
           "variants": [],
           "default": "",
-          "allow_empty": false,
+          "allow_empty": true,
           "marks": [
             "ПКАП",
             "ФАБРИКА"
@@ -1716,30 +1718,31 @@
           "status": "[v]",
           "label": "Код сезона товара",
           "description": "Код сезона для сезонной награды и товара",
-          "kind": "dropdown",
+          "kind": "list",
           "variants": [
-            "SEASON_mmb_2026",
+            "SEASON_mkk_2026",
             "SEASON_2026_1",
             "SEASON_akm_2026",
             "SEASON_csm_2026",
             "SEASON_m_2026_1"
           ],
           "variant_labels": [
-            "Сезон 2026 (ММБ)",
+            "Сезон 2026 (МКК)",
             "Сезон 2026 (ККСБ)",
             "Сезон 2026 (АКМ)",
             "Сезон 2026  (CSM)",
             "Сезон 2026 (МНС)"
           ],
-          "default": "SEASON_mmb_2026",
-          "allow_empty": false,
+          "default": "SEASON_mkk_2026",
+          "allow_empty": true,
           "marks": [
             "ПКАП",
             "ФАБРИКА"
           ],
           "json_required": true,
           "json_target": "REWARD_ADD_DATA.seasonItem",
-          "note": ""
+          "note": "",
+          "omit_when_empty": true
         },
         {
           "n": 71,
@@ -1828,18 +1831,18 @@
           "description": "Бизнес блок награды и участников кто может претендовать",
           "kind": "list",
           "variants": [
-            "KMMMB",
+            "MKKMMB",
             "KMKKSB",
             "AKMKKSB",
             "CSM"
           ],
           "variant_labels": [
-            "КМ ММБ",
+            "МКК ММБ",
             "КМ ККСБ",
             "АКМ ККСБ",
             "Руководитель по внедрению проектов"
           ],
-          "default": "KMMMB",
+          "default": "MKKMMB",
           "allow_empty": true,
           "marks": [
             "ПКАП",
@@ -2703,7 +2706,9 @@
             "ФАБРИКА"
           ],
           "json_target": "INDICATOR_FILTER",
-          "note": "Колонка CSV с SPOD-JSON. «Можно пусто» — допустима ли пустая ячейка колонки целиком."
+          "note": "Колонка CSV с SPOD-JSON. «Можно пусто» — допустима ли пустая ячейка колонки целиком.",
+          "empty_json_mode": "brackets",
+          "json_wrap_quotes": true
         }
       ]
     },
@@ -3185,7 +3190,9 @@
             "ФАБРИКА"
           ],
           "json_target": "FILTER_PERIOD_ARR",
-          "note": "Колонка CSV с SPOD-JSON. «Можно пусто» — допустима ли пустая ячейка колонки целиком."
+          "note": "Колонка CSV с SPOD-JSON. «Можно пусто» — допустима ли пустая ячейка колонки целиком.",
+          "empty_json_mode": "brackets",
+          "json_wrap_quotes": true
         }
       ]
     },
@@ -3207,7 +3214,7 @@
           "description": "Сезон рейтинга / начисления кристаллов (seasonCode).",
           "kind": "dropdown_custom",
           "variants": [
-            "SEASON_mmb_2026",
+            "SEASON_mkk_2026",
             "SEASON_2026_1",
             "SEASON_akm_2026",
             "SEASON_csm_2026",
@@ -3215,14 +3222,14 @@
             "NON"
           ],
           "variant_labels": [
-            "Сезон 2026 (ММБ)",
+            "Сезон 2026 (МКК)",
             "Сезон 2026 (ККСБ)",
             "Сезон 2026 (АКМ)",
             "Сезон 2026 (CSM)",
             "Сезон 2026 (МНС)",
             ""
           ],
-          "default": "SEASON_mmb_2026",
+          "default": "SEASON_mkk_2026",
           "allow_empty": true,
           "marks": [
             "ПКАП",

@@ -2,7 +2,7 @@
 
 Статусы: `[v]` сделано · `[w]` в работе · `[ ]` не сделано · `[x]` отменено
 
-Согласование: пункты **2**, **3**, **6**, **7** — реализованы (см. планы в `Docs/`). Пункт **8** — анализ разбиения конфига (реализация после выбора варианта). Пункт **16** — fill/fill-full (`Docs/PLAN_WEB_FILL.md`); **16.1 сделано** — сверка JSON=CSV и пересборка примеров fill из файлов `CONFIG_RUN_INPUT.json`. Пункт **17** — примеры JSON в `common/examples/`. Пункт **18** — доработки fill-full (`Docs/PLAN_WEB_FILL_FULL.md`); **18.1–18.5 сделаны** в `web-fill-full`. Пункт **19** — стенды PROM/PSI и UX фильтров (`Docs/PLAN_WEB_FILL_STANDS.md`); код восстановлен поверх пункта 18.
+Согласование: пункты **2**, **3**, **6**, **7** — реализованы (см. планы в `Docs/`). Пункт **8** — анализ разбиения конфига (реализация после выбора варианта). Пункт **16** — fill/fill-full (`Docs/PLAN_WEB_FILL.md`); **16.1 сделано** — сверка JSON=CSV и пересборка примеров fill из файлов `CONFIG_RUN_INPUT.json`. Пункт **17** — примеры JSON в `common/examples/`. Пункт **18** — доработки fill-full (`Docs/PLAN_WEB_FILL_FULL.md`); **18.1–18.5 сделаны** в `web-fill-full`. Пункт **19** — стенды PROM/PSI и UX фильтров (`Docs/PLAN_WEB_FILL_STANDS.md`); код восстановлен поверх пункта 18. Пункт **20** — волна ToDo FILL EDIT (`Docs/PLAN_WEB_FILL_EDIT_WAVE20.md`): fill-full + edit-full.
 
 ---
 
@@ -450,4 +450,43 @@ IN/
 | 19.E | Ночной UX 18 авг: CONTEST_PERIOD на карточке, две строки статусов/наград, edge-кнопки панелей | [v] |
 | 19.F | Цвет меток стенда: вкл PROM синий / PSI фиолетовый, выкл серый | [v] |
 | 19.G | Фильтр стенда: «только PROM» / «только PSI» (ровно один признак) | [v] |
+
+---
+
+## Пункт 20 — Fill-full / edit-full: тексты, JSON-пусто, зависимости ключей
+
+**Документы:** [`Docs/PLAN_WEB_FILL_EDIT_WAVE20.md`](Docs/PLAN_WEB_FILL_EDIT_WAVE20.md), [`Docs/TODO_WEB_FILL_EDIT_WAVE20.md`](Docs/TODO_WEB_FILL_EDIT_WAVE20.md).  
+**Страницы:** `common/web-fill-full/`, `common/web-edit-full/`. Однофайловые не зеркалим.  
+**Правило:** пункты **18** и **19** не откатывать. Пустые JSON-колонки — метаданные в edit, fill только по каталогу.
+
+### Суть
+
+1. Каталог: опечатки, MKKMMB, SEASON_mkk, fileName allow_empty, nftFlg.
+2. Fill UX: массивы по `\n`, GROUP layout, активная вкладка, nav ТУРНИР/НАГРАДА + CODE.
+3. Обязательные ключи: маркер без автовыбора.
+4. `empty_json_mode` / `json_wrap_quotes`; без фантомов CONTEST_PERIOD.
+5. list→array; `omit_when_empty` + `depends_on`; пересборка examples.
+
+| # | Задача | Статус |
+|---|--------|--------|
+| 20.0 | План + ToDo + этот пункт ROADMAP | [v] |
+| 20.A | Тексты и справочники каталога | [v] |
+| 20.B | UX fill: массивы, GROUP, вкладка, nav | [v] |
+| 20.C | Маркеры обязательности без автовыбора | [v] |
+| 20.D | empty JSON meta + pack без фантомов | [v] |
+| 20.E | list / omit_when_empty / depends_on | [v] |
+| 20.F | Пересборка examples | [v] |
+| 20.G | Приёмка по ToDo FILL EDIT 1–16 | [v] |
+
+---
+
+## Пункт 21 — Consistency: обёртка JSON `"` и массивы helpCodeList / seasonItem
+
+**Связь:** волна 20 (web-fill pack) → те же правила в основном пайплайне (`main_only` / `consistency_only` / full).
+
+| # | Задача | Статус |
+|---|--------|--------|
+| 21.0 | `json_spod_format`: запрет внешней `'…'`; только `"` | [v] |
+| 21.A | `array_value_keys`: helpCodeList, seasonItem → `[]` | [v] |
+| 21.B | CONFIG_CHECKS + Docs + тесты | [v] |
 

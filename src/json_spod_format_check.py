@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 """
 Проверка ячеек со «SPOD-JSON»: BOM и Unicode-пробелы вне блоков \"\"\"…\"\"\"; симметрия внешних кавычек;
-рекурсивный разбор (ключи и строки в тройных кавычках, numeric_value_keys без кавычек);
+запрет внешней обёртки одинарными кавычками '…' (только \"); рекурсивный разбор (ключи и строки в тройных кавычках,
+numeric_value_keys без кавычек); array_value_keys — ключи, которые при наличии должны быть массивом [];
 типовые ошибки: \"\"key\"\" вместо \"\"\"key\"\"\", значение в одной паре кавычек как в JSON,
 лишние {} вокруг одной строки в массиве. Нормализация кавычек и json.loads.
 Сообщения в колонку на листе — короткие (путь + суть); по одной ячейке собираются **все** замечания этапа разбора SPOD (не только первое), см. Docs/CONSISTENCY_CHECKS_FORMAT.md п. 2.8.
@@ -128,17 +129,25 @@ def _excel_row(idx: int) -> int:
     return int(idx) + 2
 
 
-def _strip_outer_matching_quotes(s: str) -> str:
-    """Снимает одну внешнюю пару одинарных или двойных кавычек, если они с обеих сторон."""
+def _check_outer_wrap_quotes(s: str) -> Optional[str]:
+    """
+    Внешняя обёртка всей ячейки JSON (если есть) — только двойные кавычки \".
+    Одинарные '…' (как раньше ошибочно писал web-fill) — нарушение.
+    Голый {…} / […] без обёртки допускается.
+    """
+    if not s:
+        return None
     t = s.strip()
-    if len(t) >= 2 and t[0] == t[-1] and t[0] in ("'", '"'):
-        return t[1:-1].strip()
-    return t
-
-
-def _normalize_triple_to_double(s: str) -> str:
-    """Замена тройных кавычек на обычные (как при разборе в других модулях)."""
-    return s.replace('"""', '"')
+    if len(t) < 2:
+        return None
+    if t[0] == "'" and t[-1] == "'":
+        return (
+            "внешняя обёртка JSON должна быть двойными кавычками \", "
+            "а не одинарными '"
+        )
+    if t[0] == "'" or t[-1] == "'":
+        return "одинарная кавычка ' во внешней обёртке недопустима — используйте \""
+    return None
 
 
 def _check_outer_double_quote_symmetry(s: str) -> Optional[str]:
@@ -152,6 +161,54 @@ def _check_outer_double_quote_symmetry(s: str) -> Optional[str]:
     if s[-1] == '"' and s[0] != '"':
         return "строка заканчивается двойной кавычкой, но не начинается с неё"
     return None
+
+
+def _collect_array_type_errors(
+    obj: Any,
+    array_keys: Set[str],
+    path: str = "",
+) -> List[str]:
+    """
+    Ключи из array_value_keys при наличии должны быть JSON-массивом ([]), не скаляром.
+    Пустой массив допускается; отсутствие ключа — не ошибка.
+    """
+    errs: List[str] = []
+    if not array_keys:
+        return errs
+    if isinstance(obj, dict):
+        for k, v in obj.items():
+            key = str(k)
+            p = f"{path}.{key}" if path else key
+            if key in array_keys:
+                if not isinstance(v, list):
+                    kind = type(v).__name__
+                    preview = repr(v)
+                    if len(preview) > 48:
+                        preview = preview[:47] + "…"
+                    errs.append(
+                        f"{p}: ожидается массив [], получено {kind} ({preview})"
+                    )
+            else:
+                errs.extend(_collect_array_type_errors(v, array_keys, p))
+    elif isinstance(obj, list):
+        for idx, it in enumerate(obj):
+            errs.extend(
+                _collect_array_type_errors(it, array_keys, f"{path}[{idx}]" if path else f"[{idx}]")
+            )
+    return errs
+
+
+def _strip_outer_matching_quotes(s: str) -> str:
+    """Снимает одну внешнюю пару одинарных или двойных кавычек, если они с обеих сторон."""
+    t = s.strip()
+    if len(t) >= 2 and t[0] == t[-1] and t[0] in ("'", '"'):
+        return t[1:-1].strip()
+    return t
+
+
+def _normalize_triple_to_double(s: str) -> str:
+    """Замена тройных кавычек на обычные (как при разборе в других модулях)."""
+    return s.replace('"""', '"')
 
 
 def _skip_ws(s: str, i: int) -> int:
@@ -667,6 +724,7 @@ def validate_spod_json_cell(
     *,
     json_required: bool,
     numeric_value_keys: Optional[List[str]] = None,
+    array_value_keys: Optional[List[str]] = None,
 ) -> Tuple[bool, str]:
     """
     Проверка одной ячейки.
@@ -674,8 +732,12 @@ def validate_spod_json_cell(
     Возвращает (успех, сообщение об ошибке или «OK»).
     При ошибках разбора SPOD в сообщение включаются все найденные нарушения (список через «•»),
     с ограничением длины списка константой _MAX_STRUCTURE_ERRORS.
+
+    array_value_keys — имена ключей, которые при наличии должны быть массивом ([]), не скаляром
+    (например helpCodeList, seasonItem).
     """
     numeric_keys: Set[str] = set(str(x).strip() for x in (numeric_value_keys or []) if str(x).strip())
+    array_keys: Set[str] = set(str(x).strip() for x in (array_value_keys or []) if str(x).strip())
 
     if raw is None or (isinstance(raw, float) and pd.isna(raw)):
         if json_required:
@@ -687,6 +749,10 @@ def validate_spod_json_cell(
         if json_required:
             return False, "пустое значение при обязательном JSON"
         return True, "OK"
+
+    wrap_err = _check_outer_wrap_quotes(s0)
+    if wrap_err:
+        return False, wrap_err
 
     sym_err = _check_outer_double_quote_symmetry(s0)
     if sym_err:
@@ -717,6 +783,10 @@ def validate_spod_json_cell(
     if num_errs:
         return False, "numeric_value_keys:\n• " + "\n• ".join(num_errs)
 
+    arr_errs = _collect_array_type_errors(parsed, array_keys, "")
+    if arr_errs:
+        return False, "array_value_keys:\n• " + "\n• ".join(arr_errs)
+
     return True, "OK"
 
 
@@ -741,6 +811,7 @@ def run_json_spod_format_check(
     col_json = rule.get("json_column")
     json_required = bool(rule.get("json_required", True))
     numeric_value_keys = rule.get("numeric_value_keys") or []
+    array_value_keys = rule.get("array_value_keys") or []
     output = rule.get("output") or {}
     col_out = output.get("column_on_sheet") or "ПРОВЕРКА: JSON (формат SPOD)"
     check_id = rule.get("id", "")
@@ -781,6 +852,7 @@ def run_json_spod_format_check(
             val,
             json_required=json_required,
             numeric_value_keys=numeric_value_keys,
+            array_value_keys=array_value_keys,
         )
         if ok:
             statuses.append("OK")

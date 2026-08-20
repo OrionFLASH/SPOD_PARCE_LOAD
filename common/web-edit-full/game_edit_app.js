@@ -61,6 +61,80 @@
   function isJsonColumnShell(field) {
     return !!(field && field.kind === "json");
   }
+  /** Нормализация depends_on: до 3 условий AND. */
+  function normalizeDependsOn(raw) {
+    if (!Array.isArray(raw)) return [];
+    return raw
+      .slice(0, 3)
+      .map((d) => {
+        if (!d || typeof d !== "object") return null;
+        const out = {
+          table: String(d.table || d.section || "").trim(),
+          field: String(d.field || "").trim(),
+          json_key: String(d.json_key || d.json_path || "").trim(),
+          equals: d.equals != null ? String(d.equals) : d.value != null ? String(d.value) : "",
+        };
+        if (!out.field && !out.json_key) return null;
+        return out;
+      })
+      .filter(Boolean);
+  }
+  function emptyJsonModeOf(field) {
+    const m = field && field.empty_json_mode ? String(field.empty_json_mode) : "empty";
+    if (m === "brackets" || m === "brackets_quoted") return m;
+    return "empty";
+  }
+  function jsonWrapQuotesOf(field) {
+    return !(field && field.json_wrap_quotes === false);
+  }
+  function jsonMetaBlockHtml(field) {
+    if (!isJsonColumnShell(field)) return "";
+    const mode = emptyJsonModeOf(field);
+    const wrap = jsonWrapQuotesOf(field);
+    const modeBtn = (id, label, tip) =>
+      `<button type="button" class="status-chip${mode === id ? " active" : ""}" data-role="empty_json_mode" data-mode="${id}" data-tip="${tip}">${label}</button>`;
+    return `<div class="field full json-meta-block" data-role="json-meta">
+      <label data-tip="Как писать пустую JSON-колонку в CSV">Пустое значение JSON-колонки</label>
+      <div class="status-toggle" role="radiogroup" aria-label="Пустой JSON">
+        ${modeBtn("empty", "пусто", "Пустая ячейка CSV")}
+        ${modeBtn("brackets", "[]", "Голые скобки [] без кавычек")}
+        ${modeBtn("brackets_quoted", '"[]"', "Скобки [] в двойных кавычках")}
+      </div>
+      <label class="allow-empty-chip glass-switch${wrap ? " is-on" : ""}" data-role="json_wrap_quotes_wrap" data-tip="Оборачивать непустой JSON-массив в двойные кавычки &quot;…&quot; в ячейке CSV">
+        <input type="checkbox" data-role="json_wrap_quotes" role="switch" ${wrap ? "checked" : ""} />
+        <span class="glass-switch__track" aria-hidden="true"><span class="glass-switch__thumb"></span></span>
+        <span class="allow-empty-text">Оборачивать в &quot;</span>
+        <span class="glass-switch__label">${wrap ? "да" : "нет"}</span>
+      </label>
+    </div>`;
+  }
+  function omitDependsBlockHtml(field, sectionId) {
+    const sec = (catalog.sections || []).find((s) => s.id === sectionId);
+    if (!isJsonKeySection(sec) || isJsonColumnShell(field)) return "";
+    const omit = !!field.omit_when_empty;
+    const deps = normalizeDependsOn(field.depends_on);
+    while (deps.length < 3) deps.push({ table: "", field: "", json_key: "", equals: "" });
+    const rows = deps
+      .map(
+        (d, i) => `<div class="depends-row" data-dep-i="${i}">
+        <input type="text" data-role="dep_table" data-dep-i="${i}" placeholder="таблица (REWARD)" value="${escapeHtml(d.table)}" data-tip="Таблица / section id" />
+        <input type="text" data-role="dep_field" data-dep-i="${i}" placeholder="поле (REWARD_TYPE)" value="${escapeHtml(d.field)}" data-tip="Плоское поле" />
+        <input type="text" data-role="dep_json" data-dep-i="${i}" placeholder="json_key" value="${escapeHtml(d.json_key)}" data-tip="Ключ внутри JSON (опционально)" />
+        <input type="text" data-role="dep_equals" data-dep-i="${i}" placeholder="равно" value="${escapeHtml(d.equals)}" data-tip="Ожидаемое значение" />
+      </div>`
+      )
+      .join("");
+    return `<div class="field full omit-depends-block" data-role="omit-depends">
+      <label class="allow-empty-chip glass-switch${omit ? " is-on" : ""}" data-role="omit_when_empty_wrap" data-tip="Если значение пустое — ключ не пишется в CSV/JSON (даже при «ключ обязателен»)">
+        <input type="checkbox" data-role="omit_when_empty" role="switch" ${omit ? "checked" : ""} />
+        <span class="glass-switch__track" aria-hidden="true"><span class="glass-switch__thumb"></span></span>
+        <span class="allow-empty-text">Не писать если пусто</span>
+        <span class="glass-switch__label">${omit ? "да" : "нет"}</span>
+      </label>
+      <label data-tip="Ключ включается только если все заполненные условия совпали (AND, до 3)">Зависимости (AND, 1–3)</label>
+      <div class="depends-grid" data-role="depends-grid">${rows}</div>
+    </div>`;
+  }
 
   const STATUSES = ["[ ]", "[w]", "[v]"];
   const STATUS_LABELS = {
@@ -287,7 +361,7 @@
       ? field.variant_labels.map((x) => String(x ?? "").trim())
       : [];
     const labels = variants.map((_, i) => (i < rawLabs.length ? rawLabs[i] : ""));
-    return {
+    const snap = {
       status: field.status || "[ ]",
       label: field.label || "",
       kind: field.kind || "text",
@@ -301,6 +375,15 @@
       json_target: field.json_target || "",
       marks: fieldParamMarks(field),
     };
+    if (isJsonColumnShell(field)) {
+      snap.empty_json_mode = emptyJsonModeOf(field);
+      snap.json_wrap_quotes = jsonWrapQuotesOf(field);
+    }
+    if (!isJsonColumnShell(field)) {
+      snap.omit_when_empty = !!field.omit_when_empty;
+      snap.depends_on = normalizeDependsOn(field.depends_on);
+    }
+    return snap;
   }
 
   function fieldFingerprint(field) {
@@ -327,6 +410,16 @@
     field.note = snap.note || "";
     if (snap.json_target != null) field.json_target = snap.json_target;
     field.marks = normalizeParamMarks(snap.marks);
+    if (snap.empty_json_mode) field.empty_json_mode = snap.empty_json_mode;
+    else delete field.empty_json_mode;
+    if (snap.json_wrap_quotes === false) field.json_wrap_quotes = false;
+    else if (snap.json_wrap_quotes === true) field.json_wrap_quotes = true;
+    else delete field.json_wrap_quotes;
+    field.omit_when_empty = !!snap.omit_when_empty;
+    if (!field.omit_when_empty) delete field.omit_when_empty;
+    const deps = normalizeDependsOn(snap.depends_on);
+    if (deps.length) field.depends_on = deps;
+    else delete field.depends_on;
     alignVariantLabels(field);
   }
 
@@ -1920,6 +2013,8 @@
         <label data-tip="Внутренний комментарий к полю (в Excel не попадает)">Заметка</label>
         <textarea data-role="note" class="note-tall" data-tip="Заметка для себя / для применения каталога">${escapeHtml(field.note || "")}</textarea>
       </div>
+      ${jsonMetaBlockHtml(field)}
+      ${omitDependsBlockHtml(field, sectionId)}
     `;
 
     syncVariantsUi(card, field);
@@ -2017,6 +2112,58 @@
       if (wrap) wrap.classList.toggle("is-on", field.json_required);
       if (lab) lab.textContent = field.json_required ? "обязателен" : "может отсутствовать";
       afterFieldEdit(card, field, sectionId);
+    });
+    bind("json_wrap_quotes", (e) => {
+      field.json_wrap_quotes = !!e.target.checked;
+      const wrap = card.querySelector("[data-role='json_wrap_quotes_wrap']");
+      const lab = wrap && wrap.querySelector(".glass-switch__label");
+      if (wrap) wrap.classList.toggle("is-on", field.json_wrap_quotes);
+      if (lab) lab.textContent = field.json_wrap_quotes ? "да" : "нет";
+      afterFieldEdit(card, field, sectionId);
+    });
+    bind("omit_when_empty", (e) => {
+      field.omit_when_empty = !!e.target.checked;
+      if (!field.omit_when_empty) delete field.omit_when_empty;
+      const wrap = card.querySelector("[data-role='omit_when_empty_wrap']");
+      const lab = wrap && wrap.querySelector(".glass-switch__label");
+      if (wrap) wrap.classList.toggle("is-on", !!field.omit_when_empty);
+      if (lab) lab.textContent = field.omit_when_empty ? "да" : "нет";
+      afterFieldEdit(card, field, sectionId);
+    });
+    card.querySelectorAll("[data-role='empty_json_mode']").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const mode = btn.getAttribute("data-mode") || "empty";
+        field.empty_json_mode = mode;
+        card.querySelectorAll("[data-role='empty_json_mode']").forEach((b) => {
+          b.classList.toggle("active", b.getAttribute("data-mode") === mode);
+        });
+        afterFieldEdit(card, field, sectionId);
+      });
+    });
+    const syncDependsFromCard = () => {
+      const next = [];
+      for (let i = 0; i < 3; i += 1) {
+        const table = (card.querySelector(`[data-role='dep_table'][data-dep-i='${i}']`) || {}).value || "";
+        const fld = (card.querySelector(`[data-role='dep_field'][data-dep-i='${i}']`) || {}).value || "";
+        const jk = (card.querySelector(`[data-role='dep_json'][data-dep-i='${i}']`) || {}).value || "";
+        const eq = (card.querySelector(`[data-role='dep_equals'][data-dep-i='${i}']`) || {}).value || "";
+        if (!String(fld).trim() && !String(jk).trim()) continue;
+        next.push({
+          table: String(table).trim(),
+          field: String(fld).trim(),
+          json_key: String(jk).trim(),
+          equals: String(eq),
+        });
+      }
+      if (next.length) field.depends_on = next;
+      else delete field.depends_on;
+      afterFieldEdit(card, field, sectionId);
+    };
+    ["dep_table", "dep_field", "dep_json", "dep_equals"].forEach((role) => {
+      card.querySelectorAll(`[data-role='${role}']`).forEach((el) => {
+        el.addEventListener("input", syncDependsFromCard);
+        el.addEventListener("change", syncDependsFromCard);
+      });
     });
     bind("description", (e) => {
       field.description = e.target.value;
