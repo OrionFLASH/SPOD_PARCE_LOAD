@@ -1333,7 +1333,7 @@ python main.py
 
 - **`json_spod_format`**: внешняя обёртка ячейки только двойными `"…"`, одинарные `'…'` — нарушение (все режимы с consistency: `main_only`, `consistency_only`, full).
 - **`array_value_keys`**: `helpCodeList` (CONTEST_FEATURE), `helpCodeList` + `seasonItem` (REWARD_ADD_DATA) при наличии должны быть массивом `[]`.
-- Конфиг: `CONFIG_CHECKS.json`; док: `Docs/CONSISTENCY_CHECKS_FORMAT.md` п. 2.8; тесты `src/Tests/test_json_spod_array_and_wrap.py`.
+- Конфиг: `CONFIG_CHECKS.json`; док: `Docs/CONSISTENCY_CHECKS_FORMAT.md` п. 2.8; план/чеклист: `Docs/PLAN_CONSISTENCY_JSON_WRAP_ARRAYS.md`, `Docs/TODO_CONSISTENCY_JSON_WRAP_ARRAYS.md`; тесты `src/Tests/test_json_spod_array_and_wrap.py`.
 
 ### Версия 1.7.91 — волна 20 fill-full / edit-full (ToDo FILL EDIT)
 
