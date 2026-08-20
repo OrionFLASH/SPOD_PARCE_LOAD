@@ -62,3 +62,10 @@
 ## 20.G Приёмка
 
 - [v] Пункты 1–16 ToDo FILL EDIT
+
+---
+
+## Связанное (пайплайн PY)
+
+- [v] ROADMAP **21**: `json_spod_format` — обёртка `"`, `array_value_keys` для helpCodeList / seasonItem  
+  → [`PLAN_CONSISTENCY_JSON_WRAP_ARRAYS.md`](PLAN_CONSISTENCY_JSON_WRAP_ARRAYS.md), [`TODO_CONSISTENCY_JSON_WRAP_ARRAYS.md`](TODO_CONSISTENCY_JSON_WRAP_ARRAYS.md)

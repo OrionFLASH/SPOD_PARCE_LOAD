@@ -482,6 +482,7 @@ IN/
 
 ## Пункт 21 — Consistency: обёртка JSON `"` и массивы helpCodeList / seasonItem
 
+**Документы:** [`Docs/PLAN_CONSISTENCY_JSON_WRAP_ARRAYS.md`](Docs/PLAN_CONSISTENCY_JSON_WRAP_ARRAYS.md), [`Docs/TODO_CONSISTENCY_JSON_WRAP_ARRAYS.md`](Docs/TODO_CONSISTENCY_JSON_WRAP_ARRAYS.md).  
 **Связь:** волна 20 (web-fill pack) → те же правила в основном пайплайне (`main_only` / `consistency_only` / full).
 
 | # | Задача | Статус |

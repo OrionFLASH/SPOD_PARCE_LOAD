@@ -329,7 +329,7 @@ config/
 | `referential` / `referential_composite` | Ссылки между листами | `sheet`/`sheet_src`, ключи, фильтры |
 | `field_in_values` | Значение ∈ списку (скаляр / массив JSON / `["""…"""]`) | `allowed_values`, `allow_empty`, `source`=`column`\|`json` |
 | `field_format` | Формат | шаблоны дат/чисел |
-| `json_*` / `json_spod_format` | JSON в ячейках | `json_column`, … |
+| `json_*` / `json_spod_format` | JSON в ячейках (SPOD) | `json_column`, `json_required`, `numeric_value_keys`, **`array_value_keys`** (ключ → `[]`); внешняя обёртка только `"`, не `'` |
 
 **Пример правила:**
 
@@ -345,6 +345,8 @@ config/
   "enabled": true
 }
 ```
+
+П. **21** ROADMAP (`array_value_keys` / обёртка `"`): `Docs/PLAN_CONSISTENCY_JSON_WRAP_ARRAYS.md`, `Docs/CONSISTENCY_CHECKS_FORMAT.md` п. 2.8.
 
 Полный формат: `Docs/CONSISTENCY_CHECKS_FORMAT.md`.
 
