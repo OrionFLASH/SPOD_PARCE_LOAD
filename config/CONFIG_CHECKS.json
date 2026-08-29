@@ -328,6 +328,9 @@
         "id": "ref_employee_org_unit_code_in_org_unit_v20",
         "name": "Все ORG_UNIT_CODE из EMPLOYEE существуют в ORG_UNIT_V20",
         "type": "referential",
+        "blocks": [
+          "PROM"
+        ],
         "enabled": true,
         "sheet_src": "EMPLOYEE",
         "column_src": "ORG_UNIT_CODE",
@@ -337,6 +340,26 @@
         "ref_row_conditions": [],
         "output": {
           "column_on_sheet": "ПРОВЕРКА: ORG_UNIT_CODE в ORG_UNIT_V20",
+          "include_in_summary": true
+        }
+      },
+      {
+        "id": "ref_employee_source_org_unit_id_in_org_unit_v20",
+        "name": "Все SOURCE_ORG_UNIT_ID из EMPLOYEE существуют в ORG_UNIT_V20",
+        "type": "referential",
+        "blocks": [
+          "PSI",
+          "IFT"
+        ],
+        "enabled": true,
+        "sheet_src": "EMPLOYEE",
+        "column_src": "SOURCE_ORG_UNIT_ID",
+        "sheet_ref": "ORG_UNIT_V20",
+        "column_ref": "ORG_UNIT_CODE",
+        "src_row_conditions": [],
+        "ref_row_conditions": [],
+        "output": {
+          "column_on_sheet": "ПРОВЕРКА: SOURCE_ORG_UNIT_ID в ORG_UNIT_V20",
           "include_in_summary": true
         }
       },
@@ -577,20 +600,6 @@
         }
       },
       {
-        "id": "ref_contest_data_indicator",
-        "name": "Все CONTEST_CODE из CONTEST-DATE существуют в INDICATOR",
-        "type": "referential",
-        "enabled": false,
-        "sheet_src": "CONTEST-DATA",
-        "column_src": "CONTEST_CODE",
-        "sheet_ref": "INDICATOR",
-        "column_ref": "CONTEST_CODE",
-        "output": {
-          "column_on_sheet": "ПРОВЕРКА: CONTEST_CODE в INDICATOR",
-          "include_in_summary": false
-        }
-      },
-      {
         "id": "ref_group_indicator",
         "name": "Все CONTEST_CODE из GROUP существуют в INDICATOR",
         "type": "referential",
@@ -776,6 +785,32 @@
         }
       },
       {
+        "id": "unique_report_ift_psi_group_id",
+        "name": "В REPORT нет дублей по составному полю MANAGER_PERSON_NUMBER, TOURNAMENT_CODE, CONTEST_CODE, GROUP_ID",
+        "type": "unique",
+        "enabled": true,
+        "blocks": [
+          "IFT",
+          "PSI"
+        ],
+        "sheet": "REPORT",
+        "key_columns": [
+          "MANAGER_PERSON_NUMBER",
+          "TOURNAMENT_CODE",
+          "CONTEST_CODE",
+          "GROUP_ID"
+        ],
+        "unique_scope_mode": "all",
+        "unique_scope_conditions": [],
+        "unique_scope_column": "",
+        "unique_scope_value": "",
+        "unique_require_non_empty": [],
+        "output": {
+          "column_on_sheet": "ДУБЛЬ: MANAGER_PERSON_NUMBER_TOURNAMENT_CODE_CONTEST_CODE_GROUP_ID",
+          "include_in_summary": true
+        }
+      },
+      {
         "id": "unique_reward",
         "name": "В REWARD нет дублей по полю REWARD_CODE",
         "type": "unique",
@@ -857,6 +892,9 @@
         "id": "unique_employee_kpk_gosb",
         "name": "В EMPLOYEE нет дублей по POSITION_NAME, KPK_CODE, ORG_UNIT_CODE среди строк с POSITION_NAME=КПК и непустым KPK_CODE",
         "type": "unique",
+        "blocks": [
+          "PROM"
+        ],
         "enabled": true,
         "sheet": "EMPLOYEE",
         "key_columns": [
@@ -878,6 +916,38 @@
         ],
         "output": {
           "column_on_sheet": "ДУБЛЬ: POSITION_NAME_KPK_CODE_ORG_UNIT_CODE",
+          "include_in_summary": true
+        }
+      },
+      {
+        "id": "unique_employee_kpk_source_org",
+        "name": "В EMPLOYEE нет дублей по POSITION_NAME, KPK_CODE, SOURCE_ORG_UNIT_ID среди строк с POSITION_NAME=КПК и непустым KPK_CODE",
+        "type": "unique",
+        "blocks": [
+          "IFT",
+          "PSI"
+        ],
+        "enabled": true,
+        "sheet": "EMPLOYEE",
+        "key_columns": [
+          "POSITION_NAME",
+          "KPK_CODE",
+          "SOURCE_ORG_UNIT_ID"
+        ],
+        "unique_scope_mode": "all",
+        "unique_scope_conditions": [
+          {
+            "column": "POSITION_NAME",
+            "value": "КПК"
+          }
+        ],
+        "unique_scope_column": "",
+        "unique_scope_value": "",
+        "unique_require_non_empty": [
+          "KPK_CODE"
+        ],
+        "output": {
+          "column_on_sheet": "ДУБЛЬ: POSITION_NAME_KPK_CODE_SOURCE_ORG_UNIT_ID",
           "include_in_summary": true
         }
       },
@@ -1220,6 +1290,7 @@
         "field": "BUSINESS_BLOCK",
         "allowed_values": [
           "CSM",
+          "MKKMMB",
           "KMKKSB",
           "AKMKKSB",
           "MNS",
@@ -1229,6 +1300,7 @@
           "IMUB",
           "RNUB",
           "RSB1",
+          "KMLEASING",
           "сбросить"
         ],
         "allow_empty": true,
@@ -1248,6 +1320,7 @@
         "allowed_values": [
           "CSM",
           "KMKKSB",
+          "MKKMMB",
           "AKMKKSB",
           "MNS",
           "SERVICEMEN",
@@ -1276,6 +1349,7 @@
         "allowed_values": [
           "CSM",
           "KMKKSB",
+          "MKKMMB",
           "AKMKKSB",
           "MNS",
           "SERVICEMEN",
@@ -1304,6 +1378,7 @@
         "allowed_values": [
           "CSM",
           "KMKKSB",
+          "MKKMMB",
           "AKMKKSB",
           "MNS",
           "SERVICEMEN",

@@ -4,7 +4,7 @@
       "main_only"
     ],
     "IFT": [
-      "consistency_only"
+      "main_only"
     ],
     "PSI": [
       "consistency_only"
@@ -24,7 +24,7 @@
   ],
   "_run_outputs_note": "Либо массив токенов (одинаково для всех блоков), либо объект {\"PROM\":[...],\"IFT\":[...],\"PSI\":[...]} — свой набор обработок на блок. Ключ default — запасной. Токены: source_only, main_only, consistency_only, manager_stats_only, stat_file_only, rating_item_matrix, season_order_summary, contest_badge_form_export, contest_badge_form_import, contest_badge_form_blank.",
   "run_blocks": [
-    "PROM"
+    "IFT"
   ],
   "_run_blocks_allowed": [
     "PROM",
@@ -165,7 +165,7 @@
   "input_files": {
     "PROM": [
       {
-        "file": "CONTEST (PROM) 20-08 v0.csv",
+        "file": "CONTEST (PROM) 25-08 v0.csv",
         "sheet": "CONTEST-DATA",
         "subdir": "PROM/SPOD",
         "archive_to_db": true,
@@ -183,7 +183,7 @@
         "archive_db_path": "OUT/DB/{BLOCK}/spod_input_archive_{BLOCK}.sqlite"
       },
       {
-        "file": "GROUP (PROM) 19-08 v0.csv",
+        "file": "GROUP (PROM) 21-08 v2.csv",
         "sheet": "GROUP",
         "subdir": "PROM/SPOD",
         "archive_to_db": true,
@@ -235,7 +235,7 @@
         "archive_db_path": "OUT/DB/{BLOCK}/spod_input_archive_{BLOCK}.sqlite"
       },
       {
-        "file": "REPORT (PROM) 17-08 v0.csv",
+        "file": "REPORT (PROM) 26-08 v0.csv",
         "sheet": "REPORT",
         "subdir": "PROM/SPOD",
         "archive_to_db": true,
@@ -253,7 +253,7 @@
         "archive_db_path": "OUT/DB/{BLOCK}/spod_input_archive_{BLOCK}.sqlite"
       },
       {
-        "file": "REWARD (PROM) 21-08 v0.csv",
+        "file": "REWARD (PROM) 25-08 v0.csv",
         "sheet": "REWARD",
         "subdir": "PROM/SPOD",
         "archive_to_db": true,
@@ -275,7 +275,7 @@
         "archive_db_path": "OUT/DB/{BLOCK}/spod_input_archive_{BLOCK}.sqlite"
       },
       {
-        "file": "REWARD-LINK (PROM) 19-08 v0.csv",
+        "file": "REWARD-LINK (PROM) 21-08 v2.csv",
         "sheet": "REWARD-LINK",
         "subdir": "PROM/SPOD",
         "archive_to_db": true,
@@ -297,7 +297,7 @@
         "archive_db_path": "OUT/DB/{BLOCK}/spod_input_archive_{BLOCK}.sqlite"
       },
       {
-        "file": "SCHEDULE (PROM) 20-08 v0.csv",
+        "file": "SCHEDULE (PROM) 26-08 v0.csv",
         "sheet": "TOURNAMENT-SCHEDULE",
         "subdir": "PROM/SPOD",
         "archive_to_db": true,
@@ -341,7 +341,7 @@
         "archive_db_path": "OUT/DB/{BLOCK}/spod_input_archive_{BLOCK}.sqlite"
       },
       {
-        "file": "USER_ROLE (PROM) 21-08 v0.csv",
+        "file": "USER_ROLE (PROM) 26-08 v0.csv",
         "sheet": "USER_ROLE",
         "subdir": "PROM/SPOD",
         "archive_to_db": true,
@@ -359,7 +359,7 @@
         "archive_db_path": "OUT/DB/{BLOCK}/spod_input_archive_{BLOCK}.sqlite"
       },
       {
-        "file": "USER_ROLE_SB (PROM) 21-08 v0.csv",
+        "file": "USER_ROLE_SB (PROM) 26-08 v0.csv",
         "sheet": "USER_ROLE SB",
         "subdir": "PROM/SPOD",
         "archive_to_db": true,
@@ -659,7 +659,7 @@
     ],
     "IFT": [
       {
-        "file": "CONTEST (PROM) 03-07 v0.csv",
+        "file": "CONTEST_IFT_2026-08-27.csv",
         "sheet": "CONTEST-DATA",
         "subdir": "IFT/SPOD",
         "archive_to_db": true,
@@ -677,7 +677,7 @@
         "archive_db_path": "OUT/DB/{BLOCK}/spod_input_archive_{BLOCK}.sqlite"
       },
       {
-        "file": "GROUP (PROM) 03-07 v0.csv",
+        "file": "GROUP_IFT_2026-08-27.csv",
         "sheet": "GROUP",
         "subdir": "IFT/SPOD",
         "archive_to_db": true,
@@ -703,7 +703,7 @@
         "archive_db_path": "OUT/DB/{BLOCK}/spod_input_archive_{BLOCK}.sqlite"
       },
       {
-        "file": "INDICATOR (PROM) 03-07 v0.csv",
+        "file": "INDICATOR_V20_IFT_2026-08-27.csv",
         "sheet": "INDICATOR",
         "subdir": "IFT/SPOD",
         "archive_to_db": true,
@@ -729,7 +729,7 @@
         "archive_db_path": "OUT/DB/{BLOCK}/spod_input_archive_{BLOCK}.sqlite"
       },
       {
-        "file": "REPORT (PROM) 03-07 v0.csv",
+        "file": "REPORT IFT 28-08-2026 (MKK 300k).csv",
         "sheet": "REPORT",
         "subdir": "IFT/SPOD",
         "archive_to_db": true,
@@ -747,7 +747,7 @@
         "archive_db_path": "OUT/DB/{BLOCK}/spod_input_archive_{BLOCK}.sqlite"
       },
       {
-        "file": "REWARD (PROM) 03-07 v0.csv",
+        "file": "REWARD_IFT_2026-08-27.csv",
         "sheet": "REWARD",
         "subdir": "IFT/SPOD",
         "archive_to_db": true,
@@ -769,7 +769,7 @@
         "archive_db_path": "OUT/DB/{BLOCK}/spod_input_archive_{BLOCK}.sqlite"
       },
       {
-        "file": "REWARD-LINK (PROM) 03-07 v0.csv",
+        "file": "REWARD-LINK_IFT_2026-08-27.csv",
         "sheet": "REWARD-LINK",
         "subdir": "IFT/SPOD",
         "archive_to_db": true,
@@ -791,7 +791,7 @@
         "archive_db_path": "OUT/DB/{BLOCK}/spod_input_archive_{BLOCK}.sqlite"
       },
       {
-        "file": "SCHEDULE (PROM) 03-07 v0.csv",
+        "file": "SHEDULE IFT 27-08-2026 (MKK 6t).csv",
         "sheet": "TOURNAMENT-SCHEDULE",
         "subdir": "IFT/SPOD",
         "archive_to_db": true,
@@ -871,7 +871,7 @@
         "archive_db_path": "OUT/DB/{BLOCK}/spod_input_archive_{BLOCK}.sqlite"
       },
       {
-        "file": "EMPLOYEE (PROM) 02-07 v0.csv",
+        "file": "new IFT DB mkk_employee_list_20260825.csv",
         "sheet": "EMPLOYEE",
         "subdir": "IFT/SPOD",
         "archive_to_db": true,
