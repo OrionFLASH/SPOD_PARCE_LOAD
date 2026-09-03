@@ -638,6 +638,35 @@ v_uq_emp_pa AS (
     ) x
 ),
 
+-- id "unique_list_rewards_tournament_reward_person_created10" | name «В LIST-REWARDS нет дублей по Код турнира, Код награды, Табельный номер сотрудника, первые 10 символов Дата создания» | type unique (blocks: PROM; key_transforms left:10)
+-- Ключ даты: SUBSTR(CAST(Дата_создания AS STRING), 1, 10) — аналог Python key_transforms left length=10 (обычно YYYY-MM-DD).
+v_uq_list_rewards AS (
+    SELECT
+        CONCAT_WS(
+            '|',
+            CAST(x.tournament_code AS STRING),
+            CAST(x.reward_code AS STRING),
+            CAST(x.person_number AS STRING),
+            CAST(x.created_ymd AS STRING)
+        ) AS detail_key,
+        CONCAT('Дубликат LIST-REWARDS (турнир|награда|табельный|дата[:10]): строк=', CAST(x.cnt AS STRING)) AS detail_message
+    FROM (
+        SELECT
+            `Код турнира` AS tournament_code,
+            `Код награды` AS reward_code,
+            `Табельный номер сотрудника` AS person_number,
+            SUBSTR(CAST(`Дата создания` AS STRING), 1, 10) AS created_ymd,
+            COUNT(*) AS cnt
+        FROM spod_dq.t_list_rewards
+        GROUP BY
+            `Код турнира`,
+            `Код награды`,
+            `Табельный номер сотрудника`,
+            SUBSTR(CAST(`Дата создания` AS STRING), 1, 10)
+        HAVING COUNT(*) > 1
+    ) x
+),
+
 -- id "unique_employee_kpk_gosb" | name «В EMPLOYEE нет дублей по POSITION_NAME, KPK_CODE, ORG_UNIT_CODE среди строк с POSITION_NAME=КПК и непустым KPK_CODE» | type unique
 v_uq_emp_kpk AS (
     SELECT
@@ -749,6 +778,7 @@ chk_summary AS (
     UNION ALL SELECT (SELECT COUNT(*) FROM v_uq_ursb)
     UNION ALL SELECT (SELECT COUNT(*) FROM v_uq_emp_p)
     UNION ALL SELECT (SELECT COUNT(*) FROM v_uq_emp_pa)
+    UNION ALL SELECT (SELECT COUNT(*) FROM v_uq_list_rewards)
     UNION ALL SELECT (SELECT COUNT(*) FROM v_uq_emp_kpk)
     UNION ALL SELECT (SELECT COUNT(*) FROM v_fl_org)
     UNION ALL SELECT (SELECT COUNT(*) FROM v_fl_emp)
@@ -793,6 +823,7 @@ chk_detail AS (
     UNION ALL SELECT detail_key, detail_message FROM v_uq_ursb
     UNION ALL SELECT detail_key, detail_message FROM v_uq_emp_p
     UNION ALL SELECT detail_key, detail_message FROM v_uq_emp_pa
+    UNION ALL SELECT detail_key, detail_message FROM v_uq_list_rewards
     UNION ALL SELECT detail_key, detail_message FROM v_uq_emp_kpk
     UNION ALL SELECT detail_key, detail_message FROM v_fl_org
     UNION ALL SELECT detail_key, detail_message FROM v_fl_emp

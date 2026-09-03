@@ -1086,6 +1086,37 @@
         }
       },
       {
+        "id": "unique_list_rewards_tournament_reward_person_created10",
+        "name": "В LIST-REWARDS нет дублей по составному полю Код турнира, Код награды, Табельный номер сотрудника, первые 10 символов Дата создания",
+        "type": "unique",
+        "enabled": true,
+        "blocks": [
+          "PROM"
+        ],
+        "sheet": "LIST-REWARDS",
+        "key_columns": [
+          "Код турнира",
+          "Код награды",
+          "Табельный номер сотрудника",
+          "Дата создания"
+        ],
+        "key_transforms": {
+          "Дата создания": {
+            "type": "left",
+            "length": 10
+          }
+        },
+        "unique_scope_mode": "all",
+        "unique_scope_conditions": [],
+        "unique_scope_column": "",
+        "unique_scope_value": "",
+        "unique_require_non_empty": [],
+        "output": {
+          "column_on_sheet": "ДУБЛЬ: Код турнира_Код награды_Табельный_Дата создания[:10]",
+          "include_in_summary": true
+        }
+      },
+      {
         "id": "field_length_org_unit",
         "name": "Поле TB_FULL_NAME в ORG_UNIT_V20 должно быть <=100; Поле GOSB_NAME в ORG_UNIT_V20 должно быть <=100; Поле GOSB_SHORT_NAME в ORG_UNIT_V20 должно быть <=20",
         "type": "field_length",

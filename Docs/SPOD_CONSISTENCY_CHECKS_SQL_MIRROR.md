@@ -78,6 +78,7 @@
 | REPORT | `spod_dq.t_report` |
 | USER_ROLE | `spod_dq.t_user_role` |
 | USER_ROLE SB | `spod_dq.t_user_role_sb` |
+| LIST-REWARDS | `spod_dq.t_list_rewards` |
 
 ### 4.3. Имена полей (колонок)
 
@@ -204,6 +205,11 @@ flowchart TB
 
 - `RULE_NUM`
 
+### `t_list_rewards` (LIST-REWARDS)
+
+- `Код турнира`, `Код награды`, `Табельный номер сотрудника` (unique в составе ключа)
+- `Дата создания` (в ключе — **первые 10 символов**, обычно `YYYY-MM-DD`)
+
 Если какого-то столбца нет в витрине, соответствующие проверки нужно **отключить** (удалить ветки из `chk_summary` / `chk_detail` и CTE `v_*`) или **адаптировать** под вашу схему.
 
 ---
@@ -268,6 +274,7 @@ JOIN по **двум и более** полям; снова `LEFT JOIN` + отс
 | `unique_user_role_sb` | `v_uq_ursb` | `RULE_NUM` | `t_user_role_sb` |
 | `unique_employee_person` | `v_uq_emp_p` | `PERSON_NUMBER` | `t_employee` |
 | `unique_employee_person_add` | `v_uq_emp_pa` | `PERSON_NUMBER_ADD` | `t_employee` |
+| `unique_list_rewards_tournament_reward_person_created10` | `v_uq_list_rewards` | `Код турнира`, `Код награды`, `Табельный номер сотрудника`, `SUBSTR(Дата создания, 1, 10)` | `t_list_rewards` (в config: `blocks: ["PROM"]`, `key_transforms.left=10`) |
 | `unique_employee_kpk_gosb` | `v_uq_emp_kpk` | `POSITION_NAME`, `KPK_CODE`, `ORG_UNIT_CODE` | `t_employee`, только строки с `POSITION_NAME = 'КПК'` и непустым `KPK_CODE` (не `''` и не `'-'` после TRIM) |
 
 ---

@@ -76,6 +76,66 @@ def _unique_cell_is_empty(val: Any) -> bool:
     return False
 
 
+def _unique_key_transform_value(val: Any, spec: Dict[str, Any]) -> Any:
+    """
+    Преобразует значение ключевой колонки для groupby в правиле unique.
+    Поддерживается type: left / left_chars / prefix — первые length символов строки.
+    """
+    if not isinstance(spec, dict) or not spec:
+        return val
+    t = str(spec.get("type") or "").strip().lower()
+    if t in ("left", "left_chars", "prefix", "substr_left"):
+        length = int(spec.get("length", spec.get("chars", 0)) or 0)
+        if length <= 0:
+            return val
+        if val is None or (isinstance(val, float) and pd.isna(val)):
+            return val
+        return str(val)[:length]
+    return val
+
+
+def _unique_effective_key_frame(
+    df: pd.DataFrame,
+    key_columns: List[str],
+    rule: Dict[str, Any],
+) -> Tuple[pd.DataFrame, List[str]]:
+    """
+    Строит DataFrame с эффективными колонками ключа unique (с учётом key_transforms).
+    Возвращает (frame_только_с_ключами, список_имён_эффективных_колонок).
+    """
+    transforms = rule.get("key_transforms") or rule.get("key_column_transforms") or {}
+    if not isinstance(transforms, dict):
+        transforms = {}
+    out = pd.DataFrame(index=df.index)
+    effective: List[str] = []
+    for col in key_columns:
+        spec = transforms.get(col)
+        if isinstance(spec, dict) and spec:
+            eff = f"_uq_key_{col}"
+            out[eff] = df[col].map(lambda v, s=spec: _unique_key_transform_value(v, s))
+            effective.append(eff)
+        else:
+            out[col] = df[col]
+            effective.append(col)
+    return out, effective
+
+
+def _unique_key_label(col: str, rule: Dict[str, Any]) -> str:
+    """Подпись колонки ключа для свода (с пометкой left:N при transform)."""
+    transforms = rule.get("key_transforms") or rule.get("key_column_transforms") or {}
+    if not isinstance(transforms, dict):
+        return col
+    spec = transforms.get(col)
+    if not isinstance(spec, dict) or not spec:
+        return col
+    t = str(spec.get("type") or "").strip().lower()
+    if t in ("left", "left_chars", "prefix", "substr_left"):
+        length = int(spec.get("length", spec.get("chars", 0)) or 0)
+        if length > 0:
+            return f"{col}[:{length}]"
+    return col
+
+
 def _unique_cell_compare_str(val: Any) -> str:
     """Строка для сравнения в условиях области unique_scope (после нормализации)."""
     if val is None:
@@ -554,8 +614,9 @@ def _run_unique_check(sheets_data: Dict[str, Any], rule: Dict[str, Any]) -> None
         active = _unique_active_row_mask(df, rule)
         result_col = pd.Series("", index=df.index, dtype=object)
         if active.any():
-            sub = df.loc[active]
-            dup_counts = sub.groupby(key_columns, dropna=False)[key_columns[0]].transform("count")
+            key_frame, eff_keys = _unique_effective_key_frame(df.loc[active], key_columns, rule)
+            # transform("count") нужен любой столбец той же длины; берём первый эффективный ключ
+            dup_counts = key_frame.groupby(eff_keys, dropna=False)[eff_keys[0]].transform("count")
 
             def _dup_label(n: Any) -> str:
                 k = int(n) if not pd.isna(n) else 0
@@ -1089,9 +1150,12 @@ def collect_unique_result(
     total = int(active.sum())
     sample = []
     if n_violations > 0 and key_columns and all(c in df.columns for c in key_columns):
-        dup_df = df.loc[violations_mask, key_columns + [col_name]].copy()
-        dup_df["_row"] = dup_df.index
-        grouped = dup_df.groupby(key_columns, dropna=False)
+        viol_df = df.loc[violations_mask]
+        key_frame, eff_keys = _unique_effective_key_frame(viol_df, key_columns, rule)
+        sample_df = key_frame.copy()
+        sample_df[col_name] = viol_df[col_name].values
+        sample_df["_row"] = viol_df.index
+        grouped = sample_df.groupby(eff_keys, dropna=False)
         for key_vals, grp in grouped:
             if len(grp) < 2:
                 continue
@@ -2049,7 +2113,8 @@ def _rule_to_description_columns(rule: Dict[str, Any]) -> Dict[str, str]:
             comment = f"фильтр src: {sc!r}; фильтр ref: {rc!r}".strip()
     elif t == "unique":
         table_src = rule.get("sheet", "")
-        field_src = ", ".join(rule.get("key_columns") or [])
+        key_cols = rule.get("key_columns") or []
+        field_src = ", ".join(_unique_key_label(c, rule) for c in key_cols)
         param = "нет дублей"
         conds = _normalize_unique_scope_conditions(rule)
         if conds:
@@ -2060,6 +2125,19 @@ def _rule_to_description_columns(rule: Dict[str, Any]) -> Dict[str, str]:
         if req:
             extra = f"только при непустых: {', '.join(req)}"
             comment = f"{comment}; {extra}" if comment else extra
+        transforms = rule.get("key_transforms") or rule.get("key_column_transforms") or {}
+        if isinstance(transforms, dict) and transforms:
+            parts = []
+            for col, spec in transforms.items():
+                if not isinstance(spec, dict):
+                    continue
+                t_tr = str(spec.get("type") or "").strip().lower()
+                if t_tr in ("left", "left_chars", "prefix", "substr_left"):
+                    length = int(spec.get("length", spec.get("chars", 0)) or 0)
+                    parts.append(f"{col}[:{length}]" if length > 0 else str(col))
+            if parts:
+                extra = "ключ с преобразованием: " + ", ".join(parts)
+                comment = f"{comment}; {extra}" if comment else extra
     elif t == "field_length":
         table_src = rule.get("sheet", "")
         fields_cfg = rule.get("fields") or {}

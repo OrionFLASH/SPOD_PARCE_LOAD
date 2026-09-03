@@ -927,17 +927,20 @@ SPOD_PROM/
 | **`unique_scope_conditions`** | Массив объектов **`{ "column": "…", "value": "…" }`**. Сравнение: нормализованная строка ячейки (`strip`) с **`str(value).strip()`**; для `NaN`/пустой ячейки слева получается пустая строка. **Пустой массив `[]`** — **нет фильтра по области**, участвуют все строки (с учётом `unique_require_non_empty`). |
 | **`unique_scope_column`**, **`unique_scope_value`** | Устаревшая **одна** пара; учитывается только если **`unique_scope_conditions`** пуст или отсутствует (эквивалент одного элемента в массиве, режим **И**). В шаблоне проекта для новых правил обычно **`""`** / **`""`**. |
 | **`unique_require_non_empty`** | Список имён колонок. Строка **исключается** из проверки, если **хотя бы одна** из перечисленных колонок считается пустой: `NaN`, пустая строка после `strip`, литералы **`"-"`**, **`"None"`**, **`"null"`** (как при отборе «пустых» в духе проверок длины). **Пустой массив `[]`** — ограничение не действует. |
+| **`key_transforms`** | Опционально: колонка из **`key_columns`** → `{ "type": "left", "length": N }` — в ключ уникальности идут **первые N символов** (для «Дата создания» обычно дата `YYYY-MM-DD`). Алиас: **`key_column_transforms`**. |
 
 **Как формируется результат по строкам (фаза 1, `consistency_checks`):**
 
 1. Вычисляется маска **активных** строк: выполнена **область** (`unique_scope_*`) **и** для всех колонок из **`unique_require_non_empty`** значения непустые.
 2. Для **неактивных** строк в колонке «ДУБЛЬ: …» остаётся **пусто** — это не «ошибка» и не дубль: правило к строке **не применялось**.
-3. Только для **активных** строк выполняется **`groupby(key_columns)`** и подсчёт числа строк с одинаковым ключом; при числе **> 1** в ячейку пишется **`xN`**.
+3. Только для **активных** строк выполняется **`groupby`** по эффективному ключу (**`key_columns`** + опциональные **`key_transforms`**) и подсчёт числа строк с одинаковым ключом; при числе **> 1** в ячейку пишется **`xN`**.
 4. В сводном листе **CONSISTENCY** для этого правила поле **`total_rows`** — количество **активных** строк (а не всех строк листа).
 
 **Пример смысловой:** правило **`unique_employee_kpk_gosb`** — уникальность тройки **POSITION_NAME, KPK_CODE, ORG_UNIT_CODE** только среди строк, где **POSITION_NAME** = **КПК**, и при **непустом** **KPK_CODE**; остальные строки EMPLOYEE в этой колонке проверки пустые.
 
-**Реализация в коде** (`src/consistency_checks.py`): **`_normalize_unique_scope_conditions`**, **`_unique_scope_mode`**, **`_unique_scope_mask`**, **`_unique_require_non_empty_mask`**, **`_unique_active_row_mask`**, **`_unique_cell_is_empty`**, логика в **`_run_unique_check`** и **`collect_unique_result`**.
+**Пример LIST-REWARDS (PROM):** правило **`unique_list_rewards_tournament_reward_person_created10`** — нет дублей по **Код турнира + Код награды + Табельный номер сотрудника + первые 10 символов «Дата создания»**; **`blocks: ["PROM"]`**, **`enabled: true`**.
+
+**Реализация в коде** (`src/consistency_checks.py`): **`_normalize_unique_scope_conditions`**, **`_unique_scope_mode`**, **`_unique_scope_mask`**, **`_unique_require_non_empty_mask`**, **`_unique_active_row_mask`**, **`_unique_cell_is_empty`**, **`_unique_key_transform_value`**, **`_unique_effective_key_frame`**, логика в **`_run_unique_check`** и **`collect_unique_result`**.
 
 **Парсинг ADD_DATA (REWARD и др.):** в модуле **consistency_checks** функция **`_parse_add_data_cell(val)`** разбирает ячейку: `str(val).replace('"""', '"')`, затем `json.loads(normalized)`. Возвращает `dict` или `None` при ошибке. Так обрабатываются поля с тройными кавычками в CSV. Проверки **json_field_equals_column**, **json_field_in_column** и **json_priority_unique_per_contest_link** используют тот же разбор (**`_parse_add_data_cell_with_normalized`** / **`_parse_add_data_cell`**), дублирования логики парсинга нет.
 
