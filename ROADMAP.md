@@ -505,4 +505,5 @@ IN/
 | 22.1 | `key_transforms` (type `left` / `left_chars`) в `unique` (`consistency_checks.py`) | [v] |
 | 22.2 | Правило `unique_list_rewards_…` в `CONFIG_CHECKS.json`, `blocks: ["PROM"]`, `enabled: true` | [v] |
 | 22.3 | Тесты, Docs (CONSISTENCY_CHECKS_FORMAT, SQL mirror), README | [v] |
+| 22.4 | Фикс: листы с `include_in_source: false` (LIST-REWARDS) всё равно участвуют в consistency | [v] |
 

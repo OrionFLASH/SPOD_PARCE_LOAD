@@ -4561,6 +4561,39 @@ def collect_duplicates_and_validation_report(sheets_data: Dict[str, Any]) -> tup
 
 
 @debug_timed()
+def build_raw_sheets_data_for_consistency(
+    raw_sheets: Dict[str, Any],
+    sheets_data: Dict[str, Any],
+) -> Dict[str, Any]:
+    """
+    Собирает словарь листов для проверок консистентности.
+
+    База — raw_sheets (листы с include_in_source=true, сырой CSV).
+    Листы с include_in_source=false (например LIST-REWARDS) в raw_sheets не попадают
+    и иначе пропускались бы правилами consistency: их добавляем копией из sheets_data
+    (уже после разворота JSON, до merge) — только для проверок, не для source Excel.
+    """
+    out: Dict[str, Any] = {
+        s: (raw_sheets[s][0], raw_sheets[s][1]) for s in raw_sheets
+    }
+    for sheet_name, item in sheets_data.items():
+        if sheet_name in out:
+            continue
+        if not isinstance(item, (list, tuple)) or len(item) < 2:
+            continue
+        df, conf = item[0], item[1]
+        if not isinstance(df, pd.DataFrame):
+            continue
+        out[sheet_name] = (df.copy(), conf)
+        logging.info(
+            "[CONSISTENCY] Лист «%s» добавлен в проверки "
+            "(нет в source / include_in_source=false)",
+            sheet_name,
+        )
+    return out
+
+
+@debug_timed()
 def copy_consistency_results_from_raw_to_processed(
     raw_sheets_data: Dict[str, Any],
     sheets_data: Dict[str, Any],
@@ -5320,7 +5353,7 @@ def _run_pipeline_for_block(block: str, log_file: str) -> None:
 
     # 5. Проверки консистентности на сырых данных (до EMPLOYEE, merge и т.д.); результаты потом попадут в конец листов
     summary_sheet_name = (CONSISTENCY_CHECKS or {}).get("summary_sheet_name", "CONSISTENCY")
-    raw_sheets_data = {s: (raw_sheets[s][0], raw_sheets[s][1]) for s in raw_sheets}
+    raw_sheets_data = build_raw_sheets_data_for_consistency(raw_sheets, sheets_data)
     # Число колонок и строк в сырых CSV — фиксируем до проверок (проверки добавляют колонки на листы)
     raw_counts = {}
     for s in raw_sheets_data:
