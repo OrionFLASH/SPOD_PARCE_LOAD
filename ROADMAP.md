@@ -491,3 +491,18 @@ IN/
 | 21.A | `array_value_keys`: helpCodeList, seasonItem → `[]` | [v] |
 | 21.B | CONFIG_CHECKS + Docs + тесты | [v] |
 
+---
+
+## Пункт 22 — Unique LIST-REWARDS: составной ключ + первые 10 символов даты (PROM)
+
+Цель: на листе **LIST-REWARDS** не допускать дублей по составному ключу
+**Код турнира + Код награды + Табельный номер сотрудника + первые 10 символов «Дата создания»**.
+Правило включено только для блока **PROM**.
+
+| # | Задача | Статус |
+|---|--------|--------|
+| 22.0 | ROADMAP / описание задачи | [v] |
+| 22.1 | `key_transforms` (type `left` / `left_chars`) в `unique` (`consistency_checks.py`) | [v] |
+| 22.2 | Правило `unique_list_rewards_…` в `CONFIG_CHECKS.json`, `blocks: ["PROM"]`, `enabled: true` | [v] |
+| 22.3 | Тесты, Docs (CONSISTENCY_CHECKS_FORMAT, SQL mirror), README | [v] |
+

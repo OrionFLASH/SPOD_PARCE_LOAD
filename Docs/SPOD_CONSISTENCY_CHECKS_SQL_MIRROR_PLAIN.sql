@@ -428,6 +428,33 @@ v_uq_emp_pa AS (
     ) x
 ),
 
+v_uq_list_rewards AS (
+    SELECT
+        CONCAT_WS(
+            '|',
+            CAST(x.tournament_code AS STRING),
+            CAST(x.reward_code AS STRING),
+            CAST(x.person_number AS STRING),
+            CAST(x.created_ymd AS STRING)
+        ) AS detail_key,
+        CONCAT('Дубликат LIST-REWARDS (турнир|награда|табельный|дата[:10]): строк=', CAST(x.cnt AS STRING)) AS detail_message
+    FROM (
+        SELECT
+            `Код турнира` AS tournament_code,
+            `Код награды` AS reward_code,
+            `Табельный номер сотрудника` AS person_number,
+            SUBSTR(CAST(`Дата создания` AS STRING), 1, 10) AS created_ymd,
+            COUNT(*) AS cnt
+        FROM spod_dq.t_list_rewards
+        GROUP BY
+            `Код турнира`,
+            `Код награды`,
+            `Табельный номер сотрудника`,
+            SUBSTR(CAST(`Дата создания` AS STRING), 1, 10)
+        HAVING COUNT(*) > 1
+    ) x
+),
+
 v_uq_emp_kpk AS (
     SELECT
         CONCAT_WS('|', CAST(x.POSITION_NAME AS STRING), CAST(x.KPK_CODE AS STRING), CAST(x.ORG_UNIT_CODE AS STRING)) AS detail_key,
@@ -518,6 +545,7 @@ chk_summary AS (
     UNION ALL SELECT (SELECT COUNT(*) FROM v_uq_ursb)
     UNION ALL SELECT (SELECT COUNT(*) FROM v_uq_emp_p)
     UNION ALL SELECT (SELECT COUNT(*) FROM v_uq_emp_pa)
+    UNION ALL SELECT (SELECT COUNT(*) FROM v_uq_list_rewards)
     UNION ALL SELECT (SELECT COUNT(*) FROM v_uq_emp_kpk)
     UNION ALL SELECT (SELECT COUNT(*) FROM v_fl_org)
     UNION ALL SELECT (SELECT COUNT(*) FROM v_fl_emp)
@@ -557,6 +585,7 @@ chk_detail AS (
     UNION ALL SELECT detail_key, detail_message FROM v_uq_ursb
     UNION ALL SELECT detail_key, detail_message FROM v_uq_emp_p
     UNION ALL SELECT detail_key, detail_message FROM v_uq_emp_pa
+    UNION ALL SELECT detail_key, detail_message FROM v_uq_list_rewards
     UNION ALL SELECT detail_key, detail_message FROM v_uq_emp_kpk
     UNION ALL SELECT detail_key, detail_message FROM v_fl_org
     UNION ALL SELECT detail_key, detail_message FROM v_fl_emp
