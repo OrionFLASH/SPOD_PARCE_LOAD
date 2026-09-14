@@ -1,0 +1,691 @@
+[
+  {
+    "tbCode": [],
+    "gosbCode": [],
+    "roleCode": [
+      "RUK_KPK_KKSB"
+    ],
+    "employeeNumber": [],
+    "employeeStatus": [],
+    "businessBlockToView": [
+      "KMKKSB",
+      "MNS",
+      "CSM",
+      "AKMKKSB"
+    ]
+  },
+  {
+    "tbCode": [],
+    "gosbCode": [],
+    "roleCode": [
+      "AKM_KKSB"
+    ],
+    "employeeNumber": [],
+    "employeeStatus": [],
+    "businessBlockToView": [
+      "KMKKSB",
+      "MNS",
+      "CSM",
+      "AKMKKSB"
+    ]
+  },
+  {
+    "tbCode": [],
+    "gosbCode": [],
+    "roleCode": [
+      "KI_KIB"
+    ],
+    "employeeNumber": [],
+    "employeeStatus": [],
+    "businessBlockToView": [
+      "KMKKSB",
+      "KMFACTORING",
+      "MNS",
+      "CSM",
+      "AKMKKSB"
+    ]
+  },
+  {
+    "tbCode": [],
+    "gosbCode": [],
+    "roleCode": [
+      "RUK_N_UPR_KKSB"
+    ],
+    "employeeNumber": [],
+    "employeeStatus": [],
+    "businessBlockToView": [
+      "KMKKSB",
+      "MNS",
+      "CSM",
+      "AKMKKSB"
+    ]
+  },
+  {
+    "tbCode": [],
+    "gosbCode": [],
+    "roleCode": [
+      "GMNS"
+    ],
+    "employeeNumber": [],
+    "employeeStatus": [],
+    "businessBlockToView": [
+      "KMKKSB",
+      "MNS",
+      "CSM",
+      "AKMKKSB"
+    ]
+  },
+  {
+    "tbCode": [],
+    "gosbCode": [],
+    "roleCode": [
+      "DMMB_CA"
+    ],
+    "employeeNumber": [],
+    "employeeStatus": [],
+    "businessBlockToView": [
+      "MKKMMB"
+    ]
+  },
+  {
+    "tbCode": [],
+    "gosbCode": [],
+    "roleCode": [
+      "MKK_MMB"
+    ],
+    "employeeNumber": [],
+    "employeeStatus": [],
+    "businessBlockToView": [
+      "MKKMMB"
+    ]
+  },
+  {
+    "tbCode": [],
+    "gosbCode": [],
+    "roleCode": [
+      "MKK_MMB_NOT_UCH"
+    ],
+    "employeeNumber": [],
+    "employeeStatus": [],
+    "businessBlockToView": [
+      "MKKMMB"
+    ]
+  },
+  {
+    "tbCode": [],
+    "gosbCode": [],
+    "roleCode": [
+      "DMMB_CA_TOP"
+    ],
+    "employeeNumber": [],
+    "employeeStatus": [],
+    "businessBlockToView": [
+      "MKKMMB",
+      "KMKKSB",
+      "AKMKKSB",
+      "CSM"
+    ]
+  },
+  {
+    "tbCode": [],
+    "gosbCode": [],
+    "roleCode": [
+      "RUK_MNS"
+    ],
+    "employeeNumber": [],
+    "employeeStatus": [],
+    "businessBlockToView": [
+      "KMKKSB",
+      "MNS",
+      "CSM",
+      "AKMKKSB"
+    ]
+  },
+  {
+    "tbCode": [],
+    "gosbCode": [],
+    "roleCode": [
+      "SERVICEMEN_LOOK"
+    ],
+    "employeeNumber": [],
+    "employeeStatus": [],
+    "businessBlockToView": [
+      "SERVICEMEN"
+    ]
+  },
+  {
+    "tbCode": [],
+    "gosbCode": [],
+    "roleCode": [
+      "RUK_SERVICEMEN_TOP"
+    ],
+    "employeeNumber": [],
+    "employeeStatus": [],
+    "businessBlockToView": [
+      "SERVICEMEN"
+    ]
+  },
+  {
+    "tbCode": [],
+    "gosbCode": [],
+    "roleCode": [
+      "FAKTORING_LOOK"
+    ],
+    "employeeNumber": [],
+    "employeeStatus": [],
+    "businessBlockToView": [
+      "KMFACTORING"
+    ]
+  },
+  {
+    "tbCode": [],
+    "gosbCode": [],
+    "roleCode": [
+      "CA_DTFF_LOOK"
+    ],
+    "employeeNumber": [],
+    "employeeStatus": [],
+    "businessBlockToView": [
+      "KMFACTORING",
+      "KMKKSB"
+    ]
+  },
+  {
+    "tbCode": [],
+    "gosbCode": [],
+    "roleCode": [
+      "RUK_FAKTORING_TOP"
+    ],
+    "employeeNumber": [],
+    "employeeStatus": [],
+    "businessBlockToView": [
+      "KMFACTORING"
+    ]
+  },
+  {
+    "tbCode": [],
+    "gosbCode": [],
+    "roleCode": [
+      "GAME_ADMIN"
+    ],
+    "employeeNumber": [],
+    "employeeStatus": [],
+    "businessBlockToView": [
+      "KMKKSB",
+      "MKKMMB",
+      "MNS",
+      "SERVICEMEN",
+      "KMSB1",
+      "IMUB",
+      "RNUB",
+      "RSB1",
+      "KMFACTORING",
+      "AKMKKSB",
+      "CSM"
+    ]
+  },
+  {
+    "tbCode": [],
+    "gosbCode": [],
+    "roleCode": [
+      "RUK_SB1_LOOK"
+    ],
+    "employeeNumber": [],
+    "employeeStatus": [],
+    "businessBlockToView": [
+      "KMSB1",
+      "RSB1"
+    ]
+  },
+  {
+    "tbCode": [],
+    "gosbCode": [],
+    "roleCode": [
+      "TB_B2C_LOOK"
+    ],
+    "employeeNumber": [],
+    "employeeStatus": [],
+    "businessBlockToView": [
+      "KMSB1",
+      "IMUB",
+      "RNUB",
+      "RSB1"
+    ]
+  },
+  {
+    "tbCode": [],
+    "gosbCode": [],
+    "roleCode": [
+      "OTHER_B2C_LOOK"
+    ],
+    "employeeNumber": [],
+    "employeeStatus": [],
+    "businessBlockToView": [
+      "KMSB1",
+      "IMUB",
+      "RNUB",
+      "RSB1"
+    ]
+  },
+  {
+    "tbCode": [],
+    "gosbCode": [],
+    "roleCode": [
+      "CA_B2C_TOP"
+    ],
+    "employeeNumber": [],
+    "employeeStatus": [],
+    "businessBlockToView": [
+      "KMSB1",
+      "IMUB",
+      "RNUB",
+      "RSB1"
+    ]
+  },
+  {
+    "tbCode": [],
+    "gosbCode": [],
+    "roleCode": [
+      "CA_B2C"
+    ],
+    "employeeNumber": [],
+    "employeeStatus": [],
+    "businessBlockToView": [
+      "KMSB1",
+      "IMUB",
+      "RNUB",
+      "RSB1"
+    ]
+  },
+  {
+    "tbCode": [],
+    "gosbCode": [],
+    "roleCode": [
+      "ZAM_UPR_GOSB_KIB",
+      "ZAM_UPR_GOSB_KIB_M"
+    ],
+    "employeeNumber": [],
+    "employeeStatus": [],
+    "businessBlockToView": [
+      "KMKKSB",
+      "MNS",
+      "CSM",
+      "MKKMMB",
+      "AKMKKSB"
+    ]
+  },
+  {
+    "tbCode": [],
+    "gosbCode": [],
+    "roleCode": [
+      "MP_TB_KKSB"
+    ],
+    "employeeNumber": [],
+    "employeeStatus": [],
+    "businessBlockToView": [
+      "KMKKSB",
+      "MNS",
+      "CSM",
+      "AKMKKSB"
+    ]
+  },
+  {
+    "tbCode": [],
+    "gosbCode": [],
+    "roleCode": [
+      "ZAM_UPR_GOSB_OTHER"
+    ],
+    "employeeNumber": [],
+    "employeeStatus": [],
+    "businessBlockToView": [
+      "KMKKSB",
+      "MKKMMB",
+      "MNS",
+      "CSM",
+      "AKMKKSB"
+    ]
+  },
+  {
+    "tbCode": [],
+    "gosbCode": [],
+    "roleCode": [
+      "DTAAS_CSM"
+    ],
+    "employeeNumber": [],
+    "employeeStatus": [],
+    "businessBlockToView": [
+      "KMKKSB",
+      "MNS",
+      "CSM",
+      "AKMKKSB"
+    ]
+  },
+  {
+    "tbCode": [],
+    "gosbCode": [],
+    "roleCode": [
+      "RUK_DTAAS_CSM"
+    ],
+    "employeeNumber": [],
+    "employeeStatus": [],
+    "businessBlockToView": [
+      "KMKKSB",
+      "MNS",
+      "CSM",
+      "AKMKKSB"
+    ]
+  },
+  {
+    "tbCode": [],
+    "gosbCode": [],
+    "roleCode": [
+      "UPR_GOSB"
+    ],
+    "employeeNumber": [],
+    "employeeStatus": [],
+    "businessBlockToView": [
+      "KMKKSB",
+      "MKKMMB",
+      "MNS",
+      "CSM",
+      "AKMKKSB"
+    ]
+  },
+  {
+    "tbCode": [],
+    "gosbCode": [],
+    "roleCode": [
+      "RUK_CPKK"
+    ],
+    "employeeNumber": [],
+    "employeeStatus": [],
+    "businessBlockToView": [
+      "KMKKSB",
+      "MNS",
+      "CSM",
+      "AKMKKSB"
+    ]
+  },
+  {
+    "tbCode": [],
+    "gosbCode": [],
+    "roleCode": [
+      "PRED_TB"
+    ],
+    "employeeNumber": [],
+    "employeeStatus": [],
+    "businessBlockToView": [
+      "KMKKSB",
+      "MNS",
+      "CSM",
+      "MKKMMB",
+      "AKMKKSB"
+    ]
+  },
+  {
+    "tbCode": [],
+    "gosbCode": [],
+    "roleCode": [
+      "ZAM_PRED_TB_KIB"
+    ],
+    "employeeNumber": [],
+    "employeeStatus": [],
+    "businessBlockToView": [
+      "KMKKSB",
+      "MKKMMB",
+      "MNS",
+      "CSM",
+      "AKMKKSB"
+    ]
+  },
+  {
+    "tbCode": [],
+    "gosbCode": [],
+    "roleCode": [
+      "SB_TOP"
+    ],
+    "employeeNumber": [],
+    "employeeStatus": [],
+    "businessBlockToView": [
+      "KMKKSB",
+      "MKKMMB",
+      "MNS",
+      "CSM",
+      "AKMKKSB"
+    ]
+  },
+  {
+    "tbCode": [],
+    "gosbCode": [],
+    "roleCode": [
+      "KIB_TOP"
+    ],
+    "employeeNumber": [],
+    "employeeStatus": [],
+    "businessBlockToView": [
+      "KMKKSB",
+      "MKKMMB",
+      "MNS",
+      "CSM",
+      "AKMKKSB"
+    ]
+  },
+  {
+    "tbCode": [],
+    "gosbCode": [],
+    "roleCode": [
+      "DRKB_CA_TOP",
+      "DRKB_CA",
+      "DRKB_CA_PRODUCT",
+      "CA_OTHER"
+    ],
+    "employeeNumber": [],
+    "employeeStatus": [],
+    "businessBlockToView": [
+      "KMKKSB",
+      "MNS",
+      "CSM",
+      "AKMKKSB"
+    ]
+  },
+  {
+    "tbCode": [],
+    "gosbCode": [],
+    "roleCode": [
+      "OTHER_NOT_UCH"
+    ],
+    "employeeNumber": [],
+    "employeeStatus": [],
+    "businessBlockToView": [
+      "KMKKSB",
+      "MNS",
+      "CSM",
+      "AKMKKSB"
+    ]
+  },
+  {
+    "tbCode": [],
+    "gosbCode": [],
+    "roleCode": [
+      "ZAM_PRED_TB_RB_SP"
+    ],
+    "employeeNumber": [],
+    "employeeStatus": [],
+    "businessBlockToView": [
+      "KMKKSB",
+      "MNS",
+      "MKKMMB",
+      "CSM",
+      "AKMKKSB"
+    ]
+  },
+  {
+    "tbCode": [],
+    "gosbCode": [],
+    "roleCode": [
+      "DIR_UPR_UTB_M"
+    ],
+    "employeeNumber": [],
+    "employeeStatus": [],
+    "businessBlockToView": [
+      "KMKKSB",
+      "MNS",
+      "MKKMMB",
+      "CSM",
+      "AKMKKSB"
+    ]
+  },
+  {
+    "tbCode": [],
+    "gosbCode": [],
+    "roleCode": [
+      "LEASING_LOOK"
+    ],
+    "employeeNumber": [],
+    "employeeStatus": [],
+    "businessBlockToView": [
+      "KMKKSB"
+    ]
+  },
+  {
+    "tbCode": [],
+    "gosbCode": [],
+    "roleCode": [
+      "RUK_FAKTORING_TOP"
+    ],
+    "employeeNumber": [],
+    "employeeStatus": [],
+    "businessBlockToView": [
+      "KMFACTORING"
+    ]
+  },
+  {
+    "tbCode": [],
+    "gosbCode": [],
+    "roleCode": [],
+    "employeeNumber": [],
+    "employeeStatus": [
+      "ADMINISTRATOR"
+    ],
+    "businessBlockToView": [
+      "KMKKSB",
+      "MNS",
+      "MKKMMB",
+      "SERVICEMEN",
+      "KMSB1",
+      "IMUB",
+      "RNUB",
+      "RSB1",
+      "KMFACTORING",
+      "AKMKKSB",
+      "CSM"
+    ]
+  },
+  {
+    "tbCode": [],
+    "gosbCode": [],
+    "roleCode": [],
+    "employeeNumber": [],
+    "employeeStatus": [],
+    "businessBlockToView": [
+      "KMKKSB"
+    ]
+  },
+  {
+    "tbCode": [],
+    "gosbCode": [],
+    "roleCode": [
+      "KM_KKSB",
+      "KM_MNS"
+    ],
+    "employeeNumber": [],
+    "employeeStatus": [],
+    "businessBlockToView": [
+      "KMKKSB",
+      "MNS",
+      "CSM",
+      "AKMKKSB"
+    ]
+  },
+  {
+    "tbCode": [],
+    "gosbCode": [],
+    "roleCode": [
+      "MR_SERVICE"
+    ],
+    "employeeNumber": [],
+    "employeeStatus": [],
+    "businessBlockToView": [
+      "SERVICEMEN"
+    ]
+  },
+  {
+    "tbCode": [],
+    "gosbCode": [],
+    "roleCode": [
+      "KM_FAKTORING",
+      "DTFF_SALE"
+    ],
+    "employeeNumber": [],
+    "employeeStatus": [],
+    "businessBlockToView": [
+      "KMFACTORING"
+    ]
+  },
+  {
+    "tbCode": [],
+    "gosbCode": [],
+    "roleCode": [
+      "KM_SB1"
+    ],
+    "employeeNumber": [],
+    "employeeStatus": [],
+    "businessBlockToView": [
+      "KMSB1",
+      "RSB1"
+    ]
+  },
+  {
+    "tbCode": [],
+    "gosbCode": [],
+    "roleCode": [
+      "INV_MR_SB1"
+    ],
+    "employeeNumber": [],
+    "employeeStatus": [],
+    "businessBlockToView": [
+      "KMSB1",
+      "IMUB",
+      "RNUB",
+      "RSB1"
+    ]
+  },
+  {
+    "tbCode": [],
+    "gosbCode": [],
+    "roleCode": [
+      "RUK_NUB"
+    ],
+    "employeeNumber": [],
+    "employeeStatus": [],
+    "businessBlockToView": [
+      "KMSB1",
+      "IMUB",
+      "RNUB",
+      "RSB1"
+    ]
+  },
+  {
+    "tbCode": [],
+    "gosbCode": [],
+    "roleCode": [
+      "RUK_SB1"
+    ],
+    "employeeNumber": [],
+    "employeeStatus": [],
+    "businessBlockToView": [
+      "KMSB1",
+      "RSB1"
+    ]
+  }
+]
