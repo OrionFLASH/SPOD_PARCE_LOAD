@@ -507,3 +507,16 @@ IN/
 | 22.3 | Тесты, Docs (CONSISTENCY_CHECKS_FORMAT, SQL mirror), README | [v] |
 | 22.4 | Фикс: листы с `include_in_source: false` (LIST-REWARDS) всё равно участвуют в consistency | [v] |
 
+---
+
+## Пункт 23 — JSON ролей/блоков → Excel (один файл)
+
+Короткая утилита без внешних конфигов: разбор двух JSON в xlsx.
+
+| # | Задача | Статус |
+|---|--------|--------|
+| 23.0 | ROADMAP / описание задачи | [v] |
+| 23.1 | `json_roles_to_excel.py`: разбор `число:ключ:значение` в строки | [v] |
+| 23.2 | Разбор `roleCodeBusinessBlockView` в логичные листы | [v] |
+| 23.3 | Прогон на входных JSON, проверка xlsx | [v] |
+
