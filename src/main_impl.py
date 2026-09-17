@@ -2872,10 +2872,77 @@ def collect_summary_keys_optimized(dfs):
 
 
 
+# Допустимые режимы сравнения ключей merge (см. key_compare в CONFIG_MERGE)
+KEY_COMPARE_EXACT = "exact"
+KEY_COMPARE_NUMBER_AS_TEXT = "number_as_text"
+_KEY_COMPARE_ALLOWED = frozenset({KEY_COMPARE_EXACT, KEY_COMPARE_NUMBER_AS_TEXT})
+
+
+def _normalize_key_compare_mode(raw: Any) -> str:
+    """
+    Нормализует значение key_compare из правила merge.
+    По умолчанию exact (строгое сравнение, как раньше).
+    """
+    if raw is None or (isinstance(raw, float) and pd.isna(raw)):
+        return KEY_COMPARE_EXACT
+    s = str(raw).strip().lower()
+    if not s:
+        return KEY_COMPARE_EXACT
+    if s in _KEY_COMPARE_ALLOWED:
+        return s
+    logging.warning(
+        f"[MERGE] Неизвестный key_compare={raw!r}, используем '{KEY_COMPARE_EXACT}' "
+        f"(допустимо: {sorted(_KEY_COMPARE_ALLOWED)})"
+    )
+    return KEY_COMPARE_EXACT
+
+
+def _normalize_merge_key_value(val: Any, key_compare: str = KEY_COMPARE_EXACT) -> Any:
+    """
+    Нормализация одной части ключа merge.
+
+    exact — значение как есть (прежнее поведение).
+    number_as_text — trim; целые числа без .0; 18, \"18\", \"18.0\" → \"18\".
+    """
+    mode = _normalize_key_compare_mode(key_compare)
+    if mode == KEY_COMPARE_EXACT:
+        return val
+    # number_as_text
+    if val is None:
+        return ""
+    try:
+        if pd.isna(val):
+            return ""
+    except (TypeError, ValueError):
+        pass
+    s = str(val).strip()
+    if not s or s == "-":
+        return ""
+    low = s.lower()
+    if low in ("nan", "none", "null"):
+        return ""
+    # Типографские/обычные кавычки вокруг значения («18», "18")
+    if len(s) >= 2 and (
+        (s[0] == s[-1] == '"')
+        or (s[0] == s[-1] == "'")
+        or (s[0] == "«" and s[-1] == "»")
+    ):
+        s = s[1:-1].strip()
+        if not s:
+            return ""
+    try:
+        num = float(s.replace(",", ".").replace(" ", "").replace("\u00a0", ""))
+        if abs(num - round(num)) < 1e-9:
+            return str(int(round(num)))
+    except (TypeError, ValueError):
+        pass
+    return s
+
+
 @debug_timed(hot=True, log_args_len=True)
 def add_fields_to_sheet(df_base, df_ref, src_keys, dst_keys, columns, sheet_name, ref_sheet_name, mode="value",
                         multiply_rows=False, count_prefix="COUNT", count_aggregation="size", count_label=None,
-                        source_rows_before_filter=None, applied_filters=None):
+                        source_rows_before_filter=None, applied_filters=None, key_compare=KEY_COMPARE_EXACT):
     """
     Добавляет к df_base поля из df_ref по ключам.
     Если mode == "value": подтягивает значения (первого найденного или всех при multiply_rows=True).
@@ -2886,9 +2953,14 @@ def add_fields_to_sheet(df_base, df_ref, src_keys, dst_keys, columns, sheet_name
     Если multiply_rows == False: берет первое найденное значение (по умолчанию).
     Если нужной колонки нет — создаёт её с дефолтными значениями "-".
     source_rows_before_filter / applied_filters: контекст, если df_ref пуст после фильтрации.
+    key_compare: "exact" — строгое сравнение ключей; "number_as_text" — 18 и "18" считаются равными.
     """
     func_start = time()
-    logging.info(f"[START] add_fields_to_sheet (лист: {sheet_name}, поля: {columns}, ключ: {dst_keys}->{src_keys}, mode: {mode}, multiply: {multiply_rows})")
+    key_compare = _normalize_key_compare_mode(key_compare)
+    logging.info(
+        f"[START] add_fields_to_sheet (лист: {sheet_name}, поля: {columns}, ключ: {dst_keys}->{src_keys}, "
+        f"mode: {mode}, multiply: {multiply_rows}, key_compare: {key_compare})"
+    )
     if isinstance(columns, str):
         columns = [columns]
     if isinstance(src_keys, str):
@@ -3019,13 +3091,13 @@ def add_fields_to_sheet(df_base, df_ref, src_keys, dst_keys, columns, sheet_name
                 # Если v — Series (например, из-за дублирующихся колонок), берём только первый элемент
                 if isinstance(v, pd.Series):
                     v = v.iloc[0]
-                result.append(v)
+                result.append(_normalize_merge_key_value(v, key_compare))
             return tuple(result)
         else:
             v = row[keys]
             if isinstance(v, pd.Series):
                 v = v.iloc[0]
-            return (v,)
+            return (_normalize_merge_key_value(v, key_compare),)
 
     # --- Добавлено: авто-дополнение отсутствующих колонок и ключей ---
     missing_cols = [col for col in columns if col not in df_ref.columns]
@@ -3046,16 +3118,23 @@ def add_fields_to_sheet(df_base, df_ref, src_keys, dst_keys, columns, sheet_name
 
 
     if mode == "count":
-        # ОПТИМИЗАЦИЯ v5.0: Векторизованное создание ключей (3-5x быстрее)
-        new_keys = _vectorized_tuple_key(df_base, dst_keys)
+        # Ключи с учётом key_compare (в т.ч. number_as_text для 18 ↔ "18")
+        new_keys = _vectorized_tuple_key(df_base, dst_keys, key_compare=key_compare)
+        df_ref_for_group = df_ref
+        if key_compare == KEY_COMPARE_NUMBER_AS_TEXT:
+            df_ref_for_group = df_ref.copy()
+            for k in src_keys:
+                df_ref_for_group[k] = df_ref_for_group[k].map(
+                    lambda v: _normalize_merge_key_value(v, key_compare)
+                )
         if count_aggregation == "nunique":
             col_to_count = columns[0] if columns else None
-            if col_to_count and col_to_count in df_ref.columns:
-                group_counts = df_ref.groupby(src_keys)[col_to_count].nunique()
+            if col_to_count and col_to_count in df_ref_for_group.columns:
+                group_counts = df_ref_for_group.groupby(src_keys)[col_to_count].nunique()
             else:
-                group_counts = df_ref.groupby(src_keys).size()
+                group_counts = df_ref_for_group.groupby(src_keys).size()
         else:
-            group_counts = df_ref.groupby(src_keys).size()
+            group_counts = df_ref_for_group.groupby(src_keys).size()
         
         count_dict = {key_tuple: count for key_tuple, count in group_counts.items()}
         
@@ -3077,18 +3156,19 @@ def add_fields_to_sheet(df_base, df_ref, src_keys, dst_keys, columns, sheet_name
                     df_base[count_col_name] = new_keys.map(count_dict).fillna(0).astype(int)
         func_time = time() - func_start
         logging.info(
-            f"[END] add_fields_to_sheet (лист: {sheet_name}, mode: count, agg: {count_aggregation}, ключ: {dst_keys}->{src_keys}) (время: {func_time:.3f}s)"
+            f"[END] add_fields_to_sheet (лист: {sheet_name}, mode: count, agg: {count_aggregation}, "
+            f"ключ: {dst_keys}->{src_keys}, key_compare: {key_compare}) (время: {func_time:.3f}s)"
         )
         return df_base
 
     # Создаем ключи для df_ref
     # ОПТИМИЗАЦИЯ v5.0: Векторизованное создание ключей (3-5x быстрее)
-    df_ref_keys = _vectorized_tuple_key(df_ref, src_keys)
+    df_ref_keys = _vectorized_tuple_key(df_ref, src_keys, key_compare=key_compare)
 
     if not multiply_rows:
         # Старая логика: первое найденное значение
         # ОПТИМИЗАЦИЯ v5.0: Векторизованное создание ключей (3-5x быстрее)
-        new_keys = _vectorized_tuple_key(df_base, dst_keys)
+        new_keys = _vectorized_tuple_key(df_base, dst_keys, key_compare=key_compare)
         
         # Оптимизация: собираем все новые колонки в словарь и добавляем их одним вызовом
         new_columns_dict = {}
@@ -3169,134 +3249,33 @@ def add_fields_to_sheet(df_base, df_ref, src_keys, dst_keys, columns, sheet_name
 
     return df_base
 
-def _vectorized_tuple_key(df, keys):
+
+def _vectorized_tuple_key(df, keys, key_compare: str = KEY_COMPARE_EXACT):
     """
-    ВЕКТОРИЗОВАННАЯ ВЕРСИЯ tuple_key: создает кортежи ключей для всего DataFrame сразу.
-    Ускорение: 3-5x по сравнению с apply(axis=1).
-    
+    Векторизованное создание кортежей ключей для всего DataFrame.
+
     Args:
         df: DataFrame
         keys: список ключей или один ключ
-        
+        key_compare: exact | number_as_text — режим нормализации частей ключа
+
     Returns:
         pd.Series с кортежами ключей
     """
+    mode = _normalize_key_compare_mode(key_compare)
+
+    def _series_as_key_parts(col_name: str) -> pd.Series:
+        ser = df[col_name]
+        if mode == KEY_COMPARE_EXACT:
+            return ser
+        return ser.map(lambda v: _normalize_merge_key_value(v, mode))
+
     if isinstance(keys, (list, tuple)):
         if len(keys) == 1:
-            # Один ключ - просто создаем кортеж
-            return df[keys[0]].apply(lambda x: (x,))
-        else:
-            # Несколько ключей - используем zip для векторизации
-            return pd.Series(list(zip(*[df[k] for k in keys])))
-    else:
-        # Один ключ (строка)
-        return df[keys].apply(lambda x: (x,))
-
-    # --- Добавлено: авто-дополнение отсутствующих колонок и ключей ---
-
-    # Создаем ключи для df_ref
-    # ОПТИМИЗАЦИЯ v5.0: Векторизованное создание ключей (3-5x быстрее)
-    df_ref_keys = _vectorized_tuple_key(df_ref, src_keys)
-
-    if not multiply_rows:
-        # Старая логика: первое найденное значение
-        # ОПТИМИЗАЦИЯ v5.0: Векторизованное создание ключей (3-5x быстрее)
-        new_keys = _vectorized_tuple_key(df_base, dst_keys)
-        
-        # Оптимизация: собираем все новые колонки в словарь и добавляем их одним вызовом
-        # Это предотвращает фрагментацию DataFrame и устраняет PerformanceWarning
-        new_columns_dict = {}
-        for col in columns:
-            ref_map = dict(zip(df_ref_keys, df_ref[col]))
-            new_col_name = f"{ref_sheet_name}=>{col}"
-            new_columns_dict[new_col_name] = new_keys.map(ref_map).fillna("-")
-        
-        # Добавляем все колонки одним вызовом через pd.concat для избежания фрагментации
-        if new_columns_dict:
-            new_columns_df = pd.DataFrame(new_columns_dict, index=df_base.index)
-            df_base = pd.concat([df_base, new_columns_df], axis=1)
-        
-        # Специально для REWARD_LINK =>CONTEST_CODE: auto-rename, если создали с дефисом
-        for col in columns:
-            new_col_name = f"{ref_sheet_name}=>{col}"
-            if new_col_name.replace("-", "_").replace(" ", "") == COL_REWARD_LINK_CONTEST_CODE.replace("-",
-                                                                                                       "_").replace(" ",
-                                                                                                                    ""):
-                candidates = [c for c in df_base.columns if
-                              c.replace("-", "_").replace(" ", "") == COL_REWARD_LINK_CONTEST_CODE.replace("-",
-                                                                                                           "_").replace(
-                                  " ", "")]
-                for cand in candidates:
-                    if cand != COL_REWARD_LINK_CONTEST_CODE:
-                        df_base = df_base.rename(columns={cand: COL_REWARD_LINK_CONTEST_CODE})
-    else:
-                # ОПТИМИЗИРОВАННАЯ ВЕРСИЯ: Используем pd.merge вместо iterrows для ускорения
-        logging.info(f"[MULTIPLY ROWS] {sheet_name}: начинаем размножение строк для поля {columns}")
-        old_rows_count = len(df_base)
-        
-        # Создаем ключи для обоих DataFrame
-        # ОПТИМИЗАЦИЯ v5.0: Векторизованное создание ключей (3-5x быстрее)
-        df_base_keys = _vectorized_tuple_key(df_base, dst_keys)
-        # ОПТИМИЗАЦИЯ v5.0: Векторизованное создание ключей (3-5x быстрее)
-        df_ref_keys = _vectorized_tuple_key(df_ref, src_keys)
-        
-        # Добавляем ключи как временные колонки
-        df_base_with_key = df_base.copy()
-        df_base_with_key['_temp_key'] = df_base_keys
-        
-        df_ref_with_key = df_ref.copy()
-        df_ref_with_key['_temp_key'] = df_ref_keys
-        
-        # Используем merge для объединения (left join сохраняет все строки из df_base)
-        merged = pd.merge(
-            df_base_with_key,
-            df_ref_with_key[['_temp_key'] + columns],
-            on='_temp_key',
-            how='left',
-            suffixes=('', '_ref')
-        )
-        
-        # Переименовываем колонки из df_ref
-        for col in columns:
-            new_col_name = f"{ref_sheet_name}=>{col}"
-            if col + '_ref' in merged.columns:
-                merged[new_col_name] = merged[col + '_ref'].fillna("-")
-                merged = merged.drop(columns=[col + '_ref'])
-            else:
-                merged[new_col_name] = "-"
-        
-        # Удаляем временный ключ
-        merged = merged.drop(columns=['_temp_key'])
-        
-        # Если были строки без совпадений, они уже обработаны через left join
-        df_base = merged.reset_index(drop=True)
-        new_rows_count = len(df_base)
-        multiply_factor = round(new_rows_count / old_rows_count, 2) if old_rows_count > 0 else 0
-        logging.info(
-            f"[MULTIPLY ROWS] {sheet_name}: {old_rows_count} строк -> {new_rows_count} строк (размножение: {multiply_factor}x)"
-        )
-
-        # Обработка специального случая для REWARD_LINK
-        for col in columns:
-            new_col_name = f"{ref_sheet_name}=>{col}"
-            if new_col_name.replace("-", "_").replace(" ", "") == COL_REWARD_LINK_CONTEST_CODE.replace("-",
-                                                                                                       "_").replace(" ",
-                                                                                                                    ""):
-                candidates = [c for c in df_base.columns if
-                              c.replace("-", "_").replace(" ", "") == COL_REWARD_LINK_CONTEST_CODE.replace("-",
-                                                                                                           "_").replace(
-                                  " ", "")]
-                for cand in candidates:
-                    if cand != COL_REWARD_LINK_CONTEST_CODE:
-                        df_base = df_base.rename(columns={cand: COL_REWARD_LINK_CONTEST_CODE})
-
-    func_time = time() - func_start
-    logging.info(
-        f"[END] add_fields_to_sheet (лист: {sheet_name}, поля: {columns}, ключ: {dst_keys}->{src_keys}, mode: {mode}, multiply: {multiply_rows}) (время: {func_time:.3f}s)"
-    )
-
-    return df_base
-
+            return _series_as_key_parts(keys[0]).apply(lambda x: (x,))
+        parts = [_series_as_key_parts(k) for k in keys]
+        return pd.Series(list(zip(*parts)), index=df.index)
+    return _series_as_key_parts(keys).apply(lambda x: (x,))
 
 
 def _transform_key_value(val: Any, spec: Dict[str, Any]) -> str:
@@ -3374,9 +3353,13 @@ def _process_single_merge_rule(rule, sheets_data_copy, count_column_prefix="COUN
     aggregate = rule.get("aggregate", None)
     count_aggregation = rule.get("count_aggregation", "size")
     count_label = rule.get("count_label", None)
+    key_compare = _normalize_key_compare_mode(rule.get("key_compare", KEY_COMPARE_EXACT))
     
     updated_sheets = {}
-    logging.info(f"[MERGE] {merge_name} (_process_single_merge_rule) правило: {sheet_src} -> {sheet_dst}, колонки: {col_names}, ключи: {dst_keys} <- {src_keys}, mode={mode}")
+    logging.info(
+        f"[MERGE] {merge_name} (_process_single_merge_rule) правило: {sheet_src} -> {sheet_dst}, "
+        f"колонки: {col_names}, ключи: {dst_keys} <- {src_keys}, mode={mode}, key_compare={key_compare}"
+    )
     if sheet_src in sheets_data_copy and sheets_data_copy[sheet_src] is not None:
         df_src_check = sheets_data_copy[sheet_src][0] if len(sheets_data_copy[sheet_src]) > 0 else None
         if df_src_check is not None and isinstance(df_src_check, pd.DataFrame):
@@ -3437,6 +3420,7 @@ def _process_single_merge_rule(rule, sheets_data_copy, count_column_prefix="COUN
         multiply_rows=multiply_rows, count_prefix=count_column_prefix,
         count_aggregation=count_aggregation, count_label=count_label,
         source_rows_before_filter=rows_before_filter, applied_filters=filter_ctx,
+        key_compare=key_compare,
     )
     
     # ИСПРАВЛЕНИЕ: Проверка на None после add_fields_to_sheet
@@ -3630,8 +3614,12 @@ def merge_fields_across_sheets(sheets_data, merge_fields, count_column_prefix="C
             aggregate = rule.get("aggregate", None)
             count_aggregation = rule.get("count_aggregation", "size")
             count_label = rule.get("count_label", None)
+            key_compare = _normalize_key_compare_mode(rule.get("key_compare", KEY_COMPARE_EXACT))
             
-            params_str = f"(src: {sheet_src} -> dst: {sheet_dst}, поля: {col_names}, ключ: {dst_keys}<-{src_keys}, mode: {mode}, multiply: {multiply_rows})"
+            params_str = (
+                f"(src: {sheet_src} -> dst: {sheet_dst}, поля: {col_names}, ключ: {dst_keys}<-{src_keys}, "
+                f"mode: {mode}, multiply: {multiply_rows}, key_compare: {key_compare})"
+            )
             
             if status_filters:
                 params_str += f", status_filters: {status_filters}"
@@ -3690,6 +3678,7 @@ def merge_fields_across_sheets(sheets_data, merge_fields, count_column_prefix="C
                 multiply_rows=multiply_rows, count_prefix=count_column_prefix,
                 count_aggregation=count_aggregation, count_label=count_label,
                 source_rows_before_filter=rows_before_filter, applied_filters=filter_ctx,
+                key_compare=key_compare,
             )
             
             # ИСПРАВЛЕНИЕ: Проверка на None после add_fields_to_sheet
@@ -4221,8 +4210,10 @@ def build_summary_sheet(dfs, params_summary, merge_fields):
         aggregate = field.get("aggregate", None)
         count_aggregation = field.get("count_aggregation", "size")
         count_label = field.get("count_label", None)
+        key_compare = _normalize_key_compare_mode(field.get("key_compare", KEY_COMPARE_EXACT))
         params_str = (
             f"(лист-источник: {sheet_src}, поля: {col_names}, ключ: {dst_keys}->{src_keys}, mode: {mode}"
+            f", key_compare: {key_compare}"
         )
         if status_filters:
             params_str += f", status_filters: {status_filters}"
@@ -4316,6 +4307,7 @@ def build_summary_sheet(dfs, params_summary, merge_fields):
                 count_label=count_label,
                 source_rows_before_filter=rows_before_filter,
                 applied_filters=filter_ctx,
+                key_compare=key_compare,
             )
 
             if summary is None:
