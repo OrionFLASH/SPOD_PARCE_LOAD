@@ -365,7 +365,7 @@
       "custom_conditions": null,
       "group_by": null,
       "aggregate": null,
-      "key_compare": "number_as_text"
+      "key_compare": "as_text"
     },
     {
       "sheet_src": "STATISTICS",

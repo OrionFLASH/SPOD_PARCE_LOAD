@@ -2872,42 +2872,46 @@ def collect_summary_keys_optimized(dfs):
 
 
 
-# Допустимые режимы сравнения ключей merge (см. key_compare в CONFIG_MERGE)
+# Допустимые режимы сравнения ключей merge (см. key_compare в CONFIG_MERGE).
+# as_text — оба ключа приводятся к тексту и сравниваются как строки;
+# number_as_text — устаревший алиас as_text (совместимость с конфигами).
 KEY_COMPARE_EXACT = "exact"
-KEY_COMPARE_NUMBER_AS_TEXT = "number_as_text"
-_KEY_COMPARE_ALLOWED = frozenset({KEY_COMPARE_EXACT, KEY_COMPARE_NUMBER_AS_TEXT})
+KEY_COMPARE_AS_TEXT = "as_text"
+KEY_COMPARE_NUMBER_AS_TEXT = "number_as_text"  # алиас as_text
+_KEY_COMPARE_ALLOWED = frozenset(
+    {KEY_COMPARE_EXACT, KEY_COMPARE_AS_TEXT, KEY_COMPARE_NUMBER_AS_TEXT}
+)
 
 
 def _normalize_key_compare_mode(raw: Any) -> str:
     """
     Нормализует значение key_compare из правила merge.
     По умолчанию exact (строгое сравнение, как раньше).
+    Алиас number_as_text → as_text.
     """
     if raw is None or (isinstance(raw, float) and pd.isna(raw)):
         return KEY_COMPARE_EXACT
     s = str(raw).strip().lower()
     if not s:
         return KEY_COMPARE_EXACT
+    if s == KEY_COMPARE_NUMBER_AS_TEXT:
+        return KEY_COMPARE_AS_TEXT
     if s in _KEY_COMPARE_ALLOWED:
         return s
     logging.warning(
         f"[MERGE] Неизвестный key_compare={raw!r}, используем '{KEY_COMPARE_EXACT}' "
-        f"(допустимо: {sorted(_KEY_COMPARE_ALLOWED)})"
+        f"(допустимо: exact, as_text; алиас: number_as_text)"
     )
     return KEY_COMPARE_EXACT
 
 
-def _normalize_merge_key_value(val: Any, key_compare: str = KEY_COMPARE_EXACT) -> Any:
+def _merge_key_value_as_text(val: Any) -> str:
     """
-    Нормализация одной части ключа merge.
+    Приводит значение ключа к тексту для сравнения.
 
-    exact — значение как есть (прежнее поведение).
-    number_as_text — trim; целые числа без .0; 18, \"18\", \"18.0\" → \"18\".
+    Число и текст с одним целым кодом дают одну строку:
+    18, \"18\", \"18.0\" → \"18\". Иначе — str(val).strip().
     """
-    mode = _normalize_key_compare_mode(key_compare)
-    if mode == KEY_COMPARE_EXACT:
-        return val
-    # number_as_text
     if val is None:
         return ""
     try:
@@ -2915,6 +2919,15 @@ def _normalize_merge_key_value(val: Any, key_compare: str = KEY_COMPARE_EXACT) -
             return ""
     except (TypeError, ValueError):
         pass
+    # Уже целое число (int / целый float) — сразу в текст без «.0»
+    if isinstance(val, bool):
+        return str(val)
+    if isinstance(val, int):
+        return str(val)
+    if isinstance(val, float):
+        if abs(val - round(val)) < 1e-9:
+            return str(int(round(val)))
+        return str(val).strip()
     s = str(val).strip()
     if not s or s == "-":
         return ""
@@ -2939,6 +2952,19 @@ def _normalize_merge_key_value(val: Any, key_compare: str = KEY_COMPARE_EXACT) -
     return s
 
 
+def _normalize_merge_key_value(val: Any, key_compare: str = KEY_COMPARE_EXACT) -> Any:
+    """
+    Нормализация одной части ключа merge.
+
+    exact — значение как есть (прежнее поведение, типы не трогаем).
+    as_text — оба ключа (src и dst) приводятся к тексту и сравниваются как строки.
+    """
+    mode = _normalize_key_compare_mode(key_compare)
+    if mode == KEY_COMPARE_EXACT:
+        return val
+    return _merge_key_value_as_text(val)
+
+
 @debug_timed(hot=True, log_args_len=True)
 def add_fields_to_sheet(df_base, df_ref, src_keys, dst_keys, columns, sheet_name, ref_sheet_name, mode="value",
                         multiply_rows=False, count_prefix="COUNT", count_aggregation="size", count_label=None,
@@ -2953,7 +2979,8 @@ def add_fields_to_sheet(df_base, df_ref, src_keys, dst_keys, columns, sheet_name
     Если multiply_rows == False: берет первое найденное значение (по умолчанию).
     Если нужной колонки нет — создаёт её с дефолтными значениями "-".
     source_rows_before_filter / applied_filters: контекст, если df_ref пуст после фильтрации.
-    key_compare: "exact" — строгое сравнение ключей; "number_as_text" — 18 и "18" считаются равными.
+    key_compare: "exact" — строгое сравнение; "as_text" — оба ключа в текст, сравнение строк
+    (алиас "number_as_text").
     """
     func_start = time()
     key_compare = _normalize_key_compare_mode(key_compare)
@@ -3118,10 +3145,10 @@ def add_fields_to_sheet(df_base, df_ref, src_keys, dst_keys, columns, sheet_name
 
 
     if mode == "count":
-        # Ключи с учётом key_compare (в т.ч. number_as_text для 18 ↔ "18")
+        # Ключи с учётом key_compare (as_text: оба ключа → текст)
         new_keys = _vectorized_tuple_key(df_base, dst_keys, key_compare=key_compare)
         df_ref_for_group = df_ref
-        if key_compare == KEY_COMPARE_NUMBER_AS_TEXT:
+        if key_compare == KEY_COMPARE_AS_TEXT:
             df_ref_for_group = df_ref.copy()
             for k in src_keys:
                 df_ref_for_group[k] = df_ref_for_group[k].map(
@@ -3257,7 +3284,8 @@ def _vectorized_tuple_key(df, keys, key_compare: str = KEY_COMPARE_EXACT):
     Args:
         df: DataFrame
         keys: список ключей или один ключ
-        key_compare: exact | number_as_text — режим нормализации частей ключа
+        key_compare: exact | as_text — режим сравнения частей ключа
+        (as_text: оба ключа приводятся к тексту)
 
     Returns:
         pd.Series с кортежами ключей
