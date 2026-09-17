@@ -2938,8 +2938,10 @@ def _merge_key_value_as_text(val: Any) -> str:
     """
     Приводит значение ключа к тексту для сравнения.
 
-    Число и текст с одним целым кодом дают одну строку:
-    18, \"18\", \"18.0\" → \"18\". Иначе — str(val).strip().
+    Оба ключа (src/dst) проходят одну нормализацию:
+    - целые числа без «.0»: 18, \"18\", \"18.0\" → \"18\";
+    - разделители разрядов убираются: \"1 802\", \"1\\u00a0802\" → \"1802\".
+    Иначе — str(val).strip().
     """
     if val is None:
         return ""
@@ -2972,12 +2974,15 @@ def _merge_key_value_as_text(val: Any) -> str:
         s = s[1:-1].strip()
         if not s:
             return ""
-    try:
-        num = float(s.replace(",", ".").replace(" ", "").replace("\u00a0", ""))
-        if abs(num - round(num)) < 1e-9:
-            return str(int(round(num)))
-    except (TypeError, ValueError):
-        pass
+    # Убрать разделители разрядов (пробел, NBSP, узкий NBSP и т.п.) и привести целое к тексту
+    compact = _normalize_string_for_numeric_cell(s)
+    if compact:
+        try:
+            num = float(compact)
+            if abs(num - round(num)) < 1e-9:
+                return str(int(round(num)))
+        except (TypeError, ValueError):
+            pass
     return s
 
 

@@ -31,6 +31,43 @@ def test_merge_key_value_as_text_equates_int_and_str() -> None:
     assert _merge_key_value_as_text(18) == _merge_key_value_as_text("18")
 
 
+def test_merge_key_value_as_text_strips_thousands_separators() -> None:
+    """Разделитель разрядов (пробел / NBSP) убирается: «1 802» == 1802."""
+    assert _merge_key_value_as_text("1 802") == "1802"
+    assert _merge_key_value_as_text("1\u00a0802") == "1802"  # NBSP
+    assert _merge_key_value_as_text("1\u202f802") == "1802"  # узкий NBSP (Excel)
+    assert _merge_key_value_as_text(1802) == "1802"
+    assert _merge_key_value_as_text("1 802") == _merge_key_value_as_text(1802)
+    assert _merge_key_value_as_text("1 802") == _merge_key_value_as_text("1802")
+
+
+def test_add_fields_as_text_matches_thousands_separator_vs_plain() -> None:
+    """STATISTICS «1 802» ↔ ORG_UNIT 1802 при key_compare=as_text."""
+    df_base = pd.DataFrame({"ТБ": ["18"], "ГОСБ": ["1 802"]})
+    df_ref = pd.DataFrame(
+        {
+            "TB_CODE": [18],
+            "GOSB_CODE": [1802],
+            "TB_SHORT_NAME": ["ББ"],
+            "TB_FULL_NAME": ["Байкальский банк"],
+            "GOSB_NAME": ["Иркутское ГОСБ"],
+        }
+    )
+    out = add_fields_to_sheet(
+        df_base,
+        df_ref,
+        src_keys=["TB_CODE", "GOSB_CODE"],
+        dst_keys=["ТБ", "ГОСБ"],
+        columns=["TB_SHORT_NAME", "GOSB_NAME"],
+        sheet_name="STATISTICS",
+        ref_sheet_name="ORG_UNIT_V20",
+        mode="value",
+        key_compare=KEY_COMPARE_AS_TEXT,
+    )
+    assert list(out["ORG_UNIT_V20=>TB_SHORT_NAME"]) == ["ББ"]
+    assert list(out["ORG_UNIT_V20=>GOSB_NAME"]) == ["Иркутское ГОСБ"]
+
+
 def test_normalize_exact_keeps_raw_types() -> None:
     assert _normalize_merge_key_value(18, KEY_COMPARE_EXACT) == 18
     assert _normalize_merge_key_value("18", KEY_COMPARE_EXACT) == "18"
