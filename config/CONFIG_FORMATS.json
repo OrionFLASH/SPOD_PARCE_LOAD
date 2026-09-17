@@ -768,7 +768,13 @@
         "Почта Сигма",
         "Статус текущий",
         "Статус предыдущий",
-        "Динамика статуса"
+        "Динамика статуса",
+        "TB_SHORT_NAME",
+        "TB_FULL_NAME",
+        "GOSB_NAME",
+        "ORG_UNIT_V20=>TB_SHORT_NAME",
+        "ORG_UNIT_V20=>TB_FULL_NAME",
+        "ORG_UNIT_V20=>GOSB_NAME"
       ],
       "data_type": "number",
       "decimal_places": 0,

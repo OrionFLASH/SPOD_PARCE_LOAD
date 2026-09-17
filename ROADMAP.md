@@ -533,3 +533,16 @@ IN/
 | 24.2 | `CONFIG_MERGE.json`: `as_text` для ORG_UNIT→STATISTICS; `exact` в остальных | [v] |
 | 24.3 | Тесты + README | [v] |
 
+---
+
+## Пункт 25 — STATISTICS: не затирать текстовые ORG_UNIT-колонки number-форматом
+
+Причина: merge ORG_UNIT→STATISTICS заполняет имена, но `COLUMN_FORMATS` на STATISTICS (`data_type: number` + `except_columns`) превращает `ORG_UNIT_V20=>TB_*` / `GOSB_NAME` в NA → в Excel пусто.
+
+| # | Задача | Статус |
+|---|--------|--------|
+| 25.0 | ROADMAP | [v] |
+| 25.1 | `except_columns` + сопоставление суффикса после `=>` | [v] |
+| 25.2 | number-конвертация: не затирать нечисловой текст | [v] |
+| 25.3 | Тесты | [v] |
+

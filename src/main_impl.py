@@ -1770,6 +1770,20 @@ def _normalize_column_name_for_format_match(name: Optional[str]) -> str:
     return normalize_csv_column_header(name)
 
 
+def _format_header_match_keys(col_name: str) -> set[str]:
+    """
+    Ключи для сопоставления с except_columns / columns:
+    полное имя и «лист» после «=>» (ORG_UNIT_V20=>TB_SHORT_NAME → TB_SHORT_NAME).
+    """
+    header_norm = _normalize_column_name_for_format_match(col_name)
+    keys = {header_norm}
+    if "=>" in header_norm:
+        leaf = header_norm.split("=>")[-1].strip()
+        if leaf:
+            keys.add(leaf)
+    return keys
+
+
 def _normalize_string_for_numeric_cell(val: Any) -> str:
     """
     Подготовка значения ячейки (после чтения CSV всё приходит строкой) к ``pd.to_numeric``:
@@ -1787,16 +1801,18 @@ def _normalize_string_for_numeric_cell(val: Any) -> str:
 
 def _column_matches_format_rule(col_name: str, rule: Mapping[str, Any]) -> bool:
     """Проверка, попадает ли колонка под правило columns / except_columns / column_prefixes."""
+    header_keys = _format_header_match_keys(col_name)
     header_norm = _normalize_column_name_for_format_match(col_name)
     except_cols = rule.get("except_columns") or []
     columns_list = rule.get("columns") or []
     prefixes = rule.get("column_prefixes") or []
     if except_cols:
         except_norm = {_normalize_column_name_for_format_match(x) for x in except_cols}
-        return header_norm not in except_norm
+        # Не применять правило, если полное имя или суффикс после => в except
+        return header_keys.isdisjoint(except_norm)
     if columns_list:
         allowed_norm = {_normalize_column_name_for_format_match(x) for x in columns_list}
-        return header_norm in allowed_norm
+        return not header_keys.isdisjoint(allowed_norm)
     if prefixes:
         for prefix in prefixes:
             pnorm = _normalize_column_name_for_format_match(prefix)
@@ -1853,16 +1869,29 @@ def apply_column_format_conversion(
                 continue
             try:
                 if dtype == "number":
-                    # После read_csv_file значения строковые; убираем разряды (пробел/NBSP), запятую в десятичную точку
-                    ser = pd.to_numeric(
-                        col_data.map(_normalize_string_for_numeric_cell),
-                        errors="coerce",
-                    )
+                    # После read_csv_file значения строковые; убираем разряды (пробел/NBSP), запятую в десятичную точку.
+                    # Текстовые значения (имена ТБ/ГОСБ после merge) не затираем в NA.
+                    original = col_data
+                    normalized = original.map(_normalize_string_for_numeric_cell)
+                    ser = pd.to_numeric(normalized, errors="coerce")
                     decimal_places = int(rule.get("decimal_places", 0))
-                    if decimal_places == 0:
-                        df[col] = ser.astype("Int64")
+                    non_empty_text = normalized.astype(str).str.len() > 0
+                    failed_numeric = ser.isna() & non_empty_text
+                    if failed_numeric.any():
+                        # Смешанная колонка: числа → int/float, остальное — исходный текст
+                        if decimal_places == 0:
+                            num_vals = ser.round().astype("Int64")
+                        else:
+                            num_vals = ser
+                        mixed = original.astype(object).copy()
+                        ok = ~failed_numeric
+                        mixed.loc[ok] = num_vals.loc[ok]
+                        df[col] = mixed
                     else:
-                        df[col] = ser
+                        if decimal_places == 0:
+                            df[col] = ser.astype("Int64")
+                        else:
+                            df[col] = ser
                 elif dtype == "date":
                     raw_ser = col_data.astype(str).str.strip()
                     pd_fmt = _config_date_format_to_pandas(rule.get("date_format"))
@@ -2909,8 +2938,10 @@ def _merge_key_value_as_text(val: Any) -> str:
     """
     Приводит значение ключа к тексту для сравнения.
 
-    Число и текст с одним целым кодом дают одну строку:
-    18, \"18\", \"18.0\" → \"18\". Иначе — str(val).strip().
+    Оба ключа (src/dst) проходят одну нормализацию:
+    - целые числа без «.0»: 18, \"18\", \"18.0\" → \"18\";
+    - разделители разрядов убираются: \"1 802\", \"1\\u00a0802\" → \"1802\".
+    Иначе — str(val).strip().
     """
     if val is None:
         return ""
@@ -2943,12 +2974,15 @@ def _merge_key_value_as_text(val: Any) -> str:
         s = s[1:-1].strip()
         if not s:
             return ""
-    try:
-        num = float(s.replace(",", ".").replace(" ", "").replace("\u00a0", ""))
-        if abs(num - round(num)) < 1e-9:
-            return str(int(round(num)))
-    except (TypeError, ValueError):
-        pass
+    # Убрать разделители разрядов (пробел, NBSP, узкий NBSP и т.п.) и привести целое к тексту
+    compact = _normalize_string_for_numeric_cell(s)
+    if compact:
+        try:
+            num = float(compact)
+            if abs(num - round(num)) < 1e-9:
+                return str(int(round(num)))
+        except (TypeError, ValueError):
+            pass
     return s
 
 
