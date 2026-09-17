@@ -520,3 +520,16 @@ IN/
 | 23.2 | Разбор `roleCodeBusinessBlockView` в логичные листы | [v] |
 | 23.3 | Прогон на входных JSON, проверка xlsx | [v] |
 
+---
+
+## Пункт 24 — Merge: `key_compare` (число ↔ текст в ключах)
+
+Цель: в `merge_fields_advanced` явно задавать режим сравнения ключей. Режим **`as_text`**: оба ключа (src и dst) приводятся к тексту и сравниваются как строки (`18` и `"18"` совпадают).
+
+| # | Задача | Статус |
+|---|--------|--------|
+| 24.0 | ROADMAP / описание | [v] |
+| 24.1 | Параметр `key_compare` в merge (`exact` \| `as_text`; алиас `number_as_text`) | [v] |
+| 24.2 | `CONFIG_MERGE.json`: `as_text` для ORG_UNIT→STATISTICS; `exact` в остальных | [v] |
+| 24.3 | Тесты + README | [v] |
+

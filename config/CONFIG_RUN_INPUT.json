@@ -24,7 +24,7 @@
   ],
   "_run_outputs_note": "Либо массив токенов (одинаково для всех блоков), либо объект {\"PROM\":[...],\"IFT\":[...],\"PSI\":[...]} — свой набор обработок на блок. Ключ default — запасной. Токены: source_only, main_only, consistency_only, manager_stats_only, stat_file_only, rating_item_matrix, season_order_summary, contest_badge_form_export, contest_badge_form_import, contest_badge_form_blank.",
   "run_blocks": [
-    "IFT"
+    "PROM"
   ],
   "_run_blocks_allowed": [
     "PROM",
@@ -165,7 +165,7 @@
   "input_files": {
     "PROM": [
       {
-        "file": "CONTEST (PROM) 25-08 v0.csv",
+        "file": "CONTEST (PROM) 16-09 v1.csv",
         "sheet": "CONTEST-DATA",
         "subdir": "PROM/SPOD",
         "archive_to_db": true,
@@ -183,7 +183,7 @@
         "archive_db_path": "OUT/DB/{BLOCK}/spod_input_archive_{BLOCK}.sqlite"
       },
       {
-        "file": "GROUP (PROM) 21-08 v2.csv",
+        "file": "GROUP (PROM) 16-09 v1.csv",
         "sheet": "GROUP",
         "subdir": "PROM/SPOD",
         "archive_to_db": true,
@@ -209,7 +209,7 @@
         "archive_db_path": "OUT/DB/{BLOCK}/spod_input_archive_{BLOCK}.sqlite"
       },
       {
-        "file": "INDICATOR (PROM) 19-08 v0.csv",
+        "file": "INDICATOR (PROM) 07-09 v0.csv",
         "sheet": "INDICATOR",
         "subdir": "PROM/SPOD",
         "archive_to_db": true,
@@ -235,7 +235,7 @@
         "archive_db_path": "OUT/DB/{BLOCK}/spod_input_archive_{BLOCK}.sqlite"
       },
       {
-        "file": "REPORT (PROM) 26-08 v0.csv",
+        "file": "REPORT (PROM) 16-09 v1.csv",
         "sheet": "REPORT",
         "subdir": "PROM/SPOD",
         "archive_to_db": true,
@@ -253,7 +253,7 @@
         "archive_db_path": "OUT/DB/{BLOCK}/spod_input_archive_{BLOCK}.sqlite"
       },
       {
-        "file": "REWARD (PROM) 25-08 v0.csv",
+        "file": "REWARD (PROM) 16-09 v1.csv",
         "sheet": "REWARD",
         "subdir": "PROM/SPOD",
         "archive_to_db": true,
@@ -275,7 +275,7 @@
         "archive_db_path": "OUT/DB/{BLOCK}/spod_input_archive_{BLOCK}.sqlite"
       },
       {
-        "file": "REWARD-LINK (PROM) 21-08 v2.csv",
+        "file": "REWARD-LINK (PROM) 16-09 v1.csv",
         "sheet": "REWARD-LINK",
         "subdir": "PROM/SPOD",
         "archive_to_db": true,
@@ -297,7 +297,7 @@
         "archive_db_path": "OUT/DB/{BLOCK}/spod_input_archive_{BLOCK}.sqlite"
       },
       {
-        "file": "SCHEDULE (PROM) 26-08 v0.csv",
+        "file": "SCHEDULE (PROM) 16-09 v0.csv",
         "sheet": "TOURNAMENT-SCHEDULE",
         "subdir": "PROM/SPOD",
         "archive_to_db": true,
@@ -341,7 +341,7 @@
         "archive_db_path": "OUT/DB/{BLOCK}/spod_input_archive_{BLOCK}.sqlite"
       },
       {
-        "file": "USER_ROLE (PROM) 26-08 v0.csv",
+        "file": "USER_ROLE (PROM) 11-09 v0.csv",
         "sheet": "USER_ROLE",
         "subdir": "PROM/SPOD",
         "archive_to_db": true,
@@ -359,7 +359,7 @@
         "archive_db_path": "OUT/DB/{BLOCK}/spod_input_archive_{BLOCK}.sqlite"
       },
       {
-        "file": "USER_ROLE_SB (PROM) 26-08 v0.csv",
+        "file": "USER_ROLE_SB (PROM) 11-09 v0.csv",
         "sheet": "USER_ROLE SB",
         "subdir": "PROM/SPOD",
         "archive_to_db": true,
@@ -504,6 +504,20 @@
         "archive_db_path": "OUT/DB/{BLOCK}/spod_gamification_archive_{BLOCK}.sqlite"
       },
       {
+        "file": "PROM_ALPHA_gamification-ratingList_MKKMMB_ACTIVESEASON.csv",
+        "sheet": "RATING_2026 (MKKMMB)",
+        "subdir": "PROM/FILE",
+        "archive_to_db": true,
+        "aggregate_into_sheet": "RATING",
+        "sort_columns": [],
+        "max_col_width": 80,
+        "freeze": "D2",
+        "col_width_mode": "AUTO",
+        "min_col_width": 12,
+        "include_in_source": false,
+        "archive_db_path": "OUT/DB/{BLOCK}/spod_gamification_archive_{BLOCK}.sqlite"
+      },
+      {
         "file": "PROM_ALPHA_gamification-ratingList_CSM_ACTIVESEASON.csv",
         "sheet": "RATING_2026_1 (CSM)",
         "subdir": "PROM/FILE",
@@ -520,6 +534,20 @@
       {
         "file": "PROM_ALPHA_gamification-ratingList_AKMKKSB_ALLTHETIME.csv",
         "sheet": "RATING_ALLTIME (AKMKKSB)",
+        "subdir": "PROM/FILE",
+        "archive_to_db": true,
+        "aggregate_into_sheet": "RATING",
+        "sort_columns": [],
+        "max_col_width": 80,
+        "freeze": "D2",
+        "col_width_mode": "AUTO",
+        "min_col_width": 12,
+        "include_in_source": false,
+        "archive_db_path": "OUT/DB/{BLOCK}/spod_gamification_archive_{BLOCK}.sqlite"
+      },
+      {
+        "file": "PROM_ALPHA_gamification-ratingList_MKKMMB_ALLTHETIME.csv",
+        "sheet": "RATING_ALLTIME (MKKMMB)",
         "subdir": "PROM/FILE",
         "archive_to_db": true,
         "aggregate_into_sheet": "RATING",

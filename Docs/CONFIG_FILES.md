@@ -426,6 +426,7 @@ config/
   "column": ["CONTEST_TYPE", "FULL_NAME", "BUSINESS_STATUS"],
   "mode": "value",
   "multiply_rows": false,
+  "key_compare": "exact",
   "status_filters": {
     "BUSINESS_STATUS": ["АКТИВНЫЙ", "ПОДВЕДЕНИЕ ИТОГОВ"]
   }
@@ -436,6 +437,12 @@ config/
 |--------|--------|
 | `value` | Подставить значение(я) |
 | другие | см. код `main_impl` / README → merge_fields_advanced |
+
+| `key_compare` | Смысл |
+|---------------|--------|
+| `exact` | Строгое сравнение ключей (по умолчанию; `18` ≠ `"18"`) |
+| `as_text` | Оба ключа → текст, сравнение строк (`18` / `"18"` / `"18.0"` совпадают). Для ORG_UNIT→STATISTICS |
+| `number_as_text` | Алиас `as_text` |
 
 ### Пример `summary_key_defs`
 

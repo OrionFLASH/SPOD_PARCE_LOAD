@@ -23,16 +23,15 @@
     "ORDER",
     "ORDER-SEASON-SUMMARY",
     "RATING",
-    "ORDER_2025_2 (KMKKSB)",
-    "ORDER_2025_2 (MNS)",
+    "STATISTICS",
+    "LIST-REWARDS",
+    "LIST-TOURNAMENT",
     "RATING_2025_2 (KMKKSB)",
     "RATING_2025_2 (MNS)",
-    "LIST-REWARDS",
-    "STATISTICS",
-    "LIST-TOURNAMENT",
     "RATING_2026_1 (KMKKSB)",
     "RATING_2026_1 (MNS)",
     "RATING_2026_1 (AKMKKSB)",
+    "RATING_2026 (MKKMMB)",
     "RATING_2026_1 (CSM)",
     "RATING_2025_1 (KMKKSB)",
     "RATING_2025_1 (MNS)",
@@ -40,8 +39,11 @@
     "RATING_2024 (MNS)",
     "RATING_ALLTIME (KMKKSB)",
     "RATING_ALLTIME (AKMKKSB)",
+    "RATING_ALLTIME (MKKMMB)",
     "RATING_ALLTIME (MNS)",
     "RATING_ALLTIME (CSM)",
+    "ORDER_2025_2 (KMKKSB)",
+    "ORDER_2025_2 (MNS)",
     "ORDER_NA (KMKKSB)",
     "ORDER_2025_1 (KMKKSB)",
     "ORDER_2025_1 (MNS)",
@@ -208,7 +210,8 @@
       },
       "custom_conditions": null,
       "group_by": null,
-      "aggregate": null
+      "aggregate": null,
+      "key_compare": "exact"
     },
     {
       "sheet_src": "TOURNAMENT-SCHEDULE",
@@ -232,7 +235,8 @@
       "status_filters": null,
       "custom_conditions": null,
       "group_by": null,
-      "aggregate": null
+      "aggregate": null,
+      "key_compare": "exact"
     },
     {
       "sheet_src": "LIST-TOURNAMENT",
@@ -254,7 +258,8 @@
       "status_filters": null,
       "custom_conditions": null,
       "group_by": null,
-      "aggregate": null
+      "aggregate": null,
+      "key_compare": "exact"
     },
     {
       "sheet_src": "EMPLOYEE",
@@ -280,7 +285,8 @@
       "status_filters": null,
       "custom_conditions": null,
       "group_by": null,
-      "aggregate": null
+      "aggregate": null,
+      "key_compare": "exact"
     },
     {
       "sheet_src": "REWARD",
@@ -303,7 +309,8 @@
       "status_filters": null,
       "custom_conditions": null,
       "group_by": null,
-      "aggregate": null
+      "aggregate": null,
+      "key_compare": "exact"
     },
     {
       "sheet_src": "TOURNAMENT-SCHEDULE",
@@ -330,7 +337,35 @@
       "status_filters": null,
       "custom_conditions": null,
       "group_by": null,
-      "aggregate": null
+      "aggregate": null,
+      "key_compare": "exact"
+    },
+    {
+      "sheet_src": "ORG_UNIT_V20",
+      "sheet_dst": "STATISTICS",
+      "src_key": [
+        "TB_CODE",
+        "GOSB_CODE"
+      ],
+      "dst_key": [
+        "ТБ",
+        "ГОСБ"
+      ],
+      "column": [
+        "TB_SHORT_NAME",
+        "TB_FULL_NAME",
+        "GOSB_NAME"
+      ],
+      "mode": "value",
+      "multiply_rows": false,
+      "col_max_width": 25,
+      "col_width_mode": "AUTO",
+      "col_min_width": 8,
+      "status_filters": null,
+      "custom_conditions": null,
+      "group_by": null,
+      "aggregate": null,
+      "key_compare": "as_text"
     },
     {
       "sheet_src": "STATISTICS",
@@ -345,7 +380,10 @@
         "Фамилия",
         "Имя",
         "ТБ",
-        "ГОСБ"
+        "ORG_UNIT_V20=>TB_SHORT_NAME",
+        "ORG_UNIT_V20=>TB_FULL_NAME",
+        "ГОСБ",
+        "ORG_UNIT_V20=>GOSB_NAME"
       ],
       "mode": "value",
       "multiply_rows": false,
@@ -355,7 +393,8 @@
       "status_filters": null,
       "custom_conditions": null,
       "group_by": null,
-      "aggregate": null
+      "aggregate": null,
+      "key_compare": "exact"
     },
     {
       "sheet_src": "LIST-REWARDS",
@@ -379,7 +418,8 @@
       "group_by": null,
       "aggregate": null,
       "count_aggregation": "size",
-      "count_label": null
+      "count_label": null,
+      "key_compare": "exact"
     },
     {
       "sheet_src": "LIST-REWARDS",
@@ -411,7 +451,8 @@
       "group_by": null,
       "aggregate": null,
       "count_aggregation": "size",
-      "count_label": "REWARDS"
+      "count_label": "REWARDS",
+      "key_compare": "exact"
     },
     {
       "sheet_src": "REWARD-LINK",
@@ -433,7 +474,8 @@
       "status_filters": null,
       "custom_conditions": null,
       "group_by": null,
-      "aggregate": null
+      "aggregate": null,
+      "key_compare": "exact"
     },
     {
       "sheet_src": "TOURNAMENT-SCHEDULE",
@@ -457,7 +499,8 @@
       "group_by": null,
       "aggregate": null,
       "count_aggregation": "size",
-      "count_label": null
+      "count_label": null,
+      "key_compare": "exact"
     },
     {
       "sheet_src": "CONTEST-DATA",
@@ -486,7 +529,8 @@
       "status_filters": null,
       "custom_conditions": null,
       "group_by": null,
-      "aggregate": null
+      "aggregate": null,
+      "key_compare": "exact"
     },
     {
       "sheet_src": "ORG_UNIT_V20",
@@ -510,7 +554,8 @@
       "status_filters": null,
       "custom_conditions": null,
       "group_by": null,
-      "aggregate": null
+      "aggregate": null,
+      "key_compare": "exact"
     },
     {
       "sheet_src": "ORG_UNIT_V20",
@@ -536,7 +581,8 @@
       "status_filters": null,
       "custom_conditions": null,
       "group_by": null,
-      "aggregate": null
+      "aggregate": null,
+      "key_compare": "exact"
     },
     {
       "sheet_src": "ORG_UNIT_V20",
@@ -562,7 +608,8 @@
       "status_filters": null,
       "custom_conditions": null,
       "group_by": null,
-      "aggregate": null
+      "aggregate": null,
+      "key_compare": "exact"
     },
     {
       "sheet_src": "ORG_UNIT_V20",
@@ -588,7 +635,8 @@
       "status_filters": null,
       "custom_conditions": null,
       "group_by": null,
-      "aggregate": null
+      "aggregate": null,
+      "key_compare": "exact"
     },
     {
       "sheet_src": "CONTEST-DATA",
@@ -619,7 +667,8 @@
       "status_filters": null,
       "custom_conditions": null,
       "group_by": null,
-      "aggregate": null
+      "aggregate": null,
+      "key_compare": "exact"
     },
     {
       "sheet_src": "INDICATOR",
@@ -642,7 +691,8 @@
       "status_filters": null,
       "custom_conditions": null,
       "group_by": null,
-      "aggregate": null
+      "aggregate": null,
+      "key_compare": "exact"
     },
     {
       "sheet_src": "LIST-REWARDS",
@@ -666,7 +716,8 @@
       "group_by": null,
       "aggregate": null,
       "count_aggregation": "size",
-      "count_label": null
+      "count_label": null,
+      "key_compare": "exact"
     },
     {
       "sheet_src": "CONTEST-DATA",
@@ -690,7 +741,8 @@
       "status_filters": null,
       "custom_conditions": null,
       "group_by": null,
-      "aggregate": null
+      "aggregate": null,
+      "key_compare": "exact"
     },
     {
       "sheet_src": "TOURNAMENT-SCHEDULE",
@@ -713,7 +765,8 @@
       "status_filters": null,
       "custom_conditions": null,
       "group_by": null,
-      "aggregate": null
+      "aggregate": null,
+      "key_compare": "exact"
     },
     {
       "sheet_src": "CONTEST-DATA",
@@ -735,7 +788,8 @@
       "status_filters": null,
       "custom_conditions": null,
       "group_by": null,
-      "aggregate": null
+      "aggregate": null,
+      "key_compare": "exact"
     },
     {
       "sheet_src": "CONTEST-DATA",
@@ -760,7 +814,8 @@
       "status_filters": null,
       "custom_conditions": null,
       "group_by": null,
-      "aggregate": null
+      "aggregate": null,
+      "key_compare": "exact"
     },
     {
       "sheet_src": "REWARD",
@@ -783,7 +838,8 @@
       "status_filters": null,
       "custom_conditions": null,
       "group_by": null,
-      "aggregate": null
+      "aggregate": null,
+      "key_compare": "exact"
     },
     {
       "sheet_src": "REPORT",
@@ -807,7 +863,8 @@
       "status_filters": null,
       "custom_conditions": null,
       "group_by": null,
-      "aggregate": null
+      "aggregate": null,
+      "key_compare": "exact"
     },
     {
       "sheet_src": "TOURNAMENT-SCHEDULE",
@@ -831,7 +888,8 @@
       "group_by": null,
       "aggregate": null,
       "count_aggregation": "size",
-      "count_label": null
+      "count_label": null,
+      "key_compare": "exact"
     },
     {
       "sheet_src": "REPORT",
@@ -857,7 +915,8 @@
       "group_by": null,
       "aggregate": null,
       "count_aggregation": "size",
-      "count_label": null
+      "count_label": null,
+      "key_compare": "exact"
     },
     {
       "sheet_src": "CONTEST-DATA",
@@ -918,7 +977,8 @@
       "status_filters": null,
       "custom_conditions": null,
       "group_by": null,
-      "aggregate": null
+      "aggregate": null,
+      "key_compare": "exact"
     },
     {
       "sheet_src": "REWARD",
@@ -967,7 +1027,8 @@
       "status_filters": null,
       "custom_conditions": null,
       "group_by": null,
-      "aggregate": null
+      "aggregate": null,
+      "key_compare": "exact"
     },
     {
       "sheet_src": "TOURNAMENT-SCHEDULE",
@@ -1002,7 +1063,8 @@
       "status_filters": null,
       "custom_conditions": null,
       "group_by": null,
-      "aggregate": null
+      "aggregate": null,
+      "key_compare": "exact"
     },
     {
       "sheet_src": "GROUP",
@@ -1032,7 +1094,8 @@
       "status_filters": null,
       "custom_conditions": null,
       "group_by": null,
-      "aggregate": null
+      "aggregate": null,
+      "key_compare": "exact"
     },
     {
       "sheet_src": "INDICATOR",
@@ -1069,7 +1132,8 @@
       "status_filters": null,
       "custom_conditions": null,
       "group_by": null,
-      "aggregate": null
+      "aggregate": null,
+      "key_compare": "exact"
     },
     {
       "sheet_src": "REWARD-LINK",
@@ -1091,7 +1155,8 @@
       "status_filters": null,
       "custom_conditions": null,
       "group_by": null,
-      "aggregate": null
+      "aggregate": null,
+      "key_compare": "exact"
     },
     {
       "sheet_src": "LIST-TOURNAMENT",
@@ -1115,7 +1180,8 @@
       "status_filters": null,
       "custom_conditions": null,
       "group_by": null,
-      "aggregate": null
+      "aggregate": null,
+      "key_compare": "exact"
     },
     {
       "sheet_src": "LIST-TOURNAMENT",
@@ -1139,7 +1205,8 @@
       "status_filters": null,
       "custom_conditions": null,
       "group_by": null,
-      "aggregate": null
+      "aggregate": null,
+      "key_compare": "exact"
     },
     {
       "sheet_src": "TOURNAMENT-SCHEDULE",
@@ -1162,7 +1229,8 @@
       "status_filters": null,
       "custom_conditions": null,
       "group_by": null,
-      "aggregate": null
+      "aggregate": null,
+      "key_compare": "exact"
     },
     {
       "sheet_src": "CONTEST-DATA",
@@ -1185,7 +1253,8 @@
       "status_filters": null,
       "custom_conditions": null,
       "group_by": null,
-      "aggregate": null
+      "aggregate": null,
+      "key_compare": "exact"
     },
     {
       "sheet_src": "REPORT",
@@ -1209,7 +1278,8 @@
       "status_filters": null,
       "custom_conditions": null,
       "group_by": null,
-      "aggregate": null
+      "aggregate": null,
+      "key_compare": "exact"
     },
     {
       "sheet_src": "REPORT",
@@ -1233,7 +1303,8 @@
       "group_by": null,
       "aggregate": null,
       "count_aggregation": "size",
-      "count_label": null
+      "count_label": null,
+      "key_compare": "exact"
     },
     {
       "sheet_src": "REWARD",
@@ -1257,7 +1328,8 @@
       "group_by": null,
       "aggregate": null,
       "count_aggregation": "size",
-      "count_label": null
+      "count_label": null,
+      "key_compare": "exact"
     },
     {
       "sheet_src": "REWARD",
@@ -1281,7 +1353,8 @@
       "group_by": null,
       "aggregate": null,
       "count_aggregation": "size",
-      "count_label": null
+      "count_label": null,
+      "key_compare": "exact"
     },
     {
       "sheet_src": "LIST-REWARDS",
@@ -1305,7 +1378,8 @@
       "group_by": null,
       "aggregate": null,
       "count_aggregation": "size",
-      "count_label": null
+      "count_label": null,
+      "key_compare": "exact"
     },
     {
       "sheet_src": "LIST-REWARDS",
@@ -1327,7 +1401,8 @@
       "status_filters": null,
       "custom_conditions": null,
       "group_by": null,
-      "aggregate": null
+      "aggregate": null,
+      "key_compare": "exact"
     },
     {
       "sheet_src": "CONTEST-DATA",
@@ -1351,7 +1426,8 @@
       "group_by": null,
       "aggregate": null,
       "count_aggregation": "size",
-      "count_label": null
+      "count_label": null,
+      "key_compare": "exact"
     },
     {
       "sheet_src": "TOURNAMENT-SCHEDULE",
@@ -1375,7 +1451,8 @@
       "group_by": null,
       "aggregate": null,
       "count_aggregation": "size",
-      "count_label": null
+      "count_label": null,
+      "key_compare": "exact"
     },
     {
       "sheet_src": "GROUP",
@@ -1399,7 +1476,8 @@
       "group_by": null,
       "aggregate": null,
       "count_aggregation": "size",
-      "count_label": null
+      "count_label": null,
+      "key_compare": "exact"
     },
     {
       "sheet_src": "INDICATOR",
@@ -1423,7 +1501,8 @@
       "group_by": null,
       "aggregate": null,
       "count_aggregation": "size",
-      "count_label": null
+      "count_label": null,
+      "key_compare": "exact"
     },
     {
       "sheet_src": "REWARD-LINK",
@@ -1447,7 +1526,8 @@
       "group_by": null,
       "aggregate": null,
       "count_aggregation": "size",
-      "count_label": null
+      "count_label": null,
+      "key_compare": "exact"
     },
     {
       "sheet_src": "TOURNAMENT-SCHEDULE",
@@ -1475,7 +1555,8 @@
       },
       "custom_conditions": null,
       "group_by": null,
-      "aggregate": null
+      "aggregate": null,
+      "key_compare": "exact"
     },
     {
       "sheet_src": "TOURNAMENT-SCHEDULE",
@@ -1503,7 +1584,8 @@
       },
       "custom_conditions": null,
       "group_by": null,
-      "aggregate": null
+      "aggregate": null,
+      "key_compare": "exact"
     },
     {
       "sheet_src": "TOURNAMENT-SCHEDULE",
@@ -1531,7 +1613,8 @@
       },
       "custom_conditions": null,
       "group_by": null,
-      "aggregate": null
+      "aggregate": null,
+      "key_compare": "exact"
     },
     {
       "sheet_src": "TOURNAMENT-SCHEDULE",
@@ -1559,7 +1642,8 @@
       },
       "custom_conditions": null,
       "group_by": null,
-      "aggregate": null
+      "aggregate": null,
+      "key_compare": "exact"
     },
     {
       "sheet_src": "TOURNAMENT-SCHEDULE",
@@ -1587,7 +1671,8 @@
       },
       "custom_conditions": null,
       "group_by": null,
-      "aggregate": null
+      "aggregate": null,
+      "key_compare": "exact"
     },
     {
       "sheet_src": "TOURNAMENT-SCHEDULE",
@@ -1615,7 +1700,8 @@
       },
       "custom_conditions": null,
       "group_by": null,
-      "aggregate": null
+      "aggregate": null,
+      "key_compare": "exact"
     },
     {
       "sheet_src": "TOURNAMENT-SCHEDULE",
@@ -1643,7 +1729,8 @@
       },
       "custom_conditions": null,
       "group_by": null,
-      "aggregate": null
+      "aggregate": null,
+      "key_compare": "exact"
     },
     {
       "sheet_src": "TOURNAMENT-SCHEDULE",
@@ -1671,7 +1758,8 @@
       },
       "custom_conditions": null,
       "group_by": null,
-      "aggregate": null
+      "aggregate": null,
+      "key_compare": "exact"
     },
     {
       "sheet_src": "TOURNAMENT-SCHEDULE",
@@ -1699,7 +1787,8 @@
       },
       "custom_conditions": null,
       "group_by": null,
-      "aggregate": null
+      "aggregate": null,
+      "key_compare": "exact"
     },
     {
       "sheet_src": "TOURNAMENT-SCHEDULE",
@@ -1727,7 +1816,8 @@
       },
       "custom_conditions": null,
       "group_by": null,
-      "aggregate": null
+      "aggregate": null,
+      "key_compare": "exact"
     },
     {
       "sheet_src": "TOURNAMENT-SCHEDULE",
@@ -1751,7 +1841,8 @@
       "group_by": null,
       "aggregate": null,
       "count_aggregation": "size",
-      "count_label": null
+      "count_label": null,
+      "key_compare": "exact"
     },
     {
       "sheet_src": "TOURNAMENT-SCHEDULE",
@@ -1775,7 +1866,8 @@
       "group_by": null,
       "aggregate": null,
       "count_aggregation": "size",
-      "count_label": null
+      "count_label": null,
+      "key_compare": "exact"
     },
     {
       "sheet_src": "TOURNAMENT-SCHEDULE",
@@ -1803,7 +1895,8 @@
       },
       "custom_conditions": null,
       "group_by": null,
-      "aggregate": null
+      "aggregate": null,
+      "key_compare": "exact"
     },
     {
       "sheet_src": "TOURNAMENT-SCHEDULE",
@@ -1831,7 +1924,8 @@
       },
       "custom_conditions": null,
       "group_by": null,
-      "aggregate": null
+      "aggregate": null,
+      "key_compare": "exact"
     },
     {
       "sheet_src": "TOURNAMENT-SCHEDULE",
@@ -1859,7 +1953,8 @@
       },
       "custom_conditions": null,
       "group_by": null,
-      "aggregate": null
+      "aggregate": null,
+      "key_compare": "exact"
     },
     {
       "sheet_src": "TOURNAMENT-SCHEDULE",
@@ -1887,7 +1982,8 @@
       },
       "custom_conditions": null,
       "group_by": null,
-      "aggregate": null
+      "aggregate": null,
+      "key_compare": "exact"
     },
     {
       "sheet_src": "TOURNAMENT-SCHEDULE",
@@ -1915,7 +2011,8 @@
       },
       "custom_conditions": null,
       "group_by": null,
-      "aggregate": null
+      "aggregate": null,
+      "key_compare": "exact"
     }
   ],
   "reward_getcondition_summary": {
