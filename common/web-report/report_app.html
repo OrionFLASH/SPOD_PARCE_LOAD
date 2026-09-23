@@ -142,13 +142,14 @@
 
 <div class="modal-backdrop" id="modal-dup" hidden>
   <div class="modal-card modal-card--wide" role="dialog" aria-modal="true">
-    <h3>Найдены дубли</h3>
-    <p>Ключ: CONTEST_CODE + TOURNAMENT_CODE + MANAGER_PERSON_NUMBER</p>
+    <h3 id="modal-dup-title">Дубли</h3>
+    <p id="modal-dup-intro"></p>
+    <div id="modal-dup-progress" class="info-box" style="margin-top:0"></div>
     <div id="modal-dup-list"></div>
     <div class="modal-actions">
-      <button type="button" class="btn btn-primary" id="modal-dup-apply">Применить</button>
-      <button type="button" class="btn" id="modal-dup-abort">Остановить</button>
-      <button type="button" class="btn" id="modal-dup-cancel">Отмена</button>
+      <button type="button" class="btn btn-primary" id="modal-dup-apply" data-tip="Применить решение к текущей группе и перейти дальше">Применить и далее</button>
+      <button type="button" class="btn" id="modal-dup-abort" data-tip="Остановить проверку">Остановить</button>
+      <button type="button" class="btn" id="modal-dup-cancel" data-tip="Отменить без сохранения решений">Отмена</button>
     </div>
   </div>
 </div>
