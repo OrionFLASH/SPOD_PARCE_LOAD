@@ -1,0 +1,8 @@
+{
+  "version": 1,
+  "kind": "spod_web_report_fio_dictionary",
+  "entries": [
+    { "fio": "Иванов Иван Иванович", "person_number": "12345" },
+    { "fio": "Петрова Анна Сергеевна", "person_number": "67890" }
+  ]
+}

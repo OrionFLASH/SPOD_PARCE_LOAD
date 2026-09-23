@@ -62,6 +62,8 @@ archive/
 # Data files (*.csv по умолчанию не в репозитории)
 *.csv
 *.CSV
+# Примеры CSV для web-report
+!common/web-report/examples/*.csv
 # Только каталог SPOD в корне
 /SPOD/
 EDIT/

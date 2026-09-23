@@ -70,6 +70,7 @@ SPOD_PROM/
 │   ├── web-edit-full/      # Полный каталог из скана IN/PROM/SPOD + тот же UI
 │   ├── web-fill/           # Заполнение SPOD (однофайловый HTML + catalog)
 │   ├── web-fill-full/      # То же fill, но css/js/catalog отдельными файлами
+│   ├── web-report/         # Подготовка REPORT: турниры CSV/Excel → CSV+XLSX
 │   ├── param_catalog_review/  # catalog.json (+ MD-снимок) для blank Excel
 │   └── templates/CONTEST_BADGE_FORM/  # CONTEST_BADGE_FORM_BLANK.xlsx
 ├── requirements.txt        # Зависимости (pandas, openpyxl и др.) для main.py
@@ -1455,6 +1456,12 @@ python main.py
 - Левая панель скрывается без колонтитулов; справа — «Поиск и фильтры» (Турниры/Награды/Архив, ПРОМ/ТЕСТ, статус, дата).
 - Легенда цветов вкладок слева. `INDICATOR_CODE` — dropdown + combobox; списки методов/агрегаций обновлены в каталоге.
 - Fill ≡ fill-full (`sync_web_fill_singlefile.py`). Документы: `Docs/PLAN_WEB_FILL.md`, `Docs/TODO_WEB_FILL.md`, ROADMAP §16.
+
+### Версия 1.7.70 — web-report: подготовка REPORT из турниров
+
+- **`common/web-report/`**: локальная страница (стиль web-edit-full): несколько турниров, JSON настроек, справочник ФИО, CSV (`;`, автокодировка) / Excel, диалоги ненайденных ФИО и дублей, выгрузка CSV (7 колонок) и XLSX (полный + комментарии).
+- Ядро: `report_core.js` (FIO+TN как в Power Query). Тесты: `node src/Tests/test_web_report_core.mjs`.
+- Документы: `Docs/PLAN_WEB_REPORT.md`, `Docs/TODO_WEB_REPORT.md`, ROADMAP §26. Архив пакета: `common/web-report/web-report_bundle.zip`.
 
 ### Версия 1.7.69 — web-edit-full / web-fill-full, CSV SPOD-JSON, экспорт «Все 6»
 
