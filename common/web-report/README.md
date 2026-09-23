@@ -27,8 +27,7 @@ cd common/web-report && python3 -m http.server 8770
 | `xlsx.full.min.js` | SheetJS (чтение/запись Excel офлайн) |
 | `examples/` | Примеры настроек, справочника ФИО, CSV |
 | `web-report_bundle.zip` | Архив для пересылки: JS как `*.script` (без «js» в имени) |
-| `ПРАВИЛЬНЫЕ_ИМЕНА.txt` | Соответствие имён в архиве → рабочие `.js` / `.mjs` |
-| `restore_names.bat` / `restore_names.sh` | Переименование после распаковки |
+| `ПРАВИЛЬНЫЕ_ИМЕНА.txt` | Соответствие имён в архиве → рабочие `.js` / `.mjs` (вручную) |
 
 ## Как работать
 
@@ -108,3 +107,7 @@ cd common/web-report && python3 -m http.server 8770
 ```bash
 node src/Tests/test_web_report_core.mjs
 ```
+
+## Архив для пересылки
+
+`web-report_bundle.zip` — пакет без расширений `.js` / `.mjs` / `.bat` / `.sh`. Скрипты лежат как `*.script`. Соответствие имён — только в **`ПРАВИЛЬНЫЕ_ИМЕНА.txt`** (переименовать вручную после распаковки).

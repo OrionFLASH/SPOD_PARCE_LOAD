@@ -41,4 +41,4 @@
 ## Статусы
 
 Пункт **26** в `ROADMAP.md` и `Docs/TODO_WEB_REPORT.md` — выполнен (`[v]`).
-Архив для пересылки: `common/web-report/web-report_bundle.zip` — скрипты внутри как `*.script` (без `js` в имени), карта имён: `ПРАВИЛЬНЫЕ_ИМЕНА.txt` (+ `restore_names.bat` / `restore_names.sh`).
+Архив для пересылки: `common/web-report/web-report_bundle.zip` — скрипты как `*.script` (без `js` в имени); соответствие имён только в `ПРАВИЛЬНЫЕ_ИМЕНА.txt` (без bat/sh).
