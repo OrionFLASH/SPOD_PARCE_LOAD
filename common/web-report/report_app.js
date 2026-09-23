@@ -20,8 +20,14 @@
       file_name: "",
     },
     lastResult: null,
-    checkState: { duplicatesCleared: false, missingFioCleared: false },
+    checkState: {
+      duplicatesCleared: false,
+      fioDupCleared: false,
+      missingFioCleared: false,
+    },
     lastResolutions: {},
+    lastFioResolutions: {},
+    checkedPipeline: null,
     filters: { search: "", types: { TN: true, FIO: true }, ready: { ready: true, draft: true, copy: true } },
     sidebarOpen: true,
     filtersOpen: true,
@@ -100,8 +106,14 @@
   }
 
   function invalidateChecks() {
-    state.checkState = { duplicatesCleared: false, missingFioCleared: false };
+    state.checkState = {
+      duplicatesCleared: false,
+      fioDupCleared: false,
+      missingFioCleared: false,
+    };
     state.lastResolutions = {};
+    state.lastFioResolutions = {};
+    state.checkedPipeline = null;
     state.lastResult = null;
   }
 
@@ -190,10 +202,9 @@
     $("btn-export-xlsx").disabled = !(state.lastResult && state.lastResult.ok);
   }
 
-  function hasAnyFioMode() {
-    return state.tournaments.some(function (t) {
-      return String(t.type_ind || "").toUpperCase() === "FIO";
-    });
+  function hasActiveFioMode() {
+    var t = activeTournament();
+    return !!(t && String(t.type_ind || "").toUpperCase() === "FIO");
   }
 
   function renderNav() {
@@ -300,7 +311,7 @@
   }
 
   function renderFioPanelHtml() {
-    if (!hasAnyFioMode()) return "";
+    if (!hasActiveFioMode()) return "";
     var pack = state.fioPack;
     var ui = state.fioUi;
     var sheetBlock = "";
@@ -312,7 +323,7 @@
     return (
       '<div class="panel" id="panel-fio">' +
       "<h2>Справочник ФИО</h2>" +
-      '<p class="panel__intro">Доступен, пока есть хотя бы один турнир в режиме FIO. Загрузите JSON или таблицу (CSV/Excel) и укажите угол, колонки ФИО и табельного.</p>' +
+      '<p class="panel__intro">Доступен для активного турнира в режиме FIO. Загрузите JSON или таблицу и укажите угол, колонки ФИО и табельного.</p>' +
       '<div class="info-box">Записей в справочнике: <b id="fio-stats">' +
       state.fioEntries.length +
       "</b></div>" +
@@ -342,7 +353,7 @@
   }
 
   function bindFioPanel() {
-    if (!hasAnyFioMode()) return;
+    if (!hasActiveFioMode()) return;
     var pack = state.fioPack;
     var ui = state.fioUi;
     $("fio-start-row").value = ui.start_row || 1;
@@ -854,75 +865,117 @@
     });
   }
 
-  function askDuplicates(groups) {
+  function askDuplicates(groups, options) {
+    var opts = options || {};
+    var kindLabel = opts.kindLabel || "табельный + турнир";
+    var keyHint = opts.keyHint || "CONTEST_CODE + TOURNAMENT_CODE + MANAGER_PERSON_NUMBER";
     return new Promise(function (resolve) {
+      if (!groups || !groups.length) {
+        resolve({ action: "apply", resolutions: {} });
+        return;
+      }
       var list = $("modal-dup-list");
-      list.innerHTML = "";
-      groups.forEach(function (g, gi) {
-        var box = document.createElement("div");
-        box.className = "dup-group";
-        box.dataset.key = g.key;
+      var title = $("modal-dup-title");
+      var intro = $("modal-dup-intro");
+      var progress = $("modal-dup-progress");
+      title.textContent = "Дубли: " + kindLabel;
+      intro.textContent = "Ключ: " + keyHint + ". Разбираем по одной группе. Отметьте строки, которые оставить (можно несколько).";
+      var idx = 0;
+      var resolutions = {};
+
+      function renderCurrent() {
+        var g = groups[idx];
+        progress.textContent = "Группа " + (idx + 1) + " из " + groups.length + " · сумма " + ReportCore.formatNumberDot(g.sum, coreOpts().numberDecimals);
         var rowsHtml = g.rows
           .map(function (r, ri) {
-            var idx = g.indices[ri];
+            var rowIdx = g.indices[ri];
             return (
-              '<label style="display:flex;gap:8px;align-items:center;margin:4px 0;font-size:12px">' +
-              '<input type="radio" name="dup_' +
-              gi +
-              '" value="' +
-              idx +
-              '"' +
-              (ri === 0 ? " checked" : "") +
-              " />" +
-              escapeHtml(r.MANAGER_PERSON_NUMBER) +
-              " | FIO=" +
-              escapeHtml(r.FIO) +
-              " | FACT=" +
-              escapeHtml(r.FACT_VALUE) +
-              "</label>"
+              '<label class="dup-row">' +
+              '<input type="checkbox" data-row-idx="' +
+              rowIdx +
+              '" checked />' +
+              "<span><code>" +
+              escapeHtml(r.MANAGER_PERSON_NUMBER || "") +
+              "</code> · FIO=" +
+              escapeHtml(r.FIO || "") +
+              " · FACT=" +
+              escapeHtml(r.FACT_VALUE || "") +
+              "</span></label>"
             );
           })
           .join("");
-        box.innerHTML =
+        list.innerHTML =
+          '<div class="dup-group" data-key="' +
+          escapeHtml(g.key) +
+          '">' +
           '<div class="dup-group__meta">' +
           escapeHtml(g.key) +
-          " · " +
+          " · строк: " +
           g.indices.length +
-          " · сумма " +
-          ReportCore.formatNumberDot(g.sum, coreOpts().numberDecimals) +
           "</div>" +
-          '<label class="field-label">Действие</label>' +
-          '<select class="field-select" data-dup-mode>' +
-          '<option value="sum">Сумма показателя</option>' +
-          '<option value="keep_one">Выбрать одну строку</option>' +
-          '<option value="drop_all">Убрать все из CSV</option>' +
-          "</select>" +
-          '<div style="margin-top:8px">' +
+          '<div class="toolbar-row" style="margin:8px 0">' +
+          '<button type="button" class="btn btn-sm" id="dup-sel-all" data-tip="Отметить все строки группы">Все</button>' +
+          '<button type="button" class="btn btn-sm" id="dup-sel-none" data-tip="Снять все отметки">Снять</button>' +
+          "</div>" +
+          '<div class="dup-rows">' +
           rowsHtml +
-          "</div>";
-        list.appendChild(box);
-      });
-      openModal("modal-dup");
+          "</div>" +
+          '<label class="field-label" style="margin-top:10px">Действие для этой группы</label>' +
+          '<select class="field-select" id="dup-mode">' +
+          '<option value="keep_selected">Оставить отмеченные</option>' +
+          '<option value="sum">Сумма показателя в одну строку</option>' +
+          '<option value="drop_all">Убрать все из CSV</option>' +
+          "</select></div>";
+        $("dup-sel-all").onclick = function () {
+          list.querySelectorAll('input[type="checkbox"]').forEach(function (c) {
+            c.checked = true;
+          });
+        };
+        $("dup-sel-none").onclick = function () {
+          list.querySelectorAll('input[type="checkbox"]').forEach(function (c) {
+            c.checked = false;
+          });
+        };
+      }
+
       function cleanup() {
         $("modal-dup-apply").onclick = null;
         $("modal-dup-abort").onclick = null;
         $("modal-dup-cancel").onclick = null;
         closeModal("modal-dup");
       }
+
+      openModal("modal-dup");
+      renderCurrent();
+
       $("modal-dup-apply").onclick = function () {
-        var resolutions = {};
-        Array.prototype.forEach.call(list.querySelectorAll(".dup-group"), function (box) {
-          var key = box.dataset.key;
-          var mode = box.querySelector("[data-dup-mode]").value;
-          var res = { mode: mode };
-          if (mode === "keep_one") {
-            var checked = box.querySelector('input[type="radio"]:checked');
-            res.keepIndex = checked ? Number(checked.value) : null;
+        var g = groups[idx];
+        var mode = $("dup-mode").value;
+        var res = { mode: mode };
+        if (mode === "keep_selected") {
+          var keepIndices = [];
+          list.querySelectorAll('input[type="checkbox"]:checked').forEach(function (c) {
+            keepIndices.push(Number(c.getAttribute("data-row-idx")));
+          });
+          if (!keepIndices.length) {
+            alert("Отметьте хотя бы одну строку или выберите «Убрать все» / «Сумма»");
+            return;
           }
-          resolutions[key] = res;
-        });
-        cleanup();
-        resolve({ action: "apply", resolutions: resolutions });
+          if (keepIndices.length === 1) {
+            res.mode = "keep_one";
+            res.keepIndex = keepIndices[0];
+          } else {
+            res.keepIndices = keepIndices;
+          }
+        }
+        resolutions[g.key] = res;
+        idx += 1;
+        if (idx >= groups.length) {
+          cleanup();
+          resolve({ action: "apply", resolutions: resolutions });
+          return;
+        }
+        renderCurrent();
       };
       $("modal-dup-abort").onclick = function () {
         cleanup();
@@ -953,7 +1006,106 @@
       });
     });
     ReportCore.annotateDuplicatesLikePq(allRows, coreOpts());
-    return { rows: allRows, missingFio: allMissing, groups: ReportCore.findDuplicateGroups(allRows) };
+    return {
+      rows: allRows,
+      missingFio: allMissing,
+      fioGroups: ReportCore.findFioDuplicateGroups(allRows),
+      tnGroups: ReportCore.findTnDuplicateGroups(allRows),
+      groups: ReportCore.findTnDuplicateGroups(allRows),
+    };
+  }
+
+  /**
+   * Пайплайн проверок: ФИО отсутствующие → дубли ФИО+турнир → дубли табельный+турнир.
+   * Возвращает итоговые строки с учётом решений.
+   */
+  async function runValidationPipeline(opts) {
+    var options = opts || {};
+    var interactive = options.interactive !== false;
+    var rows = buildAllRows().rows;
+    var missing = buildAllRows().missingFio;
+
+    // 1) отсутствующие ФИО
+    if (missing.length && !state.checkState.missingFioCleared) {
+      if (!interactive) {
+        return { ok: false, need: "missing_fio", missingFio: missing, rows: rows };
+      }
+      var fioAns = await askMissingFio(missing.slice());
+      if (fioAns.action === "cancel") return { ok: false, cancelled: true };
+      state.checkState.missingFioCleared = true;
+      rows = buildAllRows().rows;
+      missing = buildAllRows().missingFio;
+    } else if (!missing.length) {
+      state.checkState.missingFioCleared = true;
+    }
+
+    rows = buildAllRows().rows;
+
+    // 2) дубли по ФИО + турнир (только строки с реальным ФИО)
+    var fioGroups = ReportCore.findFioDuplicateGroups(rows);
+    if (fioGroups.length && !state.checkState.fioDupCleared) {
+      if (!interactive) {
+        return { ok: false, need: "fio_dup", fioGroups: fioGroups, rows: rows };
+      }
+      var fioDupAns = await askDuplicates(fioGroups, {
+        kindLabel: "ФИО + турнир",
+        keyHint: "CONTEST_CODE + TOURNAMENT_CODE + ФИО",
+      });
+      if (fioDupAns.action === "cancel") return { ok: false, cancelled: true };
+      if (fioDupAns.action === "abort") return { ok: false, aborted: true };
+      state.lastFioResolutions = fioDupAns.resolutions || {};
+      var fioApplied = ReportCore.applyDuplicateResolutions(
+        rows,
+        state.lastFioResolutions,
+        coreOpts(),
+        ReportCore.duplicateKeyFio,
+        ReportCore.isFioDataRow
+      );
+      if (!fioApplied.ok) {
+        return { ok: false, error: fioApplied.error, rows: fioApplied.rows };
+      }
+      rows = fioApplied.rows;
+      state.checkState.fioDupCleared = true;
+    } else if (!fioGroups.length) {
+      state.checkState.fioDupCleared = true;
+    }
+
+    // 3) дубли по табельному + турнир (после сцепки, с учётом include_in_csv)
+    ReportCore.annotateDuplicatesLikePq(rows, coreOpts());
+    var tnGroups = ReportCore.findTnDuplicateGroups(rows);
+    if (tnGroups.length && !state.checkState.duplicatesCleared) {
+      if (!interactive) {
+        return { ok: false, need: "tn_dup", tnGroups: tnGroups, rows: rows };
+      }
+      var tnAns = await askDuplicates(tnGroups, {
+        kindLabel: "табельный + турнир",
+        keyHint: "CONTEST_CODE + TOURNAMENT_CODE + MANAGER_PERSON_NUMBER",
+      });
+      if (tnAns.action === "cancel") return { ok: false, cancelled: true };
+      if (tnAns.action === "abort") return { ok: false, aborted: true };
+      state.lastResolutions = tnAns.resolutions || {};
+      var tnApplied = ReportCore.applyDuplicateResolutions(
+        rows,
+        state.lastResolutions,
+        coreOpts(),
+        ReportCore.duplicateKey,
+        function (row) {
+          return row.include_in_csv !== false;
+        }
+      );
+      if (!tnApplied.ok) {
+        return { ok: false, error: tnApplied.error, rows: tnApplied.rows };
+      }
+      rows = tnApplied.rows;
+      state.checkState.duplicatesCleared = true;
+    } else if (!tnGroups.length) {
+      state.checkState.duplicatesCleared = true;
+    }
+
+    ReportCore.annotateDuplicatesLikePq(rows, coreOpts());
+    var summary = ReportCore.summarizeCheckedRows(rows);
+    state.checkedPipeline = { rows: rows, summary: summary };
+    return { ok: true, rows: rows, summary: summary, missingFio: buildAllRows().missingFio };
   }
 
   function validateBaseOrAlert() {
@@ -978,145 +1130,129 @@
     return true;
   }
 
+  function renderCheckSummary(summary, missingFio) {
+    var html =
+      '<div class="ok-box">Проверка завершена с учётом применённых решений.</div>' +
+      '<div class="info-box">Всего строк после обработки: <b>' +
+      summary.total +
+      "</b><br>В CSV попадёт: <b>" +
+      summary.included +
+      "</b><br>Исключено (дубли/решения): <b>" +
+      summary.excluded +
+      "</b>";
+    if (summary.missingFioFlag) {
+      html += "<br>С флагом «табельный не найден»: <b>" + summary.missingFioFlag + "</b>";
+    }
+    html += "</div>";
+    if (missingFio && missingFio.length) {
+      html +=
+        '<div class="warn-box">Остались ФИО без табельного в справочнике (подставлен 00000000): ' +
+        escapeHtml(missingFio.join("; ")) +
+        "</div>";
+    }
+    if (summary.csvRows && summary.csvRows.length) {
+      var previewRows = summary.csvRows.slice(0, 8);
+      var cols = ReportCore.CSV_COLUMNS;
+      html +=
+        '<div class="preview-table-wrap"><table class="preview-table"><thead><tr>' +
+        cols
+          .map(function (c) {
+            return "<th>" + escapeHtml(c) + "</th>";
+          })
+          .join("") +
+        "</tr></thead><tbody>" +
+        previewRows
+          .map(function (row) {
+            return (
+              "<tr>" +
+              cols
+                .map(function (c) {
+                  return "<td>" + escapeHtml(row[c] == null ? "" : row[c]) + "</td>";
+                })
+                .join("") +
+              "</tr>"
+            );
+          })
+          .join("") +
+        "</tbody></table></div>";
+    }
+    return html;
+  }
+
   async function runCheck() {
     if (!validateBaseOrAlert()) return;
     setStatus("проверка…");
-    var built = buildAllRows();
-    var okFio = built.missingFio.length === 0;
-    var okDup = built.groups.length === 0;
+    invalidateChecks();
+    var result = await runValidationPipeline({ interactive: true });
     var body = $("modal-check-body");
     var title = $("modal-check-title");
-
-    if (okFio && okDup) {
-      state.checkState = { duplicatesCleared: true, missingFioCleared: true };
-      title.textContent = "Проверка: всё ОК";
-      body.innerHTML = '<div class="ok-box">Ненайденных ФИО нет. Дублей нет. Можно формировать отчёт.</div>';
-      openModal("modal-check");
-      $("modal-check-close").onclick = function () {
-        closeModal("modal-check");
-      };
-      renderStages();
-      setStatus("проверка OK");
-      showToast("Проверка OK");
+    if (result.cancelled) {
+      setStatus("проверка отменена");
       return;
     }
-
-    title.textContent = "Проверка: есть замечания";
-    var html = "";
-    if (!okFio) {
-      html +=
-        '<div class="warn-box"><b>Не найдены ФИО (' +
-        built.missingFio.length +
-        "):</b> " +
-        escapeHtml(built.missingFio.join("; ")) +
-        "</div>";
+    if (result.aborted) {
+      setStatus("проверка остановлена");
+      alert("Проверка остановлена");
+      return;
     }
-    if (!okDup) {
-      html +=
-        '<div class="warn-box"><b>Дубли:</b> групп ' +
-        built.groups.length +
-        ". Можно разрешить в диалоге.</div>";
+    if (!result.ok) {
+      setStatus(result.error || "ошибка проверки");
+      alert(result.error || "Ошибка проверки");
+      return;
     }
-    html +=
-      '<div class="toolbar-row" style="margin-top:12px">' +
-      (!okFio ? '<button type="button" class="btn btn-primary" id="check-fix-fio">Дополнить ФИО</button>' : "") +
-      (!okDup ? '<button type="button" class="btn btn-primary" id="check-fix-dup">Разрешить дубли</button>' : "") +
-      "</div>";
-    body.innerHTML = html;
+    title.textContent = "Проверка: готово";
+    body.innerHTML = renderCheckSummary(result.summary, result.missingFio);
     openModal("modal-check");
-
     $("modal-check-close").onclick = function () {
       closeModal("modal-check");
     };
-    var btnFio = $("check-fix-fio");
-    if (btnFio) {
-      btnFio.onclick = async function () {
-        closeModal("modal-check");
-        var ans = await askMissingFio(built.missingFio.slice());
-        if (ans.action === "cancel") return;
-        if (ans.action === "skip") state.checkState.missingFioCleared = true;
-        if (ans.action === "apply") {
-          var again = buildAllRows();
-          state.checkState.missingFioCleared = again.missingFio.length === 0;
-        }
-        renderAll();
-        runCheck();
-      };
-    }
-    var btnDup = $("check-fix-dup");
-    if (btnDup) {
-      btnDup.onclick = async function () {
-        closeModal("modal-check");
-        var built2 = buildAllRows();
-        var ans = await askDuplicates(built2.groups);
-        if (ans.action === "cancel") return;
-        if (ans.action === "abort") {
-          state.checkState.duplicatesCleared = false;
-          setStatus("проверка: дубли не разрешены");
-          return;
-        }
-        state.lastResolutions = ans.resolutions || {};
-        state.checkState.duplicatesCleared = true;
-        renderStages();
-        setStatus("дубли разрешены");
-        showToast("Дубли разрешены");
-        runCheck();
-      };
-    }
-    setStatus("проверка: есть замечания");
+    renderStages();
+    setStatus("проверка OK · в CSV " + result.summary.included);
+    showToast("Проверка OK");
   }
 
   async function runProcess() {
     if (!validateBaseOrAlert()) return;
     setStatus("обработка…");
-
-    var built = buildAllRows();
-    if (built.missingFio.length && !state.checkState.missingFioCleared) {
-      var fioAns = await askMissingFio(built.missingFio.slice());
-      if (fioAns.action === "cancel") {
-        setStatus("отменено");
-        return;
-      }
-      if (fioAns.action === "skip") state.checkState.missingFioCleared = true;
-      built = buildAllRows();
-      if (fioAns.action === "apply" && built.missingFio.length === 0) {
-        state.checkState.missingFioCleared = true;
-      }
+    // если уже есть свежий пайплайн после проверки — используем его, иначе прогоняем заново
+    var result;
+    if (
+      state.checkedPipeline &&
+      state.checkState.missingFioCleared &&
+      state.checkState.fioDupCleared &&
+      state.checkState.duplicatesCleared
+    ) {
+      result = {
+        ok: true,
+        rows: state.checkedPipeline.rows,
+        summary: state.checkedPipeline.summary,
+        missingFio: buildAllRows().missingFio,
+      };
+    } else {
+      invalidateChecks();
+      result = await runValidationPipeline({ interactive: true });
     }
-
-    built = buildAllRows();
-    var resolutions = state.lastResolutions || {};
-    if (built.groups.length && !state.checkState.duplicatesCleared) {
-      var dupAns = await askDuplicates(built.groups);
-      if (dupAns.action === "cancel") {
-        setStatus("отменено");
-        return;
-      }
-      if (dupAns.action === "abort") {
-        setStatus("остановлено из‑за дублей");
-        alert("Формирование остановлено");
-        return;
-      }
-      resolutions = dupAns.resolutions || {};
-      state.lastResolutions = resolutions;
-      state.checkState.duplicatesCleared = true;
+    if (result.cancelled) {
+      setStatus("отменено");
+      return;
     }
-
-    var applied = ReportCore.applyDuplicateResolutions(built.rows, resolutions, coreOpts());
-    if (!applied.ok) {
-      alert(applied.error || "Ошибка");
-      setStatus(applied.error || "ошибка");
+    if (result.aborted) {
+      setStatus("остановлено");
+      alert("Формирование остановлено");
+      return;
+    }
+    if (!result.ok) {
+      alert(result.error || "Ошибка");
+      setStatus(result.error || "ошибка");
       return;
     }
 
-    state.checkState.missingFioCleared = true;
-    state.checkState.duplicatesCleared = true;
     state.lastResult = {
       ok: true,
-      rows: applied.rows,
-      missingFio: built.missingFio,
-      csvRows: ReportCore.rowsForCsv(applied.rows),
-      xlsxRows: ReportCore.rowsForXlsx(applied.rows),
+      rows: result.rows,
+      missingFio: result.missingFio || [],
+      csvRows: result.summary.csvRows,
+      xlsxRows: result.summary.xlsxRows,
     };
     renderAll();
     showToast("Готово");

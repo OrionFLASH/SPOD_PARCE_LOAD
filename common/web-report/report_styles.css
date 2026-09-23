@@ -637,11 +637,20 @@ body::after { width: 380px; height: 380px; right: -60px; bottom: 10%; background
   background: rgba(255, 255, 255, 0.7);
   border: 1px solid rgba(0, 0, 0, 0.06);
 }
-.dup-group__meta {
-  font-family: var(--mono);
+.dup-rows { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; }
+.dup-row {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.75);
+  border: 1px solid rgba(0, 0, 0, 0.06);
   font-size: 12px;
-  margin-bottom: 8px;
+  cursor: pointer;
 }
+.dup-row input { margin-top: 2px; flex: 0 0 auto; }
+.dup-row code { font-family: var(--mono); font-size: 11px; }
 
 .glass-tip {
   position: fixed;

@@ -200,13 +200,27 @@
     return [row.CONTEST_CODE, row.TOURNAMENT_CODE, row.MANAGER_PERSON_NUMBER].join("|");
   }
 
+  function duplicateKeyFio(row) {
+    return [row.CONTEST_CODE, row.TOURNAMENT_CODE, normalizeFioKey(row.FIO)].join("|");
+  }
+
+  function isFioDataRow(row) {
+    if (!row) return false;
+    var fio = String(row.FIO == null ? "" : row.FIO).trim();
+    return fio !== "" && fio !== "-";
+  }
+
   /**
-   * Группы дублей: ключ → массив индексов в rows.
+   * Группы дублей. keyFn — функция ключа; optional filterFn — какие строки учитывать.
    */
-  function findDuplicateGroups(rows) {
+  function findDuplicateGroups(rows, keyFn, filterFn) {
+    var keyOf = keyFn || duplicateKey;
     var groups = Object.create(null);
     (rows || []).forEach(function (row, idx) {
-      var key = duplicateKey(row);
+      if (filterFn && !filterFn(row)) {
+        return;
+      }
+      var key = keyOf(row);
       if (!groups[key]) {
         groups[key] = [];
       }
@@ -228,6 +242,20 @@
       }
     });
     return result;
+  }
+
+  function findFioDuplicateGroups(rows) {
+    return findDuplicateGroups(rows, duplicateKeyFio, isFioDataRow);
+  }
+
+  function findTnDuplicateGroups(rows) {
+    return findDuplicateGroups(
+      rows,
+      duplicateKey,
+      function (row) {
+        return row.include_in_csv !== false;
+      }
+    );
   }
 
   /**
@@ -257,22 +285,26 @@
 
   /**
    * Применение решения по дублям.
-   * resolution: { mode: 'abort'|'drop_all'|'keep_one'|'sum', keepIndex?: number }
-   * resolutionsByKey: { [key]: resolution }
+   * resolution: { mode: 'abort'|'drop_all'|'keep_one'|'keep_selected'|'sum', keepIndex?, keepIndices? }
+   * keyFn — какой ключ дубля использовать при поиске групп.
+   * filterFn — фильтр строк для группировки.
    */
-  function applyDuplicateResolutions(rows, resolutionsByKey, options) {
+  function applyDuplicateResolutions(rows, resolutionsByKey, options, keyFn, filterFn) {
     var cfg = mergeDefaults(options);
+    var keyOf = keyFn || duplicateKey;
     var list = (rows || []).map(function (r) {
       return Object.assign({}, r);
     });
-    annotateDuplicatesLikePq(list, cfg);
+    if (keyOf === duplicateKey || !keyFn) {
+      annotateDuplicatesLikePq(list, cfg);
+    }
 
-    var groups = findDuplicateGroups(list);
+    var groups = findDuplicateGroups(list, keyOf, filterFn);
     for (var gi = 0; gi < groups.length; gi++) {
       var g = groups[gi];
       var res = resolutionsByKey && resolutionsByKey[g.key];
       if (!res || !res.mode) {
-        return { ok: false, error: "Нет решения для дубля: " + g.key, rows: list };
+        return { ok: false, error: "Нет решения для дубля: " + g.key, rows: list, pendingKey: g.key };
       }
       if (res.mode === "abort") {
         return { ok: false, error: "Формирование остановлено пользователем (дубли).", aborted: true, rows: list };
@@ -286,7 +318,10 @@
       if (res.mode === "drop_all") {
         indices.forEach(function (idx) {
           list[idx].include_in_csv = false;
-          list[idx].duplicate_comment = commentBase + "; решение: убрать все дубли из CSV";
+          list[idx].duplicate_comment =
+            (list[idx].duplicate_comment ? list[idx].duplicate_comment + " | " : "") +
+            commentBase +
+            "; решение: убрать все дубли из CSV";
         });
         continue;
       }
@@ -299,10 +334,45 @@
         indices.forEach(function (idx) {
           if (idx === keepIdx) {
             list[idx].include_in_csv = true;
-            list[idx].duplicate_comment = commentBase + "; решение: оставлена эта строка";
+            list[idx].duplicate_comment =
+              (list[idx].duplicate_comment ? list[idx].duplicate_comment + " | " : "") +
+              commentBase +
+              "; решение: оставлена эта строка";
           } else {
             list[idx].include_in_csv = false;
-            list[idx].duplicate_comment = commentBase + "; решение: исключена (выбрана другая строка)";
+            list[idx].duplicate_comment =
+              (list[idx].duplicate_comment ? list[idx].duplicate_comment + " | " : "") +
+              commentBase +
+              "; решение: исключена (выбрана другая строка)";
+          }
+        });
+        continue;
+      }
+
+      if (res.mode === "keep_selected") {
+        var keepSet = Object.create(null);
+        (res.keepIndices || []).forEach(function (idx) {
+          keepSet[idx] = true;
+        });
+        var any = indices.some(function (idx) {
+          return keepSet[idx];
+        });
+        if (!any) {
+          return { ok: false, error: "Не отмечены строки для keep_selected: " + g.key, rows: list };
+        }
+        indices.forEach(function (idx) {
+          if (keepSet[idx]) {
+            list[idx].include_in_csv = true;
+            list[idx].duplicate_comment =
+              (list[idx].duplicate_comment ? list[idx].duplicate_comment + " | " : "") +
+              commentBase +
+              "; решение: оставлена (множественный выбор)";
+          } else {
+            list[idx].include_in_csv = false;
+            list[idx].duplicate_comment =
+              (list[idx].duplicate_comment ? list[idx].duplicate_comment + " | " : "") +
+              commentBase +
+              "; решение: исключена (не отмечена)";
           }
         });
         continue;
@@ -314,10 +384,16 @@
         list[first].FACT_VALUE_число = sumVal;
         list[first].FACT_VALUE = formatNumberDot(sumVal, cfg.numberDecimals);
         list[first].include_in_csv = true;
-        list[first].duplicate_comment = commentBase + "; решение: сумма показателей в одну строку";
+        list[first].duplicate_comment =
+          (list[first].duplicate_comment ? list[first].duplicate_comment + " | " : "") +
+          commentBase +
+          "; решение: сумма показателей в одну строку";
         indices.slice(1).forEach(function (idx) {
           list[idx].include_in_csv = false;
-          list[idx].duplicate_comment = commentBase + "; решение: поглощена суммой в первую строку группы";
+          list[idx].duplicate_comment =
+            (list[idx].duplicate_comment ? list[idx].duplicate_comment + " | " : "") +
+            commentBase +
+            "; решение: поглощена суммой в первую строку группы";
         });
         continue;
       }
@@ -326,6 +402,28 @@
     }
 
     return { ok: true, rows: list };
+  }
+
+  /**
+   * Сводка после проверок: сколько строк останется в CSV и т.п.
+   */
+  function summarizeCheckedRows(rows) {
+    var list = rows || [];
+    var included = list.filter(function (r) {
+      return r.include_in_csv !== false;
+    });
+    var excluded = list.length - included.length;
+    var missingFlag = list.filter(function (r) {
+      return r["ТАБЕЛЬНЫЙ НЕ НАЙДЕН"] === "ДА" && r.include_in_csv !== false;
+    }).length;
+    return {
+      total: list.length,
+      included: included.length,
+      excluded: excluded,
+      missingFioFlag: missingFlag,
+      csvRows: rowsForCsv(list),
+      xlsxRows: rowsForXlsx(list),
+    };
   }
 
   var CSV_COLUMNS = [
@@ -560,6 +658,7 @@
 
     var dupOk = false;
     var dupGroups = [];
+    var fioDupGroups = [];
     if (sourcesOk) {
       var allRows = [];
       list.forEach(function (t) {
@@ -568,8 +667,11 @@
         allRows = allRows.concat(norm.rows);
       });
       annotateDuplicatesLikePq(allRows, {});
-      dupGroups = findDuplicateGroups(allRows);
-      dupOk = dupGroups.length === 0 || !!(checkState && checkState.duplicatesCleared);
+      fioDupGroups = findFioDuplicateGroups(allRows);
+      dupGroups = findTnDuplicateGroups(allRows);
+      var fioDupOk = fioDupGroups.length === 0 || !!(checkState && checkState.fioDupCleared);
+      var tnDupOk = dupGroups.length === 0 || !!(checkState && checkState.duplicatesCleared);
+      dupOk = fioDupOk && tnDupOk;
     }
 
     var blockedCopies = list.filter(function (t) {
@@ -584,6 +686,7 @@
       duplicatesOk: dupOk,
       missingFio: missingFio,
       duplicateGroups: dupGroups,
+      fioDuplicateGroups: fioDupGroups,
       blockedCopies: blockedCopies,
       canProcess: hasTournaments && fieldsFilled && sourcesOk && fioOk && dupOk && blockedCopies.length === 0,
       canCheck: hasTournaments && fieldsFilled && sourcesOk && blockedCopies.length === 0,
@@ -668,11 +771,16 @@
     buildFioMap: buildFioMap,
     normalizeTournamentRows: normalizeTournamentRows,
     duplicateKey: duplicateKey,
+    duplicateKeyFio: duplicateKeyFio,
+    isFioDataRow: isFioDataRow,
     findDuplicateGroups: findDuplicateGroups,
+    findFioDuplicateGroups: findFioDuplicateGroups,
+    findTnDuplicateGroups: findTnDuplicateGroups,
     annotateDuplicatesLikePq: annotateDuplicatesLikePq,
     applyDuplicateResolutions: applyDuplicateResolutions,
     rowsForCsv: rowsForCsv,
     rowsForXlsx: rowsForXlsx,
+    summarizeCheckedRows: summarizeCheckedRows,
     processAll: processAll,
     createEmptyTournament: createEmptyTournament,
     cloneTournament: cloneTournament,
