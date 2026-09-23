@@ -41,4 +41,4 @@
 ## Статусы
 
 Пункт **26** в `ROADMAP.md` и `Docs/TODO_WEB_REPORT.md` — выполнен (`[v]`).
-Архив пакета для переноса: `common/web-report/web-report_bundle.zip` (код страницы + Docs + тест).
+Архив для пересылки: `common/web-report/web-report_bundle.zip` — скрипты внутри как `*.script` (без `js` в имени), карта имён: `ПРАВИЛЬНЫЕ_ИМЕНА.txt` (+ `restore_names.bat` / `restore_names.sh`).

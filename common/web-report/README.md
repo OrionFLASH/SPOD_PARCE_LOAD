@@ -26,7 +26,9 @@ cd common/web-report && python3 -m http.server 8770
 | `config.json` | Порт, длина табельного, формат числа, ключи localStorage |
 | `xlsx.full.min.js` | SheetJS (чтение/запись Excel офлайн) |
 | `examples/` | Примеры настроек, справочника ФИО, CSV |
-| `web-report_bundle.zip` | Архив страницы + Docs + тест |
+| `web-report_bundle.zip` | Архив для пересылки: JS как `*.script` (без «js» в имени) |
+| `ПРАВИЛЬНЫЕ_ИМЕНА.txt` | Соответствие имён в архиве → рабочие `.js` / `.mjs` |
+| `restore_names.bat` / `restore_names.sh` | Переименование после распаковки |
 
 ## Как работать
 
