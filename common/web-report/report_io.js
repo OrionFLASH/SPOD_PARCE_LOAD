@@ -141,19 +141,9 @@
     return result;
   }
 
-  function parseExcelArrayBuffer(arrayBuffer) {
-    if (typeof XLSX === "undefined") {
-      throw new Error("Библиотека XLSX не загружена");
-    }
-    var wb = XLSX.read(arrayBuffer, { type: "array", cellDates: false, raw: false });
-    var sheetName = wb.SheetNames[0];
-    if (!sheetName) {
-      return { rows: [], columns: [], sheetName: "" };
-    }
-    var sheet = wb.Sheets[sheetName];
-    var aoa = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "", raw: false });
-    if (!aoa.length) {
-      return { rows: [], columns: [], sheetName: sheetName };
+  function aoaToTable(aoa) {
+    if (!aoa || !aoa.length) {
+      return { rows: [], columns: [] };
     }
     var columns = (aoa[0] || []).map(function (c) {
       return String(c == null ? "" : c).trim();
@@ -174,7 +164,49 @@
         rows.push(row);
       }
     }
-    return { rows: rows, columns: columns, sheetName: sheetName };
+    return { rows: rows, columns: columns };
+  }
+
+  function sheetToTable(sheet) {
+    var aoa = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "", raw: false });
+    return aoaToTable(aoa);
+  }
+
+  /** Разбор Excel: все листы. */
+  function parseExcelWorkbook(arrayBuffer) {
+    if (typeof XLSX === "undefined") {
+      throw new Error("Библиотека XLSX не загружена");
+    }
+    var wb = XLSX.read(arrayBuffer, { type: "array", cellDates: false, raw: false });
+    var sheetNames = wb.SheetNames || [];
+    var sheets = {};
+    sheetNames.forEach(function (name) {
+      sheets[name] = sheetToTable(wb.Sheets[name]);
+    });
+    var first = sheetNames[0] || "";
+    var table = first ? sheets[first] : { rows: [], columns: [] };
+    return {
+      sheetNames: sheetNames,
+      sheets: sheets,
+      sheetName: first,
+      rows: table.rows,
+      columns: table.columns,
+    };
+  }
+
+  function parseExcelArrayBuffer(arrayBuffer, sheetName) {
+    var book = parseExcelWorkbook(arrayBuffer);
+    if (sheetName && book.sheets[sheetName]) {
+      var t = book.sheets[sheetName];
+      return {
+        rows: t.rows,
+        columns: t.columns,
+        sheetName: sheetName,
+        sheetNames: book.sheetNames,
+        sheets: book.sheets,
+      };
+    }
+    return book;
   }
 
   async function readTableFile(file) {
@@ -189,20 +221,39 @@
         columns: csv.columns,
         encoding: csv.encoding,
         fileName: name,
+        sheetNames: [],
+        sheets: null,
+        sheetName: "",
       };
     }
     if (lower.endsWith(".xlsx") || lower.endsWith(".xls") || lower.endsWith(".xlsm")) {
-      var xls = parseExcelArrayBuffer(buffer);
+      var xls = parseExcelWorkbook(buffer);
       return {
         kind: "excel",
         rows: xls.rows,
         columns: xls.columns,
         sheetName: xls.sheetName,
+        sheetNames: xls.sheetNames,
+        sheets: xls.sheets,
         encoding: "binary",
         fileName: name,
+        buffer: buffer,
       };
     }
     throw new Error("Поддерживаются CSV и Excel (.xlsx/.xls)");
+  }
+
+  function pickSheetFromPack(pack, sheetName) {
+    if (!pack || pack.kind !== "excel" || !pack.sheets) {
+      return pack;
+    }
+    var name = sheetName || pack.sheetName || (pack.sheetNames && pack.sheetNames[0]) || "";
+    var table = pack.sheets[name] || { rows: [], columns: [] };
+    return Object.assign({}, pack, {
+      sheetName: name,
+      rows: table.rows,
+      columns: table.columns,
+    });
   }
 
   function downloadBlob(filename, blob) {
@@ -256,6 +307,26 @@
     downloadText(filename || timestampName("report", "csv"), content, "text/csv;charset=utf-8");
   }
 
+  function autoColWidths(aoa) {
+    if (!aoa || !aoa.length) {
+      return [];
+    }
+    var colCount = aoa[0].length;
+    var widths = [];
+    for (var c = 0; c < colCount; c++) {
+      var maxLen = 8;
+      for (var r = 0; r < aoa.length; r++) {
+        var cell = aoa[r][c];
+        var len = String(cell == null ? "" : cell).length;
+        if (len > maxLen) {
+          maxLen = len;
+        }
+      }
+      widths.push({ wch: Math.min(42, Math.max(10, maxLen + 2)) });
+    }
+    return widths;
+  }
+
   function downloadReportXlsx(rows, filename) {
     if (typeof XLSX === "undefined") {
       throw new Error("Библиотека XLSX не загружена");
@@ -270,7 +341,30 @@
       );
     });
     var ws = XLSX.utils.aoa_to_sheet(aoa);
+    var lastRow = Math.max(aoa.length, 1);
+    var lastCol = Math.max(cols.length, 1);
+    var range = XLSX.utils.encode_range({
+      s: { r: 0, c: 0 },
+      e: { r: lastRow - 1, c: lastCol - 1 },
+    });
+    ws["!ref"] = range;
+    ws["!autofilter"] = { ref: range };
+    ws["!freeze"] = {
+      xSplit: 0,
+      ySplit: 1,
+      topLeftCell: "A2",
+      activePane: "bottomLeft",
+      state: "frozen",
+    };
+    ws["!cols"] = autoColWidths(aoa);
     var wb = XLSX.utils.book_new();
+    if (!wb.Workbook) {
+      wb.Workbook = {};
+    }
+    if (!wb.Workbook.Views) {
+      wb.Workbook.Views = [{}];
+    }
+    wb.Workbook.Views[0].ySplit = 1;
     XLSX.utils.book_append_sheet(wb, ws, "REPORT");
     var out = XLSX.write(wb, { bookType: "xlsx", type: "array" });
     downloadBlob(
@@ -332,6 +426,8 @@
     parseCsvBuffer: parseCsvBuffer,
     parseCsvText: parseCsvText,
     parseExcelArrayBuffer: parseExcelArrayBuffer,
+    parseExcelWorkbook: parseExcelWorkbook,
+    pickSheetFromPack: pickSheetFromPack,
     readTableFile: readTableFile,
     downloadBlob: downloadBlob,
     downloadText: downloadText,
@@ -339,6 +435,7 @@
     buildCsvContent: buildCsvContent,
     downloadReportCsv: downloadReportCsv,
     downloadReportXlsx: downloadReportXlsx,
+    autoColWidths: autoColWidths,
     timestampName: timestampName,
     guessIdColumn: guessIdColumn,
     guessFactColumn: guessFactColumn,

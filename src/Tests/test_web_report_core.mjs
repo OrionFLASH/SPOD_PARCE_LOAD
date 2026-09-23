@@ -200,6 +200,39 @@ function testSettingsRoundtrip() {
   assert.strictEqual(back[0].type_ind, "FIO");
 }
 
+function testCloneAndStages() {
+  var t = ReportCore.createEmptyTournament({
+    contest_code: "C",
+    tournament_code: "T1",
+    plan_value: "1",
+    contest_date: "2026-09-17",
+    full_name: "Name",
+    type_ind: "TN",
+    column_id: "ТАБЕЛЬНЫЙ НОМЕР",
+    column_fact: "ПОКАЗАТЕЛЬ",
+  });
+  var copy = ReportCore.cloneTournament(t);
+  assert.strictEqual(copy.needs_identity_fix, true);
+  assert.strictEqual(ReportCore.tournamentIdentityUnlocked(copy), false);
+  copy.tournament_code = "T2";
+  copy.full_name = "Other";
+  assert.strictEqual(ReportCore.tournamentIdentityUnlocked(copy), true);
+
+  var data = {};
+  data[t.id] = {
+    rows: [{ "ТАБЕЛЬНЫЙ НОМЕР": "1", ПОКАЗАТЕЛЬ: "10" }],
+    columns: ["ТАБЕЛЬНЫЙ НОМЕР", "ПОКАЗАТЕЛЬ"],
+  };
+  var st = ReportCore.computeStages([t], data, [], {
+    duplicatesCleared: true,
+    missingFioCleared: true,
+  });
+  assert.ok(st.hasTournaments);
+  assert.ok(st.fieldsFilled);
+  assert.ok(st.sourcesOk);
+  assert.ok(st.canProcess);
+}
+
 const tests = [
   ["parseNumber", testParseNumber],
   ["pad", testPad],
@@ -209,6 +242,7 @@ const tests = [
   ["keepOneDrop", testKeepOneAndDrop],
   ["processAll", testProcessAll],
   ["settings", testSettingsRoundtrip],
+  ["cloneStages", testCloneAndStages],
 ];
 
 let failed = 0;
