@@ -10,6 +10,15 @@
     activeId: null,
     dataByTournament: {},
     fioEntries: [],
+    fioPack: null,
+    fioUi: {
+      sheet_name: "",
+      start_row: 1,
+      start_col: 1,
+      col_fio: "",
+      col_tn: "",
+      file_name: "",
+    },
     lastResult: null,
     checkState: { duplicatesCleared: false, missingFioCleared: false },
     lastResolutions: {},
@@ -181,6 +190,12 @@
     $("btn-export-xlsx").disabled = !(state.lastResult && state.lastResult.ok);
   }
 
+  function hasAnyFioMode() {
+    return state.tournaments.some(function (t) {
+      return String(t.type_ind || "").toUpperCase() === "FIO";
+    });
+  }
+
   function renderNav() {
     var nav = $("tournament-nav");
     nav.innerHTML = "";
@@ -193,6 +208,15 @@
       btn.className = cls;
       var kind = tournamentReadyKind(t);
       var type = String(t.type_ind || "TN").toUpperCase();
+      var actions =
+        t.id === state.activeId
+          ? '<div class="ct-actions">' +
+            '<button type="button" class="tab-icon-btn" data-act="copy" data-tip="Копировать турнир (данные и параметры)">' +
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></button>' +
+            '<button type="button" class="tab-icon-btn tab-icon-btn--danger" data-act="remove" data-tip="Удалить турнир">' +
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12"/><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg></button>' +
+            "</div>"
+          : "";
       btn.innerHTML =
         '<div class="ct-text">' +
         '<div class="ct-code">' +
@@ -212,15 +236,24 @@
         '">' +
         (kind === "copy" ? "КОПИЯ" : kind === "ready" ? "OK" : "DRAFT") +
         "</span>" +
-        "</div></div>";
-      btn.addEventListener("click", function () {
+        "</div></div>" +
+        actions;
+      btn.addEventListener("click", function (ev) {
+        var actBtn = ev.target.closest("[data-act]");
+        if (actBtn) {
+          ev.preventDefault();
+          ev.stopPropagation();
+          var act = actBtn.getAttribute("data-act");
+          if (act === "copy") copyTournament();
+          if (act === "remove") removeTournament();
+          return;
+        }
         flushEditorToState();
         state.activeId = t.id;
         renderAll();
       });
       nav.appendChild(btn);
     });
-    $("fio-stats").textContent = "ФИО в справочнике: " + state.fioEntries.length;
   }
 
   function fillSelect(select, options, selected) {
@@ -266,16 +299,195 @@
     );
   }
 
+  function renderFioPanelHtml() {
+    if (!hasAnyFioMode()) return "";
+    var pack = state.fioPack;
+    var ui = state.fioUi;
+    var sheetBlock = "";
+    if (pack && pack.kind === "excel" && pack.sheetNames && pack.sheetNames.length) {
+      sheetBlock =
+        '<div class="field field--third"><label class="field-label" for="fio-sheet">Лист Excel</label>' +
+        '<select class="field-select" id="fio-sheet"></select></div>';
+    }
+    return (
+      '<div class="panel" id="panel-fio">' +
+      "<h2>Справочник ФИО</h2>" +
+      '<p class="panel__intro">Доступен, пока есть хотя бы один турнир в режиме FIO. Загрузите JSON или таблицу (CSV/Excel) и укажите угол, колонки ФИО и табельного.</p>' +
+      '<div class="info-box">Записей в справочнике: <b id="fio-stats">' +
+      state.fioEntries.length +
+      "</b></div>" +
+      '<div class="toolbar-row">' +
+      '<label class="btn file-pick" data-tip="Загрузить ранее сохранённый JSON справочника">' +
+      "<span>Открыть JSON</span>" +
+      '<input type="file" id="import-fio-json" class="file-pick__input" accept=".json,application/json" /></label>' +
+      '<button type="button" class="btn" id="btn-save-fio" data-tip="Сохранить справочник ФИО в JSON">Сохранить JSON</button>' +
+      '<label class="btn btn-primary file-pick" data-tip="Загрузить CSV/Excel со столбцами ФИО и табельный">' +
+      "<span>Загрузить таблицу ФИО</span>" +
+      '<input type="file" id="import-fio-table" class="file-pick__input" accept=".csv,.txt,.xlsx,.xls,.xlsm" /></label>' +
+      '<button type="button" class="btn btn-primary" id="btn-apply-fio-table" data-tip="Взять строки из таблицы в справочник">Применить из таблицы</button>' +
+      "</div>" +
+      '<div class="fields-grid" style="margin-top:12px">' +
+      sheetBlock +
+      '<div class="field field--third"><label class="field-label" for="fio-start-row">Строка угла</label>' +
+      '<input class="field-input" id="fio-start-row" type="number" min="1" step="1" /></div>' +
+      '<div class="field field--third"><label class="field-label" for="fio-start-col">Колонка угла</label>' +
+      '<input class="field-input" id="fio-start-col" type="number" min="1" step="1" /></div>' +
+      '<div class="field"><label class="field-label" for="fio-col-fio">Колонка ФИО</label><select class="field-select" id="fio-col-fio"></select></div>' +
+      '<div class="field"><label class="field-label" for="fio-col-tn">Колонка табельного</label><select class="field-select" id="fio-col-tn"></select></div>' +
+      '<div class="field field--full"><label class="field-label" for="fio-file-name">Файл таблицы</label>' +
+      '<input class="field-input" id="fio-file-name" readonly /></div>' +
+      "</div>" +
+      '<div id="fio-preview-host"></div></div>'
+    );
+  }
+
+  function bindFioPanel() {
+    if (!hasAnyFioMode()) return;
+    var pack = state.fioPack;
+    var ui = state.fioUi;
+    $("fio-start-row").value = ui.start_row || 1;
+    $("fio-start-col").value = ui.start_col || 1;
+    $("fio-file-name").value = ui.file_name || "";
+    if (pack) {
+      fillSelect($("fio-col-fio"), pack.columns, ui.col_fio || "");
+      fillSelect($("fio-col-tn"), pack.columns, ui.col_tn || "");
+      $("fio-preview-host").innerHTML = renderPreviewTable(pack, 8);
+      if (pack.kind === "excel" && $("fio-sheet")) {
+        fillSelect($("fio-sheet"), pack.sheetNames, ui.sheet_name || pack.sheetName || "");
+        $("fio-sheet").addEventListener("change", function () {
+          reapplyFioOrigin({ sheetName: $("fio-sheet").value });
+        });
+      }
+    } else {
+      fillSelect($("fio-col-fio"), [], "");
+      fillSelect($("fio-col-tn"), [], "");
+      $("fio-preview-host").innerHTML =
+        '<div class="warn-box">Загрузите таблицу ФИО или JSON — здесь появится превью.</div>';
+    }
+
+    ["fio-start-row", "fio-start-col"].forEach(function (id) {
+      $(id).addEventListener("change", function () {
+        reapplyFioOrigin({
+          start_row: Number($("fio-start-row").value) || 1,
+          start_col: Number($("fio-start-col").value) || 1,
+        });
+      });
+    });
+    ["fio-col-fio", "fio-col-tn"].forEach(function (id) {
+      $(id).addEventListener("change", function () {
+        state.fioUi.col_fio = $("fio-col-fio").value;
+        state.fioUi.col_tn = $("fio-col-tn").value;
+      });
+    });
+
+    $("import-fio-json").addEventListener("change", async function (ev) {
+      var file = ev.target.files && ev.target.files[0];
+      ev.target.value = "";
+      if (!file) return;
+      try {
+        state.fioEntries = ReportCore.parseFioDictionary(await readJsonFile(file));
+        invalidateChecks();
+        renderAll();
+        showToast("Справочник JSON загружен");
+      } catch (err) {
+        alert(err.message || String(err));
+      }
+    });
+    $("btn-save-fio").addEventListener("click", function () {
+      ReportIO.downloadJson(
+        ReportIO.timestampName("fio_dictionary", "json"),
+        ReportCore.serializeFioDictionary(state.fioEntries)
+      );
+      showToast("Справочник ФИО");
+    });
+    $("import-fio-table").addEventListener("change", async function (ev) {
+      var file = ev.target.files && ev.target.files[0];
+      ev.target.value = "";
+      if (!file) return;
+      try {
+        var pack = await ReportIO.readTableFile(file, state.fioUi.start_row || 1, state.fioUi.start_col || 1);
+        state.fioPack = pack;
+        state.fioUi.file_name = pack.fileName;
+        state.fioUi.sheet_name = pack.sheetName || "";
+        state.fioUi.col_fio = ReportIO.guessIdColumn(pack.columns, "FIO");
+        state.fioUi.col_tn = ReportIO.guessIdColumn(pack.columns, "TN");
+        renderAll();
+        showToast("Таблица ФИО загружена");
+      } catch (err) {
+        alert(err.message || String(err));
+      }
+    });
+    $("btn-apply-fio-table").addEventListener("click", function () {
+      if (!state.fioPack) {
+        alert("Сначала загрузите таблицу ФИО");
+        return;
+      }
+      var colFio = $("fio-col-fio").value;
+      var colTn = $("fio-col-tn").value;
+      if (!colFio || !colTn) {
+        alert("Укажите колонки ФИО и табельного");
+        return;
+      }
+      state.fioUi.col_fio = colFio;
+      state.fioUi.col_tn = colTn;
+      var entries = ReportIO.entriesFromFioTable(state.fioPack.rows, colFio, colTn);
+      if (!entries.length) {
+        alert("Не удалось прочитать ни одной пары ФИО / табельный");
+        return;
+      }
+      var byKey = Object.create(null);
+      state.fioEntries.forEach(function (e) {
+        byKey[ReportCore.normalizeFioKey(e.fio)] = e;
+      });
+      entries.forEach(function (e) {
+        byKey[ReportCore.normalizeFioKey(e.fio)] = e;
+      });
+      state.fioEntries = Object.keys(byKey).map(function (k) {
+        return byKey[k];
+      });
+      invalidateChecks();
+      renderAll();
+      showToast("В справочник: " + entries.length);
+    });
+  }
+
+  function reapplyFioOrigin(partial) {
+    if (!state.fioPack) return;
+    if (partial) {
+      if (partial.sheetName != null) state.fioUi.sheet_name = partial.sheetName;
+      if (partial.start_row != null) state.fioUi.start_row = partial.start_row;
+      if (partial.start_col != null) state.fioUi.start_col = partial.start_col;
+    }
+    state.fioPack = ReportIO.applyPackOrigin(state.fioPack, {
+      sheetName: state.fioUi.sheet_name || state.fioPack.sheetName,
+      start_row: state.fioUi.start_row,
+      start_col: state.fioUi.start_col,
+    });
+    state.fioUi.sheet_name = state.fioPack.sheetName || "";
+    state.fioUi.start_row = state.fioPack.start_row || 1;
+    state.fioUi.start_col = state.fioPack.start_col || 1;
+    if (!state.fioUi.col_fio || state.fioPack.columns.indexOf(state.fioUi.col_fio) < 0) {
+      state.fioUi.col_fio = ReportIO.guessIdColumn(state.fioPack.columns, "FIO");
+    }
+    if (!state.fioUi.col_tn || state.fioPack.columns.indexOf(state.fioUi.col_tn) < 0) {
+      state.fioUi.col_tn = ReportIO.guessIdColumn(state.fioPack.columns, "TN");
+    }
+    renderAll();
+  }
+
   function renderWorkspace() {
     var ws = $("workspace");
     var t = activeTournament();
+    var fioHtml = renderFioPanelHtml();
     if (!t) {
       ws.innerHTML =
         '<div class="panel"><h2>Нет турниров</h2><p class="panel__intro">Добавьте турнир слева или откройте JSON настроек.</p>' +
-        '<div class="toolbar-row"><button type="button" class="btn btn-primary" id="btn-add-tournament-empty">' +
-        '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14"/><path d="M5 12h14"/></svg> Добавить турнир</button></div></div>';
+        '<div class="toolbar-row"><button type="button" class="btn btn-primary" id="btn-add-tournament-empty" data-tip="Добавить турнир">' +
+        '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14"/><path d="M5 12h14"/></svg> Добавить турнир</button></div></div>' +
+        fioHtml;
       var addEmpty = $("btn-add-tournament-empty");
       if (addEmpty) addEmpty.addEventListener("click", addTournament);
+      bindFioPanel();
       return;
     }
 
@@ -288,15 +500,15 @@
     if (pack && pack.kind === "excel" && pack.sheetNames && pack.sheetNames.length) {
       sheetBlock =
         '<div class="field field--third"><label class="field-label" for="f-sheet">Лист Excel</label>' +
-        '<select class="field-select" id="f-sheet"></select></div>';
+        '<select class="field-select" id="f-sheet" data-tip="Лист, с которого брать таблицу"></select></div>';
     }
 
     ws.innerHTML =
       '<div class="panel" id="panel-params">' +
       "<h2>Параметры турнира</h2>" +
-      '<p class="panel__intro">Заполните поля. Название — длинное поле на всю ширину.</p>' +
+      '<p class="panel__intro">План — целое или с запятой (например 100 или 100,5); в выгрузке будет формат 0.00000.</p>' +
       (lock
-        ? '<div class="warn-box">Копия турнира: обязательно смените <b>код турнира</b> и <b>наименование</b> (оба поля подсвечены). Пока они совпадают с оригиналом — формирование заблокировано.</div>'
+        ? '<div class="warn-box">Копия турнира: обязательно смените <b>код турнира</b> и <b>наименование</b>. Пока они совпадают с оригиналом — формирование заблокировано.</div>'
         : "") +
       '<div class="fields-grid">' +
       '<div class="field"><label class="field-label" for="f-contest-code">Код конкурса</label><input class="field-input" id="f-contest-code" /></div>' +
@@ -310,32 +522,39 @@
       '" id="f-full-name" />' +
       (lock ? '<div class="field-hint">Нужно изменить относительно копии</div>' : "") +
       "</div>" +
-      '<div class="field field--third"><label class="field-label" for="f-plan">План (PLAN_VALUE)</label><input class="field-input" id="f-plan" /></div>' +
+      '<div class="field field--third"><label class="field-label" for="f-plan">План (PLAN_VALUE)</label>' +
+      '<input class="field-input" id="f-plan" placeholder="100 или 100,5" data-tip="Целое или дробь с запятой; в CSV/XLSX — точка и 5 знаков" /></div>' +
       '<div class="field field--third"><label class="field-label" for="f-date">Дата данных</label><input class="field-input" id="f-date" type="date" /></div>' +
       '<div class="field field--third"><label class="field-label" for="f-type">Тип расчёта</label><select class="field-select" id="f-type"><option value="TN">TN — табельный</option><option value="FIO">FIO — ФИО</option></select></div>' +
       "</div></div>" +
       '<div class="panel" id="panel-data">' +
       "<h2>Источник данных</h2>" +
-      '<p class="panel__intro">Загрузите CSV (; ) или Excel. Выберите лист, колонки и посмотрите пример строк.</p>' +
+      '<p class="panel__intro">CSV (;) или Excel. Укажите лист и левый верхний угол таблицы (строка и колонка заголовка, по умолчанию 1 и 1).</p>' +
       '<div class="toolbar-row">' +
-      '<label class="btn btn-primary file-pick"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21V9"/><path d="M7 14l5-5 5 5"/><path d="M5 3h14"/></svg> Загрузить CSV / Excel' +
+      '<label class="btn btn-primary file-pick" data-tip="Загрузить CSV или Excel с показателями">' +
+      '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21V9"/><path d="M7 14l5-5 5 5"/><path d="M5 3h14"/></svg> Загрузить CSV / Excel' +
       '<input type="file" id="import-data" class="file-pick__input" accept=".csv,.txt,.xlsx,.xls,.xlsm" /></label>' +
       '<span class="mini-badge" id="data-meta"></span></div>' +
       '<div class="fields-grid" style="margin-top:12px">' +
       sheetBlock +
+      '<div class="field field--third"><label class="field-label" for="f-start-row">Строка угла</label>' +
+      '<input class="field-input" id="f-start-row" type="number" min="1" step="1" data-tip="Номер строки заголовка таблицы (с 1)" /></div>' +
+      '<div class="field field--third"><label class="field-label" for="f-start-col">Колонка угла</label>' +
+      '<input class="field-input" id="f-start-col" type="number" min="1" step="1" data-tip="Номер колонки левого верхнего угла (с 1)" /></div>' +
       '<div class="field"><label class="field-label" for="f-col-id">Колонка ФИО / табельного</label><select class="field-select" id="f-col-id"></select></div>' +
       '<div class="field"><label class="field-label" for="f-col-fact">Колонка показателя</label><select class="field-select" id="f-col-fact"></select></div>' +
       '<div class="field field--full"><label class="field-label" for="f-source-name">Имя файла</label><input class="field-input" id="f-source-name" readonly /></div>' +
       "</div>" +
       '<div id="data-preview-host"></div>' +
       "</div>" +
+      fioHtml +
       '<div class="panel" id="panel-result" hidden>' +
       "<h2>Результат</h2>" +
       '<div id="result-summary" class="info-box"></div>' +
       '<div id="result-warnings" class="warn-box" hidden></div>' +
       '<div class="toolbar-row">' +
-      '<button type="button" class="btn btn-primary" id="btn-export-csv-2">Скачать CSV</button>' +
-      '<button type="button" class="btn btn-primary" id="btn-export-xlsx-2">Скачать XLSX</button>' +
+      '<button type="button" class="btn btn-primary" id="btn-export-csv-2" data-tip="Скачать согласованный CSV">Скачать CSV</button>' +
+      '<button type="button" class="btn btn-primary" id="btn-export-xlsx-2" data-tip="Скачать XLSX с закреплением и автофильтром">Скачать XLSX</button>' +
       "</div></div>";
 
     $("f-contest-code").value = t.contest_code || "";
@@ -345,6 +564,8 @@
     $("f-date").value = t.contest_date || "";
     $("f-type").value = String(t.type_ind || "TN").toUpperCase() === "FIO" ? "FIO" : "TN";
     $("f-source-name").value = t.source_file_name || "";
+    $("f-start-row").value = t.table_start_row || (pack && pack.start_row) || 1;
+    $("f-start-col").value = t.table_start_col || (pack && pack.start_col) || 1;
 
     var colId = $("f-col-id");
     var colFact = $("f-col-fact");
@@ -353,31 +574,29 @@
       fillSelect(colFact, pack.columns, t.column_fact || "");
       $("data-meta").textContent =
         pack.rows.length +
-        " строк" +
-        (pack.encoding ? ", " + pack.encoding : "") +
-        (pack.sheetName ? ", лист: " + pack.sheetName : "");
+        " строк · угол " +
+        (pack.start_row || 1) +
+        "," +
+        (pack.start_col || 1) +
+        (pack.encoding ? " · " + pack.encoding : "") +
+        (pack.sheetName ? " · лист: " + pack.sheetName : "");
       $("data-preview-host").innerHTML = renderPreviewTable(pack);
       if (pack.kind === "excel" && $("f-sheet")) {
         fillSelect($("f-sheet"), pack.sheetNames, t.sheet_name || pack.sheetName || "");
         $("f-sheet").addEventListener("change", function () {
-          var name = $("f-sheet").value;
-          var next = ReportIO.pickSheetFromPack(pack, name);
-          state.dataByTournament[t.id] = next;
-          t.sheet_name = name;
-          t.column_id = ReportIO.guessIdColumn(next.columns, t.type_ind);
-          t.column_fact = ReportIO.guessFactColumn(next.columns);
-          invalidateChecks();
-          renderAll();
+          reapplyDataOrigin({ sheetName: $("f-sheet").value });
         });
       }
     } else {
       fillSelect(colId, [], "");
       fillSelect(colFact, [], "");
       $("data-meta").textContent = "файл не загружен";
-      $("data-preview-host").innerHTML = '<div class="warn-box">Загрузите файл — здесь появятся пример строк и выбор колонок.</div>';
+      $("data-preview-host").innerHTML =
+        '<div class="warn-box">Загрузите файл — здесь появятся пример строк, угол таблицы и выбор колонок.</div>';
     }
 
     bindEditorEvents();
+    bindFioPanel();
     if (state.lastResult && state.lastResult.ok) {
       var panel = $("panel-result");
       panel.hidden = false;
@@ -395,6 +614,32 @@
     }
   }
 
+  function reapplyDataOrigin(partial) {
+    var t = activeTournament();
+    if (!t) return;
+    var pack = state.dataByTournament[t.id];
+    if (!pack) return;
+    if (partial) {
+      if (partial.sheetName != null) t.sheet_name = partial.sheetName;
+      if (partial.start_row != null) t.table_start_row = partial.start_row;
+      if (partial.start_col != null) t.table_start_col = partial.start_col;
+    }
+    var next = ReportIO.applyPackOrigin(pack, {
+      sheetName: t.sheet_name || pack.sheetName,
+      start_row: t.table_start_row || 1,
+      start_col: t.table_start_col || 1,
+    });
+    state.dataByTournament[t.id] = next;
+    if (!t.column_id || next.columns.indexOf(t.column_id) < 0) {
+      t.column_id = ReportIO.guessIdColumn(next.columns, t.type_ind);
+    }
+    if (!t.column_fact || next.columns.indexOf(t.column_fact) < 0) {
+      t.column_fact = ReportIO.guessFactColumn(next.columns);
+    }
+    invalidateChecks();
+    renderAll();
+  }
+
   function bindEditorEvents() {
     ["f-contest-code", "f-tournament-code", "f-full-name", "f-plan", "f-date", "f-type", "f-col-id", "f-col-fact"].forEach(
       function (id) {
@@ -404,6 +649,17 @@
         el.addEventListener("input", onEditorChange);
       }
     );
+    ["f-start-row", "f-start-col"].forEach(function (id) {
+      var el = $(id);
+      if (!el) return;
+      el.addEventListener("change", function () {
+        flushEditorToState();
+        reapplyDataOrigin({
+          start_row: Number($("f-start-row").value) || 1,
+          start_col: Number($("f-start-col").value) || 1,
+        });
+      });
+    });
     var importData = $("import-data");
     if (importData) {
       importData.addEventListener("change", function (ev) {
@@ -449,6 +705,8 @@
     t.column_id = $("f-col-id").value;
     t.column_fact = $("f-col-fact").value;
     if ($("f-sheet")) t.sheet_name = $("f-sheet").value;
+    if ($("f-start-row")) t.table_start_row = Number($("f-start-row").value) || 1;
+    if ($("f-start-col")) t.table_start_col = Number($("f-start-col").value) || 1;
   }
 
   function renderAll() {
@@ -521,12 +779,14 @@
     if (!t) return;
     try {
       setStatus("чтение файла…");
-      var pack = await ReportIO.readTableFile(file);
-      // не храним ArrayBuffer в state
-      if (pack.buffer) delete pack.buffer;
+      var sr = t.table_start_row || 1;
+      var sc = t.table_start_col || 1;
+      var pack = await ReportIO.readTableFile(file, sr, sc);
       state.dataByTournament[t.id] = pack;
       t.source_file_name = pack.fileName;
       t.sheet_name = pack.sheetName || "";
+      t.table_start_row = pack.start_row || sr;
+      t.table_start_col = pack.start_col || sc;
       t.column_id = ReportIO.guessIdColumn(pack.columns, t.type_ind);
       t.column_fact = ReportIO.guessFactColumn(pack.columns);
       invalidateChecks();
@@ -923,8 +1183,6 @@
     restoreDraft();
 
     $("btn-add-tournament").addEventListener("click", addTournament);
-    $("btn-copy-tournament").addEventListener("click", copyTournament);
-    $("btn-remove-tournament").addEventListener("click", removeTournament);
     $("btn-save-settings").addEventListener("click", function () {
       flushEditorToState();
       ReportIO.downloadJson(ReportIO.timestampName("web_report_settings", "json"), ReportCore.serializeSettings(state.tournaments));
@@ -942,23 +1200,6 @@
         state.activeId = state.tournaments[0] ? state.tournaments[0].id : null;
         renderAll();
         showToast("Настройки загружены");
-      } catch (err) {
-        alert(err.message || String(err));
-      }
-    });
-    $("btn-save-fio").addEventListener("click", function () {
-      ReportIO.downloadJson(ReportIO.timestampName("fio_dictionary", "json"), ReportCore.serializeFioDictionary(state.fioEntries));
-      showToast("Справочник ФИО");
-    });
-    $("import-fio").addEventListener("change", async function (ev) {
-      var file = ev.target.files && ev.target.files[0];
-      ev.target.value = "";
-      if (!file) return;
-      try {
-        state.fioEntries = ReportCore.parseFioDictionary(await readJsonFile(file));
-        invalidateChecks();
-        renderAll();
-        showToast("Справочник загружен");
       } catch (err) {
         alert(err.message || String(err));
       }

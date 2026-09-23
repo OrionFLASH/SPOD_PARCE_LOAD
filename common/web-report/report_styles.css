@@ -232,7 +232,32 @@ body::after { width: 380px; height: 380px; right: -60px; bottom: 10%; background
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.contest-tab .ct-badges { display: flex; gap: 4px; flex-wrap: wrap; }
+.contest-tab .ct-actions {
+  display: none;
+  flex: 0 0 auto;
+  gap: 4px;
+  align-items: center;
+}
+.contest-tab.active .ct-actions { display: inline-flex; }
+.tab-icon-btn {
+  appearance: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  border: 1px solid rgba(0, 122, 255, 0.25);
+  background: rgba(255, 255, 255, 0.85);
+  color: var(--glass-blue);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+}
+.tab-icon-btn:hover { background: #fff; box-shadow: 0 2px 8px rgba(0, 122, 255, 0.2); }
+.tab-icon-btn--danger { color: var(--glass-red); border-color: rgba(255, 59, 48, 0.3); }
+.tab-icon-btn svg { width: 14px; height: 14px; display: block; }
+.field-input[type="number"] { -moz-appearance: textfield; }
+.field-input.field-input--narrow { max-width: 100%; }
 .mini-badge {
   font-size: 9px;
   font-weight: 800;

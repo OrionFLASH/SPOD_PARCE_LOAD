@@ -59,62 +59,16 @@
     }
   }
 
-  /**
-   * Определение кодировки CSV и разбор.
-   * @returns {{ rows: object[], columns: string[], encoding: string, text: string }}
-   */
-  function parseCsvBuffer(arrayBuffer, delimiter) {
-    var delim = delimiter || getConfig().csv_delimiter || ";";
-    var encodings = getConfig().csv_encodings || ["utf-8", "windows-1251", "ibm866"];
-    var best = null;
-    encodings.forEach(function (enc) {
-      var text = decodeBuffer(arrayBuffer, enc);
-      if (text == null) {
-        return;
-      }
-      // UTF-8 BOM
-      if (text.charCodeAt(0) === 0xfeff) {
-        text = text.slice(1);
-      }
-      var sc = scoreDecodedText(text);
-      if (!best || sc > best.score) {
-        best = { encoding: enc, text: text, score: sc };
-      }
-    });
-    if (!best) {
-      throw new Error("Не удалось декодировать CSV");
-    }
-    var parsed = parseCsvText(best.text, delim);
-    parsed.encoding = best.encoding;
-    parsed.text = best.text;
-    return parsed;
-  }
-
   function parseCsvText(text, delimiter) {
     var delim = delimiter || ";";
     var lines = String(text).replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n");
     while (lines.length && String(lines[lines.length - 1]).trim() === "") {
       lines.pop();
     }
-    if (!lines.length) {
-      return { rows: [], columns: [] };
-    }
-    var columns = splitCsvLine(lines[0], delim).map(function (c) {
-      return String(c).trim();
+    var aoa = lines.map(function (line) {
+      return splitCsvLine(line, delim);
     });
-    var rows = [];
-    for (var i = 1; i < lines.length; i++) {
-      if (String(lines[i]).trim() === "") {
-        continue;
-      }
-      var cells = splitCsvLine(lines[i], delim);
-      var row = {};
-      columns.forEach(function (col, idx) {
-        row[col] = cells[idx] != null ? cells[idx] : "";
-      });
-      rows.push(row);
-    }
-    return { rows: rows, columns: columns };
+    return { aoa: aoa, text: text };
   }
 
   function splitCsvLine(line, delimiter) {
@@ -141,12 +95,30 @@
     return result;
   }
 
+  /**
+   * Вырезает таблицу из AOA: startRow/startCol — 1-based (левый верхний угол заголовка).
+   */
+  function sliceAoaOrigin(aoa, startRow, startCol) {
+    var r0 = Math.max(0, (Number(startRow) || 1) - 1);
+    var c0 = Math.max(0, (Number(startCol) || 1) - 1);
+    var out = [];
+    for (var r = r0; r < (aoa || []).length; r++) {
+      var line = aoa[r] || [];
+      out.push(line.slice(c0));
+    }
+    return out;
+  }
+
   function aoaToTable(aoa) {
     if (!aoa || !aoa.length) {
       return { rows: [], columns: [] };
     }
     var columns = (aoa[0] || []).map(function (c) {
       return String(c == null ? "" : c).trim();
+    });
+    // пустые имена колонок — ColN
+    columns = columns.map(function (c, idx) {
+      return c || "Col" + (idx + 1);
     });
     var rows = [];
     for (var r = 1; r < aoa.length; r++) {
@@ -167,54 +139,104 @@
     return { rows: rows, columns: columns };
   }
 
-  function sheetToTable(sheet) {
-    var aoa = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "", raw: false });
-    return aoaToTable(aoa);
+  function tableFromAoaOrigin(aoa, startRow, startCol) {
+    return aoaToTable(sliceAoaOrigin(aoa, startRow, startCol));
   }
 
-  /** Разбор Excel: все листы. */
-  function parseExcelWorkbook(arrayBuffer) {
+  function sheetToAoa(sheet) {
+    return XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "", raw: false });
+  }
+
+  /** Разбор Excel: все листы как AOA + таблица с угла 1,1. */
+  function parseExcelWorkbook(arrayBuffer, startRow, startCol) {
     if (typeof XLSX === "undefined") {
       throw new Error("Библиотека XLSX не загружена");
     }
+    var sr = startRow == null ? 1 : startRow;
+    var sc = startCol == null ? 1 : startCol;
     var wb = XLSX.read(arrayBuffer, { type: "array", cellDates: false, raw: false });
     var sheetNames = wb.SheetNames || [];
+    var sheetsAoa = {};
     var sheets = {};
     sheetNames.forEach(function (name) {
-      sheets[name] = sheetToTable(wb.Sheets[name]);
+      var aoa = sheetToAoa(wb.Sheets[name]);
+      sheetsAoa[name] = aoa;
+      sheets[name] = tableFromAoaOrigin(aoa, sr, sc);
     });
     var first = sheetNames[0] || "";
     var table = first ? sheets[first] : { rows: [], columns: [] };
     return {
       sheetNames: sheetNames,
+      sheetsAoa: sheetsAoa,
       sheets: sheets,
       sheetName: first,
+      rawAoa: first ? sheetsAoa[first] : [],
       rows: table.rows,
       columns: table.columns,
+      start_row: sr,
+      start_col: sc,
     };
   }
 
-  function parseExcelArrayBuffer(arrayBuffer, sheetName) {
-    var book = parseExcelWorkbook(arrayBuffer);
-    if (sheetName && book.sheets[sheetName]) {
-      var t = book.sheets[sheetName];
-      return {
-        rows: t.rows,
-        columns: t.columns,
+  function parseExcelArrayBuffer(arrayBuffer, sheetName, startRow, startCol) {
+    var book = parseExcelWorkbook(arrayBuffer, startRow, startCol);
+    if (sheetName && book.sheetsAoa[sheetName]) {
+      var table = tableFromAoaOrigin(book.sheetsAoa[sheetName], startRow, startCol);
+      return Object.assign({}, book, {
         sheetName: sheetName,
-        sheetNames: book.sheetNames,
-        sheets: book.sheets,
-      };
+        rawAoa: book.sheetsAoa[sheetName],
+        rows: table.rows,
+        columns: table.columns,
+        start_row: startRow == null ? 1 : startRow,
+        start_col: startCol == null ? 1 : startCol,
+      });
     }
     return book;
   }
 
-  async function readTableFile(file) {
+  function parseCsvBuffer(arrayBuffer, delimiter, startRow, startCol) {
+    var delim = delimiter || getConfig().csv_delimiter || ";";
+    var encodings = getConfig().csv_encodings || ["utf-8", "windows-1251", "ibm866"];
+    var best = null;
+    encodings.forEach(function (enc) {
+      var text = decodeBuffer(arrayBuffer, enc);
+      if (text == null) {
+        return;
+      }
+      if (text.charCodeAt(0) === 0xfeff) {
+        text = text.slice(1);
+      }
+      var sc = scoreDecodedText(text);
+      if (!best || sc > best.score) {
+        best = { encoding: enc, text: text, score: sc };
+      }
+    });
+    if (!best) {
+      throw new Error("Не удалось декодировать CSV");
+    }
+    var parsed = parseCsvText(best.text, delim);
+    var sr = startRow == null ? 1 : startRow;
+    var sc = startCol == null ? 1 : startCol;
+    var table = tableFromAoaOrigin(parsed.aoa, sr, sc);
+    return {
+      rows: table.rows,
+      columns: table.columns,
+      encoding: best.encoding,
+      text: best.text,
+      rawAoa: parsed.aoa,
+      start_row: sr,
+      start_col: sc,
+    };
+  }
+
+  async function readTableFile(file, startRow, startCol) {
     var name = (file && file.name) || "";
     var lower = name.toLowerCase();
     var buffer = await file.arrayBuffer();
+    var sr = startRow == null ? 1 : Number(startRow) || 1;
+    var sc = startCol == null ? 1 : Number(startCol) || 1;
     if (lower.endsWith(".csv") || lower.endsWith(".txt")) {
-      var csv = parseCsvBuffer(buffer);
+      var csv = parseCsvBuffer(buffer, null, sr, sc);
       return {
         kind: "csv",
         rows: csv.rows,
@@ -223,11 +245,15 @@
         fileName: name,
         sheetNames: [],
         sheets: null,
+        sheetsAoa: null,
         sheetName: "",
+        rawAoa: csv.rawAoa,
+        start_row: sr,
+        start_col: sc,
       };
     }
     if (lower.endsWith(".xlsx") || lower.endsWith(".xls") || lower.endsWith(".xlsm")) {
-      var xls = parseExcelWorkbook(buffer);
+      var xls = parseExcelWorkbook(buffer, sr, sc);
       return {
         kind: "excel",
         rows: xls.rows,
@@ -235,25 +261,70 @@
         sheetName: xls.sheetName,
         sheetNames: xls.sheetNames,
         sheets: xls.sheets,
+        sheetsAoa: xls.sheetsAoa,
+        rawAoa: xls.rawAoa,
         encoding: "binary",
         fileName: name,
-        buffer: buffer,
+        start_row: sr,
+        start_col: sc,
       };
     }
     throw new Error("Поддерживаются CSV и Excel (.xlsx/.xls)");
   }
 
-  function pickSheetFromPack(pack, sheetName) {
-    if (!pack || pack.kind !== "excel" || !pack.sheets) {
+  /** Пересчитать rows/columns пакета при смене листа или угла. */
+  function applyPackOrigin(pack, opts) {
+    if (!pack) {
       return pack;
     }
-    var name = sheetName || pack.sheetName || (pack.sheetNames && pack.sheetNames[0]) || "";
-    var table = pack.sheets[name] || { rows: [], columns: [] };
+    var o = opts || {};
+    var sr = o.start_row != null ? Number(o.start_row) || 1 : pack.start_row || 1;
+    var sc = o.start_col != null ? Number(o.start_col) || 1 : pack.start_col || 1;
+    var sheetName = o.sheetName != null ? o.sheetName : pack.sheetName;
+    var aoa = pack.rawAoa || [];
+    if (pack.kind === "excel" && pack.sheetsAoa) {
+      var name = sheetName || pack.sheetName || (pack.sheetNames && pack.sheetNames[0]) || "";
+      aoa = pack.sheetsAoa[name] || [];
+      sheetName = name;
+    }
+    var table = tableFromAoaOrigin(aoa, sr, sc);
+    var sheets = pack.sheets;
+    if (pack.kind === "excel" && pack.sheetsAoa) {
+      sheets = {};
+      Object.keys(pack.sheetsAoa).forEach(function (n) {
+        sheets[n] = tableFromAoaOrigin(pack.sheetsAoa[n], sr, sc);
+      });
+    }
     return Object.assign({}, pack, {
-      sheetName: name,
+      sheetName: sheetName || "",
+      rawAoa: aoa,
       rows: table.rows,
       columns: table.columns,
+      start_row: sr,
+      start_col: sc,
+      sheets: sheets,
     });
+  }
+
+  function pickSheetFromPack(pack, sheetName) {
+    return applyPackOrigin(pack, { sheetName: sheetName });
+  }
+
+  function entriesFromFioTable(rows, colFio, colTn) {
+    var out = [];
+    var seen = Object.create(null);
+    (rows || []).forEach(function (row) {
+      if (!row) return;
+      var fio = String(row[colFio] == null ? "" : row[colFio]).trim();
+      var tn = String(row[colTn] == null ? "" : row[colTn]).trim();
+      if (!fio || !tn) return;
+      if (fio === colFio || tn === colTn) return;
+      var key = fio.toUpperCase();
+      if (seen[key]) return;
+      seen[key] = true;
+      out.push({ fio: fio, person_number: tn });
+    });
+    return out;
   }
 
   function downloadBlob(filename, blob) {
@@ -428,6 +499,9 @@
     parseExcelArrayBuffer: parseExcelArrayBuffer,
     parseExcelWorkbook: parseExcelWorkbook,
     pickSheetFromPack: pickSheetFromPack,
+    applyPackOrigin: applyPackOrigin,
+    tableFromAoaOrigin: tableFromAoaOrigin,
+    entriesFromFioTable: entriesFromFioTable,
     readTableFile: readTableFile,
     downloadBlob: downloadBlob,
     downloadText: downloadText,
