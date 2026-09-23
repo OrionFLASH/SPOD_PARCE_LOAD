@@ -447,6 +447,10 @@
       column_id: "",
       column_fact: "",
       source_file_name: "",
+      sheet_name: "",
+      needs_identity_fix: false,
+      copy_lock_code: "",
+      copy_lock_name: "",
     };
     if (partial && typeof partial === "object") {
       Object.keys(partial).forEach(function (k) {
@@ -454,6 +458,132 @@
       });
     }
     return t;
+  }
+
+  function cloneTournament(source) {
+    var src = source || {};
+    var copy = createEmptyTournament({
+      contest_code: src.contest_code,
+      tournament_code: src.tournament_code,
+      plan_value: src.plan_value,
+      contest_date: src.contest_date,
+      full_name: src.full_name,
+      type_ind: src.type_ind,
+      column_id: src.column_id,
+      column_fact: src.column_fact,
+      source_file_name: src.source_file_name,
+      sheet_name: src.sheet_name,
+      needs_identity_fix: true,
+      copy_lock_code: String(src.tournament_code || "").trim(),
+      copy_lock_name: String(src.full_name || "").trim(),
+    });
+    return copy;
+  }
+
+  function tournamentFieldsOk(t) {
+    if (!t) {
+      return false;
+    }
+    return !!(
+      String(t.contest_code || "").trim() &&
+      String(t.tournament_code || "").trim() &&
+      String(t.contest_date || "").trim() &&
+      String(t.plan_value || "").trim() &&
+      String(t.full_name || "").trim() &&
+      String(t.type_ind || "").trim()
+    );
+  }
+
+  function tournamentIdentityUnlocked(t) {
+    if (!t || !t.needs_identity_fix) {
+      return true;
+    }
+    var code = String(t.tournament_code || "").trim();
+    var name = String(t.full_name || "").trim();
+    var lockCode = String(t.copy_lock_code || "").trim();
+    var lockName = String(t.copy_lock_name || "").trim();
+    return code !== lockCode && name !== lockName && !!code && !!name;
+  }
+
+  function tournamentSourceOk(t, dataPack) {
+    if (!t || !dataPack || !dataPack.rows || !dataPack.rows.length) {
+      return false;
+    }
+    return !!(String(t.column_id || "").trim() && String(t.column_fact || "").trim());
+  }
+
+  /**
+   * Стадии готовности для шапки.
+   * dataById: { [tournamentId]: { rows, columns } }
+   * fioEntries: массив справочника
+   * checkState: { duplicatesCleared: bool, missingFioCleared: bool } | null
+   */
+  function computeStages(tournaments, dataById, fioEntries, checkState) {
+    var list = tournaments || [];
+    var data = dataById || {};
+    var fioMap = buildFioMap(fioEntries || []);
+    var hasTournaments = list.length > 0;
+    var fieldsFilled =
+      hasTournaments &&
+      list.every(function (t) {
+        return tournamentFieldsOk(t) && tournamentIdentityUnlocked(t);
+      });
+    var sourcesOk =
+      hasTournaments &&
+      list.every(function (t) {
+        return tournamentSourceOk(t, data[t.id]);
+      });
+
+    var fioOk = true;
+    var missingFio = [];
+    if (sourcesOk) {
+      list.forEach(function (t) {
+        if (String(t.type_ind || "").toUpperCase() !== "FIO") {
+          return;
+        }
+        var pack = data[t.id];
+        var norm = normalizeTournamentRows(pack.rows, t, fioMap, {});
+        norm.missingFio.forEach(function (f) {
+          if (missingFio.indexOf(f) < 0) {
+            missingFio.push(f);
+          }
+        });
+      });
+      fioOk = missingFio.length === 0 || !!(checkState && checkState.missingFioCleared);
+    } else {
+      fioOk = false;
+    }
+
+    var dupOk = false;
+    var dupGroups = [];
+    if (sourcesOk) {
+      var allRows = [];
+      list.forEach(function (t) {
+        var pack = data[t.id];
+        var norm = normalizeTournamentRows(pack.rows, t, fioMap, {});
+        allRows = allRows.concat(norm.rows);
+      });
+      annotateDuplicatesLikePq(allRows, {});
+      dupGroups = findDuplicateGroups(allRows);
+      dupOk = dupGroups.length === 0 || !!(checkState && checkState.duplicatesCleared);
+    }
+
+    var blockedCopies = list.filter(function (t) {
+      return !tournamentIdentityUnlocked(t);
+    });
+
+    return {
+      hasTournaments: hasTournaments,
+      fieldsFilled: fieldsFilled,
+      sourcesOk: sourcesOk,
+      fioOk: fioOk,
+      duplicatesOk: dupOk,
+      missingFio: missingFio,
+      duplicateGroups: dupGroups,
+      blockedCopies: blockedCopies,
+      canProcess: hasTournaments && fieldsFilled && sourcesOk && fioOk && dupOk && blockedCopies.length === 0,
+      canCheck: hasTournaments && fieldsFilled && sourcesOk && blockedCopies.length === 0,
+    };
   }
 
   function serializeSettings(tournaments) {
@@ -472,6 +602,10 @@
           column_id: t.column_id || "",
           column_fact: t.column_fact || "",
           source_file_name: t.source_file_name || "",
+          sheet_name: t.sheet_name || "",
+          needs_identity_fix: !!t.needs_identity_fix,
+          copy_lock_code: t.copy_lock_code || "",
+          copy_lock_name: t.copy_lock_name || "",
         };
       }),
     };
@@ -535,6 +669,11 @@
     rowsForXlsx: rowsForXlsx,
     processAll: processAll,
     createEmptyTournament: createEmptyTournament,
+    cloneTournament: cloneTournament,
+    tournamentFieldsOk: tournamentFieldsOk,
+    tournamentIdentityUnlocked: tournamentIdentityUnlocked,
+    tournamentSourceOk: tournamentSourceOk,
+    computeStages: computeStages,
     serializeSettings: serializeSettings,
     parseSettings: parseSettings,
     serializeFioDictionary: serializeFioDictionary,
