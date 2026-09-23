@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SPOD web-report — подготовка REPORT</title>
+  <link rel="stylesheet" href="report_styles.css" />
+</head>
+<body>
+<div class="app" id="app-root">
+  <header class="chrome-top" id="chrome-top">
+    <div class="top-bar">
+      <div class="top-brand">
+        <div class="brand-mark">SPOD</div>
+        <div>
+          <div class="brand-title">web-report</div>
+          <div class="brand-sub">подготовка REPORT</div>
+        </div>
+      </div>
+      <div class="top-stages" id="top-stages" aria-label="Этапы готовности"></div>
+      <div class="top-actions">
+        <button type="button" class="btn btn-sm" id="btn-check" data-tip="Проверка ФИО и дублей без выгрузки">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/><path d="M8 11h6"/></svg>
+          Проверить
+        </button>
+        <button type="button" class="btn btn-sm btn-primary" id="btn-process" data-tip="Сформировать отчёт">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></svg>
+          Сформировать
+        </button>
+        <button type="button" class="btn btn-sm" id="btn-export-csv" disabled data-tip="Скачать согласованный CSV">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 21h14"/></svg>
+          CSV
+        </button>
+        <button type="button" class="btn btn-sm" id="btn-export-xlsx" disabled data-tip="Скачать XLSX (заголовок закреплён, автофильтр)">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/></svg>
+          XLSX
+        </button>
+        <button type="button" class="btn btn-icon" id="btn-chrome-toggle" aria-expanded="true" data-tip="Скрыть / показать верхнюю панель этапов">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="top-status-line" id="footer-status">Статус: ожидание</div>
+  </header>
+
+  <div class="chrome-mid">
+    <aside class="sidebar" id="tournaments-sidebar" aria-label="Турниры">
+      <div class="sidebar-head">
+        <div class="side-block-title">Турниры</div>
+      </div>
+      <div class="sidebar-actions">
+        <button type="button" class="btn btn-sidebar" id="btn-add-tournament" data-tip="Добавить новый пустой турнир">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+          Добавить
+        </button>
+      </div>
+      <div class="sidebar-actions">
+        <label class="btn btn-sidebar file-pick" data-tip="Загрузить JSON настроек турниров">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21V9"/><path d="M7 14l5-5 5 5"/><path d="M5 3h14"/></svg>
+          Открыть JSON
+          <input type="file" id="import-settings" class="file-pick__input" accept=".json,application/json" />
+        </label>
+        <button type="button" class="btn btn-sidebar" id="btn-save-settings" data-tip="Сохранить параметры турниров в JSON">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 21h14"/></svg>
+          Сохранить JSON
+        </button>
+      </div>
+      <div class="contest-tabs-scroll">
+        <div class="contest-tabs" id="tournament-nav"></div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <div class="workspace" id="workspace"></div>
+    </main>
+
+    <aside class="sidebar sidebar--filters" id="filters-sidebar" aria-label="Фильтры">
+      <div class="sidebar-head">
+        <div class="side-block-title">Поиск и фильтры</div>
+      </div>
+      <div class="filters-scroll">
+        <div class="filter-block">
+          <div class="filter-block__label">Поиск</div>
+          <div class="contest-search">
+            <span class="contest-search__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg></span>
+            <input type="search" id="filter-search" class="contest-search__input" placeholder="Код, название…" autocomplete="off" />
+          </div>
+        </div>
+        <div class="filter-block">
+          <div class="filter-block__label">Тип расчёта</div>
+          <div class="chip-row" role="group">
+            <button type="button" class="chip is-on" data-filter-type="TN" aria-pressed="true" data-tip="Показать турниры режима TN">TN</button>
+            <button type="button" class="chip is-on" data-filter-type="FIO" aria-pressed="true" data-tip="Показать турниры режима FIO">FIO</button>
+          </div>
+        </div>
+        <div class="filter-block">
+          <div class="filter-block__label">Готовность</div>
+          <div class="chip-row" role="group">
+            <button type="button" class="chip is-on" data-filter-ready="ready" aria-pressed="true" data-tip="Показать турниры с заполненными полями и данными">Готовые</button>
+            <button type="button" class="chip is-on" data-filter-ready="draft" aria-pressed="true" data-tip="Показать неполные турниры">Неполные</button>
+            <button type="button" class="chip is-on" data-filter-ready="copy" aria-pressed="true" data-tip="Показать копии, где ещё не сменены код и название">Копии</button>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <button type="button" class="sidebar-edge-btn sidebar-edge-btn--left-collapse" id="btn-sidebar-hide" aria-controls="tournaments-sidebar" aria-expanded="true" data-tip="Скрыть список турниров">
+      <span class="sidebar-edge-btn__arrow" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 6l-6 6 6 6"/></svg></span>
+      <span class="sidebar-edge-btn__label">Турниры</span>
+      <span class="sidebar-edge-btn__arrow" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 6l-6 6 6 6"/></svg></span>
+    </button>
+    <button type="button" class="sidebar-edge-btn sidebar-edge-btn--left-reopen" id="btn-sidebar-show" aria-controls="tournaments-sidebar" aria-expanded="false" data-tip="Показать список турниров">
+      <span class="sidebar-edge-btn__arrow" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></span>
+      <span class="sidebar-edge-btn__label">Турниры</span>
+      <span class="sidebar-edge-btn__arrow" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></span>
+    </button>
+    <button type="button" class="sidebar-edge-btn sidebar-edge-btn--right-collapse" id="btn-filters-hide" aria-controls="filters-sidebar" aria-expanded="true" data-tip="Скрыть фильтры">
+      <span class="sidebar-edge-btn__arrow" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></span>
+      <span class="sidebar-edge-btn__label">Фильтры</span>
+      <span class="sidebar-edge-btn__arrow" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></span>
+    </button>
+    <button type="button" class="sidebar-edge-btn sidebar-edge-btn--right-reopen" id="btn-filters-show" aria-controls="filters-sidebar" aria-expanded="false" data-tip="Показать фильтры">
+      <span class="sidebar-edge-btn__arrow" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 6l-6 6 6 6"/></svg></span>
+      <span class="sidebar-edge-btn__label">Фильтры</span>
+      <span class="sidebar-edge-btn__arrow" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 6l-6 6 6 6"/></svg></span>
+    </button>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="modal-fio" hidden>
+  <div class="modal-card" role="dialog" aria-modal="true">
+    <h3>ФИО не найдены в справочнике</h3>
+    <p>Укажите табельные — они попадут в справочник. Или продолжите с <code>00000000</code>.</p>
+    <div id="modal-fio-list"></div>
+    <div class="modal-actions">
+      <button type="button" class="btn btn-primary" id="modal-fio-apply">Дополнить и продолжить</button>
+      <button type="button" class="btn" id="modal-fio-skip">Продолжить с 00000000</button>
+      <button type="button" class="btn" id="modal-fio-cancel">Отмена</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="modal-dup" hidden>
+  <div class="modal-card modal-card--wide" role="dialog" aria-modal="true">
+    <h3 id="modal-dup-title">Дубли</h3>
+    <p id="modal-dup-intro"></p>
+    <div id="modal-dup-progress" class="info-box" style="margin-top:0"></div>
+    <div id="modal-dup-list"></div>
+    <div class="modal-actions">
+      <button type="button" class="btn btn-primary" id="modal-dup-apply" data-tip="Применить решение к текущей группе и перейти дальше">Применить и далее</button>
+      <button type="button" class="btn" id="modal-dup-abort" data-tip="Остановить проверку">Остановить</button>
+      <button type="button" class="btn" id="modal-dup-cancel" data-tip="Отменить без сохранения решений">Отмена</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="modal-check" hidden>
+  <div class="modal-card" role="dialog" aria-modal="true">
+    <h3 id="modal-check-title">Результат проверки</h3>
+    <div id="modal-check-body"></div>
+    <div class="modal-actions">
+      <button type="button" class="btn btn-primary" id="modal-check-close">Закрыть</button>
+    </div>
+  </div>
+</div>
+
+<div id="glassTip" class="glass-tip" aria-hidden="true"></div>
+<div id="save-toast" class="toast" hidden><span id="save-toast-text">Готово</span></div>
+
+<script src="xlsx.full.min.js"></script>
+<script src="report_core.js"></script>
+<script src="report_io.js"></script>
+<script src="report_app.js"></script>
+</body>
+</html>

@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "kind": "spod_web_report_settings",
+  "tournaments": [
+    {
+      "id": "demo_tn_1",
+      "contest_code": "01_2026-1_16-2_1",
+      "tournament_code": "t_01_2026-1_16-2_1_2012",
+      "plan_value": "100.00000",
+      "contest_date": "2026-09-17",
+      "full_name": "500 млн руб. сделка лизинга",
+      "type_ind": "TN",
+      "column_id": "ТАБЕЛЬНЫЙ НОМЕР",
+      "column_fact": "ПОКАЗАТЕЛЬ",
+      "source_file_name": "sample_data_tn.csv"
+    },
+    {
+      "id": "demo_fio_1",
+      "contest_code": "01_2026-1_16-2_1",
+      "tournament_code": "t_01_2026-1_16-2_1_2013",
+      "plan_value": "50.00000",
+      "contest_date": "2026-09-17",
+      "full_name": "Турнир по ФИО (пример)",
+      "type_ind": "FIO",
+      "column_id": "ФИО",
+      "column_fact": "ПОКАЗАТЕЛЬ",
+      "source_file_name": "sample_data_fio.csv"
+    }
+  ]
+}
