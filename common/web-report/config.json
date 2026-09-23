@@ -1,0 +1,15 @@
+{
+  "http_port": 8770,
+  "person_number_length": 20,
+  "number_decimals": 5,
+  "priority_type": "1",
+  "missing_person_placeholder": "00000000",
+  "no_duplicate_mark": "-",
+  "missing_fio_flag": "ДА",
+  "csv_delimiter": ";",
+  "csv_encodings": ["utf-8", "windows-1251", "ibm866"],
+  "settings_schema_version": 1,
+  "fio_dictionary_schema_version": 1,
+  "local_storage_settings_key": "spod_web_report_settings_v1",
+  "local_storage_fio_key": "spod_web_report_fio_v1"
+}

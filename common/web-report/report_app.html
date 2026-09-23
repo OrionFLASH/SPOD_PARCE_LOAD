@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SPOD web-report — подготовка REPORT</title>
+  <link rel="stylesheet" href="report_styles.css" />
+</head>
+<body>
+  <div class="app" id="app-root">
+    <header class="app-header" id="app-header">
+      <div class="app-header__identity">
+        <div class="app-header__brand" data-tip="Локальная подготовка строк REPORT по турнирам">
+          <div class="brand-mark">
+            <svg class="icon" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2l3 7h7l-5.5 4.2L18.5 22 12 17.8 5.5 22l1.5-8.8L1.5 9h7z"/>
+            </svg>
+            SPOD
+          </div>
+          <div class="app-header__brand-text">
+            <div class="brand-title">Герои продаж</div>
+            <div class="brand-sub">web-report</div>
+          </div>
+        </div>
+        <div class="app-header__title">
+          <h1>Подготовка REPORT</h1>
+          <p class="section-intro">Турниры → загрузка CSV/Excel → сверка ФИО/дублей → CSV и XLSX.</p>
+        </div>
+      </div>
+      <div class="app-header__toolbar">
+        <div class="toolbar-row" style="margin:0">
+          <button type="button" class="btn btn-sm btn-primary" id="btn-process" data-tip="Сформировать результат с проверками">
+            Сформировать
+          </button>
+          <button type="button" class="btn btn-sm" id="btn-export-csv" disabled data-tip="Скачать согласованный CSV">CSV</button>
+          <button type="button" class="btn btn-sm" id="btn-export-xlsx" disabled data-tip="Скачать полный XLSX с комментариями">XLSX</button>
+        </div>
+      </div>
+    </header>
+
+    <div class="report-layout">
+      <aside class="report-side">
+        <div class="side-panel-card">
+          <h3>Настройки</h3>
+          <div class="toolbar-row" style="margin:0">
+            <label class="btn btn-sm btn-primary file-pick" data-tip="Загрузить JSON настроек турниров">
+              <span>Открыть JSON</span>
+              <input type="file" id="import-settings" class="file-pick__input" accept=".json,application/json" />
+            </label>
+            <button type="button" class="btn btn-sm" id="btn-save-settings">Сохранить JSON</button>
+          </div>
+          <div class="toolbar-row">
+            <button type="button" class="btn btn-sm btn-primary" id="btn-add-tournament">+ Турнир</button>
+            <button type="button" class="btn btn-sm" id="btn-remove-tournament">Удалить</button>
+          </div>
+        </div>
+
+        <div class="side-panel-card">
+          <h3>Справочник ФИО</h3>
+          <p class="sidebar-empty__text" style="margin-bottom:10px">
+            Для режима <span class="badge-soft">FIO</span> — соответствие ФИО и табельного номера.
+          </p>
+          <div class="toolbar-row" style="margin:0">
+            <label class="btn btn-sm file-pick">
+              <span>Загрузить</span>
+              <input type="file" id="import-fio" class="file-pick__input" accept=".json,application/json" />
+            </label>
+            <button type="button" class="btn btn-sm" id="btn-save-fio">Сохранить</button>
+          </div>
+          <div id="fio-stats" class="info-box" style="margin-top:10px">Записей: 0</div>
+        </div>
+
+        <div class="side-panel-card">
+          <h3>Турниры</h3>
+          <div id="tournament-nav" class="tournament-list"></div>
+        </div>
+      </aside>
+
+      <main class="report-main">
+        <div id="empty-state" class="tournament-card">
+          <h2>Нет турниров</h2>
+          <p class="section-intro">Добавьте турнир или откройте ранее сохранённый JSON настроек.</p>
+          <div class="toolbar-row">
+            <button type="button" class="btn btn-primary" id="btn-add-tournament-empty">+ Добавить турнир</button>
+          </div>
+        </div>
+
+        <div id="tournament-editor" class="tournament-card" hidden>
+          <h2 id="editor-title">Турнир</h2>
+          <div class="form-grid">
+            <div>
+              <label class="field-label" for="f-contest-code">Код конкурса (CONTEST_CODE)</label>
+              <input class="field-input" id="f-contest-code" autocomplete="off" />
+            </div>
+            <div>
+              <label class="field-label" for="f-tournament-code">Код турнира (TOURNAMENT_CODE)</label>
+              <input class="field-input" id="f-tournament-code" autocomplete="off" />
+            </div>
+            <div>
+              <label class="field-label" for="f-plan">План (PLAN_VALUE)</label>
+              <input class="field-input" id="f-plan" autocomplete="off" />
+            </div>
+            <div>
+              <label class="field-label" for="f-date">Дата данных (CONTEST_DATE)</label>
+              <input class="field-input" id="f-date" type="date" />
+            </div>
+            <div class="field-full">
+              <label class="field-label" for="f-full-name">Наименование турнира (FULL_NAME)</label>
+              <input class="field-input" id="f-full-name" autocomplete="off" />
+            </div>
+            <div>
+              <label class="field-label" for="f-type">Тип расчёта (type_ind)</label>
+              <select class="field-select" id="f-type">
+                <option value="TN">TN — табельный номер</option>
+                <option value="FIO">FIO — ФИО</option>
+              </select>
+            </div>
+            <div>
+              <label class="field-label" for="f-source-name">Файл данных</label>
+              <input class="field-input" id="f-source-name" readonly placeholder="ещё не загружен" />
+            </div>
+            <div>
+              <label class="field-label" for="f-col-id">Колонка ФИО / табельного</label>
+              <select class="field-select" id="f-col-id"></select>
+            </div>
+            <div>
+              <label class="field-label" for="f-col-fact">Колонка показателя (FACT_VALUE)</label>
+              <select class="field-select" id="f-col-fact"></select>
+            </div>
+          </div>
+
+          <div class="toolbar-row">
+            <label class="btn btn-primary file-pick">
+              <span>Загрузить CSV / Excel</span>
+              <input type="file" id="import-data" class="file-pick__input" accept=".csv,.txt,.xlsx,.xls,.xlsm,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" />
+            </label>
+            <span id="data-meta" class="badge-soft" hidden></span>
+          </div>
+
+          <div id="editor-warn" class="warn-box" hidden></div>
+          <div id="preview-wrap" class="preview-table-wrap" hidden>
+            <table class="preview-table" id="preview-table">
+              <thead></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div id="result-panel" class="tournament-card" style="margin-top:16px" hidden>
+          <h2>Результат</h2>
+          <div id="result-summary" class="info-box"></div>
+          <div id="result-warnings" class="warn-box" hidden></div>
+          <div class="toolbar-row">
+            <button type="button" class="btn btn-primary" id="btn-export-csv-2">Скачать CSV</button>
+            <button type="button" class="btn btn-primary" id="btn-export-xlsx-2">Скачать XLSX</button>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <footer class="app-footer" id="app-footer">
+      <div class="footer-files">
+        <div class="footer-files__row">
+          <span class="footer-block-title">web-report</span>
+          <span class="footer-status__idle" id="footer-status">Статус: ожидание действий</span>
+        </div>
+      </div>
+      <div class="footer-status" aria-live="polite">
+        <div id="save-toast" class="toast toast--footer" hidden>
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+          <span id="save-toast-text">Готово</span>
+        </div>
+      </div>
+    </footer>
+  </div>
+
+  <!-- Модал: ненайденные ФИО -->
+  <div class="modal-backdrop" id="modal-fio" hidden>
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modal-fio-title">
+      <h3 id="modal-fio-title">ФИО не найдены в справочнике</h3>
+      <p>Укажите табельные номера — они будут добавлены в справочник и сохранены в JSON.</p>
+      <div id="modal-fio-list"></div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-primary" id="modal-fio-apply">Дополнить и продолжить</button>
+        <button type="button" class="btn" id="modal-fio-skip">Продолжить с 00000000</button>
+        <button type="button" class="btn" id="modal-fio-cancel">Отмена</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Модал: дубли -->
+  <div class="modal-backdrop" id="modal-dup" hidden>
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modal-dup-title">
+      <h3 id="modal-dup-title">Найдены дубли</h3>
+      <p>Ключ: CONTEST_CODE + TOURNAMENT_CODE + MANAGER_PERSON_NUMBER. Выберите действие для каждой группы.</p>
+      <div id="modal-dup-list"></div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-primary" id="modal-dup-apply">Применить и сформировать</button>
+        <button type="button" class="btn" id="modal-dup-abort">Остановить формирование</button>
+        <button type="button" class="btn" id="modal-dup-cancel">Отмена</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="glassTip" class="glass-tip" aria-hidden="true"></div>
+
+  <script src="xlsx.full.min.js"></script>
+  <script src="report_core.js"></script>
+  <script src="report_io.js"></script>
+  <script src="report_app.js"></script>
+</body>
+</html>
