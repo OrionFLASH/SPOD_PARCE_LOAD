@@ -1,0 +1,33 @@
+================================================================================
+  ВОССТАНОВЛЕНИЕ ИМЁН ПОСЛЕ РАСПАКОВКИ web-report_bundle.zip
+================================================================================
+
+При пересылке имена без «js» в названии. После распаковки переименуйте
+файлы обратно (или запустите restore_names.bat / restore_names.sh из этой папки).
+
+Формат строк ниже:  ИМЯ_В_АРХИВЕ  ->  ПРАВИЛЬНОЕ_ИМЯ
+
+common/web-report/report_app.script          ->  common/web-report/report_app.js
+common/web-report/report_core.script         ->  common/web-report/report_core.js
+common/web-report/report_io.script           ->  common/web-report/report_io.js
+common/web-report/xlsx.full.min.script       ->  common/web-report/xlsx.full.min.js
+src/Tests/test_web_report_core.script       ->  src/Tests/test_web_report_core.mjs
+
+Файлы без замены (имена уже правильные):
+  common/web-report/report_app.html
+  common/web-report/report_styles.css
+  common/web-report/config.json
+  common/web-report/README.md
+  common/web-report/examples/*
+  Docs/PLAN_WEB_REPORT.md
+  Docs/TODO_WEB_REPORT.md
+  ПРАВИЛЬНЫЕ_ИМЕНА.txt
+  restore_names.bat
+  restore_names.sh
+
+После переименования откройте страницу через HTTP:
+  cd common/web-report && python3 -m http.server 8770
+  http://127.0.0.1:8770/report_app.html
+
+В report_app.html пути к скриптам — с расширением .js; без переименования
+страница не подхватит .script.
