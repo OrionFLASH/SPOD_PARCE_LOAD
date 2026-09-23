@@ -49,42 +49,22 @@
         <div class="side-block-title">Турниры</div>
       </div>
       <div class="sidebar-actions">
-        <button type="button" class="btn btn-sidebar" id="btn-add-tournament">
+        <button type="button" class="btn btn-sidebar" id="btn-add-tournament" data-tip="Добавить новый пустой турнир">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
           Добавить
         </button>
-        <button type="button" class="btn btn-sidebar" id="btn-copy-tournament">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
-          Копировать
-        </button>
-        <button type="button" class="btn btn-sidebar" id="btn-remove-tournament">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12"/><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg>
-          Удалить
-        </button>
       </div>
       <div class="sidebar-actions">
-        <label class="btn btn-sidebar file-pick">
+        <label class="btn btn-sidebar file-pick" data-tip="Загрузить JSON настроек турниров">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21V9"/><path d="M7 14l5-5 5 5"/><path d="M5 3h14"/></svg>
           Открыть JSON
           <input type="file" id="import-settings" class="file-pick__input" accept=".json,application/json" />
         </label>
-        <button type="button" class="btn btn-sidebar" id="btn-save-settings">
+        <button type="button" class="btn btn-sidebar" id="btn-save-settings" data-tip="Сохранить параметры турниров в JSON">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 21h14"/></svg>
           Сохранить JSON
         </button>
       </div>
-      <div class="sidebar-actions">
-        <label class="btn btn-sidebar file-pick">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-          Справочник ФИО
-          <input type="file" id="import-fio" class="file-pick__input" accept=".json,application/json" />
-        </label>
-        <button type="button" class="btn btn-sidebar" id="btn-save-fio">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 21h14"/></svg>
-          Сохранить ФИО
-        </button>
-      </div>
-      <div class="fio-mini" id="fio-stats">ФИО в справочнике: 0</div>
       <div class="contest-tabs-scroll">
         <div class="contest-tabs" id="tournament-nav"></div>
       </div>
@@ -109,21 +89,17 @@
         <div class="filter-block">
           <div class="filter-block__label">Тип расчёта</div>
           <div class="chip-row" role="group">
-            <button type="button" class="chip is-on" data-filter-type="TN" aria-pressed="true">TN</button>
-            <button type="button" class="chip is-on" data-filter-type="FIO" aria-pressed="true">FIO</button>
+            <button type="button" class="chip is-on" data-filter-type="TN" aria-pressed="true" data-tip="Показать турниры режима TN">TN</button>
+            <button type="button" class="chip is-on" data-filter-type="FIO" aria-pressed="true" data-tip="Показать турниры режима FIO">FIO</button>
           </div>
         </div>
         <div class="filter-block">
           <div class="filter-block__label">Готовность</div>
           <div class="chip-row" role="group">
-            <button type="button" class="chip is-on" data-filter-ready="ready" aria-pressed="true">Готовые</button>
-            <button type="button" class="chip is-on" data-filter-ready="draft" aria-pressed="true">Неполные</button>
-            <button type="button" class="chip is-on" data-filter-ready="copy" aria-pressed="true">Копии</button>
+            <button type="button" class="chip is-on" data-filter-ready="ready" aria-pressed="true" data-tip="Показать турниры с заполненными полями и данными">Готовые</button>
+            <button type="button" class="chip is-on" data-filter-ready="draft" aria-pressed="true" data-tip="Показать неполные турниры">Неполные</button>
+            <button type="button" class="chip is-on" data-filter-ready="copy" aria-pressed="true" data-tip="Показать копии, где ещё не сменены код и название">Копии</button>
           </div>
-        </div>
-        <div class="filter-block">
-          <div class="filter-block__label">Подсказка</div>
-          <p class="filter-hint">Слева — турниры и JSON. В центре — параметры и данные. Справа — фильтры списка. Сверху — этапы и выгрузка.</p>
         </div>
       </div>
     </aside>
