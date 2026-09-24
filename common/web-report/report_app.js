@@ -932,11 +932,11 @@
     state.fioUi.sheet_name = state.fioPack.sheetName || "";
     state.fioUi.start_row = state.fioPack.start_row || 1;
     state.fioUi.start_col = state.fioPack.start_col || 1;
-    if (!state.fioUi.col_fio || state.fioPack.columns.indexOf(state.fioUi.col_fio) < 0) {
-      state.fioUi.col_fio = ReportIO.guessIdColumn(state.fioPack.columns, "FIO");
+    if (state.fioUi.col_fio && state.fioPack.columns.indexOf(state.fioUi.col_fio) < 0) {
+      state.fioUi.col_fio = "";
     }
-    if (!state.fioUi.col_tn || state.fioPack.columns.indexOf(state.fioUi.col_tn) < 0) {
-      state.fioUi.col_tn = ReportIO.guessIdColumn(state.fioPack.columns, "TN");
+    if (state.fioUi.col_tn && state.fioPack.columns.indexOf(state.fioUi.col_tn) < 0) {
+      state.fioUi.col_tn = "";
     }
     renderAll();
   }
