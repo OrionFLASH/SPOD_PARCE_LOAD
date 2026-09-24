@@ -1457,7 +1457,7 @@ python main.py
 - Легенда цветов вкладок слева. `INDICATOR_CODE` — dropdown + combobox; списки методов/агрегаций обновлены в каталоге.
 - Fill ≡ fill-full (`sync_web_fill_singlefile.py`). Документы: `Docs/PLAN_WEB_FILL.md`, `Docs/TODO_WEB_FILL.md`, ROADMAP §16.
 
-### Версия 1.7.81 — web-report: план нового турнира = 0
+### Версия 1.7.82 — web-report: план нового турнира = 0
 
 - При добавлении турнира поле «План» по умолчанию `0` (раньше было `100.00000`).
 
