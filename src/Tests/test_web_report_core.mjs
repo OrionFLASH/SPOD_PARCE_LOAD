@@ -246,6 +246,79 @@ function testFactOpAndPeriod() {
   assert.strictEqual(badges.c, "Q1");
 }
 
+function testCsvAfterKeepOne() {
+  var rows = [
+    {
+      tournament_id: "t1",
+      source_index: 0,
+      MANAGER_PERSON_NUMBER: "00000000000000000001",
+      CONTEST_CODE: "C",
+      TOURNAMENT_CODE: "T",
+      CONTEST_DATE: "2026-01-01",
+      PLAN_VALUE: "1.00000",
+      FACT_VALUE: "1.00000",
+      FACT_VALUE_число: 1,
+      priority_type: "1",
+      FIO: "-",
+      include_in_csv: true,
+    },
+    {
+      tournament_id: "t1",
+      source_index: 1,
+      MANAGER_PERSON_NUMBER: "00000000000000000001",
+      CONTEST_CODE: "C",
+      TOURNAMENT_CODE: "T",
+      CONTEST_DATE: "2026-01-01",
+      PLAN_VALUE: "1.00000",
+      FACT_VALUE: "2.00000",
+      FACT_VALUE_число: 2,
+      priority_type: "1",
+      FIO: "-",
+      include_in_csv: true,
+    },
+  ];
+  var key = ReportCore.duplicateKey(rows[0]);
+  var applied = ReportCore.applyDuplicateResolutions(rows, {
+    [key]: { mode: "keep_one", keepIndex: 0 },
+  });
+  assert.ok(applied.ok);
+  var v = ReportCore.validateCsvExportRows(applied.rows, {});
+  assert.strictEqual(v.ok, true, "после keep_one CSV должен быть разрешён");
+  assert.strictEqual(ReportCore.rowsForCsv(applied.rows).length, 1);
+}
+
+function testResolutionFingerprints() {
+  var g = {
+    key: "C|T|0001",
+    indices: [0, 1],
+    rows: [
+      {
+        tournament_id: "t1",
+        source_index: 0,
+        MANAGER_PERSON_NUMBER: "00000000000000000001",
+        CONTEST_CODE: "C",
+        TOURNAMENT_CODE: "T",
+        FACT_VALUE: "1.00000",
+        FIO: "-",
+      },
+      {
+        tournament_id: "t1",
+        source_index: 1,
+        MANAGER_PERSON_NUMBER: "00000000000000000001",
+        CONTEST_CODE: "C",
+        TOURNAMENT_CODE: "T",
+        FACT_VALUE: "2.00000",
+        FIO: "-",
+      },
+    ],
+  };
+  var fp = ReportCore.rowFingerprint(g.rows[1]);
+  var res = { mode: "keep_one", keepFingerprint: fp };
+  var idx = ReportCore.resolveKeepIndices(g, res);
+  assert.deepStrictEqual(idx, [1]);
+  assert.ok(ReportCore.describeResolution({ mode: "sum" }).indexOf("сумма") >= 0);
+}
+
 function testCsvValidation() {
   var rows = [
     {
@@ -353,6 +426,8 @@ const tests = [
   ["settings", testSettingsRoundtrip],
   ["factOpPeriod", testFactOpAndPeriod],
   ["csvValidation", testCsvValidation],
+  ["csvAfterKeepOne", testCsvAfterKeepOne],
+  ["resolutionFingerprints", testResolutionFingerprints],
   ["includeStages", testIncludeStages],
   ["cloneStages", testCloneAndStages],
 ];

@@ -320,6 +320,78 @@
     return fio !== "" && fio !== "-";
   }
 
+  /** Отпечаток строки для сохранения/восстановления решения по дублю. */
+  function rowFingerprint(row) {
+    if (!row) return "";
+    return [
+      row.tournament_id || "",
+      row.source_index != null ? String(row.source_index) : "",
+      row.MANAGER_PERSON_NUMBER || "",
+      normalizeFioKey(row.FIO),
+      row.FACT_VALUE || "",
+      row.CONTEST_CODE || "",
+      row.TOURNAMENT_CODE || "",
+    ].join("|");
+  }
+
+  /**
+   * Восстановить индексы keep_* из сохранённого решения по отпечаткам/индексам.
+   * @returns {number[]}
+   */
+  function resolveKeepIndices(group, resolution) {
+    if (!group || !resolution) return [];
+    var indices = group.indices || [];
+    var rows = group.rows || [];
+    if (resolution.mode === "keep_one" && resolution.keepFingerprint) {
+      for (var i = 0; i < rows.length; i++) {
+        if (rowFingerprint(rows[i]) === resolution.keepFingerprint) {
+          return [indices[i]];
+        }
+      }
+    }
+    if (resolution.mode === "keep_one" && resolution.keepIndex != null) {
+      if (indices.indexOf(resolution.keepIndex) >= 0) {
+        return [resolution.keepIndex];
+      }
+    }
+    if (
+      (resolution.mode === "keep_selected" || resolution.mode === "keep_one") &&
+      resolution.keepFingerprints &&
+      resolution.keepFingerprints.length
+    ) {
+      var out = [];
+      var wanted = Object.create(null);
+      resolution.keepFingerprints.forEach(function (fp) {
+        wanted[fp] = true;
+      });
+      rows.forEach(function (r, ri) {
+        if (wanted[rowFingerprint(r)]) {
+          out.push(indices[ri]);
+        }
+      });
+      return out;
+    }
+    if (resolution.mode === "keep_selected" && resolution.keepIndices && resolution.keepIndices.length) {
+      return resolution.keepIndices.filter(function (idx) {
+        return indices.indexOf(idx) >= 0;
+      });
+    }
+    return [];
+  }
+
+  /** Краткое описание сохранённого решения для UI. */
+  function describeResolution(resolution) {
+    if (!resolution || !resolution.mode) return "";
+    if (resolution.mode === "sum") return "ранее: сумма в одну строку";
+    if (resolution.mode === "drop_all") return "ранее: убрать все из CSV";
+    if (resolution.mode === "keep_one") return "ранее: оставлена одна строка";
+    if (resolution.mode === "keep_selected") {
+      var n = (resolution.keepFingerprints || resolution.keepIndices || []).length;
+      return "ранее: оставлены отмеченные (" + (n || "?") + ")";
+    }
+    return "ранее: " + resolution.mode;
+  }
+
   /**
    * Группы дублей. keyFn — функция ключа; optional filterFn — какие строки учитывать.
    */
@@ -438,9 +510,19 @@
 
       if (res.mode === "keep_one") {
         var keepIdx = res.keepIndex;
+        if ((keepIdx == null || indices.indexOf(keepIdx) < 0) && res.keepFingerprint) {
+          var resolvedOne = resolveKeepIndices(
+            { indices: indices, rows: indices.map(function (i) { return list[i]; }) },
+            res
+          );
+          keepIdx = resolvedOne[0];
+        }
         if (keepIdx == null || indices.indexOf(keepIdx) < 0) {
           return { ok: false, error: "Не выбран ряд для keep_one: " + g.key, rows: list };
         }
+        // дополняем отпечаток для повторного показа
+        res.keepFingerprint = res.keepFingerprint || rowFingerprint(list[keepIdx]);
+        res.keepFingerprints = [res.keepFingerprint];
         indices.forEach(function (idx) {
           if (idx === keepIdx) {
             list[idx].include_in_csv = true;
@@ -461,7 +543,14 @@
 
       if (res.mode === "keep_selected") {
         var keepSet = Object.create(null);
-        (res.keepIndices || []).forEach(function (idx) {
+        var resolvedKeep = resolveKeepIndices(
+          { indices: indices, rows: indices.map(function (i) { return list[i]; }) },
+          res
+        );
+        if (!resolvedKeep.length && res.keepIndices) {
+          resolvedKeep = res.keepIndices;
+        }
+        resolvedKeep.forEach(function (idx) {
           keepSet[idx] = true;
         });
         var any = indices.some(function (idx) {
@@ -470,6 +559,10 @@
         if (!any) {
           return { ok: false, error: "Не отмечены строки для keep_selected: " + g.key, rows: list };
         }
+        res.keepIndices = resolvedKeep;
+        res.keepFingerprints = resolvedKeep.map(function (idx) {
+          return rowFingerprint(list[idx]);
+        });
         indices.forEach(function (idx) {
           if (keepSet[idx]) {
             list[idx].include_in_csv = true;
@@ -666,6 +759,16 @@
       return byTournament[k];
     });
     var ok = duplicateKeys.length === 0 && badPerson.length === 0 && emptyCells.length === 0;
+    var parts = [];
+    if (duplicateKeys.length) {
+      parts.push("дубли ключа: " + duplicateKeys.length);
+    }
+    if (badPerson.length) {
+      parts.push("ТН не " + cfg.personNumberLength + " цифр: " + badPerson.length);
+    }
+    if (emptyCells.length) {
+      parts.push("пустые ячейки: " + emptyCells.length);
+    }
 
     return {
       ok: ok,
@@ -676,7 +779,9 @@
       byTournament: tournamentSummaries,
       message: ok
         ? "CSV готов"
-        : "CSV заблокирован: исправьте дубли / формат табельного / пустые поля",
+        : "CSV заблокирован (" +
+          parts.join("; ") +
+          "). Для дублей оставьте одну строку, сумму или исключите лишние.",
     };
   }
 
@@ -1019,6 +1124,9 @@
     duplicateKey: duplicateKey,
     duplicateKeyFio: duplicateKeyFio,
     isFioDataRow: isFioDataRow,
+    rowFingerprint: rowFingerprint,
+    resolveKeepIndices: resolveKeepIndices,
+    describeResolution: describeResolution,
     findDuplicateGroups: findDuplicateGroups,
     findFioDuplicateGroups: findFioDuplicateGroups,
     findTnDuplicateGroups: findTnDuplicateGroups,

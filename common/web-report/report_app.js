@@ -104,16 +104,24 @@
     }
   }
 
-  function invalidateChecks() {
+  function invalidateChecks(opts) {
+    var o = opts || {};
     state.checkState = {
       duplicatesCleared: false,
       fioDupCleared: false,
       missingFioCleared: false,
     };
-    state.lastResolutions = {};
-    state.lastFioResolutions = {};
+    if (!o.keepResolutions) {
+      state.lastResolutions = {};
+      state.lastFioResolutions = {};
+    }
     state.checkedPipeline = null;
     state.lastResult = null;
+  }
+
+  function clearResolutions() {
+    state.lastResolutions = {};
+    state.lastFioResolutions = {};
   }
 
   function stages() {
@@ -1028,6 +1036,8 @@
     var opts = options || {};
     var kindLabel = opts.kindLabel || "табельный + турнир";
     var keyHint = opts.keyHint || "CONTEST_CODE + TOURNAMENT_CODE + MANAGER_PERSON_NUMBER";
+    var previous = opts.previousResolutions || {};
+    var requireUnique = opts.requireUnique !== false;
     return new Promise(function (resolve) {
       if (!groups || !groups.length) {
         resolve({ action: "apply", resolutions: {} });
@@ -1038,21 +1048,53 @@
       var intro = $("modal-dup-intro");
       var progress = $("modal-dup-progress");
       title.textContent = "Дубли: " + kindLabel;
-      intro.textContent = "Ключ: " + keyHint + ". Разбираем по одной группе. Отметьте строки, которые оставить (можно несколько).";
+      intro.textContent =
+        "Ключ: " +
+        keyHint +
+        ". Разбираем по одной группе. По умолчанию отмечена первая строка. Для CSV в группе должна остаться одна строка (или сумма / исключить все).";
       var idx = 0;
-      var resolutions = {};
+      var resolutions = Object.assign({}, previous);
 
       function renderCurrent() {
         var g = groups[idx];
-        progress.textContent = "Группа " + (idx + 1) + " из " + groups.length + " · сумма " + ReportCore.formatNumberDot(g.sum, coreOpts().numberDecimals);
+        var prev = previous[g.key] || resolutions[g.key] || null;
+        var prevLabel = ReportCore.describeResolution(prev);
+        progress.textContent =
+          "Группа " +
+          (idx + 1) +
+          " из " +
+          groups.length +
+          " · сумма " +
+          ReportCore.formatNumberDot(g.sum, coreOpts().numberDecimals);
+        var keepSet = Object.create(null);
+        var modeDefault = "keep_selected";
+        if (prev) {
+          modeDefault = prev.mode === "keep_one" ? "keep_selected" : prev.mode;
+          if (prev.mode === "sum" || prev.mode === "drop_all") {
+            modeDefault = prev.mode;
+          }
+          var prevKeep = ReportCore.resolveKeepIndices(g, prev);
+          if (prevKeep.length) {
+            prevKeep.forEach(function (i) {
+              keepSet[i] = true;
+            });
+          }
+        }
+        // по умолчанию — только первая строка (чтобы CSV не оставался с дублями)
+        if (!Object.keys(keepSet).length && g.indices.length) {
+          keepSet[g.indices[0]] = true;
+        }
         var rowsHtml = g.rows
           .map(function (r, ri) {
             var rowIdx = g.indices[ri];
+            var checked = keepSet[rowIdx] ? " checked" : "";
             return (
               '<label class="dup-row">' +
               '<input type="checkbox" data-row-idx="' +
               rowIdx +
-              '" checked />' +
+              '"' +
+              checked +
+              " />" +
               "<span><code>" +
               escapeHtml(r.MANAGER_PERSON_NUMBER || "") +
               "</code> · FIO=" +
@@ -1072,19 +1114,33 @@
           " · строк: " +
           g.indices.length +
           "</div>" +
+          (prevLabel
+            ? '<div class="info-box" style="margin:8px 0">' + escapeHtml(prevLabel) + "</div>"
+            : "") +
           '<div class="toolbar-row" style="margin:8px 0">' +
           '<button type="button" class="btn btn-sm" id="dup-sel-all" data-tip="Отметить все строки группы">Все</button>' +
           '<button type="button" class="btn btn-sm" id="dup-sel-none" data-tip="Снять все отметки">Снять</button>' +
+          '<button type="button" class="btn btn-sm" id="dup-sel-first" data-tip="Только первая строка">Первая</button>' +
           "</div>" +
           '<div class="dup-rows">' +
           rowsHtml +
           "</div>" +
           '<label class="field-label" style="margin-top:10px">Действие для этой группы</label>' +
           '<select class="field-select" id="dup-mode">' +
-          '<option value="keep_selected">Оставить отмеченные</option>' +
-          '<option value="sum">Сумма показателя в одну строку</option>' +
-          '<option value="drop_all">Убрать все из CSV</option>' +
-          "</select></div>";
+          '<option value="keep_selected"' +
+          (modeDefault === "keep_selected" || modeDefault === "keep_one" ? " selected" : "") +
+          ">Оставить отмеченные</option>" +
+          '<option value="sum"' +
+          (modeDefault === "sum" ? " selected" : "") +
+          ">Сумма показателя в одну строку</option>" +
+          '<option value="drop_all"' +
+          (modeDefault === "drop_all" ? " selected" : "") +
+          ">Убрать все из CSV</option>" +
+          "</select>" +
+          (requireUnique
+            ? '<div class="field-hint">Для выгрузки CSV в группе нужна одна строка, «Сумма» или «Убрать все».</div>'
+            : "") +
+          "</div>";
         $("dup-sel-all").onclick = function () {
           list.querySelectorAll('input[type="checkbox"]').forEach(function (c) {
             c.checked = true;
@@ -1093,6 +1149,11 @@
         $("dup-sel-none").onclick = function () {
           list.querySelectorAll('input[type="checkbox"]').forEach(function (c) {
             c.checked = false;
+          });
+        };
+        $("dup-sel-first").onclick = function () {
+          list.querySelectorAll('input[type="checkbox"]').forEach(function (c, i) {
+            c.checked = i === 0;
           });
         };
       }
@@ -1120,11 +1181,21 @@
             alert("Отметьте хотя бы одну строку или выберите «Убрать все» / «Сумма»");
             return;
           }
+          if (requireUnique && keepIndices.length > 1) {
+            alert(
+              "Для CSV нельзя оставить несколько строк с одним ключом. Отметьте одну строку, либо выберите «Сумма» / «Убрать все»."
+            );
+            return;
+          }
+          res.keepIndices = keepIndices;
+          res.keepFingerprints = keepIndices.map(function (rowIdx) {
+            var pos = g.indices.indexOf(rowIdx);
+            return ReportCore.rowFingerprint(pos >= 0 ? g.rows[pos] : null);
+          });
           if (keepIndices.length === 1) {
             res.mode = "keep_one";
             res.keepIndex = keepIndices[0];
-          } else {
-            res.keepIndices = keepIndices;
+            res.keepFingerprint = res.keepFingerprints[0];
           }
         }
         resolutions[g.key] = res;
@@ -1209,10 +1280,12 @@
       var fioDupAns = await askDuplicates(fioGroups, {
         kindLabel: "ФИО + турнир",
         keyHint: "CONTEST_CODE + TOURNAMENT_CODE + ФИО",
+        previousResolutions: state.lastFioResolutions,
+        requireUnique: true,
       });
       if (fioDupAns.action === "cancel") return { ok: false, cancelled: true };
       if (fioDupAns.action === "abort") return { ok: false, aborted: true };
-      state.lastFioResolutions = fioDupAns.resolutions || {};
+      state.lastFioResolutions = Object.assign({}, state.lastFioResolutions, fioDupAns.resolutions || {});
       var fioApplied = ReportCore.applyDuplicateResolutions(
         rows,
         state.lastFioResolutions,
@@ -1224,7 +1297,17 @@
         return { ok: false, error: fioApplied.error, rows: fioApplied.rows };
       }
       rows = fioApplied.rows;
-      state.checkState.fioDupCleared = true;
+      // если после решения всё ещё есть группы — не помечаем cleared (не должно случиться при requireUnique)
+      fioGroups = ReportCore.findFioDuplicateGroups(rows);
+      state.checkState.fioDupCleared = fioGroups.length === 0;
+      if (fioGroups.length) {
+        return {
+          ok: false,
+          error: "После разрешения остались дубли ФИО. Оставьте по одной строке в группе.",
+          rows: rows,
+          fioGroups: fioGroups,
+        };
+      }
     } else if (!fioGroups.length) {
       state.checkState.fioDupCleared = true;
     }
@@ -1239,10 +1322,12 @@
       var tnAns = await askDuplicates(tnGroups, {
         kindLabel: "табельный + турнир",
         keyHint: "CONTEST_CODE + TOURNAMENT_CODE + MANAGER_PERSON_NUMBER",
+        previousResolutions: state.lastResolutions,
+        requireUnique: true,
       });
       if (tnAns.action === "cancel") return { ok: false, cancelled: true };
       if (tnAns.action === "abort") return { ok: false, aborted: true };
-      state.lastResolutions = tnAns.resolutions || {};
+      state.lastResolutions = Object.assign({}, state.lastResolutions, tnAns.resolutions || {});
       var tnApplied = ReportCore.applyDuplicateResolutions(
         rows,
         state.lastResolutions,
@@ -1256,15 +1341,37 @@
         return { ok: false, error: tnApplied.error, rows: tnApplied.rows };
       }
       rows = tnApplied.rows;
-      state.checkState.duplicatesCleared = true;
+      tnGroups = ReportCore.findTnDuplicateGroups(rows);
+      state.checkState.duplicatesCleared = tnGroups.length === 0;
+      if (tnGroups.length) {
+        return {
+          ok: false,
+          error: "После разрешения остались дубли табельного. Оставьте одну строку, сумму или исключите.",
+          rows: rows,
+          tnGroups: tnGroups,
+        };
+      }
     } else if (!tnGroups.length) {
       state.checkState.duplicatesCleared = true;
     }
 
     ReportCore.annotateDuplicatesLikePq(rows, coreOpts());
     var summary = ReportCore.summarizeCheckedRows(rows);
-    state.checkedPipeline = { rows: rows, summary: summary };
-    return { ok: true, rows: rows, summary: summary, missingFio: buildAllRows().missingFio };
+    var csvGate = ReportCore.validateCsvExportRows(rows, coreOpts());
+    summary.csvGate = csvGate;
+    if (!csvGate.ok) {
+      // помечаем строки и отдаём предупреждение — Excel можно, CSV нет
+      summary.xlsxRows = ReportCore.rowsForXlsx(csvGate.rowsMarked);
+      summary.csvRows = [];
+    }
+    state.checkedPipeline = { rows: rows, summary: summary, csvGate: csvGate };
+    return {
+      ok: true,
+      rows: rows,
+      summary: summary,
+      csvGate: csvGate,
+      missingFio: buildAllRows().missingFio,
+    };
   }
 
   function validateBaseOrAlert() {
@@ -1300,7 +1407,7 @@
     return true;
   }
 
-  function renderCheckSummary(summary, missingFio) {
+  function renderCheckSummary(summary, missingFio, csvGate) {
     var html =
       '<div class="ok-box">Проверка завершена с учётом применённых решений.</div>' +
       '<div class="info-box">Всего строк после обработки: <b>' +
@@ -1314,6 +1421,11 @@
       html += "<br>С флагом «табельный не найден»: <b>" + summary.missingFioFlag + "</b>";
     }
     html += "</div>";
+    if (csvGate && !csvGate.ok) {
+      html += '<div class="error-box">' + escapeHtml(csvGate.message) + "</div>";
+    } else if (csvGate && csvGate.ok) {
+      html += '<div class="ok-box">Критерии CSV выполнены — выгрузка CSV разрешена.</div>';
+    }
     if (missingFio && missingFio.length) {
       html +=
         '<div class="warn-box">Остались ФИО без табельного в справочнике (подставлен 00000000): ' +
@@ -1352,7 +1464,8 @@
   async function runCheck() {
     if (!validateBaseOrAlert()) return;
     setStatus("проверка…");
-    invalidateChecks();
+    // сохраняем прошлые решения для показа в диалоге
+    invalidateChecks({ keepResolutions: true });
     var result = await runValidationPipeline({ interactive: true });
     var body = $("modal-check-body");
     var title = $("modal-check-title");
@@ -1371,14 +1484,19 @@
       return;
     }
     title.textContent = "Проверка: готово";
-    body.innerHTML = renderCheckSummary(result.summary, result.missingFio);
+    body.innerHTML = renderCheckSummary(result.summary, result.missingFio, result.csvGate);
     openModal("modal-check");
     $("modal-check-close").onclick = function () {
       closeModal("modal-check");
     };
     renderStages();
-    setStatus("проверка OK · в CSV " + result.summary.included);
-    showToast("Проверка OK");
+    var csvOk = !result.csvGate || result.csvGate.ok;
+    setStatus(
+      csvOk
+        ? "проверка OK · в CSV " + result.summary.included
+        : "проверка OK · CSV пока заблокирован"
+    );
+    showToast(csvOk ? "Проверка OK" : "Проверка OK, CSV требует доработки");
   }
 
   async function runProcess() {
@@ -1396,10 +1514,11 @@
         ok: true,
         rows: state.checkedPipeline.rows,
         summary: state.checkedPipeline.summary,
+        csvGate: state.checkedPipeline.csvGate,
         missingFio: buildAllRows().missingFio,
       };
     } else {
-      invalidateChecks();
+      invalidateChecks({ keepResolutions: true });
       result = await runValidationPipeline({ interactive: true });
     }
     if (result.cancelled) {
