@@ -309,6 +309,23 @@ body::after { width: 380px; height: 380px; right: -60px; bottom: 10%; background
   gap: 8px 10px;
   align-items: start;
 }
+/* явные строки сетки источника/ФИО — не зависят от auto-flow */
+.fields-row {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 8px 10px;
+  align-items: start;
+  min-width: 0;
+}
+.fields-row--origin { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.fields-row--cols { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.fields-row--ops { grid-template-columns: minmax(0, 4fr) minmax(0, 3fr) minmax(0, 5fr); }
+.fields-row--file-end { grid-template-columns: 1fr 1fr; }
+.fields-row--file-end > .field { grid-column: 2; }
+.fields-row > .field {
+  grid-column: auto;
+  min-width: 0;
+}
 .field { grid-column: span 6; min-width: 0; }
 .field--full { grid-column: span 12; }
 .field--third { grid-column: span 4; }
@@ -319,8 +336,6 @@ body::after { width: 380px; height: 380px; right: -60px; bottom: 10%; background
 .field--span-8 { grid-column: span 8; }
 .field--span-4 { grid-column: span 4; }
 .field--span-6 { grid-column: span 6; }
-/* имя файла справа на третьей строке (ФИО без действия/операции) */
-.field--end { grid-column-start: 7; }
 .field--spacer {
   visibility: hidden;
   pointer-events: none;
@@ -819,8 +834,13 @@ body::after { width: 380px; height: 380px; right: -60px; bottom: 10%; background
   .field--span-5,
   .field--span-6,
   .field--span-7,
-  .field--span-8,
-  .field--end { grid-column: span 12; grid-column-start: auto; }
+  .field--span-8 { grid-column: span 12; }
+  .fields-row--origin,
+  .fields-row--cols,
+  .fields-row--ops,
+  .fields-row--file-end { grid-template-columns: 1fr; }
+  .fields-row > .field,
+  .fields-row--file-end > .field { grid-column: auto; }
   .field--spacer { display: none; }
   .fio-row { grid-template-columns: 1fr; }
   .sidebar-edge-btn { display: none !important; }
