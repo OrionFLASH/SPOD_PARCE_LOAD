@@ -195,9 +195,22 @@ function testSettingsRoundtrip() {
       fact_op: "mul",
       fact_op_value: "100",
       include_in_report: false,
+      source_file_name: "data.csv",
+      column_id: "ФИО",
+      column_fact: "ПОКАЗАТЕЛЬ",
     }),
   ];
-  var json = ReportCore.serializeSettings(list, { entries: [], file_name: "fio.csv" }, {});
+  var json = ReportCore.serializeSettings(list, {
+    entries: [{ fio: "Иванов", person_number: "1" }],
+    file_name: "fio.csv",
+    col_fio: "ФИО",
+    col_tn: "ТН",
+  });
+  assert.strictEqual(json.version, 3);
+  assert.ok(!Object.prototype.hasOwnProperty.call(json.tournaments[0], "source_file_b64"));
+  assert.ok(!json.fio.source_file_b64);
+  assert.strictEqual(json.fio.entries.length, 1);
+  assert.strictEqual(json.tournaments[0].source_file_name, "data.csv");
   var back = ReportCore.parseSettings(json);
   assert.strictEqual(back.tournaments.length, 1);
   assert.strictEqual(back.tournaments[0].contest_code, "A");
@@ -206,6 +219,13 @@ function testSettingsRoundtrip() {
   assert.strictEqual(back.tournaments[0].fact_op, "mul");
   assert.strictEqual(back.tournaments[0].include_in_report, false);
   assert.ok(back.fio);
+  // устаревший base64 в JSON игнорируется
+  var legacy = ReportCore.parseSettings({
+    version: 2,
+    tournaments: [{ contest_code: "X", source_file_b64: "AAAA" }],
+    fio: { entries: [] },
+  });
+  assert.ok(!legacy.tournaments[0].source_file_b64);
 }
 
 function testFactOpAndPeriod() {
@@ -244,6 +264,79 @@ function testFactOpAndPeriod() {
   assert.strictEqual(badges.a, "Y(1)");
   assert.strictEqual(badges.b, "Y(2)");
   assert.strictEqual(badges.c, "Q1");
+}
+
+function testCsvAfterKeepOne() {
+  var rows = [
+    {
+      tournament_id: "t1",
+      source_index: 0,
+      MANAGER_PERSON_NUMBER: "00000000000000000001",
+      CONTEST_CODE: "C",
+      TOURNAMENT_CODE: "T",
+      CONTEST_DATE: "2026-01-01",
+      PLAN_VALUE: "1.00000",
+      FACT_VALUE: "1.00000",
+      FACT_VALUE_число: 1,
+      priority_type: "1",
+      FIO: "-",
+      include_in_csv: true,
+    },
+    {
+      tournament_id: "t1",
+      source_index: 1,
+      MANAGER_PERSON_NUMBER: "00000000000000000001",
+      CONTEST_CODE: "C",
+      TOURNAMENT_CODE: "T",
+      CONTEST_DATE: "2026-01-01",
+      PLAN_VALUE: "1.00000",
+      FACT_VALUE: "2.00000",
+      FACT_VALUE_число: 2,
+      priority_type: "1",
+      FIO: "-",
+      include_in_csv: true,
+    },
+  ];
+  var key = ReportCore.duplicateKey(rows[0]);
+  var applied = ReportCore.applyDuplicateResolutions(rows, {
+    [key]: { mode: "keep_one", keepIndex: 0 },
+  });
+  assert.ok(applied.ok);
+  var v = ReportCore.validateCsvExportRows(applied.rows, {});
+  assert.strictEqual(v.ok, true, "после keep_one CSV должен быть разрешён");
+  assert.strictEqual(ReportCore.rowsForCsv(applied.rows).length, 1);
+}
+
+function testResolutionFingerprints() {
+  var g = {
+    key: "C|T|0001",
+    indices: [0, 1],
+    rows: [
+      {
+        tournament_id: "t1",
+        source_index: 0,
+        MANAGER_PERSON_NUMBER: "00000000000000000001",
+        CONTEST_CODE: "C",
+        TOURNAMENT_CODE: "T",
+        FACT_VALUE: "1.00000",
+        FIO: "-",
+      },
+      {
+        tournament_id: "t1",
+        source_index: 1,
+        MANAGER_PERSON_NUMBER: "00000000000000000001",
+        CONTEST_CODE: "C",
+        TOURNAMENT_CODE: "T",
+        FACT_VALUE: "2.00000",
+        FIO: "-",
+      },
+    ],
+  };
+  var fp = ReportCore.rowFingerprint(g.rows[1]);
+  var res = { mode: "keep_one", keepFingerprint: fp };
+  var idx = ReportCore.resolveKeepIndices(g, res);
+  assert.deepStrictEqual(idx, [1]);
+  assert.ok(ReportCore.describeResolution({ mode: "sum" }).indexOf("сумма") >= 0);
 }
 
 function testCsvValidation() {
@@ -353,6 +446,8 @@ const tests = [
   ["settings", testSettingsRoundtrip],
   ["factOpPeriod", testFactOpAndPeriod],
   ["csvValidation", testCsvValidation],
+  ["csvAfterKeepOne", testCsvAfterKeepOne],
+  ["resolutionFingerprints", testResolutionFingerprints],
   ["includeStages", testIncludeStages],
   ["cloneStages", testCloneAndStages],
 ];

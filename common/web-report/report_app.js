@@ -18,7 +18,6 @@
       col_fio: "",
       col_tn: "",
       file_name: "",
-      source_file_b64: "",
       source_file_kind: "",
       source_error: "",
     },
@@ -104,16 +103,24 @@
     }
   }
 
-  function invalidateChecks() {
+  function invalidateChecks(opts) {
+    var o = opts || {};
     state.checkState = {
       duplicatesCleared: false,
       fioDupCleared: false,
       missingFioCleared: false,
     };
-    state.lastResolutions = {};
-    state.lastFioResolutions = {};
+    if (!o.keepResolutions) {
+      state.lastResolutions = {};
+      state.lastFioResolutions = {};
+    }
     state.checkedPipeline = null;
     state.lastResult = null;
+  }
+
+  function clearResolutions() {
+    state.lastResolutions = {};
+    state.lastFioResolutions = {};
   }
 
   function stages() {
@@ -303,9 +310,17 @@
     });
   }
 
+  function previewRowLimit() {
+    var c = state.config || {};
+    var n = Number(c.preview_row_limit);
+    return n > 0 ? n : 100;
+  }
+
   function renderPreviewTable(pack, limit, highlightCols) {
     var cols = pack.columns || [];
-    var rows = (pack.rows || []).slice(0, limit || 12);
+    var total = (pack.rows || []).length;
+    var lim = limit == null ? previewRowLimit() : limit;
+    var rows = (pack.rows || []).slice(0, lim);
     var hl = {};
     (highlightCols || []).forEach(function (c) {
       if (c) hl[c] = true;
@@ -334,7 +349,20 @@
         );
       })
       .join("");
+    var meta =
+      total > lim
+        ? '<div class="preview-meta">Показаны первые <b>' +
+          lim +
+          "</b> из <b>" +
+          total +
+          "</b> строк (прокрутка вправо/вниз).</div>"
+        : '<div class="preview-meta">Строк: <b>' +
+          total +
+          "</b>" +
+          (cols.length ? " · колонок: <b>" + cols.length + "</b>" : "") +
+          " (прокрутка вправо/вниз при необходимости).</div>";
     return (
+      meta +
       '<div class="preview-table-wrap"><table class="preview-table"><thead><tr>' +
       head +
       "</tr></thead><tbody>" +
@@ -351,40 +379,44 @@
     var sheetBlock = "";
     if (pack && pack.kind === "excel" && pack.sheetNames && pack.sheetNames.length) {
       sheetBlock =
-        '<div class="field field--third"><label class="field-label" for="fio-sheet">Лист Excel</label>' +
+        '<div class="field field--span-8"><label class="field-label" for="fio-sheet">Лист Excel</label>' +
         '<select class="field-select" id="fio-sheet"></select></div>';
     }
     var fioErr = state.fioUi.source_error
-      ? '<div class="error-box" style="margin-bottom:10px">' + escapeHtml(state.fioUi.source_error) + "</div>"
+      ? '<div class="error-box">' + escapeHtml(state.fioUi.source_error) + "</div>"
       : "";
     return (
       '<div class="panel" id="panel-fio">' +
       "<h2>Справочник ФИО</h2>" +
-      '<p class="panel__intro">Доступен для активного турнира в режиме FIO. Загрузите JSON или таблицу и укажите угол, колонки ФИО и табельного.</p>' +
+      '<p class="panel__intro panel__intro--tight">Режим FIO: JSON или таблица · угол · колонки ФИО и табельного.</p>' +
       fioErr +
-      '<div class="info-box">Записей в справочнике: <b id="fio-stats">' +
+      '<div class="toolbar-row toolbar-row--top">' +
+      '<div class="info-box info-box--inline">Записей: <b id="fio-stats">' +
       state.fioEntries.length +
       "</b></div>" +
-      '<div class="toolbar-row">' +
       '<label class="btn file-pick" data-tip="Загрузить ранее сохранённый JSON справочника">' +
       "<span>Открыть JSON</span>" +
       '<input type="file" id="import-fio-json" class="file-pick__input" accept=".json,application/json" /></label>' +
       '<button type="button" class="btn" id="btn-save-fio" data-tip="Сохранить справочник ФИО в JSON">Сохранить JSON</button>' +
       '<label class="btn btn-primary file-pick" data-tip="Загрузить CSV/Excel со столбцами ФИО и табельный">' +
-      "<span>Загрузить таблицу ФИО</span>" +
+      "<span>Таблица ФИО</span>" +
       '<input type="file" id="import-fio-table" class="file-pick__input" accept=".csv,.txt,.xlsx,.xls,.xlsm" /></label>' +
-      '<button type="button" class="btn btn-primary" id="btn-apply-fio-table" data-tip="Взять строки из таблицы в справочник">Применить из таблицы</button>' +
+      '<button type="button" class="btn btn-primary" id="btn-apply-fio-table" data-tip="Взять строки из таблицы в справочник">Применить</button>' +
       "</div>" +
-      '<div class="fields-grid" style="margin-top:12px">' +
+      '<div class="fields-grid">' +
       sheetBlock +
-      '<div class="field field--third"><label class="field-label" for="fio-start-row">Строка угла</label>' +
+      '<div class="field field--quarter"><label class="field-label" for="fio-start-row">Строка угла</label>' +
       '<input class="field-input" id="fio-start-row" type="number" min="1" step="1" /></div>' +
-      '<div class="field field--third"><label class="field-label" for="fio-start-col">Колонка угла</label>' +
+      '<div class="field field--quarter"><label class="field-label" for="fio-start-col">Колонка угла</label>' +
       '<input class="field-input" id="fio-start-col" type="number" min="1" step="1" /></div>' +
+      (sheetBlock
+        ? ""
+        : '<div class="field field--span-8"><label class="field-label" for="fio-file-name">Файл</label><input class="field-input" id="fio-file-name" readonly /></div>') +
       '<div class="field"><label class="field-label" for="fio-col-fio">Колонка ФИО</label><select class="field-select" id="fio-col-fio"></select></div>' +
       '<div class="field"><label class="field-label" for="fio-col-tn">Колонка табельного</label><select class="field-select" id="fio-col-tn"></select></div>' +
-      '<div class="field field--full"><label class="field-label" for="fio-file-name">Файл таблицы</label>' +
-      '<input class="field-input" id="fio-file-name" readonly /></div>' +
+      (sheetBlock
+        ? '<div class="field field--full"><label class="field-label" for="fio-file-name">Файл таблицы</label><input class="field-input" id="fio-file-name" readonly /></div>'
+        : "") +
       "</div>" +
       '<div id="fio-preview-host"></div></div>'
     );
@@ -400,7 +432,7 @@
     if (pack) {
       fillSelect($("fio-col-fio"), pack.columns, ui.col_fio || "");
       fillSelect($("fio-col-tn"), pack.columns, ui.col_tn || "");
-      $("fio-preview-host").innerHTML = renderPreviewTable(pack, 8, [ui.col_fio, ui.col_tn]);
+      $("fio-preview-host").innerHTML = renderPreviewTable(pack, null, [ui.col_fio, ui.col_tn]);
       if (pack.kind === "excel" && $("fio-sheet")) {
         fillSelect($("fio-sheet"), pack.sheetNames, ui.sheet_name || pack.sheetName || "");
         $("fio-sheet").addEventListener("change", function () {
@@ -428,7 +460,7 @@
         state.fioUi.col_tn = $("fio-col-tn").value;
         state.fioUi.source_error = "";
         if (state.fioPack) {
-          $("fio-preview-host").innerHTML = renderPreviewTable(state.fioPack, 8, [
+          $("fio-preview-host").innerHTML = renderPreviewTable(state.fioPack, null, [
             state.fioUi.col_fio,
             state.fioUi.col_tn,
           ]);
@@ -465,7 +497,6 @@
         state.fioPack = pack;
         state.fioUi.file_name = pack.fileName;
         state.fioUi.sheet_name = pack.sheetName || "";
-        state.fioUi.source_file_b64 = pack.source_b64 || "";
         state.fioUi.source_file_kind = pack.kind || "";
         state.fioUi.source_error = "";
         state.fioUi.col_fio = ReportIO.guessIdColumn(pack.columns, "FIO");
@@ -575,58 +606,61 @@
     var sheetBlock = "";
     if (pack && pack.kind === "excel" && pack.sheetNames && pack.sheetNames.length) {
       sheetBlock =
-        '<div class="field field--third"><label class="field-label" for="f-sheet">Лист Excel</label>' +
+        '<div class="field field--span-8"><label class="field-label" for="f-sheet">Лист Excel</label>' +
         '<select class="field-select" id="f-sheet" data-tip="Лист, с которого брать таблицу"></select></div>';
     }
 
     ws.innerHTML =
       '<div class="panel" id="panel-params">' +
       "<h2>Параметры турнира</h2>" +
-      '<p class="panel__intro">План — целое или с запятой (например 100 или 100,5); в выгрузке будет формат 0.00000.</p>' +
+      '<p class="panel__intro panel__intro--tight">План — целое или с запятой (100 или 100,5); в выгрузке — 0.00000.</p>' +
       (lock
-        ? '<div class="warn-box">Копия турнира: обязательно смените <b>код турнира</b> и <b>наименование</b>. Пока они совпадают с оригиналом — формирование заблокировано.</div>'
+        ? '<div class="warn-box">Копия: смените <b>код турнира</b> и <b>наименование</b> — иначе формирование заблокировано.</div>'
         : "") +
       '<div class="fields-grid">' +
-      '<div class="field field--full"><label class="check-row"><input type="checkbox" id="f-include" ' +
+      '<div class="field field--check"><label class="check-row"><input type="checkbox" id="f-include" ' +
       (t.include_in_report !== false ? "checked" : "") +
       ' /> <span>Включать в проверку и выгрузку</span></label></div>' +
-      '<div class="field"><label class="field-label" for="f-contest-code">Код конкурса</label><input class="field-input" id="f-contest-code" /></div>' +
-      '<div class="field"><label class="field-label" for="f-tournament-code">Код турнира</label><input class="field-input' +
+      '<div class="field field--third"><label class="field-label" for="f-contest-code">Код конкурса</label><input class="field-input" id="f-contest-code" /></div>' +
+      '<div class="field field--third"><label class="field-label" for="f-tournament-code">Код турнира</label><input class="field-input' +
       codeHighlight +
       '" id="f-tournament-code" />' +
-      (lock ? '<div class="field-hint">Нужно изменить относительно копии</div>' : "") +
+      (lock ? '<div class="field-hint">Изменить относительно копии</div>' : "") +
       "</div>" +
+      '<div class="field field--third"><label class="field-label" for="f-period">Период</label><select class="field-select" id="f-period">' +
+      periodOpts +
+      "</select></div>" +
       '<div class="field field--full"><label class="field-label" for="f-full-name">Наименование турнира</label><input class="field-input' +
       nameHighlight +
       '" id="f-full-name" />' +
-      (lock ? '<div class="field-hint">Нужно изменить относительно копии</div>' : "") +
+      (lock ? '<div class="field-hint">Изменить относительно копии</div>' : "") +
       "</div>" +
-      '<div class="field field--third"><label class="field-label" for="f-plan">План (PLAN_VALUE)</label>' +
+      '<div class="field field--third"><label class="field-label" for="f-plan">План</label>' +
       '<input class="field-input" id="f-plan" placeholder="100 или 100,5" data-tip="Целое или дробь с запятой; в CSV/XLSX — точка и 5 знаков" /></div>' +
       '<div class="field field--third"><label class="field-label" for="f-date">Дата данных</label><input class="field-input" id="f-date" type="date" /></div>' +
       '<div class="field field--third"><label class="field-label" for="f-type">Тип расчёта</label><select class="field-select" id="f-type"><option value="TN">TN — табельный</option><option value="FIO">FIO — ФИО</option></select></div>' +
-      '<div class="field"><label class="field-label" for="f-period">Период турнира</label><select class="field-select" id="f-period">' +
-      periodOpts +
-      "</select></div>" +
       "</div></div>" +
       '<div class="panel" id="panel-data">' +
       "<h2>Источник данных</h2>" +
-      '<p class="panel__intro">CSV (;) или Excel. Укажите лист и левый верхний угол таблицы (строка и колонка заголовка, по умолчанию 1 и 1). Для показателя можно задать множитель/делитель/±.</p>' +
+      '<p class="panel__intro panel__intro--tight">CSV (;) или Excel · угол таблицы (строка/колонка заголовка) · действие над показателем.</p>' +
       sourceErrHtml +
-      '<div class="toolbar-row">' +
+      '<div class="toolbar-row toolbar-row--top">' +
       '<label class="btn btn-primary file-pick" data-tip="Загрузить CSV или Excel с показателями">' +
       '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21V9"/><path d="M7 14l5-5 5 5"/><path d="M5 3h14"/></svg> Загрузить CSV / Excel' +
       '<input type="file" id="import-data" class="file-pick__input" accept=".csv,.txt,.xlsx,.xls,.xlsm" /></label>' +
       '<span class="mini-badge" id="data-meta"></span></div>' +
-      '<div class="fields-grid" style="margin-top:12px">' +
+      '<div class="fields-grid">' +
       sheetBlock +
-      '<div class="field field--third"><label class="field-label" for="f-start-row">Строка угла</label>' +
+      '<div class="field field--quarter"><label class="field-label" for="f-start-row">Строка угла</label>' +
       '<input class="field-input" id="f-start-row" type="number" min="1" step="1" data-tip="Номер строки заголовка таблицы (с 1)" /></div>' +
-      '<div class="field field--third"><label class="field-label" for="f-start-col">Колонка угла</label>' +
+      '<div class="field field--quarter"><label class="field-label" for="f-start-col">Колонка угла</label>' +
       '<input class="field-input" id="f-start-col" type="number" min="1" step="1" data-tip="Номер колонки левого верхнего угла (с 1)" /></div>' +
+      (sheetBlock
+        ? ""
+        : '<div class="field field--span-8"><label class="field-label" for="f-source-name">Файл</label><input class="field-input" id="f-source-name" readonly /></div>') +
       '<div class="field"><label class="field-label" for="f-col-id">Колонка ФИО / табельного</label><select class="field-select" id="f-col-id"></select></div>' +
       '<div class="field"><label class="field-label" for="f-col-fact">Колонка показателя</label><select class="field-select" id="f-col-fact"></select></div>' +
-      '<div class="field"><label class="field-label" for="f-fact-op">Показатель: действие</label>' +
+      '<div class="field field--span-7"><label class="field-label" for="f-fact-op">Показатель: действие</label>' +
       '<select class="field-select" id="f-fact-op" data-tip="Как преобразовать значение колонки показателя перед расчётом">' +
       '<option value="none"' +
       (factOp === "none" ? " selected" : "") +
@@ -644,9 +678,11 @@
       (factOp === "sub" ? " selected" : "") +
       ">Вычесть (−)</option>" +
       "</select></div>" +
-      '<div class="field"><label class="field-label" for="f-fact-op-value">Число операции</label>' +
+      '<div class="field field--span-5"><label class="field-label" for="f-fact-op-value">Число операции</label>' +
       '<input class="field-input" id="f-fact-op-value" placeholder="напр. 100 или 2" data-tip="Для ×100 из доли 0,5 получится 50" /></div>' +
-      '<div class="field field--full"><label class="field-label" for="f-source-name">Имя файла</label><input class="field-input" id="f-source-name" readonly /></div>' +
+      (sheetBlock
+        ? '<div class="field field--full"><label class="field-label" for="f-source-name">Имя файла</label><input class="field-input" id="f-source-name" readonly /></div>'
+        : "") +
       "</div>" +
       '<div id="data-preview-host"></div>' +
       "</div>" +
@@ -690,7 +726,7 @@
         (pack.start_col || 1) +
         (pack.encoding ? " · " + pack.encoding : "") +
         (pack.sheetName ? " · лист: " + pack.sheetName : "");
-      $("data-preview-host").innerHTML = renderPreviewTable(pack, 12, [t.column_id, t.column_fact]);
+      $("data-preview-host").innerHTML = renderPreviewTable(pack, null, [t.column_id, t.column_fact]);
       if (pack.kind === "excel" && $("f-sheet")) {
         fillSelect($("f-sheet"), pack.sheetNames, t.sheet_name || pack.sheetName || "");
         if (t.sheet_name && pack.sheetNames && pack.sheetNames.indexOf(t.sheet_name) < 0) {
@@ -820,7 +856,7 @@
     }
     // подсветка выбранных колонок в превью
     if (t && state.dataByTournament[t.id] && $("data-preview-host")) {
-      $("data-preview-host").innerHTML = renderPreviewTable(state.dataByTournament[t.id], 12, [
+      $("data-preview-host").innerHTML = renderPreviewTable(state.dataByTournament[t.id], null, [
         t.column_id,
         t.column_fact,
       ]);
@@ -916,7 +952,6 @@
           source_b64: pack.source_b64,
         })
       );
-      copy.source_file_b64 = pack.source_b64 || src.source_file_b64 || "";
       copy.source_file_kind = pack.kind || src.source_file_kind || "";
     }
     state.activeId = copy.id;
@@ -952,13 +987,13 @@
       state.dataByTournament[t.id] = pack;
       t.source_file_name = pack.fileName;
       t.source_file_kind = pack.kind;
-      t.source_file_b64 = pack.source_b64 || "";
       t.source_error = "";
       t.sheet_name = pack.sheetName || "";
       t.table_start_row = pack.start_row || sr;
       t.table_start_col = pack.start_col || sc;
       t.column_id = ReportIO.guessIdColumn(pack.columns, t.type_ind);
       t.column_fact = ReportIO.guessFactColumn(pack.columns);
+      applySourceErrors(t, pack);
       invalidateChecks();
       renderAll();
       showToast("Данные загружены");
@@ -1028,6 +1063,8 @@
     var opts = options || {};
     var kindLabel = opts.kindLabel || "табельный + турнир";
     var keyHint = opts.keyHint || "CONTEST_CODE + TOURNAMENT_CODE + MANAGER_PERSON_NUMBER";
+    var previous = opts.previousResolutions || {};
+    var requireUnique = opts.requireUnique !== false;
     return new Promise(function (resolve) {
       if (!groups || !groups.length) {
         resolve({ action: "apply", resolutions: {} });
@@ -1038,21 +1075,53 @@
       var intro = $("modal-dup-intro");
       var progress = $("modal-dup-progress");
       title.textContent = "Дубли: " + kindLabel;
-      intro.textContent = "Ключ: " + keyHint + ". Разбираем по одной группе. Отметьте строки, которые оставить (можно несколько).";
+      intro.textContent =
+        "Ключ: " +
+        keyHint +
+        ". Разбираем по одной группе. По умолчанию отмечена первая строка. Для CSV в группе должна остаться одна строка (или сумма / исключить все).";
       var idx = 0;
-      var resolutions = {};
+      var resolutions = Object.assign({}, previous);
 
       function renderCurrent() {
         var g = groups[idx];
-        progress.textContent = "Группа " + (idx + 1) + " из " + groups.length + " · сумма " + ReportCore.formatNumberDot(g.sum, coreOpts().numberDecimals);
+        var prev = previous[g.key] || resolutions[g.key] || null;
+        var prevLabel = ReportCore.describeResolution(prev);
+        progress.textContent =
+          "Группа " +
+          (idx + 1) +
+          " из " +
+          groups.length +
+          " · сумма " +
+          ReportCore.formatNumberDot(g.sum, coreOpts().numberDecimals);
+        var keepSet = Object.create(null);
+        var modeDefault = "keep_selected";
+        if (prev) {
+          modeDefault = prev.mode === "keep_one" ? "keep_selected" : prev.mode;
+          if (prev.mode === "sum" || prev.mode === "drop_all") {
+            modeDefault = prev.mode;
+          }
+          var prevKeep = ReportCore.resolveKeepIndices(g, prev);
+          if (prevKeep.length) {
+            prevKeep.forEach(function (i) {
+              keepSet[i] = true;
+            });
+          }
+        }
+        // по умолчанию — только первая строка (чтобы CSV не оставался с дублями)
+        if (!Object.keys(keepSet).length && g.indices.length) {
+          keepSet[g.indices[0]] = true;
+        }
         var rowsHtml = g.rows
           .map(function (r, ri) {
             var rowIdx = g.indices[ri];
+            var checked = keepSet[rowIdx] ? " checked" : "";
             return (
               '<label class="dup-row">' +
               '<input type="checkbox" data-row-idx="' +
               rowIdx +
-              '" checked />' +
+              '"' +
+              checked +
+              " />" +
               "<span><code>" +
               escapeHtml(r.MANAGER_PERSON_NUMBER || "") +
               "</code> · FIO=" +
@@ -1072,19 +1141,33 @@
           " · строк: " +
           g.indices.length +
           "</div>" +
+          (prevLabel
+            ? '<div class="info-box" style="margin:8px 0">' + escapeHtml(prevLabel) + "</div>"
+            : "") +
           '<div class="toolbar-row" style="margin:8px 0">' +
           '<button type="button" class="btn btn-sm" id="dup-sel-all" data-tip="Отметить все строки группы">Все</button>' +
           '<button type="button" class="btn btn-sm" id="dup-sel-none" data-tip="Снять все отметки">Снять</button>' +
+          '<button type="button" class="btn btn-sm" id="dup-sel-first" data-tip="Только первая строка">Первая</button>' +
           "</div>" +
           '<div class="dup-rows">' +
           rowsHtml +
           "</div>" +
           '<label class="field-label" style="margin-top:10px">Действие для этой группы</label>' +
           '<select class="field-select" id="dup-mode">' +
-          '<option value="keep_selected">Оставить отмеченные</option>' +
-          '<option value="sum">Сумма показателя в одну строку</option>' +
-          '<option value="drop_all">Убрать все из CSV</option>' +
-          "</select></div>";
+          '<option value="keep_selected"' +
+          (modeDefault === "keep_selected" || modeDefault === "keep_one" ? " selected" : "") +
+          ">Оставить отмеченные</option>" +
+          '<option value="sum"' +
+          (modeDefault === "sum" ? " selected" : "") +
+          ">Сумма показателя в одну строку</option>" +
+          '<option value="drop_all"' +
+          (modeDefault === "drop_all" ? " selected" : "") +
+          ">Убрать все из CSV</option>" +
+          "</select>" +
+          (requireUnique
+            ? '<div class="field-hint">Для выгрузки CSV в группе нужна одна строка, «Сумма» или «Убрать все».</div>'
+            : "") +
+          "</div>";
         $("dup-sel-all").onclick = function () {
           list.querySelectorAll('input[type="checkbox"]').forEach(function (c) {
             c.checked = true;
@@ -1093,6 +1176,11 @@
         $("dup-sel-none").onclick = function () {
           list.querySelectorAll('input[type="checkbox"]').forEach(function (c) {
             c.checked = false;
+          });
+        };
+        $("dup-sel-first").onclick = function () {
+          list.querySelectorAll('input[type="checkbox"]').forEach(function (c, i) {
+            c.checked = i === 0;
           });
         };
       }
@@ -1120,11 +1208,21 @@
             alert("Отметьте хотя бы одну строку или выберите «Убрать все» / «Сумма»");
             return;
           }
+          if (requireUnique && keepIndices.length > 1) {
+            alert(
+              "Для CSV нельзя оставить несколько строк с одним ключом. Отметьте одну строку, либо выберите «Сумма» / «Убрать все»."
+            );
+            return;
+          }
+          res.keepIndices = keepIndices;
+          res.keepFingerprints = keepIndices.map(function (rowIdx) {
+            var pos = g.indices.indexOf(rowIdx);
+            return ReportCore.rowFingerprint(pos >= 0 ? g.rows[pos] : null);
+          });
           if (keepIndices.length === 1) {
             res.mode = "keep_one";
             res.keepIndex = keepIndices[0];
-          } else {
-            res.keepIndices = keepIndices;
+            res.keepFingerprint = res.keepFingerprints[0];
           }
         }
         resolutions[g.key] = res;
@@ -1209,10 +1307,12 @@
       var fioDupAns = await askDuplicates(fioGroups, {
         kindLabel: "ФИО + турнир",
         keyHint: "CONTEST_CODE + TOURNAMENT_CODE + ФИО",
+        previousResolutions: state.lastFioResolutions,
+        requireUnique: true,
       });
       if (fioDupAns.action === "cancel") return { ok: false, cancelled: true };
       if (fioDupAns.action === "abort") return { ok: false, aborted: true };
-      state.lastFioResolutions = fioDupAns.resolutions || {};
+      state.lastFioResolutions = Object.assign({}, state.lastFioResolutions, fioDupAns.resolutions || {});
       var fioApplied = ReportCore.applyDuplicateResolutions(
         rows,
         state.lastFioResolutions,
@@ -1224,7 +1324,17 @@
         return { ok: false, error: fioApplied.error, rows: fioApplied.rows };
       }
       rows = fioApplied.rows;
-      state.checkState.fioDupCleared = true;
+      // если после решения всё ещё есть группы — не помечаем cleared (не должно случиться при requireUnique)
+      fioGroups = ReportCore.findFioDuplicateGroups(rows);
+      state.checkState.fioDupCleared = fioGroups.length === 0;
+      if (fioGroups.length) {
+        return {
+          ok: false,
+          error: "После разрешения остались дубли ФИО. Оставьте по одной строке в группе.",
+          rows: rows,
+          fioGroups: fioGroups,
+        };
+      }
     } else if (!fioGroups.length) {
       state.checkState.fioDupCleared = true;
     }
@@ -1239,10 +1349,12 @@
       var tnAns = await askDuplicates(tnGroups, {
         kindLabel: "табельный + турнир",
         keyHint: "CONTEST_CODE + TOURNAMENT_CODE + MANAGER_PERSON_NUMBER",
+        previousResolutions: state.lastResolutions,
+        requireUnique: true,
       });
       if (tnAns.action === "cancel") return { ok: false, cancelled: true };
       if (tnAns.action === "abort") return { ok: false, aborted: true };
-      state.lastResolutions = tnAns.resolutions || {};
+      state.lastResolutions = Object.assign({}, state.lastResolutions, tnAns.resolutions || {});
       var tnApplied = ReportCore.applyDuplicateResolutions(
         rows,
         state.lastResolutions,
@@ -1256,15 +1368,37 @@
         return { ok: false, error: tnApplied.error, rows: tnApplied.rows };
       }
       rows = tnApplied.rows;
-      state.checkState.duplicatesCleared = true;
+      tnGroups = ReportCore.findTnDuplicateGroups(rows);
+      state.checkState.duplicatesCleared = tnGroups.length === 0;
+      if (tnGroups.length) {
+        return {
+          ok: false,
+          error: "После разрешения остались дубли табельного. Оставьте одну строку, сумму или исключите.",
+          rows: rows,
+          tnGroups: tnGroups,
+        };
+      }
     } else if (!tnGroups.length) {
       state.checkState.duplicatesCleared = true;
     }
 
     ReportCore.annotateDuplicatesLikePq(rows, coreOpts());
     var summary = ReportCore.summarizeCheckedRows(rows);
-    state.checkedPipeline = { rows: rows, summary: summary };
-    return { ok: true, rows: rows, summary: summary, missingFio: buildAllRows().missingFio };
+    var csvGate = ReportCore.validateCsvExportRows(rows, coreOpts());
+    summary.csvGate = csvGate;
+    if (!csvGate.ok) {
+      // помечаем строки и отдаём предупреждение — Excel можно, CSV нет
+      summary.xlsxRows = ReportCore.rowsForXlsx(csvGate.rowsMarked);
+      summary.csvRows = [];
+    }
+    state.checkedPipeline = { rows: rows, summary: summary, csvGate: csvGate };
+    return {
+      ok: true,
+      rows: rows,
+      summary: summary,
+      csvGate: csvGate,
+      missingFio: buildAllRows().missingFio,
+    };
   }
 
   function validateBaseOrAlert() {
@@ -1300,7 +1434,7 @@
     return true;
   }
 
-  function renderCheckSummary(summary, missingFio) {
+  function renderCheckSummary(summary, missingFio, csvGate) {
     var html =
       '<div class="ok-box">Проверка завершена с учётом применённых решений.</div>' +
       '<div class="info-box">Всего строк после обработки: <b>' +
@@ -1314,6 +1448,11 @@
       html += "<br>С флагом «табельный не найден»: <b>" + summary.missingFioFlag + "</b>";
     }
     html += "</div>";
+    if (csvGate && !csvGate.ok) {
+      html += '<div class="error-box">' + escapeHtml(csvGate.message) + "</div>";
+    } else if (csvGate && csvGate.ok) {
+      html += '<div class="ok-box">Критерии CSV выполнены — выгрузка CSV разрешена.</div>';
+    }
     if (missingFio && missingFio.length) {
       html +=
         '<div class="warn-box">Остались ФИО без табельного в справочнике (подставлен 00000000): ' +
@@ -1352,7 +1491,8 @@
   async function runCheck() {
     if (!validateBaseOrAlert()) return;
     setStatus("проверка…");
-    invalidateChecks();
+    // сохраняем прошлые решения для показа в диалоге
+    invalidateChecks({ keepResolutions: true });
     var result = await runValidationPipeline({ interactive: true });
     var body = $("modal-check-body");
     var title = $("modal-check-title");
@@ -1371,14 +1511,19 @@
       return;
     }
     title.textContent = "Проверка: готово";
-    body.innerHTML = renderCheckSummary(result.summary, result.missingFio);
+    body.innerHTML = renderCheckSummary(result.summary, result.missingFio, result.csvGate);
     openModal("modal-check");
     $("modal-check-close").onclick = function () {
       closeModal("modal-check");
     };
     renderStages();
-    setStatus("проверка OK · в CSV " + result.summary.included);
-    showToast("Проверка OK");
+    var csvOk = !result.csvGate || result.csvGate.ok;
+    setStatus(
+      csvOk
+        ? "проверка OK · в CSV " + result.summary.included
+        : "проверка OK · CSV пока заблокирован"
+    );
+    showToast(csvOk ? "Проверка OK" : "Проверка OK, CSV требует доработки");
   }
 
   async function runProcess() {
@@ -1396,10 +1541,11 @@
         ok: true,
         rows: state.checkedPipeline.rows,
         summary: state.checkedPipeline.summary,
+        csvGate: state.checkedPipeline.csvGate,
         missingFio: buildAllRows().missingFio,
       };
     } else {
-      invalidateChecks();
+      invalidateChecks({ keepResolutions: true });
       result = await runValidationPipeline({ interactive: true });
     }
     if (result.cancelled) {
@@ -1504,15 +1650,6 @@
   }
 
   function buildSettingsPayload() {
-    var payloads = {};
-    state.tournaments.forEach(function (t) {
-      var pack = state.dataByTournament[t.id];
-      if (pack && pack.source_b64) {
-        payloads[t.id] = { b64: pack.source_b64, kind: pack.kind };
-      } else if (t.source_file_b64) {
-        payloads[t.id] = { b64: t.source_file_b64, kind: t.source_file_kind || "" };
-      }
-    });
     var fioMeta = {
       entries: state.fioEntries,
       file_name: state.fioUi.file_name || "",
@@ -1521,18 +1658,23 @@
       start_col: state.fioUi.start_col || 1,
       col_fio: state.fioUi.col_fio || "",
       col_tn: state.fioUi.col_tn || "",
-      source_file_b64: (state.fioPack && state.fioPack.source_b64) || state.fioUi.source_file_b64 || "",
-      source_file_kind: (state.fioPack && state.fioPack.kind) || state.fioUi.source_file_kind || "",
     };
-    return ReportCore.serializeSettings(state.tournaments, fioMeta, payloads);
+    return ReportCore.serializeSettings(state.tournaments, fioMeta);
   }
 
   function applySourceErrors(t, pack) {
     var errs = [];
     if (!pack) {
-      if (t.source_file_name) errs.push("файл источника не найден: " + t.source_file_name);
+      if (t.source_file_name) {
+        errs.push("загрузите файл источника: " + t.source_file_name);
+      } else {
+        errs.push("файл источника не загружен");
+      }
       t.source_error = errs.join("; ");
       return;
+    }
+    if (t.source_file_name && pack.fileName && pack.fileName !== t.source_file_name) {
+      // имя может отличаться — не ошибка, но подсказка в meta
     }
     if (t.sheet_name && pack.sheetNames && pack.sheetNames.length && pack.sheetNames.indexOf(t.sheet_name) < 0) {
       errs.push("лист не найден: " + t.sheet_name);
@@ -1549,39 +1691,38 @@
     state.tournaments = parsed.tournaments;
     state.dataByTournament = {};
     state.fioPack = null;
-    state.fioUi.source_error = "";
+    state.fioUi = {
+      sheet_name: "",
+      start_row: 1,
+      start_col: 1,
+      col_fio: "",
+      col_tn: "",
+      file_name: "",
+      source_file_kind: "",
+      source_error: "",
+    };
 
-    // восстановить источники турниров из base64
+    // только метаданные источника — файлы данных нужно загрузить вручную
     state.tournaments.forEach(function (t) {
-      var pack = null;
-      try {
-        pack = ReportIO.packFromStoredSource({
-          source_file_b64: t.source_file_b64,
-          source_file_name: t.source_file_name,
-          source_file_kind: t.source_file_kind,
-          sheet_name: t.sheet_name,
-          table_start_row: t.table_start_row,
-          table_start_col: t.table_start_col,
-        });
-      } catch (err) {
-        t.source_error = "ошибка чтения вложенного файла: " + (err.message || err);
-        pack = null;
-      }
-      if (pack) {
-        state.dataByTournament[t.id] = pack;
-      }
-      applySourceErrors(t, pack);
+      t.source_file_b64 = "";
+      applySourceErrors(t, null);
     });
 
-    // ФИО блок из JSON
+    // ФИО: entries из JSON + настройки колонок (без файла таблицы)
     if (parsed.fio) {
       if (Array.isArray(parsed.fio.entries)) {
-        state.fioEntries = parsed.fio.entries.map(function (e) {
-          return {
-            fio: String(e.fio || "").trim(),
-            person_number: String(e.person_number || "").trim(),
-          };
-        });
+        state.fioEntries = parsed.fio.entries
+          .map(function (e) {
+            return {
+              fio: String(e.fio || "").trim(),
+              person_number: String(e.person_number || "").trim(),
+            };
+          })
+          .filter(function (e) {
+            return e.fio && e.person_number;
+          });
+      } else {
+        state.fioEntries = [];
       }
       state.fioUi.file_name = parsed.fio.file_name || "";
       state.fioUi.sheet_name = parsed.fio.sheet_name || "";
@@ -1589,31 +1730,14 @@
       state.fioUi.start_col = parsed.fio.start_col || 1;
       state.fioUi.col_fio = parsed.fio.col_fio || "";
       state.fioUi.col_tn = parsed.fio.col_tn || "";
-      state.fioUi.source_file_b64 = parsed.fio.source_file_b64 || "";
-      state.fioUi.source_file_kind = parsed.fio.source_file_kind || "";
-      if (parsed.fio.source_file_b64) {
-        try {
-          state.fioPack = ReportIO.packFromStoredSource({
-            source_file_b64: parsed.fio.source_file_b64,
-            source_file_name: parsed.fio.file_name,
-            source_file_kind: parsed.fio.source_file_kind,
-            sheet_name: parsed.fio.sheet_name,
-            table_start_row: parsed.fio.start_row,
-            table_start_col: parsed.fio.start_col,
-          });
-          if (state.fioPack) {
-            if (state.fioUi.col_fio && state.fioPack.columns.indexOf(state.fioUi.col_fio) < 0) {
-              state.fioUi.source_error = "колонка ФИО не найдена: " + state.fioUi.col_fio;
-            } else if (state.fioUi.col_tn && state.fioPack.columns.indexOf(state.fioUi.col_tn) < 0) {
-              state.fioUi.source_error = "колонка табельного не найдена: " + state.fioUi.col_tn;
-            }
-          }
-        } catch (err) {
-          state.fioUi.source_error = "ошибка файла ФИО: " + (err.message || err);
-        }
-      } else if (parsed.fio.file_name) {
-        state.fioUi.source_error = "файл ФИО не вложен в JSON: " + parsed.fio.file_name;
+      if (!state.fioEntries.length && state.fioUi.file_name) {
+        state.fioUi.source_error =
+          "записи ФИО пусты — загрузите таблицу «" + state.fioUi.file_name + "» или JSON справочника";
+      } else {
+        state.fioUi.source_error = "";
       }
+    } else {
+      state.fioEntries = [];
     }
 
     invalidateChecks();
@@ -1641,6 +1765,7 @@
         missing_person_placeholder: "00000000",
         no_duplicate_mark: "-",
         missing_fio_flag: "ДА",
+        preview_row_limit: 100,
       };
       window.ReportConfig = state.config;
     }
@@ -1672,7 +1797,7 @@
     $("btn-save-settings").addEventListener("click", function () {
       flushEditorToState();
       ReportIO.downloadJson(ReportIO.timestampName("web_report_settings", "json"), buildSettingsPayload());
-      showToast("JSON настроек (+файлы)");
+      showToast("JSON настроек");
     });
     $("import-settings").addEventListener("change", async function (ev) {
       var file = ev.target.files && ev.target.files[0];
@@ -1682,7 +1807,7 @@
         var data = await readJsonFile(file);
         await loadSettingsFromJson(data);
         renderAll();
-        showToast("Настройки и файлы загружены");
+        showToast("Настройки загружены — укажите файлы источников");
       } catch (err) {
         alert(err.message || String(err));
       }

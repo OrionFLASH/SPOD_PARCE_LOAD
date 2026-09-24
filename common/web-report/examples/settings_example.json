@@ -1,5 +1,5 @@
 {
-  "version": 2,
+  "version": 3,
   "kind": "spod_web_report_settings",
   "tournaments": [
     {
@@ -17,6 +17,7 @@
       "fact_op_value": "1",
       "include_in_report": true,
       "source_file_name": "sample_data_tn.csv",
+      "source_file_kind": "csv",
       "sheet_name": "",
       "table_start_row": 1,
       "table_start_col": 1
@@ -36,13 +37,17 @@
       "fact_op_value": "100",
       "include_in_report": true,
       "source_file_name": "sample_data_fio.csv",
+      "source_file_kind": "csv",
       "sheet_name": "",
       "table_start_row": 1,
       "table_start_col": 1
     }
   ],
   "fio": {
-    "entries": [],
+    "entries": [
+      { "fio": "Иванов Иван Иванович", "person_number": "12345" },
+      { "fio": "Петров Пётр Петрович", "person_number": "67890" }
+    ],
     "file_name": "",
     "sheet_name": "",
     "start_row": 1,
