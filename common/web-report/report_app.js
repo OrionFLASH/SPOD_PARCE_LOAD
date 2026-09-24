@@ -20,6 +20,7 @@
       file_name: "",
       source_file_kind: "",
       source_error: "",
+      apply_warning: "",
     },
     lastResult: null,
     checkState: {
@@ -32,7 +33,7 @@
     checkedPipeline: null,
     filters: { search: "", types: { TN: true, FIO: true }, ready: { ready: true, draft: true, copy: true } },
     sidebarOpen: true,
-    filtersOpen: true,
+    filtersOpen: false,
     chromeOpen: true,
   };
 
@@ -188,29 +189,158 @@
     var st = stages();
     var box = $("top-stages");
     if (!box) return;
+
+    var included = ReportCore.includedTournaments(state.tournaments);
+    var total = state.tournaments.length;
+    var includedN = included.length;
+    var noActive = includedN === 0;
+    var anyFio = state.tournaments.some(function (t) {
+      return String(t.type_ind || "").toUpperCase() === "FIO";
+    });
+    var includedFio = included.some(function (t) {
+      return String(t.type_ind || "").toUpperCase() === "FIO";
+    });
+    var activeIsFio = hasActiveFioMode();
+    // ФИО-этап не участвует: режим TN у текущего или в списке нет FIO
+    var fioIdle = !anyFio || !activeIsFio;
+
+    function stageStatus(ok, idle) {
+      if (idle) return "idle";
+      return ok ? "done" : "bad";
+    }
+
+    var icons = {
+      tournaments:
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 6h13"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M3 6h.01"/><path d="M3 12h.01"/><path d="M3 18h.01"/></svg>',
+      fields:
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>',
+      sources:
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/><path d="M12 18v-6"/><path d="M9 15l3 3 3-3"/></svg>',
+      fio:
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c1.5-3.5 4.5-5 8-5s6.5 1.5 8 5"/></svg>',
+      dups:
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>',
+    };
+
+    var tournamentsDetail;
+    var tournamentsOk = st.hasTournaments && !noActive;
+    if (total === 0) {
+      tournamentsDetail = "добавьте турнир";
+    } else if (noActive) {
+      tournamentsDetail = "нет к выгрузке (все выкл.)";
+    } else {
+      tournamentsDetail = includedN + " из " + total + " в отчёте";
+    }
+
+    var fieldsDetail = noActive
+      ? "ожидает активный турнир"
+      : st.fieldsFilled
+        ? "параметры заполнены"
+        : st.blockedCopies.length
+          ? "смените код и название копии"
+          : "заполните коды, название, план";
+
+    var sourcesDetail = noActive
+      ? "нечего загружать"
+      : st.sourcesOk
+        ? "файлы и колонки ок"
+        : "нужен файл и колонки";
+
+    var fioDetail;
+    if (!anyFio) {
+      fioDetail = "нет турниров FIO";
+    } else if (!activeIsFio) {
+      fioDetail = "не нужен для TN";
+    } else if (!includedFio) {
+      fioDetail = "FIO выключены в отчёте";
+    } else if (!st.sourcesOk) {
+      fioDetail = "сначала загрузите источник";
+    } else if (st.fioOk) {
+      fioDetail = "справочник покрывает";
+    } else {
+      fioDetail = "есть ФИО без табельного";
+    }
+
+    var dupsDetail = noActive
+      ? "ожидает данные"
+      : st.duplicatesOk
+        ? "конфликтов нет"
+        : "нужна проверка / решение";
+
     var items = [
-      { ok: st.hasTournaments, label: "Турниры" },
-      { ok: st.fieldsFilled, label: "Поля" },
-      { ok: st.sourcesOk, label: "Источники" },
-      { ok: st.fioOk, label: "ФИО / данные" },
-      { ok: st.duplicatesOk, label: "Без дублей" },
+      {
+        key: "tournaments",
+        title: "Турниры",
+        detail: tournamentsDetail,
+        status: stageStatus(tournamentsOk, false),
+        tip: noActive ? "Нет активных турниров для выгрузки" : "Турниры, включённые в отчёт",
+        icon: icons.tournaments,
+      },
+      {
+        key: "fields",
+        title: "Поля",
+        detail: fieldsDetail,
+        status: stageStatus(st.fieldsFilled, noActive),
+        tip: "Обязательные параметры турниров",
+        icon: icons.fields,
+      },
+      {
+        key: "sources",
+        title: "Источники",
+        detail: sourcesDetail,
+        status: stageStatus(st.sourcesOk, noActive),
+        tip: "CSV/Excel и выбранные колонки",
+        icon: icons.sources,
+      },
+      {
+        key: "fio",
+        title: "ФИО",
+        detail: fioDetail,
+        status: stageStatus(st.fioOk && includedFio, fioIdle || noActive || !includedFio),
+        tip: fioIdle
+          ? "Этап ФИО не участвует (TN или нет FIO-турниров)"
+          : "Справочник ФИО ↔ табельный",
+        icon: icons.fio,
+      },
+      {
+        key: "dups",
+        title: "Дубли",
+        detail: dupsDetail,
+        status: stageStatus(st.duplicatesOk, noActive),
+        tip: "Конфликты ключей после проверки",
+        icon: icons.dups,
+      },
     ];
+
     box.innerHTML = items
       .map(function (it) {
-        var cls = "stage-chip " + (it.ok ? "is-done" : "is-bad");
+        var cls = "stage-chip is-" + it.status;
         return (
           '<span class="' +
           cls +
-          '"><span class="stage-chip__dot"></span>' +
-          escapeHtml(it.label) +
-          "</span>"
+          '" data-stage="' +
+          it.key +
+          '" data-tip="' +
+          escapeHtml(it.tip) +
+          '">' +
+          '<span class="stage-chip__icon" aria-hidden="true">' +
+          it.icon +
+          "</span>" +
+          '<span class="stage-chip__body">' +
+          '<span class="stage-chip__title">' +
+          escapeHtml(it.title) +
+          "</span>" +
+          '<span class="stage-chip__detail">' +
+          escapeHtml(it.detail) +
+          "</span>" +
+          "</span></span>"
         );
       })
       .join("");
 
     $("btn-process").disabled =
-      !st.hasTournaments || !st.fieldsFilled || !st.sourcesOk || st.blockedCopies.length > 0;
-    $("btn-check").disabled = !st.canCheck;
+      !st.hasTournaments || !st.fieldsFilled || !st.sourcesOk || st.blockedCopies.length > 0 || noActive;
+    $("btn-check").disabled = !st.canCheck || noActive;
     $("btn-export-csv").disabled = !(state.lastResult && state.lastResult.ok);
     $("btn-export-xlsx").disabled = !(state.lastResult && state.lastResult.ok);
   }
@@ -376,20 +506,25 @@
     if (!hasActiveFioMode()) return "";
     var pack = state.fioPack;
     var ui = state.fioUi;
+    // строка 1: лист + угол; строка 2: колонки; строка 3: имя файла справа
     var sheetBlock = "";
     if (pack && pack.kind === "excel" && pack.sheetNames && pack.sheetNames.length) {
       sheetBlock =
-        '<div class="field field--span-8"><label class="field-label" for="fio-sheet">Лист Excel</label>' +
+        '<div class="field"><label class="field-label" for="fio-sheet">Лист Excel</label>' +
         '<select class="field-select" id="fio-sheet"></select></div>';
     }
     var fioErr = state.fioUi.source_error
       ? '<div class="error-box">' + escapeHtml(state.fioUi.source_error) + "</div>"
+      : "";
+    var fioApplyWarn = state.fioUi.apply_warning
+      ? '<div class="warn-box" id="fio-apply-warning">' + escapeHtml(state.fioUi.apply_warning) + "</div>"
       : "";
     return (
       '<div class="panel" id="panel-fio">' +
       "<h2>Справочник ФИО</h2>" +
       '<p class="panel__intro panel__intro--tight">Режим FIO: JSON или таблица · угол · колонки ФИО и табельного.</p>' +
       fioErr +
+      fioApplyWarn +
       '<div class="toolbar-row toolbar-row--top">' +
       '<div class="info-box info-box--inline">Записей: <b id="fio-stats">' +
       state.fioEntries.length +
@@ -404,19 +539,22 @@
       '<button type="button" class="btn btn-primary" id="btn-apply-fio-table" data-tip="Взять строки из таблицы в справочник">Применить</button>' +
       "</div>" +
       '<div class="fields-grid">' +
+      '<div class="fields-row fields-row--origin">' +
       sheetBlock +
-      '<div class="field field--quarter"><label class="field-label" for="fio-start-row">Строка угла</label>' +
+      '<div class="field"><label class="field-label" for="fio-start-row">Строка угла</label>' +
       '<input class="field-input" id="fio-start-row" type="number" min="1" step="1" /></div>' +
-      '<div class="field field--quarter"><label class="field-label" for="fio-start-col">Колонка угла</label>' +
+      '<div class="field"><label class="field-label" for="fio-start-col">Колонка угла</label>' +
       '<input class="field-input" id="fio-start-col" type="number" min="1" step="1" /></div>' +
-      (sheetBlock
-        ? ""
-        : '<div class="field field--span-8"><label class="field-label" for="fio-file-name">Файл</label><input class="field-input" id="fio-file-name" readonly /></div>') +
+      (sheetBlock ? "" : '<div class="field field--spacer" aria-hidden="true"></div>') +
+      "</div>" +
+      '<div class="fields-row fields-row--cols">' +
       '<div class="field"><label class="field-label" for="fio-col-fio">Колонка ФИО</label><select class="field-select" id="fio-col-fio"></select></div>' +
       '<div class="field"><label class="field-label" for="fio-col-tn">Колонка табельного</label><select class="field-select" id="fio-col-tn"></select></div>' +
-      (sheetBlock
-        ? '<div class="field field--full"><label class="field-label" for="fio-file-name">Файл таблицы</label><input class="field-input" id="fio-file-name" readonly /></div>'
-        : "") +
+      "</div>" +
+      '<div class="fields-row fields-row--file-end">' +
+      '<div class="field"><label class="field-label" for="fio-file-name">Имя файла</label>' +
+      '<input class="field-input" id="fio-file-name" readonly /></div>' +
+      "</div>" +
       "</div>" +
       '<div id="fio-preview-host"></div></div>'
     );
@@ -499,6 +637,7 @@
         state.fioUi.sheet_name = pack.sheetName || "";
         state.fioUi.source_file_kind = pack.kind || "";
         state.fioUi.source_error = "";
+        state.fioUi.apply_warning = "";
         state.fioUi.col_fio = ReportIO.guessIdColumn(pack.columns, "FIO");
         state.fioUi.col_tn = ReportIO.guessIdColumn(pack.columns, "TN");
         renderAll();
@@ -520,9 +659,11 @@
       }
       state.fioUi.col_fio = colFio;
       state.fioUi.col_tn = colTn;
-      var entries = ReportIO.entriesFromFioTable(state.fioPack.rows, colFio, colTn);
+      var resolved = ReportCore.resolveFioTableEntries(state.fioPack.rows, colFio, colTn);
+      var entries = resolved.entries;
       if (!entries.length) {
-        alert("Не удалось прочитать ни одной пары ФИО / табельный");
+        state.fioUi.apply_warning = "";
+        alert("Не удалось прочитать ни одной строки с ФИО");
         return;
       }
       var byKey = Object.create(null);
@@ -535,9 +676,14 @@
       state.fioEntries = Object.keys(byKey).map(function (k) {
         return byKey[k];
       });
+      state.fioUi.apply_warning = resolved.stats.message || "";
       invalidateChecks();
       renderAll();
-      showToast("В справочник: " + entries.length);
+      var toastMsg = "В справочник: " + entries.length;
+      if (resolved.stats.message) {
+        toastMsg += ". " + resolved.stats.message;
+      }
+      showToast(toastMsg);
     });
   }
 
@@ -603,10 +749,11 @@
       ? '<div class="error-box" style="margin-bottom:10px">' + escapeHtml(t.source_error) + "</div>"
       : "";
 
+    // строка 1: лист + угол; строка 2: колонки; строка 3: действие|операция слева, имя файла справа
     var sheetBlock = "";
     if (pack && pack.kind === "excel" && pack.sheetNames && pack.sheetNames.length) {
       sheetBlock =
-        '<div class="field field--span-8"><label class="field-label" for="f-sheet">Лист Excel</label>' +
+        '<div class="field"><label class="field-label" for="f-sheet">Лист Excel</label>' +
         '<select class="field-select" id="f-sheet" data-tip="Лист, с которого брать таблицу"></select></div>';
     }
 
@@ -650,17 +797,20 @@
       '<input type="file" id="import-data" class="file-pick__input" accept=".csv,.txt,.xlsx,.xls,.xlsm" /></label>' +
       '<span class="mini-badge" id="data-meta"></span></div>' +
       '<div class="fields-grid">' +
+      '<div class="fields-row fields-row--origin">' +
       sheetBlock +
-      '<div class="field field--quarter"><label class="field-label" for="f-start-row">Строка угла</label>' +
+      '<div class="field"><label class="field-label" for="f-start-row">Строка угла</label>' +
       '<input class="field-input" id="f-start-row" type="number" min="1" step="1" data-tip="Номер строки заголовка таблицы (с 1)" /></div>' +
-      '<div class="field field--quarter"><label class="field-label" for="f-start-col">Колонка угла</label>' +
+      '<div class="field"><label class="field-label" for="f-start-col">Колонка угла</label>' +
       '<input class="field-input" id="f-start-col" type="number" min="1" step="1" data-tip="Номер колонки левого верхнего угла (с 1)" /></div>' +
-      (sheetBlock
-        ? ""
-        : '<div class="field field--span-8"><label class="field-label" for="f-source-name">Файл</label><input class="field-input" id="f-source-name" readonly /></div>') +
+      (sheetBlock ? "" : '<div class="field field--spacer" aria-hidden="true"></div>') +
+      "</div>" +
+      '<div class="fields-row fields-row--cols">' +
       '<div class="field"><label class="field-label" for="f-col-id">Колонка ФИО / табельного</label><select class="field-select" id="f-col-id"></select></div>' +
       '<div class="field"><label class="field-label" for="f-col-fact">Колонка показателя</label><select class="field-select" id="f-col-fact"></select></div>' +
-      '<div class="field field--span-7"><label class="field-label" for="f-fact-op">Показатель: действие</label>' +
+      "</div>" +
+      '<div class="fields-row fields-row--ops">' +
+      '<div class="field"><label class="field-label" for="f-fact-op">Показатель: действие</label>' +
       '<select class="field-select" id="f-fact-op" data-tip="Как преобразовать значение колонки показателя перед расчётом">' +
       '<option value="none"' +
       (factOp === "none" ? " selected" : "") +
@@ -678,11 +828,11 @@
       (factOp === "sub" ? " selected" : "") +
       ">Вычесть (−)</option>" +
       "</select></div>" +
-      '<div class="field field--span-5"><label class="field-label" for="f-fact-op-value">Число операции</label>' +
+      '<div class="field"><label class="field-label" for="f-fact-op-value">Число операции</label>' +
       '<input class="field-input" id="f-fact-op-value" placeholder="напр. 100 или 2" data-tip="Для ×100 из доли 0,5 получится 50" /></div>' +
-      (sheetBlock
-        ? '<div class="field field--full"><label class="field-label" for="f-source-name">Имя файла</label><input class="field-input" id="f-source-name" readonly /></div>'
-        : "") +
+      '<div class="field"><label class="field-label" for="f-source-name">Имя файла</label>' +
+      '<input class="field-input" id="f-source-name" readonly /></div>' +
+      "</div>" +
       "</div>" +
       '<div id="data-preview-host"></div>' +
       "</div>" +
@@ -746,6 +896,7 @@
 
     bindEditorEvents();
     bindFioPanel();
+    refreshRequiredFieldHighlights();
     if (state.lastResult && state.lastResult.ok) {
       var panel = $("panel-result");
       panel.hidden = false;
@@ -760,6 +911,37 @@
       }
       $("btn-export-csv-2").onclick = exportCsv;
       $("btn-export-xlsx-2").onclick = exportXlsx;
+    }
+  }
+
+  /** Подсветка незаполненных обязательных полей (и полей копии). */
+  function refreshRequiredFieldHighlights() {
+    var t = activeTournament();
+    if (!t || !$("f-contest-code")) return;
+    var pack = state.dataByTournament[t.id];
+    var lock = !ReportCore.tournamentIdentityUnlocked(t);
+
+    function blank(v) {
+      return !String(v == null ? "" : v).trim();
+    }
+
+    function mark(id, needHighlight) {
+      var el = $(id);
+      if (!el) return;
+      if (el.classList.contains("is-error")) return;
+      el.classList.toggle("is-highlight", !!needHighlight);
+    }
+
+    mark("f-contest-code", blank(t.contest_code));
+    mark("f-tournament-code", blank(t.tournament_code) || lock);
+    mark("f-full-name", blank(t.full_name) || lock);
+    mark("f-plan", blank(t.plan_value));
+    mark("f-date", blank(t.contest_date));
+    mark("f-col-id", !pack || blank(t.column_id));
+    mark("f-col-fact", !pack || blank(t.column_fact));
+    mark("f-source-name", !pack || blank(t.source_file_name));
+    if ($("f-sheet")) {
+      mark("f-sheet", !pack || blank(t.sheet_name || (pack && pack.sheetName)));
     }
   }
 
@@ -863,12 +1045,7 @@
     }
     renderStages();
     renderNav();
-    var lock = t && !ReportCore.tournamentIdentityUnlocked(t);
-    ["f-tournament-code", "f-full-name"].forEach(function (id) {
-      var el = $(id);
-      if (!el) return;
-      el.classList.toggle("is-highlight", !!lock);
-    });
+    refreshRequiredFieldHighlights();
   }
 
   function flushEditorToState() {
@@ -914,7 +1091,6 @@
   function addTournament() {
     flushEditorToState();
     var t = ReportCore.createEmptyTournament({
-      contest_date: new Date().toISOString().slice(0, 10),
       type_ind: "TN",
     });
     state.tournaments.push(t);
@@ -1700,6 +1876,7 @@
       file_name: "",
       source_file_kind: "",
       source_error: "",
+      apply_warning: "",
     };
 
     // только метаданные источника — файлы данных нужно загрузить вручную
@@ -1869,7 +2046,7 @@
 
     initTips();
     setSidebarOpen(true);
-    setFiltersOpen(true);
+    setFiltersOpen(false);
     setChromeOpen(true);
     renderAll();
     setStatus("готово к работе");

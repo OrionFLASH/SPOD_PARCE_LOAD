@@ -221,6 +221,116 @@
     return map;
   }
 
+  /**
+   * Табельный из таблицы ФИО: непусто и только цифры (ведущие нули допустимы).
+   * @param {*} value
+   * @returns {boolean}
+   */
+  function isNumericPersonToken(value) {
+    var text = String(value == null ? "" : value).trim();
+    return text !== "" && /^\d+$/.test(text);
+  }
+
+  /**
+   * Собрать записи справочника из строк таблицы ФИО.
+   * Дубли по ФИО: берём первую строку с корректным табельным; если ФИО одно — берём как есть.
+   * @returns {{
+   *   entries: Array<{fio:string, person_number:string}>,
+   *   stats: {
+   *     sourceRows: number,
+   *     uniqueFio: number,
+   *     duplicateFioNames: number,
+   *     duplicateExtraRows: number,
+   *     invalidTnRows: number,
+   *     message: string
+   *   }
+   * }}
+   */
+  function resolveFioTableEntries(rows, colFio, colTn) {
+    var groups = Object.create(null);
+    var order = [];
+    var sourceRows = 0;
+    var invalidTnRows = 0;
+
+    (rows || []).forEach(function (row) {
+      if (!row) return;
+      var fio = String(row[colFio] == null ? "" : row[colFio]).trim();
+      var tnRaw = row[colTn];
+      var tn = String(tnRaw == null ? "" : tnRaw).trim();
+      if (!fio) return;
+      // пропуск строки заголовка, попавшей в данные
+      if (fio === colFio || tn === colTn) return;
+      sourceRows += 1;
+      var tnOk = isNumericPersonToken(tn);
+      if (!tnOk) {
+        invalidTnRows += 1;
+      }
+      var key = normalizeFioKey(fio);
+      if (!groups[key]) {
+        groups[key] = [];
+        order.push(key);
+      }
+      groups[key].push({ fio: fio, person_number: tn, tnOk: tnOk });
+    });
+
+    var entries = [];
+    var duplicateFioNames = 0;
+    var duplicateExtraRows = 0;
+
+    order.forEach(function (key) {
+      var list = groups[key];
+      if (list.length > 1) {
+        duplicateFioNames += 1;
+        duplicateExtraRows += list.length - 1;
+      }
+      var chosen = null;
+      if (list.length === 1) {
+        // одно вхождение — берём как есть
+        chosen = list[0];
+      } else {
+        for (var i = 0; i < list.length; i += 1) {
+          if (list[i].tnOk) {
+            chosen = list[i];
+            break;
+          }
+        }
+        if (!chosen) {
+          chosen = list[0];
+        }
+      }
+      entries.push({ fio: chosen.fio, person_number: chosen.person_number });
+    });
+
+    var parts = [];
+    if (duplicateFioNames > 0) {
+      parts.push(
+        "повторяющихся ФИО — " +
+          duplicateFioNames +
+          " (лишних строк: " +
+          duplicateExtraRows +
+          "; для каждого взята первая с корректным табельным)"
+      );
+    }
+    if (invalidTnRows > 0) {
+      parts.push("строк с пустым или нечисловым табельным — " + invalidTnRows);
+    }
+    var message = parts.length
+      ? "В файле ФИО: " + parts.join("; ") + "."
+      : "";
+
+    return {
+      entries: entries,
+      stats: {
+        sourceRows: sourceRows,
+        uniqueFio: entries.length,
+        duplicateFioNames: duplicateFioNames,
+        duplicateExtraRows: duplicateExtraRows,
+        invalidTnRows: invalidTnRows,
+        message: message,
+      },
+    };
+  }
+
   function emptyCell(value) {
     return value == null || String(value).trim() === "";
   }
@@ -843,13 +953,21 @@
     };
   }
 
+  function todayIsoDate() {
+    var d = new Date();
+    var y = d.getFullYear();
+    var m = d.getMonth() + 1;
+    var day = d.getDate();
+    return y + "-" + (m < 10 ? "0" : "") + m + "-" + (day < 10 ? "0" : "") + day;
+  }
+
   function createEmptyTournament(partial) {
     var t = {
       id: "t_" + Date.now() + "_" + Math.floor(Math.random() * 10000),
       contest_code: "",
       tournament_code: "",
-      plan_value: "100.00000",
-      contest_date: "",
+      plan_value: "0",
+      contest_date: todayIsoDate(),
       full_name: "",
       type_ind: "TN",
       period_code: "Y",
@@ -1134,6 +1252,8 @@
     padPersonNumber: padPersonNumber,
     normalizeFioKey: normalizeFioKey,
     buildFioMap: buildFioMap,
+    isNumericPersonToken: isNumericPersonToken,
+    resolveFioTableEntries: resolveFioTableEntries,
     normalizePeriodCode: normalizePeriodCode,
     periodLabel: periodLabel,
     periodDisplay: periodDisplay,
@@ -1158,6 +1278,7 @@
     summarizeCheckedRows: summarizeCheckedRows,
     processAll: processAll,
     createEmptyTournament: createEmptyTournament,
+    todayIsoDate: todayIsoDate,
     cloneTournament: cloneTournament,
     tournamentFieldsOk: tournamentFieldsOk,
     tournamentIdentityUnlocked: tournamentIdentityUnlocked,
