@@ -958,7 +958,7 @@
       id: "t_" + Date.now() + "_" + Math.floor(Math.random() * 10000),
       contest_code: "",
       tournament_code: "",
-      plan_value: "100.00000",
+      plan_value: "0",
       contest_date: "",
       full_name: "",
       type_ind: "TN",
