@@ -380,40 +380,44 @@
     var sheetBlock = "";
     if (pack && pack.kind === "excel" && pack.sheetNames && pack.sheetNames.length) {
       sheetBlock =
-        '<div class="field field--third"><label class="field-label" for="fio-sheet">Лист Excel</label>' +
+        '<div class="field field--span-8"><label class="field-label" for="fio-sheet">Лист Excel</label>' +
         '<select class="field-select" id="fio-sheet"></select></div>';
     }
     var fioErr = state.fioUi.source_error
-      ? '<div class="error-box" style="margin-bottom:10px">' + escapeHtml(state.fioUi.source_error) + "</div>"
+      ? '<div class="error-box">' + escapeHtml(state.fioUi.source_error) + "</div>"
       : "";
     return (
       '<div class="panel" id="panel-fio">' +
       "<h2>Справочник ФИО</h2>" +
-      '<p class="panel__intro">Доступен для активного турнира в режиме FIO. Загрузите JSON или таблицу и укажите угол, колонки ФИО и табельного.</p>' +
+      '<p class="panel__intro panel__intro--tight">Режим FIO: JSON или таблица · угол · колонки ФИО и табельного.</p>' +
       fioErr +
-      '<div class="info-box">Записей в справочнике: <b id="fio-stats">' +
+      '<div class="toolbar-row toolbar-row--top">' +
+      '<div class="info-box info-box--inline">Записей: <b id="fio-stats">' +
       state.fioEntries.length +
       "</b></div>" +
-      '<div class="toolbar-row">' +
       '<label class="btn file-pick" data-tip="Загрузить ранее сохранённый JSON справочника">' +
       "<span>Открыть JSON</span>" +
       '<input type="file" id="import-fio-json" class="file-pick__input" accept=".json,application/json" /></label>' +
       '<button type="button" class="btn" id="btn-save-fio" data-tip="Сохранить справочник ФИО в JSON">Сохранить JSON</button>' +
       '<label class="btn btn-primary file-pick" data-tip="Загрузить CSV/Excel со столбцами ФИО и табельный">' +
-      "<span>Загрузить таблицу ФИО</span>" +
+      "<span>Таблица ФИО</span>" +
       '<input type="file" id="import-fio-table" class="file-pick__input" accept=".csv,.txt,.xlsx,.xls,.xlsm" /></label>' +
-      '<button type="button" class="btn btn-primary" id="btn-apply-fio-table" data-tip="Взять строки из таблицы в справочник">Применить из таблицы</button>' +
+      '<button type="button" class="btn btn-primary" id="btn-apply-fio-table" data-tip="Взять строки из таблицы в справочник">Применить</button>' +
       "</div>" +
-      '<div class="fields-grid" style="margin-top:12px">' +
+      '<div class="fields-grid">' +
       sheetBlock +
-      '<div class="field field--third"><label class="field-label" for="fio-start-row">Строка угла</label>' +
+      '<div class="field field--quarter"><label class="field-label" for="fio-start-row">Строка угла</label>' +
       '<input class="field-input" id="fio-start-row" type="number" min="1" step="1" /></div>' +
-      '<div class="field field--third"><label class="field-label" for="fio-start-col">Колонка угла</label>' +
+      '<div class="field field--quarter"><label class="field-label" for="fio-start-col">Колонка угла</label>' +
       '<input class="field-input" id="fio-start-col" type="number" min="1" step="1" /></div>' +
+      (sheetBlock
+        ? ""
+        : '<div class="field field--span-8"><label class="field-label" for="fio-file-name">Файл</label><input class="field-input" id="fio-file-name" readonly /></div>') +
       '<div class="field"><label class="field-label" for="fio-col-fio">Колонка ФИО</label><select class="field-select" id="fio-col-fio"></select></div>' +
       '<div class="field"><label class="field-label" for="fio-col-tn">Колонка табельного</label><select class="field-select" id="fio-col-tn"></select></div>' +
-      '<div class="field field--full"><label class="field-label" for="fio-file-name">Файл таблицы</label>' +
-      '<input class="field-input" id="fio-file-name" readonly /></div>' +
+      (sheetBlock
+        ? '<div class="field field--full"><label class="field-label" for="fio-file-name">Файл таблицы</label><input class="field-input" id="fio-file-name" readonly /></div>'
+        : "") +
       "</div>" +
       '<div id="fio-preview-host"></div></div>'
     );
@@ -604,58 +608,61 @@
     var sheetBlock = "";
     if (pack && pack.kind === "excel" && pack.sheetNames && pack.sheetNames.length) {
       sheetBlock =
-        '<div class="field field--third"><label class="field-label" for="f-sheet">Лист Excel</label>' +
+        '<div class="field field--span-8"><label class="field-label" for="f-sheet">Лист Excel</label>' +
         '<select class="field-select" id="f-sheet" data-tip="Лист, с которого брать таблицу"></select></div>';
     }
 
     ws.innerHTML =
       '<div class="panel" id="panel-params">' +
       "<h2>Параметры турнира</h2>" +
-      '<p class="panel__intro">План — целое или с запятой (например 100 или 100,5); в выгрузке будет формат 0.00000.</p>' +
+      '<p class="panel__intro panel__intro--tight">План — целое или с запятой (100 или 100,5); в выгрузке — 0.00000.</p>' +
       (lock
-        ? '<div class="warn-box">Копия турнира: обязательно смените <b>код турнира</b> и <b>наименование</b>. Пока они совпадают с оригиналом — формирование заблокировано.</div>'
+        ? '<div class="warn-box">Копия: смените <b>код турнира</b> и <b>наименование</b> — иначе формирование заблокировано.</div>'
         : "") +
       '<div class="fields-grid">' +
-      '<div class="field field--full"><label class="check-row"><input type="checkbox" id="f-include" ' +
+      '<div class="field field--check"><label class="check-row"><input type="checkbox" id="f-include" ' +
       (t.include_in_report !== false ? "checked" : "") +
       ' /> <span>Включать в проверку и выгрузку</span></label></div>' +
-      '<div class="field"><label class="field-label" for="f-contest-code">Код конкурса</label><input class="field-input" id="f-contest-code" /></div>' +
-      '<div class="field"><label class="field-label" for="f-tournament-code">Код турнира</label><input class="field-input' +
+      '<div class="field field--third"><label class="field-label" for="f-contest-code">Код конкурса</label><input class="field-input" id="f-contest-code" /></div>' +
+      '<div class="field field--third"><label class="field-label" for="f-tournament-code">Код турнира</label><input class="field-input' +
       codeHighlight +
       '" id="f-tournament-code" />' +
-      (lock ? '<div class="field-hint">Нужно изменить относительно копии</div>' : "") +
+      (lock ? '<div class="field-hint">Изменить относительно копии</div>' : "") +
       "</div>" +
+      '<div class="field field--third"><label class="field-label" for="f-period">Период</label><select class="field-select" id="f-period">' +
+      periodOpts +
+      "</select></div>" +
       '<div class="field field--full"><label class="field-label" for="f-full-name">Наименование турнира</label><input class="field-input' +
       nameHighlight +
       '" id="f-full-name" />' +
-      (lock ? '<div class="field-hint">Нужно изменить относительно копии</div>' : "") +
+      (lock ? '<div class="field-hint">Изменить относительно копии</div>' : "") +
       "</div>" +
-      '<div class="field field--third"><label class="field-label" for="f-plan">План (PLAN_VALUE)</label>' +
+      '<div class="field field--third"><label class="field-label" for="f-plan">План</label>' +
       '<input class="field-input" id="f-plan" placeholder="100 или 100,5" data-tip="Целое или дробь с запятой; в CSV/XLSX — точка и 5 знаков" /></div>' +
       '<div class="field field--third"><label class="field-label" for="f-date">Дата данных</label><input class="field-input" id="f-date" type="date" /></div>' +
       '<div class="field field--third"><label class="field-label" for="f-type">Тип расчёта</label><select class="field-select" id="f-type"><option value="TN">TN — табельный</option><option value="FIO">FIO — ФИО</option></select></div>' +
-      '<div class="field"><label class="field-label" for="f-period">Период турнира</label><select class="field-select" id="f-period">' +
-      periodOpts +
-      "</select></div>" +
       "</div></div>" +
       '<div class="panel" id="panel-data">' +
       "<h2>Источник данных</h2>" +
-      '<p class="panel__intro">CSV (;) или Excel. Укажите лист и левый верхний угол таблицы (строка и колонка заголовка, по умолчанию 1 и 1). Для показателя можно задать множитель/делитель/±.</p>' +
+      '<p class="panel__intro panel__intro--tight">CSV (;) или Excel · угол таблицы (строка/колонка заголовка) · действие над показателем.</p>' +
       sourceErrHtml +
-      '<div class="toolbar-row">' +
+      '<div class="toolbar-row toolbar-row--top">' +
       '<label class="btn btn-primary file-pick" data-tip="Загрузить CSV или Excel с показателями">' +
       '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21V9"/><path d="M7 14l5-5 5 5"/><path d="M5 3h14"/></svg> Загрузить CSV / Excel' +
       '<input type="file" id="import-data" class="file-pick__input" accept=".csv,.txt,.xlsx,.xls,.xlsm" /></label>' +
       '<span class="mini-badge" id="data-meta"></span></div>' +
-      '<div class="fields-grid" style="margin-top:12px">' +
+      '<div class="fields-grid">' +
       sheetBlock +
-      '<div class="field field--third"><label class="field-label" for="f-start-row">Строка угла</label>' +
+      '<div class="field field--quarter"><label class="field-label" for="f-start-row">Строка угла</label>' +
       '<input class="field-input" id="f-start-row" type="number" min="1" step="1" data-tip="Номер строки заголовка таблицы (с 1)" /></div>' +
-      '<div class="field field--third"><label class="field-label" for="f-start-col">Колонка угла</label>' +
+      '<div class="field field--quarter"><label class="field-label" for="f-start-col">Колонка угла</label>' +
       '<input class="field-input" id="f-start-col" type="number" min="1" step="1" data-tip="Номер колонки левого верхнего угла (с 1)" /></div>' +
+      (sheetBlock
+        ? ""
+        : '<div class="field field--span-8"><label class="field-label" for="f-source-name">Файл</label><input class="field-input" id="f-source-name" readonly /></div>') +
       '<div class="field"><label class="field-label" for="f-col-id">Колонка ФИО / табельного</label><select class="field-select" id="f-col-id"></select></div>' +
       '<div class="field"><label class="field-label" for="f-col-fact">Колонка показателя</label><select class="field-select" id="f-col-fact"></select></div>' +
-      '<div class="field"><label class="field-label" for="f-fact-op">Показатель: действие</label>' +
+      '<div class="field field--span-7"><label class="field-label" for="f-fact-op">Показатель: действие</label>' +
       '<select class="field-select" id="f-fact-op" data-tip="Как преобразовать значение колонки показателя перед расчётом">' +
       '<option value="none"' +
       (factOp === "none" ? " selected" : "") +
@@ -673,9 +680,11 @@
       (factOp === "sub" ? " selected" : "") +
       ">Вычесть (−)</option>" +
       "</select></div>" +
-      '<div class="field"><label class="field-label" for="f-fact-op-value">Число операции</label>' +
+      '<div class="field field--span-5"><label class="field-label" for="f-fact-op-value">Число операции</label>' +
       '<input class="field-input" id="f-fact-op-value" placeholder="напр. 100 или 2" data-tip="Для ×100 из доли 0,5 получится 50" /></div>' +
-      '<div class="field field--full"><label class="field-label" for="f-source-name">Имя файла</label><input class="field-input" id="f-source-name" readonly /></div>' +
+      (sheetBlock
+        ? '<div class="field field--full"><label class="field-label" for="f-source-name">Имя файла</label><input class="field-input" id="f-source-name" readonly /></div>'
+        : "") +
       "</div>" +
       '<div id="data-preview-host"></div>' +
       "</div>" +
