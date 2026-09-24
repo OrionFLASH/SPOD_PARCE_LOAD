@@ -435,6 +435,40 @@ function testCloneAndStages() {
   assert.ok(st.canProcess);
 }
 
+function testResolveFioTableEntries() {
+  assert.strictEqual(ReportCore.isNumericPersonToken("000123"), true);
+  assert.strictEqual(ReportCore.isNumericPersonToken("12345"), true);
+  assert.strictEqual(ReportCore.isNumericPersonToken(""), false);
+  assert.strictEqual(ReportCore.isNumericPersonToken("12a"), false);
+  assert.strictEqual(ReportCore.isNumericPersonToken("12.5"), false);
+
+  var rows = [
+    { ФИО: "Иванов Иван", ТН: "abc" },
+    { ФИО: "Иванов Иван", ТН: "000111" },
+    { ФИО: "Иванов Иван", ТН: "222" },
+    { ФИО: "Петров Пётр", ТН: "" },
+    { ФИО: "Сидоров", ТН: "333" },
+    { ФИО: "Сидоров", ТН: "xxx" },
+  ];
+  var resolved = ReportCore.resolveFioTableEntries(rows, "ФИО", "ТН");
+  assert.strictEqual(resolved.entries.length, 3);
+  var byFio = Object.create(null);
+  resolved.entries.forEach(function (e) {
+    byFio[e.fio] = e.person_number;
+  });
+  // дубль Иванова: первая с цифрами — 000111 (не abc)
+  assert.strictEqual(byFio["Иванов Иван"], "000111");
+  // одно вхождение Петрова — берём пустой ТН как есть
+  assert.strictEqual(byFio["Петров Пётр"], "");
+  // дубль Сидорова: первая с цифрами — 333
+  assert.strictEqual(byFio["Сидоров"], "333");
+  assert.strictEqual(resolved.stats.duplicateFioNames, 2);
+  assert.strictEqual(resolved.stats.duplicateExtraRows, 3);
+  assert.strictEqual(resolved.stats.invalidTnRows, 3);
+  assert.ok(resolved.stats.message.indexOf("повторяющихся ФИО") >= 0);
+  assert.ok(resolved.stats.message.indexOf("нечисловым") >= 0);
+}
+
 const tests = [
   ["parseNumber", testParseNumber],
   ["pad", testPad],
@@ -450,6 +484,7 @@ const tests = [
   ["resolutionFingerprints", testResolutionFingerprints],
   ["includeStages", testIncludeStages],
   ["cloneStages", testCloneAndStages],
+  ["resolveFioTable", testResolveFioTableEntries],
 ];
 
 let failed = 0;

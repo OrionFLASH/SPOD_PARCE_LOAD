@@ -398,20 +398,12 @@
   }
 
   function entriesFromFioTable(rows, colFio, colTn) {
-    var out = [];
-    var seen = Object.create(null);
-    (rows || []).forEach(function (row) {
-      if (!row) return;
-      var fio = String(row[colFio] == null ? "" : row[colFio]).trim();
-      var tn = String(row[colTn] == null ? "" : row[colTn]).trim();
-      if (!fio || !tn) return;
-      if (fio === colFio || tn === colTn) return;
-      var key = fio.toUpperCase();
-      if (seen[key]) return;
-      seen[key] = true;
-      out.push({ fio: fio, person_number: tn });
-    });
-    return out;
+    var resolved = root.ReportCore.resolveFioTableEntries(rows, colFio, colTn);
+    return resolved.entries;
+  }
+
+  function resolveFioTableEntries(rows, colFio, colTn) {
+    return root.ReportCore.resolveFioTableEntries(rows, colFio, colTn);
   }
 
   function downloadBlob(filename, blob) {
@@ -589,6 +581,7 @@
     applyPackOrigin: applyPackOrigin,
     tableFromAoaOrigin: tableFromAoaOrigin,
     entriesFromFioTable: entriesFromFioTable,
+    resolveFioTableEntries: resolveFioTableEntries,
     readTableFile: readTableFile,
     packFromStoredSource: packFromStoredSource,
     arrayBufferToBase64: arrayBufferToBase64,

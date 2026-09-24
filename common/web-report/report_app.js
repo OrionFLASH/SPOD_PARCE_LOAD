@@ -20,6 +20,7 @@
       file_name: "",
       source_file_kind: "",
       source_error: "",
+      apply_warning: "",
     },
     lastResult: null,
     checkState: {
@@ -386,11 +387,15 @@
     var fioErr = state.fioUi.source_error
       ? '<div class="error-box">' + escapeHtml(state.fioUi.source_error) + "</div>"
       : "";
+    var fioApplyWarn = state.fioUi.apply_warning
+      ? '<div class="warn-box" id="fio-apply-warning">' + escapeHtml(state.fioUi.apply_warning) + "</div>"
+      : "";
     return (
       '<div class="panel" id="panel-fio">' +
       "<h2>Справочник ФИО</h2>" +
       '<p class="panel__intro panel__intro--tight">Режим FIO: JSON или таблица · угол · колонки ФИО и табельного.</p>' +
       fioErr +
+      fioApplyWarn +
       '<div class="toolbar-row toolbar-row--top">' +
       '<div class="info-box info-box--inline">Записей: <b id="fio-stats">' +
       state.fioEntries.length +
@@ -503,6 +508,7 @@
         state.fioUi.sheet_name = pack.sheetName || "";
         state.fioUi.source_file_kind = pack.kind || "";
         state.fioUi.source_error = "";
+        state.fioUi.apply_warning = "";
         state.fioUi.col_fio = ReportIO.guessIdColumn(pack.columns, "FIO");
         state.fioUi.col_tn = ReportIO.guessIdColumn(pack.columns, "TN");
         renderAll();
@@ -524,9 +530,11 @@
       }
       state.fioUi.col_fio = colFio;
       state.fioUi.col_tn = colTn;
-      var entries = ReportIO.entriesFromFioTable(state.fioPack.rows, colFio, colTn);
+      var resolved = ReportCore.resolveFioTableEntries(state.fioPack.rows, colFio, colTn);
+      var entries = resolved.entries;
       if (!entries.length) {
-        alert("Не удалось прочитать ни одной пары ФИО / табельный");
+        state.fioUi.apply_warning = "";
+        alert("Не удалось прочитать ни одной строки с ФИО");
         return;
       }
       var byKey = Object.create(null);
@@ -539,9 +547,14 @@
       state.fioEntries = Object.keys(byKey).map(function (k) {
         return byKey[k];
       });
+      state.fioUi.apply_warning = resolved.stats.message || "";
       invalidateChecks();
       renderAll();
-      showToast("В справочник: " + entries.length);
+      var toastMsg = "В справочник: " + entries.length;
+      if (resolved.stats.message) {
+        toastMsg += ". " + resolved.stats.message;
+      }
+      showToast(toastMsg);
     });
   }
 
@@ -1708,6 +1721,7 @@
       file_name: "",
       source_file_kind: "",
       source_error: "",
+      apply_warning: "",
     };
 
     // только метаданные источника — файлы данных нужно загрузить вручную
