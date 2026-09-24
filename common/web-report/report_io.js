@@ -229,12 +229,33 @@
     };
   }
 
+  function arrayBufferToBase64(buffer) {
+    var bytes = new Uint8Array(buffer);
+    var chunk = 0x8000;
+    var binary = "";
+    for (var i = 0; i < bytes.length; i += chunk) {
+      binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk));
+    }
+    return btoa(binary);
+  }
+
+  function base64ToArrayBuffer(b64) {
+    var binary = atob(String(b64 || ""));
+    var len = binary.length;
+    var bytes = new Uint8Array(len);
+    for (var i = 0; i < len; i++) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+    return bytes.buffer;
+  }
+
   async function readTableFile(file, startRow, startCol) {
     var name = (file && file.name) || "";
     var lower = name.toLowerCase();
     var buffer = await file.arrayBuffer();
     var sr = startRow == null ? 1 : Number(startRow) || 1;
     var sc = startCol == null ? 1 : Number(startCol) || 1;
+    var b64 = arrayBufferToBase64(buffer);
     if (lower.endsWith(".csv") || lower.endsWith(".txt")) {
       var csv = parseCsvBuffer(buffer, null, sr, sc);
       return {
@@ -250,6 +271,7 @@
         rawAoa: csv.rawAoa,
         start_row: sr,
         start_col: sc,
+        source_b64: b64,
       };
     }
     if (lower.endsWith(".xlsx") || lower.endsWith(".xls") || lower.endsWith(".xlsm")) {
@@ -267,9 +289,73 @@
         fileName: name,
         start_row: sr,
         start_col: sc,
+        source_b64: b64,
       };
     }
     throw new Error("Поддерживаются CSV и Excel (.xlsx/.xls)");
+  }
+
+  /**
+   * Восстановить пакет из base64 + метаданных (после загрузки JSON настроек).
+   */
+  function packFromStoredSource(meta) {
+    if (!meta || !meta.source_file_b64) {
+      return null;
+    }
+    var name = meta.source_file_name || meta.file_name || "restored.bin";
+    var lower = name.toLowerCase();
+    var kind = meta.source_file_kind || meta.kind || "";
+    if (!kind) {
+      if (lower.endsWith(".csv") || lower.endsWith(".txt")) kind = "csv";
+      else kind = "excel";
+    }
+    var buffer = base64ToArrayBuffer(meta.source_file_b64);
+    var sr = meta.table_start_row || meta.start_row || 1;
+    var sc = meta.table_start_col || meta.start_col || 1;
+    var pack;
+    if (kind === "csv") {
+      var csv = parseCsvBuffer(buffer, null, sr, sc);
+      pack = {
+        kind: "csv",
+        rows: csv.rows,
+        columns: csv.columns,
+        encoding: csv.encoding,
+        fileName: name,
+        sheetNames: [],
+        sheets: null,
+        sheetsAoa: null,
+        sheetName: "",
+        rawAoa: csv.rawAoa,
+        start_row: sr,
+        start_col: sc,
+        source_b64: meta.source_file_b64,
+      };
+    } else {
+      var xls = parseExcelWorkbook(buffer, sr, sc);
+      pack = {
+        kind: "excel",
+        rows: xls.rows,
+        columns: xls.columns,
+        sheetName: xls.sheetName,
+        sheetNames: xls.sheetNames,
+        sheets: xls.sheets,
+        sheetsAoa: xls.sheetsAoa,
+        rawAoa: xls.rawAoa,
+        encoding: "binary",
+        fileName: name,
+        start_row: sr,
+        start_col: sc,
+        source_b64: meta.source_file_b64,
+      };
+      if (meta.sheet_name) {
+        pack = applyPackOrigin(pack, {
+          sheetName: meta.sheet_name,
+          start_row: sr,
+          start_col: sc,
+        });
+      }
+    }
+    return pack;
   }
 
   /** Пересчитать rows/columns пакета при смене листа или угла. */
@@ -303,6 +389,7 @@
       start_row: sr,
       start_col: sc,
       sheets: sheets,
+      source_b64: pack.source_b64,
     });
   }
 
@@ -503,6 +590,9 @@
     tableFromAoaOrigin: tableFromAoaOrigin,
     entriesFromFioTable: entriesFromFioTable,
     readTableFile: readTableFile,
+    packFromStoredSource: packFromStoredSource,
+    arrayBufferToBase64: arrayBufferToBase64,
+    base64ToArrayBuffer: base64ToArrayBuffer,
     downloadBlob: downloadBlob,
     downloadText: downloadText,
     downloadJson: downloadJson,

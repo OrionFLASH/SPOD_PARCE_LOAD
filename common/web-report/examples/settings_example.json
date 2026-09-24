@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "kind": "spod_web_report_settings",
   "tournaments": [
     {
@@ -10,9 +10,16 @@
       "contest_date": "2026-09-17",
       "full_name": "500 млн руб. сделка лизинга",
       "type_ind": "TN",
+      "period_code": "Y",
       "column_id": "ТАБЕЛЬНЫЙ НОМЕР",
       "column_fact": "ПОКАЗАТЕЛЬ",
-      "source_file_name": "sample_data_tn.csv"
+      "fact_op": "none",
+      "fact_op_value": "1",
+      "include_in_report": true,
+      "source_file_name": "sample_data_tn.csv",
+      "sheet_name": "",
+      "table_start_row": 1,
+      "table_start_col": 1
     },
     {
       "id": "demo_fio_1",
@@ -22,9 +29,25 @@
       "contest_date": "2026-09-17",
       "full_name": "Турнир по ФИО (пример)",
       "type_ind": "FIO",
+      "period_code": "Q1",
       "column_id": "ФИО",
       "column_fact": "ПОКАЗАТЕЛЬ",
-      "source_file_name": "sample_data_fio.csv"
+      "fact_op": "mul",
+      "fact_op_value": "100",
+      "include_in_report": true,
+      "source_file_name": "sample_data_fio.csv",
+      "sheet_name": "",
+      "table_start_row": 1,
+      "table_start_col": 1
     }
-  ]
+  ],
+  "fio": {
+    "entries": [],
+    "file_name": "",
+    "sheet_name": "",
+    "start_row": 1,
+    "start_col": 1,
+    "col_fio": "",
+    "col_tn": ""
+  }
 }
