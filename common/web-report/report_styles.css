@@ -277,7 +277,13 @@ body::after { width: 380px; height: 380px; right: -60px; bottom: 10%; background
   overflow: auto;
   padding: 10px 14px 20px;
 }
-.workspace { max-width: 920px; margin: 0 auto; }
+/* блоки настроек на всю ширину колонки между левой и правой панелями */
+.workspace {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  box-sizing: border-box;
+}
 
 .panel {
   padding: 12px 14px 12px;
