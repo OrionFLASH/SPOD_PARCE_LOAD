@@ -276,29 +276,55 @@
     var entries = [];
     var duplicateFioNames = 0;
     var duplicateExtraRows = 0;
+    var issues = [];
 
     order.forEach(function (key) {
       var list = groups[key];
-      if (list.length > 1) {
+      var isDup = list.length > 1;
+      if (isDup) {
         duplicateFioNames += 1;
         duplicateExtraRows += list.length - 1;
       }
       var chosen = null;
+      var chosenIdx = 0;
       if (list.length === 1) {
-        // одно вхождение — берём как есть
         chosen = list[0];
+        chosenIdx = 0;
       } else {
         for (var i = 0; i < list.length; i += 1) {
           if (list[i].tnOk) {
             chosen = list[i];
+            chosenIdx = i;
             break;
           }
         }
         if (!chosen) {
           chosen = list[0];
+          chosenIdx = 0;
         }
       }
       entries.push({ fio: chosen.fio, person_number: chosen.person_number });
+
+      // детализация проблем: дубли и/или невалидный ТН
+      var groupHasProblem = isDup || list.some(function (r) {
+        return !r.tnOk;
+      });
+      if (groupHasProblem) {
+        list.forEach(function (row, idx) {
+          var reasons = [];
+          if (isDup) reasons.push("дубль ФИО");
+          if (!row.person_number) reasons.push("табельный пуст");
+          else if (!row.tnOk) reasons.push("табельный не из цифр");
+          issues.push({
+            fio: row.fio,
+            person_number: row.person_number,
+            tnOk: row.tnOk,
+            isDuplicate: isDup,
+            chosen: idx === chosenIdx,
+            reasons: reasons,
+          });
+        });
+      }
     });
 
     var parts = [];
@@ -320,6 +346,7 @@
 
     return {
       entries: entries,
+      issues: issues,
       stats: {
         sourceRows: sourceRows,
         uniqueFio: entries.length,
@@ -327,7 +354,47 @@
         duplicateExtraRows: duplicateExtraRows,
         invalidTnRows: invalidTnRows,
         message: message,
+        hasProblems: issues.length > 0,
       },
+    };
+  }
+
+  /**
+   * Краткая статистика строк источника турнира для карточки/панелей.
+   * @returns {{ loaded: boolean, total: number, errors: number, forCsv: number }}
+   */
+  function tournamentRowStats(tournament, pack, fioEntries, options) {
+    var empty = { loaded: false, total: 0, errors: 0, forCsv: 0 };
+    if (!tournament || !pack || !Array.isArray(pack.rows)) {
+      return empty;
+    }
+    var fioMap = buildFioMap(fioEntries || []);
+    var norm = normalizeTournamentRows(pack.rows, tournament, fioMap, options || {});
+    var rows = norm.rows || [];
+    var total = rows.length;
+    if (!total) {
+      return { loaded: true, total: 0, errors: 0, forCsv: 0 };
+    }
+    var cfg = mergeDefaults(options || {});
+    var errors = 0;
+    rows.forEach(function (row) {
+      var bad = false;
+      if (!isValidPersonNumber20(row.MANAGER_PERSON_NUMBER, cfg.personNumberLength)) {
+        bad = true;
+      }
+      if (String(row["ТАБЕЛЬНЫЙ НЕ НАЙДЕН"] || "") === cfg.missingFioFlag) {
+        bad = true;
+      }
+      if (emptyCell(row.FACT_VALUE) || emptyCell(row.CONTEST_CODE) || emptyCell(row.TOURNAMENT_CODE)) {
+        bad = true;
+      }
+      if (bad) errors += 1;
+    });
+    return {
+      loaded: true,
+      total: total,
+      errors: errors,
+      forCsv: Math.max(0, total - errors),
     };
   }
 
@@ -1254,6 +1321,7 @@
     buildFioMap: buildFioMap,
     isNumericPersonToken: isNumericPersonToken,
     resolveFioTableEntries: resolveFioTableEntries,
+    tournamentRowStats: tournamentRowStats,
     normalizePeriodCode: normalizePeriodCode,
     periodLabel: periodLabel,
     periodDisplay: periodDisplay,
