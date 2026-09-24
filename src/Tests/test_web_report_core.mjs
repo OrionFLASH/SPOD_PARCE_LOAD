@@ -495,7 +495,121 @@ function testResolveFioTableEntries() {
   assert.ok(chosenIvan[0].tnOk);
 }
 
+function testNumberParsingStrict() {
+  const p = (v) => ReportCore.parseNumberStrict(v);
+  // отрицательные с дробью (раньше -10,5 → -9.5)
+  assert.strictEqual(p("-10,5").value, -10.5);
+  assert.strictEqual(p("-0,25").value, -0.25);
+  assert.strictEqual(p("−3,5").value, -3.5);
+  assert.strictEqual(p("+7").value, 7);
+  // разделители тысяч
+  assert.strictEqual(p("1.000,25").value, 1000.25);
+  assert.strictEqual(p("1,000.25").value, 1000.25);
+  assert.strictEqual(p("1 234 567,5").value, 1234567.5);
+  assert.strictEqual(p("1 234,5").value, 1234.5);
+  assert.strictEqual(p("1.000.000").value, 1000000);
+  // одиночный разделитель — дробный (как раньше)
+  assert.strictEqual(p("10,5").value, 10.5);
+  assert.strictEqual(p("10.5").value, 10.5);
+  assert.strictEqual(p(",5").value, 0.5);
+  // проценты
+  assert.strictEqual(p("50%").value, 0.5);
+  // пусто → 0 без ошибки
+  assert.deepStrictEqual(p(""), { ok: true, value: 0, empty: true });
+  assert.deepStrictEqual(p(null), { ok: true, value: 0, empty: true });
+  // не число → ошибка
+  ["н/д", "abc", "1,2,3", "12.34.5", "1.000,2,5", "-", "1e5", "10 руб"].forEach((v) => {
+    assert.strictEqual(p(v).ok, false, "ожидалась ошибка для " + v);
+  });
+  // совместимость: parseNumberFromComma → 0 для не числа
+  assert.strictEqual(ReportCore.parseNumberFromComma("н/д"), 0);
+}
+
+function testNumberFormatDot() {
+  const f = (n) => ReportCore.formatNumberDot(n, 5);
+  assert.strictEqual(f(100), "100.00000");
+  assert.strictEqual(f(10.5), "10.50000");
+  assert.strictEqual(f(-10.5), "-10.50000");
+  assert.strictEqual(f(0.123456), "0.12346");
+  assert.strictEqual(f(1.000005), "1.00001");
+  assert.strictEqual(f(-1.000005), "-1.00001");
+  assert.strictEqual(f(-0.000001), "0.00000");
+  assert.strictEqual(f(0), "0.00000");
+}
+
+function testFactNotNumberBlocksCsv() {
+  const t = ReportCore.createEmptyTournament({
+    id: "t1",
+    contest_code: "C",
+    tournament_code: "T",
+    plan_value: "-5,5",
+    contest_date: "2026-09-25",
+    full_name: "N",
+    type_ind: "TN",
+    column_id: "ТН",
+    column_fact: "ФАКТ",
+  });
+  const norm = ReportCore.normalizeTournamentRows(
+    [
+      { ТН: "1", ФАКТ: "-10,5" },
+      { ТН: "2", ФАКТ: "н/д" },
+    ],
+    t,
+    new Map(),
+    {}
+  );
+  assert.strictEqual(norm.rows[0].PLAN_VALUE, "-5.50000");
+  assert.strictEqual(norm.rows[0].FACT_VALUE, "-10.50000");
+  assert.strictEqual(norm.rows[1].FACT_VALUE, "");
+  assert.ok(norm.rows[1].fact_error.indexOf("н/д") >= 0);
+
+  const v = ReportCore.validateCsvExportRows(norm.rows, {});
+  assert.strictEqual(v.ok, false);
+  assert.strictEqual(v.badFact.length, 1);
+  assert.strictEqual(v.emptyCells.length, 0);
+  assert.strictEqual(v.byTournament[0].bad_fact, 1);
+  assert.ok(v.rowsMarked[1].CSV_ERROR.indexOf("показатель не число") >= 0);
+  assert.strictEqual(v.rowsMarked[0].CSV_ERROR, "-");
+
+  const stats = ReportCore.tournamentRowStats(t, { rows: [{ ТН: "1", ФАКТ: "1" }, { ТН: "2", ФАКТ: "x" }] }, [], {});
+  assert.strictEqual(stats.errors, 1);
+  assert.strictEqual(stats.forCsv, 1);
+}
+
+function testPlanAndOpValueValidation() {
+  const base = {
+    contest_code: "C",
+    tournament_code: "T",
+    contest_date: "2026-09-25",
+    full_name: "N",
+    type_ind: "TN",
+    period_code: "Y",
+  };
+  assert.ok(ReportCore.tournamentFieldsOk(Object.assign({}, base, { plan_value: "-3,25" })));
+  assert.ok(!ReportCore.tournamentFieldsOk(Object.assign({}, base, { plan_value: "сто" })));
+  assert.ok(
+    !ReportCore.tournamentFieldsOk(Object.assign({}, base, { plan_value: "1", fact_op: "mul", fact_op_value: "x" }))
+  );
+  assert.ok(
+    ReportCore.tournamentFieldsOk(Object.assign({}, base, { plan_value: "1", fact_op: "none", fact_op_value: "x" }))
+  );
+}
+
+function testPersonNumberProblem() {
+  const pr = (v) => ReportCore.personNumberProblem(v, 20);
+  assert.strictEqual(pr("00000000000000012345"), "");
+  assert.ok(pr("00000000001.23457E+19").indexOf("экспонент") >= 0);
+  assert.ok(pr("0000000000000000нет1").indexOf("не только цифры") >= 0);
+  assert.ok(pr("123456789012345678901").indexOf("длиннее") >= 0);
+  assert.ok(pr("").indexOf("пуст") >= 0);
+}
+
 const tests = [
+  ["numberParsingStrict", testNumberParsingStrict],
+  ["numberFormatDot", testNumberFormatDot],
+  ["factNotNumber", testFactNotNumberBlocksCsv],
+  ["planOpValidation", testPlanAndOpValueValidation],
+  ["personNumberProblem", testPersonNumberProblem],
   ["parseNumber", testParseNumber],
   ["pad", testPad],
   ["tnMode", testTnMode],

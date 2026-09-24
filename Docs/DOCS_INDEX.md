@@ -24,7 +24,7 @@
 - Редактор описаний: **`common/web-edit/`** (данные **`common/param_catalog_review/catalog.json`**). Сборка: `python src/Tools/build_param_review_editor.py`. Длинные списки (≥16 вариантов, в т.ч. `INDICATOR_CODE`) — combobox сверху карточки. Метки **ПКАП / ФАБРИКА** — поле `marks[]` в каталоге (после `allow_empty`), UI в web-edit / web-edit-full.
 - Полный каталог (скан PROM SPOD): **`common/web-edit-full/`** — `README.md`, `game_edit_catalog.json`; пересборка `python src/Tools/build_web_edit_full_catalog.py`.
 - Заполнение параметров SPOD: **`common/web-fill/`** (однофайловый HTML) и **`common/web-fill-full/`** (html + css + js + catalog). С 16.16 UX дорабатывается только в fill-full.
-- Подготовка REPORT из турниров: **`common/web-report/`** — CSV/Excel → сверка ФИО/дублей → CSV+XLSX. План [`PLAN_WEB_REPORT.md`](PLAN_WEB_REPORT.md), чеклист [`TODO_WEB_REPORT.md`](TODO_WEB_REPORT.md).
+- Подготовка REPORT из турниров: **`common/web-report/`** — CSV/Excel → сверка ФИО/дублей → CSV+XLSX. План [`PLAN_WEB_REPORT.md`](PLAN_WEB_REPORT.md), чеклист [`TODO_WEB_REPORT.md`](TODO_WEB_REPORT.md). Формат полей выгрузки (ТН 20 цифр, PLAN/FACT `0.00000`, дата `ГГГГ-ММ-ДД`) — раздел «Формат полей выгрузки (26.37)» в плане.
 - Примеры снимков JSON для импорта: **`common/examples/`** (`README.md`, подпапки `web-fill/{curated,badges,contests}/`). Каталоги UI и «Сохранить JSON» остаются в папках приложений.
 - `PLAN_CONTEST_BADGE_FORM.md` — согласованный план формы BADGE.
 - `PLAN_WEB_FILL.md` — план fill / fill-full. Пункт 16 выполнен (16.16–16.18 — только fill-full). Снимки `common/examples/web-fill/` из CSV `CONFIG_RUN_INPUT.json`.

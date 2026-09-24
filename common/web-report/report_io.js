@@ -143,8 +143,36 @@
     return aoaToTable(sliceAoaOrigin(aoa, startRow, startCol));
   }
 
+  /** Excel хранит 15 значащих цифр — большие числа (длинные ТН) оставляем текстом, как в ячейке. */
+  var EXCEL_SAFE_NUMBER = 1e15;
+
+  function isDateCell(cell) {
+    return !!(cell.z && XLSX.SSF && XLSX.SSF.is_date && XLSX.SSF.is_date(cell.z));
+  }
+
+  /**
+   * Лист → массив строк. Числа (не даты) — исходное значение ячейки без формата
+   * («0,12» при формате 0.00 было бы 0.123456; «50%» — 0.5); остальное — как отображается.
+   */
   function sheetToAoa(sheet) {
-    return XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "", raw: false });
+    var aoa = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "", raw: false });
+    if (!sheet || !sheet["!ref"]) {
+      return aoa;
+    }
+    var range = XLSX.utils.decode_range(sheet["!ref"]);
+    for (var r = 0; r < aoa.length; r++) {
+      var line = aoa[r];
+      for (var c = 0; c < line.length; c++) {
+        var cell = sheet[XLSX.utils.encode_cell({ r: range.s.r + r, c: range.s.c + c })];
+        if (!cell || cell.t !== "n" || typeof cell.v !== "number" || isDateCell(cell)) {
+          continue;
+        }
+        if (Math.abs(cell.v) < EXCEL_SAFE_NUMBER) {
+          line[c] = cell.v;
+        }
+      }
+    }
+    return aoa;
   }
 
   /** Разбор Excel: все листы как AOA + таблица с угла 1,1. */
@@ -154,7 +182,7 @@
     }
     var sr = startRow == null ? 1 : startRow;
     var sc = startCol == null ? 1 : startCol;
-    var wb = XLSX.read(arrayBuffer, { type: "array", cellDates: false, raw: false });
+    var wb = XLSX.read(arrayBuffer, { type: "array", cellDates: false, cellNF: true, raw: false });
     var sheetNames = wb.SheetNames || [];
     var sheetsAoa = {};
     var sheets = {};

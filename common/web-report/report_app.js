@@ -1450,7 +1450,8 @@
     mark("f-contest-code", blank(t.contest_code));
     mark("f-tournament-code", blank(t.tournament_code) || lock);
     mark("f-full-name", blank(t.full_name) || lock);
-    mark("f-plan", blank(t.plan_value));
+    mark("f-plan", !ReportCore.planValueOk(t));
+    mark("f-fact-op-value", !ReportCore.factOpValueOk(t));
     mark("f-date", blank(t.contest_date));
     mark("f-col-id", !pack || blank(t.column_id));
     mark("f-col-fact", !pack || blank(t.column_fact));
@@ -1730,6 +1731,19 @@
       }
       $("modal-fio-apply").onclick = function () {
         var inputs = list.querySelectorAll("[data-fio-num]");
+        var maxLen = (state.config && state.config.person_number_length) || 20;
+        var badInput = null;
+        inputs.forEach(function (inp) {
+          var num = inp.value.trim();
+          var bad = !!num && !(/^\d+$/.test(num) && num.length <= maxLen);
+          inp.classList.toggle("is-error", bad);
+          if (bad && !badInput) badInput = inp;
+        });
+        if (badInput) {
+          alert("Табельный — только цифры, не длиннее " + maxLen + " (ведущие нули допустимы).");
+          badInput.focus();
+          return;
+        }
         inputs.forEach(function (inp, idx) {
           var num = inp.value.trim();
           if (!num) return;
@@ -2109,7 +2123,10 @@
       return false;
     }
     if (!st.fieldsFilled) {
-      alert("Заполните все параметры включённых турниров (код конкурса, код турнира, план, дата, название, тип, период)");
+      alert(
+        "Заполните все параметры включённых турниров (код конкурса, код турнира, план, дата, название, тип, период).\n" +
+          "План и число операции над показателем — числа: 100, 100,5, -3,25."
+      );
       return false;
     }
     var broken = ReportCore.includedTournaments(state.tournaments).filter(function (t) {
@@ -2280,6 +2297,20 @@
     );
   }
 
+  /** До 10 уникальных причин по ТН и показателю — чтобы было видно, что именно не так. */
+  function renderCsvReasonSamples(validation) {
+    var seen = Object.create(null);
+    var items = [];
+    (validation.badPerson || []).concat(validation.badFact || []).forEach(function (it) {
+      var text = (it.tournament_code || "") + ": " + (it.reason || it.value || "");
+      if (seen[text] || items.length >= 10) return;
+      seen[text] = true;
+      items.push("<li>" + escapeHtml(text) + "</li>");
+    });
+    if (!items.length) return "";
+    return '<div class="warn-box" style="margin-top:10px">Примеры:<ul style="margin:6px 0 0 18px;padding:0">' + items.join("") + "</ul></div>";
+  }
+
   function showCsvBlockModal(validation) {
     var lines = (validation.byTournament || []).map(function (s) {
       return (
@@ -2290,6 +2321,8 @@
         "</td><td>" +
         s.bad_person +
         "</td><td>" +
+        (s.bad_fact || 0) +
+        "</td><td>" +
         s.empty_cells +
         "</td></tr>"
       );
@@ -2299,10 +2332,11 @@
       escapeHtml(validation.message) +
       "</div>" +
       '<table class="preview-table" style="margin-top:12px;width:100%"><thead><tr>' +
-      "<th>Турнир</th><th>Дубли строк</th><th>ТН≠20 цифр</th><th>Пустые ячейки</th>" +
+      "<th>Турнир</th><th>Дубли строк</th><th>ТН≠20 цифр</th><th>Показатель не число</th><th>Пустые ячейки</th>" +
       "</tr></thead><tbody>" +
-      (lines.join("") || "<tr><td colspan='4'>нет детализации</td></tr>") +
+      (lines.join("") || "<tr><td colspan='5'>нет детализации</td></tr>") +
       "</tbody></table>" +
+      renderCsvReasonSamples(validation) +
       '<p class="panel__intro" style="margin-top:10px">XLSX можно скачать с пометками в колонке CSV_ERROR. CSV — только после исправления.</p>';
     var title = $("modal-check-title");
     var body = $("modal-check-body");

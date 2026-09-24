@@ -32,42 +32,98 @@
     return out;
   }
 
-  /** Преобразование значения с запятой/точкой в число (как ИзЗапятойВЧисло). */
-  function parseNumberFromComma(value) {
-    if (value == null || value === "") {
-      return 0;
+  /**
+   * Строгий разбор числа из ячейки.
+   * Знак (+ - −), пробелы/NBSP как разделитель тысяч, запятая или точка как дробный разделитель.
+   * Если есть и «,», и «.» — дробный тот, что правее (1.000,25 / 1,000.25).
+   * Несколько одинаковых разделителей — тысячи (1.000.000). Суффикс % — делим на 100.
+   * Пусто → 0 (empty: true). Не число → ok: false.
+   * @returns {{ ok: boolean, value: number, empty?: boolean }}
+   */
+  function parseNumberStrict(value) {
+    if (value == null) {
+      return { ok: true, value: 0, empty: true };
     }
-    if (typeof value === "number" && isFinite(value)) {
-      return value;
+    if (typeof value === "number") {
+      return isFinite(value) ? { ok: true, value: value } : { ok: false, value: 0 };
     }
-    var text = String(value).trim().replace(/\s+/g, "").replace(",", ".");
+    var text = String(value).replace(/[\s  ']/g, "");
     if (!text) {
-      return 0;
+      return { ok: true, value: 0, empty: true };
     }
-    var parts = text.split(".");
-    var whole = Number(parts[0]);
-    if (!isFinite(whole)) {
-      whole = 0;
+    var bad = { ok: false, value: 0 };
+    var percent = false;
+    if (text.charAt(text.length - 1) === "%") {
+      percent = true;
+      text = text.slice(0, -1);
     }
-    if (parts.length === 1) {
-      return whole;
+    var sign = 1;
+    var first = text.charAt(0);
+    if (first === "-" || first === "+" || first === "−") {
+      if (first !== "+") sign = -1;
+      text = text.slice(1);
     }
-    var fracText = parts.slice(1).join("");
-    var fracNum = Number(fracText);
-    if (!isFinite(fracNum)) {
-      fracNum = 0;
+    var commas = (text.match(/,/g) || []).length;
+    var dots = (text.match(/\./g) || []).length;
+    var intPart = text;
+    var frac = "";
+    if (commas && dots) {
+      var decPos = Math.max(text.lastIndexOf(","), text.lastIndexOf("."));
+      var decChar = text.charAt(decPos);
+      var thouChar = decChar === "," ? "." : ",";
+      if ((decChar === "," ? commas : dots) > 1) {
+        return bad;
+      }
+      intPart = text.slice(0, decPos);
+      frac = text.slice(decPos + 1);
+      if (!/^\d{1,3}(\d*|([.,]\d{3})+)$/.test(intPart) || intPart.indexOf(decChar) >= 0) {
+        return bad;
+      }
+      intPart = intPart.split(thouChar).join("");
+    } else if (commas > 1 || dots > 1) {
+      if (!/^\d{1,3}([.,]\d{3})+$/.test(text)) {
+        return bad;
+      }
+      intPart = text.replace(/[.,]/g, "");
+    } else if (commas === 1 || dots === 1) {
+      var p = Math.max(text.lastIndexOf(","), text.lastIndexOf("."));
+      intPart = text.slice(0, p);
+      frac = text.slice(p + 1);
     }
-    var divisor = Math.pow(10, fracText.length);
-    if (divisor === 0) {
-      return whole;
+    if (!/^\d*$/.test(intPart) || !/^\d*$/.test(frac) || (intPart === "" && frac === "")) {
+      return bad;
     }
-    return whole + fracNum / divisor;
+    var num = sign * Number((intPart || "0") + "." + (frac || "0"));
+    if (percent) {
+      num = num / 100;
+    }
+    return isFinite(num) ? { ok: true, value: num } : bad;
+  }
+
+  /** Преобразование значения с запятой/точкой в число (как ИзЗапятойВЧисло); не число → 0. */
+  function parseNumberFromComma(value) {
+    return parseNumberStrict(value).value;
+  }
+
+  /** Округление до d знаков, половина — от нуля (без ошибок toFixed вида 1.005 → 1.00). */
+  function roundHalfAwayFromZero(n, d) {
+    var abs = Math.abs(n);
+    var text = String(abs);
+    if (text.indexOf("e") >= 0) {
+      return n;
+    }
+    var shifted = Math.round(Number(text + "e" + d));
+    var out = Number(shifted + "e-" + d);
+    return n < 0 ? -out : out;
   }
 
   function formatNumberDot(num, decimals) {
     var d = decimals == null ? DEFAULTS.numberDecimals : decimals;
     var n = typeof num === "number" && isFinite(num) ? num : 0;
-    return n.toFixed(d);
+    var r = roundHalfAwayFromZero(n, d);
+    // -0.00000 → 0.00000
+    if (r === 0) r = 0;
+    return r.toFixed(d);
   }
 
   function formatNumberComma(num, decimals) {
@@ -177,6 +233,28 @@
       return false;
     }
     return /^\d+$/.test(text);
+  }
+
+  /** Причина, по которой ТН не годится для CSV ("" — годится). */
+  function personNumberProblem(value, length) {
+    var len = length == null ? DEFAULTS.personNumberLength : length;
+    var text = String(value == null ? "" : value).trim();
+    if (isValidPersonNumber20(text, len)) {
+      return "";
+    }
+    if (!text) {
+      return "ТН пуст";
+    }
+    if (/\d[.,]?\d*e[+-]?\d+/i.test(text)) {
+      return "ТН в экспоненте (" + text.replace(/^0+(?=\d)/, "") + ") — в Excel задайте текстовый формат столбца табельных";
+    }
+    if (!/^\d+$/.test(text)) {
+      return "ТН содержит не только цифры (" + text.replace(/^0+(?=\d)/, "") + ")";
+    }
+    if (text.length > len) {
+      return "ТН длиннее " + len + " цифр (" + text + ")";
+    }
+    return "ТН не " + len + " цифр (" + text + ")";
   }
 
   function padPersonNumber(raw, length) {
@@ -451,8 +529,13 @@
         personRaw = String(idRaw).trim();
       }
 
-      var factRaw = parseNumberFromComma(raw[colFact]);
-      var factNum = applyFactOperation(factRaw, tournament.fact_op, tournament.fact_op_value);
+      var factParsed = parseNumberStrict(raw[colFact]);
+      var factNum = factParsed.ok
+        ? applyFactOperation(factParsed.value, tournament.fact_op, tournament.fact_op_value)
+        : 0;
+      var factError = factParsed.ok
+        ? ""
+        : "показатель не число: «" + String(raw[colFact]).trim() + "»";
       var periodCode = normalizePeriodCode(tournament.period_code);
       rows.push({
         source_index: index,
@@ -462,7 +545,8 @@
         TOURNAMENT_CODE: String(tournament.tournament_code || "").trim(),
         CONTEST_DATE: String(tournament.contest_date || "").trim(),
         PLAN_VALUE: planText,
-        FACT_VALUE: formatNumberDot(factNum, cfg.numberDecimals),
+        FACT_VALUE: factParsed.ok ? formatNumberDot(factNum, cfg.numberDecimals) : "",
+        fact_error: factError,
         priority_type: String(cfg.priorityType),
         "CONTEST-DATA=>FULL_NAME": String(tournament.full_name || "").trim(),
         PERIOD_CODE: periodCode,
@@ -885,13 +969,14 @@
     function bump(tCode, field) {
       var k = tCode || "(без кода)";
       if (!byTournament[k]) {
-        byTournament[k] = { tournament_code: k, duplicates: 0, bad_person: 0, empty_cells: 0 };
+        byTournament[k] = { tournament_code: k, duplicates: 0, bad_person: 0, bad_fact: 0, empty_cells: 0 };
       }
       byTournament[k][field] += 1;
     }
 
     var duplicateKeys = [];
     var badPerson = [];
+    var badFact = [];
     var emptyCells = [];
     var marked = (rows || []).map(function (r) {
       var copy = Object.assign({}, r);
@@ -908,17 +993,30 @@
           duplicateKeys.push(key);
         }
       }
-      if (!isValidPersonNumber20(copy.MANAGER_PERSON_NUMBER, cfg.personNumberLength)) {
-        errs.push("ТН не " + cfg.personNumberLength + " цифр");
+      var personProblem = personNumberProblem(copy.MANAGER_PERSON_NUMBER, cfg.personNumberLength);
+      if (personProblem) {
+        errs.push(personProblem);
         bump(copy.TOURNAMENT_CODE, "bad_person");
         badPerson.push({
           tournament_code: copy.TOURNAMENT_CODE,
           contest_code: copy.CONTEST_CODE,
           value: copy.MANAGER_PERSON_NUMBER,
+          reason: personProblem,
+        });
+      }
+      if (copy.fact_error) {
+        errs.push(copy.fact_error);
+        bump(copy.TOURNAMENT_CODE, "bad_fact");
+        badFact.push({
+          tournament_code: copy.TOURNAMENT_CODE,
+          contest_code: copy.CONTEST_CODE,
+          reason: copy.fact_error,
         });
       }
       CSV_COLUMNS.forEach(function (c) {
         var v = copy[c];
+        // нечисловой показатель уже описан выше — не дублируем как «пустое»
+        if (c === "FACT_VALUE" && copy.fact_error) return;
         if (v == null || String(v).trim() === "" || String(v).toLowerCase() === "null") {
           errs.push("пустое " + c);
           bump(copy.TOURNAMENT_CODE, "empty_cells");
@@ -935,13 +1033,17 @@
     var tournamentSummaries = Object.keys(byTournament).map(function (k) {
       return byTournament[k];
     });
-    var ok = duplicateKeys.length === 0 && badPerson.length === 0 && emptyCells.length === 0;
+    var ok =
+      duplicateKeys.length === 0 && badPerson.length === 0 && badFact.length === 0 && emptyCells.length === 0;
     var parts = [];
     if (duplicateKeys.length) {
       parts.push("дубли ключа: " + duplicateKeys.length);
     }
     if (badPerson.length) {
       parts.push("ТН не " + cfg.personNumberLength + " цифр: " + badPerson.length);
+    }
+    if (badFact.length) {
+      parts.push("показатель не число: " + badFact.length);
     }
     if (emptyCells.length) {
       parts.push("пустые ячейки: " + emptyCells.length);
@@ -952,6 +1054,7 @@
       rowsMarked: marked,
       duplicateKeys: duplicateKeys,
       badPerson: badPerson,
+      badFact: badFact,
       emptyCells: emptyCells,
       byTournament: tournamentSummaries,
       message: ok
@@ -1094,6 +1197,20 @@
     return copy;
   }
 
+  /** План задан и разбирается как число. */
+  function planValueOk(t) {
+    var text = String((t && t.plan_value) || "").trim();
+    return !!text && parseNumberStrict(text).ok;
+  }
+
+  /** Число операции над показателем разбирается (при «Брать неизменно» не нужно). */
+  function factOpValueOk(t) {
+    var op = String((t && t.fact_op) || "none").toLowerCase();
+    if (op === "none") return true;
+    var text = String(t.fact_op_value == null ? "" : t.fact_op_value).trim();
+    return !text || parseNumberStrict(text).ok;
+  }
+
   function tournamentFieldsOk(t) {
     if (!t) {
       return false;
@@ -1102,7 +1219,8 @@
       String(t.contest_code || "").trim() &&
       String(t.tournament_code || "").trim() &&
       String(t.contest_date || "").trim() &&
-      String(t.plan_value || "").trim() &&
+      planValueOk(t) &&
+      factOpValueOk(t) &&
       String(t.full_name || "").trim() &&
       String(t.type_ind || "").trim() &&
       String(t.period_code || "").trim()
@@ -1319,8 +1437,12 @@
     DEFAULTS: DEFAULTS,
     PERIOD_OPTIONS: PERIOD_OPTIONS,
     mergeDefaults: mergeDefaults,
+    parseNumberStrict: parseNumberStrict,
     parseNumberFromComma: parseNumberFromComma,
     formatNumberDot: formatNumberDot,
+    personNumberProblem: personNumberProblem,
+    planValueOk: planValueOk,
+    factOpValueOk: factOpValueOk,
     formatNumberComma: formatNumberComma,
     padPersonNumber: padPersonNumber,
     normalizeFioKey: normalizeFioKey,
