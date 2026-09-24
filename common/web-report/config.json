@@ -8,6 +8,7 @@
   "missing_fio_flag": "ДА",
   "csv_delimiter": ";",
   "csv_encodings": ["utf-8", "windows-1251", "ibm866"],
+  "preview_row_limit": 100,
   "settings_schema_version": 1,
   "fio_dictionary_schema_version": 1,
   "local_storage_settings_key": "spod_web_report_settings_v1",

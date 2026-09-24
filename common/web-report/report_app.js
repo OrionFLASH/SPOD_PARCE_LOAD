@@ -311,9 +311,17 @@
     });
   }
 
+  function previewRowLimit() {
+    var c = state.config || {};
+    var n = Number(c.preview_row_limit);
+    return n > 0 ? n : 100;
+  }
+
   function renderPreviewTable(pack, limit, highlightCols) {
     var cols = pack.columns || [];
-    var rows = (pack.rows || []).slice(0, limit || 12);
+    var total = (pack.rows || []).length;
+    var lim = limit == null ? previewRowLimit() : limit;
+    var rows = (pack.rows || []).slice(0, lim);
     var hl = {};
     (highlightCols || []).forEach(function (c) {
       if (c) hl[c] = true;
@@ -342,7 +350,20 @@
         );
       })
       .join("");
+    var meta =
+      total > lim
+        ? '<div class="preview-meta">Показаны первые <b>' +
+          lim +
+          "</b> из <b>" +
+          total +
+          "</b> строк (прокрутка вправо/вниз).</div>"
+        : '<div class="preview-meta">Строк: <b>' +
+          total +
+          "</b>" +
+          (cols.length ? " · колонок: <b>" + cols.length + "</b>" : "") +
+          " (прокрутка вправо/вниз при необходимости).</div>";
     return (
+      meta +
       '<div class="preview-table-wrap"><table class="preview-table"><thead><tr>' +
       head +
       "</tr></thead><tbody>" +
@@ -408,7 +429,7 @@
     if (pack) {
       fillSelect($("fio-col-fio"), pack.columns, ui.col_fio || "");
       fillSelect($("fio-col-tn"), pack.columns, ui.col_tn || "");
-      $("fio-preview-host").innerHTML = renderPreviewTable(pack, 8, [ui.col_fio, ui.col_tn]);
+      $("fio-preview-host").innerHTML = renderPreviewTable(pack, null, [ui.col_fio, ui.col_tn]);
       if (pack.kind === "excel" && $("fio-sheet")) {
         fillSelect($("fio-sheet"), pack.sheetNames, ui.sheet_name || pack.sheetName || "");
         $("fio-sheet").addEventListener("change", function () {
@@ -436,7 +457,7 @@
         state.fioUi.col_tn = $("fio-col-tn").value;
         state.fioUi.source_error = "";
         if (state.fioPack) {
-          $("fio-preview-host").innerHTML = renderPreviewTable(state.fioPack, 8, [
+          $("fio-preview-host").innerHTML = renderPreviewTable(state.fioPack, null, [
             state.fioUi.col_fio,
             state.fioUi.col_tn,
           ]);
@@ -698,7 +719,7 @@
         (pack.start_col || 1) +
         (pack.encoding ? " · " + pack.encoding : "") +
         (pack.sheetName ? " · лист: " + pack.sheetName : "");
-      $("data-preview-host").innerHTML = renderPreviewTable(pack, 12, [t.column_id, t.column_fact]);
+      $("data-preview-host").innerHTML = renderPreviewTable(pack, null, [t.column_id, t.column_fact]);
       if (pack.kind === "excel" && $("f-sheet")) {
         fillSelect($("f-sheet"), pack.sheetNames, t.sheet_name || pack.sheetName || "");
         if (t.sheet_name && pack.sheetNames && pack.sheetNames.indexOf(t.sheet_name) < 0) {
@@ -828,7 +849,7 @@
     }
     // подсветка выбранных колонок в превью
     if (t && state.dataByTournament[t.id] && $("data-preview-host")) {
-      $("data-preview-host").innerHTML = renderPreviewTable(state.dataByTournament[t.id], 12, [
+      $("data-preview-host").innerHTML = renderPreviewTable(state.dataByTournament[t.id], null, [
         t.column_id,
         t.column_fact,
       ]);
@@ -1760,6 +1781,7 @@
         missing_person_placeholder: "00000000",
         no_duplicate_mark: "-",
         missing_fio_flag: "ДА",
+        preview_row_limit: 100,
       };
       window.ReportConfig = state.config;
     }
