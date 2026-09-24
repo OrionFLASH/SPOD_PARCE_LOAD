@@ -189,29 +189,156 @@
     var st = stages();
     var box = $("top-stages");
     if (!box) return;
+
+    var included = ReportCore.includedTournaments(state.tournaments);
+    var total = state.tournaments.length;
+    var includedN = included.length;
+    var noActive = includedN === 0;
+    var anyFio = state.tournaments.some(function (t) {
+      return String(t.type_ind || "").toUpperCase() === "FIO";
+    });
+    var includedFio = included.some(function (t) {
+      return String(t.type_ind || "").toUpperCase() === "FIO";
+    });
+    var activeIsFio = hasActiveFioMode();
+    // ФИО-этап не участвует: режим TN у текущего или в списке нет FIO
+    var fioIdle = !anyFio || !activeIsFio;
+
+    function stageStatus(ok, idle) {
+      if (idle) return "idle";
+      return ok ? "done" : "bad";
+    }
+
+    var icons = {
+      tournaments:
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 6h13"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M3 6h.01"/><path d="M3 12h.01"/><path d="M3 18h.01"/></svg>',
+      fields:
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>',
+      sources:
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/><path d="M12 18v-6"/><path d="M9 15l3 3 3-3"/></svg>',
+      fio:
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c1.5-3.5 4.5-5 8-5s6.5 1.5 8 5"/></svg>',
+      dups:
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>',
+    };
+
+    var tournamentsDetail;
+    var tournamentsOk = st.hasTournaments && !noActive;
+    if (total === 0) {
+      tournamentsDetail = "добавьте турнир";
+    } else if (noActive) {
+      tournamentsDetail = "нет к выгрузке (все выкл.)";
+    } else {
+      tournamentsDetail = includedN + " из " + total + " в отчёте";
+    }
+
+    var fieldsDetail = noActive
+      ? "ожидает активный турнир"
+      : st.fieldsFilled
+        ? "параметры заполнены"
+        : st.blockedCopies.length
+          ? "смените код и название копии"
+          : "заполните коды, название, план";
+
+    var sourcesDetail = noActive
+      ? "нечего загружать"
+      : st.sourcesOk
+        ? "файлы и колонки ок"
+        : "нужен файл и колонки";
+
+    var fioDetail;
+    if (!anyFio) {
+      fioDetail = "нет турниров FIO";
+    } else if (!activeIsFio) {
+      fioDetail = "не нужен для TN";
+    } else if (!includedFio) {
+      fioDetail = "FIO выключены в отчёте";
+    } else if (st.fioOk) {
+      fioDetail = "справочник покрывает";
+    } else {
+      fioDetail = "есть ФИО без табельного";
+    }
+
+    var dupsDetail = noActive
+      ? "ожидает данные"
+      : st.duplicatesOk
+        ? "конфликтов нет"
+        : "нужна проверка / решение";
+
     var items = [
-      { ok: st.hasTournaments, label: "Турниры" },
-      { ok: st.fieldsFilled, label: "Поля" },
-      { ok: st.sourcesOk, label: "Источники" },
-      { ok: st.fioOk, label: "ФИО / данные" },
-      { ok: st.duplicatesOk, label: "Без дублей" },
+      {
+        key: "tournaments",
+        title: "Турниры",
+        detail: tournamentsDetail,
+        status: stageStatus(tournamentsOk, false),
+        tip: noActive ? "Нет активных турниров для выгрузки" : "Турниры, включённые в отчёт",
+        icon: icons.tournaments,
+      },
+      {
+        key: "fields",
+        title: "Поля",
+        detail: fieldsDetail,
+        status: stageStatus(st.fieldsFilled, noActive),
+        tip: "Обязательные параметры турниров",
+        icon: icons.fields,
+      },
+      {
+        key: "sources",
+        title: "Источники",
+        detail: sourcesDetail,
+        status: stageStatus(st.sourcesOk, noActive),
+        tip: "CSV/Excel и выбранные колонки",
+        icon: icons.sources,
+      },
+      {
+        key: "fio",
+        title: "ФИО",
+        detail: fioDetail,
+        status: stageStatus(st.fioOk && includedFio, fioIdle || noActive || !includedFio),
+        tip: fioIdle
+          ? "Этап ФИО не участвует (TN или нет FIO-турниров)"
+          : "Справочник ФИО ↔ табельный",
+        icon: icons.fio,
+      },
+      {
+        key: "dups",
+        title: "Дубли",
+        detail: dupsDetail,
+        status: stageStatus(st.duplicatesOk, noActive),
+        tip: "Конфликты ключей после проверки",
+        icon: icons.dups,
+      },
     ];
+
     box.innerHTML = items
       .map(function (it) {
-        var cls = "stage-chip " + (it.ok ? "is-done" : "is-bad");
+        var cls = "stage-chip is-" + it.status;
         return (
           '<span class="' +
           cls +
-          '"><span class="stage-chip__dot"></span>' +
-          escapeHtml(it.label) +
-          "</span>"
+          '" data-stage="' +
+          it.key +
+          '" data-tip="' +
+          escapeHtml(it.tip) +
+          '">' +
+          '<span class="stage-chip__icon" aria-hidden="true">' +
+          it.icon +
+          "</span>" +
+          '<span class="stage-chip__body">' +
+          '<span class="stage-chip__title">' +
+          escapeHtml(it.title) +
+          "</span>" +
+          '<span class="stage-chip__detail">' +
+          escapeHtml(it.detail) +
+          "</span>" +
+          "</span></span>"
         );
       })
       .join("");
 
     $("btn-process").disabled =
-      !st.hasTournaments || !st.fieldsFilled || !st.sourcesOk || st.blockedCopies.length > 0;
-    $("btn-check").disabled = !st.canCheck;
+      !st.hasTournaments || !st.fieldsFilled || !st.sourcesOk || st.blockedCopies.length > 0 || noActive;
+    $("btn-check").disabled = !st.canCheck || noActive;
     $("btn-export-csv").disabled = !(state.lastResult && state.lastResult.ok);
     $("btn-export-xlsx").disabled = !(state.lastResult && state.lastResult.ok);
   }
