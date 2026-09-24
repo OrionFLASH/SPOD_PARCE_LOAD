@@ -203,6 +203,7 @@ function testSettingsRoundtrip() {
   var json = ReportCore.serializeSettings(list, {
     entries: [{ fio: "Иванов", person_number: "1" }],
     file_name: "fio.csv",
+    file_path: "examples/fio.csv",
     col_fio: "ФИО",
     col_tn: "ТН",
   });
@@ -210,7 +211,20 @@ function testSettingsRoundtrip() {
   assert.ok(!Object.prototype.hasOwnProperty.call(json.tournaments[0], "source_file_b64"));
   assert.ok(!json.fio.source_file_b64);
   assert.strictEqual(json.fio.entries.length, 1);
+  assert.strictEqual(json.fio.file_path, "examples/fio.csv");
   assert.strictEqual(json.tournaments[0].source_file_name, "data.csv");
+  assert.strictEqual(json.tournaments[0].source_file_path || "", "");
+  var withPath = ReportCore.serializeSettings(
+    [
+      ReportCore.createEmptyTournament({
+        contest_code: "A",
+        source_file_name: "data.csv",
+        source_file_path: "examples/data.csv",
+      }),
+    ],
+    { entries: [] }
+  );
+  assert.strictEqual(withPath.tournaments[0].source_file_path, "examples/data.csv");
   var back = ReportCore.parseSettings(json);
   assert.strictEqual(back.tournaments.length, 1);
   assert.strictEqual(back.tournaments[0].contest_code, "A");

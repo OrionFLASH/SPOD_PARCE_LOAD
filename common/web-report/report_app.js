@@ -18,6 +18,7 @@
       col_fio: "",
       col_tn: "",
       file_name: "",
+      file_path: "",
       source_file_kind: "",
       source_error: "",
       apply_warning: "",
@@ -36,6 +37,7 @@
     sidebarOpen: true,
     filtersOpen: false,
     chromeOpen: true,
+    previewOpen: { source: false, fio: false },
   };
 
   function $(id) {
@@ -463,12 +465,91 @@
     empty.value = "";
     empty.textContent = "— выберите —";
     select.appendChild(empty);
-    (options || []).forEach(function (name) {
+    var list = options ? options.slice() : [];
+    var sel = selected || "";
+    if (sel && list.indexOf(sel) < 0) {
+      list.push(sel);
+    }
+    list.forEach(function (name) {
       var opt = document.createElement("option");
       opt.value = name;
       opt.textContent = name;
-      if (name === selected) opt.selected = true;
+      if (name === sel) opt.selected = true;
       select.appendChild(opt);
+    });
+  }
+
+  function isExcelKind(kind, fileName) {
+    var k = String(kind || "").toLowerCase();
+    if (k === "excel" || /xlsx?|xlsm/.test(k)) return true;
+    var n = String(fileName || "").toLowerCase();
+    return /\.xlsx?$|\.xlsm$/.test(n);
+  }
+
+  function renderSheetFieldHtml(id, pack, kind, fileName, sheetName) {
+    var show =
+      (pack && pack.kind === "excel") ||
+      isExcelKind(kind, fileName) ||
+      !!String(sheetName || "").trim();
+    if (!show) return "";
+    return (
+      '<div class="field field--sheet"><label class="field-label" for="' +
+      id +
+      '">Лист</label>' +
+      '<select class="field-select" id="' +
+      id +
+      '" data-tip="Лист Excel"></select></div>'
+    );
+  }
+
+  function fillSheetSelect(select, pack, preferred) {
+    if (!select) return;
+    var names =
+      pack && pack.sheetNames && pack.sheetNames.length
+        ? pack.sheetNames.slice()
+        : [];
+    var sel = preferred || (pack && pack.sheetName) || "";
+    fillSelect(select, names, sel);
+  }
+
+  function renderPreviewFold(kind, pack, highlightCols) {
+    var open = !!(state.previewOpen && state.previewOpen[kind]);
+    var hostId = kind === "fio" ? "fio-preview-host" : "data-preview-host";
+    var foldId = kind === "fio" ? "fio-preview-fold" : "data-preview-fold";
+    var title =
+      kind === "fio" ? "Превью таблицы ФИО" : "Превью данных источника";
+    var body;
+    if (pack) {
+      body = renderPreviewTable(pack, null, highlightCols);
+    } else {
+      body =
+        '<div class="warn-box">Файл ещё не загружен — превью появится после загрузки.</div>';
+    }
+    return (
+      '<details class="preview-fold" id="' +
+      foldId +
+      '"' +
+      (open ? " open" : "") +
+      ">" +
+      "<summary>" +
+      title +
+      (pack && pack.rows ? " · " + pack.rows.length + " строк" : "") +
+      "</summary>" +
+      '<div id="' +
+      hostId +
+      '">' +
+      body +
+      "</div></details>"
+    );
+  }
+
+  function bindPreviewFold(kind) {
+    var foldId = kind === "fio" ? "fio-preview-fold" : "data-preview-fold";
+    var el = $(foldId);
+    if (!el) return;
+    el.addEventListener("toggle", function () {
+      if (!state.previewOpen) state.previewOpen = { source: false, fio: false };
+      state.previewOpen[kind] = !!el.open;
     });
   }
 
@@ -538,20 +619,20 @@
     if (!hasActiveFioMode()) return "";
     var pack = state.fioPack;
     var ui = state.fioUi;
-    // строка 1: лист + угол; строка 2: колонки + имя файла
-    var sheetBlock = "";
-    if (pack && pack.kind === "excel" && pack.sheetNames && pack.sheetNames.length) {
-      sheetBlock =
-        '<div class="field"><label class="field-label" for="fio-sheet">Лист Excel</label>' +
-        '<select class="field-select" id="fio-sheet"></select></div>';
-    }
+    var sheetBlock = renderSheetFieldHtml(
+      "fio-sheet",
+      pack,
+      ui.source_file_kind,
+      ui.file_name,
+      ui.sheet_name
+    );
     var fioErr = state.fioUi.source_error
       ? '<div class="error-box">' + escapeHtml(state.fioUi.source_error) + "</div>"
       : "";
     var hasIssues = state.fioUi.apply_issues && state.fioUi.apply_issues.length > 0;
     var fioApplyWarn = state.fioUi.apply_warning
       ? '<div class="warn-box warn-box--row" id="fio-apply-warning">' +
-        '<span>' +
+        "<span>" +
         escapeHtml(state.fioUi.apply_warning) +
         "</span>" +
         (hasIssues
@@ -580,22 +661,28 @@
       '<button type="button" class="btn btn-primary" id="btn-apply-fio-table" disabled data-tip="Взять строки из таблицы в справочник (нужны файл и колонки)">Применить</button>' +
       "</div>" +
       '<div class="fields-grid">' +
-      '<div class="fields-row fields-row--origin">' +
-      sheetBlock +
-      '<div class="field"><label class="field-label" for="fio-start-row">Строка угла</label>' +
-      '<input class="field-input" id="fio-start-row" type="number" min="1" step="1" /></div>' +
-      '<div class="field"><label class="field-label" for="fio-start-col">Колонка угла</label>' +
-      '<input class="field-input" id="fio-start-col" type="number" min="1" step="1" /></div>' +
-      (sheetBlock ? "" : '<div class="field field--spacer" aria-hidden="true"></div>') +
+      '<div class="fields-row fields-row--table-map' +
+      (sheetBlock ? "" : " fields-row--table-map--nosheet") +
+      '">' +
+      (sheetBlock || "") +
+      '<div class="field field--corner"><label class="field-label" for="fio-start-row">Стр.</label>' +
+      '<input class="field-input field-input--corner" id="fio-start-row" type="number" min="1" step="1" data-tip="Строка угла (заголовок)" /></div>' +
+      '<div class="field field--corner"><label class="field-label" for="fio-start-col">Кол.</label>' +
+      '<input class="field-input field-input--corner" id="fio-start-col" type="number" min="1" step="1" data-tip="Колонка угла" /></div>' +
+      '<div class="field field--colpick"><label class="field-label" for="fio-col-fio">Колонка ФИО</label>' +
+      '<select class="field-select" id="fio-col-fio"></select></div>' +
+      '<div class="field field--colpick"><label class="field-label" for="fio-col-tn">Колонка табельного</label>' +
+      '<select class="field-select" id="fio-col-tn"></select></div>' +
       "</div>" +
-      '<div class="fields-row fields-row--ops">' +
-      '<div class="field"><label class="field-label" for="fio-col-fio">Колонка ФИО</label><select class="field-select" id="fio-col-fio"></select></div>' +
-      '<div class="field"><label class="field-label" for="fio-col-tn">Колонка табельного</label><select class="field-select" id="fio-col-tn"></select></div>' +
+      '<div class="fields-row fields-row--file-meta">' +
       '<div class="field"><label class="field-label" for="fio-file-name">Имя файла</label>' +
       '<input class="field-input" id="fio-file-name" readonly /></div>' +
+      '<div class="field"><label class="field-label" for="fio-file-path">Путь к файлу</label>' +
+      '<input class="field-input" id="fio-file-path" placeholder="examples/fio.xlsx или URL" data-tip="Относительный путь или URL для автозагрузки при открытии JSON" /></div>' +
       "</div>" +
       "</div>" +
-      '<div id="fio-preview-host"></div></div>'
+      renderPreviewFold("fio", pack, [ui.col_fio, ui.col_tn]) +
+      "</div>"
     );
   }
 
@@ -606,25 +693,27 @@
     $("fio-start-row").value = ui.start_row || 1;
     $("fio-start-col").value = ui.start_col || 1;
     $("fio-file-name").value = ui.file_name || "";
-    if (pack) {
-      fillSelect($("fio-col-fio"), pack.columns, ui.col_fio || "");
-      fillSelect($("fio-col-tn"), pack.columns, ui.col_tn || "");
-      $("fio-preview-host").innerHTML = renderPreviewTable(pack, null, [ui.col_fio, ui.col_tn]);
-      if (pack.kind === "excel" && $("fio-sheet")) {
-        fillSelect($("fio-sheet"), pack.sheetNames, ui.sheet_name || pack.sheetName || "");
-        $("fio-sheet").addEventListener("change", function () {
-          reapplyFioOrigin({ sheetName: $("fio-sheet").value });
-        });
-      }
-    } else {
-      fillSelect($("fio-col-fio"), [], "");
-      fillSelect($("fio-col-tn"), [], "");
-      $("fio-preview-host").innerHTML =
-        '<div class="warn-box">Загрузите таблицу ФИО или JSON — здесь появится превью.</div>';
+    if ($("fio-file-path")) $("fio-file-path").value = ui.file_path || "";
+    var colOpts = pack ? pack.columns : [];
+    fillSelect($("fio-col-fio"), colOpts, ui.col_fio || "");
+    fillSelect($("fio-col-tn"), colOpts, ui.col_tn || "");
+    if ($("fio-sheet")) {
+      fillSheetSelect($("fio-sheet"), pack, ui.sheet_name || "");
+      $("fio-sheet").addEventListener("change", function () {
+        state.fioUi.sheet_name = $("fio-sheet").value;
+        if (state.fioPack) reapplyFioOrigin({ sheetName: $("fio-sheet").value });
+      });
     }
+    bindPreviewFold("fio");
+    refreshFioFieldHighlights();
 
     ["fio-start-row", "fio-start-col"].forEach(function (id) {
       $(id).addEventListener("change", function () {
+        if (!state.fioPack) {
+          state.fioUi.start_row = Number($("fio-start-row").value) || 1;
+          state.fioUi.start_col = Number($("fio-start-col").value) || 1;
+          return;
+        }
         reapplyFioOrigin({
           start_row: Number($("fio-start-row").value) || 1,
           start_col: Number($("fio-start-col").value) || 1,
@@ -636,15 +725,21 @@
         state.fioUi.col_fio = $("fio-col-fio").value;
         state.fioUi.col_tn = $("fio-col-tn").value;
         state.fioUi.source_error = "";
-        if (state.fioPack) {
+        if (state.fioPack && $("fio-preview-host")) {
           $("fio-preview-host").innerHTML = renderPreviewTable(state.fioPack, null, [
             state.fioUi.col_fio,
             state.fioUi.col_tn,
           ]);
         }
         updateFioApplyEnabled();
+        refreshFioFieldHighlights();
       });
     });
+    if ($("fio-file-path")) {
+      $("fio-file-path").addEventListener("change", function () {
+        state.fioUi.file_path = $("fio-file-path").value.trim();
+      });
+    }
     updateFioApplyEnabled();
     if ($("btn-fio-issues")) {
       $("btn-fio-issues").addEventListener("click", openFioIssuesModal);
@@ -677,18 +772,22 @@
       ev.target.value = "";
       if (!file) return;
       try {
-        var pack = await ReportIO.readTableFile(file, state.fioUi.start_row || 1, state.fioUi.start_col || 1);
+        // новая загрузка: угол 1,1; колонки сбрасываем — нужно выбрать вручную
+        var pack = await ReportIO.readTableFile(file, 1, 1);
         state.fioPack = pack;
         state.fioUi.file_name = pack.fileName;
+        state.fioUi.file_path = state.fioUi.file_path || "";
         state.fioUi.sheet_name = pack.sheetName || "";
         state.fioUi.source_file_kind = pack.kind || "";
+        state.fioUi.start_row = 1;
+        state.fioUi.start_col = 1;
+        state.fioUi.col_fio = "";
+        state.fioUi.col_tn = "";
         state.fioUi.source_error = "";
         state.fioUi.apply_warning = "";
         state.fioUi.apply_issues = [];
-        state.fioUi.col_fio = ReportIO.guessIdColumn(pack.columns, "FIO");
-        state.fioUi.col_tn = ReportIO.guessIdColumn(pack.columns, "TN");
         renderAll();
-        showToast("Таблица ФИО загружена");
+        showToast("Таблица ФИО загружена — выберите колонки");
       } catch (err) {
         alert(err.message || String(err));
       }
@@ -734,6 +833,29 @@
       }
       showToast(toastMsg);
     });
+  }
+
+  function refreshFioFieldHighlights() {
+    if (!$("fio-col-fio")) return;
+    function blank(v) {
+      return !String(v == null ? "" : v).trim();
+    }
+    function mark(id, need) {
+      var el = $(id);
+      if (!el) return;
+      if (el.classList.contains("is-error")) return;
+      el.classList.toggle("is-highlight", !!need);
+    }
+    var pack = state.fioPack;
+    mark("fio-col-fio", !pack || blank(state.fioUi.col_fio));
+    mark("fio-col-tn", !pack || blank(state.fioUi.col_tn));
+    mark("fio-file-name", !pack || blank(state.fioUi.file_name));
+    if ($("fio-sheet")) {
+      mark(
+        "fio-sheet",
+        !pack || blank(state.fioUi.sheet_name || (pack && pack.sheetName))
+      );
+    }
   }
 
   function updateFioApplyEnabled() {
@@ -810,11 +932,11 @@
     state.fioUi.sheet_name = state.fioPack.sheetName || "";
     state.fioUi.start_row = state.fioPack.start_row || 1;
     state.fioUi.start_col = state.fioPack.start_col || 1;
-    if (!state.fioUi.col_fio || state.fioPack.columns.indexOf(state.fioUi.col_fio) < 0) {
-      state.fioUi.col_fio = ReportIO.guessIdColumn(state.fioPack.columns, "FIO");
+    if (state.fioUi.col_fio && state.fioPack.columns.indexOf(state.fioUi.col_fio) < 0) {
+      state.fioUi.col_fio = "";
     }
-    if (!state.fioUi.col_tn || state.fioPack.columns.indexOf(state.fioUi.col_tn) < 0) {
-      state.fioUi.col_tn = ReportIO.guessIdColumn(state.fioPack.columns, "TN");
+    if (state.fioUi.col_tn && state.fioPack.columns.indexOf(state.fioUi.col_tn) < 0) {
+      state.fioUi.col_tn = "";
     }
     renderAll();
   }
@@ -1155,13 +1277,14 @@
       ? '<div class="error-box" style="margin-bottom:10px">' + escapeHtml(t.source_error) + "</div>"
       : "";
 
-    // строка 1: лист + угол; строка 2: колонки; строка 3: действие|операция слева, имя файла справа
-    var sheetBlock = "";
-    if (pack && pack.kind === "excel" && pack.sheetNames && pack.sheetNames.length) {
-      sheetBlock =
-        '<div class="field"><label class="field-label" for="f-sheet">Лист Excel</label>' +
-        '<select class="field-select" id="f-sheet" data-tip="Лист, с которого брать таблицу"></select></div>';
-    }
+    // одна строка: лист · стр · кол · колонки ID/показателя
+    var sheetBlock = renderSheetFieldHtml(
+      "f-sheet",
+      pack,
+      t.source_file_kind,
+      t.source_file_name,
+      t.sheet_name
+    );
 
     ws.innerHTML =
       '<div class="panel" id="panel-params">' +
@@ -1195,7 +1318,7 @@
       "</div></div>" +
       '<div class="panel" id="panel-data">' +
       "<h2>Источник данных</h2>" +
-      '<p class="panel__intro panel__intro--tight">CSV (;) или Excel · угол таблицы (строка/колонка заголовка) · действие над показателем.</p>' +
+      '<p class="panel__intro panel__intro--tight">CSV (;) или Excel · угол таблицы · колонки · действие над показателем.</p>' +
       sourceErrHtml +
       '<div class="toolbar-row toolbar-row--top">' +
       '<label class="btn btn-primary file-pick" data-tip="Загрузить CSV или Excel с показателями">' +
@@ -1203,17 +1326,18 @@
       '<input type="file" id="import-data" class="file-pick__input" accept=".csv,.txt,.xlsx,.xls,.xlsm" /></label>' +
       '<span class="mini-badge" id="data-meta"></span></div>' +
       '<div class="fields-grid">' +
-      '<div class="fields-row fields-row--origin">' +
-      sheetBlock +
-      '<div class="field"><label class="field-label" for="f-start-row">Строка угла</label>' +
-      '<input class="field-input" id="f-start-row" type="number" min="1" step="1" data-tip="Номер строки заголовка таблицы (с 1)" /></div>' +
-      '<div class="field"><label class="field-label" for="f-start-col">Колонка угла</label>' +
-      '<input class="field-input" id="f-start-col" type="number" min="1" step="1" data-tip="Номер колонки левого верхнего угла (с 1)" /></div>' +
-      (sheetBlock ? "" : '<div class="field field--spacer" aria-hidden="true"></div>') +
-      "</div>" +
-      '<div class="fields-row fields-row--cols">' +
-      '<div class="field"><label class="field-label" for="f-col-id">Колонка ФИО / табельного</label><select class="field-select" id="f-col-id"></select></div>' +
-      '<div class="field"><label class="field-label" for="f-col-fact">Колонка показателя</label><select class="field-select" id="f-col-fact"></select></div>' +
+      '<div class="fields-row fields-row--table-map' +
+      (sheetBlock ? "" : " fields-row--table-map--nosheet") +
+      '">' +
+      (sheetBlock || "") +
+      '<div class="field field--corner"><label class="field-label" for="f-start-row">Стр.</label>' +
+      '<input class="field-input field-input--corner" id="f-start-row" type="number" min="1" step="1" data-tip="Строка угла (заголовок)" /></div>' +
+      '<div class="field field--corner"><label class="field-label" for="f-start-col">Кол.</label>' +
+      '<input class="field-input field-input--corner" id="f-start-col" type="number" min="1" step="1" data-tip="Колонка угла" /></div>' +
+      '<div class="field field--colpick"><label class="field-label" for="f-col-id">Колонка ФИО / табельного</label>' +
+      '<select class="field-select" id="f-col-id"></select></div>' +
+      '<div class="field field--colpick"><label class="field-label" for="f-col-fact">Колонка показателя</label>' +
+      '<select class="field-select" id="f-col-fact"></select></div>' +
       "</div>" +
       '<div class="fields-row fields-row--ops">' +
       '<div class="field"><label class="field-label" for="f-fact-op">Показатель: действие</label>' +
@@ -1234,13 +1358,15 @@
       (factOp === "sub" ? " selected" : "") +
       ">Вычесть (−)</option>" +
       "</select></div>" +
-      '<div class="field"><label class="field-label" for="f-fact-op-value">Число операции</label>' +
-      '<input class="field-input" id="f-fact-op-value" placeholder="напр. 100 или 2" data-tip="Для ×100 из доли 0,5 получится 50" /></div>' +
+      '<div class="field field--op-val"><label class="field-label" for="f-fact-op-value">Число</label>' +
+      '<input class="field-input" id="f-fact-op-value" placeholder="100" data-tip="Для ×100 из доли 0,5 получится 50" /></div>' +
       '<div class="field"><label class="field-label" for="f-source-name">Имя файла</label>' +
       '<input class="field-input" id="f-source-name" readonly /></div>' +
+      '<div class="field"><label class="field-label" for="f-source-path">Путь к файлу</label>' +
+      '<input class="field-input" id="f-source-path" placeholder="examples/data.xlsx или URL" data-tip="Относительный путь или URL для автозагрузки при открытии JSON" /></div>' +
       "</div>" +
       "</div>" +
-      '<div id="data-preview-host"></div>' +
+      renderPreviewFold("source", pack, [t.column_id, t.column_fact]) +
       "</div>" +
       fioHtml;
 
@@ -1251,15 +1377,17 @@
     $("f-date").value = t.contest_date || "";
     $("f-type").value = String(t.type_ind || "TN").toUpperCase() === "FIO" ? "FIO" : "TN";
     $("f-source-name").value = t.source_file_name || "";
+    if ($("f-source-path")) $("f-source-path").value = t.source_file_path || "";
     $("f-start-row").value = t.table_start_row || (pack && pack.start_row) || 1;
     $("f-start-col").value = t.table_start_col || (pack && pack.start_col) || 1;
     $("f-fact-op-value").value = t.fact_op_value != null ? t.fact_op_value : "1";
 
     var colId = $("f-col-id");
     var colFact = $("f-col-fact");
+    var colOpts = pack ? pack.columns : [];
+    fillSelect(colId, colOpts, t.column_id || "");
+    fillSelect(colFact, colOpts, t.column_fact || "");
     if (pack) {
-      fillSelect(colId, pack.columns, t.column_id || "");
-      fillSelect(colFact, pack.columns, t.column_fact || "");
       if (t.column_id && pack.columns.indexOf(t.column_id) < 0) {
         colId.classList.add("is-error");
       }
@@ -1274,23 +1402,27 @@
         (pack.start_col || 1) +
         (pack.encoding ? " · " + pack.encoding : "") +
         (pack.sheetName ? " · лист: " + pack.sheetName : "");
-      $("data-preview-host").innerHTML = renderPreviewTable(pack, null, [t.column_id, t.column_fact]);
-      if (pack.kind === "excel" && $("f-sheet")) {
-        fillSelect($("f-sheet"), pack.sheetNames, t.sheet_name || pack.sheetName || "");
-        if (t.sheet_name && pack.sheetNames && pack.sheetNames.indexOf(t.sheet_name) < 0) {
-          $("f-sheet").classList.add("is-error");
-        }
-        $("f-sheet").addEventListener("change", function () {
-          reapplyDataOrigin({ sheetName: $("f-sheet").value });
-        });
-      }
     } else {
-      fillSelect(colId, [], "");
-      fillSelect(colFact, [], "");
-      $("data-meta").textContent = t.source_file_name ? "файл не загружен: " + t.source_file_name : "файл не загружен";
-      $("data-preview-host").innerHTML =
-        '<div class="warn-box">Загрузите файл — здесь появятся пример строк, угол таблицы и выбор колонок.</div>';
+      $("data-meta").textContent = t.source_file_name
+        ? "файл не загружен: " + t.source_file_name
+        : "файл не загружен";
     }
+    if ($("f-sheet")) {
+      fillSheetSelect($("f-sheet"), pack, t.sheet_name || "");
+      if (
+        pack &&
+        t.sheet_name &&
+        pack.sheetNames &&
+        pack.sheetNames.indexOf(t.sheet_name) < 0
+      ) {
+        $("f-sheet").classList.add("is-error");
+      }
+      $("f-sheet").addEventListener("change", function () {
+        t.sheet_name = $("f-sheet").value;
+        if (pack) reapplyDataOrigin({ sheetName: $("f-sheet").value });
+      });
+    }
+    bindPreviewFold("source");
 
     bindEditorEvents();
     bindFioPanel();
@@ -1344,11 +1476,11 @@
       start_col: t.table_start_col || 1,
     });
     state.dataByTournament[t.id] = next;
-    if (!t.column_id || next.columns.indexOf(t.column_id) < 0) {
-      t.column_id = ReportIO.guessIdColumn(next.columns, t.type_ind);
+    if (t.column_id && next.columns.indexOf(t.column_id) < 0) {
+      t.column_id = "";
     }
-    if (!t.column_fact || next.columns.indexOf(t.column_fact) < 0) {
-      t.column_fact = ReportIO.guessFactColumn(next.columns);
+    if (t.column_fact && next.columns.indexOf(t.column_fact) < 0) {
+      t.column_fact = "";
     }
     invalidateChecks();
     renderAll();
@@ -1452,6 +1584,7 @@
     if ($("f-sheet")) t.sheet_name = $("f-sheet").value;
     if ($("f-start-row")) t.table_start_row = Number($("f-start-row").value) || 1;
     if ($("f-start-col")) t.table_start_col = Number($("f-start-col").value) || 1;
+    if ($("f-source-path")) t.source_file_path = $("f-source-path").value.trim();
     // сброс ошибки источника, если колонки снова валидны
     var pack = state.dataByTournament[t.id];
     if (pack) {
@@ -1545,22 +1678,21 @@
     if (!t) return;
     try {
       setStatus("чтение файла…");
-      var sr = t.table_start_row || 1;
-      var sc = t.table_start_col || 1;
-      var pack = await ReportIO.readTableFile(file, sr, sc);
+      // новая загрузка: угол 1,1; колонки сбрасываем — нужно выбрать вручную
+      var pack = await ReportIO.readTableFile(file, 1, 1);
       state.dataByTournament[t.id] = pack;
       t.source_file_name = pack.fileName;
       t.source_file_kind = pack.kind;
       t.source_error = "";
       t.sheet_name = pack.sheetName || "";
-      t.table_start_row = pack.start_row || sr;
-      t.table_start_col = pack.start_col || sc;
-      t.column_id = ReportIO.guessIdColumn(pack.columns, t.type_ind);
-      t.column_fact = ReportIO.guessFactColumn(pack.columns);
+      t.table_start_row = 1;
+      t.table_start_col = 1;
+      t.column_id = "";
+      t.column_fact = "";
       applySourceErrors(t, pack);
       invalidateChecks();
       renderAll();
-      showToast("Данные загружены");
+      showToast("Данные загружены — выберите колонки");
       setStatus("данные: " + pack.rows.length + " строк");
     } catch (err) {
       console.error(err);
@@ -2214,9 +2346,11 @@
   }
 
   function buildSettingsPayload() {
+    if ($("fio-file-path")) state.fioUi.file_path = $("fio-file-path").value.trim();
     var fioMeta = {
       entries: state.fioEntries,
       file_name: state.fioUi.file_name || "",
+      file_path: state.fioUi.file_path || "",
       sheet_name: state.fioUi.sheet_name || "",
       start_row: state.fioUi.start_row || 1,
       start_col: state.fioUi.start_col || 1,
@@ -2262,18 +2396,14 @@
       col_fio: "",
       col_tn: "",
       file_name: "",
+      file_path: "",
       source_file_kind: "",
       source_error: "",
       apply_warning: "",
+      apply_issues: [],
     };
 
-    // только метаданные источника — файлы данных нужно загрузить вручную
-    state.tournaments.forEach(function (t) {
-      t.source_file_b64 = "";
-      applySourceErrors(t, null);
-    });
-
-    // ФИО: entries из JSON + настройки колонок (без файла таблицы)
+    // ФИО: entries + метаданные колонок/пути
     if (parsed.fio) {
       if (Array.isArray(parsed.fio.entries)) {
         state.fioEntries = parsed.fio.entries
@@ -2290,23 +2420,110 @@
         state.fioEntries = [];
       }
       state.fioUi.file_name = parsed.fio.file_name || "";
+      state.fioUi.file_path = parsed.fio.file_path || "";
       state.fioUi.sheet_name = parsed.fio.sheet_name || "";
       state.fioUi.start_row = parsed.fio.start_row || 1;
       state.fioUi.start_col = parsed.fio.start_col || 1;
       state.fioUi.col_fio = parsed.fio.col_fio || "";
       state.fioUi.col_tn = parsed.fio.col_tn || "";
-      if (!state.fioEntries.length && state.fioUi.file_name) {
-        state.fioUi.source_error =
-          "записи ФИО пусты — загрузите таблицу «" + state.fioUi.file_name + "» или JSON справочника";
-      } else {
-        state.fioUi.source_error = "";
-      }
+      state.fioUi.source_error = "";
     } else {
       state.fioEntries = [];
     }
 
+    var loadedSources = 0;
+    var loadedFio = false;
+    var failed = [];
+
+    // автозагрузка источников турниров, если путь/имя доступны по HTTP
+    for (var i = 0; i < state.tournaments.length; i++) {
+      var t = state.tournaments[i];
+      t.source_file_b64 = "";
+      if (!t.source_file_name && !t.source_file_path) {
+        applySourceErrors(t, null);
+        continue;
+      }
+      var sr = t.table_start_row || 1;
+      var sc = t.table_start_col || 1;
+      var got = await ReportIO.tryReadTableFromPaths(
+        t.source_file_path,
+        t.source_file_name,
+        sr,
+        sc
+      );
+      if (!got) {
+        applySourceErrors(t, null);
+        failed.push(t.source_file_name || t.source_file_path || t.id);
+        continue;
+      }
+      var pack = got.pack;
+      if (t.sheet_name && pack.kind === "excel") {
+        pack = ReportIO.applyPackOrigin(pack, {
+          sheetName: t.sheet_name,
+          start_row: sr,
+          start_col: sc,
+        });
+      }
+      state.dataByTournament[t.id] = pack;
+      t.source_file_kind = pack.kind || t.source_file_kind || "";
+      if (got.usedPath) t.source_file_path = got.usedPath;
+      if (!t.source_file_name) t.source_file_name = pack.fileName;
+      // сохранить выбранные из JSON колонки; если пусто — не угадываем при restore
+      applySourceErrors(t, pack);
+      loadedSources += 1;
+    }
+
+    // автозагрузка таблицы ФИО
+    if (state.fioUi.file_name || state.fioUi.file_path) {
+      var fioGot = await ReportIO.tryReadTableFromPaths(
+        state.fioUi.file_path,
+        state.fioUi.file_name,
+        state.fioUi.start_row || 1,
+        state.fioUi.start_col || 1
+      );
+      if (fioGot) {
+        var fioPack = fioGot.pack;
+        if (state.fioUi.sheet_name && fioPack.kind === "excel") {
+          fioPack = ReportIO.applyPackOrigin(fioPack, {
+            sheetName: state.fioUi.sheet_name,
+            start_row: state.fioUi.start_row || 1,
+            start_col: state.fioUi.start_col || 1,
+          });
+        }
+        state.fioPack = fioPack;
+        state.fioUi.source_file_kind = fioPack.kind || "";
+        if (fioGot.usedPath) state.fioUi.file_path = fioGot.usedPath;
+        if (!state.fioUi.file_name) state.fioUi.file_name = fioPack.fileName;
+        // если колонки из JSON не заданы — оставить пустыми (подсветка)
+        loadedFio = true;
+        state.fioUi.source_error = "";
+      } else if (!state.fioEntries.length) {
+        state.fioUi.source_error =
+          "не удалось загрузить таблицу ФИО «" +
+          (state.fioUi.file_path || state.fioUi.file_name) +
+          "» — укажите доступный путь или загрузите файл";
+        failed.push(state.fioUi.file_name || state.fioUi.file_path);
+      } else {
+        state.fioUi.source_error =
+          "записи ФИО из JSON есть (" +
+          state.fioEntries.length +
+          "), таблица не подтянулась — проверьте путь «" +
+          (state.fioUi.file_path || state.fioUi.file_name) +
+          "»";
+      }
+    }
+
     invalidateChecks();
     state.activeId = state.tournaments[0] ? state.tournaments[0].id : null;
+
+    var parts = [];
+    if (loadedSources) parts.push("источников: " + loadedSources);
+    if (loadedFio) parts.push("таблица ФИО");
+    if (state.fioEntries.length) parts.push("записей ФИО: " + state.fioEntries.length);
+    if (failed.length) {
+      parts.push("не загружено: " + failed.slice(0, 3).join(", ") + (failed.length > 3 ? "…" : ""));
+    }
+    if (parts.length) showToast("JSON: " + parts.join(" · "));
   }
 
   function readJsonFile(file) {
