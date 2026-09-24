@@ -1457,6 +1457,10 @@ python main.py
 - Легенда цветов вкладок слева. `INDICATOR_CODE` — dropdown + combobox; списки методов/агрегаций обновлены в каталоге.
 - Fill ≡ fill-full (`sync_web_fill_singlefile.py`). Документы: `Docs/PLAN_WEB_FILL.md`, `Docs/TODO_WEB_FILL.md`, ROADMAP §16.
 
+### Версия 1.7.87 — web-report: повторная пересборка архива
+
+- `web-report_bundle.zip` пересобран заново из текущего дерева ветки PR #39 (все правки 26.22–26.29).
+
 ### Версия 1.7.86 — web-report: доки и архив (26.22–26.29)
 
 - Актуальные `Docs/PLAN_WEB_REPORT*`, `TODO_WEB_REPORT`, `common/web-report/README.md`.

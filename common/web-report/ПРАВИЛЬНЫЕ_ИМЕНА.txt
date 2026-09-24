@@ -28,3 +28,6 @@ test_web_report_core.script       →  test_web_report_core.mjs
   → http://127.0.0.1:8770/report_app.html
 
 Остальные файлы уже с правильными именами.
+
+Доп. метка сборки (без переименования):
+  common/web-report/BUNDLE_REBUILT.txt
