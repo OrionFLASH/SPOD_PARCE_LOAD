@@ -1,6 +1,6 @@
 # План: web-report ToDo_REPORT_3 и доработки UI
 
-Доработки поверх пункта 26 (волны 26.16–26.29).
+Доработки поверх пункта 26 (волны 26.16–26.31).
 
 ## Подзадачи
 
@@ -28,12 +28,18 @@
 | 20 | Новый турнир: план 0, дата сегодня, подсветка пустых полей | [v] |
 | 21 | Этапы: иконки + idle (ФИО/нет выгрузки) | [v] |
 | 22 | Docs + архив (актуализация 26.22–26.29) | [v] |
+| 23 | Диалог проблем ФИО (дубли/битый ТН) + отметка выбранной строки | [v] |
+| 24 | ФИО: «Загрузить таблицу ФИО» + Apply до выбора колонок неактивен | [v] |
+| 25 | Проверить/Сформировать/CSV/XLSX + результат — на левой панели | [v] |
+| 26 | Верх: только этапы + инфо/сводка; справа — блок статистики | [v] |
+| 27 | Карточка турнира: ТН всего / ошибки / в CSV после Y·FIO·OK | [v] |
+| 28 | Docs + архив (актуализация 26.31) | [v] |
 
 ## Модули
 
-- `report_core.js` — период, fact_op, include, CSV-валидация, serialize v3, `resolveFioTableEntries`, `todayIsoDate`
+- `report_core.js` — период, fact_op, include, CSV-валидация, serialize v3, `resolveFioTableEntries` (+ `issues[]`), `tournamentRowStats`, `todayIsoDate`
 - `report_io.js` — чтение CSV/Excel, без base64 в JSON
-- `report_app.js` / `report_styles.css` / HTML — UI (сетка полей, этапы, подсветка)
+- `report_app.js` / `report_styles.css` / HTML — UI (сетка, этапы, панели, статистика, диалог проблем ФИО)
 - `config.json` — в т.ч. `preview_row_limit` (100)
 - тесты `src/Tests/test_web_report_core.mjs`
 

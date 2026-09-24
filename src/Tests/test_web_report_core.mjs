@@ -467,6 +467,18 @@ function testResolveFioTableEntries() {
   assert.strictEqual(resolved.stats.invalidTnRows, 3);
   assert.ok(resolved.stats.message.indexOf("повторяющихся ФИО") >= 0);
   assert.ok(resolved.stats.message.indexOf("нечисловым") >= 0);
+  assert.ok(Array.isArray(resolved.issues));
+  assert.ok(resolved.issues.length >= 3);
+  var ivanIssues = resolved.issues.filter(function (it) {
+    return it.fio === "Иванов Иван";
+  });
+  assert.strictEqual(ivanIssues.length, 3);
+  var chosenIvan = ivanIssues.filter(function (it) {
+    return it.chosen;
+  });
+  assert.strictEqual(chosenIvan.length, 1);
+  assert.strictEqual(chosenIvan[0].person_number, "000111");
+  assert.ok(chosenIvan[0].tnOk);
 }
 
 const tests = [

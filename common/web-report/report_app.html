@@ -19,27 +19,12 @@
       </div>
       <div class="top-stages" id="top-stages" aria-label="Этапы готовности"></div>
       <div class="top-actions">
-        <button type="button" class="btn btn-sm" id="btn-check" data-tip="Проверка ФИО и дублей без выгрузки">
-          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/><path d="M8 11h6"/></svg>
-          Проверить
-        </button>
-        <button type="button" class="btn btn-sm btn-primary" id="btn-process" data-tip="Сформировать отчёт">
-          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></svg>
-          Сформировать
-        </button>
-        <button type="button" class="btn btn-sm" id="btn-export-csv" disabled data-tip="Скачать согласованный CSV">
-          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 21h14"/></svg>
-          CSV
-        </button>
-        <button type="button" class="btn btn-sm" id="btn-export-xlsx" disabled data-tip="Скачать XLSX (заголовок закреплён, автофильтр)">
-          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/></svg>
-          XLSX
-        </button>
         <button type="button" class="btn btn-icon" id="btn-chrome-toggle" aria-expanded="true" data-tip="Скрыть / показать верхнюю панель этапов">
           <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
         </button>
       </div>
     </div>
+    <div class="top-info" id="top-info" hidden></div>
     <div class="top-status-line" id="footer-status">Статус: ожидание</div>
   </header>
 
@@ -64,6 +49,29 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 21h14"/></svg>
           Сохранить JSON
         </button>
+      </div>
+      <div class="sidebar-actions sidebar-actions--pipeline">
+        <button type="button" class="btn btn-sidebar" id="btn-check" data-tip="Проверка ФИО и дублей без выгрузки">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/><path d="M8 11h6"/></svg>
+          Проверить
+        </button>
+        <button type="button" class="btn btn-sidebar btn-primary" id="btn-process" data-tip="Сформировать отчёт">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></svg>
+          Сформировать
+        </button>
+        <button type="button" class="btn btn-sidebar" id="btn-export-csv" disabled data-tip="Скачать согласованный CSV">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 21h14"/></svg>
+          CSV
+        </button>
+        <button type="button" class="btn btn-sidebar" id="btn-export-xlsx" disabled data-tip="Скачать XLSX (заголовок закреплён, автофильтр)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/></svg>
+          XLSX
+        </button>
+      </div>
+      <div class="side-result" id="side-result" hidden>
+        <div class="side-result__title">Результат</div>
+        <div class="side-result__summary" id="result-summary"></div>
+        <div class="side-result__warn warn-box" id="result-warnings" hidden></div>
       </div>
       <div class="contest-tabs-scroll">
         <div class="contest-tabs" id="tournament-nav"></div>
@@ -101,6 +109,10 @@
             <button type="button" class="chip is-on" data-filter-ready="copy" aria-pressed="true" data-tip="Показать копии, где ещё не сменены код и название">Копии</button>
           </div>
         </div>
+        <div class="filter-block filter-block--stats" id="side-stats-host">
+          <div class="filter-block__label">Статистика</div>
+          <div id="side-stats" class="side-stats"></div>
+        </div>
       </div>
     </aside>
 
@@ -136,6 +148,17 @@
       <button type="button" class="btn btn-primary" id="modal-fio-apply">Дополнить и продолжить</button>
       <button type="button" class="btn" id="modal-fio-skip">Продолжить с 00000000</button>
       <button type="button" class="btn" id="modal-fio-cancel">Отмена</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="modal-fio-issues" hidden>
+  <div class="modal-card modal-card--wide" role="dialog" aria-modal="true">
+    <h3>Проблемы в таблице ФИО</h3>
+    <p id="modal-fio-issues-intro">Дубли и строки с пустым или нечисловым табельным. Отмечено, какая строка взята в справочник.</p>
+    <div id="modal-fio-issues-body" class="fio-issues-scroll"></div>
+    <div class="modal-actions">
+      <button type="button" class="btn btn-primary" id="modal-fio-issues-close">Закрыть</button>
     </div>
   </div>
 </div>
