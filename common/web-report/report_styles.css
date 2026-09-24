@@ -313,10 +313,19 @@ body::after { width: 380px; height: 380px; right: -60px; bottom: 10%; background
 .field--full { grid-column: span 12; }
 .field--third { grid-column: span 4; }
 .field--quarter { grid-column: span 3; }
+.field--span-3 { grid-column: span 3; }
 .field--span-5 { grid-column: span 5; }
 .field--span-7 { grid-column: span 7; }
 .field--span-8 { grid-column: span 8; }
 .field--span-4 { grid-column: span 4; }
+.field--span-6 { grid-column: span 6; }
+/* имя файла справа на третьей строке (ФИО без действия/операции) */
+.field--end { grid-column-start: 7; }
+.field--spacer {
+  visibility: hidden;
+  pointer-events: none;
+  min-height: 0;
+}
 .field--check {
   grid-column: span 12;
   display: flex;
@@ -805,10 +814,14 @@ body::after { width: 380px; height: 380px; right: -60px; bottom: 10%; background
   .field,
   .field--third,
   .field--quarter,
+  .field--span-3,
   .field--span-4,
   .field--span-5,
+  .field--span-6,
   .field--span-7,
-  .field--span-8 { grid-column: span 12; }
+  .field--span-8,
+  .field--end { grid-column: span 12; grid-column-start: auto; }
+  .field--spacer { display: none; }
   .fio-row { grid-template-columns: 1fr; }
   .sidebar-edge-btn { display: none !important; }
 }

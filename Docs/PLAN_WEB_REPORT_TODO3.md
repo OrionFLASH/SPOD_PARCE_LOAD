@@ -1,6 +1,6 @@
 # План: web-report ToDo_REPORT_3 и доработки UI
 
-Доработки поверх пункта 26 (волны 26.16–26.19).
+Доработки поверх пункта 26 (волны 26.16–26.22).
 
 ## Подзадачи
 
@@ -21,12 +21,13 @@
 | 13 | Превью: вертикальный скролл, sticky header, лимит 100 | [v] |
 | 14 | Компактная сетка полей в центре | [v] |
 | 15 | Docs + архив `*.script` | [v] |
+| 16 | Сетка источника/ФИО: лист+угол → колонки → действие|файл | [v] |
 
 ## Модули
 
-- `report_core.js` — период, fact_op, include, CSV-валидация, serialize v2, отпечатки решений дублей
-- `report_io.js` — base64 payload файлов, восстановление пакета
-- `report_app.js` / `report_styles.css` / HTML — UI
+- `report_core.js` — период, fact_op, include, CSV-валидация, serialize v3, отпечатки решений дублей
+- `report_io.js` — чтение CSV/Excel, без base64 в JSON
+- `report_app.js` / `report_styles.css` / HTML — UI (три строки полей источника/ФИО)
 - `config.json` — в т.ч. `preview_row_limit` (100)
 - тесты `src/Tests/test_web_report_core.mjs`
 

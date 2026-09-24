@@ -376,10 +376,11 @@
     if (!hasActiveFioMode()) return "";
     var pack = state.fioPack;
     var ui = state.fioUi;
+    // строка 1: лист + угол; строка 2: колонки; строка 3: имя файла справа
     var sheetBlock = "";
     if (pack && pack.kind === "excel" && pack.sheetNames && pack.sheetNames.length) {
       sheetBlock =
-        '<div class="field field--span-8"><label class="field-label" for="fio-sheet">Лист Excel</label>' +
+        '<div class="field field--third"><label class="field-label" for="fio-sheet">Лист Excel</label>' +
         '<select class="field-select" id="fio-sheet"></select></div>';
     }
     var fioErr = state.fioUi.source_error
@@ -405,18 +406,15 @@
       "</div>" +
       '<div class="fields-grid">' +
       sheetBlock +
-      '<div class="field field--quarter"><label class="field-label" for="fio-start-row">Строка угла</label>' +
+      '<div class="field field--third"><label class="field-label" for="fio-start-row">Строка угла</label>' +
       '<input class="field-input" id="fio-start-row" type="number" min="1" step="1" /></div>' +
-      '<div class="field field--quarter"><label class="field-label" for="fio-start-col">Колонка угла</label>' +
+      '<div class="field field--third"><label class="field-label" for="fio-start-col">Колонка угла</label>' +
       '<input class="field-input" id="fio-start-col" type="number" min="1" step="1" /></div>' +
-      (sheetBlock
-        ? ""
-        : '<div class="field field--span-8"><label class="field-label" for="fio-file-name">Файл</label><input class="field-input" id="fio-file-name" readonly /></div>') +
+      (sheetBlock ? "" : '<div class="field field--third field--spacer" aria-hidden="true"></div>') +
       '<div class="field"><label class="field-label" for="fio-col-fio">Колонка ФИО</label><select class="field-select" id="fio-col-fio"></select></div>' +
       '<div class="field"><label class="field-label" for="fio-col-tn">Колонка табельного</label><select class="field-select" id="fio-col-tn"></select></div>' +
-      (sheetBlock
-        ? '<div class="field field--full"><label class="field-label" for="fio-file-name">Файл таблицы</label><input class="field-input" id="fio-file-name" readonly /></div>'
-        : "") +
+      '<div class="field field--span-6 field--end"><label class="field-label" for="fio-file-name">Имя файла</label>' +
+      '<input class="field-input" id="fio-file-name" readonly /></div>' +
       "</div>" +
       '<div id="fio-preview-host"></div></div>'
     );
@@ -603,10 +601,11 @@
       ? '<div class="error-box" style="margin-bottom:10px">' + escapeHtml(t.source_error) + "</div>"
       : "";
 
+    // строка 1: лист + угол; строка 2: колонки; строка 3: действие|операция слева, имя файла справа
     var sheetBlock = "";
     if (pack && pack.kind === "excel" && pack.sheetNames && pack.sheetNames.length) {
       sheetBlock =
-        '<div class="field field--span-8"><label class="field-label" for="f-sheet">Лист Excel</label>' +
+        '<div class="field field--third"><label class="field-label" for="f-sheet">Лист Excel</label>' +
         '<select class="field-select" id="f-sheet" data-tip="Лист, с которого брать таблицу"></select></div>';
     }
 
@@ -651,16 +650,14 @@
       '<span class="mini-badge" id="data-meta"></span></div>' +
       '<div class="fields-grid">' +
       sheetBlock +
-      '<div class="field field--quarter"><label class="field-label" for="f-start-row">Строка угла</label>' +
+      '<div class="field field--third"><label class="field-label" for="f-start-row">Строка угла</label>' +
       '<input class="field-input" id="f-start-row" type="number" min="1" step="1" data-tip="Номер строки заголовка таблицы (с 1)" /></div>' +
-      '<div class="field field--quarter"><label class="field-label" for="f-start-col">Колонка угла</label>' +
+      '<div class="field field--third"><label class="field-label" for="f-start-col">Колонка угла</label>' +
       '<input class="field-input" id="f-start-col" type="number" min="1" step="1" data-tip="Номер колонки левого верхнего угла (с 1)" /></div>' +
-      (sheetBlock
-        ? ""
-        : '<div class="field field--span-8"><label class="field-label" for="f-source-name">Файл</label><input class="field-input" id="f-source-name" readonly /></div>') +
+      (sheetBlock ? "" : '<div class="field field--third field--spacer" aria-hidden="true"></div>') +
       '<div class="field"><label class="field-label" for="f-col-id">Колонка ФИО / табельного</label><select class="field-select" id="f-col-id"></select></div>' +
       '<div class="field"><label class="field-label" for="f-col-fact">Колонка показателя</label><select class="field-select" id="f-col-fact"></select></div>' +
-      '<div class="field field--span-7"><label class="field-label" for="f-fact-op">Показатель: действие</label>' +
+      '<div class="field field--span-4"><label class="field-label" for="f-fact-op">Показатель: действие</label>' +
       '<select class="field-select" id="f-fact-op" data-tip="Как преобразовать значение колонки показателя перед расчётом">' +
       '<option value="none"' +
       (factOp === "none" ? " selected" : "") +
@@ -678,11 +675,10 @@
       (factOp === "sub" ? " selected" : "") +
       ">Вычесть (−)</option>" +
       "</select></div>" +
-      '<div class="field field--span-5"><label class="field-label" for="f-fact-op-value">Число операции</label>' +
+      '<div class="field field--span-3"><label class="field-label" for="f-fact-op-value">Число операции</label>' +
       '<input class="field-input" id="f-fact-op-value" placeholder="напр. 100 или 2" data-tip="Для ×100 из доли 0,5 получится 50" /></div>' +
-      (sheetBlock
-        ? '<div class="field field--full"><label class="field-label" for="f-source-name">Имя файла</label><input class="field-input" id="f-source-name" readonly /></div>'
-        : "") +
+      '<div class="field field--span-5"><label class="field-label" for="f-source-name">Имя файла</label>' +
+      '<input class="field-input" id="f-source-name" readonly /></div>' +
       "</div>" +
       '<div id="data-preview-host"></div>' +
       "</div>" +
