@@ -18,6 +18,9 @@
       col_fio: "",
       col_tn: "",
       file_name: "",
+      source_file_b64: "",
+      source_file_kind: "",
+      source_error: "",
     },
     lastResult: null,
     checkState: {
@@ -68,23 +71,19 @@
   }
 
   function persistDraft() {
-    try {
-      var keys = storageKeys();
-      localStorage.setItem(keys.settings, JSON.stringify(ReportCore.serializeSettings(state.tournaments)));
-      localStorage.setItem(keys.fio, JSON.stringify(ReportCore.serializeFioDictionary(state.fioEntries)));
-    } catch (e) {}
+    // черновик в localStorage не используем: старт всегда пустой (п.7)
   }
 
   function restoreDraft() {
+    // намеренно пусто — турниры только через «Добавить» / JSON
+  }
+
+  function clearLegacyStorage() {
     try {
       var keys = storageKeys();
-      var s = localStorage.getItem(keys.settings);
-      var f = localStorage.getItem(keys.fio);
-      if (s) state.tournaments = ReportCore.parseSettings(JSON.parse(s));
-      if (f) state.fioEntries = ReportCore.parseFioDictionary(JSON.parse(f));
-    } catch (e) {
-      console.warn(e);
-    }
+      localStorage.removeItem(keys.settings);
+      localStorage.removeItem(keys.fio);
+    } catch (e) {}
   }
 
   function activeTournament() {
@@ -130,6 +129,7 @@
   }
 
   function tournamentReadyKind(t) {
+    if (!ReportCore.tournamentIncluded(t)) return "off";
     if (!ReportCore.tournamentIdentityUnlocked(t)) return "copy";
     var pack = state.dataByTournament[t.id];
     if (ReportCore.tournamentFieldsOk(t) && ReportCore.tournamentSourceOk(t, pack)) return "ready";
@@ -140,10 +140,16 @@
     var type = String(t.type_ind || "TN").toUpperCase() === "FIO" ? "FIO" : "TN";
     if (!state.filters.types[type]) return false;
     var kind = tournamentReadyKind(t);
-    if (!state.filters.ready[kind]) return false;
+    var readyMap = state.filters.ready;
+    if (kind === "off") {
+      // выключенные показываем всегда, если включён draft или ready
+      if (!readyMap.draft && !readyMap.ready && !readyMap.copy) return false;
+    } else if (!readyMap[kind]) {
+      return false;
+    }
     var q = String(state.filters.search || "").trim().toLowerCase();
     if (!q) return true;
-    var hay = [t.contest_code, t.tournament_code, t.full_name, t.type_ind].join(" ").toLowerCase();
+    var hay = [t.contest_code, t.tournament_code, t.full_name, t.type_ind, t.period_code].join(" ").toLowerCase();
     return hay.indexOf(q) >= 0;
   }
 
@@ -207,18 +213,28 @@
     return !!(t && String(t.type_ind || "").toUpperCase() === "FIO");
   }
 
+  function hasAnyFioMode() {
+    return state.tournaments.some(function (t) {
+      return String(t.type_ind || "").toUpperCase() === "FIO";
+    });
+  }
+
   function renderNav() {
     var nav = $("tournament-nav");
     nav.innerHTML = "";
+    var periodBadges = ReportCore.periodBadgesForTournaments(state.tournaments);
     state.tournaments.filter(matchesFilters).forEach(function (t) {
       var btn = document.createElement("button");
       btn.type = "button";
       var cls = "contest-tab";
       if (t.id === state.activeId) cls += " active";
       if (!ReportCore.tournamentIdentityUnlocked(t)) cls += " is-copy-lock";
+      if (!ReportCore.tournamentIncluded(t)) cls += " is-excluded";
+      if (t.source_error) cls += " is-error";
       btn.className = cls;
       var kind = tournamentReadyKind(t);
       var type = String(t.type_ind || "TN").toUpperCase();
+      var periodBadge = periodBadges[t.id] || ReportCore.normalizePeriodCode(t.period_code);
       var actions =
         t.id === state.activeId
           ? '<div class="ct-actions">' +
@@ -237,15 +253,20 @@
         escapeHtml(t.full_name || "Без названия") +
         "</div>" +
         '<div class="ct-badges">' +
+        '<span class="mini-badge mini-badge--period" data-tip="' +
+        escapeHtml(ReportCore.periodDisplay(t.period_code)) +
+        '">' +
+        escapeHtml(periodBadge) +
+        "</span>" +
         '<span class="mini-badge' +
         (type === "FIO" ? " mini-badge--fio" : "") +
         '">' +
         type +
         "</span>" +
         '<span class="mini-badge' +
-        (kind === "ready" ? " mini-badge--ok" : " mini-badge--warn") +
+        (kind === "ready" ? " mini-badge--ok" : kind === "off" ? " mini-badge--off" : " mini-badge--warn") +
         '">' +
-        (kind === "copy" ? "КОПИЯ" : kind === "ready" ? "OK" : "DRAFT") +
+        (kind === "copy" ? "КОПИЯ" : kind === "ready" ? "OK" : kind === "off" ? "ВЫКЛ" : "DRAFT") +
         "</span>" +
         "</div></div>" +
         actions;
@@ -282,19 +303,31 @@
     });
   }
 
-  function renderPreviewTable(pack, limit) {
-    var cols = (pack.columns || []).slice(0, 8);
+  function renderPreviewTable(pack, limit, highlightCols) {
+    var cols = pack.columns || [];
     var rows = (pack.rows || []).slice(0, limit || 12);
-    var head = cols.map(function (c) {
-      return "<th>" + escapeHtml(c) + "</th>";
-    }).join("");
+    var hl = {};
+    (highlightCols || []).forEach(function (c) {
+      if (c) hl[c] = true;
+    });
+    var head = cols
+      .map(function (c) {
+        return '<th class="' + (hl[c] ? "is-selected" : "") + '">' + escapeHtml(c) + "</th>";
+      })
+      .join("");
     var body = rows
       .map(function (row) {
         return (
           "<tr>" +
           cols
             .map(function (c) {
-              return "<td>" + escapeHtml(row[c] == null ? "" : row[c]) + "</td>";
+              return (
+                '<td class="' +
+                (hl[c] ? "is-selected" : "") +
+                '">' +
+                escapeHtml(row[c] == null ? "" : row[c]) +
+                "</td>"
+              );
             })
             .join("") +
           "</tr>"
@@ -311,6 +344,7 @@
   }
 
   function renderFioPanelHtml() {
+    // блок виден, если активный турнир в режиме FIO (при смене типа — полный re-render)
     if (!hasActiveFioMode()) return "";
     var pack = state.fioPack;
     var ui = state.fioUi;
@@ -320,10 +354,14 @@
         '<div class="field field--third"><label class="field-label" for="fio-sheet">Лист Excel</label>' +
         '<select class="field-select" id="fio-sheet"></select></div>';
     }
+    var fioErr = state.fioUi.source_error
+      ? '<div class="error-box" style="margin-bottom:10px">' + escapeHtml(state.fioUi.source_error) + "</div>"
+      : "";
     return (
       '<div class="panel" id="panel-fio">' +
       "<h2>Справочник ФИО</h2>" +
       '<p class="panel__intro">Доступен для активного турнира в режиме FIO. Загрузите JSON или таблицу и укажите угол, колонки ФИО и табельного.</p>' +
+      fioErr +
       '<div class="info-box">Записей в справочнике: <b id="fio-stats">' +
       state.fioEntries.length +
       "</b></div>" +
@@ -362,7 +400,7 @@
     if (pack) {
       fillSelect($("fio-col-fio"), pack.columns, ui.col_fio || "");
       fillSelect($("fio-col-tn"), pack.columns, ui.col_tn || "");
-      $("fio-preview-host").innerHTML = renderPreviewTable(pack, 8);
+      $("fio-preview-host").innerHTML = renderPreviewTable(pack, 8, [ui.col_fio, ui.col_tn]);
       if (pack.kind === "excel" && $("fio-sheet")) {
         fillSelect($("fio-sheet"), pack.sheetNames, ui.sheet_name || pack.sheetName || "");
         $("fio-sheet").addEventListener("change", function () {
@@ -388,6 +426,13 @@
       $(id).addEventListener("change", function () {
         state.fioUi.col_fio = $("fio-col-fio").value;
         state.fioUi.col_tn = $("fio-col-tn").value;
+        state.fioUi.source_error = "";
+        if (state.fioPack) {
+          $("fio-preview-host").innerHTML = renderPreviewTable(state.fioPack, 8, [
+            state.fioUi.col_fio,
+            state.fioUi.col_tn,
+          ]);
+        }
       });
     });
 
@@ -420,6 +465,9 @@
         state.fioPack = pack;
         state.fioUi.file_name = pack.fileName;
         state.fioUi.sheet_name = pack.sheetName || "";
+        state.fioUi.source_file_b64 = pack.source_b64 || "";
+        state.fioUi.source_file_kind = pack.kind || "";
+        state.fioUi.source_error = "";
         state.fioUi.col_fio = ReportIO.guessIdColumn(pack.columns, "FIO");
         state.fioUi.col_tn = ReportIO.guessIdColumn(pack.columns, "TN");
         renderAll();
@@ -506,6 +554,23 @@
     var lock = !ReportCore.tournamentIdentityUnlocked(t);
     var codeHighlight = lock ? " is-highlight" : "";
     var nameHighlight = lock ? " is-highlight" : "";
+    var periodOpts = ReportCore.PERIOD_OPTIONS.map(function (p) {
+      return (
+        '<option value="' +
+        p.code +
+        '"' +
+        (ReportCore.normalizePeriodCode(t.period_code) === p.code ? " selected" : "") +
+        ">" +
+        escapeHtml(p.label) +
+        " (" +
+        p.code +
+        ")</option>"
+      );
+    }).join("");
+    var factOp = t.fact_op || "none";
+    var sourceErrHtml = t.source_error
+      ? '<div class="error-box" style="margin-bottom:10px">' + escapeHtml(t.source_error) + "</div>"
+      : "";
 
     var sheetBlock = "";
     if (pack && pack.kind === "excel" && pack.sheetNames && pack.sheetNames.length) {
@@ -522,6 +587,9 @@
         ? '<div class="warn-box">Копия турнира: обязательно смените <b>код турнира</b> и <b>наименование</b>. Пока они совпадают с оригиналом — формирование заблокировано.</div>'
         : "") +
       '<div class="fields-grid">' +
+      '<div class="field field--full"><label class="check-row"><input type="checkbox" id="f-include" ' +
+      (t.include_in_report !== false ? "checked" : "") +
+      ' /> <span>Включать в проверку и выгрузку</span></label></div>' +
       '<div class="field"><label class="field-label" for="f-contest-code">Код конкурса</label><input class="field-input" id="f-contest-code" /></div>' +
       '<div class="field"><label class="field-label" for="f-tournament-code">Код турнира</label><input class="field-input' +
       codeHighlight +
@@ -537,10 +605,14 @@
       '<input class="field-input" id="f-plan" placeholder="100 или 100,5" data-tip="Целое или дробь с запятой; в CSV/XLSX — точка и 5 знаков" /></div>' +
       '<div class="field field--third"><label class="field-label" for="f-date">Дата данных</label><input class="field-input" id="f-date" type="date" /></div>' +
       '<div class="field field--third"><label class="field-label" for="f-type">Тип расчёта</label><select class="field-select" id="f-type"><option value="TN">TN — табельный</option><option value="FIO">FIO — ФИО</option></select></div>' +
+      '<div class="field"><label class="field-label" for="f-period">Период турнира</label><select class="field-select" id="f-period">' +
+      periodOpts +
+      "</select></div>" +
       "</div></div>" +
       '<div class="panel" id="panel-data">' +
       "<h2>Источник данных</h2>" +
-      '<p class="panel__intro">CSV (;) или Excel. Укажите лист и левый верхний угол таблицы (строка и колонка заголовка, по умолчанию 1 и 1).</p>' +
+      '<p class="panel__intro">CSV (;) или Excel. Укажите лист и левый верхний угол таблицы (строка и колонка заголовка, по умолчанию 1 и 1). Для показателя можно задать множитель/делитель/±.</p>' +
+      sourceErrHtml +
       '<div class="toolbar-row">' +
       '<label class="btn btn-primary file-pick" data-tip="Загрузить CSV или Excel с показателями">' +
       '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21V9"/><path d="M7 14l5-5 5 5"/><path d="M5 3h14"/></svg> Загрузить CSV / Excel' +
@@ -554,6 +626,26 @@
       '<input class="field-input" id="f-start-col" type="number" min="1" step="1" data-tip="Номер колонки левого верхнего угла (с 1)" /></div>' +
       '<div class="field"><label class="field-label" for="f-col-id">Колонка ФИО / табельного</label><select class="field-select" id="f-col-id"></select></div>' +
       '<div class="field"><label class="field-label" for="f-col-fact">Колонка показателя</label><select class="field-select" id="f-col-fact"></select></div>' +
+      '<div class="field"><label class="field-label" for="f-fact-op">Показатель: действие</label>' +
+      '<select class="field-select" id="f-fact-op" data-tip="Как преобразовать значение колонки показателя перед расчётом">' +
+      '<option value="none"' +
+      (factOp === "none" ? " selected" : "") +
+      ">Брать неизменно</option>" +
+      '<option value="mul"' +
+      (factOp === "mul" ? " selected" : "") +
+      ">Умножить (×)</option>" +
+      '<option value="div"' +
+      (factOp === "div" ? " selected" : "") +
+      ">Разделить (÷)</option>" +
+      '<option value="add"' +
+      (factOp === "add" ? " selected" : "") +
+      ">Сложить (+)</option>" +
+      '<option value="sub"' +
+      (factOp === "sub" ? " selected" : "") +
+      ">Вычесть (−)</option>" +
+      "</select></div>" +
+      '<div class="field"><label class="field-label" for="f-fact-op-value">Число операции</label>' +
+      '<input class="field-input" id="f-fact-op-value" placeholder="напр. 100 или 2" data-tip="Для ×100 из доли 0,5 получится 50" /></div>' +
       '<div class="field field--full"><label class="field-label" for="f-source-name">Имя файла</label><input class="field-input" id="f-source-name" readonly /></div>' +
       "</div>" +
       '<div id="data-preview-host"></div>' +
@@ -577,12 +669,19 @@
     $("f-source-name").value = t.source_file_name || "";
     $("f-start-row").value = t.table_start_row || (pack && pack.start_row) || 1;
     $("f-start-col").value = t.table_start_col || (pack && pack.start_col) || 1;
+    $("f-fact-op-value").value = t.fact_op_value != null ? t.fact_op_value : "1";
 
     var colId = $("f-col-id");
     var colFact = $("f-col-fact");
     if (pack) {
       fillSelect(colId, pack.columns, t.column_id || "");
       fillSelect(colFact, pack.columns, t.column_fact || "");
+      if (t.column_id && pack.columns.indexOf(t.column_id) < 0) {
+        colId.classList.add("is-error");
+      }
+      if (t.column_fact && pack.columns.indexOf(t.column_fact) < 0) {
+        colFact.classList.add("is-error");
+      }
       $("data-meta").textContent =
         pack.rows.length +
         " строк · угол " +
@@ -591,9 +690,12 @@
         (pack.start_col || 1) +
         (pack.encoding ? " · " + pack.encoding : "") +
         (pack.sheetName ? " · лист: " + pack.sheetName : "");
-      $("data-preview-host").innerHTML = renderPreviewTable(pack);
+      $("data-preview-host").innerHTML = renderPreviewTable(pack, 12, [t.column_id, t.column_fact]);
       if (pack.kind === "excel" && $("f-sheet")) {
         fillSelect($("f-sheet"), pack.sheetNames, t.sheet_name || pack.sheetName || "");
+        if (t.sheet_name && pack.sheetNames && pack.sheetNames.indexOf(t.sheet_name) < 0) {
+          $("f-sheet").classList.add("is-error");
+        }
         $("f-sheet").addEventListener("change", function () {
           reapplyDataOrigin({ sheetName: $("f-sheet").value });
         });
@@ -601,7 +703,7 @@
     } else {
       fillSelect(colId, [], "");
       fillSelect(colFact, [], "");
-      $("data-meta").textContent = "файл не загружен";
+      $("data-meta").textContent = t.source_file_name ? "файл не загружен: " + t.source_file_name : "файл не загружен";
       $("data-preview-host").innerHTML =
         '<div class="warn-box">Загрузите файл — здесь появятся пример строк, угол таблицы и выбор колонок.</div>';
     }
@@ -652,14 +754,27 @@
   }
 
   function bindEditorEvents() {
-    ["f-contest-code", "f-tournament-code", "f-full-name", "f-plan", "f-date", "f-type", "f-col-id", "f-col-fact"].forEach(
-      function (id) {
-        var el = $(id);
-        if (!el) return;
-        el.addEventListener("change", onEditorChange);
+    [
+      "f-contest-code",
+      "f-tournament-code",
+      "f-full-name",
+      "f-plan",
+      "f-date",
+      "f-type",
+      "f-period",
+      "f-col-id",
+      "f-col-fact",
+      "f-fact-op",
+      "f-fact-op-value",
+      "f-include",
+    ].forEach(function (id) {
+      var el = $(id);
+      if (!el) return;
+      el.addEventListener("change", onEditorChange);
+      if (el.type !== "checkbox" && el.tagName !== "SELECT") {
         el.addEventListener("input", onEditorChange);
       }
-    );
+    });
     ["f-start-row", "f-start-col"].forEach(function (id) {
       var el = $(id);
       if (!el) return;
@@ -681,20 +796,37 @@
     }
   }
 
-  function onEditorChange() {
+  function onEditorChange(ev) {
+    var prevType = activeTournament() && activeTournament().type_ind;
     flushEditorToState();
     var t = activeTournament();
+    var unlockedNow = false;
     if (t && t.needs_identity_fix && ReportCore.tournamentIdentityUnlocked(t)) {
       t.needs_identity_fix = false;
       t.copy_lock_code = "";
       t.copy_lock_name = "";
+      unlockedNow = true;
       showToast("Копия разблокирована");
     }
     invalidateChecks();
-    persistDraft();
+    var typeChanged = t && String(prevType || "") !== String(t.type_ind || "");
+    var needFull =
+      unlockedNow ||
+      typeChanged ||
+      (ev && ev.target && (ev.target.id === "f-include" || ev.target.id === "f-period" || ev.target.id === "f-fact-op"));
+    if (needFull) {
+      renderAll();
+      return;
+    }
+    // подсветка выбранных колонок в превью
+    if (t && state.dataByTournament[t.id] && $("data-preview-host")) {
+      $("data-preview-host").innerHTML = renderPreviewTable(state.dataByTournament[t.id], 12, [
+        t.column_id,
+        t.column_fact,
+      ]);
+    }
     renderStages();
     renderNav();
-    // обновить подсветку полей без полного рендера при вводе кода/имени
     var lock = t && !ReportCore.tournamentIdentityUnlocked(t);
     ["f-tournament-code", "f-full-name"].forEach(function (id) {
       var el = $(id);
@@ -713,11 +845,26 @@
     t.plan_value = $("f-plan").value.trim();
     t.contest_date = $("f-date").value.trim();
     t.type_ind = $("f-type").value;
+    if ($("f-period")) t.period_code = ReportCore.normalizePeriodCode($("f-period").value);
+    if ($("f-include")) t.include_in_report = !!$("f-include").checked;
     t.column_id = $("f-col-id").value;
     t.column_fact = $("f-col-fact").value;
+    if ($("f-fact-op")) t.fact_op = $("f-fact-op").value || "none";
+    if ($("f-fact-op-value")) t.fact_op_value = $("f-fact-op-value").value.trim() || "1";
     if ($("f-sheet")) t.sheet_name = $("f-sheet").value;
     if ($("f-start-row")) t.table_start_row = Number($("f-start-row").value) || 1;
     if ($("f-start-col")) t.table_start_col = Number($("f-start-col").value) || 1;
+    // сброс ошибки источника, если колонки снова валидны
+    var pack = state.dataByTournament[t.id];
+    if (pack) {
+      var errs = [];
+      if (t.column_id && pack.columns.indexOf(t.column_id) < 0) errs.push("колонка ID не найдена: " + t.column_id);
+      if (t.column_fact && pack.columns.indexOf(t.column_fact) < 0) errs.push("колонка показателя не найдена: " + t.column_fact);
+      if (t.sheet_name && pack.sheetNames && pack.sheetNames.length && pack.sheetNames.indexOf(t.sheet_name) < 0) {
+        errs.push("лист не найден: " + t.sheet_name);
+      }
+      t.source_error = errs.join("; ");
+    }
   }
 
   function renderAll() {
@@ -752,16 +899,25 @@
     state.tournaments.push(copy);
     var pack = state.dataByTournament[src.id];
     if (pack) {
-      state.dataByTournament[copy.id] = JSON.parse(JSON.stringify({
-        kind: pack.kind,
-        rows: pack.rows,
-        columns: pack.columns,
-        encoding: pack.encoding,
-        fileName: pack.fileName,
-        sheetName: pack.sheetName,
-        sheetNames: pack.sheetNames,
-        sheets: pack.sheets,
-      }));
+      state.dataByTournament[copy.id] = JSON.parse(
+        JSON.stringify({
+          kind: pack.kind,
+          rows: pack.rows,
+          columns: pack.columns,
+          encoding: pack.encoding,
+          fileName: pack.fileName,
+          sheetName: pack.sheetName,
+          sheetNames: pack.sheetNames,
+          sheets: pack.sheets,
+          sheetsAoa: pack.sheetsAoa,
+          rawAoa: pack.rawAoa,
+          start_row: pack.start_row,
+          start_col: pack.start_col,
+          source_b64: pack.source_b64,
+        })
+      );
+      copy.source_file_b64 = pack.source_b64 || src.source_file_b64 || "";
+      copy.source_file_kind = pack.kind || src.source_file_kind || "";
     }
     state.activeId = copy.id;
     invalidateChecks();
@@ -795,6 +951,9 @@
       var pack = await ReportIO.readTableFile(file, sr, sc);
       state.dataByTournament[t.id] = pack;
       t.source_file_name = pack.fileName;
+      t.source_file_kind = pack.kind;
+      t.source_file_b64 = pack.source_b64 || "";
+      t.source_error = "";
       t.sheet_name = pack.sheetName || "";
       t.table_start_row = pack.start_row || sr;
       t.table_start_col = pack.start_col || sc;
@@ -993,7 +1152,7 @@
     var allRows = [];
     var allMissing = [];
     var seen = Object.create(null);
-    state.tournaments.forEach(function (t) {
+    ReportCore.includedTournaments(state.tournaments).forEach(function (t) {
       var pack = state.dataByTournament[t.id] || { rows: [] };
       var part = ReportCore.normalizeTournamentRows(pack.rows, t, fioMap, coreOpts());
       allRows = allRows.concat(part.rows);
@@ -1112,7 +1271,7 @@
     flushEditorToState();
     var st = stages();
     if (!st.hasTournaments) {
-      alert("Добавьте хотя бы один турнир");
+      alert("Нет турниров, включённых в выгрузку. Добавьте турнир или включите галочку «Включать в проверку и выгрузку».");
       return false;
     }
     if (st.blockedCopies.length) {
@@ -1120,11 +1279,22 @@
       return false;
     }
     if (!st.fieldsFilled) {
-      alert("Заполните все параметры турниров (код конкурса, код турнира, план, дата, название, тип)");
+      alert("Заполните все параметры включённых турниров (код конкурса, код турнира, план, дата, название, тип, период)");
       return false;
     }
-    if (!st.sourcesOk) {
-      alert("У каждого турнира загрузите данные и укажите колонки идентификатора и показателя");
+    var broken = ReportCore.includedTournaments(state.tournaments).filter(function (t) {
+      return !!t.source_error || !ReportCore.tournamentSourceOk(t, state.dataByTournament[t.id]);
+    });
+    if (broken.length || !st.sourcesOk) {
+      var details = broken
+        .map(function (t) {
+          return (t.tournament_code || t.id) + (t.source_error ? ": " + t.source_error : "");
+        })
+        .join("\n");
+      alert(
+        "У включённых турниров загрузите данные и укажите существующие колонки/листы.\n" +
+          (details || "Проверьте источники.")
+      );
       return false;
     }
     return true;
@@ -1254,21 +1424,200 @@
       csvRows: result.summary.csvRows,
       xlsxRows: result.summary.xlsxRows,
     };
+    // сразу пометить строки для Excel / гейта CSV
+    var gate = ReportCore.validateCsvExportRows(state.lastResult.rows, coreOpts());
+    state.lastResult.xlsxRows = ReportCore.rowsForXlsx(gate.rowsMarked);
+    state.lastResult.csvRows = gate.ok ? ReportCore.rowsForCsv(gate.rowsMarked) : [];
+    state.lastResult.csvGate = gate;
     renderAll();
-    showToast("Готово");
-    setStatus("сформировано CSV " + state.lastResult.csvRows.length + " / XLSX " + state.lastResult.xlsxRows.length);
+    showToast(gate.ok ? "Готово" : "Готово · CSV потребует исправлений");
+    setStatus(
+      "сформировано XLSX " +
+        state.lastResult.xlsxRows.length +
+        (gate.ok ? " / CSV " + state.lastResult.csvRows.length : " · CSV заблокирован")
+    );
+  }
+
+  function showCsvBlockModal(validation) {
+    var lines = (validation.byTournament || []).map(function (s) {
+      return (
+        "<tr><td>" +
+        escapeHtml(s.tournament_code) +
+        "</td><td>" +
+        s.duplicates +
+        "</td><td>" +
+        s.bad_person +
+        "</td><td>" +
+        s.empty_cells +
+        "</td></tr>"
+      );
+    });
+    var html =
+      '<div class="error-box">' +
+      escapeHtml(validation.message) +
+      "</div>" +
+      '<table class="preview-table" style="margin-top:12px;width:100%"><thead><tr>' +
+      "<th>Турнир</th><th>Дубли строк</th><th>ТН≠20 цифр</th><th>Пустые ячейки</th>" +
+      "</tr></thead><tbody>" +
+      (lines.join("") || "<tr><td colspan='4'>нет детализации</td></tr>") +
+      "</tbody></table>" +
+      '<p class="panel__intro" style="margin-top:10px">XLSX можно скачать с пометками в колонке CSV_ERROR. CSV — только после исправления.</p>';
+    var title = $("modal-check-title");
+    var body = $("modal-check-body");
+    if (title) title.textContent = "CSV заблокирован";
+    if (body) body.innerHTML = html;
+    openModal("modal-check");
+    $("modal-check-close").onclick = function () {
+      closeModal("modal-check");
+    };
+  }
+
+  function prepareExportRows() {
+    if (!state.lastResult || !state.lastResult.ok) return null;
+    var validation = ReportCore.validateCsvExportRows(state.lastResult.rows, coreOpts());
+    var xlsxRows = ReportCore.rowsForXlsx(validation.rowsMarked);
+    var csvRows = validation.ok ? ReportCore.rowsForCsv(validation.rowsMarked) : [];
+    return { validation: validation, csvRows: csvRows, xlsxRows: xlsxRows };
   }
 
   function exportCsv() {
     if (!state.lastResult || !state.lastResult.ok) return;
-    ReportIO.downloadReportCsv(state.lastResult.csvRows, ReportIO.timestampName("REPORT", "csv"));
+    var prepared = prepareExportRows();
+    if (!prepared.validation.ok) {
+      showCsvBlockModal(prepared.validation);
+      setStatus("CSV заблокирован");
+      return;
+    }
+    ReportIO.downloadReportCsv(prepared.csvRows, ReportIO.timestampName("REPORT", "csv"));
     showToast("CSV сохранён");
   }
 
   function exportXlsx() {
     if (!state.lastResult || !state.lastResult.ok) return;
-    ReportIO.downloadReportXlsx(state.lastResult.xlsxRows, ReportIO.timestampName("REPORT", "xlsx"));
+    var prepared = prepareExportRows();
+    if (!prepared.validation.ok) {
+      // Excel разрешён с пометками; кратко предупредим
+      showToast("XLSX с пометками CSV_ERROR");
+    }
+    ReportIO.downloadReportXlsx(prepared.xlsxRows, ReportIO.timestampName("REPORT", "xlsx"));
     showToast("XLSX сохранён");
+  }
+
+  function buildSettingsPayload() {
+    var payloads = {};
+    state.tournaments.forEach(function (t) {
+      var pack = state.dataByTournament[t.id];
+      if (pack && pack.source_b64) {
+        payloads[t.id] = { b64: pack.source_b64, kind: pack.kind };
+      } else if (t.source_file_b64) {
+        payloads[t.id] = { b64: t.source_file_b64, kind: t.source_file_kind || "" };
+      }
+    });
+    var fioMeta = {
+      entries: state.fioEntries,
+      file_name: state.fioUi.file_name || "",
+      sheet_name: state.fioUi.sheet_name || "",
+      start_row: state.fioUi.start_row || 1,
+      start_col: state.fioUi.start_col || 1,
+      col_fio: state.fioUi.col_fio || "",
+      col_tn: state.fioUi.col_tn || "",
+      source_file_b64: (state.fioPack && state.fioPack.source_b64) || state.fioUi.source_file_b64 || "",
+      source_file_kind: (state.fioPack && state.fioPack.kind) || state.fioUi.source_file_kind || "",
+    };
+    return ReportCore.serializeSettings(state.tournaments, fioMeta, payloads);
+  }
+
+  function applySourceErrors(t, pack) {
+    var errs = [];
+    if (!pack) {
+      if (t.source_file_name) errs.push("файл источника не найден: " + t.source_file_name);
+      t.source_error = errs.join("; ");
+      return;
+    }
+    if (t.sheet_name && pack.sheetNames && pack.sheetNames.length && pack.sheetNames.indexOf(t.sheet_name) < 0) {
+      errs.push("лист не найден: " + t.sheet_name);
+    }
+    if (t.column_id && pack.columns.indexOf(t.column_id) < 0) errs.push("колонка ID не найдена: " + t.column_id);
+    if (t.column_fact && pack.columns.indexOf(t.column_fact) < 0) {
+      errs.push("колонка показателя не найдена: " + t.column_fact);
+    }
+    t.source_error = errs.join("; ");
+  }
+
+  async function loadSettingsFromJson(data) {
+    var parsed = ReportCore.parseSettings(data);
+    state.tournaments = parsed.tournaments;
+    state.dataByTournament = {};
+    state.fioPack = null;
+    state.fioUi.source_error = "";
+
+    // восстановить источники турниров из base64
+    state.tournaments.forEach(function (t) {
+      var pack = null;
+      try {
+        pack = ReportIO.packFromStoredSource({
+          source_file_b64: t.source_file_b64,
+          source_file_name: t.source_file_name,
+          source_file_kind: t.source_file_kind,
+          sheet_name: t.sheet_name,
+          table_start_row: t.table_start_row,
+          table_start_col: t.table_start_col,
+        });
+      } catch (err) {
+        t.source_error = "ошибка чтения вложенного файла: " + (err.message || err);
+        pack = null;
+      }
+      if (pack) {
+        state.dataByTournament[t.id] = pack;
+      }
+      applySourceErrors(t, pack);
+    });
+
+    // ФИО блок из JSON
+    if (parsed.fio) {
+      if (Array.isArray(parsed.fio.entries)) {
+        state.fioEntries = parsed.fio.entries.map(function (e) {
+          return {
+            fio: String(e.fio || "").trim(),
+            person_number: String(e.person_number || "").trim(),
+          };
+        });
+      }
+      state.fioUi.file_name = parsed.fio.file_name || "";
+      state.fioUi.sheet_name = parsed.fio.sheet_name || "";
+      state.fioUi.start_row = parsed.fio.start_row || 1;
+      state.fioUi.start_col = parsed.fio.start_col || 1;
+      state.fioUi.col_fio = parsed.fio.col_fio || "";
+      state.fioUi.col_tn = parsed.fio.col_tn || "";
+      state.fioUi.source_file_b64 = parsed.fio.source_file_b64 || "";
+      state.fioUi.source_file_kind = parsed.fio.source_file_kind || "";
+      if (parsed.fio.source_file_b64) {
+        try {
+          state.fioPack = ReportIO.packFromStoredSource({
+            source_file_b64: parsed.fio.source_file_b64,
+            source_file_name: parsed.fio.file_name,
+            source_file_kind: parsed.fio.source_file_kind,
+            sheet_name: parsed.fio.sheet_name,
+            table_start_row: parsed.fio.start_row,
+            table_start_col: parsed.fio.start_col,
+          });
+          if (state.fioPack) {
+            if (state.fioUi.col_fio && state.fioPack.columns.indexOf(state.fioUi.col_fio) < 0) {
+              state.fioUi.source_error = "колонка ФИО не найдена: " + state.fioUi.col_fio;
+            } else if (state.fioUi.col_tn && state.fioPack.columns.indexOf(state.fioUi.col_tn) < 0) {
+              state.fioUi.source_error = "колонка табельного не найдена: " + state.fioUi.col_tn;
+            }
+          }
+        } catch (err) {
+          state.fioUi.source_error = "ошибка файла ФИО: " + (err.message || err);
+        }
+      } else if (parsed.fio.file_name) {
+        state.fioUi.source_error = "файл ФИО не вложен в JSON: " + parsed.fio.file_name;
+      }
+    }
+
+    invalidateChecks();
+    state.activeId = state.tournaments[0] ? state.tournaments[0].id : null;
   }
 
   function readJsonFile(file) {
@@ -1316,13 +1665,14 @@
 
   async function init() {
     await loadConfig();
+    clearLegacyStorage();
     restoreDraft();
 
     $("btn-add-tournament").addEventListener("click", addTournament);
     $("btn-save-settings").addEventListener("click", function () {
       flushEditorToState();
-      ReportIO.downloadJson(ReportIO.timestampName("web_report_settings", "json"), ReportCore.serializeSettings(state.tournaments));
-      showToast("JSON настроек");
+      ReportIO.downloadJson(ReportIO.timestampName("web_report_settings", "json"), buildSettingsPayload());
+      showToast("JSON настроек (+файлы)");
     });
     $("import-settings").addEventListener("change", async function (ev) {
       var file = ev.target.files && ev.target.files[0];
@@ -1330,12 +1680,9 @@
       if (!file) return;
       try {
         var data = await readJsonFile(file);
-        state.tournaments = ReportCore.parseSettings(data);
-        state.dataByTournament = {};
-        invalidateChecks();
-        state.activeId = state.tournaments[0] ? state.tournaments[0].id : null;
+        await loadSettingsFromJson(data);
         renderAll();
-        showToast("Настройки загружены");
+        showToast("Настройки и файлы загружены");
       } catch (err) {
         alert(err.message || String(err));
       }

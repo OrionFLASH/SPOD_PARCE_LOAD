@@ -74,6 +74,111 @@
     return formatNumberDot(num, decimals).replace(".", ",");
   }
 
+  /** Периоды турнира: Y / Q1–Q4 / M1–M12 / F */
+  var PERIOD_OPTIONS = [
+    { code: "Y", label: "Турнир года" },
+    { code: "Q1", label: "1 квартал" },
+    { code: "Q2", label: "2 квартал" },
+    { code: "Q3", label: "3 квартал" },
+    { code: "Q4", label: "4 квартал" },
+    { code: "M1", label: "Январь" },
+    { code: "M2", label: "Февраль" },
+    { code: "M3", label: "Март" },
+    { code: "M4", label: "Апрель" },
+    { code: "M5", label: "Май" },
+    { code: "M6", label: "Июнь" },
+    { code: "M7", label: "Июль" },
+    { code: "M8", label: "Август" },
+    { code: "M9", label: "Сентябрь" },
+    { code: "M10", label: "Октябрь" },
+    { code: "M11", label: "Ноябрь" },
+    { code: "M12", label: "Декабрь" },
+    { code: "F", label: "Произвольный" },
+  ];
+
+  function normalizePeriodCode(code) {
+    var c = String(code == null ? "Y" : code).trim().toUpperCase();
+    for (var i = 0; i < PERIOD_OPTIONS.length; i++) {
+      if (PERIOD_OPTIONS[i].code === c) {
+        return c;
+      }
+    }
+    return "F";
+  }
+
+  function periodLabel(code) {
+    var c = normalizePeriodCode(code);
+    for (var i = 0; i < PERIOD_OPTIONS.length; i++) {
+      if (PERIOD_OPTIONS[i].code === c) {
+        return PERIOD_OPTIONS[i].label;
+      }
+    }
+    return "Произвольный";
+  }
+
+  function periodDisplay(code) {
+    var c = normalizePeriodCode(code);
+    return periodLabel(c) + " " + c;
+  }
+
+  /**
+   * Краткие метки периода в списке: Y, Q1, M1…
+   * Если в одном CONTEST_CODE несколько турниров с одним периодом — суффикс (1)(2).
+   */
+  function periodBadgesForTournaments(tournaments) {
+    var list = tournaments || [];
+    var counts = Object.create(null);
+    var seen = Object.create(null);
+    list.forEach(function (t) {
+      var key = String(t.contest_code || "").trim() + "|" + normalizePeriodCode(t.period_code);
+      counts[key] = (counts[key] || 0) + 1;
+    });
+    var out = Object.create(null);
+    list.forEach(function (t) {
+      var code = normalizePeriodCode(t.period_code);
+      var key = String(t.contest_code || "").trim() + "|" + code;
+      if (counts[key] <= 1) {
+        out[t.id] = code;
+        return;
+      }
+      seen[key] = (seen[key] || 0) + 1;
+      out[t.id] = code + "(" + seen[key] + ")";
+    });
+    return out;
+  }
+
+  /** Операции над показателем перед записью в FACT_VALUE. */
+  function applyFactOperation(rawNum, op, opValue) {
+    var n = typeof rawNum === "number" && isFinite(rawNum) ? rawNum : 0;
+    var mode = String(op || "none").toLowerCase();
+    var v = parseNumberFromComma(opValue == null || opValue === "" ? (mode === "mul" || mode === "div" ? 1 : 0) : opValue);
+    if (mode === "mul" || mode === "multiply" || mode === "*") {
+      return n * v;
+    }
+    if (mode === "div" || mode === "divide" || mode === "/") {
+      if (v === 0) {
+        return n;
+      }
+      return n / v;
+    }
+    if (mode === "add" || mode === "+") {
+      return n + v;
+    }
+    if (mode === "sub" || mode === "subtract" || mode === "-") {
+      return n - v;
+    }
+    return n;
+  }
+
+  function isValidPersonNumber20(value, length) {
+    var len = length == null ? DEFAULTS.personNumberLength : length;
+    var text = String(value == null ? "" : value).trim();
+    if (text.length !== len) {
+      return false;
+    }
+    return /^\d+$/.test(text);
+  }
+
   function padPersonNumber(raw, length) {
     var len = length == null ? DEFAULTS.personNumberLength : length;
     var text = String(raw == null ? "" : raw).trim();
@@ -169,7 +274,9 @@
         personRaw = String(idRaw).trim();
       }
 
-      var factNum = parseNumberFromComma(raw[colFact]);
+      var factRaw = parseNumberFromComma(raw[colFact]);
+      var factNum = applyFactOperation(factRaw, tournament.fact_op, tournament.fact_op_value);
+      var periodCode = normalizePeriodCode(tournament.period_code);
       rows.push({
         source_index: index,
         tournament_id: tournament.id || "",
@@ -181,6 +288,8 @@
         FACT_VALUE: formatNumberDot(factNum, cfg.numberDecimals),
         priority_type: String(cfg.priorityType),
         "CONTEST-DATA=>FULL_NAME": String(tournament.full_name || "").trim(),
+        PERIOD_CODE: periodCode,
+        PERIOD: periodDisplay(periodCode),
         FIO: fio,
         "ТАБЕЛЬНЫЙ НЕ НАЙДЕН": notFound,
         PLAN_VALUE_число: planNum,
@@ -189,6 +298,7 @@
         "СУММА ПО ТАБЕЛЬНОМУ": cfg.noDuplicateMark,
         "В ФОРМАТЕ": cfg.noDuplicateMark,
         duplicate_comment: "",
+        CSV_ERROR: cfg.noDuplicateMark,
         include_in_csv: true,
       });
     });
@@ -445,6 +555,8 @@
     "FACT_VALUE",
     "priority_type",
     "CONTEST-DATA=>FULL_NAME",
+    "PERIOD",
+    "PERIOD_CODE",
     "ДУБЛЬ",
     "СУММА ПО ТАБЕЛЬНОМУ",
     "В ФОРМАТЕ",
@@ -453,6 +565,7 @@
     "FIO",
     "ТАБЕЛЬНЫЙ НЕ НАЙДЕН",
     "КОММЕНТАРИЙ_ДУБЛЬ",
+    "CSV_ERROR",
   ];
 
   function rowsForCsv(rows) {
@@ -481,6 +594,98 @@
       });
       return out;
     });
+  }
+
+  /**
+   * Проверки перед выгрузкой CSV.
+   * Блокирует: дубли ключа, ТН не из 20 цифр, пустые ячейки CSV-колонок.
+   */
+  function validateCsvExportRows(rows, options) {
+    var cfg = mergeDefaults(options);
+    var list = (rows || []).filter(function (r) {
+      return r.include_in_csv !== false;
+    });
+    var keyCounts = Object.create(null);
+    list.forEach(function (r) {
+      var key = duplicateKey(r);
+      keyCounts[key] = (keyCounts[key] || 0) + 1;
+    });
+
+    var byTournament = Object.create(null);
+    function bump(tCode, field) {
+      var k = tCode || "(без кода)";
+      if (!byTournament[k]) {
+        byTournament[k] = { tournament_code: k, duplicates: 0, bad_person: 0, empty_cells: 0 };
+      }
+      byTournament[k][field] += 1;
+    }
+
+    var duplicateKeys = [];
+    var badPerson = [];
+    var emptyCells = [];
+    var marked = (rows || []).map(function (r) {
+      var copy = Object.assign({}, r);
+      var errs = [];
+      if (copy.include_in_csv === false) {
+        copy.CSV_ERROR = cfg.noDuplicateMark;
+        return copy;
+      }
+      var key = duplicateKey(copy);
+      if (keyCounts[key] > 1) {
+        errs.push("дубль " + key);
+        bump(copy.TOURNAMENT_CODE, "duplicates");
+        if (duplicateKeys.indexOf(key) < 0) {
+          duplicateKeys.push(key);
+        }
+      }
+      if (!isValidPersonNumber20(copy.MANAGER_PERSON_NUMBER, cfg.personNumberLength)) {
+        errs.push("ТН не " + cfg.personNumberLength + " цифр");
+        bump(copy.TOURNAMENT_CODE, "bad_person");
+        badPerson.push({
+          tournament_code: copy.TOURNAMENT_CODE,
+          contest_code: copy.CONTEST_CODE,
+          value: copy.MANAGER_PERSON_NUMBER,
+        });
+      }
+      CSV_COLUMNS.forEach(function (c) {
+        var v = copy[c];
+        if (v == null || String(v).trim() === "" || String(v).toLowerCase() === "null") {
+          errs.push("пустое " + c);
+          bump(copy.TOURNAMENT_CODE, "empty_cells");
+          emptyCells.push({
+            tournament_code: copy.TOURNAMENT_CODE,
+            column: c,
+          });
+        }
+      });
+      copy.CSV_ERROR = errs.length ? errs.join("; ") : cfg.noDuplicateMark;
+      return copy;
+    });
+
+    var tournamentSummaries = Object.keys(byTournament).map(function (k) {
+      return byTournament[k];
+    });
+    var ok = duplicateKeys.length === 0 && badPerson.length === 0 && emptyCells.length === 0;
+
+    return {
+      ok: ok,
+      rowsMarked: marked,
+      duplicateKeys: duplicateKeys,
+      badPerson: badPerson,
+      emptyCells: emptyCells,
+      byTournament: tournamentSummaries,
+      message: ok
+        ? "CSV готов"
+        : "CSV заблокирован: исправьте дубли / формат табельного / пустые поля",
+    };
+  }
+
+  function tournamentIncluded(t) {
+    return !t || t.include_in_report !== false;
+  }
+
+  function includedTournaments(tournaments) {
+    return (tournaments || []).filter(tournamentIncluded);
   }
 
   /**
@@ -542,12 +747,17 @@
       contest_date: "",
       full_name: "",
       type_ind: "TN",
+      period_code: "Y",
       column_id: "",
       column_fact: "",
+      fact_op: "none",
+      fact_op_value: "1",
       source_file_name: "",
       sheet_name: "",
       table_start_row: 1,
       table_start_col: 1,
+      include_in_report: true,
+      source_error: "",
       needs_identity_fix: false,
       copy_lock_code: "",
       copy_lock_name: "",
@@ -556,6 +766,10 @@
       Object.keys(partial).forEach(function (k) {
         t[k] = partial[k];
       });
+    }
+    t.period_code = normalizePeriodCode(t.period_code);
+    if (t.include_in_report === undefined) {
+      t.include_in_report = true;
     }
     return t;
   }
@@ -569,12 +783,16 @@
       contest_date: src.contest_date,
       full_name: src.full_name,
       type_ind: src.type_ind,
+      period_code: src.period_code,
       column_id: src.column_id,
       column_fact: src.column_fact,
+      fact_op: src.fact_op || "none",
+      fact_op_value: src.fact_op_value != null ? src.fact_op_value : "1",
       source_file_name: src.source_file_name,
       sheet_name: src.sheet_name,
       table_start_row: src.table_start_row || 1,
       table_start_col: src.table_start_col || 1,
+      include_in_report: src.include_in_report !== false,
       needs_identity_fix: true,
       copy_lock_code: String(src.tournament_code || "").trim(),
       copy_lock_name: String(src.full_name || "").trim(),
@@ -592,7 +810,8 @@
       String(t.contest_date || "").trim() &&
       String(t.plan_value || "").trim() &&
       String(t.full_name || "").trim() &&
-      String(t.type_ind || "").trim()
+      String(t.type_ind || "").trim() &&
+      String(t.period_code || "").trim()
     );
   }
 
@@ -604,24 +823,31 @@
     var name = String(t.full_name || "").trim();
     var lockCode = String(t.copy_lock_code || "").trim();
     var lockName = String(t.copy_lock_name || "").trim();
-    return code !== lockCode && name !== lockName && !!code && !!name;
+    if (!code || !name) {
+      return false;
+    }
+    // разблокировка: оба поля изменены относительно значений при копировании
+    return code !== lockCode && name !== lockName;
   }
 
   function tournamentSourceOk(t, dataPack) {
     if (!t || !dataPack || !dataPack.rows || !dataPack.rows.length) {
       return false;
     }
-    return !!(String(t.column_id || "").trim() && String(t.column_fact || "").trim());
+    if (t.source_error) {
+      return false;
+    }
+    var cols = dataPack.columns || [];
+    var idOk = String(t.column_id || "").trim() && cols.indexOf(t.column_id) >= 0;
+    var factOk = String(t.column_fact || "").trim() && cols.indexOf(t.column_fact) >= 0;
+    return !!(idOk && factOk);
   }
 
   /**
-   * Стадии готовности для шапки.
-   * dataById: { [tournamentId]: { rows, columns } }
-   * fioEntries: массив справочника
-   * checkState: { duplicatesCleared: bool, missingFioCleared: bool } | null
+   * Стадии готовности для шапки (только турниры с include_in_report).
    */
   function computeStages(tournaments, dataById, fioEntries, checkState) {
-    var list = tournaments || [];
+    var list = includedTournaments(tournaments);
     var data = dataById || {};
     var fioMap = buildFioMap(fioEntries || []);
     var hasTournaments = list.length > 0;
@@ -693,11 +919,13 @@
     };
   }
 
-  function serializeSettings(tournaments) {
+  function serializeSettings(tournaments, fioMeta, dataPayloads) {
+    var payloads = dataPayloads || {};
     return {
-      version: 1,
+      version: 2,
       kind: "spod_web_report_settings",
       tournaments: (tournaments || []).map(function (t) {
+        var payload = payloads[t.id] || null;
         return {
           id: t.id,
           contest_code: t.contest_code,
@@ -706,17 +934,24 @@
           contest_date: t.contest_date,
           full_name: t.full_name,
           type_ind: t.type_ind,
+          period_code: normalizePeriodCode(t.period_code),
           column_id: t.column_id || "",
           column_fact: t.column_fact || "",
+          fact_op: t.fact_op || "none",
+          fact_op_value: t.fact_op_value != null ? String(t.fact_op_value) : "1",
           source_file_name: t.source_file_name || "",
           sheet_name: t.sheet_name || "",
           table_start_row: t.table_start_row || 1,
           table_start_col: t.table_start_col || 1,
+          include_in_report: t.include_in_report !== false,
           needs_identity_fix: !!t.needs_identity_fix,
           copy_lock_code: t.copy_lock_code || "",
           copy_lock_name: t.copy_lock_name || "",
+          source_file_b64: payload && payload.b64 ? payload.b64 : t.source_file_b64 || "",
+          source_file_kind: payload && payload.kind ? payload.kind : t.source_file_kind || "",
         };
       }),
+      fio: fioMeta || null,
     };
   }
 
@@ -725,9 +960,13 @@
     if (!data || !Array.isArray(data.tournaments)) {
       throw new Error("Неверный JSON настроек: нужен массив tournaments");
     }
-    return data.tournaments.map(function (t) {
-      return createEmptyTournament(t);
-    });
+    return {
+      tournaments: data.tournaments.map(function (t) {
+        return createEmptyTournament(t);
+      }),
+      fio: data.fio || null,
+      version: data.version || 1,
+    };
   }
 
   function serializeFioDictionary(entries) {
@@ -762,6 +1001,7 @@
 
   var ReportCore = {
     DEFAULTS: DEFAULTS,
+    PERIOD_OPTIONS: PERIOD_OPTIONS,
     mergeDefaults: mergeDefaults,
     parseNumberFromComma: parseNumberFromComma,
     formatNumberDot: formatNumberDot,
@@ -769,6 +1009,12 @@
     padPersonNumber: padPersonNumber,
     normalizeFioKey: normalizeFioKey,
     buildFioMap: buildFioMap,
+    normalizePeriodCode: normalizePeriodCode,
+    periodLabel: periodLabel,
+    periodDisplay: periodDisplay,
+    periodBadgesForTournaments: periodBadgesForTournaments,
+    applyFactOperation: applyFactOperation,
+    isValidPersonNumber20: isValidPersonNumber20,
     normalizeTournamentRows: normalizeTournamentRows,
     duplicateKey: duplicateKey,
     duplicateKeyFio: duplicateKeyFio,
@@ -780,6 +1026,7 @@
     applyDuplicateResolutions: applyDuplicateResolutions,
     rowsForCsv: rowsForCsv,
     rowsForXlsx: rowsForXlsx,
+    validateCsvExportRows: validateCsvExportRows,
     summarizeCheckedRows: summarizeCheckedRows,
     processAll: processAll,
     createEmptyTournament: createEmptyTournament,
@@ -787,6 +1034,8 @@
     tournamentFieldsOk: tournamentFieldsOk,
     tournamentIdentityUnlocked: tournamentIdentityUnlocked,
     tournamentSourceOk: tournamentSourceOk,
+    tournamentIncluded: tournamentIncluded,
+    includedTournaments: includedTournaments,
     computeStages: computeStages,
     serializeSettings: serializeSettings,
     parseSettings: parseSettings,

@@ -191,13 +191,121 @@ function testSettingsRoundtrip() {
       contest_code: "A",
       tournament_code: "B",
       type_ind: "FIO",
+      period_code: "Q1",
+      fact_op: "mul",
+      fact_op_value: "100",
+      include_in_report: false,
     }),
   ];
-  var json = ReportCore.serializeSettings(list);
+  var json = ReportCore.serializeSettings(list, { entries: [], file_name: "fio.csv" }, {});
   var back = ReportCore.parseSettings(json);
-  assert.strictEqual(back.length, 1);
-  assert.strictEqual(back[0].contest_code, "A");
-  assert.strictEqual(back[0].type_ind, "FIO");
+  assert.strictEqual(back.tournaments.length, 1);
+  assert.strictEqual(back.tournaments[0].contest_code, "A");
+  assert.strictEqual(back.tournaments[0].type_ind, "FIO");
+  assert.strictEqual(back.tournaments[0].period_code, "Q1");
+  assert.strictEqual(back.tournaments[0].fact_op, "mul");
+  assert.strictEqual(back.tournaments[0].include_in_report, false);
+  assert.ok(back.fio);
+}
+
+function testFactOpAndPeriod() {
+  var t = ReportCore.createEmptyTournament({
+    contest_code: "C1",
+    tournament_code: "T1",
+    contest_date: "2026-09-17",
+    plan_value: "100",
+    full_name: "Demo",
+    type_ind: "TN",
+    period_code: "M3",
+    column_id: "ТАБЕЛЬНЫЙ НОМЕР",
+    column_fact: "ПОКАЗАТЕЛЬ",
+    fact_op: "mul",
+    fact_op_value: "100",
+  });
+  var out = ReportCore.normalizeTournamentRows(
+    [{ "ТАБЕЛЬНЫЙ НОМЕР": "1", ПОКАЗАТЕЛЬ: "0,5" }],
+    t,
+    null,
+    {}
+  );
+  assert.strictEqual(out.rows[0].FACT_VALUE, "50.00000");
+  assert.strictEqual(out.rows[0].PERIOD_CODE, "M3");
+  assert.ok(String(out.rows[0].PERIOD).indexOf("M3") >= 0);
+
+  assert.strictEqual(ReportCore.applyFactOperation(10, "div", 2), 5);
+  assert.strictEqual(ReportCore.applyFactOperation(10, "add", 2), 12);
+  assert.strictEqual(ReportCore.applyFactOperation(10, "sub", 3), 7);
+
+  var badges = ReportCore.periodBadgesForTournaments([
+    ReportCore.createEmptyTournament({ id: "a", contest_code: "X", period_code: "Y" }),
+    ReportCore.createEmptyTournament({ id: "b", contest_code: "X", period_code: "Y" }),
+    ReportCore.createEmptyTournament({ id: "c", contest_code: "X", period_code: "Q1" }),
+  ]);
+  assert.strictEqual(badges.a, "Y(1)");
+  assert.strictEqual(badges.b, "Y(2)");
+  assert.strictEqual(badges.c, "Q1");
+}
+
+function testCsvValidation() {
+  var rows = [
+    {
+      MANAGER_PERSON_NUMBER: "00000000000000000001",
+      CONTEST_CODE: "C",
+      TOURNAMENT_CODE: "T",
+      CONTEST_DATE: "2026-01-01",
+      PLAN_VALUE: "1.00000",
+      FACT_VALUE: "1.00000",
+      priority_type: "1",
+      include_in_csv: true,
+    },
+    {
+      MANAGER_PERSON_NUMBER: "00000000000000000001",
+      CONTEST_CODE: "C",
+      TOURNAMENT_CODE: "T",
+      CONTEST_DATE: "2026-01-01",
+      PLAN_VALUE: "1.00000",
+      FACT_VALUE: "2.00000",
+      priority_type: "1",
+      include_in_csv: true,
+    },
+  ];
+  var v = ReportCore.validateCsvExportRows(rows, {});
+  assert.strictEqual(v.ok, false);
+  assert.ok(v.duplicateKeys.length >= 1);
+
+  var badTn = [
+    {
+      MANAGER_PERSON_NUMBER: "000000нет",
+      CONTEST_CODE: "C",
+      TOURNAMENT_CODE: "T2",
+      CONTEST_DATE: "2026-01-01",
+      PLAN_VALUE: "1.00000",
+      FACT_VALUE: "1.00000",
+      priority_type: "1",
+      include_in_csv: true,
+    },
+  ];
+  var v2 = ReportCore.validateCsvExportRows(badTn, {});
+  assert.strictEqual(v2.ok, false);
+  assert.ok(v2.badPerson.length >= 1);
+  assert.ok(String(v2.rowsMarked[0].CSV_ERROR).indexOf("ТН") >= 0);
+}
+
+function testIncludeStages() {
+  var t1 = ReportCore.createEmptyTournament({
+    contest_code: "C",
+    tournament_code: "T1",
+    plan_value: "1",
+    contest_date: "2026-09-17",
+    full_name: "Name",
+    type_ind: "TN",
+    column_id: "ТАБЕЛЬНЫЙ НОМЕР",
+    column_fact: "ПОКАЗАТЕЛЬ",
+    include_in_report: false,
+  });
+  var st = ReportCore.computeStages([t1], {}, [], null);
+  assert.strictEqual(st.hasTournaments, false);
+  assert.strictEqual(st.canCheck, false);
 }
 
 function testCloneAndStages() {
@@ -226,6 +334,7 @@ function testCloneAndStages() {
   var st = ReportCore.computeStages([t], data, [], {
     duplicatesCleared: true,
     missingFioCleared: true,
+    fioDupCleared: true,
   });
   assert.ok(st.hasTournaments);
   assert.ok(st.fieldsFilled);
@@ -242,6 +351,9 @@ const tests = [
   ["keepOneDrop", testKeepOneAndDrop],
   ["processAll", testProcessAll],
   ["settings", testSettingsRoundtrip],
+  ["factOpPeriod", testFactOpAndPeriod],
+  ["csvValidation", testCsvValidation],
+  ["includeStages", testIncludeStages],
   ["cloneStages", testCloneAndStages],
 ];
 

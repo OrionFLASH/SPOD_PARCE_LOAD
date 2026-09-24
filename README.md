@@ -1457,6 +1457,12 @@ python main.py
 - Легенда цветов вкладок слева. `INDICATOR_CODE` — dropdown + combobox; списки методов/агрегаций обновлены в каталоге.
 - Fill ≡ fill-full (`sync_web_fill_singlefile.py`). Документы: `Docs/PLAN_WEB_FILL.md`, `Docs/TODO_WEB_FILL.md`, ROADMAP §16.
 
+### Версия 1.7.72 — web-report: ToDo_REPORT_3 (период, fact_op, JSON+файлы, CSV-гейты)
+
+- Превью: горизонтальный скролл, подсветка выбранных колонок; операции над показателем (×÷+−); период Y/Q/M/F.
+- Include-турниры, старт без localStorage, JSON v2 с вложенными файлами, блок CSV при дублях/неверном ТН/пустых; Excel с `CSV_ERROR`.
+- Docs: `Docs/PLAN_WEB_REPORT_TODO3.md`; архив `common/web-report/web-report_bundle.zip`.
+
 ### Версия 1.7.71 — web-report UI: панели, этапы, проверка, Excel freeze
 
 - Трёхпанельный chrome как fill-full (турниры / центр / фильтры), скрываемые края, этапы в шапке.
