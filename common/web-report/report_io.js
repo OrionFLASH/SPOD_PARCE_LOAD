@@ -296,6 +296,60 @@
   }
 
   /**
+   * Кандидаты URL/пути для автозагрузки рядом с страницей (http.server).
+   * Полные пути ОС из браузера недоступны — нужны относительные или http(s).
+   */
+  function tablePathCandidates(filePath, fileName) {
+    var out = [];
+    var seen = Object.create(null);
+    function add(p) {
+      p = String(p || "").trim().replace(/\\/g, "/");
+      if (!p || seen[p]) return;
+      seen[p] = true;
+      out.push(p);
+    }
+    add(filePath);
+    var base = String(fileName || "").trim().replace(/\\/g, "/");
+    if (base) {
+      var only = base.split("/").pop();
+      add(base);
+      add(only);
+      add("examples/" + only);
+      // если в path есть каталог — попробовать тот же каталог + имя
+      var path = String(filePath || "").trim().replace(/\\/g, "/");
+      if (path && path.indexOf("/") >= 0) {
+        var dir = path.replace(/\/[^/]*$/, "");
+        if (dir) add(dir + "/" + only);
+      }
+    }
+    return out;
+  }
+
+  /**
+   * Загрузить таблицу по URL (относительно страницы или абсолютному http).
+   * @returns {Promise<{ pack: object, usedPath: string }|null>}
+   */
+  async function tryReadTableFromPaths(filePath, fileName, startRow, startCol) {
+    var candidates = tablePathCandidates(filePath, fileName);
+    for (var i = 0; i < candidates.length; i++) {
+      var url = candidates[i];
+      try {
+        var res = await fetch(url, { cache: "no-store" });
+        if (!res.ok) continue;
+        var buf = await res.arrayBuffer();
+        var name = fileName || url.split("/").pop() || "table.bin";
+        var blob = new Blob([buf]);
+        var file = new File([blob], name);
+        var pack = await readTableFile(file, startRow, startCol);
+        return { pack: pack, usedPath: url };
+      } catch (err) {
+        // следующий кандидат
+      }
+    }
+    return null;
+  }
+
+  /**
    * Восстановить пакет из base64 + метаданных (после загрузки JSON настроек).
    */
   function packFromStoredSource(meta) {
@@ -583,6 +637,8 @@
     entriesFromFioTable: entriesFromFioTable,
     resolveFioTableEntries: resolveFioTableEntries,
     readTableFile: readTableFile,
+    tryReadTableFromPaths: tryReadTableFromPaths,
+    tablePathCandidates: tablePathCandidates,
     packFromStoredSource: packFromStoredSource,
     arrayBufferToBase64: arrayBufferToBase64,
     base64ToArrayBuffer: base64ToArrayBuffer,

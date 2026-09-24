@@ -17,6 +17,7 @@
       "fact_op_value": "1",
       "include_in_report": true,
       "source_file_name": "sample_data_tn.csv",
+      "source_file_path": "examples/sample_data_tn.csv",
       "source_file_kind": "csv",
       "sheet_name": "",
       "table_start_row": 1,
@@ -37,6 +38,7 @@
       "fact_op_value": "100",
       "include_in_report": true,
       "source_file_name": "sample_data_fio.csv",
+      "source_file_path": "examples/sample_data_fio.csv",
       "source_file_kind": "csv",
       "sheet_name": "",
       "table_start_row": 1,
@@ -48,11 +50,12 @@
       { "fio": "Иванов Иван Иванович", "person_number": "12345" },
       { "fio": "Петров Пётр Петрович", "person_number": "67890" }
     ],
-    "file_name": "",
+    "file_name": "sample_fio_dictionary.csv",
+    "file_path": "examples/sample_fio_dictionary.csv",
     "sheet_name": "",
     "start_row": 1,
     "start_col": 1,
-    "col_fio": "",
-    "col_tn": ""
+    "col_fio": "ФИО",
+    "col_tn": "ТАБЕЛЬНЫЙ"
   }
 }

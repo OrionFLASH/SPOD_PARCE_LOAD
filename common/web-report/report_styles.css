@@ -431,9 +431,32 @@ body::after { width: 380px; height: 380px; right: -60px; bottom: 10%; background
 }
 .fields-row--origin { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .fields-row--cols { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.fields-row--ops { grid-template-columns: minmax(0, 4fr) minmax(0, 3fr) minmax(0, 5fr); }
+.fields-row--ops { grid-template-columns: minmax(0, 1.2fr) minmax(64px, 0.55fr) minmax(0, 1.1fr) minmax(0, 1.4fr); }
+.fields-row--file-meta { grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); }
 .fields-row--file-end { grid-template-columns: 1fr 1fr; }
 .fields-row--file-end > .field { grid-column: 2; }
+/* лист · стр · кол · колонка · колонка — в одну линию */
+.fields-row--table-map {
+  grid-template-columns:
+    minmax(88px, 1.15fr)
+    54px
+    54px
+    minmax(0, 1.55fr)
+    minmax(0, 1.55fr);
+}
+.fields-row--table-map--nosheet {
+  grid-template-columns: 54px 54px minmax(0, 1fr) minmax(0, 1fr);
+}
+.fields-row--table-map > .field--sheet { min-width: 0; }
+.fields-row--table-map > .field--corner { min-width: 0; }
+.fields-row--table-map > .field--colpick { min-width: 0; }
+.field-input--corner {
+  padding-left: 6px;
+  padding-right: 4px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.fields-row--ops > .field--op-val { min-width: 0; }
 .fields-row > .field {
   grid-column: auto;
   min-width: 0;
@@ -1095,6 +1118,48 @@ body::after { width: 380px; height: 380px; right: -60px; bottom: 10%; background
 }
 .warn-box--row > span { flex: 1 1 180px; min-width: 0; }
 
+/* сворачиваемое превью (по умолчанию свёрнуто) */
+.preview-fold {
+  margin-top: 8px;
+  border-radius: 12px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: rgba(255, 255, 255, 0.55);
+  overflow: hidden;
+}
+.preview-fold > summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--glass-muted);
+  user-select: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.preview-fold > summary::-webkit-details-marker { display: none; }
+.preview-fold > summary::before {
+  content: "";
+  width: 0;
+  height: 0;
+  border-left: 5px solid currentColor;
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+  opacity: 0.7;
+  transition: transform 0.15s ease;
+}
+.preview-fold[open] > summary::before {
+  transform: rotate(90deg);
+}
+.preview-fold[open] > summary {
+  border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+  color: var(--glass-text);
+}
+.preview-fold > div {
+  padding: 8px 10px 10px;
+}
+
 /* модалка проблем ФИО */
 .fio-issues-scroll {
   max-height: min(55vh, 480px);
@@ -1153,6 +1218,9 @@ body::after { width: 380px; height: 380px; right: -60px; bottom: 10%; background
   .fields-row--origin,
   .fields-row--cols,
   .fields-row--ops,
+  .fields-row--file-meta,
+  .fields-row--table-map,
+  .fields-row--table-map--nosheet,
   .fields-row--file-end { grid-template-columns: 1fr; }
   .fields-row > .field,
   .fields-row--file-end > .field { grid-column: auto; }
