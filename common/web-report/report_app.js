@@ -919,40 +919,108 @@
       host.innerHTML = '<div class="side-stats__empty">Добавьте турнир — здесь появится сводка.</div>';
       return;
     }
-    function card(kind, label, value, tone) {
+    function card(kind, label, value, tone, tip) {
       return (
         '<div class="stat-card' +
         (tone ? " stat-card--" + tone : "") +
+        '" data-tip="' +
+        escapeHtml(tip || label) +
         '">' +
         '<span class="stat-card__icon" aria-hidden="true">' +
         metricIcon(kind) +
         "</span>" +
         '<span class="stat-card__body">' +
-        '<span class="stat-card__value">' +
-        value +
-        "</span>" +
         '<span class="stat-card__label">' +
         escapeHtml(label) +
+        "</span>" +
+        '<span class="stat-card__value">' +
+        value +
         "</span></span></div>"
       );
     }
     var html =
       '<div class="stat-grid">' +
-      card("tournaments", "Турниров", s.total) +
-      card("active", "В выгрузке", s.active, s.active ? "ok" : "") +
-      card("filled", "Заполнено", s.filled, "ok") +
-      card("empty", "Неполных", s.draft + s.copies, s.draft + s.copies ? "warn" : "") +
-      card("total", "Строк загружено", s.rowsTotal) +
-      card("error", "С ошибкой", s.rowsErrors, s.rowsErrors ? "bad" : "") +
-      card("csv", "Попадут в CSV", s.rowsCsv, "ok") +
-      card("missing", "Без источника", s.withoutSource, s.withoutSource ? "warn" : "") +
+      card(
+        "tournaments",
+        "Турниров",
+        s.total,
+        "",
+        "Всего турниров в списке (включая выключенные и копии)"
+      ) +
+      card(
+        "active",
+        "В выгрузке",
+        s.active,
+        s.active ? "ok" : "",
+        "Турниры с галочкой «включать в проверку/выгрузку»"
+      ) +
+      card(
+        "filled",
+        "Заполнено",
+        s.filled,
+        "ok",
+        "Готовые турниры: поля заполнены, источник загружен, код и название разблокированы"
+      ) +
+      card(
+        "empty",
+        "Неполных",
+        s.draft + s.copies,
+        s.draft + s.copies ? "warn" : "",
+        "Черновики и копии без смены кода/названия (не готовы к выгрузке)"
+      ) +
+      card(
+        "total",
+        "Строк загружено",
+        s.rowsTotal,
+        "",
+        "Сумма строк из загруженных файлов источников по всем турнирам"
+      ) +
+      card(
+        "error",
+        "С ошибкой",
+        s.rowsErrors,
+        s.rowsErrors ? "bad" : "",
+        "Строки с битым табельным, пустыми полями или флагом «табельный не найден» — в CSV не попадут"
+      ) +
+      card(
+        "csv",
+        "Попадут в CSV",
+        s.rowsCsv,
+        "ok",
+        "Строки без критических ошибок, которые можно выгрузить в CSV"
+      ) +
+      card(
+        "missing",
+        "Без источника",
+        s.withoutSource,
+        s.withoutSource ? "warn" : "",
+        "Турниры, у которых ещё не загружен файл данных"
+      ) +
       "</div>";
     if (hasAnyFioMode() || s.fioEntries || s.fioIssues) {
       html +=
         '<div class="stat-grid stat-grid--fio">' +
-        card("fio", "Записей ФИО", s.fioEntries) +
-        card("dup", "Проблем ФИО", s.fioIssues, s.fioIssues ? "warn" : "") +
-        card("error", "Битый ТН (ФИО)", s.fioBadTn, s.fioBadTn ? "bad" : "") +
+        card(
+          "fio",
+          "Записей ФИО",
+          s.fioEntries,
+          "",
+          "Число записей в справочнике ФИО ↔ табельный"
+        ) +
+        card(
+          "dup",
+          "Проблем ФИО",
+          s.fioIssues,
+          s.fioIssues ? "warn" : "",
+          "Строки таблицы ФИО с дублями или некорректным табельным (см. «Подробнее»)"
+        ) +
+        card(
+          "error",
+          "Битый ТН",
+          s.fioBadTn,
+          s.fioBadTn ? "bad" : "",
+          "Строки справочника ФИО, где табельный пуст или не из цифр"
+        ) +
         "</div>";
     }
     host.innerHTML = html;
