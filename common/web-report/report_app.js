@@ -2524,6 +2524,7 @@
       parts.push("не загружено: " + failed.slice(0, 3).join(", ") + (failed.length > 3 ? "…" : ""));
     }
     if (parts.length) showToast("JSON: " + parts.join(" · "));
+    else showToast("Настройки JSON загружены");
   }
 
   function readJsonFile(file) {
@@ -2589,7 +2590,6 @@
         var data = await readJsonFile(file);
         await loadSettingsFromJson(data);
         renderAll();
-        showToast("Настройки загружены — укажите файлы источников");
       } catch (err) {
         alert(err.message || String(err));
       }
