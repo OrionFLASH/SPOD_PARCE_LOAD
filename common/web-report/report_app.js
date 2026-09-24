@@ -253,6 +253,8 @@
       fioDetail = "не нужен для TN";
     } else if (!includedFio) {
       fioDetail = "FIO выключены в отчёте";
+    } else if (!st.sourcesOk) {
+      fioDetail = "сначала загрузите источник";
     } else if (st.fioOk) {
       fioDetail = "справочник покрывает";
     } else {
