@@ -935,7 +935,6 @@
   function addTournament() {
     flushEditorToState();
     var t = ReportCore.createEmptyTournament({
-      contest_date: new Date().toISOString().slice(0, 10),
       type_ind: "TN",
     });
     state.tournaments.push(t);

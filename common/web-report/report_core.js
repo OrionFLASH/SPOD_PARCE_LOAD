@@ -953,13 +953,21 @@
     };
   }
 
+  function todayIsoDate() {
+    var d = new Date();
+    var y = d.getFullYear();
+    var m = d.getMonth() + 1;
+    var day = d.getDate();
+    return y + "-" + (m < 10 ? "0" : "") + m + "-" + (day < 10 ? "0" : "") + day;
+  }
+
   function createEmptyTournament(partial) {
     var t = {
       id: "t_" + Date.now() + "_" + Math.floor(Math.random() * 10000),
       contest_code: "",
       tournament_code: "",
       plan_value: "0",
-      contest_date: "",
+      contest_date: todayIsoDate(),
       full_name: "",
       type_ind: "TN",
       period_code: "Y",
@@ -1270,6 +1278,7 @@
     summarizeCheckedRows: summarizeCheckedRows,
     processAll: processAll,
     createEmptyTournament: createEmptyTournament,
+    todayIsoDate: todayIsoDate,
     cloneTournament: cloneTournament,
     tournamentFieldsOk: tournamentFieldsOk,
     tournamentIdentityUnlocked: tournamentIdentityUnlocked,
