@@ -195,9 +195,22 @@ function testSettingsRoundtrip() {
       fact_op: "mul",
       fact_op_value: "100",
       include_in_report: false,
+      source_file_name: "data.csv",
+      column_id: "ФИО",
+      column_fact: "ПОКАЗАТЕЛЬ",
     }),
   ];
-  var json = ReportCore.serializeSettings(list, { entries: [], file_name: "fio.csv" }, {});
+  var json = ReportCore.serializeSettings(list, {
+    entries: [{ fio: "Иванов", person_number: "1" }],
+    file_name: "fio.csv",
+    col_fio: "ФИО",
+    col_tn: "ТН",
+  });
+  assert.strictEqual(json.version, 3);
+  assert.ok(!Object.prototype.hasOwnProperty.call(json.tournaments[0], "source_file_b64"));
+  assert.ok(!json.fio.source_file_b64);
+  assert.strictEqual(json.fio.entries.length, 1);
+  assert.strictEqual(json.tournaments[0].source_file_name, "data.csv");
   var back = ReportCore.parseSettings(json);
   assert.strictEqual(back.tournaments.length, 1);
   assert.strictEqual(back.tournaments[0].contest_code, "A");
@@ -206,6 +219,13 @@ function testSettingsRoundtrip() {
   assert.strictEqual(back.tournaments[0].fact_op, "mul");
   assert.strictEqual(back.tournaments[0].include_in_report, false);
   assert.ok(back.fio);
+  // устаревший base64 в JSON игнорируется
+  var legacy = ReportCore.parseSettings({
+    version: 2,
+    tournaments: [{ contest_code: "X", source_file_b64: "AAAA" }],
+    fio: { entries: [] },
+  });
+  assert.ok(!legacy.tournaments[0].source_file_b64);
 }
 
 function testFactOpAndPeriod() {

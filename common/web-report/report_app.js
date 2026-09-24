@@ -18,7 +18,6 @@
       col_fio: "",
       col_tn: "",
       file_name: "",
-      source_file_b64: "",
       source_file_kind: "",
       source_error: "",
     },
@@ -498,7 +497,6 @@
         state.fioPack = pack;
         state.fioUi.file_name = pack.fileName;
         state.fioUi.sheet_name = pack.sheetName || "";
-        state.fioUi.source_file_b64 = pack.source_b64 || "";
         state.fioUi.source_file_kind = pack.kind || "";
         state.fioUi.source_error = "";
         state.fioUi.col_fio = ReportIO.guessIdColumn(pack.columns, "FIO");
@@ -954,7 +952,6 @@
           source_b64: pack.source_b64,
         })
       );
-      copy.source_file_b64 = pack.source_b64 || src.source_file_b64 || "";
       copy.source_file_kind = pack.kind || src.source_file_kind || "";
     }
     state.activeId = copy.id;
@@ -990,13 +987,13 @@
       state.dataByTournament[t.id] = pack;
       t.source_file_name = pack.fileName;
       t.source_file_kind = pack.kind;
-      t.source_file_b64 = pack.source_b64 || "";
       t.source_error = "";
       t.sheet_name = pack.sheetName || "";
       t.table_start_row = pack.start_row || sr;
       t.table_start_col = pack.start_col || sc;
       t.column_id = ReportIO.guessIdColumn(pack.columns, t.type_ind);
       t.column_fact = ReportIO.guessFactColumn(pack.columns);
+      applySourceErrors(t, pack);
       invalidateChecks();
       renderAll();
       showToast("Данные загружены");
@@ -1653,15 +1650,6 @@
   }
 
   function buildSettingsPayload() {
-    var payloads = {};
-    state.tournaments.forEach(function (t) {
-      var pack = state.dataByTournament[t.id];
-      if (pack && pack.source_b64) {
-        payloads[t.id] = { b64: pack.source_b64, kind: pack.kind };
-      } else if (t.source_file_b64) {
-        payloads[t.id] = { b64: t.source_file_b64, kind: t.source_file_kind || "" };
-      }
-    });
     var fioMeta = {
       entries: state.fioEntries,
       file_name: state.fioUi.file_name || "",
@@ -1670,18 +1658,23 @@
       start_col: state.fioUi.start_col || 1,
       col_fio: state.fioUi.col_fio || "",
       col_tn: state.fioUi.col_tn || "",
-      source_file_b64: (state.fioPack && state.fioPack.source_b64) || state.fioUi.source_file_b64 || "",
-      source_file_kind: (state.fioPack && state.fioPack.kind) || state.fioUi.source_file_kind || "",
     };
-    return ReportCore.serializeSettings(state.tournaments, fioMeta, payloads);
+    return ReportCore.serializeSettings(state.tournaments, fioMeta);
   }
 
   function applySourceErrors(t, pack) {
     var errs = [];
     if (!pack) {
-      if (t.source_file_name) errs.push("файл источника не найден: " + t.source_file_name);
+      if (t.source_file_name) {
+        errs.push("загрузите файл источника: " + t.source_file_name);
+      } else {
+        errs.push("файл источника не загружен");
+      }
       t.source_error = errs.join("; ");
       return;
+    }
+    if (t.source_file_name && pack.fileName && pack.fileName !== t.source_file_name) {
+      // имя может отличаться — не ошибка, но подсказка в meta
     }
     if (t.sheet_name && pack.sheetNames && pack.sheetNames.length && pack.sheetNames.indexOf(t.sheet_name) < 0) {
       errs.push("лист не найден: " + t.sheet_name);
@@ -1698,39 +1691,38 @@
     state.tournaments = parsed.tournaments;
     state.dataByTournament = {};
     state.fioPack = null;
-    state.fioUi.source_error = "";
+    state.fioUi = {
+      sheet_name: "",
+      start_row: 1,
+      start_col: 1,
+      col_fio: "",
+      col_tn: "",
+      file_name: "",
+      source_file_kind: "",
+      source_error: "",
+    };
 
-    // восстановить источники турниров из base64
+    // только метаданные источника — файлы данных нужно загрузить вручную
     state.tournaments.forEach(function (t) {
-      var pack = null;
-      try {
-        pack = ReportIO.packFromStoredSource({
-          source_file_b64: t.source_file_b64,
-          source_file_name: t.source_file_name,
-          source_file_kind: t.source_file_kind,
-          sheet_name: t.sheet_name,
-          table_start_row: t.table_start_row,
-          table_start_col: t.table_start_col,
-        });
-      } catch (err) {
-        t.source_error = "ошибка чтения вложенного файла: " + (err.message || err);
-        pack = null;
-      }
-      if (pack) {
-        state.dataByTournament[t.id] = pack;
-      }
-      applySourceErrors(t, pack);
+      t.source_file_b64 = "";
+      applySourceErrors(t, null);
     });
 
-    // ФИО блок из JSON
+    // ФИО: entries из JSON + настройки колонок (без файла таблицы)
     if (parsed.fio) {
       if (Array.isArray(parsed.fio.entries)) {
-        state.fioEntries = parsed.fio.entries.map(function (e) {
-          return {
-            fio: String(e.fio || "").trim(),
-            person_number: String(e.person_number || "").trim(),
-          };
-        });
+        state.fioEntries = parsed.fio.entries
+          .map(function (e) {
+            return {
+              fio: String(e.fio || "").trim(),
+              person_number: String(e.person_number || "").trim(),
+            };
+          })
+          .filter(function (e) {
+            return e.fio && e.person_number;
+          });
+      } else {
+        state.fioEntries = [];
       }
       state.fioUi.file_name = parsed.fio.file_name || "";
       state.fioUi.sheet_name = parsed.fio.sheet_name || "";
@@ -1738,31 +1730,14 @@
       state.fioUi.start_col = parsed.fio.start_col || 1;
       state.fioUi.col_fio = parsed.fio.col_fio || "";
       state.fioUi.col_tn = parsed.fio.col_tn || "";
-      state.fioUi.source_file_b64 = parsed.fio.source_file_b64 || "";
-      state.fioUi.source_file_kind = parsed.fio.source_file_kind || "";
-      if (parsed.fio.source_file_b64) {
-        try {
-          state.fioPack = ReportIO.packFromStoredSource({
-            source_file_b64: parsed.fio.source_file_b64,
-            source_file_name: parsed.fio.file_name,
-            source_file_kind: parsed.fio.source_file_kind,
-            sheet_name: parsed.fio.sheet_name,
-            table_start_row: parsed.fio.start_row,
-            table_start_col: parsed.fio.start_col,
-          });
-          if (state.fioPack) {
-            if (state.fioUi.col_fio && state.fioPack.columns.indexOf(state.fioUi.col_fio) < 0) {
-              state.fioUi.source_error = "колонка ФИО не найдена: " + state.fioUi.col_fio;
-            } else if (state.fioUi.col_tn && state.fioPack.columns.indexOf(state.fioUi.col_tn) < 0) {
-              state.fioUi.source_error = "колонка табельного не найдена: " + state.fioUi.col_tn;
-            }
-          }
-        } catch (err) {
-          state.fioUi.source_error = "ошибка файла ФИО: " + (err.message || err);
-        }
-      } else if (parsed.fio.file_name) {
-        state.fioUi.source_error = "файл ФИО не вложен в JSON: " + parsed.fio.file_name;
+      if (!state.fioEntries.length && state.fioUi.file_name) {
+        state.fioUi.source_error =
+          "записи ФИО пусты — загрузите таблицу «" + state.fioUi.file_name + "» или JSON справочника";
+      } else {
+        state.fioUi.source_error = "";
       }
+    } else {
+      state.fioEntries = [];
     }
 
     invalidateChecks();
@@ -1822,7 +1797,7 @@
     $("btn-save-settings").addEventListener("click", function () {
       flushEditorToState();
       ReportIO.downloadJson(ReportIO.timestampName("web_report_settings", "json"), buildSettingsPayload());
-      showToast("JSON настроек (+файлы)");
+      showToast("JSON настроек");
     });
     $("import-settings").addEventListener("change", async function (ev) {
       var file = ev.target.files && ev.target.files[0];
@@ -1832,7 +1807,7 @@
         var data = await readJsonFile(file);
         await loadSettingsFromJson(data);
         renderAll();
-        showToast("Настройки и файлы загружены");
+        showToast("Настройки загружены — укажите файлы источников");
       } catch (err) {
         alert(err.message || String(err));
       }

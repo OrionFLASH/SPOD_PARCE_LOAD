@@ -1024,13 +1024,12 @@
     };
   }
 
-  function serializeSettings(tournaments, fioMeta, dataPayloads) {
-    var payloads = dataPayloads || {};
+  function serializeSettings(tournaments, fioMeta) {
+    var fio = fioMeta || {};
     return {
-      version: 2,
+      version: 3,
       kind: "spod_web_report_settings",
       tournaments: (tournaments || []).map(function (t) {
-        var payload = payloads[t.id] || null;
         return {
           id: t.id,
           contest_code: t.contest_code,
@@ -1045,6 +1044,7 @@
           fact_op: t.fact_op || "none",
           fact_op_value: t.fact_op_value != null ? String(t.fact_op_value) : "1",
           source_file_name: t.source_file_name || "",
+          source_file_kind: t.source_file_kind || "",
           sheet_name: t.sheet_name || "",
           table_start_row: t.table_start_row || 1,
           table_start_col: t.table_start_col || 1,
@@ -1052,11 +1052,28 @@
           needs_identity_fix: !!t.needs_identity_fix,
           copy_lock_code: t.copy_lock_code || "",
           copy_lock_name: t.copy_lock_name || "",
-          source_file_b64: payload && payload.b64 ? payload.b64 : t.source_file_b64 || "",
-          source_file_kind: payload && payload.kind ? payload.kind : t.source_file_kind || "",
         };
       }),
-      fio: fioMeta || null,
+      fio: {
+        entries: Array.isArray(fio.entries)
+          ? fio.entries
+              .map(function (e) {
+                return {
+                  fio: String((e && e.fio) || "").trim(),
+                  person_number: String((e && e.person_number) || "").trim(),
+                };
+              })
+              .filter(function (e) {
+                return e.fio && e.person_number;
+              })
+          : [],
+        file_name: fio.file_name || "",
+        sheet_name: fio.sheet_name || "",
+        start_row: fio.start_row || 1,
+        start_col: fio.start_col || 1,
+        col_fio: fio.col_fio || "",
+        col_tn: fio.col_tn || "",
+      },
     };
   }
 
@@ -1067,7 +1084,10 @@
     }
     return {
       tournaments: data.tournaments.map(function (t) {
-        return createEmptyTournament(t);
+        var copy = Object.assign({}, t || {});
+        // содержимое файлов в JSON не храним (игнорируем устаревшие base64)
+        delete copy.source_file_b64;
+        return createEmptyTournament(copy);
       }),
       fio: data.fio || null,
       version: data.version || 1,
