@@ -385,7 +385,8 @@ body::after { width: 380px; height: 380px; right: -60px; bottom: 10%; background
   box-shadow: 0 0 0 2px var(--glass-blue-light);
   border-color: var(--glass-blue-border);
 }
-.field-input.is-highlight {
+.field-input.is-highlight,
+.field-select.is-highlight {
   border-color: rgba(255, 149, 0, 0.7);
   box-shadow: 0 0 0 2px rgba(255, 149, 0, 0.2);
   background: rgba(255, 149, 0, 0.08);

@@ -767,6 +767,7 @@
 
     bindEditorEvents();
     bindFioPanel();
+    refreshRequiredFieldHighlights();
     if (state.lastResult && state.lastResult.ok) {
       var panel = $("panel-result");
       panel.hidden = false;
@@ -781,6 +782,37 @@
       }
       $("btn-export-csv-2").onclick = exportCsv;
       $("btn-export-xlsx-2").onclick = exportXlsx;
+    }
+  }
+
+  /** Подсветка незаполненных обязательных полей (и полей копии). */
+  function refreshRequiredFieldHighlights() {
+    var t = activeTournament();
+    if (!t || !$("f-contest-code")) return;
+    var pack = state.dataByTournament[t.id];
+    var lock = !ReportCore.tournamentIdentityUnlocked(t);
+
+    function blank(v) {
+      return !String(v == null ? "" : v).trim();
+    }
+
+    function mark(id, needHighlight) {
+      var el = $(id);
+      if (!el) return;
+      if (el.classList.contains("is-error")) return;
+      el.classList.toggle("is-highlight", !!needHighlight);
+    }
+
+    mark("f-contest-code", blank(t.contest_code));
+    mark("f-tournament-code", blank(t.tournament_code) || lock);
+    mark("f-full-name", blank(t.full_name) || lock);
+    mark("f-plan", blank(t.plan_value));
+    mark("f-date", blank(t.contest_date));
+    mark("f-col-id", !pack || blank(t.column_id));
+    mark("f-col-fact", !pack || blank(t.column_fact));
+    mark("f-source-name", !pack || blank(t.source_file_name));
+    if ($("f-sheet")) {
+      mark("f-sheet", !pack || blank(t.sheet_name || (pack && pack.sheetName)));
     }
   }
 
@@ -884,12 +916,7 @@
     }
     renderStages();
     renderNav();
-    var lock = t && !ReportCore.tournamentIdentityUnlocked(t);
-    ["f-tournament-code", "f-full-name"].forEach(function (id) {
-      var el = $(id);
-      if (!el) return;
-      el.classList.toggle("is-highlight", !!lock);
-    });
+    refreshRequiredFieldHighlights();
   }
 
   function flushEditorToState() {
