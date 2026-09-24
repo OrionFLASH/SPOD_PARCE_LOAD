@@ -1,6 +1,6 @@
-# План: web-report ToDo_REPORT_3
+# План: web-report ToDo_REPORT_3 и доработки UI
 
-Доработки поверх пункта 26 (волна 26.16).
+Доработки поверх пункта 26 (волны 26.16–26.19).
 
 ## Подзадачи
 
@@ -17,11 +17,19 @@
 | 9 | При загрузке JSON — восстановление вложенных файлов | [v] |
 | 10 | CSV: блок дублей / неверного ТН / пустых; Excel с пометками | [v] |
 | 11 | Период турнира Y/Q1–Q4/M1–M12/F + колонка в Excel | [v] |
-| 12 | Docs + архив `*.script` | [v] |
+| 12 | Диалог дублей: первая строка по умолчанию, прошлые решения | [v] |
+| 13 | Превью: вертикальный скролл, sticky header, лимит 100 | [v] |
+| 14 | Компактная сетка полей в центре | [v] |
+| 15 | Docs + архив `*.script` | [v] |
 
 ## Модули
 
-- `report_core.js` — период, fact_op, include, CSV-валидация, serialize v2
+- `report_core.js` — период, fact_op, include, CSV-валидация, serialize v2, отпечатки решений дублей
 - `report_io.js` — base64 payload файлов, восстановление пакета
-- `report_app.js` / CSS / HTML — UI
+- `report_app.js` / `report_styles.css` / HTML — UI
+- `config.json` — в т.ч. `preview_row_limit` (100)
 - тесты `src/Tests/test_web_report_core.mjs`
+
+## Архив
+
+`common/web-report/web-report_bundle.zip`: страница + примеры + Docs по web-report; скрипты как `*.script`; соответствие имён в `ПРАВИЛЬНЫЕ_ИМЕНА.txt`.
