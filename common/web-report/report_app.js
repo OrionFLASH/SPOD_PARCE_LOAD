@@ -33,7 +33,7 @@
     checkedPipeline: null,
     filters: { search: "", types: { TN: true, FIO: true }, ready: { ready: true, draft: true, copy: true } },
     sidebarOpen: true,
-    filtersOpen: true,
+    filtersOpen: false,
     chromeOpen: true,
   };
 
@@ -1891,7 +1891,7 @@
 
     initTips();
     setSidebarOpen(true);
-    setFiltersOpen(true);
+    setFiltersOpen(false);
     setChromeOpen(true);
     renderAll();
     setStatus("готово к работе");
