@@ -212,6 +212,8 @@
     if (!next) log("PAGE", "трассировка выключена пользователем");
     enabled = next;
     safeSet(KEY_ON, enabled ? "1" : "0");
+    var toggleEl = document.getElementById("trace-toggle");
+    if (toggleEl) toggleEl.checked = enabled;
     if (enabled) {
       startSession("трассировка включена");
     } else {
@@ -435,8 +437,10 @@
     var clr = document.getElementById("trace-clear");
     var cnt = document.getElementById("trace-count");
     var box = document.getElementById("trace-ctl");
+    // Галочку НЕ трогаем здесь: refresh вызывается на каждую запись журнала, в том числе
+    // на запись о самом клике по переключателю — до события change. Раньше это возвращало
+    // галочку во «вкл» посреди клика, и выключить лог было невозможно.
     function refresh() {
-      if (toggle) toggle.checked = enabled;
       if (box) {
         box.classList.toggle("is-on", enabled);
         box.classList.toggle("is-no-storage", !storageOk);
@@ -457,6 +461,7 @@
       });
     }
     listeners.push(refresh);
+    if (toggle) toggle.checked = enabled;
     refresh();
   }
 
