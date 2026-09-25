@@ -40,7 +40,7 @@
 
 ## Статусы
 
-Пункт **26** в `ROADMAP.md` и `Docs/TODO_WEB_REPORT.md` — выполнен (`[v]`), включая волны **26.16–26.43** (`Docs/PLAN_WEB_REPORT_TODO3.md`).
+Пункт **26** в `ROADMAP.md` и `Docs/TODO_WEB_REPORT.md` — выполнен (`[v]`), включая волны **26.16–26.45** (`Docs/PLAN_WEB_REPORT_TODO3.md`).
 Архив для пересылки: `common/web-report/web-report_bundle.zip` — скрипты как `*.script` (без `js` в имени); соответствие имён только в `ПРАВИЛЬНЫЕ_ИМЕНА.txt` (без bat/sh). В архиве — страница + Docs по web-report.
 
 ## UI (волны 26.9+)
