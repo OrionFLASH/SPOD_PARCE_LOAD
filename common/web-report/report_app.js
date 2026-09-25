@@ -27,6 +27,8 @@
     // Весь REPORT, загруженный при последнем "Загрузить списки" (для «Обновить REPORT»);
     // не сохраняется в JSON настроек — данные строк там не хранятся в принципе.
     importedReportPack: null,
+    // откуда REPORT: "lists" — «Загрузить списки», "manual" — кнопка «Загрузить REPORT»
+    importedReportSource: "",
     checkState: {
       duplicatesCleared: false,
       fioDupCleared: false,
@@ -71,6 +73,30 @@
   function setStatus(text) {
     var el = $("footer-status");
     if (el) el.textContent = "Статус: " + text;
+    trace("STATUS", text);
+  }
+
+  /** Запись в трейс-лог (report_trace.js); без него — ничего. */
+  function trace(category, message, data) {
+    if (window.ReportTrace) window.ReportTrace.log(category, message, data);
+  }
+
+  /** Выполнить с замером в трейс-логе (если он включён). */
+  function traced(name, fn, data) {
+    return window.ReportTrace ? window.ReportTrace.time(name, fn, data) : fn();
+  }
+
+  function packSummary(pack) {
+    if (!pack) return null;
+    return {
+      file: pack.fileName,
+      kind: pack.kind,
+      sheet: pack.sheetName || "",
+      sheets: pack.sheetNames ? pack.sheetNames.length : 0,
+      rows: pack.rows ? pack.rows.length : 0,
+      cols: pack.columns ? pack.columns.length : 0,
+      origin: (pack.start_row || 1) + "," + (pack.start_col || 1),
+    };
   }
 
   function showToast(text) {
@@ -533,8 +559,44 @@
       );
       reportUpdateBtn.disabled = !(csvReallyReady && state.importedReportPack);
     }
+    // «Загрузить REPORT» — только если REPORT не пришёл из «Загрузить списки»
+    // (ручной можно перезагрузить — обновляться будет последний выбранный файл)
+    var loadRep = $("btn-load-report");
+    if (loadRep) {
+      var fromLists = state.importedReportSource === "lists";
+      loadRep.classList.toggle("is-disabled", fromLists);
+      loadRep.classList.toggle("is-loaded", state.importedReportSource === "manual");
+      var repInput = $("import-report-file");
+      if (repInput) repInput.disabled = fromLists;
+      var repLabel = $("btn-load-report-label");
+      if (repLabel) {
+        repLabel.textContent =
+          state.importedReportSource === "manual"
+            ? "REPORT: " + (state.importedReportPack.rows || []).length + " строк"
+            : "Загрузить REPORT";
+      }
+      loadRep.setAttribute(
+        "data-tip",
+        fromLists
+          ? "REPORT уже загружен через «Загрузить списки» — «Обновить REPORT» обновит его"
+          : state.importedReportSource === "manual"
+            ? "Загружен REPORT «" + state.importedReportPack.fileName + "» — «Обновить REPORT» обновит его. Нажмите, чтобы выбрать другой файл"
+            : "Загрузить текущий REPORT (CSV) для «Обновить REPORT» — когда турниры заведены вручную, а не через «Загрузить списки»"
+      );
+    }
     var fioDictBtn = $("btn-fio-dict");
-    if (fioDictBtn) fioDictBtn.disabled = !anyFio;
+    if (fioDictBtn) {
+      fioDictBtn.disabled = !anyFio;
+      // есть турниры FIO, а справочник ещё пуст — подсветить, что его нужно загрузить
+      var needFio = anyFio && !state.fioEntries.length;
+      fioDictBtn.classList.toggle("is-attention", needFio);
+      fioDictBtn.setAttribute(
+        "data-tip",
+        needFio
+          ? "Есть турниры режима FIO, а справочник ФИО ещё не загружен — откройте и загрузите таблицу или JSON"
+          : "Общий справочник ФИО ↔ табельный — один на все турниры режима FIO (кнопка активна, если хоть один такой турнир есть в списке)"
+      );
+    }
   }
 
   function hasAnyFioMode() {
@@ -627,6 +689,7 @@
             escapeHtml("Загружено из списков, требует проверки: " + t.import_warning) +
             '">! СПИСКИ</span>'
           : "") +
+        navTimelineBadge(t) +
         "</div>" +
         metricsHtml +
         "</div>" +
@@ -962,7 +1025,11 @@
       if (!file) return;
       try {
         // новая загрузка: угол 1,1; колонки сбрасываем — нужно выбрать вручную
-        var newPack = await ReportIO.readTableFile(file, 1, 1);
+        trace("ACTION", "загрузка таблицы ФИО", { file: file.name, sizeKB: Math.round(file.size / 1024) });
+        var newPack = await traced("readTableFile(ФИО)", function () {
+          return ReportIO.readTableFile(file, 1, 1);
+        });
+        trace("ACTION", "таблица ФИО прочитана", packSummary(newPack));
         state.fioPack = newPack;
         state.fioUi.file_name = newPack.fileName;
         state.fioUi.sheet_name = newPack.sheetName || "";
@@ -1114,6 +1181,7 @@
   }
 
   function reapplyFioOrigin(partial) {
+    trace("ACTION", "reapplyFioOrigin", { partial: partial, before: packSummary(state.fioPack) });
     if (!state.fioPack) return;
     if (partial) {
       if (partial.sheetName != null) state.fioUi.sheet_name = partial.sheetName;
@@ -1416,6 +1484,36 @@
     return iso ? iso.slice(8, 10) + "." + iso.slice(5, 7) + "." + iso.slice(0, 4) : "";
   }
 
+  var NAV_TIMELINE_SHORT = {
+    not_started: "НЕ СТАРТ",
+    active: "АКТИВЕН",
+    summarizing: "ИТОГИ",
+    closing: "ЗАКРЫТЬ",
+    nodata: "НЕТ ДАТ",
+  };
+
+  /** Статус по датам SCHEDULE для карточки в списке турниров (только если даты вообще есть). */
+  function navTimelineBadge(t) {
+    var tl = ReportCore.tournamentTimeline(t);
+    if (!tl.hasAnyDate) return "";
+    var tip =
+      tl.label +
+      (tl.daysText ? " · " + tl.daysText : "") +
+      (tl.closingNow ? " · закроется этой выгрузкой" : "") +
+      (tl.missing.length ? " · нет дат: " + tl.missing.join(", ") : "");
+    return (
+      '<span class="mini-badge mini-badge--tl mini-badge--tl-' +
+      tl.status +
+      '" data-tip="' +
+      escapeHtml(tip) +
+      '">' +
+      TIMELINE_ICONS[tl.status] +
+      NAV_TIMELINE_SHORT[tl.status] +
+      (tl.days != null ? " " + tl.days + "д" : "") +
+      "</span>"
+    );
+  }
+
   /** Даты SCHEDULE (старт / завершение / итоги) и статус турнира на сегодня. */
   function renderTimelineHtml(t) {
     var tl = ReportCore.tournamentTimeline(t);
@@ -1457,6 +1555,9 @@
       TIMELINE_ICONS[tl.status] +
       escapeHtml(tl.label) +
       "</span>" +
+      (tl.daysText
+        ? '<span class="tl-days tl-days--' + tl.status + '">' + escapeHtml(tl.daysText) + "</span>"
+        : "") +
       (tl.closingNow
         ? '<span class="tl-status tl-status--closing-now" data-tip="Дата данных позже и завершения, и подведения итогов — эта выгрузка закроет турнир">' +
           TIMELINE_ICONS.closingNow +
@@ -1685,6 +1786,11 @@
 
   function reapplyDataOrigin(partial) {
     var t = activeTournament();
+    trace("ACTION", "reapplyDataOrigin", {
+      tournament: t && t.tournament_code,
+      partial: partial,
+      before: packSummary(t && state.dataByTournament[t.id]),
+    });
     if (!t) return;
     var pack = state.dataByTournament[t.id];
     if (!pack) return;
@@ -1699,6 +1805,7 @@
       start_col: t.table_start_col || 1,
     });
     state.dataByTournament[t.id] = next;
+    trace("ACTION", "источник пересчитан", packSummary(next));
     if (t.column_id && next.columns.indexOf(t.column_id) < 0) {
       t.column_id = "";
     }
@@ -1825,6 +1932,10 @@
   }
 
   function renderAll() {
+    traced("renderAll", renderAllImpl, { tournaments: state.tournaments.length, active: state.activeId });
+  }
+
+  function renderAllImpl() {
     ensureActive();
     renderStages();
     renderNav();
@@ -1898,13 +2009,21 @@
   }
 
   async function onImportData(file) {
+    trace("ACTION", "загрузка источника: чтение файла", {
+      file: file && file.name,
+      sizeKB: file ? Math.round(file.size / 1024) : 0,
+      tournament: activeTournament() && activeTournament().tournament_code,
+    });
     flushEditorToState();
     var t = activeTournament();
     if (!t) return;
     try {
       setStatus("чтение файла…");
       // новая загрузка: угол 1,1; колонки сбрасываем — нужно выбрать вручную
-      var pack = await ReportIO.readTableFile(file, 1, 1);
+      var pack = await traced("readTableFile(источник)", function () {
+        return ReportIO.readTableFile(file, 1, 1);
+      });
+      trace("ACTION", "источник прочитан", packSummary(pack));
       state.dataByTournament[t.id] = pack;
       t.source_file_name = pack.fileName;
       t.source_file_kind = pack.kind;
@@ -2256,6 +2375,7 @@
     // Запоминаем весь загруженный REPORT для «Обновить REPORT» — до сброса importTour.
     if (importTour.reportPack) {
       state.importedReportPack = importTour.reportPack;
+      state.importedReportSource = "lists";
     }
     closeModal("modal-import-tour");
     resetImportTour();
@@ -3002,7 +3122,7 @@
    */
   function openReportUpdateModal() {
     if (!state.importedReportPack) {
-      alert("REPORT ещё не загружен — сначала «Загрузить списки» с файлом REPORT.");
+      alert("REPORT ещё не загружен — загрузите его кнопкой «Загрузить REPORT» или через «Загрузить списки».");
       return;
     }
     if (!state.lastResult || !state.lastResult.ok) {
@@ -3303,13 +3423,13 @@
     });
 
     $("btn-process").addEventListener("click", function () {
-      runProcess().catch(function (err) {
+      traced("Сформировать", runProcess).catch(function (err) {
         console.error(err);
         alert(err.message || String(err));
       });
     });
     $("btn-check").addEventListener("click", function () {
-      runCheck().catch(function (err) {
+      traced("Проверить", runCheck).catch(function (err) {
         console.error(err);
         alert(err.message || String(err));
       });
@@ -3317,6 +3437,29 @@
     $("btn-export-csv").addEventListener("click", exportCsv);
     $("btn-export-xlsx").addEventListener("click", exportXlsx);
     $("btn-update-report").addEventListener("click", openReportUpdateModal);
+    $("import-report-file").addEventListener("change", async function (ev) {
+      var file = ev.target.files && ev.target.files[0];
+      ev.target.value = "";
+      if (!file || state.importedReportSource === "lists") return;
+      try {
+        trace("ACTION", "загрузка текущего REPORT", { file: file.name, sizeKB: Math.round(file.size / 1024) });
+        var pack = await ReportIO.readTableFile(file, 1, 1);
+        var missing = ["TOURNAMENT_CODE", "MANAGER_PERSON_NUMBER"].filter(function (c) {
+          return (pack.columns || []).indexOf(c) < 0;
+        });
+        if (missing.length) {
+          alert("Это не похоже на REPORT: нет колонок " + missing.join(", ") + ".");
+          return;
+        }
+        state.importedReportPack = pack;
+        state.importedReportSource = "manual";
+        renderStages();
+        showToast("REPORT загружен: " + pack.rows.length + " строк");
+        setStatus("REPORT для обновления: " + pack.fileName);
+      } catch (err) {
+        alert(err.message || String(err));
+      }
+    });
 
     $("btn-sidebar-hide").addEventListener("click", function () {
       setSidebarOpen(false);

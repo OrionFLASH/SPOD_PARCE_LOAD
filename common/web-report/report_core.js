@@ -1698,6 +1698,24 @@
     nodata: "нет данных",
   };
 
+  /** Число дней от ISO-даты a до ISO-даты b (b − a). */
+  function daysBetween(a, b) {
+    function utc(iso) {
+      return Date.UTC(Number(iso.slice(0, 4)), Number(iso.slice(5, 7)) - 1, Number(iso.slice(8, 10)));
+    }
+    return Math.round((utc(b) - utc(a)) / 86400000);
+  }
+
+  /** «день» / «дня» / «дней» для числа. */
+  function pluralDays(n) {
+    var a = Math.abs(n) % 100;
+    var b = a % 10;
+    if (a > 10 && a < 20) return "дней";
+    if (b === 1) return "день";
+    if (b >= 2 && b <= 4) return "дня";
+    return "дней";
+  }
+
   function tournamentTimeline(t, todayIso) {
     var src = t || {};
     var s = isoDateOrEmpty(src.start_dt);
@@ -1710,6 +1728,21 @@
     else if (s && e && today >= s && today <= e) status = "active";
     else if (e && r && today > e && today < r) status = "summarizing";
     else if (r && today >= r) status = "closing";
+    var days = null;
+    var daysText = "";
+    if (status === "not_started") {
+      days = daysBetween(today, s);
+      daysText = "до старта " + days + " " + pluralDays(days);
+    } else if (status === "active") {
+      days = daysBetween(today, e);
+      daysText = "до конца осталось " + days + " " + pluralDays(days);
+    } else if (status === "summarizing") {
+      days = daysBetween(today, r);
+      daysText = "до закрытия " + days + " " + pluralDays(days);
+    } else if (status === "closing") {
+      days = daysBetween(r, today);
+      daysText = "просрочка закрытия " + days + " " + pluralDays(days);
+    }
     var missing = [];
     if (!s) missing.push("старт");
     if (!e) missing.push("завершение");
@@ -1717,6 +1750,8 @@
     return {
       status: status,
       label: TIMELINE_LABELS[status],
+      days: days,
+      daysText: daysText,
       closingNow: !!(r && e && dataDate && dataDate > r && dataDate > e),
       start: s,
       end: e,

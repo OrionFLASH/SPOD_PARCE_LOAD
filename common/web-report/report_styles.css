@@ -1426,3 +1426,145 @@ body::after { width: 380px; height: 380px; right: -60px; bottom: 10%; background
 .tl-status--closing { color: #9a1c14; background: rgba(255, 59, 48, 0.12); border-color: rgba(255, 59, 48, 0.34); }
 .tl-status--nodata { color: #64748b; background: rgba(148, 163, 184, 0.14); border-color: rgba(148, 163, 184, 0.34); border-style: dashed; }
 .tl-status--closing-now { color: #5b21b6; background: rgba(139, 92, 246, 0.14); border-color: rgba(139, 92, 246, 0.38); }
+
+/* «Справочник ФИО»: есть турниры FIO, а справочник пуст */
+.btn-sidebar.is-attention {
+  background: rgba(255, 149, 0, 0.16);
+  border-color: rgba(255, 149, 0, 0.55);
+  color: #8a4f00;
+  box-shadow: 0 0 0 2px rgba(255, 149, 0, 0.18);
+}
+.btn-sidebar.is-attention:hover { background: rgba(255, 149, 0, 0.24); }
+
+/* дни до старта / конца / закрытия, просрочка */
+.tl-days {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  color: var(--glass-muted);
+}
+.tl-days--active { color: #146c2e; }
+.tl-days--not_started { color: #1d4ed8; }
+.tl-days--summarizing { color: #8a4f00; }
+.tl-days--closing { color: #9a1c14; border-color: rgba(255, 59, 48, 0.3); background: rgba(255, 59, 48, 0.06); }
+
+/* статус по датам в списке турниров */
+.mini-badge--tl { display: inline-flex; align-items: center; gap: 3px; }
+.mini-badge--tl svg { width: 10px; height: 10px; flex: 0 0 auto; }
+.mini-badge--tl-not_started { background: rgba(59, 130, 246, 0.12); color: #1d4ed8; }
+.mini-badge--tl-active { background: rgba(52, 199, 89, 0.15); color: #146c2e; }
+.mini-badge--tl-summarizing { background: rgba(255, 149, 0, 0.16); color: #8a4f00; }
+.mini-badge--tl-closing { background: rgba(255, 59, 48, 0.13); color: #9a1c14; }
+.mini-badge--tl-nodata { background: rgba(148, 163, 184, 0.16); color: #64748b; }
+
+/* трейс-лог: мини-переключатель и кнопки в шапке */
+.trace-ctl {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 4px 3px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+}
+.trace-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--glass-muted);
+  user-select: none;
+}
+.trace-switch input { position: absolute; opacity: 0; width: 0; height: 0; }
+.trace-switch__track {
+  position: relative;
+  width: 26px;
+  height: 15px;
+  border-radius: 999px;
+  background: rgba(100, 116, 139, 0.35);
+  transition: background 0.15s ease;
+}
+.trace-switch__track::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  transition: transform 0.15s ease;
+}
+.trace-switch input:checked + .trace-switch__track { background: #ff3b30; }
+.trace-switch input:checked + .trace-switch__track::after { transform: translateX(11px); }
+.trace-switch input:focus-visible + .trace-switch__track { box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.35); }
+.trace-ctl.is-on .trace-switch__label { color: #c0261b; }
+.trace-ctl.is-on { border-color: rgba(255, 59, 48, 0.35); background: rgba(255, 59, 48, 0.06); }
+.trace-ctl.is-no-storage.is-on { border-style: dashed; }
+.trace-btn {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  height: 22px;
+  padding: 0 6px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--glass-muted);
+  font: inherit;
+  font-size: 10.5px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+.trace-btn svg { width: 12px; height: 12px; }
+.trace-btn:hover:not(:disabled) { background: rgba(15, 23, 42, 0.07); color: var(--glass-text); }
+.trace-btn:disabled { opacity: 0.4; cursor: default; }
+
+/* «Загрузить REPORT»: файл выбран вручную */
+.btn-sidebar.is-loaded {
+  background: rgba(52, 199, 89, 0.12);
+  border-color: rgba(52, 199, 89, 0.4);
+  color: #146c2e;
+}
+
+/* конвейер внизу слева: Проверить / Сформировать — во всю ширину, пары CSV|XLSX и
+   Загрузить|Обновить REPORT — в две колонки, чтобы блок не вытеснял список турниров */
+.sidebar-actions--pipeline {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 6px;
+}
+.sidebar-actions--pipeline > .btn { grid-column: 1 / -1; min-width: 0; }
+.sidebar-actions--pipeline > #btn-export-csv,
+.sidebar-actions--pipeline > #btn-export-xlsx,
+.sidebar-actions--pipeline > #btn-load-report,
+.sidebar-actions--pipeline > #btn-update-report {
+  grid-column: auto;
+  font-size: 12px;
+  padding-left: 9px;
+  padding-right: 8px;
+  gap: 5px;
+}
+.sidebar-actions--pipeline > #btn-load-report span,
+.sidebar-actions--pipeline > #btn-update-report { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sidebar-actions--pipeline > #btn-load-report,
+.sidebar-actions--pipeline > #btn-update-report {
+  font-size: 11.5px;
+  letter-spacing: -0.015em;
+  padding-left: 7px;
+  padding-right: 6px;
+  gap: 4px;
+}
+.sidebar-actions--pipeline > #btn-load-report svg,
+.sidebar-actions--pipeline > #btn-update-report svg { width: 13px; height: 13px; }

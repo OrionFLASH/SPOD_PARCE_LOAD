@@ -865,6 +865,16 @@ function testTournamentTimeline() {
   assert.strictEqual(tl(noResult, "2026-05-01").closingNow, false);
   assert.deepStrictEqual(tl(noResult, "2026-05-01").missing, ["итоги"]);
   assert.strictEqual(tl({}, "2026-05-01").hasAnyDate, false);
+  // дни: до старта / до конца / до закрытия / просрочка
+  assert.strictEqual(tl(base, "2025-12-31").daysText, "до старта 1 день");
+  assert.strictEqual(tl(base, "2026-03-29").daysText, "до конца осталось 2 дня");
+  assert.strictEqual(tl(base, "2026-03-31").daysText, "до конца осталось 0 дней");
+  assert.strictEqual(tl(base, "2026-04-15").daysText, "до закрытия 5 дней");
+  assert.strictEqual(tl(base, "2026-05-01").daysText, "просрочка закрытия 11 дней");
+  assert.strictEqual(tl(base, "2026-05-01").days, 11);
+  assert.strictEqual(tl(base, "2026-04-20").daysText, "просрочка закрытия 0 дней");
+  assert.strictEqual(tl(base, "2026-05-11").daysText, "просрочка закрытия 21 день");
+  assert.strictEqual(tl(noResult, "2026-05-01").daysText, "");
 }
 
 function testFioSheetRows() {

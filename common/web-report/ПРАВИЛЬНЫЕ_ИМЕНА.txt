@@ -3,6 +3,7 @@
 report_app.script                 →  report_app.js
 report_core.script                →  report_core.js
 report_io.script                  →  report_io.js
+report_trace.script               →  report_trace.js
 xlsx.full.min.script              →  xlsx.full.min.js
 test_web_report_core.script       →  test_web_report_core.mjs
 
@@ -10,6 +11,7 @@ test_web_report_core.script       →  test_web_report_core.mjs
   common/web-report/report_app.script          →  common/web-report/report_app.js
   common/web-report/report_core.script         →  common/web-report/report_core.js
   common/web-report/report_io.script           →  common/web-report/report_io.js
+  common/web-report/report_trace.script        →  common/web-report/report_trace.js
   common/web-report/xlsx.full.min.script       →  common/web-report/xlsx.full.min.js
   src/Tests/test_web_report_core.script       →  src/Tests/test_web_report_core.mjs
 
