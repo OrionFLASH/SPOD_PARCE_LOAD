@@ -341,6 +341,31 @@
       "key_compare": "exact"
     },
     {
+      "sheet_src": "CONTEST-DATA",
+      "sheet_dst": "LIST-REWARDS",
+      "src_key": [
+        "CONTEST_CODE"
+      ],
+      "dst_key": [
+        "TOURNAMENT-SCHEDULE=>CONTEST_CODE"
+      ],
+      "column": [
+        "FULL_NAME",
+        "BUSINESS_BLOCK",
+        "CONTEST_TYPE"
+      ],
+      "mode": "value",
+      "multiply_rows": false,
+      "col_max_width": 70,
+      "col_width_mode": "AUTO",
+      "col_min_width": 35,
+      "status_filters": null,
+      "custom_conditions": null,
+      "group_by": null,
+      "aggregate": null,
+      "key_compare": "exact"
+    },
+    {
       "sheet_src": "ORG_UNIT_V20",
       "sheet_dst": "STATISTICS",
       "src_key": [
@@ -1243,7 +1268,8 @@
       ],
       "column": [
         "FULL_NAME",
-        "BUSINESS_STATUS"
+        "BUSINESS_STATUS",
+        "BUSINESS_BLOCK"
       ],
       "mode": "value",
       "multiply_rows": false,
@@ -1367,6 +1393,33 @@
       ],
       "column": [
         "Код награды"
+      ],
+      "mode": "count",
+      "multiply_rows": false,
+      "col_max_width": 20,
+      "col_width_mode": 15,
+      "col_min_width": 8,
+      "status_filters": null,
+      "custom_conditions": null,
+      "group_by": null,
+      "aggregate": null,
+      "count_aggregation": "size",
+      "count_label": null,
+      "key_compare": "exact"
+    },
+    {
+      "sheet_src": "LIST-REWARDS",
+      "sheet_dst": "SUMMARY",
+      "src_key": [
+        "Код награды",
+        "Код турнира"
+      ],
+      "dst_key": [
+        "REWARD_CODE",
+        "TOURNAMENT_CODE"
+      ],
+      "column": [
+        "Код турнира"
       ],
       "mode": "count",
       "multiply_rows": false,

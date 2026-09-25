@@ -165,7 +165,7 @@
   "input_files": {
     "PROM": [
       {
-        "file": "CONTEST (PROM) 16-09 v1.csv",
+        "file": "CONTEST (PROM) 23-09 v0.csv",
         "sheet": "CONTEST-DATA",
         "subdir": "PROM/SPOD",
         "archive_to_db": true,
@@ -183,7 +183,7 @@
         "archive_db_path": "OUT/DB/{BLOCK}/spod_input_archive_{BLOCK}.sqlite"
       },
       {
-        "file": "GROUP (PROM) 16-09 v1.csv",
+        "file": "GROUP (PROM) 23-09 v0.csv",
         "sheet": "GROUP",
         "subdir": "PROM/SPOD",
         "archive_to_db": true,
@@ -209,7 +209,7 @@
         "archive_db_path": "OUT/DB/{BLOCK}/spod_input_archive_{BLOCK}.sqlite"
       },
       {
-        "file": "INDICATOR (PROM) 07-09 v0.csv",
+        "file": "INDICATOR (PROM) 23-09 v0.csv",
         "sheet": "INDICATOR",
         "subdir": "PROM/SPOD",
         "archive_to_db": true,
@@ -235,7 +235,7 @@
         "archive_db_path": "OUT/DB/{BLOCK}/spod_input_archive_{BLOCK}.sqlite"
       },
       {
-        "file": "REPORT (PROM) 16-09 v1.csv",
+        "file": "REPORT (PROM) 24-09 v1.csv",
         "sheet": "REPORT",
         "subdir": "PROM/SPOD",
         "archive_to_db": true,
@@ -253,7 +253,7 @@
         "archive_db_path": "OUT/DB/{BLOCK}/spod_input_archive_{BLOCK}.sqlite"
       },
       {
-        "file": "REWARD (PROM) 16-09 v1.csv",
+        "file": "REWARD (PROM) 24-09 v1.csv",
         "sheet": "REWARD",
         "subdir": "PROM/SPOD",
         "archive_to_db": true,
@@ -275,7 +275,7 @@
         "archive_db_path": "OUT/DB/{BLOCK}/spod_input_archive_{BLOCK}.sqlite"
       },
       {
-        "file": "REWARD-LINK (PROM) 16-09 v1.csv",
+        "file": "REWARD-LINK (PROM) 23-09 v0.csv",
         "sheet": "REWARD-LINK",
         "subdir": "PROM/SPOD",
         "archive_to_db": true,
@@ -297,7 +297,7 @@
         "archive_db_path": "OUT/DB/{BLOCK}/spod_input_archive_{BLOCK}.sqlite"
       },
       {
-        "file": "SCHEDULE (PROM) 16-09 v0.csv",
+        "file": "SCHEDULE (PROM) 23-09 v0.csv",
         "sheet": "TOURNAMENT-SCHEDULE",
         "subdir": "PROM/SPOD",
         "archive_to_db": true,
