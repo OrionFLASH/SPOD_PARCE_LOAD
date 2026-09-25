@@ -1711,7 +1711,6 @@
           fileName: pack.fileName,
           sheetName: pack.sheetName,
           sheetNames: pack.sheetNames,
-          sheets: pack.sheets,
           sheetsAoa: pack.sheetsAoa,
           rawAoa: pack.rawAoa,
           start_row: pack.start_row,

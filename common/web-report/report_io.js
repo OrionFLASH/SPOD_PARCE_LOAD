@@ -184,19 +184,18 @@
     var sc = startCol == null ? 1 : startCol;
     var wb = XLSX.read(arrayBuffer, { type: "array", cellDates: false, cellNF: true, raw: false });
     var sheetNames = wb.SheetNames || [];
+    // AOA нужен для всех листов (лениво пересчитывается в таблицу при выборе листа/угла,
+    // см. applyPackOrigin) — но саму таблицу {rows, columns} строим только для первого листа,
+    // остальные никто не читает до того, как их выберут.
     var sheetsAoa = {};
-    var sheets = {};
     sheetNames.forEach(function (name) {
-      var aoa = sheetToAoa(wb.Sheets[name]);
-      sheetsAoa[name] = aoa;
-      sheets[name] = tableFromAoaOrigin(aoa, sr, sc);
+      sheetsAoa[name] = sheetToAoa(wb.Sheets[name]);
     });
     var first = sheetNames[0] || "";
-    var table = first ? sheets[first] : { rows: [], columns: [] };
+    var table = first ? tableFromAoaOrigin(sheetsAoa[first], sr, sc) : { rows: [], columns: [] };
     return {
       sheetNames: sheetNames,
       sheetsAoa: sheetsAoa,
-      sheets: sheets,
       sheetName: first,
       rawAoa: first ? sheetsAoa[first] : [],
       rows: table.rows,
@@ -309,7 +308,6 @@
         encoding: csv.encoding,
         fileName: name,
         sheetNames: [],
-        sheets: null,
         sheetsAoa: null,
         sheetName: "",
         rawAoa: csv.rawAoa,
@@ -326,7 +324,6 @@
         columns: xls.columns,
         sheetName: xls.sheetName,
         sheetNames: xls.sheetNames,
-        sheets: xls.sheets,
         sheetsAoa: xls.sheetsAoa,
         rawAoa: xls.rawAoa,
         encoding: "binary",
@@ -436,7 +433,6 @@
         encoding: csv.encoding,
         fileName: name,
         sheetNames: [],
-        sheets: null,
         sheetsAoa: null,
         sheetName: "",
         rawAoa: csv.rawAoa,
@@ -452,7 +448,6 @@
         columns: xls.columns,
         sheetName: xls.sheetName,
         sheetNames: xls.sheetNames,
-        sheets: xls.sheets,
         sheetsAoa: xls.sheetsAoa,
         rawAoa: xls.rawAoa,
         encoding: "binary",
@@ -487,14 +482,10 @@
       aoa = pack.sheetsAoa[name] || [];
       sheetName = name;
     }
+    // Таблица нужна только для выбранного листа — остальные листы держим как AOA
+    // (pack.sheetsAoa) и строим таблицу лениво, когда их выберут, а не на каждую
+    // смену угла/листа для всех листов сразу (дорого для больших книг).
     var table = tableFromAoaOrigin(aoa, sr, sc);
-    var sheets = pack.sheets;
-    if (pack.kind === "excel" && pack.sheetsAoa) {
-      sheets = {};
-      Object.keys(pack.sheetsAoa).forEach(function (n) {
-        sheets[n] = tableFromAoaOrigin(pack.sheetsAoa[n], sr, sc);
-      });
-    }
     return Object.assign({}, pack, {
       sheetName: sheetName || "",
       rawAoa: aoa,
@@ -502,7 +493,6 @@
       columns: table.columns,
       start_row: sr,
       start_col: sc,
-      sheets: sheets,
       source_b64: pack.source_b64,
     });
   }
