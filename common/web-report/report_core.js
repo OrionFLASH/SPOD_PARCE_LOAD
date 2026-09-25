@@ -922,6 +922,14 @@
     "CSV_ERROR",
   ];
 
+  /**
+   * Колонки XLSX-отчёта с табельными номерами. Независимо от формата столбца в исходном
+   * файле (числовой/текстовый), при выгрузке в XLSX эти колонки всегда пишутся текстом —
+   * иначе Excel хранит числа не длиннее 15 значащих цифр и 20-значный ТН превращается
+   * в экспоненту / теряет ведущие нули.
+   */
+  var PERSON_NUMBER_COLUMNS = ["MANAGER_PERSON_NUMBER"];
+
   function rowsForCsv(rows) {
     return (rows || [])
       .filter(function (r) {
@@ -1784,6 +1792,7 @@
     parseFioDictionary: parseFioDictionary,
     CSV_COLUMNS: CSV_COLUMNS,
     XLSX_COLUMNS: XLSX_COLUMNS,
+    PERSON_NUMBER_COLUMNS: PERSON_NUMBER_COLUMNS,
   };
 
   if (typeof module !== "undefined" && module.exports) {

@@ -625,6 +625,36 @@ function testPersonNumberProblem() {
   assert.ok(pr("").indexOf("пуст") >= 0);
 }
 
+/**
+ * Выходной XLSX: колонка табельного номера всегда текст (t:"s", формат "@"),
+ * независимо от того, каким был тип значения в строке отчёта — число или строка
+ * (см. Версия 1.8.1 / 26.49 — раньше это гарантировалось только тем, что
+ * MANAGER_PERSON_NUMBER всегда строка после padPersonNumber; теперь явно и на случай
+ * будущих изменений).
+ */
+function testXlsxPersonNumberAsText() {
+  global.XLSX = require(path.join(__dirname, "../../common/web-report/xlsx.full.min.js"));
+  try {
+    const rows = [
+      { MANAGER_PERSON_NUMBER: "00000000000012345678" },
+      { MANAGER_PERSON_NUMBER: 12345678901234567890 },
+    ];
+    const wb = ReportIO.buildReportXlsxWorkbook(rows);
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const colIdx = ReportCore.XLSX_COLUMNS.indexOf("MANAGER_PERSON_NUMBER");
+    for (let r = 1; r <= rows.length; r++) {
+      const addr = global.XLSX.utils.encode_cell({ r, c: colIdx });
+      const cell = ws[addr];
+      assert.strictEqual(cell.t, "s");
+      assert.strictEqual(cell.z, "@");
+      assert.strictEqual(typeof cell.v, "string");
+    }
+    assert.strictEqual(ws[global.XLSX.utils.encode_cell({ r: 1, c: colIdx })].v, "00000000000012345678");
+  } finally {
+    delete global.XLSX;
+  }
+}
+
 function testPeriodCodeFromScheduleType() {
   const f = ReportCore.periodCodeFromScheduleType;
   assert.strictEqual(f("турнир года"), "Y");
@@ -819,6 +849,7 @@ const tests = [
   ["factNotNumber", testFactNotNumberBlocksCsv],
   ["planOpValidation", testPlanAndOpValueValidation],
   ["personNumberProblem", testPersonNumberProblem],
+  ["xlsxPersonNumberAsText", testXlsxPersonNumberAsText],
   ["periodCodeFromScheduleType", testPeriodCodeFromScheduleType],
   ["scheduleStatusCounts", testScheduleStatusCounts],
   ["buildTournamentsFromSourceFiles", testBuildTournamentsFromSourceFiles],

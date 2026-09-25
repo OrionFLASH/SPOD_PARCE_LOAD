@@ -1457,6 +1457,13 @@ python main.py
 - Легенда цветов вкладок слева. `INDICATOR_CODE` — dropdown + combobox; списки методов/агрегаций обновлены в каталоге.
 - Fill ≡ fill-full (`sync_web_fill_singlefile.py`). Документы: `Docs/PLAN_WEB_FILL.md`, `Docs/TODO_WEB_FILL.md`, ROADMAP §16.
 
+### Версия 1.8.1 — web-report: XLSX-табельный всегда текст (26.49)
+
+- Колонка `MANAGER_PERSON_NUMBER` в выгружаемом XLSX теперь **всегда** пишется текстом (`t:"s"`, формат ячейки `@`) — независимо от того, числовым или текстовым был этот столбец в исходном файле. Раньше это держалось только на том, что значение всегда JS-строка; теперь гарантия явная, на уровне формата ячейки (`ReportCore.PERSON_NUMBER_COLUMNS`, `ReportIO.forcePersonNumberColumnsAsText`).
+- `ReportIO.downloadReportXlsx` разбит на чистую `buildReportXlsxWorkbook(rows)` (сборка книги, без скачивания — используется тестом) и скачивание.
+- Рекомендация про текстовый формат столбца **в исходном файле** остаётся (`Docs/WEB_REPORT_USER_GUIDE.md`, `common/web-report/README.md`) — если Excel уже сохранил 20-значный табельный как число, точность теряется физически до загрузки в web-report, это не восстановить постфактум; но выходной файл самого web-report от формата источника больше не зависит.
+- Тест `xlsxPersonNumberAsText` (27 тестов всего). Docs и `web-report_bundle.zip` обновлены.
+
 ### Версия 1.8.0 — web-report: кнопка «Обновить REPORT»; фикс чипов фильтров (26.48)
 
 - Новая кнопка «Обновить REPORT» рядом с CSV/XLSX: сливает готовые к выгрузке турниры с REPORT-файлом, загруженным через «Загрузить списки» (весь пакет теперь сохраняется в `state.importedReportPack`, а не терялся после импорта). Доступна, когда REPORT загружен и CSV-гейт зелёный.

@@ -591,7 +591,38 @@
     return widths;
   }
 
-  function downloadReportXlsx(rows, filename) {
+  /**
+   * Принудительно делает ячейки колонок табельных номеров текстовыми (t:"s", формат "@"),
+   * независимо от того, каким был тип значения. Так 20-значный ТН с ведущими нулями
+   * не превращается в число (и, как следствие, в экспоненту с потерей точности) —
+   * не важно, каким столбец был в исходном файле.
+   */
+  function forcePersonNumberColumnsAsText(ws, cols, rowCount) {
+    var personCols = (ReportCore.PERSON_NUMBER_COLUMNS || []).reduce(function (acc, name) {
+      var idx = cols.indexOf(name);
+      if (idx >= 0) acc.push(idx);
+      return acc;
+    }, []);
+    if (!personCols.length) {
+      return;
+    }
+    for (var r = 1; r < rowCount; r++) {
+      personCols.forEach(function (c) {
+        var addr = XLSX.utils.encode_cell({ r: r, c: c });
+        var cell = ws[addr];
+        if (!cell) {
+          return;
+        }
+        cell.v = cell.v == null ? "" : String(cell.v);
+        cell.t = "s";
+        cell.z = "@";
+        delete cell.w;
+      });
+    }
+  }
+
+  /** Строит книгу XLSX-отчёта (лист REPORT) из строк — без скачивания, для переиспользования и тестов. */
+  function buildReportXlsxWorkbook(rows) {
     if (typeof XLSX === "undefined") {
       throw new Error("Библиотека XLSX не загружена");
     }
@@ -612,6 +643,7 @@
       e: { r: lastRow - 1, c: lastCol - 1 },
     });
     ws["!ref"] = range;
+    forcePersonNumberColumnsAsText(ws, cols, aoa.length);
     ws["!autofilter"] = { ref: range };
     ws["!freeze"] = {
       xSplit: 0,
@@ -630,6 +662,11 @@
     }
     wb.Workbook.Views[0].ySplit = 1;
     XLSX.utils.book_append_sheet(wb, ws, "REPORT");
+    return wb;
+  }
+
+  function downloadReportXlsx(rows, filename) {
+    var wb = buildReportXlsxWorkbook(rows);
     var out = XLSX.write(wb, { bookType: "xlsx", type: "array" });
     downloadBlob(
       filename || timestampName("report", "xlsx"),
@@ -708,6 +745,7 @@
     downloadJson: downloadJson,
     buildCsvContent: buildCsvContent,
     downloadReportCsv: downloadReportCsv,
+    buildReportXlsxWorkbook: buildReportXlsxWorkbook,
     downloadReportXlsx: downloadReportXlsx,
     autoColWidths: autoColWidths,
     timestampName: timestampName,
