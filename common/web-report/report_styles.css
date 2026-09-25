@@ -1601,3 +1601,13 @@ body::after { width: 380px; height: 380px; right: -60px; bottom: 10%; background
 }
 .sidebar-actions--pipeline > #btn-load-report svg,
 .sidebar-actions--pipeline > #btn-update-report svg { width: 13px; height: 13px; }
+
+/* свайп по трекпаду у края прокрутки не должен уходить в браузер (жест «Назад»)
+   и не должен «протаскивать» прокрутку во внешние контейнеры */
+html, body { overscroll-behavior: none; }
+.main,
+.preview-table-wrap,
+.contest-tabs-scroll,
+.filters-scroll,
+.modal-card,
+.fio-issues-scroll { overscroll-behavior: contain; }

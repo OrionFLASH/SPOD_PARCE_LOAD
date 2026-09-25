@@ -1935,11 +1935,66 @@
     traced("renderAll", renderAllImpl, { tournaments: state.tournaments.length, active: state.activeId });
   }
 
+  /**
+   * Снимок того, что пользователь «держит» в центре: фокус в поле, прокрутка страницы и
+   * превью. Полная перерисовка (renderWorkspace) пересоздаёт DOM — без восстановления поле
+   * теряет фокус, а таблица превью отскакивает к левому краю; продолжающийся свайп по
+   * трекпаду тогда упирается в край, и Safari трактует его как «Назад» (см. 26.63).
+   */
+  function captureWorkspaceView() {
+    var main = document.querySelector(".main");
+    var ws = $("workspace");
+    var ae = document.activeElement;
+    var view = {
+      activeId: state.activeId,
+      mainTop: main ? main.scrollTop : 0,
+      focusId: ae && ae.id && ws && ws.contains(ae) ? ae.id : "",
+      sel: null,
+      previews: {},
+    };
+    try {
+      if (view.focusId && typeof ae.selectionStart === "number") view.sel = [ae.selectionStart, ae.selectionEnd];
+    } catch (err) {
+      view.sel = null;
+    }
+    ["data-preview-host", "fio-preview-host"].forEach(function (id) {
+      var wrap = document.querySelector("#" + id + " .preview-table-wrap");
+      if (wrap) view.previews[id] = [wrap.scrollLeft, wrap.scrollTop];
+    });
+    return view;
+  }
+
+  function restoreWorkspaceView(view) {
+    if (!view || view.activeId !== state.activeId) return;
+    var main = document.querySelector(".main");
+    if (main) main.scrollTop = view.mainTop;
+    Object.keys(view.previews).forEach(function (id) {
+      var wrap = document.querySelector("#" + id + " .preview-table-wrap");
+      if (wrap) {
+        wrap.scrollLeft = view.previews[id][0];
+        wrap.scrollTop = view.previews[id][1];
+      }
+    });
+    if (view.focusId) {
+      var el = $(view.focusId);
+      if (el && document.activeElement !== el) {
+        try {
+          el.focus({ preventScroll: true });
+          if (view.sel) el.setSelectionRange(view.sel[0], view.sel[1]);
+        } catch (err) {
+          /* у number-полей нет selection — фокуса достаточно */
+        }
+      }
+    }
+  }
+
   function renderAllImpl() {
+    var view = captureWorkspaceView();
     ensureActive();
     renderStages();
     renderNav();
     renderWorkspace();
+    restoreWorkspaceView(view);
     renderSideStats();
     renderTopInfo();
     renderSideResult();
@@ -3444,6 +3499,53 @@
   }
 
 
+  /**
+   * Защита от потери данных. Всё состояние живёт только в памяти страницы, поэтому:
+   * 1) «Назад» по истории (свайп двумя пальцами по трекпаду, Cmd+[ / Cmd+←, кнопка мыши)
+   *    перехватывается: в историю кладётся «страж» того же адреса, и шаг назад только
+   *    снимает его (popstate в этом же документе, без перезагрузки) — страж сразу
+   *    возвращается. Причина из трейса 26.63: Safari уходил «Назад» (navigation =
+   *    back_forward) и открывал страницу заново — пустой.
+   * 2) Закрытие / перезагрузка вкладки при наличии турниров — стандартное подтверждение.
+   * 3) Колесо/трекпад над полем-числом в фокусе не меняет значение (поле теряет фокус).
+   */
+  function initNavigationGuard() {
+    var guardOk = false;
+    try {
+      history.pushState({ spodGuard: true }, "");
+      guardOk = true;
+    } catch (err) {
+      trace("PAGE", "защита от «Назад» недоступна: " + (err && err.message));
+    }
+    if (guardOk) {
+      window.addEventListener("popstate", function () {
+        trace("PAGE", "переход «Назад» по истории перехвачен — страница не выгружается");
+        try {
+          history.pushState({ spodGuard: true }, "");
+        } catch (err) {
+          /* noop */
+        }
+        showToast("«Назад» отключён — иначе все турниры на странице пропадут");
+      });
+    }
+    window.addEventListener("beforeunload", function (ev) {
+      if (!state.tournaments.length) return;
+      ev.preventDefault();
+      ev.returnValue = "";
+      return "";
+    });
+    document.addEventListener(
+      "wheel",
+      function (ev) {
+        var el = ev.target;
+        if (el && el.tagName === "INPUT" && el.type === "number" && document.activeElement === el) {
+          el.blur();
+        }
+      },
+      { passive: true }
+    );
+  }
+
   async function init() {
     loadConfig();
     clearLegacyStorage();
@@ -3596,6 +3698,7 @@
     }
 
     initTips();
+    initNavigationGuard();
     setSidebarOpen(true);
     setFiltersOpen(false);
     setChromeOpen(true);

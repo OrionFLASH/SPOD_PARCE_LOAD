@@ -317,16 +317,59 @@
     true
   );
 
+  // служебные клавиши и любые сочетания с Cmd/Ctrl/Alt (Cmd+[, Cmd+←, Cmd+R …) — без текста ввода
+  var SERVICE_KEYS = /^(Enter|Escape|Tab|Backspace|Delete|F5|ArrowUp|ArrowDown|ArrowLeft|ArrowRight|PageUp|PageDown|Home|End)$/;
   document.addEventListener(
     "keydown",
     function (ev) {
       if (!enabled) return;
-      if (ev.key === "Enter" || ev.key === "Escape" || ev.key === "Tab" || ev.key === "F5" || (ev.key === "r" && (ev.metaKey || ev.ctrlKey))) {
-        log("KEY", ev.key + (ev.metaKey ? "+Cmd" : "") + (ev.ctrlKey ? "+Ctrl" : "") + " на " + describeEl(ev.target));
-      }
+      var combo = ev.metaKey || ev.ctrlKey || ev.altKey;
+      if (!combo && !SERVICE_KEYS.test(ev.key)) return;
+      log(
+        "KEY",
+        (ev.metaKey ? "Cmd+" : "") + (ev.ctrlKey ? "Ctrl+" : "") + (ev.altKey ? "Alt+" : "") + (ev.shiftKey && combo ? "Shift+" : "") + ev.key +
+          " на " + describeEl(ev.target)
+      );
     },
     true
   );
+
+  // прокрутка/свайп: горизонтальные жесты (кандидаты на «Назад» в Safari) и колесо над полями-числами
+  var lastWheelLog = 0;
+  document.addEventListener(
+    "wheel",
+    function (ev) {
+      if (!enabled) return;
+      var horizontal = Math.abs(ev.deltaX) > Math.abs(ev.deltaY) && Math.abs(ev.deltaX) > 4;
+      var overNumber = ev.target && ev.target.tagName === "INPUT" && ev.target.type === "number";
+      if (!horizontal && !overNumber) return;
+      var now = Date.now();
+      if (now - lastWheelLog < 400) return;
+      lastWheelLog = now;
+      var scroller = ev.target.closest ? ev.target.closest(".preview-table-wrap, .main, .contest-tabs-scroll") : null;
+      log("WHEEL", (horizontal ? "горизонтальный свайп" : "прокрутка над полем-числом") + " на " + describeEl(ev.target), {
+        dx: Math.round(ev.deltaX),
+        dy: Math.round(ev.deltaY),
+        scroller: scroller ? scroller.className.split(" ")[0] : "",
+        scrollLeft: scroller ? Math.round(scroller.scrollLeft) : null,
+      });
+    },
+    { capture: true, passive: true }
+  );
+
+  document.addEventListener(
+    "mousedown",
+    function (ev) {
+      if (!enabled || ev.button < 3) return;
+      log("MOUSE", "кнопка мыши " + ev.button + (ev.button === 3 ? " («Назад»)" : ev.button === 4 ? " («Вперёд»)" : ""));
+    },
+    true
+  );
+
+  root.addEventListener("popstate", function (ev) {
+    if (!enabled) return;
+    log("PAGE", "popstate (шаг по истории)", { state: ev.state });
+  });
 
   document.addEventListener(
     "toggle",
