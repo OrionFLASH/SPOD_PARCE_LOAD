@@ -40,6 +40,15 @@
     previewOpen: { source: false, fio: false },
   };
 
+  /** Транзитное состояние модалки «Загрузить списки» (сбрасывается при открытии). */
+  var importTour = {
+    step: "files",
+    schedulePack: null,
+    contestPack: null,
+    reportPack: null,
+    selectedStatuses: {},
+  };
+
   function $(id) {
     return document.getElementById(id);
   }
@@ -371,6 +380,7 @@
       if (!ReportCore.tournamentIdentityUnlocked(t)) cls += " is-copy-lock";
       if (!ReportCore.tournamentIncluded(t)) cls += " is-excluded";
       if (t.source_error) cls += " is-error";
+      if (t.import_warning) cls += " is-import-warn";
       btn.className = cls;
       var kind = tournamentReadyKind(t);
       var type = String(t.type_ind || "TN").toUpperCase();
@@ -437,6 +447,11 @@
         '">' +
         (kind === "copy" ? "КОПИЯ" : kind === "ready" ? "OK" : kind === "off" ? "ВЫКЛ" : "DRAFT") +
         "</span>" +
+        (t.import_warning
+          ? '<span class="mini-badge mini-badge--import-warn" data-tip="' +
+            escapeHtml("Загружено из списков, требует проверки: " + t.import_warning) +
+            '">! СПИСКИ</span>'
+          : "") +
         "</div>" +
         metricsHtml +
         "</div>" +
@@ -1709,6 +1724,304 @@
     $(id).hidden = true;
   }
 
+  var IMPORT_TOUR_FILES = [
+    {
+      key: "schedule",
+      title: "SCHEDULE",
+      required: true,
+      hint: "Список турниров: коды, период (PERIOD_TYPE), статус (TOURNAMENT_STATUS)",
+      requiredCols: ["TOURNAMENT_CODE", "CONTEST_CODE", "PERIOD_TYPE", "TOURNAMENT_STATUS"],
+    },
+    {
+      key: "contest",
+      title: "CONTEST",
+      required: true,
+      hint: "Названия и план турниров: FULL_NAME, PLAN_MOD_VALUE по CONTEST_CODE",
+      requiredCols: ["CONTEST_CODE", "FULL_NAME", "PLAN_MOD_VALUE"],
+    },
+    {
+      key: "report",
+      title: "REPORT",
+      required: false,
+      hint: "Дата турнира — самая новая CONTEST_DATE по TOURNAMENT_CODE (необязателен)",
+      requiredCols: ["TOURNAMENT_CODE", "CONTEST_DATE"],
+    },
+  ];
+
+  function importTourPackKey(key) {
+    return key + "Pack";
+  }
+
+  /** Все обязательные колонки файла присутствуют в разобранной таблице. */
+  function packHasColumns(pack, cols) {
+    if (!pack) return false;
+    var have = pack.columns || [];
+    return (cols || []).every(function (c) {
+      return have.indexOf(c) >= 0;
+    });
+  }
+
+  function resetImportTour() {
+    importTour = {
+      step: "files",
+      schedulePack: null,
+      contestPack: null,
+      reportPack: null,
+      selectedStatuses: {},
+    };
+  }
+
+  function renderImportFileRow(spec) {
+    var pack = importTour[importTourPackKey(spec.key)];
+    var metaText = "не выбран";
+    var metaCls = "";
+    if (pack) {
+      var missing = (spec.requiredCols || []).filter(function (c) {
+        return (pack.columns || []).indexOf(c) < 0;
+      });
+      if (missing.length) {
+        metaText = "не хватает колонок: " + missing.join(", ");
+        metaCls = " is-error";
+      } else {
+        metaText = pack.fileName + " · строк: " + pack.rows.length;
+        metaCls = " is-ok";
+      }
+    } else if (!spec.required) {
+      metaText = "не выбран — дата турниров будет сегодняшней";
+    }
+    return (
+      '<div class="import-file-row">' +
+      '<label class="btn btn-primary file-pick" data-tip="' +
+      escapeHtml(spec.hint) +
+      '"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21V9"/><path d="M7 14l5-5 5 5"/><path d="M5 3h14"/></svg>' +
+      "<span>" +
+      spec.title +
+      (spec.required ? "*" : "") +
+      "</span>" +
+      '<input type="file" id="import-tour-file-' +
+      spec.key +
+      '" class="file-pick__input" accept=".csv,.txt" /></label>' +
+      '<div class="import-file-row__meta' +
+      metaCls +
+      '" id="import-tour-meta-' +
+      spec.key +
+      '">' +
+      escapeHtml(metaText) +
+      "</div></div>"
+    );
+  }
+
+  function renderImportTourStepFiles() {
+    var host = $("import-tour-body");
+    if (!host) return;
+    host.innerHTML = IMPORT_TOUR_FILES.map(renderImportFileRow).join("");
+    IMPORT_TOUR_FILES.forEach(function (spec) {
+      var input = $("import-tour-file-" + spec.key);
+      if (!input) return;
+      input.addEventListener("change", async function (ev) {
+        var file = ev.target.files && ev.target.files[0];
+        ev.target.value = "";
+        if (!file) return;
+        try {
+          var pack = await ReportIO.readTableFile(file, 1, 1);
+          importTour[importTourPackKey(spec.key)] = pack;
+        } catch (err) {
+          alert(err.message || String(err));
+          return;
+        }
+        renderImportTourStepFiles();
+        updateImportTourPrimaryState();
+      });
+    });
+    updateImportTourPrimaryState();
+  }
+
+  function renderImportTourStepStatus() {
+    var host = $("import-tour-body");
+    if (!host) return;
+    var counts = ReportCore.scheduleStatusCounts(importTour.schedulePack.rows);
+    var chips = counts
+      .map(function (s) {
+        var on = !!importTour.selectedStatuses[s.status];
+        return (
+          '<button type="button" class="chip' +
+          (on ? " is-on" : "") +
+          '" data-status="' +
+          escapeHtml(s.status) +
+          '" aria-pressed="' +
+          (on ? "true" : "false") +
+          '">' +
+          escapeHtml(s.status) +
+          '<span class="mini-badge">' +
+          s.count +
+          "</span></button>"
+        );
+      })
+      .join("");
+    var reportNote = importTour.reportPack
+      ? "REPORT: " + importTour.reportPack.rows.length + " строк"
+      : "REPORT не загружен — дата турниров будет сегодняшней";
+    host.innerHTML =
+      '<div class="info-box">SCHEDULE: ' +
+      importTour.schedulePack.rows.length +
+      " строк · CONTEST: " +
+      importTour.contestPack.rows.length +
+      " строк · " +
+      reportNote +
+      ".</div>" +
+      '<div class="filter-block__label" style="margin-top:12px">Статусы турниров (TOURNAMENT_STATUS)</div>' +
+      '<div class="toolbar-row toolbar-row--top">' +
+      '<button type="button" class="btn btn-sm" id="import-tour-status-all">Отметить все</button>' +
+      '<button type="button" class="btn btn-sm" id="import-tour-status-none">Снять все</button>' +
+      "</div>" +
+      '<div class="import-tour-status-scroll"><div class="chip-row" id="import-tour-status-list" role="group">' +
+      (chips || '<span class="filter-hint">В SCHEDULE нет строк со статусом.</span>') +
+      "</div></div>" +
+      '<div class="info-box" id="import-tour-status-count"></div>';
+
+    host.querySelectorAll("[data-status]").forEach(function (chip) {
+      chip.addEventListener("click", function () {
+        var status = chip.getAttribute("data-status");
+        importTour.selectedStatuses[status] = !importTour.selectedStatuses[status];
+        chip.classList.toggle("is-on", !!importTour.selectedStatuses[status]);
+        chip.setAttribute("aria-pressed", importTour.selectedStatuses[status] ? "true" : "false");
+        updateImportTourStatusCount();
+        updateImportTourPrimaryState();
+      });
+    });
+    var allBtn = $("import-tour-status-all");
+    var noneBtn = $("import-tour-status-none");
+    if (allBtn) {
+      allBtn.addEventListener("click", function () {
+        counts.forEach(function (s) {
+          importTour.selectedStatuses[s.status] = true;
+        });
+        renderImportTourStepStatus();
+        updateImportTourPrimaryState();
+      });
+    }
+    if (noneBtn) {
+      noneBtn.addEventListener("click", function () {
+        importTour.selectedStatuses = {};
+        renderImportTourStepStatus();
+        updateImportTourPrimaryState();
+      });
+    }
+    updateImportTourStatusCount();
+  }
+
+  function updateImportTourStatusCount() {
+    var el = $("import-tour-status-count");
+    if (!el) return;
+    var statuses = Object.keys(importTour.selectedStatuses).filter(function (s) {
+      return importTour.selectedStatuses[s];
+    });
+    var rows = importTour.schedulePack ? importTour.schedulePack.rows : [];
+    var n = rows.filter(function (r) {
+      return statuses.indexOf(String((r && r.TOURNAMENT_STATUS) || "").trim()) >= 0;
+    }).length;
+    el.textContent = statuses.length
+      ? "Отмечено статусов: " + statuses.length + " · строк в SCHEDULE: " + n
+      : "Отметьте хотя бы один статус.";
+  }
+
+  function updateImportTourPrimaryState() {
+    var primary = $("import-tour-primary");
+    var back = $("import-tour-back");
+    if (!primary) return;
+    if (importTour.step === "files") {
+      if (back) back.hidden = true;
+      var scheduleOk = packHasColumns(importTour.schedulePack, IMPORT_TOUR_FILES[0].requiredCols);
+      var contestOk = packHasColumns(importTour.contestPack, IMPORT_TOUR_FILES[1].requiredCols);
+      primary.textContent = "Далее";
+      primary.disabled = !(scheduleOk && contestOk);
+    } else {
+      if (back) back.hidden = false;
+      var anyStatus = Object.keys(importTour.selectedStatuses).some(function (s) {
+        return importTour.selectedStatuses[s];
+      });
+      primary.textContent = "Загрузить турниры";
+      primary.disabled = !anyStatus;
+    }
+  }
+
+  function openImportTournamentsModal() {
+    resetImportTour();
+    importTour.step = "files";
+    renderImportTourStepFiles();
+    openModal("modal-import-tour");
+
+    var primary = $("import-tour-primary");
+    var back = $("import-tour-back");
+    var cancel = $("import-tour-cancel");
+    primary.onclick = function () {
+      if (importTour.step === "files") {
+        importTour.step = "status";
+        renderImportTourStepStatus();
+        updateImportTourPrimaryState();
+      } else {
+        runImportTournaments();
+      }
+    };
+    back.onclick = function () {
+      importTour.step = "files";
+      renderImportTourStepFiles();
+      updateImportTourPrimaryState();
+    };
+    cancel.onclick = function () {
+      closeModal("modal-import-tour");
+      resetImportTour();
+    };
+  }
+
+  function runImportTournaments() {
+    if (!importTour.schedulePack || !importTour.contestPack) return;
+    var statuses = Object.keys(importTour.selectedStatuses).filter(function (s) {
+      return importTour.selectedStatuses[s];
+    });
+    if (!statuses.length) return;
+    flushEditorToState();
+    var existingCodes = state.tournaments.map(function (t) {
+      return t.tournament_code;
+    });
+    var reportRows = importTour.reportPack ? importTour.reportPack.rows : [];
+    var result = ReportCore.buildTournamentsFromSourceFiles(
+      importTour.schedulePack.rows,
+      importTour.contestPack.rows,
+      reportRows,
+      statuses,
+      existingCodes
+    );
+    if (result.tournaments.length) {
+      state.tournaments = state.tournaments.concat(result.tournaments);
+      state.activeId = result.tournaments[0].id;
+      invalidateChecks();
+    }
+    closeModal("modal-import-tour");
+    resetImportTour();
+    renderAll();
+
+    var parts = ["загружено: " + result.stats.imported];
+    if (result.stats.withWarnings) parts.push("требуют проверки: " + result.stats.withWarnings);
+    if (result.stats.skippedDuplicate) parts.push("пропущено, уже есть: " + result.stats.skippedDuplicate);
+    if (result.stats.skippedNoCode) parts.push("без кода турнира: " + result.stats.skippedNoCode);
+    var msg = "Турниры из списков: " + parts.join(" · ");
+    showToast(msg);
+    setStatus(msg);
+    if (!result.tournaments.length) {
+      alert("Не загружено ни одного турнира с выбранными статусами (возможно, все уже есть в списке).");
+    } else if (result.stats.withWarnings) {
+      alert(
+        "Загружено турниров: " +
+          result.stats.imported +
+          ", из них требуют проверки параметров: " +
+          result.stats.withWarnings +
+          ".\nОни отмечены в списке слева меткой «! СПИСКИ» (фиолетовая рамка) — наведите на метку, чтобы увидеть причину.\n" +
+          "«Включать в проверку и выгрузку» у всех загруженных турниров выключено — включите после проверки параметров и загрузки источника данных."
+      );
+    }
+  }
+
   function askMissingFio(missingList) {
     return new Promise(function (resolve) {
       var list = $("modal-fio-list");
@@ -2615,6 +2928,7 @@
       ReportIO.downloadJson(ReportIO.timestampName("web_report_settings", "json"), buildSettingsPayload());
       showToast("JSON настроек");
     });
+    $("btn-import-tournaments").addEventListener("click", openImportTournamentsModal);
     $("import-settings").addEventListener("change", async function (ev) {
       var file = ev.target.files && ev.target.files[0];
       ev.target.value = "";

@@ -50,6 +50,12 @@
           Сохранить JSON
         </button>
       </div>
+      <div class="sidebar-actions">
+        <button type="button" class="btn btn-sidebar" id="btn-import-tournaments" data-tip="Собрать турниры из SCHEDULE + CONTEST + REPORT (файлы SPOD)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 6h13"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M3 6h.01"/><path d="M3 12h.01"/><path d="M3 18h.01"/></svg>
+          Загрузить списки
+        </button>
+      </div>
       <div class="contest-tabs-scroll">
         <div class="contest-tabs" id="tournament-nav"></div>
       </div>
@@ -161,6 +167,19 @@
     <div id="modal-fio-issues-body" class="fio-issues-scroll"></div>
     <div class="modal-actions">
       <button type="button" class="btn btn-primary" id="modal-fio-issues-close">Закрыть</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="modal-import-tour" hidden>
+  <div class="modal-card modal-card--wide" role="dialog" aria-modal="true">
+    <h3 id="import-tour-title">Загрузить турниры из исходных файлов</h3>
+    <p id="import-tour-intro">SCHEDULE — список турниров, статусы и период; CONTEST — название и план; REPORT — дата (необязателен, без него дата = сегодня).</p>
+    <div id="import-tour-body"></div>
+    <div class="modal-actions">
+      <button type="button" class="btn btn-primary" id="import-tour-primary" disabled>Далее</button>
+      <button type="button" class="btn" id="import-tour-back" hidden>Назад</button>
+      <button type="button" class="btn" id="import-tour-cancel">Отмена</button>
     </div>
   </div>
 </div>

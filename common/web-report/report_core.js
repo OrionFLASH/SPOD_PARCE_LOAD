@@ -1169,6 +1169,184 @@
     return t;
   }
 
+  /**
+   * Соответствие SCHEDULE.PERIOD_TYPE → код периода. Ключи — нормализованный (нижний регистр,
+   * пробелы схлопнуты) текст из реальных выгрузок PROM; всё, чего нет в словаре, — "F" (произвольный).
+   */
+  var SCHEDULE_PERIOD_TYPE_MAP = {
+    "турнир года": "Y",
+    "турнир 1 квартала": "Q1",
+    "турнир 2 квартала": "Q2",
+    "турнир 3 квартала": "Q3",
+    "турнир 4 квартала": "Q4",
+    "турнир января": "M1",
+    "турнир февраля": "M2",
+    "турнир марта": "M3",
+    "турнир апреля": "M4",
+    "турнир мая": "M5",
+    "турнир июня": "M6",
+    "турнир июля": "M7",
+    "турнир августа": "M8",
+    "турнир сентября": "M9",
+    "турнир октября": "M10",
+    "турнир ноября": "M11",
+    "турнир декабря": "M12",
+    "произвольный": "F",
+  };
+
+  /** SCHEDULE.PERIOD_TYPE → код периода; нераспознанное → "F". */
+  function periodCodeFromScheduleType(text) {
+    var key = String(text == null ? "" : text).trim().toLowerCase().replace(/\s+/g, " ");
+    return SCHEDULE_PERIOD_TYPE_MAP[key] || "F";
+  }
+
+  /** Уникальные TOURNAMENT_STATUS из SCHEDULE с числом строк, по убыванию частоты. */
+  function scheduleStatusCounts(scheduleRows) {
+    var counts = Object.create(null);
+    var order = [];
+    (scheduleRows || []).forEach(function (row) {
+      var status = String((row && row.TOURNAMENT_STATUS) || "").trim();
+      if (!status) return;
+      if (!counts[status]) {
+        counts[status] = 0;
+        order.push(status);
+      }
+      counts[status] += 1;
+    });
+    return order
+      .map(function (status) {
+        return { status: status, count: counts[status] };
+      })
+      .sort(function (a, b) {
+        return b.count - a.count || a.status.localeCompare(b.status, "ru");
+      });
+  }
+
+  /** CONTEST_CODE → строка CONTEST (первая встреченная). */
+  function buildContestIndex(contestRows) {
+    var map = Object.create(null);
+    (contestRows || []).forEach(function (row) {
+      var code = String((row && row.CONTEST_CODE) || "").trim();
+      if (code && !map[code]) {
+        map[code] = row;
+      }
+    });
+    return map;
+  }
+
+  /** TOURNAMENT_CODE → самая поздняя CONTEST_DATE (сравнение строк ГГГГ-ММ-ДД). */
+  function buildReportDateIndex(reportRows) {
+    var map = Object.create(null);
+    (reportRows || []).forEach(function (row) {
+      var code = String((row && row.TOURNAMENT_CODE) || "").trim();
+      var date = String((row && row.CONTEST_DATE) || "").trim();
+      if (!code || !/^\d{4}-\d{2}-\d{2}/.test(date)) return;
+      if (!map[code] || date > map[code]) {
+        map[code] = date;
+      }
+    });
+    return map;
+  }
+
+  /**
+   * Собрать список турниров из SCHEDULE + CONTEST + REPORT (исходные CSV выгрузки PROM).
+   * Код турнира и конкурса — из SCHEDULE; период — из PERIOD_TYPE; название и план — из CONTEST
+   * по CONTEST_CODE (FULL_NAME, PLAN_MOD_VALUE; план не число/пуст → "0"); дата — самая новая
+   * CONTEST_DATE для турнира в REPORT, нет данных → сегодня. Загружаются только параметры турнира,
+   * без источника данных по участникам (его подключают отдельно) — поэтому «Включать в проверку
+   * и выгрузку» ставится в «нет», а турниры без данных естественно попадают в DRAFT.
+   * @param {object[]} scheduleRows
+   * @param {object[]} contestRows
+   * @param {object[]} reportRows
+   * @param {string[]} selectedStatuses — какие TOURNAMENT_STATUS брать
+   * @param {string[]} existingCodes — tournament_code, уже присутствующие в списке (не дублировать)
+   * @returns {{ tournaments: object[], stats: object }}
+   */
+  function buildTournamentsFromSourceFiles(scheduleRows, contestRows, reportRows, selectedStatuses, existingCodes) {
+    var statusSet = Object.create(null);
+    (selectedStatuses || []).forEach(function (s) {
+      statusSet[String(s || "").trim()] = true;
+    });
+    var contestIdx = buildContestIndex(contestRows);
+    var dateIdx = buildReportDateIndex(reportRows);
+    var existing = Object.create(null);
+    (existingCodes || []).forEach(function (c) {
+      existing[String(c || "").trim()] = true;
+    });
+
+    var today = todayIsoDate();
+    var seenInBatch = Object.create(null);
+    var out = [];
+    var stats = { matched: 0, imported: 0, skippedDuplicate: 0, skippedNoCode: 0, withWarnings: 0 };
+
+    (scheduleRows || []).forEach(function (row) {
+      var status = String((row && row.TOURNAMENT_STATUS) || "").trim();
+      if (!statusSet[status]) return;
+      stats.matched += 1;
+
+      var tCode = String((row && row.TOURNAMENT_CODE) || "").trim();
+      var cCode = String((row && row.CONTEST_CODE) || "").trim();
+      if (!tCode) {
+        stats.skippedNoCode += 1;
+        return;
+      }
+      if (existing[tCode] || seenInBatch[tCode]) {
+        stats.skippedDuplicate += 1;
+        return;
+      }
+      seenInBatch[tCode] = true;
+
+      var warnings = [];
+      var fullName = "";
+      var planValue = "0";
+      var contest = contestIdx[cCode];
+      if (!contest) {
+        warnings.push("конкурс " + (cCode || "(пусто)") + " не найден в CONTEST");
+      } else {
+        fullName = String(contest.FULL_NAME || "").trim();
+        if (!fullName) {
+          warnings.push("пустое наименование (FULL_NAME) в CONTEST");
+        }
+        var planParsed = parseNumberStrict(contest.PLAN_MOD_VALUE);
+        if (planParsed.ok && !planParsed.empty) {
+          planValue = String(contest.PLAN_MOD_VALUE).trim();
+        } else {
+          warnings.push("план (PLAN_MOD_VALUE) пуст или не число — поставлен 0");
+        }
+      }
+
+      var periodCode = periodCodeFromScheduleType(row.PERIOD_TYPE);
+      var periodRaw = String(row.PERIOD_TYPE || "").trim();
+      if (periodCode === "F" && periodRaw.toLowerCase() !== "произвольный") {
+        warnings.push("период «" + periodRaw + "» не распознан — поставлен «Произвольный»");
+      }
+
+      var date = dateIdx[tCode];
+      if (!date) {
+        date = today;
+        warnings.push("дата не найдена в REPORT — поставлена текущая");
+      }
+
+      var t = createEmptyTournament({
+        contest_code: cCode,
+        tournament_code: tCode,
+        full_name: fullName,
+        plan_value: planValue,
+        contest_date: date,
+        period_code: periodCode,
+        type_ind: "TN",
+        include_in_report: false,
+        import_status: status,
+        import_warning: warnings.join("; "),
+      });
+      out.push(t);
+      stats.imported += 1;
+      if (warnings.length) stats.withWarnings += 1;
+    });
+
+    return { tournaments: out, stats: stats };
+  }
+
   function cloneTournament(source) {
     var src = source || {};
     var copy = createEmptyTournament({
@@ -1475,6 +1653,11 @@
     processAll: processAll,
     createEmptyTournament: createEmptyTournament,
     todayIsoDate: todayIsoDate,
+    periodCodeFromScheduleType: periodCodeFromScheduleType,
+    scheduleStatusCounts: scheduleStatusCounts,
+    buildContestIndex: buildContestIndex,
+    buildReportDateIndex: buildReportDateIndex,
+    buildTournamentsFromSourceFiles: buildTournamentsFromSourceFiles,
     cloneTournament: cloneTournament,
     tournamentFieldsOk: tournamentFieldsOk,
     tournamentIdentityUnlocked: tournamentIdentityUnlocked,

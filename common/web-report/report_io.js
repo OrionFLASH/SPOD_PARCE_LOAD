@@ -50,9 +50,9 @@
     return score;
   }
 
-  function decodeBuffer(buffer, encoding) {
+  function decodeBuffer(buffer, encoding, fatal) {
     try {
-      var decoder = new TextDecoder(encoding, { fatal: false });
+      var decoder = new TextDecoder(encoding, { fatal: !!fatal });
       return decoder.decode(buffer);
     } catch (err) {
       return null;
@@ -226,19 +226,35 @@
     var delim = delimiter || getConfig().csv_delimiter || ";";
     var encodings = getConfig().csv_encodings || ["utf-8", "windows-1251", "ibm866"];
     var best = null;
-    encodings.forEach(function (enc) {
-      var text = decodeBuffer(arrayBuffer, enc);
-      if (text == null) {
-        return;
+    // Однобайтовые кодировки (windows-1251, ibm866) декодируют любые байты без ошибок,
+    // и подсчёт «похоже на кириллицу» может ошибочно предпочесть их настоящему UTF-8 без BOM
+    // (каждый 2-байтовый UTF-8 символ кириллицы разваливается на два псевдокириллических
+    // символа в windows-1251, и итоговый счёт получается выше). Поэтому сперва пробуем строгий
+    // UTF-8 (fatal): валидная многобайтовая последовательность почти наверняка и есть UTF-8.
+    if (encodings.indexOf("utf-8") >= 0) {
+      var strictUtf8 = decodeBuffer(arrayBuffer, "utf-8", true);
+      if (strictUtf8 != null) {
+        if (strictUtf8.charCodeAt(0) === 0xfeff) {
+          strictUtf8 = strictUtf8.slice(1);
+        }
+        best = { encoding: "utf-8", text: strictUtf8 };
       }
-      if (text.charCodeAt(0) === 0xfeff) {
-        text = text.slice(1);
-      }
-      var sc = scoreDecodedText(text);
-      if (!best || sc > best.score) {
-        best = { encoding: enc, text: text, score: sc };
-      }
-    });
+    }
+    if (!best) {
+      encodings.forEach(function (enc) {
+        var text = decodeBuffer(arrayBuffer, enc, false);
+        if (text == null) {
+          return;
+        }
+        if (text.charCodeAt(0) === 0xfeff) {
+          text = text.slice(1);
+        }
+        var sc = scoreDecodedText(text);
+        if (!best || sc > best.score) {
+          best = { encoding: enc, text: text, score: sc };
+        }
+      });
+    }
     if (!best) {
       throw new Error("Не удалось декодировать CSV");
     }

@@ -11,6 +11,27 @@ import { fileURLToPath } from "url";
 const require = createRequire(import.meta.url);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ReportCore = require(path.join(__dirname, "../../common/web-report/report_core.js"));
+global.ReportCore = ReportCore;
+require(path.join(__dirname, "../../common/web-report/report_io.js"));
+const ReportIO = global.ReportIO;
+
+/** Кодирует строку в Windows-1251 (без внешних зависимостей, только для тестов). */
+function encodeCp1251(str) {
+  const out = [];
+  for (const ch of str) {
+    const cp = ch.codePointAt(0);
+    if (cp < 0x80) out.push(cp);
+    else if (cp === 0x401) out.push(0xa8); // Ё
+    else if (cp === 0x451) out.push(0xb8); // ё
+    else if (cp >= 0x410 && cp <= 0x44f) out.push(cp - 0x410 + 0xc0); // А-я
+    else out.push(0x3f);
+  }
+  return Buffer.from(out);
+}
+
+function toArrayBuffer(buf) {
+  return buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength);
+}
 
 function testParseNumber() {
   assert.strictEqual(ReportCore.parseNumberFromComma("100,00000"), 100);
@@ -604,12 +625,127 @@ function testPersonNumberProblem() {
   assert.ok(pr("").indexOf("пуст") >= 0);
 }
 
+function testPeriodCodeFromScheduleType() {
+  const f = ReportCore.periodCodeFromScheduleType;
+  assert.strictEqual(f("турнир года"), "Y");
+  assert.strictEqual(f("Турнир Года"), "Y");
+  assert.strictEqual(f("турнир 1 квартала"), "Q1");
+  assert.strictEqual(f("турнир 4 квартала"), "Q4");
+  assert.strictEqual(f("турнир июня"), "M6");
+  assert.strictEqual(f("турнир декабря"), "M12");
+  assert.strictEqual(f("произвольный"), "F");
+  assert.strictEqual(f("турнир 2 полугодия"), "F");
+  assert.strictEqual(f("март-июль"), "F");
+  assert.strictEqual(f("что-то незнакомое"), "F");
+  assert.strictEqual(f(""), "F");
+  assert.strictEqual(f(null), "F");
+}
+
+function testScheduleStatusCounts() {
+  const rows = [
+    { TOURNAMENT_STATUS: "ЗАВЕРШЕН" },
+    { TOURNAMENT_STATUS: "ЗАВЕРШЕН" },
+    { TOURNAMENT_STATUS: "АКТИВНЫЙ" },
+    { TOURNAMENT_STATUS: "" },
+    { TOURNAMENT_STATUS: "УДАЛЕН" },
+  ];
+  const counts = ReportCore.scheduleStatusCounts(rows);
+  assert.deepStrictEqual(counts, [
+    { status: "ЗАВЕРШЕН", count: 2 },
+    { status: "АКТИВНЫЙ", count: 1 },
+    { status: "УДАЛЕН", count: 1 },
+  ]);
+}
+
+function testBuildTournamentsFromSourceFiles() {
+  const schedule = [
+    { TOURNAMENT_CODE: "T1", CONTEST_CODE: "C1", PERIOD_TYPE: "турнир года", TOURNAMENT_STATUS: "АКТИВНЫЙ" },
+    { TOURNAMENT_CODE: "T2", CONTEST_CODE: "C2", PERIOD_TYPE: "турнир 2 квартала", TOURNAMENT_STATUS: "АКТИВНЫЙ" },
+    { TOURNAMENT_CODE: "T3", CONTEST_CODE: "CX", PERIOD_TYPE: "март-июль", TOURNAMENT_STATUS: "АКТИВНЫЙ" },
+    { TOURNAMENT_CODE: "T4", CONTEST_CODE: "C1", PERIOD_TYPE: "турнир года", TOURNAMENT_STATUS: "УДАЛЕН" },
+    { TOURNAMENT_CODE: "", CONTEST_CODE: "C1", PERIOD_TYPE: "турнир года", TOURNAMENT_STATUS: "АКТИВНЫЙ" },
+  ];
+  const contest = [
+    { CONTEST_CODE: "C1", FULL_NAME: "Конкурс 1", PLAN_MOD_VALUE: "1000" },
+    { CONTEST_CODE: "C2", FULL_NAME: "Конкурс 2", PLAN_MOD_VALUE: "" },
+  ];
+  const report = [
+    { TOURNAMENT_CODE: "T1", CONTEST_DATE: "2026-05-01" },
+    { TOURNAMENT_CODE: "T1", CONTEST_DATE: "2026-06-15" },
+  ];
+
+  const res = ReportCore.buildTournamentsFromSourceFiles(schedule, contest, report, ["АКТИВНЫЙ"], []);
+  assert.strictEqual(res.stats.matched, 4); // 4 строки со статусом АКТИВНЫЙ
+  assert.strictEqual(res.stats.skippedNoCode, 1);
+  assert.strictEqual(res.stats.imported, 3);
+  assert.strictEqual(res.stats.withWarnings, 2); // T2 (план пуст) и T3 (конкурс не найден + период)
+
+  const byCode = {};
+  res.tournaments.forEach((t) => (byCode[t.tournament_code] = t));
+
+  const t1 = byCode.T1;
+  assert.strictEqual(t1.contest_code, "C1");
+  assert.strictEqual(t1.full_name, "Конкурс 1");
+  assert.strictEqual(t1.plan_value, "1000");
+  assert.strictEqual(t1.period_code, "Y");
+  assert.strictEqual(t1.contest_date, "2026-06-15"); // самая новая дата
+  assert.strictEqual(t1.include_in_report, false);
+  assert.strictEqual(t1.type_ind, "TN");
+  assert.strictEqual(t1.import_warning, "");
+
+  const t2 = byCode.T2;
+  assert.strictEqual(t2.period_code, "Q2");
+  assert.strictEqual(t2.plan_value, "0"); // PLAN_MOD_VALUE пуст → 0
+  assert.ok(t2.import_warning.indexOf("план") >= 0);
+  assert.strictEqual(t2.contest_date, ReportCore.todayIsoDate()); // нет в REPORT → сегодня
+
+  const t3 = byCode.T3;
+  assert.strictEqual(t3.full_name, ""); // конкурс не найден
+  assert.strictEqual(t3.period_code, "F"); // «март-июль» не распознан
+  assert.ok(t3.import_warning.indexOf("не найден") >= 0);
+  assert.ok(t3.import_warning.indexOf("не распознан") >= 0);
+
+  assert.ok(!byCode.T4); // статус УДАЛЕН не выбран
+
+  // повторный вызов с существующим кодом T1 — пропуск дубля
+  const res2 = ReportCore.buildTournamentsFromSourceFiles(schedule, contest, report, ["АКТИВНЫЙ"], ["T1"]);
+  assert.strictEqual(res2.stats.skippedDuplicate, 1);
+  assert.strictEqual(res2.tournaments.some((t) => t.tournament_code === "T1"), false);
+}
+
+function testCsvEncodingDetection() {
+  // UTF-8 без BOM с кириллицей: раньше эвристика ошибочно предпочитала windows-1251
+  // (каждый 2-байтовый UTF-8 символ кириллицы давал два псевдокириллических символа
+  // в windows-1251, и счёт получался выше, чем у корректного UTF-8-декодирования).
+  const utf8NoBom = Buffer.from("ТАБЕЛЬНЫЙ;ФИО;ПОКАЗАТЕЛЬ\nстрока;Иванов Иван Иванович;10,5\n", "utf-8");
+  const parsedUtf8 = ReportIO.parseCsvBuffer(toArrayBuffer(utf8NoBom), ";", 1, 1);
+  assert.strictEqual(parsedUtf8.encoding, "utf-8");
+  assert.deepStrictEqual(parsedUtf8.columns, ["ТАБЕЛЬНЫЙ", "ФИО", "ПОКАЗАТЕЛЬ"]);
+  assert.strictEqual(parsedUtf8.rows[0]["ФИО"], "Иванов Иван Иванович");
+
+  // Настоящий Windows-1251 по-прежнему распознаётся (строгий UTF-8 для него не проходит).
+  const cp1251 = encodeCp1251("ТАБЕЛЬНЫЙ;ФИО;ПОКАЗАТЕЛЬ\n123;Иванов Иван;10,5\n");
+  const parsedCp1251 = ReportIO.parseCsvBuffer(toArrayBuffer(cp1251), ";", 1, 1);
+  assert.strictEqual(parsedCp1251.encoding, "windows-1251");
+  assert.strictEqual(parsedCp1251.rows[0]["ФИО"], "Иванов Иван");
+
+  // UTF-8 с BOM — тоже корректно, BOM отрезается.
+  const withBom = Buffer.concat([Buffer.from([0xef, 0xbb, 0xbf]), Buffer.from("A;B\n1;2\n", "utf-8")]);
+  const parsedBom = ReportIO.parseCsvBuffer(toArrayBuffer(withBom), ";", 1, 1);
+  assert.strictEqual(parsedBom.encoding, "utf-8");
+  assert.deepStrictEqual(parsedBom.columns, ["A", "B"]);
+}
+
 const tests = [
   ["numberParsingStrict", testNumberParsingStrict],
   ["numberFormatDot", testNumberFormatDot],
   ["factNotNumber", testFactNotNumberBlocksCsv],
   ["planOpValidation", testPlanAndOpValueValidation],
   ["personNumberProblem", testPersonNumberProblem],
+  ["periodCodeFromScheduleType", testPeriodCodeFromScheduleType],
+  ["scheduleStatusCounts", testScheduleStatusCounts],
+  ["buildTournamentsFromSourceFiles", testBuildTournamentsFromSourceFiles],
+  ["csvEncodingDetection", testCsvEncodingDetection],
   ["parseNumber", testParseNumber],
   ["pad", testPad],
   ["tnMode", testTnMode],
