@@ -298,7 +298,10 @@
     var buffer = await file.arrayBuffer();
     var sr = startRow == null ? 1 : Number(startRow) || 1;
     var sc = startCol == null ? 1 : Number(startCol) || 1;
-    var b64 = arrayBufferToBase64(buffer);
+    // Содержимое файла в JSON настроек не сохраняется (см. README «JSON настроек»),
+    // так что base64-копию свежезагруженного файла в pack не считаем и не храним —
+    // это лишняя память/CPU на каждую загрузку (arrayBufferToBase64 остаётся только
+    // для чтения устаревших JSON, где base64 уже был встроен — см. packFromStoredSource).
     if (lower.endsWith(".csv") || lower.endsWith(".txt")) {
       var csv = parseCsvBuffer(buffer, null, sr, sc);
       return {
@@ -313,7 +316,6 @@
         rawAoa: csv.rawAoa,
         start_row: sr,
         start_col: sc,
-        source_b64: b64,
       };
     }
     if (lower.endsWith(".xlsx") || lower.endsWith(".xls") || lower.endsWith(".xlsm")) {
@@ -330,7 +332,6 @@
         fileName: name,
         start_row: sr,
         start_col: sc,
-        source_b64: b64,
       };
     }
     throw new Error("Поддерживаются CSV и Excel (.xlsx/.xls)");
