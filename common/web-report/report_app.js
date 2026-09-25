@@ -33,7 +33,13 @@
     lastResolutions: {},
     lastFioResolutions: {},
     checkedPipeline: null,
-    filters: { search: "", types: { TN: true, FIO: true }, ready: { ready: true, draft: true, copy: true } },
+    filters: {
+      search: "",
+      searchMode: "contains",
+      types: { TN: true, FIO: true },
+      included: { on: true, off: true },
+      ready: { ready: true, draft: true, copy: true },
+    },
     sidebarOpen: true,
     filtersOpen: false,
     chromeOpen: true,
@@ -156,9 +162,27 @@
     return "draft";
   }
 
+  /** Поиск по одному полю в заданном режиме: contains / starts (начало слова) / exact. */
+  function fieldMatchesSearch(value, query, mode) {
+    var text = String(value == null ? "" : value).trim().toLowerCase();
+    if (!text || !query) return false;
+    if (mode === "exact") {
+      return text === query;
+    }
+    if (mode === "starts") {
+      var words = text.split(/[^a-zа-яё0-9]+/i);
+      return words.some(function (w) {
+        return w && w.indexOf(query) === 0;
+      });
+    }
+    return text.indexOf(query) >= 0;
+  }
+
   function matchesFilters(t) {
     var type = String(t.type_ind || "TN").toUpperCase() === "FIO" ? "FIO" : "TN";
     if (!state.filters.types[type]) return false;
+    var includedKey = ReportCore.tournamentIncluded(t) ? "on" : "off";
+    if (!state.filters.included[includedKey]) return false;
     var kind = tournamentReadyKind(t);
     var readyMap = state.filters.ready;
     if (kind === "off") {
@@ -169,8 +193,11 @@
     }
     var q = String(state.filters.search || "").trim().toLowerCase();
     if (!q) return true;
-    var hay = [t.contest_code, t.tournament_code, t.full_name, t.type_ind, t.period_code].join(" ").toLowerCase();
-    return hay.indexOf(q) >= 0;
+    var mode = state.filters.searchMode || "contains";
+    var fields = [t.contest_code, t.tournament_code, t.full_name, t.type_ind, t.period_code];
+    return fields.some(function (v) {
+      return fieldMatchesSearch(v, q, mode);
+    });
   }
 
   function setSidebarOpen(open) {
@@ -501,29 +528,39 @@
     return /\.xlsx?$|\.xlsm$/.test(n);
   }
 
+  /** Файл ещё не выбран вовсе (даже имени/пути из JSON нет) — поле листа показываем как «выбери». */
+  function noFileYet(pack, fileName, sheetName) {
+    return !pack && !String(fileName || "").trim() && !String(sheetName || "").trim();
+  }
+
   function renderSheetFieldHtml(id, pack, kind, fileName, sheetName) {
-    var show =
+    var noFile = noFileYet(pack, fileName, sheetName);
+    var isExcel =
       (pack && pack.kind === "excel") ||
       isExcelKind(kind, fileName) ||
       !!String(sheetName || "").trim();
-    if (!show) return "";
+    // файл загружен и это не Excel (CSV) — листов нет, поле не нужно
+    if (!noFile && !isExcel) return "";
     return (
       '<div class="field field--sheet"><label class="field-label" for="' +
       id +
       '">Лист</label>' +
       '<select class="field-select" id="' +
       id +
-      '" data-tip="Лист Excel"></select></div>'
+      '" data-tip="Лист Excel"' +
+      (noFile ? " disabled" : "") +
+      "></select></div>"
     );
   }
 
   function fillSheetSelect(select, pack, preferred) {
     if (!select) return;
-    var names =
-      pack && pack.sheetNames && pack.sheetNames.length
-        ? pack.sheetNames.slice()
-        : [];
-    var sel = preferred || (pack && pack.sheetName) || "";
+    if (!pack) {
+      select.innerHTML = '<option value="">— сначала загрузите файл —</option>';
+      return;
+    }
+    var names = pack.sheetNames && pack.sheetNames.length ? pack.sheetNames.slice() : [];
+    var sel = preferred || pack.sheetName || "";
     fillSelect(select, names, sel);
   }
 
@@ -693,7 +730,7 @@
       '<div class="field"><label class="field-label" for="fio-file-name">Имя файла</label>' +
       '<input class="field-input" id="fio-file-name" readonly /></div>' +
       '<div class="field"><label class="field-label" for="fio-file-path">Путь к файлу</label>' +
-      '<input class="field-input" id="fio-file-path" placeholder="examples/fio.xlsx или URL" data-tip="Относительный путь или URL для автозагрузки при открытии JSON" /></div>' +
+      '<input class="field-input" id="fio-file-path" readonly data-tip="Инфо: путь, по которому файл был найден при открытии JSON. Заполняется автоматически, вручную не задаётся" /></div>' +
       "</div>" +
       "</div>" +
       renderPreviewFold("fio", pack, [ui.col_fio, ui.col_tn]) +
@@ -750,11 +787,7 @@
         refreshFioFieldHighlights();
       });
     });
-    if ($("fio-file-path")) {
-      $("fio-file-path").addEventListener("change", function () {
-        state.fioUi.file_path = $("fio-file-path").value.trim();
-      });
-    }
+    // "Путь к файлу" — инфо-поле (readonly), вручную не редактируется.
     updateFioApplyEnabled();
     if ($("btn-fio-issues")) {
       $("btn-fio-issues").addEventListener("click", openFioIssuesModal);
@@ -1378,7 +1411,7 @@
       '<div class="field"><label class="field-label" for="f-source-name">Имя файла</label>' +
       '<input class="field-input" id="f-source-name" readonly /></div>' +
       '<div class="field"><label class="field-label" for="f-source-path">Путь к файлу</label>' +
-      '<input class="field-input" id="f-source-path" placeholder="examples/data.xlsx или URL" data-tip="Относительный путь или URL для автозагрузки при открытии JSON" /></div>' +
+      '<input class="field-input" id="f-source-path" readonly data-tip="Инфо: путь, по которому файл был найден при открытии JSON. Заполняется автоматически, вручную не задаётся" /></div>' +
       "</div>" +
       "</div>" +
       renderPreviewFold("source", pack, [t.column_id, t.column_fact]) +
@@ -1597,12 +1630,13 @@
     t.column_fact = $("f-col-fact").value;
     if ($("f-fact-op")) t.fact_op = $("f-fact-op").value || "none";
     if ($("f-fact-op-value")) t.fact_op_value = $("f-fact-op-value").value.trim() || "1";
-    if ($("f-sheet")) t.sheet_name = $("f-sheet").value;
+    // Путь к файлу — инфо-поле (заполняется автозагрузкой JSON), вручную не редактируется.
+    // Лист — тоже только когда есть реальный список листов (иначе селект — плейсхолдер без выбора).
+    var pack = state.dataByTournament[t.id];
+    if ($("f-sheet") && pack) t.sheet_name = $("f-sheet").value;
     if ($("f-start-row")) t.table_start_row = Number($("f-start-row").value) || 1;
     if ($("f-start-col")) t.table_start_col = Number($("f-start-col").value) || 1;
-    if ($("f-source-path")) t.source_file_path = $("f-source-path").value.trim();
     // сброс ошибки источника, если колонки снова валидны
-    var pack = state.dataByTournament[t.id];
     if (pack) {
       var errs = [];
       if (t.column_id && pack.columns.indexOf(t.column_id) < 0) errs.push("колонка ID не найдена: " + t.column_id);
@@ -2693,7 +2727,8 @@
   }
 
   function buildSettingsPayload() {
-    if ($("fio-file-path")) state.fioUi.file_path = $("fio-file-path").value.trim();
+    // "Путь к файлу" — инфо-поле (readonly): state.fioUi.file_path уже актуален
+    // (заполняется автозагрузкой JSON), из DOM его читать не нужно.
     var fioMeta = {
       entries: state.fioEntries,
       file_name: state.fioUi.file_name || "",
@@ -2978,12 +3013,33 @@
       state.filters.search = ev.target.value;
       renderNav();
     });
+    document.querySelectorAll("[data-search-mode]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var mode = btn.getAttribute("data-search-mode");
+        state.filters.searchMode = mode;
+        document.querySelectorAll("[data-search-mode]").forEach(function (b) {
+          var on = b === btn;
+          b.classList.toggle("is-on", on);
+          b.setAttribute("aria-pressed", on ? "true" : "false");
+        });
+        renderNav();
+      });
+    });
     document.querySelectorAll("[data-filter-type]").forEach(function (btn) {
       btn.addEventListener("click", function () {
         var key = btn.getAttribute("data-filter-type");
         state.filters.types[key] = !state.filters.types[key];
         btn.classList.toggle("is-on", state.filters.types[key]);
         btn.setAttribute("aria-pressed", state.filters.types[key] ? "true" : "false");
+        renderNav();
+      });
+    });
+    document.querySelectorAll("[data-filter-included]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var key = btn.getAttribute("data-filter-included");
+        state.filters.included[key] = !state.filters.included[key];
+        btn.classList.toggle("is-on", state.filters.included[key]);
+        btn.setAttribute("aria-pressed", state.filters.included[key] ? "true" : "false");
         renderNav();
       });
     });

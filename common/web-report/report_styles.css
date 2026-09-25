@@ -737,18 +737,37 @@ body::after { width: 380px; height: 380px; right: -60px; bottom: 10%; background
   outline: none;
   min-width: 0;
 }
-.chip-row { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(72px, 1fr));
+  gap: 6px;
+  align-items: stretch;
+}
+.chip-row--seg { margin-top: 8px; }
 .chip {
   appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-height: 30px;
   border: 1px solid rgba(100, 116, 139, 0.25);
   background: rgba(148, 163, 184, 0.12);
   color: #64748b;
   border-radius: 999px;
-  padding: 6px 12px;
+  padding: 6px 10px;
   font: inherit;
   font-size: 12px;
   font-weight: 700;
+  text-align: center;
+  white-space: nowrap;
   cursor: pointer;
+}
+.chip svg {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+  opacity: 0.85;
 }
 .chip.is-on {
   background: var(--glass-blue);
