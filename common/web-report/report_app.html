@@ -56,6 +56,12 @@
           Загрузить списки
         </button>
       </div>
+      <div class="sidebar-actions">
+        <button type="button" class="btn btn-sidebar" id="btn-fio-dict" disabled data-tip="Общий справочник ФИО ↔ табельный — один на все турниры режима FIO (кнопка активна, если хоть один такой турнир есть в списке)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c1.5-3.5 4.5-5 8-5s6.5 1.5 8 5"/></svg>
+          Справочник ФИО
+        </button>
+      </div>
       <div class="contest-tabs-scroll">
         <div class="contest-tabs" id="tournament-nav"></div>
       </div>
@@ -170,6 +176,17 @@
       <span class="sidebar-edge-btn__label">Фильтры</span>
       <span class="sidebar-edge-btn__arrow" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 6l-6 6 6 6"/></svg></span>
     </button>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="modal-fio-dict" hidden>
+  <div class="modal-card modal-card--wide" role="dialog" aria-modal="true">
+    <h3>Справочник ФИО</h3>
+    <p>Один общий справочник ФИО ↔ табельный для всех турниров режима FIO — загрузите JSON или таблицу с колонками ФИО и табельного один раз, он применится сразу ко всем таким турнирам при проверке и формировании.</p>
+    <div id="fio-dict-body"></div>
+    <div class="modal-actions">
+      <button type="button" class="btn btn-primary" id="fio-dict-close">Готово</button>
+    </div>
   </div>
 </div>
 

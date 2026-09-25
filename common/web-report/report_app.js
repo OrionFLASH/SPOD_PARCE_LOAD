@@ -249,9 +249,9 @@
     var includedFio = included.some(function (t) {
       return String(t.type_ind || "").toUpperCase() === "FIO";
     });
-    var activeIsFio = hasActiveFioMode();
-    // ФИО-этап не участвует: режим TN у текущего или в списке нет FIO
-    var fioIdle = !anyFio || !activeIsFio;
+    // ФИО-этап не участвует: во всём списке нет ни одного турнира режима FIO
+    // (справочник — общий модал, а не «под турниром», так что от выбранного турнира не зависит)
+    var fioIdle = !anyFio;
 
     function stageStatus(ok, idle) {
       if (idle) return "idle";
@@ -298,8 +298,6 @@
     var fioDetail;
     if (!anyFio) {
       fioDetail = "нет турниров FIO";
-    } else if (!activeIsFio) {
-      fioDetail = "не нужен для TN";
     } else if (!includedFio) {
       fioDetail = "FIO выключены в отчёте";
     } else if (!st.sourcesOk) {
@@ -347,8 +345,8 @@
         detail: fioDetail,
         status: stageStatus(st.fioOk && includedFio, fioIdle || noActive || !includedFio),
         tip: fioIdle
-          ? "Этап ФИО не участвует (TN или нет FIO-турниров)"
-          : "Справочник ФИО ↔ табельный",
+          ? "Этап ФИО не участвует (нет турниров режима FIO)"
+          : "Справочник ФИО ↔ табельный — общий для всех турниров FIO (кнопка «Справочник ФИО» слева)",
         icon: icons.fio,
       },
       {
@@ -404,11 +402,8 @@
       );
       reportUpdateBtn.disabled = !(csvReallyReady && state.importedReportPack);
     }
-  }
-
-  function hasActiveFioMode() {
-    var t = activeTournament();
-    return !!(t && String(t.type_ind || "").toUpperCase() === "FIO");
+    var fioDictBtn = $("btn-fio-dict");
+    if (fioDictBtn) fioDictBtn.disabled = !anyFio;
   }
 
   function hasAnyFioMode() {
@@ -688,9 +683,15 @@
     );
   }
 
-  function renderFioPanelHtml() {
-    // блок виден, если активный турнир в режиме FIO (при смене типа — полный re-render)
-    if (!hasActiveFioMode()) return "";
+  /**
+   * Справочник ФИО — общий модал (не «под турниром»): один и тот же список
+   * ФИО↔табельный используется всеми турнирами режима FIO. Рендерит и сразу
+   * биндит тело модалки (как renderReportUpdateModal) — вызывается заново
+   * после каждого изменения справочника, пока модалка открыта.
+   */
+  function renderFioDictModal() {
+    var host = $("fio-dict-body");
+    if (!host) return;
     var pack = state.fioPack;
     var ui = state.fioUi;
     var sheetBlock = renderSheetFieldHtml(
@@ -700,24 +701,21 @@
       ui.file_name,
       ui.sheet_name
     );
-    var fioErr = state.fioUi.source_error
-      ? '<div class="error-box">' + escapeHtml(state.fioUi.source_error) + "</div>"
+    var fioErr = ui.source_error
+      ? '<div class="error-box">' + escapeHtml(ui.source_error) + "</div>"
       : "";
-    var hasIssues = state.fioUi.apply_issues && state.fioUi.apply_issues.length > 0;
-    var fioApplyWarn = state.fioUi.apply_warning
+    var hasIssues = ui.apply_issues && ui.apply_issues.length > 0;
+    var fioApplyWarn = ui.apply_warning
       ? '<div class="warn-box warn-box--row" id="fio-apply-warning">' +
         "<span>" +
-        escapeHtml(state.fioUi.apply_warning) +
+        escapeHtml(ui.apply_warning) +
         "</span>" +
         (hasIssues
           ? '<button type="button" class="btn btn-sm" id="btn-fio-issues" data-tip="Показать строки с дублями и нечисловым табельным">Подробнее</button>'
           : "") +
         "</div>"
       : "";
-    return (
-      '<div class="panel" id="panel-fio">' +
-      "<h2>Справочник ФИО</h2>" +
-      '<p class="panel__intro panel__intro--tight">Режим FIO: JSON или таблица · угол · колонки ФИО и табельного.</p>' +
+    host.innerHTML =
       fioErr +
       fioApplyWarn +
       '<div class="toolbar-row toolbar-row--top">' +
@@ -755,15 +753,8 @@
       '<input class="field-input" id="fio-file-path" readonly data-tip="Инфо: имя файла при загрузке (страница открыта локально — саму автозагрузку по пути это не запускает). Вручную не задаётся" /></div>' +
       "</div>" +
       "</div>" +
-      renderPreviewFold("fio", pack, [ui.col_fio, ui.col_tn]) +
-      "</div>"
-    );
-  }
+      renderPreviewFold("fio", pack, [ui.col_fio, ui.col_tn]);
 
-  function bindFioPanel() {
-    if (!hasActiveFioMode()) return;
-    var pack = state.fioPack;
-    var ui = state.fioUi;
     $("fio-start-row").value = ui.start_row || 1;
     $("fio-start-col").value = ui.start_col || 1;
     $("fio-file-name").value = ui.file_name || "";
@@ -825,6 +816,7 @@
         state.fioUi.apply_issues = [];
         invalidateChecks();
         renderAll();
+        renderFioDictModal();
         showToast("Справочник JSON загружен");
       } catch (err) {
         alert(err.message || String(err));
@@ -843,14 +835,14 @@
       if (!file) return;
       try {
         // новая загрузка: угол 1,1; колонки сбрасываем — нужно выбрать вручную
-        var pack = await ReportIO.readTableFile(file, 1, 1);
-        state.fioPack = pack;
-        state.fioUi.file_name = pack.fileName;
+        var newPack = await ReportIO.readTableFile(file, 1, 1);
+        state.fioPack = newPack;
+        state.fioUi.file_name = newPack.fileName;
         // Путь = то, что даёт браузер при выборе файла (только имя) — сохраняем как путь
         // для автозагрузки по этому же имени рядом со страницей.
-        state.fioUi.file_path = pack.fileName;
-        state.fioUi.sheet_name = pack.sheetName || "";
-        state.fioUi.source_file_kind = pack.kind || "";
+        state.fioUi.file_path = newPack.fileName;
+        state.fioUi.sheet_name = newPack.sheetName || "";
+        state.fioUi.source_file_kind = newPack.kind || "";
         state.fioUi.start_row = 1;
         state.fioUi.start_col = 1;
         state.fioUi.col_fio = "";
@@ -859,6 +851,7 @@
         state.fioUi.apply_warning = "";
         state.fioUi.apply_issues = [];
         renderAll();
+        renderFioDictModal();
         showToast("Таблица ФИО загружена — выберите колонки");
       } catch (err) {
         alert(err.message || String(err));
@@ -899,12 +892,19 @@
       state.fioUi.apply_issues = resolved.issues || [];
       invalidateChecks();
       renderAll();
+      renderFioDictModal();
       var toastMsg = "В справочник: " + entries.length;
       if (resolved.stats.message) {
         toastMsg += ". " + resolved.stats.message;
       }
       showToast(toastMsg);
     });
+  }
+
+  function openFioDictModal() {
+    if (!hasAnyFioMode()) return;
+    renderFioDictModal();
+    openModal("modal-fio-dict");
   }
 
   function refreshFioFieldHighlights() {
@@ -1011,6 +1011,7 @@
       state.fioUi.col_tn = "";
     }
     renderAll();
+    renderFioDictModal();
   }
 
   /** SVG-иконка для мини-метрик (16×16). */
@@ -1314,16 +1315,13 @@
   function renderWorkspace() {
     var ws = $("workspace");
     var t = activeTournament();
-    var fioHtml = renderFioPanelHtml();
     if (!t) {
       ws.innerHTML =
         '<div class="panel"><h2>Нет турниров</h2><p class="panel__intro">Добавьте турнир слева или откройте JSON настроек.</p>' +
         '<div class="toolbar-row"><button type="button" class="btn btn-primary" id="btn-add-tournament-empty" data-tip="Добавить турнир">' +
-        '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14"/><path d="M5 12h14"/></svg> Добавить турнир</button></div></div>' +
-        fioHtml;
+        '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14"/><path d="M5 12h14"/></svg> Добавить турнир</button></div></div>';
       var addEmpty = $("btn-add-tournament-empty");
       if (addEmpty) addEmpty.addEventListener("click", addTournament);
-      bindFioPanel();
       return;
     }
 
@@ -1439,8 +1437,7 @@
       "</div>" +
       "</div>" +
       renderPreviewFold("source", pack, [t.column_id, t.column_fact]) +
-      "</div>" +
-      fioHtml;
+      "</div>";
 
     $("f-contest-code").value = t.contest_code || "";
     $("f-tournament-code").value = t.tournament_code || "";
@@ -1497,7 +1494,6 @@
     bindPreviewFold("source");
 
     bindEditorEvents();
-    bindFioPanel();
     refreshRequiredFieldHighlights();
   }
 
@@ -3290,6 +3286,21 @@
     if (fioIssuesModal) {
       fioIssuesModal.addEventListener("click", function (ev) {
         if (ev.target === fioIssuesModal) closeFioIssuesModal();
+      });
+    }
+
+    var fioDictBtn = $("btn-fio-dict");
+    if (fioDictBtn) fioDictBtn.addEventListener("click", openFioDictModal);
+    var fioDictClose = $("fio-dict-close");
+    if (fioDictClose) {
+      fioDictClose.addEventListener("click", function () {
+        closeModal("modal-fio-dict");
+      });
+    }
+    var fioDictModal = $("modal-fio-dict");
+    if (fioDictModal) {
+      fioDictModal.addEventListener("click", function (ev) {
+        if (ev.target === fioDictModal) closeModal("modal-fio-dict");
       });
     }
 
