@@ -43,6 +43,9 @@
       types: { TN: true, FIO: true },
       included: { on: true, off: true },
       ready: { ready: true, draft: true, copy: true },
+      // статус по датам SCHEDULE (ReportCore.tournamentTimeline)
+      timeline: { not_started: true, active: true, summarizing: true, closing: true, nodata: true },
+      closingNowOnly: false,
     },
     sidebarOpen: true,
     filtersOpen: false,
@@ -226,6 +229,9 @@
     } else if (!readyMap[kind]) {
       return false;
     }
+    var tl = ReportCore.tournamentTimeline(t);
+    if (!state.filters.timeline[tl.status]) return false;
+    if (state.filters.closingNowOnly && !tl.closingNow) return false;
     var q = String(state.filters.search || "").trim().toLowerCase();
     if (!q) return true;
     var mode = state.filters.searchMode || "contains";
@@ -605,10 +611,25 @@
     });
   }
 
+  /** Счётчики на чипах «Статус по датам» — по всему списку турниров (без учёта фильтров). */
+  function renderTimelineFilterCounts() {
+    var counts = { not_started: 0, active: 0, summarizing: 0, closing: 0, nodata: 0, closingNow: 0 };
+    state.tournaments.forEach(function (t) {
+      var tl = ReportCore.tournamentTimeline(t);
+      counts[tl.status] += 1;
+      if (tl.closingNow) counts.closingNow += 1;
+    });
+    document.querySelectorAll("[data-tl-count]").forEach(function (el) {
+      var key = el.getAttribute("data-tl-count");
+      el.textContent = String(counts[key] || 0);
+    });
+  }
+
   function renderNav() {
     var nav = $("tournament-nav");
     nav.innerHTML = "";
     var periodBadges = ReportCore.periodBadgesForTournaments(state.tournaments);
+    renderTimelineFilterCounts();
     state.tournaments.filter(matchesFilters).forEach(function (t) {
       var btn = document.createElement("button");
       btn.type = "button";
@@ -3670,6 +3691,25 @@
         renderNav();
       });
     });
+
+    document.querySelectorAll("[data-filter-tl]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var key = btn.getAttribute("data-filter-tl");
+        state.filters.timeline[key] = !state.filters.timeline[key];
+        btn.classList.toggle("is-on", state.filters.timeline[key]);
+        btn.setAttribute("aria-pressed", state.filters.timeline[key] ? "true" : "false");
+        renderNav();
+      });
+    });
+    var closingNowBtn = document.querySelector("[data-filter-closing-now]");
+    if (closingNowBtn) {
+      closingNowBtn.addEventListener("click", function () {
+        state.filters.closingNowOnly = !state.filters.closingNowOnly;
+        closingNowBtn.classList.toggle("is-on", state.filters.closingNowOnly);
+        closingNowBtn.setAttribute("aria-pressed", state.filters.closingNowOnly ? "true" : "false");
+        renderNav();
+      });
+    }
 
     var fioIssuesClose = $("modal-fio-issues-close");
     if (fioIssuesClose) {

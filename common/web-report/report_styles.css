@@ -1611,3 +1611,27 @@ html, body { overscroll-behavior: none; }
 .filters-scroll,
 .modal-card,
 .fio-issues-scroll { overscroll-behavior: contain; }
+
+/* фильтр «Статус по датам»: чипы в 2–3 ряда, цвет — как у статуса, счётчик турниров */
+.sidebar--filters .chip-row--wrap { flex-wrap: wrap; }
+.sidebar--filters .chip-row--wrap .chip { flex: 1 1 30%; }
+.chip__count {
+  margin-left: 2px;
+  min-width: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.08);
+  font-size: 10px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  line-height: 15px;
+  text-align: center;
+}
+.chip.is-on .chip__count { background: rgba(255, 255, 255, 0.28); }
+.chip--tl-not_started.is-on { background: #3b82f6; border-color: #2563eb; box-shadow: 0 0 0 1.5px rgba(59, 130, 246, 0.25); }
+.chip--tl-active.is-on { background: #22a447; border-color: #1a8a3a; box-shadow: 0 0 0 1.5px rgba(52, 199, 89, 0.25); }
+.chip--tl-summarizing.is-on { background: #f08c00; border-color: #d97a00; box-shadow: 0 0 0 1.5px rgba(255, 149, 0, 0.25); }
+.chip--tl-closing.is-on { background: #e5372c; border-color: #c92a20; box-shadow: 0 0 0 1.5px rgba(255, 59, 48, 0.25); }
+.chip--tl-nodata.is-on { background: #7b8794; border-color: #64748b; box-shadow: 0 0 0 1.5px rgba(148, 163, 184, 0.3); }
+.chip--tl-closing-now.is-on { background: #7c3aed; border-color: #6d28d9; box-shadow: 0 0 0 1.5px rgba(139, 92, 246, 0.25); }
+.sidebar--filters .chip--tl-closing-now { flex: 1 1 auto; }
