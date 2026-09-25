@@ -64,6 +64,10 @@ archive/
 *.CSV
 # Примеры CSV для web-report
 !common/web-report/examples/*.csv
+
+# Рабочие каталоги web-report (входные/выходные данные, не в Git)
+common/web-report/IN/
+common/web-report/OUT/
 # Только каталог SPOD в корне
 /SPOD/
 EDIT/
