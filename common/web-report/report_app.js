@@ -730,7 +730,7 @@
       '<div class="field"><label class="field-label" for="fio-file-name">Имя файла</label>' +
       '<input class="field-input" id="fio-file-name" readonly /></div>' +
       '<div class="field"><label class="field-label" for="fio-file-path">Путь к файлу</label>' +
-      '<input class="field-input" id="fio-file-path" readonly data-tip="Инфо: путь, по которому файл был найден при открытии JSON. Заполняется автоматически, вручную не задаётся" /></div>' +
+      '<input class="field-input" id="fio-file-path" readonly data-tip="Инфо: путь для автозагрузки — имя файла при ручной загрузке или usedPath при открытии JSON. Вручную не задаётся" /></div>' +
       "</div>" +
       "</div>" +
       renderPreviewFold("fio", pack, [ui.col_fio, ui.col_tn]) +
@@ -824,7 +824,9 @@
         var pack = await ReportIO.readTableFile(file, 1, 1);
         state.fioPack = pack;
         state.fioUi.file_name = pack.fileName;
-        state.fioUi.file_path = state.fioUi.file_path || "";
+        // Путь = то, что даёт браузер при выборе файла (только имя) — сохраняем как путь
+        // для автозагрузки по этому же имени рядом со страницей.
+        state.fioUi.file_path = pack.fileName;
         state.fioUi.sheet_name = pack.sheetName || "";
         state.fioUi.source_file_kind = pack.kind || "";
         state.fioUi.start_row = 1;
@@ -1411,7 +1413,7 @@
       '<div class="field"><label class="field-label" for="f-source-name">Имя файла</label>' +
       '<input class="field-input" id="f-source-name" readonly /></div>' +
       '<div class="field"><label class="field-label" for="f-source-path">Путь к файлу</label>' +
-      '<input class="field-input" id="f-source-path" readonly data-tip="Инфо: путь, по которому файл был найден при открытии JSON. Заполняется автоматически, вручную не задаётся" /></div>' +
+      '<input class="field-input" id="f-source-path" readonly data-tip="Инфо: путь для автозагрузки — имя файла при ручной загрузке или usedPath при открытии JSON. Вручную не задаётся" /></div>' +
       "</div>" +
       "</div>" +
       renderPreviewFold("source", pack, [t.column_id, t.column_fact]) +
@@ -1630,7 +1632,7 @@
     t.column_fact = $("f-col-fact").value;
     if ($("f-fact-op")) t.fact_op = $("f-fact-op").value || "none";
     if ($("f-fact-op-value")) t.fact_op_value = $("f-fact-op-value").value.trim() || "1";
-    // Путь к файлу — инфо-поле (заполняется автозагрузкой JSON), вручную не редактируется.
+    // Путь к файлу — инфо-поле (ставится при загрузке файла/автозагрузке JSON), вручную не редактируется.
     // Лист — тоже только когда есть реальный список листов (иначе селект — плейсхолдер без выбора).
     var pack = state.dataByTournament[t.id];
     if ($("f-sheet") && pack) t.sheet_name = $("f-sheet").value;
@@ -1732,6 +1734,9 @@
       var pack = await ReportIO.readTableFile(file, 1, 1);
       state.dataByTournament[t.id] = pack;
       t.source_file_name = pack.fileName;
+      // Путь = то, что даёт браузер при выборе файла (только имя, без реального каталога) —
+      // сохраняем сразу как путь для автозагрузки по этому же имени рядом со страницей.
+      t.source_file_path = pack.fileName;
       t.source_file_kind = pack.kind;
       t.source_error = "";
       t.sheet_name = pack.sheetName || "";
@@ -2728,7 +2733,7 @@
 
   function buildSettingsPayload() {
     // "Путь к файлу" — инфо-поле (readonly): state.fioUi.file_path уже актуален
-    // (заполняется автозагрузкой JSON), из DOM его читать не нужно.
+    // (ставится при ручной загрузке файла или автозагрузкой из JSON), из DOM его читать не нужно.
     var fioMeta = {
       entries: state.fioEntries,
       file_name: state.fioUi.file_name || "",
@@ -2834,8 +2839,10 @@
         sc
       );
       if (!got) {
-        applySourceErrors(t, null);
         failed.push(t.source_file_name || t.source_file_path || t.id);
+        // путь не сработал — не показываем его как рабочий; имя файла оставляем как подсказку
+        t.source_file_path = "";
+        applySourceErrors(t, null);
         continue;
       }
       var pack = got.pack;
@@ -2883,15 +2890,18 @@
         state.fioUi.source_error =
           "не удалось загрузить таблицу ФИО «" +
           (state.fioUi.file_path || state.fioUi.file_name) +
-          "» — укажите доступный путь или загрузите файл";
+          "» — загрузите файл вручную";
         failed.push(state.fioUi.file_name || state.fioUi.file_path);
+        // путь не сработал — не показываем его как рабочий; имя файла оставляем как подсказку
+        state.fioUi.file_path = "";
       } else {
         state.fioUi.source_error =
           "записи ФИО из JSON есть (" +
           state.fioEntries.length +
-          "), таблица не подтянулась — проверьте путь «" +
+          "), таблица не подтянулась — загрузите файл «" +
           (state.fioUi.file_path || state.fioUi.file_name) +
-          "»";
+          "» вручную";
+        state.fioUi.file_path = "";
       }
     }
 
