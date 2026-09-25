@@ -3382,19 +3382,67 @@
   function initTips() {
     var tip = $("glassTip");
     if (!tip) return;
+    var current = null;
+    var GAP = 10; // отступ от элемента
+    var EDGE = 8; // минимальный отступ от края окна
+
+    function hide() {
+      current = null;
+      tip.classList.remove("is-visible");
+      tip.hidden = true;
+    }
+
+    /** Поставить подсказку у элемента: сверху, а если не влезает — снизу; по горизонтали — в пределах окна. */
+    function place(el) {
+      var r = el.getBoundingClientRect();
+      var vw = document.documentElement.clientWidth;
+      var vh = document.documentElement.clientHeight;
+      tip.style.left = "0px";
+      tip.style.top = "0px";
+      var tw = tip.offsetWidth;
+      var th = tip.offsetHeight;
+      var spaceAbove = r.top - GAP - EDGE;
+      var spaceBelow = vh - r.bottom - GAP - EDGE;
+      var below = th > spaceAbove && spaceBelow >= spaceAbove;
+      var top = below ? r.bottom + GAP : r.top - GAP - th;
+      top = Math.max(EDGE, Math.min(top, vh - th - EDGE));
+      var center = r.left + r.width / 2;
+      var left = Math.max(EDGE, Math.min(center - tw / 2, vw - tw - EDGE));
+      var arrow = Math.max(14, Math.min(center - left, tw - 14));
+      tip.classList.toggle("is-below", below);
+      tip.classList.toggle("is-above", !below);
+      tip.style.setProperty("--tip-arrow-x", arrow + "px");
+      tip.style.left = Math.round(left) + "px";
+      tip.style.top = Math.round(top) + "px";
+    }
+
     document.addEventListener("mouseover", function (ev) {
-      var el = ev.target.closest("[data-tip]");
+      var el = ev.target.closest ? ev.target.closest("[data-tip]") : null;
       if (!el) {
-        tip.hidden = true;
+        hide();
         return;
       }
-      tip.textContent = el.getAttribute("data-tip") || "";
+      var text = el.getAttribute("data-tip") || "";
+      if (!text) {
+        hide();
+        return;
+      }
+      if (el === current && tip.textContent === text) return;
+      current = el;
+      tip.textContent = text;
       tip.hidden = false;
-      var r = el.getBoundingClientRect();
-      tip.style.left = Math.min(window.innerWidth - 20, r.left + r.width / 2) + "px";
-      tip.style.top = Math.max(8, r.top - 8) + "px";
+      tip.classList.remove("is-visible");
+      place(el);
+      // следующий кадр — плавное появление уже на своём месте
+      requestAnimationFrame(function () {
+        if (current === el) tip.classList.add("is-visible");
+      });
     });
+    window.addEventListener("scroll", hide, true);
+    window.addEventListener("blur", hide);
+    document.addEventListener("mousedown", hide, true);
   }
+
 
   async function init() {
     loadConfig();
