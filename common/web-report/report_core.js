@@ -130,13 +130,15 @@
     return formatNumberDot(num, decimals).replace(".", ",");
   }
 
-  /** Периоды турнира: Y / Q1–Q4 / M1–M12 / F */
+  /** Периоды турнира: Y / Q1–Q4 / H1–H2 / M1–M12 / F */
   var PERIOD_OPTIONS = [
     { code: "Y", label: "Турнир года" },
     { code: "Q1", label: "1 квартал" },
     { code: "Q2", label: "2 квартал" },
     { code: "Q3", label: "3 квартал" },
     { code: "Q4", label: "4 квартал" },
+    { code: "H1", label: "1 полугодие" },
+    { code: "H2", label: "2 полугодие" },
     { code: "M1", label: "Январь" },
     { code: "M2", label: "Февраль" },
     { code: "M3", label: "Март" },
@@ -688,7 +690,11 @@
   }
 
   function findFioDuplicateGroups(rows) {
-    return findDuplicateGroups(rows, duplicateKeyFio, isFioDataRow);
+    // как и для ТН: строки, уже исключённые решением по дублю, в группу не входят —
+    // иначе после любого решения группа «оставалась» и дубли ФИО было не разрешить
+    return findDuplicateGroups(rows, duplicateKeyFio, function (row) {
+      return isFioDataRow(row) && row.include_in_csv !== false;
+    });
   }
 
   function findTnDuplicateGroups(rows) {
@@ -1149,12 +1155,14 @@
       full_name: "",
       type_ind: "TN",
       period_code: "Y",
+      start_dt: "",
+      end_dt: "",
+      result_dt: "",
       column_id: "",
       column_fact: "",
       fact_op: "none",
       fact_op_value: "1",
       source_file_name: "",
-      source_file_path: "",
       source_file_kind: "",
       sheet_name: "",
       table_start_row: 1,
@@ -1199,13 +1207,57 @@
     "турнир октября": "M10",
     "турнир ноября": "M11",
     "турнир декабря": "M12",
+    "турнир 1 полугодия": "H1",
+    "турнир 2 полугодия": "H2",
     "произвольный": "F",
+    // нестандартные диапазоны — осознанно «Произвольный», без предупреждения при импорте
+    "март-июль": "F",
+    "январь-сентябрь": "F",
+    "турнир 2 месяца": "F",
+    "турнир 3 месяца": "F",
+    "турнир 4 месяца": "F",
+    "турнир 2 недели": "F",
+    "турнир 3 недели": "F",
+    "турнир до конца августа": "F",
   };
 
-  /** SCHEDULE.PERIOD_TYPE → код периода; нераспознанное → "F". */
-  function periodCodeFromScheduleType(text) {
-    var key = String(text == null ? "" : text).trim().toLowerCase().replace(/\s+/g, " ");
+  /** Тип периода, у которого месяц берётся из START_DT (если START и END в одном месяце). */
+  var SCHEDULE_MONTH_BY_DATES = "турнир месяца";
+
+  function normalizeScheduleType(text) {
+    return String(text == null ? "" : text).trim().toLowerCase().replace(/\s+/g, " ");
+  }
+
+  function isoDateOrEmpty(value) {
+    var text = String(value == null ? "" : value).trim();
+    return /^\d{4}-\d{2}-\d{2}$/.test(text) ? text : "";
+  }
+
+  /** «турнир месяца» → M<месяц START_DT>, если START_DT и END_DT в одном месяце; иначе "". */
+  function monthCodeFromDates(startDt, endDt) {
+    var s = isoDateOrEmpty(startDt);
+    var e = isoDateOrEmpty(endDt);
+    if (!s || !e || s.slice(0, 7) !== e.slice(0, 7)) return "";
+    return "M" + Number(s.slice(5, 7));
+  }
+
+  /**
+   * SCHEDULE.PERIOD_TYPE (+ START_DT/END_DT для «турнир месяца») → код периода;
+   * нераспознанное → "F".
+   */
+  function periodCodeFromScheduleType(text, startDt, endDt) {
+    var key = normalizeScheduleType(text);
+    if (key === SCHEDULE_MONTH_BY_DATES) {
+      return monthCodeFromDates(startDt, endDt) || "F";
+    }
     return SCHEDULE_PERIOD_TYPE_MAP[key] || "F";
+  }
+
+  /** Тип периода распознан (в т.ч. «турнир месяца», если по датам вышел месяц). */
+  function isKnownSchedulePeriodType(text, startDt, endDt) {
+    var key = normalizeScheduleType(text);
+    if (key === SCHEDULE_MONTH_BY_DATES) return !!monthCodeFromDates(startDt, endDt);
+    return Object.prototype.hasOwnProperty.call(SCHEDULE_PERIOD_TYPE_MAP, key);
   }
 
   /** Уникальные TOURNAMENT_STATUS из SCHEDULE с числом строк, по убыванию частоты. */
@@ -1349,9 +1401,9 @@
         }
       }
 
-      var periodCode = periodCodeFromScheduleType(row.PERIOD_TYPE);
+      var periodCode = periodCodeFromScheduleType(row.PERIOD_TYPE, row.START_DT, row.END_DT);
       var periodRaw = String(row.PERIOD_TYPE || "").trim();
-      if (periodCode === "F" && periodRaw.toLowerCase() !== "произвольный") {
+      if (!isKnownSchedulePeriodType(row.PERIOD_TYPE, row.START_DT, row.END_DT)) {
         warnings.push("период «" + periodRaw + "» не распознан — поставлен «Произвольный»");
       }
 
@@ -1368,6 +1420,9 @@
         plan_value: planValue,
         contest_date: date,
         period_code: periodCode,
+        start_dt: isoDateOrEmpty(row.START_DT),
+        end_dt: isoDateOrEmpty(row.END_DT),
+        result_dt: isoDateOrEmpty(row.RESULT_DT),
         type_ind: "TN",
         include_in_report: false,
         import_status: status,
@@ -1464,6 +1519,219 @@
     return kept.concat(added);
   }
 
+  var REPORT_DIFF_COLUMNS = ["ИЗМЕНЕНИЕ"].concat([
+    "MANAGER_PERSON_NUMBER",
+    "CONTEST_CODE",
+    "TOURNAMENT_CODE",
+    "CONTEST_DATE",
+    "PLAN_VALUE",
+    "FACT_VALUE",
+    "priority_type",
+  ]);
+
+  /**
+   * Разница нового REPORT с загруженным: только строки, которые появились («НОВАЯ»)
+   * или ушли («УДАЛЕНА»), по табельному внутри турнира. Сравниваются только турниры,
+   * у которых есть новые строки (остальной REPORT не меняется — как в «Обновить REPORT»).
+   */
+  function buildReportDiffRows(originalReportRows, newRows) {
+    var beforeByCode = groupRowsByTournamentCode(originalReportRows);
+    var afterByCode = groupRowsByTournamentCode(newRows);
+    var out = [];
+    function personOf(row) {
+      return String((row && row.MANAGER_PERSON_NUMBER) || "").trim();
+    }
+    function pick(row, mark) {
+      var o = { ИЗМЕНЕНИЕ: mark };
+      REPORT_DIFF_COLUMNS.slice(1).forEach(function (c) {
+        o[c] = row[c] == null ? "" : row[c];
+      });
+      return o;
+    }
+    Object.keys(afterByCode)
+      .sort()
+      .forEach(function (code) {
+        var before = beforeByCode[code] || [];
+        var after = afterByCode[code];
+        var beforeSet = Object.create(null);
+        before.forEach(function (r) {
+          beforeSet[personOf(r)] = true;
+        });
+        var afterSet = Object.create(null);
+        after.forEach(function (r) {
+          afterSet[personOf(r)] = true;
+        });
+        before.forEach(function (r) {
+          if (!afterSet[personOf(r)]) out.push(pick(r, "УДАЛЕНА"));
+        });
+        after.forEach(function (r) {
+          if (!beforeSet[personOf(r)]) out.push(pick(r, "НОВАЯ"));
+        });
+      });
+    return out;
+  }
+
+  var FIO_SHEET_COLUMNS = [
+    "ИСТОЧНИК",
+    "ТУРНИР",
+    "ФИО",
+    "ТАБЕЛЬНЫЙ",
+    "СТАТУС",
+    "РЕШЕНИЕ",
+    "ТАБЕЛЬНЫЙ В РАБОТЕ",
+  ];
+
+  /**
+   * Лист «ФИО» для XLSX: весь справочник (что с каждой записью), строки таблицы ФИО,
+   * не попавшие в справочник (дубли/битый табельный — какая строка выбрана), и по строкам
+   * турниров FIO — кто не найден в справочнике и как решены дубли ФИО.
+   * Пустой массив — если ФИО вообще не участвовали.
+   * @param {Array<{fio,person_number}>} fioEntries
+   * @param {Array} applyIssues — issues из resolveFioTableEntries
+   * @param {Array} processedRows — строки после проверки/решения дублей (lastResult.rows)
+   */
+  function buildFioSheetRows(fioEntries, applyIssues, processedRows, options) {
+    var cfg = mergeDefaults(options);
+    var len = cfg.personNumberLength;
+    var issuesByKey = Object.create(null);
+    (applyIssues || []).forEach(function (it) {
+      var k = normalizeFioKey(it.fio);
+      (issuesByKey[k] = issuesByKey[k] || []).push(it);
+    });
+    function tnStatus(pn) {
+      var text = String(pn == null ? "" : pn).trim();
+      if (!text) return "табельный пуст";
+      if (!/^\d+$/.test(text)) return "табельный не из цифр";
+      if (text.length > len) return "табельный длиннее " + len + " цифр";
+      return "";
+    }
+    var out = [];
+    var entries = (fioEntries || []).slice().sort(function (a, b) {
+      return String(a.fio).localeCompare(String(b.fio), "ru");
+    });
+    entries.forEach(function (e) {
+      var group = issuesByKey[normalizeFioKey(e.fio)] || [];
+      var problem = tnStatus(e.person_number);
+      var status = problem || "OK";
+      var decision = "в справочнике";
+      if (group.length > 1) {
+        status = "дубль ФИО в таблице (" + group.length + " строк)" + (problem ? "; " + problem : "");
+        decision = "взята эта строка из " + group.length;
+      }
+      out.push({
+        ИСТОЧНИК: "справочник ФИО",
+        ТУРНИР: "",
+        ФИО: e.fio,
+        ТАБЕЛЬНЫЙ: e.person_number,
+        СТАТУС: status,
+        РЕШЕНИЕ: decision,
+        "ТАБЕЛЬНЫЙ В РАБОТЕ": problem ? "" : padPersonNumber(e.person_number, len),
+      });
+    });
+    (applyIssues || []).forEach(function (it) {
+      if (it.chosen) return;
+      var group = issuesByKey[normalizeFioKey(it.fio)] || [];
+      var chosen = group.filter(function (g) {
+        return g.chosen;
+      })[0];
+      out.push({
+        ИСТОЧНИК: "таблица ФИО",
+        ТУРНИР: "",
+        ФИО: it.fio,
+        ТАБЕЛЬНЫЙ: it.person_number,
+        СТАТУС: (it.reasons || []).join(", ") || "—",
+        РЕШЕНИЕ: "не взята — в справочник выбрана другая строка",
+        "ТАБЕЛЬНЫЙ В РАБОТЕ":
+          chosen && !tnStatus(chosen.person_number) ? padPersonNumber(chosen.person_number, len) : "",
+      });
+    });
+    var seenMissing = Object.create(null);
+    (processedRows || []).forEach(function (r) {
+      var fio = String((r && r.FIO) || "").trim();
+      if (!fio || fio === cfg.noDuplicateMark) return;
+      var code = String(r.TOURNAMENT_CODE || "").trim();
+      if (String(r["ТАБЕЛЬНЫЙ НЕ НАЙДЕН"] || "") === cfg.missingFioFlag) {
+        var mk = code + "|" + normalizeFioKey(fio);
+        if (seenMissing[mk]) return;
+        seenMissing[mk] = true;
+        out.push({
+          ИСТОЧНИК: "турнир",
+          ТУРНИР: code,
+          ФИО: fio,
+          ТАБЕЛЬНЫЙ: "",
+          СТАТУС: "не найден в справочнике",
+          РЕШЕНИЕ: "продолжено с " + cfg.missingPersonPlaceholder + " (в CSV не попадёт)",
+          "ТАБЕЛЬНЫЙ В РАБОТЕ": r.MANAGER_PERSON_NUMBER || "",
+        });
+        return;
+      }
+      if (r.duplicate_comment) {
+        var kept = r.include_in_csv !== false;
+        out.push({
+          ИСТОЧНИК: "турнир",
+          ТУРНИР: code,
+          ФИО: fio,
+          ТАБЕЛЬНЫЙ: r.MANAGER_PERSON_NUMBER || "",
+          СТАТУС: "дубль в источнике",
+          РЕШЕНИЕ: r.duplicate_comment,
+          "ТАБЕЛЬНЫЙ В РАБОТЕ": kept ? r.MANAGER_PERSON_NUMBER || "" : "",
+        });
+      }
+    });
+    return out;
+  }
+
+  /**
+   * Статус турнира по датам SCHEDULE относительно сегодня.
+   * Условие проверяется, только если есть все нужные ему даты; ни одно не подошло → «нет данных».
+   *   today < START                       → not_started «не стартовал»
+   *   START ≤ today ≤ END                 → active «активен»
+   *   END < today < RESULT                → summarizing «подведение итогов»
+   *   today ≥ RESULT                      → closing «пора закрывать»
+   * closingNow: дата данных > RESULT и > END — «закроется сейчас».
+   */
+  var TIMELINE_LABELS = {
+    not_started: "не стартовал",
+    active: "активен",
+    summarizing: "подведение итогов",
+    closing: "пора закрывать",
+    nodata: "нет данных",
+  };
+
+  function tournamentTimeline(t, todayIso) {
+    var src = t || {};
+    var s = isoDateOrEmpty(src.start_dt);
+    var e = isoDateOrEmpty(src.end_dt);
+    var r = isoDateOrEmpty(src.result_dt);
+    var today = isoDateOrEmpty(todayIso) || todayIsoDate();
+    var dataDate = isoDateOrEmpty(src.contest_date);
+    var status = "nodata";
+    if (s && today < s) status = "not_started";
+    else if (s && e && today >= s && today <= e) status = "active";
+    else if (e && r && today > e && today < r) status = "summarizing";
+    else if (r && today >= r) status = "closing";
+    var missing = [];
+    if (!s) missing.push("старт");
+    if (!e) missing.push("завершение");
+    if (!r) missing.push("итоги");
+    return {
+      status: status,
+      label: TIMELINE_LABELS[status],
+      closingNow: !!(r && e && dataDate && dataDate > r && dataDate > e),
+      start: s,
+      end: e,
+      result: r,
+      missing: missing,
+      hasAnyDate: !!(s || e || r),
+    };
+  }
+
+  function stripFioPath(fio) {
+    var copy = Object.assign({}, fio);
+    delete copy.file_path;
+    return copy;
+  }
+
   function cloneTournament(source) {
     var src = source || {};
     var copy = createEmptyTournament({
@@ -1474,12 +1742,14 @@
       full_name: src.full_name,
       type_ind: src.type_ind,
       period_code: src.period_code,
+      start_dt: src.start_dt || "",
+      end_dt: src.end_dt || "",
+      result_dt: src.result_dt || "",
       column_id: src.column_id,
       column_fact: src.column_fact,
       fact_op: src.fact_op || "none",
       fact_op_value: src.fact_op_value != null ? src.fact_op_value : "1",
       source_file_name: src.source_file_name,
-      source_file_path: src.source_file_path || "",
       source_file_kind: src.source_file_kind || "",
       sheet_name: src.sheet_name,
       table_start_row: src.table_start_row || 1,
@@ -1641,12 +1911,14 @@
           full_name: t.full_name,
           type_ind: t.type_ind,
           period_code: normalizePeriodCode(t.period_code),
+          start_dt: isoDateOrEmpty(t.start_dt),
+          end_dt: isoDateOrEmpty(t.end_dt),
+          result_dt: isoDateOrEmpty(t.result_dt),
           column_id: t.column_id || "",
           column_fact: t.column_fact || "",
           fact_op: t.fact_op || "none",
           fact_op_value: t.fact_op_value != null ? String(t.fact_op_value) : "1",
           source_file_name: t.source_file_name || "",
-          source_file_path: t.source_file_path || "",
           source_file_kind: t.source_file_kind || "",
           sheet_name: t.sheet_name || "",
           table_start_row: t.table_start_row || 1,
@@ -1671,7 +1943,6 @@
               })
           : [],
         file_name: fio.file_name || "",
-        file_path: fio.file_path || "",
         sheet_name: fio.sheet_name || "",
         start_row: fio.start_row || 1,
         start_col: fio.start_col || 1,
@@ -1689,11 +1960,16 @@
     return {
       tournaments: data.tournaments.map(function (t) {
         var copy = Object.assign({}, t || {});
-        // содержимое файлов в JSON не храним (игнорируем устаревшие base64)
+        // содержимое файлов в JSON не храним (игнорируем устаревшие base64);
+        // путь к файлу больше не используется (страница локальная, путь недоступен)
         delete copy.source_file_b64;
+        delete copy.source_file_path;
+        copy.start_dt = isoDateOrEmpty(copy.start_dt);
+        copy.end_dt = isoDateOrEmpty(copy.end_dt);
+        copy.result_dt = isoDateOrEmpty(copy.result_dt);
         return createEmptyTournament(copy);
       }),
-      fio: data.fio || null,
+      fio: data.fio ? stripFioPath(data.fio) : null,
       version: data.version || 1,
     };
   }
@@ -1771,6 +2047,12 @@
     createEmptyTournament: createEmptyTournament,
     todayIsoDate: todayIsoDate,
     periodCodeFromScheduleType: periodCodeFromScheduleType,
+    isKnownSchedulePeriodType: isKnownSchedulePeriodType,
+    tournamentTimeline: tournamentTimeline,
+    buildFioSheetRows: buildFioSheetRows,
+    buildReportDiffRows: buildReportDiffRows,
+    FIO_SHEET_COLUMNS: FIO_SHEET_COLUMNS,
+    REPORT_DIFF_COLUMNS: REPORT_DIFF_COLUMNS,
     scheduleStatusCounts: scheduleStatusCounts,
     buildContestIndex: buildContestIndex,
     buildReportDateIndex: buildReportDateIndex,

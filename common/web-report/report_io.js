@@ -338,76 +338,6 @@
   }
 
   /**
-   * Страница открыта локально (двойной клик по report_app.html, file://), а не через
-   * http(s)-сервер. Под file:// браузер блокирует fetch к соседним файлам (CORS для file:),
-   * поэтому автозагрузка по пути заведомо не сработает — pointless сетевой запрос лучше
-   * не делать вовсе. Задел на случай, если страницу когда-нибудь снова откроют через
-   * http.server (или другой веб-сервер): тогда fetch снова заработает сам по себе.
-   */
-  function isLocalFileProtocol() {
-    return typeof location !== "undefined" && location.protocol === "file:";
-  }
-
-  /**
-   * Кандидаты URL/пути для автозагрузки рядом с страницей (актуально только при открытии
-   * через http(s)-сервер — см. isLocalFileProtocol).
-   * Полные пути ОС из браузера недоступны — нужны относительные или http(s).
-   */
-  function tablePathCandidates(filePath, fileName) {
-    var out = [];
-    var seen = Object.create(null);
-    function add(p) {
-      p = String(p || "").trim().replace(/\\/g, "/");
-      if (!p || seen[p]) return;
-      seen[p] = true;
-      out.push(p);
-    }
-    add(filePath);
-    var base = String(fileName || "").trim().replace(/\\/g, "/");
-    if (base) {
-      var only = base.split("/").pop();
-      add(base);
-      add(only);
-      add("examples/" + only);
-      // если в path есть каталог — попробовать тот же каталог + имя
-      var path = String(filePath || "").trim().replace(/\\/g, "/");
-      if (path && path.indexOf("/") >= 0) {
-        var dir = path.replace(/\/[^/]*$/, "");
-        if (dir) add(dir + "/" + only);
-      }
-    }
-    return out;
-  }
-
-  /**
-   * Загрузить таблицу по URL (относительно страницы или абсолютному http).
-   * @returns {Promise<{ pack: object, usedPath: string }|null>}
-   */
-  async function tryReadTableFromPaths(filePath, fileName, startRow, startCol) {
-    if (isLocalFileProtocol()) {
-      // file:// — fetch к соседнему файлу браузер не выполнит; не пытаемся.
-      return null;
-    }
-    var candidates = tablePathCandidates(filePath, fileName);
-    for (var i = 0; i < candidates.length; i++) {
-      var url = candidates[i];
-      try {
-        var res = await fetch(url, { cache: "no-store" });
-        if (!res.ok) continue;
-        var buf = await res.arrayBuffer();
-        var name = fileName || url.split("/").pop() || "table.bin";
-        var blob = new Blob([buf]);
-        var file = new File([blob], name);
-        var pack = await readTableFile(file, startRow, startCol);
-        return { pack: pack, usedPath: url };
-      } catch (err) {
-        // следующий кандидат
-      }
-    }
-    return null;
-  }
-
-  /**
    * Восстановить пакет из base64 + метаданных (после загрузки JSON настроек).
    */
   function packFromStoredSource(meta) {
@@ -588,10 +518,11 @@
    * не превращается в число (и, как следствие, в экспоненту с потерей точности) —
    * не важно, каким столбец был в исходном файле.
    */
-  function forcePersonNumberColumnsAsText(ws, cols, rowCount) {
-    var personCols = (ReportCore.PERSON_NUMBER_COLUMNS || []).reduce(function (acc, name) {
+  function forcePersonNumberColumnsAsText(ws, cols, rowCount, extraCols) {
+    var names = (ReportCore.PERSON_NUMBER_COLUMNS || []).concat(extraCols || []);
+    var personCols = names.reduce(function (acc, name) {
       var idx = cols.indexOf(name);
-      if (idx >= 0) acc.push(idx);
+      if (idx >= 0 && acc.indexOf(idx) < 0) acc.push(idx);
       return acc;
     }, []);
     if (!personCols.length) {
@@ -612,12 +543,8 @@
     }
   }
 
-  /** Строит книгу XLSX-отчёта (лист REPORT) из строк — без скачивания, для переиспользования и тестов. */
-  function buildReportXlsxWorkbook(rows) {
-    if (typeof XLSX === "undefined") {
-      throw new Error("Библиотека XLSX не загружена");
-    }
-    var cols = ReportCore.XLSX_COLUMNS;
+  /** Лист с заголовком, автофильтром, закреплённой шапкой и текстовыми колонками табельных. */
+  function buildSheet(cols, rows, textCols) {
     var aoa = [cols];
     (rows || []).forEach(function (row) {
       aoa.push(
@@ -627,14 +554,12 @@
       );
     });
     var ws = XLSX.utils.aoa_to_sheet(aoa);
-    var lastRow = Math.max(aoa.length, 1);
-    var lastCol = Math.max(cols.length, 1);
     var range = XLSX.utils.encode_range({
       s: { r: 0, c: 0 },
-      e: { r: lastRow - 1, c: lastCol - 1 },
+      e: { r: Math.max(aoa.length, 1) - 1, c: Math.max(cols.length, 1) - 1 },
     });
     ws["!ref"] = range;
-    forcePersonNumberColumnsAsText(ws, cols, aoa.length);
+    forcePersonNumberColumnsAsText(ws, cols, aoa.length, textCols);
     ws["!autofilter"] = { ref: range };
     ws["!freeze"] = {
       xSplit: 0,
@@ -644,6 +569,18 @@
       state: "frozen",
     };
     ws["!cols"] = autoColWidths(aoa);
+    return ws;
+  }
+
+  /**
+   * Строит книгу XLSX-отчёта из строк — без скачивания, для переиспользования и тестов.
+   * Лист REPORT всегда; extraSheets — дополнительные листы
+   * [{ name, columns, rows, textColumns? }] (пустые rows — лист не добавляется).
+   */
+  function buildReportXlsxWorkbook(rows, extraSheets) {
+    if (typeof XLSX === "undefined") {
+      throw new Error("Библиотека XLSX не загружена");
+    }
     var wb = XLSX.utils.book_new();
     if (!wb.Workbook) {
       wb.Workbook = {};
@@ -652,12 +589,16 @@
       wb.Workbook.Views = [{}];
     }
     wb.Workbook.Views[0].ySplit = 1;
-    XLSX.utils.book_append_sheet(wb, ws, "REPORT");
+    XLSX.utils.book_append_sheet(wb, buildSheet(ReportCore.XLSX_COLUMNS, rows), "REPORT");
+    (extraSheets || []).forEach(function (sh) {
+      if (!sh || !sh.rows || !sh.rows.length) return;
+      XLSX.utils.book_append_sheet(wb, buildSheet(sh.columns, sh.rows, sh.textColumns), sh.name);
+    });
     return wb;
   }
 
-  function downloadReportXlsx(rows, filename) {
-    var wb = buildReportXlsxWorkbook(rows);
+  function downloadReportXlsx(rows, filename, extraSheets) {
+    var wb = buildReportXlsxWorkbook(rows, extraSheets);
     var out = XLSX.write(wb, { bookType: "xlsx", type: "array" });
     downloadBlob(
       filename || timestampName("report", "xlsx"),
@@ -725,9 +666,6 @@
     entriesFromFioTable: entriesFromFioTable,
     resolveFioTableEntries: resolveFioTableEntries,
     readTableFile: readTableFile,
-    tryReadTableFromPaths: tryReadTableFromPaths,
-    tablePathCandidates: tablePathCandidates,
-    isLocalFileProtocol: isLocalFileProtocol,
     packFromStoredSource: packFromStoredSource,
     arrayBufferToBase64: arrayBufferToBase64,
     base64ToArrayBuffer: base64ToArrayBuffer,

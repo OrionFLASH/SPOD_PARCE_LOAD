@@ -18,7 +18,6 @@
       col_fio: "",
       col_tn: "",
       file_name: "",
-      file_path: "",
       source_file_kind: "",
       source_error: "",
       apply_warning: "",
@@ -46,7 +45,7 @@
     sidebarOpen: true,
     filtersOpen: false,
     chromeOpen: true,
-    previewOpen: { source: false, fio: false },
+    previewOpen: { source: true, fio: true },
   };
 
   /** Транзитное состояние модалки «Загрузить списки» (сбрасывается при открытии). */
@@ -234,6 +233,45 @@
     if (btn) btn.setAttribute("aria-expanded", state.chromeOpen ? "true" : "false");
   }
 
+  /** Мини-иконки для статистики на плашках этапов (12×12). */
+  var STAGE_STAT_ICONS = {
+    list: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M8 6h13"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M3 6h.01"/><path d="M3 12h.01"/><path d="M3 18h.01"/></svg>',
+    check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12l5 5L20 7"/></svg>',
+    warn: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 3l10 18H2z"/><path d="M12 10v4"/><path d="M12 17h.01"/></svg>',
+    flag: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 21V4"/><path d="M5 4h11l-2 4 2 4H5"/></svg>',
+    edit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>',
+    lock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>',
+    file: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/></svg>',
+    rows: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18"/><path d="M3 15h18"/></svg>',
+    error: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="9"/><path d="M12 8v5"/><path d="M12 16h.01"/></svg>',
+    book: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 19V5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M19 17H6"/></svg>',
+    person: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="8" r="4"/><path d="M4 20c1.5-3.5 4.5-5 8-5s6.5 1.5 8 5"/></svg>',
+    question: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 0 1 5 .5c0 1.5-2.5 2-2.5 3.5"/><path d="M12 17h.01"/></svg>',
+    copy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>',
+    csv: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 21h14"/></svg>',
+    minus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="9"/><path d="M8 12h8"/></svg>',
+  };
+
+  function stageStat(icon, value, label, tone, tip) {
+    return (
+      '<span class="stage-stat' +
+      (tone ? " stage-stat--" + tone : "") +
+      '" data-tip="' +
+      escapeHtml(tip || label) +
+      '">' +
+      STAGE_STAT_ICONS[icon] +
+      "<b>" +
+      value +
+      "</b>" +
+      (label ? "<small>" + escapeHtml(label) + "</small>" : "") +
+      "</span>"
+    );
+  }
+
+  function isFioType(t) {
+    return String(t.type_ind || "").toUpperCase() === "FIO";
+  }
+
   function renderStages() {
     var st = stages();
     var box = $("top-stages");
@@ -243,12 +281,8 @@
     var total = state.tournaments.length;
     var includedN = included.length;
     var noActive = includedN === 0;
-    var anyFio = state.tournaments.some(function (t) {
-      return String(t.type_ind || "").toUpperCase() === "FIO";
-    });
-    var includedFio = included.some(function (t) {
-      return String(t.type_ind || "").toUpperCase() === "FIO";
-    });
+    var anyFio = state.tournaments.some(isFioType);
+    var includedFio = included.some(isFioType);
     // ФИО-этап не участвует: во всём списке нет ни одного турнира режима FIO
     // (справочник — общий модал, а не «под турниром», так что от выбранного турнира не зависит)
     var fioIdle = !anyFio;
@@ -269,7 +303,47 @@
         '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c1.5-3.5 4.5-5 8-5s6.5 1.5 8 5"/></svg>',
       dups:
         '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>',
+      output:
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/></svg>',
     };
+
+    // --- счётчики для статистики на плашках ---
+    var importWarn = 0;
+    var closingSoon = 0;
+    state.tournaments.forEach(function (t) {
+      if (t.import_warning) importWarn += 1;
+      if (ReportCore.tournamentTimeline(t).status === "closing") closingSoon += 1;
+    });
+    var fieldsOkN = 0;
+    var withSourceN = 0;
+    var rowsTotal = 0;
+    var rowsErr = 0;
+    included.forEach(function (t) {
+      if (ReportCore.tournamentFieldsOk(t) && ReportCore.tournamentIdentityUnlocked(t)) fieldsOkN += 1;
+      var pack = state.dataByTournament[t.id];
+      if (ReportCore.tournamentSourceOk(t, pack)) withSourceN += 1;
+      if (pack && pack.rows) {
+        var rs = ReportCore.tournamentRowStats(t, pack, state.fioEntries, coreOpts());
+        rowsTotal += rs.total;
+        rowsErr += rs.errors;
+      }
+    });
+    var fioIssues = (state.fioUi.apply_issues || []).length;
+    var tnDupGroups = (st.duplicateGroups || []).length;
+    var fioDupGroups = (st.fioDuplicateGroups || []).length;
+    var dupResolved =
+      (tnDupGroups && state.checkState.duplicatesCleared ? tnDupGroups : 0) +
+      (fioDupGroups && state.checkState.fioDupCleared ? fioDupGroups : 0);
+    var res = state.lastResult && state.lastResult.ok ? state.lastResult : null;
+    var gateOk = !!(res && res.csvGate && res.csvGate.ok);
+    var excludedRows = res
+      ? (res.rows || []).filter(function (r) {
+          return r.include_in_csv === false;
+        }).length
+      : 0;
+    var gateErrors = res && res.csvGate ? (res.csvGate.rowsMarked || []).filter(function (r) {
+      return r.CSV_ERROR && r.CSV_ERROR !== "-" && r.include_in_csv !== false;
+    }).length : 0;
 
     var tournamentsDetail;
     var tournamentsOk = st.hasTournaments && !noActive;
@@ -310,9 +384,16 @@
 
     var dupsDetail = noActive
       ? "ожидает данные"
-      : st.duplicatesOk
-        ? "конфликтов нет"
-        : "нужна проверка / решение";
+      : !st.sourcesOk
+        ? "после загрузки источников"
+        : st.duplicatesOk
+          ? tnDupGroups + fioDupGroups
+            ? "дубли решены"
+            : "конфликтов нет"
+          : "нужна проверка / решение";
+
+    var outputDetail = !res ? "нажмите «Сформировать»" : gateOk ? "CSV и XLSX готовы" : "CSV заблокирован";
+    var outputStatus = !res ? "idle" : gateOk ? "done" : "bad";
 
     var items = [
       {
@@ -322,14 +403,23 @@
         status: stageStatus(tournamentsOk, false),
         tip: noActive ? "Нет активных турниров для выгрузки" : "Турниры, включённые в отчёт",
         icon: icons.tournaments,
+        stats:
+          stageStat("list", total, "всего", "", "Всего турниров в списке") +
+          stageStat("check", includedN, "в отчёте", includedN ? "ok" : "", "Включены в проверку и выгрузку") +
+          (importWarn ? stageStat("warn", importWarn, "проверить", "warn", "Загружены из списков с пометкой «! СПИСКИ» — проверьте параметры") : "") +
+          (closingSoon ? stageStat("flag", closingSoon, "закрыть", "bad", "По датам SCHEDULE — пора закрывать (сегодня ≥ даты подведения итогов)") : ""),
       },
       {
         key: "fields",
         title: "Поля",
         detail: fieldsDetail,
         status: stageStatus(st.fieldsFilled, noActive),
-        tip: "Обязательные параметры турниров",
+        tip: "Обязательные параметры включённых турниров",
         icon: icons.fields,
+        stats: noActive
+          ? ""
+          : stageStat("check", fieldsOkN + "/" + includedN, "заполнено", fieldsOkN === includedN ? "ok" : "warn", "Включённые турниры с заполненными кодами, названием, планом и датой") +
+            (st.blockedCopies.length ? stageStat("lock", st.blockedCopies.length, "копии", "bad", "Копии, где не сменены код и название") : ""),
       },
       {
         key: "sources",
@@ -338,6 +428,11 @@
         status: stageStatus(st.sourcesOk, noActive),
         tip: "CSV/Excel и выбранные колонки",
         icon: icons.sources,
+        stats: noActive
+          ? ""
+          : stageStat("file", withSourceN + "/" + includedN, "файлов", withSourceN === includedN ? "ok" : "warn", "Включённые турниры с загруженным файлом и выбранными колонками") +
+            (rowsTotal ? stageStat("rows", rowsTotal, "строк", "", "Строк данных во включённых турнирах") : "") +
+            (rowsErr ? stageStat("error", rowsErr, "с ошибкой", "bad", "Строки с битым табельным, пустыми полями или без табельного по ФИО — в CSV не попадут") : ""),
       },
       {
         key: "fio",
@@ -348,28 +443,53 @@
           ? "Этап ФИО не участвует (нет турниров режима FIO)"
           : "Справочник ФИО ↔ табельный — общий для всех турниров FIO (кнопка «Справочник ФИО» слева)",
         icon: icons.fio,
+        stats: fioIdle
+          ? ""
+          : stageStat("book", state.fioEntries.length, "в справочнике", "", "Записей ФИО ↔ табельный") +
+            ((st.missingFio || []).length ? stageStat("question", st.missingFio.length, "не найдено", "bad", "ФИО из источников, которых нет в справочнике") : "") +
+            (fioIssues ? stageStat("warn", fioIssues, "проблем", "warn", "Строки таблицы ФИО с дублями или битым табельным") : ""),
       },
       {
         key: "dups",
         title: "Дубли",
         detail: dupsDetail,
-        status: stageStatus(st.duplicatesOk, noActive),
-        tip: "Конфликты ключей после проверки",
+        status: stageStatus(st.duplicatesOk, noActive || !st.sourcesOk),
+        tip: "Конфликты ключей: конкурс + турнир + табельный (и ФИО для режима FIO)",
         icon: icons.dups,
+        stats: noActive || !st.sourcesOk
+          ? ""
+          : (tnDupGroups ? stageStat("copy", tnDupGroups, "по ТН", state.checkState.duplicatesCleared ? "ok" : "warn", "Групп дублей по табельному") : "") +
+            (fioDupGroups ? stageStat("person", fioDupGroups, "по ФИО", state.checkState.fioDupCleared ? "ok" : "warn", "Групп дублей по ФИО") : "") +
+            (dupResolved ? stageStat("check", dupResolved, "решено", "ok", "Групп дублей с принятым решением") : "") +
+            (!tnDupGroups && !fioDupGroups ? stageStat("check", 0, "дублей", "ok", "Дублей не найдено") : ""),
+      },
+      {
+        key: "output",
+        title: "Выгрузка",
+        detail: outputDetail,
+        status: outputStatus,
+        tip: "Результат «Сформировать»: сколько строк уйдёт в XLSX и CSV",
+        icon: icons.output,
+        stats: !res
+          ? ""
+          : stageStat("rows", (res.xlsxRows || []).length, "XLSX", "", "Строк в XLSX (все, с пометками)") +
+            stageStat("csv", gateOk ? (res.csvRows || []).length : 0, "CSV", gateOk ? "ok" : "", "Строк в CSV") +
+            (excludedRows ? stageStat("minus", excludedRows, "исключено", "", "Строки, исключённые решениями по дублям") : "") +
+            (gateErrors ? stageStat("error", gateErrors, "ошибок", "bad", "Строки с ошибкой CSV_ERROR") : ""),
       },
     ];
 
     box.innerHTML = items
       .map(function (it) {
-        var cls = "stage-chip is-" + it.status;
         return (
-          '<span class="' +
-          cls +
+          '<div class="stage-chip is-' +
+          it.status +
           '" data-stage="' +
           it.key +
           '" data-tip="' +
           escapeHtml(it.tip) +
           '">' +
+          '<div class="stage-chip__head">' +
           '<span class="stage-chip__icon" aria-hidden="true">' +
           it.icon +
           "</span>" +
@@ -380,11 +500,22 @@
           '<span class="stage-chip__detail">' +
           escapeHtml(it.detail) +
           "</span>" +
-          "</span></span>"
+          "</span></div>" +
+          (it.stats ? '<div class="stage-chip__stats">' + it.stats + "</div>" : "") +
+          "</div>"
         );
       })
       .join("");
 
+    var processed = !!res;
+    var procBtn = $("btn-process");
+    procBtn.classList.toggle("is-done", processed);
+    procBtn.setAttribute(
+      "data-tip",
+      processed
+        ? "Отчёт сформирован. После любой правки данных отметка снимется — сформируйте заново"
+        : "Сформировать отчёт"
+    );
     $("btn-process").disabled =
       !st.hasTournaments || !st.fieldsFilled || !st.sourcesOk || st.blockedCopies.length > 0 || noActive;
     $("btn-check").disabled = !st.canCheck || noActive;
@@ -617,7 +748,7 @@
     var el = $(foldId);
     if (!el) return;
     el.addEventListener("toggle", function () {
-      if (!state.previewOpen) state.previewOpen = { source: false, fio: false };
+      if (!state.previewOpen) state.previewOpen = { source: true, fio: true };
       state.previewOpen[kind] = !!el.open;
     });
   }
@@ -749,8 +880,6 @@
       '<div class="fields-row fields-row--file-meta">' +
       '<div class="field"><label class="field-label" for="fio-file-name">Имя файла</label>' +
       '<input class="field-input" id="fio-file-name" readonly /></div>' +
-      '<div class="field"><label class="field-label" for="fio-file-path">Путь к файлу</label>' +
-      '<input class="field-input" id="fio-file-path" readonly data-tip="Инфо: имя файла при загрузке (страница открыта локально — саму автозагрузку по пути это не запускает). Вручную не задаётся" /></div>' +
       "</div>" +
       "</div>" +
       renderPreviewFold("fio", pack, [ui.col_fio, ui.col_tn]);
@@ -758,7 +887,6 @@
     $("fio-start-row").value = ui.start_row || 1;
     $("fio-start-col").value = ui.start_col || 1;
     $("fio-file-name").value = ui.file_name || "";
-    if ($("fio-file-path")) $("fio-file-path").value = ui.file_path || "";
     var colOpts = pack ? pack.columns : [];
     fillSelect($("fio-col-fio"), colOpts, ui.col_fio || "");
     fillSelect($("fio-col-tn"), colOpts, ui.col_tn || "");
@@ -800,7 +928,6 @@
         refreshFioFieldHighlights();
       });
     });
-    // "Путь к файлу" — инфо-поле (readonly), вручную не редактируется.
     updateFioApplyEnabled();
     if ($("btn-fio-issues")) {
       $("btn-fio-issues").addEventListener("click", openFioIssuesModal);
@@ -838,9 +965,6 @@
         var newPack = await ReportIO.readTableFile(file, 1, 1);
         state.fioPack = newPack;
         state.fioUi.file_name = newPack.fileName;
-        // Путь = то, что даёт браузер при выборе файла (только имя) — сохраняем как путь
-        // для автозагрузки по этому же имени рядом со страницей.
-        state.fioUi.file_path = newPack.fileName;
         state.fioUi.sheet_name = newPack.sheetName || "";
         state.fioUi.source_file_kind = newPack.kind || "";
         state.fioUi.start_row = 1;
@@ -1100,9 +1224,6 @@
       fioIssues: fioIssues,
       fioDupNames: fioDupNames,
       fioBadTn: fioBadTn,
-      resultOk: !!(state.lastResult && state.lastResult.ok),
-      resultCsv: state.lastResult && state.lastResult.csvRows ? state.lastResult.csvRows.length : 0,
-      resultXlsx: state.lastResult && state.lastResult.xlsxRows ? state.lastResult.xlsxRows.length : 0,
     };
   }
 
@@ -1221,64 +1342,22 @@
     host.innerHTML = html;
   }
 
+  /** Строка под этапами: только то, чего нет на плашках (предупреждение по таблице ФИО). */
   function renderTopInfo() {
     var el = $("top-info");
     if (!el) return;
-    var parts = [];
-    var s = computePanelStats();
-    if (s.total) {
-      parts.push(
-        '<span class="top-info__pill">' +
-          metricIcon("tournaments") +
-          " <b>" +
-          s.total +
-          "</b> турн. · <b>" +
-          s.active +
-          "</b> в выгрузке · <b>" +
-          s.filled +
-          "</b> готовы</span>"
-      );
-    }
-    if (s.rowsTotal) {
-      parts.push(
-        '<span class="top-info__pill">' +
-          metricIcon("total") +
-          " строк <b>" +
-          s.rowsTotal +
-          "</b> · ошибок <b>" +
-          s.rowsErrors +
-          "</b> · в CSV <b>" +
-          s.rowsCsv +
-          "</b></span>"
-      );
-    }
-    if (state.fioUi.apply_warning) {
-      parts.push(
-        '<span class="top-info__pill top-info__pill--warn">' +
-          metricIcon("dup") +
-          " " +
-          escapeHtml(state.fioUi.apply_warning) +
-          "</span>"
-      );
-    }
-    if (s.resultOk) {
-      parts.push(
-        '<span class="top-info__pill top-info__pill--ok">' +
-          metricIcon("csv") +
-          " результат: XLSX <b>" +
-          s.resultXlsx +
-          "</b> · CSV <b>" +
-          s.resultCsv +
-          "</b></span>"
-      );
-    }
-    if (!parts.length) {
+    if (!state.fioUi.apply_warning) {
       el.hidden = true;
       el.innerHTML = "";
       return;
     }
     el.hidden = false;
-    el.innerHTML = parts.join("");
+    el.innerHTML =
+      '<span class="top-info__pill top-info__pill--warn">' +
+      metricIcon("dup") +
+      " " +
+      escapeHtml(state.fioUi.apply_warning) +
+      "</span>";
   }
 
   function renderSideResult() {
@@ -1310,6 +1389,81 @@
         warn.textContent = "";
       }
     }
+  }
+
+  var TIMELINE_ICONS = {
+    not_started:
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
+    active:
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="9"/><path d="M10 8.5l5.5 3.5-5.5 3.5z" fill="currentColor"/></svg>',
+    summarizing:
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 3h12"/><path d="M6 21h12"/><path d="M7 3c0 5 10 5 10 9s-10 4-10 9"/><path d="M17 3c0 5-10 5-10 9s10 4 10 9"/></svg>',
+    closing:
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 21V4"/><path d="M5 4h11l-2 4 2 4H5"/></svg>',
+    nodata:
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 0 1 5 .5c0 1.5-2.5 2-2.5 3.5"/><path d="M12 17h.01"/></svg>',
+    closingNow:
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>',
+    start:
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></svg>',
+    end:
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="4" y="5" width="16" height="16" rx="2"/><path d="M4 10h16"/><path d="M9 3v4"/><path d="M15 3v4"/></svg>',
+    result:
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M8 21h8"/><path d="M12 17v4"/><path d="M7 4h10v4a5 5 0 0 1-10 0V4z"/></svg>',
+  };
+
+  function formatRuDate(iso) {
+    return iso ? iso.slice(8, 10) + "." + iso.slice(5, 7) + "." + iso.slice(0, 4) : "";
+  }
+
+  /** Даты SCHEDULE (старт / завершение / итоги) и статус турнира на сегодня. */
+  function renderTimelineHtml(t) {
+    var tl = ReportCore.tournamentTimeline(t);
+    function dateCell(kind, label, value, tip) {
+      return (
+        '<span class="tl-date' +
+        (value ? "" : " is-missing") +
+        '" data-tip="' +
+        escapeHtml(tip + (value ? "" : " — нет данных в SCHEDULE")) +
+        '">' +
+        TIMELINE_ICONS[kind] +
+        "<small>" +
+        escapeHtml(label) +
+        "</small><b>" +
+        (value ? formatRuDate(value) : "нет данных") +
+        "</b></span>"
+      );
+    }
+    var tips = {
+      not_started: "Сегодня раньше даты старта",
+      active: "Сегодня между стартом и завершением (включительно)",
+      summarizing: "Турнир завершён, дата подведения итогов ещё не наступила",
+      closing: "Сегодня дата подведения итогов или позже",
+      nodata: "Для проверки статуса не хватает дат: " + (tl.missing.join(", ") || "—"),
+    };
+    var html =
+      '<div class="tl" aria-label="Даты турнира">' +
+      '<div class="tl-dates">' +
+      dateCell("start", "Старт", tl.start, "Старт турнира (START_DT)") +
+      dateCell("end", "Конец", tl.end, "Завершение турнира (END_DT)") +
+      dateCell("result", "Итоги", tl.result, "Подведение итогов (RESULT_DT)") +
+      "</div>" +
+      '<div class="tl-badges">' +
+      '<span class="tl-status tl-status--' +
+      tl.status +
+      '" data-tip="' +
+      escapeHtml(tips[tl.status]) +
+      '">' +
+      TIMELINE_ICONS[tl.status] +
+      escapeHtml(tl.label) +
+      "</span>" +
+      (tl.closingNow
+        ? '<span class="tl-status tl-status--closing-now" data-tip="Дата данных позже и завершения, и подведения итогов — эта выгрузка закроет турнир">' +
+          TIMELINE_ICONS.closingNow +
+          "закроется сейчас</span>"
+        : "") +
+      "</div></div>";
+    return html;
   }
 
   function renderWorkspace() {
@@ -1364,9 +1518,12 @@
         ? '<div class="warn-box">Копия: смените <b>код турнира</b> и <b>наименование</b> — иначе формирование заблокировано.</div>'
         : "") +
       '<div class="fields-grid">' +
-      '<div class="field field--check"><label class="check-row"><input type="checkbox" id="f-include" ' +
+      '<div class="field field--full params-top">' +
+      '<label class="check-row"><input type="checkbox" id="f-include" ' +
       (t.include_in_report !== false ? "checked" : "") +
-      ' /> <span>Включать в проверку и выгрузку</span></label></div>' +
+      ' /> <span>Включать в проверку и выгрузку</span></label>' +
+      renderTimelineHtml(t) +
+      "</div>" +
       '<div class="field field--third"><label class="field-label" for="f-contest-code">Код конкурса</label><input class="field-input" id="f-contest-code" /></div>' +
       '<div class="field field--third"><label class="field-label" for="f-tournament-code">Код турнира</label><input class="field-input' +
       codeHighlight +
@@ -1432,8 +1589,6 @@
       '<input class="field-input" id="f-fact-op-value" placeholder="100" data-tip="Для ×100 из доли 0,5 получится 50" /></div>' +
       '<div class="field"><label class="field-label" for="f-source-name">Имя файла</label>' +
       '<input class="field-input" id="f-source-name" readonly /></div>' +
-      '<div class="field"><label class="field-label" for="f-source-path">Путь к файлу</label>' +
-      '<input class="field-input" id="f-source-path" readonly data-tip="Инфо: имя файла при загрузке (страница открыта локально — саму автозагрузку по пути это не запускает). Вручную не задаётся" /></div>' +
       "</div>" +
       "</div>" +
       renderPreviewFold("source", pack, [t.column_id, t.column_fact]) +
@@ -1446,7 +1601,6 @@
     $("f-date").value = t.contest_date || "";
     $("f-type").value = String(t.type_ind || "TN").toUpperCase() === "FIO" ? "FIO" : "TN";
     $("f-source-name").value = t.source_file_name || "";
-    if ($("f-source-path")) $("f-source-path").value = t.source_file_path || "";
     $("f-start-row").value = t.table_start_row || (pack && pack.start_row) || 1;
     $("f-start-col").value = t.table_start_col || (pack && pack.start_col) || 1;
     $("f-fact-op-value").value = t.fact_op_value != null ? t.fact_op_value : "1";
@@ -1620,6 +1774,9 @@
       renderAll();
       return;
     }
+    // «закроется сейчас» зависит от даты данных — обновить блок дат без полного перерендера
+    var tlEl = document.querySelector("#panel-params .tl");
+    if (t && tlEl) tlEl.outerHTML = renderTimelineHtml(t);
     // подсветка выбранных колонок в превью
     if (t && state.dataByTournament[t.id] && $("data-preview-host")) {
       $("data-preview-host").innerHTML = renderPreviewTable(state.dataByTournament[t.id], null, [
@@ -1650,7 +1807,6 @@
     t.column_fact = $("f-col-fact").value;
     if ($("f-fact-op")) t.fact_op = $("f-fact-op").value || "none";
     if ($("f-fact-op-value")) t.fact_op_value = $("f-fact-op-value").value.trim() || "1";
-    // Путь к файлу — инфо-поле (ставится при загрузке файла/автозагрузке JSON), вручную не редактируется.
     // Лист — тоже только когда есть реальный список листов (иначе селект — плейсхолдер без выбора).
     var pack = state.dataByTournament[t.id];
     if ($("f-sheet") && pack) t.sheet_name = $("f-sheet").value;
@@ -1751,9 +1907,6 @@
       var pack = await ReportIO.readTableFile(file, 1, 1);
       state.dataByTournament[t.id] = pack;
       t.source_file_name = pack.fileName;
-      // Путь = то, что даёт браузер при выборе файла (только имя, без реального каталога) —
-      // сохраняем сразу как путь для автозагрузки по этому же имени рядом со страницей.
-      t.source_file_path = pack.fileName;
       t.source_file_kind = pack.kind;
       t.source_error = "";
       t.sheet_name = pack.sheetName || "";
@@ -2796,8 +2949,49 @@
       // Excel разрешён с пометками; кратко предупредим
       showToast("XLSX с пометками CSV_ERROR");
     }
-    ReportIO.downloadReportXlsx(prepared.xlsxRows, ReportIO.timestampName("REPORT", "xlsx"));
-    showToast("XLSX сохранён");
+    var extra = buildExtraXlsxSheets(prepared);
+    ReportIO.downloadReportXlsx(prepared.xlsxRows, ReportIO.timestampName("REPORT", "xlsx"), extra);
+    var names = ["REPORT"].concat(
+      extra
+        .filter(function (sh) {
+          return sh.rows.length;
+        })
+        .map(function (sh) {
+          return sh.name + " (" + sh.rows.length + ")";
+        })
+    );
+    showToast("XLSX сохранён · листы: " + names.join(", "));
+  }
+
+  /**
+   * Доп. листы XLSX: «ФИО» — если ФИО участвовали (справочник/таблица/строки FIO);
+   * «REPORT изменения» — если REPORT загружен через «Загрузить списки»: только
+   * новые и ушедшие строки по турнирам этой выгрузки. Пустые листы не пишутся.
+   */
+  function buildExtraXlsxSheets(prepared) {
+    var sheets = [];
+    sheets.push({
+      name: "ФИО",
+      columns: ReportCore.FIO_SHEET_COLUMNS,
+      rows: ReportCore.buildFioSheetRows(
+        state.fioEntries,
+        state.fioUi.apply_issues,
+        state.lastResult.rows,
+        coreOpts()
+      ),
+      textColumns: ["ТАБЕЛЬНЫЙ", "ТАБЕЛЬНЫЙ В РАБОТЕ"],
+    });
+    if (state.importedReportPack) {
+      sheets.push({
+        name: "REPORT изменения",
+        columns: ReportCore.REPORT_DIFF_COLUMNS,
+        rows: ReportCore.buildReportDiffRows(
+          state.importedReportPack.rows,
+          ReportCore.rowsForCsv(prepared.validation.rowsMarked)
+        ),
+      });
+    }
+    return sheets;
   }
 
   /**
@@ -2934,12 +3128,9 @@
   }
 
   function buildSettingsPayload() {
-    // "Путь к файлу" — инфо-поле (readonly): state.fioUi.file_path уже актуален
-    // (ставится при ручной загрузке файла или автозагрузкой из JSON), из DOM его читать не нужно.
     var fioMeta = {
       entries: state.fioEntries,
       file_name: state.fioUi.file_name || "",
-      file_path: state.fioUi.file_path || "",
       sheet_name: state.fioUi.sheet_name || "",
       start_row: state.fioUi.start_row || 1,
       start_col: state.fioUi.start_col || 1,
@@ -2985,7 +3176,6 @@
       col_fio: "",
       col_tn: "",
       file_name: "",
-      file_path: "",
       source_file_kind: "",
       source_error: "",
       apply_warning: "",
@@ -3009,7 +3199,6 @@
         state.fioEntries = [];
       }
       state.fioUi.file_name = parsed.fio.file_name || "";
-      state.fioUi.file_path = parsed.fio.file_path || "";
       state.fioUi.sheet_name = parsed.fio.sheet_name || "";
       state.fioUi.start_row = parsed.fio.start_row || 1;
       state.fioUi.start_col = parsed.fio.start_col || 1;
@@ -3020,111 +3209,23 @@
       state.fioEntries = [];
     }
 
-    var loadedSources = 0;
-    var loadedFio = false;
-    var failed = [];
-
-    // Автозагрузка источников по сохранённому пути — только если страница открыта через
-    // http(s)-сервер (ReportIO.tryReadTableFromPaths сама возвращает null под file://,
-    // без попытки fetch). При открытии двойным кликом источники всегда грузятся вручную.
-    for (var i = 0; i < state.tournaments.length; i++) {
-      var t = state.tournaments[i];
+    // Содержимое файлов в JSON не хранится, а страница открыта локально (file://) и сама
+    // читать файлы с диска не может — источники и таблицу ФИО пользователь грузит вручную.
+    state.tournaments.forEach(function (t) {
       t.source_file_b64 = "";
-      if (!t.source_file_name && !t.source_file_path) {
-        applySourceErrors(t, null);
-        continue;
-      }
-      var sr = t.table_start_row || 1;
-      var sc = t.table_start_col || 1;
-      var got = await ReportIO.tryReadTableFromPaths(
-        t.source_file_path,
-        t.source_file_name,
-        sr,
-        sc
-      );
-      if (!got) {
-        failed.push(t.source_file_name || t.source_file_path || t.id);
-        // путь не сработал — не показываем его как рабочий; имя файла оставляем как подсказку
-        t.source_file_path = "";
-        applySourceErrors(t, null);
-        continue;
-      }
-      var pack = got.pack;
-      if (t.sheet_name && pack.kind === "excel") {
-        pack = ReportIO.applyPackOrigin(pack, {
-          sheetName: t.sheet_name,
-          start_row: sr,
-          start_col: sc,
-        });
-      }
-      state.dataByTournament[t.id] = pack;
-      t.source_file_kind = pack.kind || t.source_file_kind || "";
-      if (got.usedPath) t.source_file_path = got.usedPath;
-      if (!t.source_file_name) t.source_file_name = pack.fileName;
-      // сохранить выбранные из JSON колонки; если пусто — не угадываем при restore
-      applySourceErrors(t, pack);
-      loadedSources += 1;
-    }
-
-    // автозагрузка таблицы ФИО
-    if (state.fioUi.file_name || state.fioUi.file_path) {
-      var fioGot = await ReportIO.tryReadTableFromPaths(
-        state.fioUi.file_path,
-        state.fioUi.file_name,
-        state.fioUi.start_row || 1,
-        state.fioUi.start_col || 1
-      );
-      if (fioGot) {
-        var fioPack = fioGot.pack;
-        if (state.fioUi.sheet_name && fioPack.kind === "excel") {
-          fioPack = ReportIO.applyPackOrigin(fioPack, {
-            sheetName: state.fioUi.sheet_name,
-            start_row: state.fioUi.start_row || 1,
-            start_col: state.fioUi.start_col || 1,
-          });
-        }
-        state.fioPack = fioPack;
-        state.fioUi.source_file_kind = fioPack.kind || "";
-        if (fioGot.usedPath) state.fioUi.file_path = fioGot.usedPath;
-        if (!state.fioUi.file_name) state.fioUi.file_name = fioPack.fileName;
-        // если колонки из JSON не заданы — оставить пустыми (подсветка)
-        loadedFio = true;
-        state.fioUi.source_error = "";
-      } else if (!state.fioEntries.length) {
-        state.fioUi.source_error =
-          "таблицу ФИО «" +
-          (state.fioUi.file_path || state.fioUi.file_name) +
-          "» нужно загрузить вручную" +
-          (ReportIO.isLocalFileProtocol() ? " (страница открыта локально)" : " — автозагрузка не удалась");
-        failed.push(state.fioUi.file_name || state.fioUi.file_path);
-        // путь не сработал — не показываем его как рабочий; имя файла оставляем как подсказку
-        state.fioUi.file_path = "";
-      } else {
-        state.fioUi.source_error =
-          "записи ФИО из JSON есть (" +
-          state.fioEntries.length +
-          "), таблицу «" +
-          (state.fioUi.file_path || state.fioUi.file_name) +
-          "» нужно загрузить вручную" +
-          (ReportIO.isLocalFileProtocol() ? " (страница открыта локально)" : " — автозагрузка не удалась");
-        state.fioUi.file_path = "";
-      }
-    }
+      applySourceErrors(t, null);
+    });
 
     invalidateChecks();
     state.activeId = state.tournaments[0] ? state.tournaments[0].id : null;
 
-    var parts = [];
-    if (loadedSources) parts.push("источников: " + loadedSources);
-    if (loadedFio) parts.push("таблица ФИО");
+    var parts = ["турниров: " + state.tournaments.length];
     if (state.fioEntries.length) parts.push("записей ФИО: " + state.fioEntries.length);
-    if (failed.length) {
-      var failedList = failed.slice(0, 3).join(", ") + (failed.length > 3 ? "…" : "");
-      parts.push(
-        (ReportIO.isLocalFileProtocol() ? "загрузите вручную: " : "не загружено: ") + failedList
-      );
-    }
-    if (parts.length) showToast("JSON: " + parts.join(" · "));
+    var withFile = state.tournaments.filter(function (t) {
+      return !!t.source_file_name;
+    }).length;
+    if (withFile) parts.push("загрузите источники вручную: " + withFile);
+    showToast("JSON: " + parts.join(" · "));
   }
 
   function readJsonFile(file) {

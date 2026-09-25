@@ -232,20 +232,19 @@ function testSettingsRoundtrip() {
   assert.ok(!Object.prototype.hasOwnProperty.call(json.tournaments[0], "source_file_b64"));
   assert.ok(!json.fio.source_file_b64);
   assert.strictEqual(json.fio.entries.length, 1);
-  assert.strictEqual(json.fio.file_path, "examples/fio.csv");
+  // путь к файлу больше не сохраняется (страница локальная — путь недоступен и не используется)
+  assert.ok(!Object.prototype.hasOwnProperty.call(json.fio, "file_path"));
   assert.strictEqual(json.tournaments[0].source_file_name, "data.csv");
-  assert.strictEqual(json.tournaments[0].source_file_path || "", "");
-  var withPath = ReportCore.serializeSettings(
-    [
-      ReportCore.createEmptyTournament({
-        contest_code: "A",
-        source_file_name: "data.csv",
-        source_file_path: "examples/data.csv",
-      }),
-    ],
-    { entries: [] }
-  );
-  assert.strictEqual(withPath.tournaments[0].source_file_path, "examples/data.csv");
+  assert.ok(!Object.prototype.hasOwnProperty.call(json.tournaments[0], "source_file_path"));
+  var oldJson = {
+    tournaments: [{ contest_code: "A", source_file_path: "examples/data.csv", start_dt: "2026-01-01", end_dt: "bad" }],
+    fio: { entries: [], file_path: "examples/fio.csv" },
+  };
+  var parsedOld = ReportCore.parseSettings(oldJson);
+  assert.ok(!Object.prototype.hasOwnProperty.call(parsedOld.tournaments[0], "source_file_path"));
+  assert.ok(!Object.prototype.hasOwnProperty.call(parsedOld.fio, "file_path"));
+  assert.strictEqual(parsedOld.tournaments[0].start_dt, "2026-01-01");
+  assert.strictEqual(parsedOld.tournaments[0].end_dt, ""); // не ГГГГ-ММ-ДД → пусто
   var back = ReportCore.parseSettings(json);
   assert.strictEqual(back.tournaments.length, 1);
   assert.strictEqual(back.tournaments[0].contest_code, "A");
@@ -664,8 +663,17 @@ function testPeriodCodeFromScheduleType() {
   assert.strictEqual(f("турнир июня"), "M6");
   assert.strictEqual(f("турнир декабря"), "M12");
   assert.strictEqual(f("произвольный"), "F");
-  assert.strictEqual(f("турнир 2 полугодия"), "F");
+  assert.strictEqual(f("турнир 1 полугодия"), "H1");
+  assert.strictEqual(f("турнир 2 полугодия"), "H2");
   assert.strictEqual(f("март-июль"), "F");
+  assert.strictEqual(ReportCore.isKnownSchedulePeriodType("март-июль"), true); // осознанно F, без предупреждения
+  assert.strictEqual(ReportCore.isKnownSchedulePeriodType("турнир полнолуния"), false);
+  // «турнир месяца» — месяц по START_DT, если START и END в одном месяце
+  assert.strictEqual(f("турнир месяца", "2023-07-01", "2023-07-31"), "M7");
+  assert.strictEqual(f("турнир месяца", "2023-07-15", "2023-08-14"), "F");
+  assert.strictEqual(f("турнир месяца"), "F");
+  assert.strictEqual(ReportCore.isKnownSchedulePeriodType("турнир месяца", "2023-07-15", "2023-08-14"), false);
+  assert.strictEqual(ReportCore.normalizePeriodCode("h2"), "H2");
   assert.strictEqual(f("что-то незнакомое"), "F");
   assert.strictEqual(f(""), "F");
   assert.strictEqual(f(null), "F");
@@ -689,9 +697,17 @@ function testScheduleStatusCounts() {
 
 function testBuildTournamentsFromSourceFiles() {
   const schedule = [
-    { TOURNAMENT_CODE: "T1", CONTEST_CODE: "C1", PERIOD_TYPE: "турнир года", TOURNAMENT_STATUS: "АКТИВНЫЙ" },
+    {
+      TOURNAMENT_CODE: "T1",
+      CONTEST_CODE: "C1",
+      PERIOD_TYPE: "турнир года",
+      TOURNAMENT_STATUS: "АКТИВНЫЙ",
+      START_DT: "2026-01-01",
+      END_DT: "2026-12-31",
+      RESULT_DT: "",
+    },
     { TOURNAMENT_CODE: "T2", CONTEST_CODE: "C2", PERIOD_TYPE: "турнир 2 квартала", TOURNAMENT_STATUS: "АКТИВНЫЙ" },
-    { TOURNAMENT_CODE: "T3", CONTEST_CODE: "CX", PERIOD_TYPE: "март-июль", TOURNAMENT_STATUS: "АКТИВНЫЙ" },
+    { TOURNAMENT_CODE: "T3", CONTEST_CODE: "CX", PERIOD_TYPE: "турнир полнолуния", TOURNAMENT_STATUS: "АКТИВНЫЙ" },
     { TOURNAMENT_CODE: "T4", CONTEST_CODE: "C1", PERIOD_TYPE: "турнир года", TOURNAMENT_STATUS: "УДАЛЕН" },
     { TOURNAMENT_CODE: "", CONTEST_CODE: "C1", PERIOD_TYPE: "турнир года", TOURNAMENT_STATUS: "АКТИВНЫЙ" },
   ];
@@ -722,6 +738,9 @@ function testBuildTournamentsFromSourceFiles() {
   assert.strictEqual(t1.include_in_report, false);
   assert.strictEqual(t1.type_ind, "TN");
   assert.strictEqual(t1.import_warning, "");
+  assert.strictEqual(t1.start_dt, "2026-01-01");
+  assert.strictEqual(t1.end_dt, "2026-12-31");
+  assert.strictEqual(t1.result_dt, "");
 
   const t2 = byCode.T2;
   assert.strictEqual(t2.period_code, "Q2");
@@ -731,7 +750,7 @@ function testBuildTournamentsFromSourceFiles() {
 
   const t3 = byCode.T3;
   assert.strictEqual(t3.full_name, ""); // конкурс не найден
-  assert.strictEqual(t3.period_code, "F"); // «март-июль» не распознан
+  assert.strictEqual(t3.period_code, "F"); // неизвестный тип периода
   assert.ok(t3.import_warning.indexOf("не найден") >= 0);
   assert.ok(t3.import_warning.indexOf("не распознан") >= 0);
 
@@ -825,21 +844,127 @@ function testCsvEncodingDetection() {
   assert.deepStrictEqual(parsedBom.columns, ["A", "B"]);
 }
 
-async function testLocalFileProtocolSkipsAutoload() {
-  // В Node глобального `location` нет — не file:// и не http(s), просто "не браузер".
-  assert.strictEqual(ReportIO.isLocalFileProtocol(), false);
-  const before = global.location;
+
+
+function testTournamentTimeline() {
+  const tl = (t, today) => ReportCore.tournamentTimeline(t, today);
+  const base = { start_dt: "2026-01-01", end_dt: "2026-03-31", result_dt: "2026-04-20", contest_date: "2026-03-31" };
+  assert.strictEqual(tl(base, "2025-12-31").status, "not_started");
+  assert.strictEqual(tl(base, "2026-01-01").status, "active"); // старт включительно
+  assert.strictEqual(tl(base, "2026-03-31").status, "active"); // завершение включительно
+  assert.strictEqual(tl(base, "2026-04-01").status, "summarizing");
+  assert.strictEqual(tl(base, "2026-04-19").status, "summarizing"); // строго меньше итогов
+  assert.strictEqual(tl(base, "2026-04-20").status, "closing"); // ≥ итогов
+  assert.strictEqual(tl(base, "2026-04-20").closingNow, false);
+  // дата данных позже и итогов, и завершения → «закроется сейчас»
+  assert.strictEqual(tl(Object.assign({}, base, { contest_date: "2026-04-21" }), "2026-05-01").closingNow, true);
+  // нет даты итогов: проверки на неё не проводятся
+  const noResult = Object.assign({}, base, { result_dt: "", contest_date: "2026-12-31" });
+  assert.strictEqual(tl(noResult, "2026-02-01").status, "active");
+  assert.strictEqual(tl(noResult, "2026-05-01").status, "nodata");
+  assert.strictEqual(tl(noResult, "2026-05-01").closingNow, false);
+  assert.deepStrictEqual(tl(noResult, "2026-05-01").missing, ["итоги"]);
+  assert.strictEqual(tl({}, "2026-05-01").hasAnyDate, false);
+}
+
+function testFioSheetRows() {
+  const entries = [
+    { fio: "Петров П", person_number: "67890" },
+    { fio: "Иванов И", person_number: "12345" },
+  ];
+  const issues = [
+    { fio: "Иванов И", person_number: "abc", tnOk: false, isDuplicate: true, chosen: false, reasons: ["дубль ФИО", "табельный не из цифр"] },
+    { fio: "Иванов И", person_number: "12345", tnOk: true, isDuplicate: true, chosen: true, reasons: ["дубль ФИО"] },
+  ];
+  const processed = [
+    { FIO: "Сидоров С", TOURNAMENT_CODE: "T1", "ТАБЕЛЬНЫЙ НЕ НАЙДЕН": "ДА", MANAGER_PERSON_NUMBER: "00000000000000000000" },
+    { FIO: "Сидоров С", TOURNAMENT_CODE: "T1", "ТАБЕЛЬНЫЙ НЕ НАЙДЕН": "ДА", MANAGER_PERSON_NUMBER: "00000000000000000000" },
+    { FIO: "Петров П", TOURNAMENT_CODE: "T1", "ТАБЕЛЬНЫЙ НЕ НАЙДЕН": "-", MANAGER_PERSON_NUMBER: "00000000000000067890", duplicate_comment: "Дубль 2 строк; решение: исключена", include_in_csv: false },
+    { FIO: "-", TOURNAMENT_CODE: "T2", MANAGER_PERSON_NUMBER: "00000000000000011111" },
+  ];
+  const rows = ReportCore.buildFioSheetRows(entries, issues, processed, {});
+  const dict = rows.filter((r) => r.ИСТОЧНИК === "справочник ФИО");
+  assert.deepStrictEqual(dict.map((r) => r.ФИО), ["Иванов И", "Петров П"]); // по алфавиту
+  assert.ok(dict[0].СТАТУС.indexOf("дубль ФИО") >= 0);
+  assert.strictEqual(dict[0]["ТАБЕЛЬНЫЙ В РАБОТЕ"], "00000000000000012345");
+  assert.strictEqual(dict[1].СТАТУС, "OK");
+  const skipped = rows.filter((r) => r.ИСТОЧНИК === "таблица ФИО");
+  assert.strictEqual(skipped.length, 1); // выбранная строка уже есть в справочнике
+  assert.strictEqual(skipped[0].ТАБЕЛЬНЫЙ, "abc");
+  assert.strictEqual(skipped[0]["ТАБЕЛЬНЫЙ В РАБОТЕ"], "00000000000000012345");
+  const fromTour = rows.filter((r) => r.ИСТОЧНИК === "турнир");
+  assert.strictEqual(fromTour.length, 2); // не найден (один раз на турнир) + дубль; TN-строка не участвует
+  assert.strictEqual(fromTour[0].СТАТУС, "не найден в справочнике");
+  assert.strictEqual(fromTour[1].СТАТУС, "дубль в источнике");
+  assert.strictEqual(fromTour[1]["ТАБЕЛЬНЫЙ В РАБОТЕ"], ""); // строка исключена
+  assert.deepStrictEqual(ReportCore.buildFioSheetRows([], [], [{ FIO: "-" }], {}), []);
+}
+
+function testReportDiffRows() {
+  const original = [
+    { TOURNAMENT_CODE: "T1", MANAGER_PERSON_NUMBER: "A", FACT_VALUE: "1" },
+    { TOURNAMENT_CODE: "T1", MANAGER_PERSON_NUMBER: "B", FACT_VALUE: "2" },
+    { TOURNAMENT_CODE: "T9", MANAGER_PERSON_NUMBER: "Z", FACT_VALUE: "9" }, // турнир не в выгрузке — не трогаем
+  ];
+  const fresh = [
+    { TOURNAMENT_CODE: "T1", MANAGER_PERSON_NUMBER: "B", FACT_VALUE: "5" }, // остался — не показываем
+    { TOURNAMENT_CODE: "T1", MANAGER_PERSON_NUMBER: "C", FACT_VALUE: "3" },
+    { TOURNAMENT_CODE: "T2", MANAGER_PERSON_NUMBER: "D", FACT_VALUE: "4" },
+  ];
+  const diff = ReportCore.buildReportDiffRows(original, fresh);
+  assert.deepStrictEqual(
+    diff.map((r) => r.ИЗМЕНЕНИЕ + ":" + r.TOURNAMENT_CODE + ":" + r.MANAGER_PERSON_NUMBER),
+    ["УДАЛЕНА:T1:A", "НОВАЯ:T1:C", "НОВАЯ:T2:D"]
+  );
+  assert.strictEqual(diff[0].FACT_VALUE, "1"); // удалённая — значения из старого REPORT
+}
+
+function testXlsxExtraSheets() {
+  global.XLSX = require(path.join(__dirname, "../../common/web-report/xlsx.full.min.js"));
   try {
-    // Страница открыта двойным кликом (file://) — tryReadTableFromPaths не должен
-    // даже пытаться fetch (в Node fetch к относительному пути упал бы с ошибкой,
-    // а не просто вернул null, если бы guard не сработал).
-    global.location = { protocol: "file:" };
-    assert.strictEqual(ReportIO.isLocalFileProtocol(), true);
-    const result = await ReportIO.tryReadTableFromPaths("data.csv", "data.csv", 1, 1);
-    assert.strictEqual(result, null);
+    const wb = ReportIO.buildReportXlsxWorkbook([{ MANAGER_PERSON_NUMBER: "00000000000000012345" }], [
+      { name: "ФИО", columns: ReportCore.FIO_SHEET_COLUMNS, rows: [{ ФИО: "Иванов", ТАБЕЛЬНЫЙ: 12345 }], textColumns: ["ТАБЕЛЬНЫЙ"] },
+      { name: "REPORT изменения", columns: ReportCore.REPORT_DIFF_COLUMNS, rows: [] },
+    ]);
+    assert.deepStrictEqual(wb.SheetNames, ["REPORT", "ФИО"]); // пустой лист не пишется
+    const ws = wb.Sheets["ФИО"];
+    const col = ReportCore.FIO_SHEET_COLUMNS.indexOf("ТАБЕЛЬНЫЙ");
+    const cell = ws[global.XLSX.utils.encode_cell({ r: 1, c: col })];
+    assert.strictEqual(cell.t, "s");
+    assert.strictEqual(cell.v, "12345");
   } finally {
-    if (before === undefined) delete global.location;
-    else global.location = before;
+    delete global.XLSX;
+  }
+}
+
+function testFioDuplicateResolutionClears() {
+  const map = ReportCore.buildFioMap([{ fio: "Иванов", person_number: "1" }]);
+  const t = ReportCore.createEmptyTournament({
+    contest_code: "C",
+    tournament_code: "T",
+    type_ind: "FIO",
+    column_id: "ФИО",
+    column_fact: "П",
+    plan_value: "1",
+  });
+  const rows = ReportCore.normalizeTournamentRows([{ ФИО: "Иванов", П: "1" }, { ФИО: "Иванов", П: "2" }], t, map, {}).rows;
+  const groups = ReportCore.findFioDuplicateGroups(rows);
+  assert.strictEqual(groups.length, 1);
+  for (const res of [
+    { mode: "keep_selected", keepIndices: [groups[0].indices[0]] },
+    { mode: "sum" },
+    { mode: "drop_all" },
+  ]) {
+    const applied = ReportCore.applyDuplicateResolutions(
+      rows,
+      { [groups[0].key]: res },
+      {},
+      ReportCore.duplicateKeyFio,
+      ReportCore.isFioDataRow
+    );
+    assert.strictEqual(applied.ok, true);
+    // исключённые решением строки больше не образуют группу — дубль считается решённым
+    assert.strictEqual(ReportCore.findFioDuplicateGroups(applied.rows).length, 0, res.mode);
   }
 }
 
@@ -850,6 +975,11 @@ const tests = [
   ["planOpValidation", testPlanAndOpValueValidation],
   ["personNumberProblem", testPersonNumberProblem],
   ["xlsxPersonNumberAsText", testXlsxPersonNumberAsText],
+  ["xlsxExtraSheets", testXlsxExtraSheets],
+  ["tournamentTimeline", testTournamentTimeline],
+  ["fioSheetRows", testFioSheetRows],
+  ["reportDiffRows", testReportDiffRows],
+  ["fioDuplicateResolutionClears", testFioDuplicateResolutionClears],
   ["periodCodeFromScheduleType", testPeriodCodeFromScheduleType],
   ["scheduleStatusCounts", testScheduleStatusCounts],
   ["buildTournamentsFromSourceFiles", testBuildTournamentsFromSourceFiles],
@@ -870,7 +1000,6 @@ const tests = [
   ["includeStages", testIncludeStages],
   ["cloneStages", testCloneAndStages],
   ["resolveFioTable", testResolveFioTableEntries],
-  ["localFileProtocolSkipsAutoload", testLocalFileProtocolSkipsAutoload],
 ];
 
 let failed = 0;
