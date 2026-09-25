@@ -340,7 +340,19 @@
   }
 
   /**
-   * Кандидаты URL/пути для автозагрузки рядом с страницей (http.server).
+   * Страница открыта локально (двойной клик по report_app.html, file://), а не через
+   * http(s)-сервер. Под file:// браузер блокирует fetch к соседним файлам (CORS для file:),
+   * поэтому автозагрузка по пути заведомо не сработает — pointless сетевой запрос лучше
+   * не делать вовсе. Задел на случай, если страницу когда-нибудь снова откроют через
+   * http.server (или другой веб-сервер): тогда fetch снова заработает сам по себе.
+   */
+  function isLocalFileProtocol() {
+    return typeof location !== "undefined" && location.protocol === "file:";
+  }
+
+  /**
+   * Кандидаты URL/пути для автозагрузки рядом с страницей (актуально только при открытии
+   * через http(s)-сервер — см. isLocalFileProtocol).
    * Полные пути ОС из браузера недоступны — нужны относительные или http(s).
    */
   function tablePathCandidates(filePath, fileName) {
@@ -374,6 +386,10 @@
    * @returns {Promise<{ pack: object, usedPath: string }|null>}
    */
   async function tryReadTableFromPaths(filePath, fileName, startRow, startCol) {
+    if (isLocalFileProtocol()) {
+      // file:// — fetch к соседнему файлу браузер не выполнит; не пытаемся.
+      return null;
+    }
     var candidates = tablePathCandidates(filePath, fileName);
     for (var i = 0; i < candidates.length; i++) {
       var url = candidates[i];
@@ -683,6 +699,7 @@
     readTableFile: readTableFile,
     tryReadTableFromPaths: tryReadTableFromPaths,
     tablePathCandidates: tablePathCandidates,
+    isLocalFileProtocol: isLocalFileProtocol,
     packFromStoredSource: packFromStoredSource,
     arrayBufferToBase64: arrayBufferToBase64,
     base64ToArrayBuffer: base64ToArrayBuffer,

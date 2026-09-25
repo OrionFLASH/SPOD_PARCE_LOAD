@@ -711,6 +711,20 @@ function testBuildTournamentsFromSourceFiles() {
   const res2 = ReportCore.buildTournamentsFromSourceFiles(schedule, contest, report, ["АКТИВНЫЙ"], ["T1"]);
   assert.strictEqual(res2.stats.skippedDuplicate, 1);
   assert.strictEqual(res2.tournaments.some((t) => t.tournament_code === "T1"), false);
+
+  // requireInReport: в REPORT есть только T1 — T2/T3 отсекаются как "не в REPORT"
+  const res3 = ReportCore.buildTournamentsFromSourceFiles(schedule, contest, report, ["АКТИВНЫЙ"], [], {
+    requireInReport: true,
+  });
+  assert.strictEqual(res3.stats.imported, 1);
+  assert.strictEqual(res3.stats.skippedNotInReport, 2);
+  assert.deepStrictEqual(
+    res3.tournaments.map((t) => t.tournament_code),
+    ["T1"]
+  );
+
+  const codes = ReportCore.buildReportCodeSet(report);
+  assert.deepStrictEqual(Object.assign({}, codes), { T1: true });
 }
 
 function testCsvEncodingDetection() {
@@ -734,6 +748,24 @@ function testCsvEncodingDetection() {
   const parsedBom = ReportIO.parseCsvBuffer(toArrayBuffer(withBom), ";", 1, 1);
   assert.strictEqual(parsedBom.encoding, "utf-8");
   assert.deepStrictEqual(parsedBom.columns, ["A", "B"]);
+}
+
+async function testLocalFileProtocolSkipsAutoload() {
+  // В Node глобального `location` нет — не file:// и не http(s), просто "не браузер".
+  assert.strictEqual(ReportIO.isLocalFileProtocol(), false);
+  const before = global.location;
+  try {
+    // Страница открыта двойным кликом (file://) — tryReadTableFromPaths не должен
+    // даже пытаться fetch (в Node fetch к относительному пути упал бы с ошибкой,
+    // а не просто вернул null, если бы guard не сработал).
+    global.location = { protocol: "file:" };
+    assert.strictEqual(ReportIO.isLocalFileProtocol(), true);
+    const result = await ReportIO.tryReadTableFromPaths("data.csv", "data.csv", 1, 1);
+    assert.strictEqual(result, null);
+  } finally {
+    if (before === undefined) delete global.location;
+    else global.location = before;
+  }
 }
 
 const tests = [
@@ -761,12 +793,13 @@ const tests = [
   ["includeStages", testIncludeStages],
   ["cloneStages", testCloneAndStages],
   ["resolveFioTable", testResolveFioTableEntries],
+  ["localFileProtocolSkipsAutoload", testLocalFileProtocolSkipsAutoload],
 ];
 
 let failed = 0;
 for (const [name, fn] of tests) {
   try {
-    fn();
+    await fn();
     console.log("OK  ", name);
   } catch (err) {
     failed += 1;

@@ -1,6 +1,6 @@
 # План: web-report ToDo_REPORT_3 и доработки UI
 
-Доработки поверх пункта 26 (волны 26.16–26.45).
+Доработки поверх пункта 26 (волны 26.16–26.47).
 
 ## Подзадачи
 
@@ -52,13 +52,14 @@
 | 44 | Фикс: путь сохраняется при ручной загрузке, очищается при неудачной автозагрузке (26.43) | [v] |
 | 45 | Docs + архив (актуализация 26.43) | [v] |
 | 46 | Подробная документация: README полный + Docs/WEB_REPORT_USER_GUIDE.md (26.45) | [v] |
+| 47 | Открытие без сервера: config.json → DEFAULT_CONFIG в коде; автозагрузка по пути не пытается под file:// (26.46) | [v] |
+| 48 | Загрузка списков: опция «Только из REPORT» (по TOURNAMENT_CODE) на шаге статусов (26.47) | [v] |
 
 ## Модули
 
 - `report_core.js` — период, fact_op, include, CSV-валидация, serialize v3, `resolveFioTableEntries` (+ `issues[]`), `tournamentRowStats`, `todayIsoDate`
-- `report_io.js` — чтение CSV/Excel, без base64 в JSON
-- `report_app.js` / `report_styles.css` / HTML — UI (сетка, этапы, панели, статистика, диалог проблем ФИО)
-- `config.json` — в т.ч. `preview_row_limit` (100)
+- `report_io.js` — чтение CSV/Excel, без base64 в JSON; `isLocalFileProtocol()` (26.46)
+- `report_app.js` / `report_styles.css` / HTML — UI (сетка, этапы, панели, статистика, диалог проблем ФИО); `DEFAULT_CONFIG` (в т.ч. `preview_row_limit`: 100) вместо отдельного `config.json` (26.46)
 - тесты `src/Tests/test_web_report_core.mjs`
 
 ## Архив

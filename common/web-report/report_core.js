@@ -1234,6 +1234,16 @@
     return map;
   }
 
+  /** Набор TOURNAMENT_CODE, которые встречаются хоть в одной строке REPORT. */
+  function buildReportCodeSet(reportRows) {
+    var set = Object.create(null);
+    (reportRows || []).forEach(function (row) {
+      var code = String((row && row.TOURNAMENT_CODE) || "").trim();
+      if (code) set[code] = true;
+    });
+    return set;
+  }
+
   /** TOURNAMENT_CODE → самая поздняя CONTEST_DATE (сравнение строк ГГГГ-ММ-ДД). */
   function buildReportDateIndex(reportRows) {
     var map = Object.create(null);
@@ -1260,15 +1270,20 @@
    * @param {object[]} reportRows
    * @param {string[]} selectedStatuses — какие TOURNAMENT_STATUS брать
    * @param {string[]} existingCodes — tournament_code, уже присутствующие в списке (не дублировать)
+   * @param {{ requireInReport?: boolean }} [options] — requireInReport: брать только турниры,
+   *   TOURNAMENT_CODE которых встречается хоть в одной строке REPORT (иначе — все по статусу)
    * @returns {{ tournaments: object[], stats: object }}
    */
-  function buildTournamentsFromSourceFiles(scheduleRows, contestRows, reportRows, selectedStatuses, existingCodes) {
+  function buildTournamentsFromSourceFiles(scheduleRows, contestRows, reportRows, selectedStatuses, existingCodes, options) {
+    var opts = options || {};
+    var requireInReport = !!opts.requireInReport;
     var statusSet = Object.create(null);
     (selectedStatuses || []).forEach(function (s) {
       statusSet[String(s || "").trim()] = true;
     });
     var contestIdx = buildContestIndex(contestRows);
     var dateIdx = buildReportDateIndex(reportRows);
+    var reportCodes = requireInReport ? buildReportCodeSet(reportRows) : null;
     var existing = Object.create(null);
     (existingCodes || []).forEach(function (c) {
       existing[String(c || "").trim()] = true;
@@ -1277,7 +1292,14 @@
     var today = todayIsoDate();
     var seenInBatch = Object.create(null);
     var out = [];
-    var stats = { matched: 0, imported: 0, skippedDuplicate: 0, skippedNoCode: 0, withWarnings: 0 };
+    var stats = {
+      matched: 0,
+      imported: 0,
+      skippedDuplicate: 0,
+      skippedNoCode: 0,
+      skippedNotInReport: 0,
+      withWarnings: 0,
+    };
 
     (scheduleRows || []).forEach(function (row) {
       var status = String((row && row.TOURNAMENT_STATUS) || "").trim();
@@ -1288,6 +1310,10 @@
       var cCode = String((row && row.CONTEST_CODE) || "").trim();
       if (!tCode) {
         stats.skippedNoCode += 1;
+        return;
+      }
+      if (reportCodes && !reportCodes[tCode]) {
+        stats.skippedNotInReport += 1;
         return;
       }
       if (existing[tCode] || seenInBatch[tCode]) {
@@ -1657,6 +1683,7 @@
     scheduleStatusCounts: scheduleStatusCounts,
     buildContestIndex: buildContestIndex,
     buildReportDateIndex: buildReportDateIndex,
+    buildReportCodeSet: buildReportCodeSet,
     buildTournamentsFromSourceFiles: buildTournamentsFromSourceFiles,
     cloneTournament: cloneTournament,
     tournamentFieldsOk: tournamentFieldsOk,

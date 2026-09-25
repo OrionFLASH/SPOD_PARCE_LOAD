@@ -1457,6 +1457,19 @@ python main.py
 - Легенда цветов вкладок слева. `INDICATOR_CODE` — dropdown + combobox; списки методов/агрегаций обновлены в каталоге.
 - Fill ≡ fill-full (`sync_web_fill_singlefile.py`). Документы: `Docs/PLAN_WEB_FILL.md`, `Docs/TODO_WEB_FILL.md`, ROADMAP §16.
 
+### Версия 1.7.99 — web-report: загрузка списков «только из REPORT» (26.47)
+
+- На шаге выбора статусов в модалке «Загрузить списки» — переключатель «Все» / «Только из REPORT» (появляется, если файл REPORT загружен): оставляет только турниры, чей `TOURNAMENT_CODE` уже встречается в REPORT.
+- Новая статистика `skippedNotInReport` (`ReportCore.buildTournamentsFromSourceFiles`, параметр `options.requireInReport`) — в live-счётчике на шаге статусов и в итоговом уведомлении.
+- Тест `buildTournamentsFromSourceFiles` дополнен проверками `requireInReport` и `buildReportCodeSet` (25 тестов всего). Docs и `web-report_bundle.zip` обновлены.
+
+### Версия 1.7.98 — web-report: открытие без сервера (26.46)
+
+- Страница открывается **двойным кликом** по `report_app.html` (`file://`) — требование сервера (`http.server`) снято из всей документации.
+- `config.json` убран, настройки встроены прямо в код (`DEFAULT_CONFIG` в `report_app.js`) — под `file://` браузер всё равно заблокировал бы `fetch` к нему.
+- Автозагрузка источника турнира/таблицы ФИО по сохранённому пути при открытии JSON под `file://` не может сработать (браузер блокирует сетевые запросы к соседним файлам с адреса `file:`): код больше не пытается делать `fetch` (`ReportIO.isLocalFileProtocol()`), но вся механика (кандидаты путей, `source_file_path`/`fio.file_path` в JSON, поле «Путь к файлу») оставлена заделом на случай, если страницу снова откроют через сервер. Сообщения после открытия JSON переформулированы, чтобы не звучать как ошибка.
+- Тест `test_web_report_core.mjs` → `localFileProtocolSkipsAutoload` (25 тестов всего). Docs и `web-report_bundle.zip` обновлены (`config.json` из архива убран).
+
 ### Версия 1.7.97 — web-report: подробная документация (26.45)
 
 - `common/web-report/README.md` переписан как полный технический справочник: модель данных турнира, словарь периодов, форматы полей выгрузки, колонки CSV/XLSX, CSV-гейты, пайплайн дублей, справочник ФИО, схема JSON v3, поведение пути к файлу, загрузка из SCHEDULE/CONTEST/REPORT, фильтры/поиск, `config.json`, тесты.

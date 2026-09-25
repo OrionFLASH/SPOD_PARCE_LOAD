@@ -53,6 +53,7 @@
     contestPack: null,
     reportPack: null,
     selectedStatuses: {},
+    requireInReport: false,
   };
 
   function $(id) {
@@ -730,7 +731,7 @@
       '<div class="field"><label class="field-label" for="fio-file-name">Имя файла</label>' +
       '<input class="field-input" id="fio-file-name" readonly /></div>' +
       '<div class="field"><label class="field-label" for="fio-file-path">Путь к файлу</label>' +
-      '<input class="field-input" id="fio-file-path" readonly data-tip="Инфо: путь для автозагрузки — имя файла при ручной загрузке или usedPath при открытии JSON. Вручную не задаётся" /></div>' +
+      '<input class="field-input" id="fio-file-path" readonly data-tip="Инфо: имя файла при загрузке (страница открыта локально — саму автозагрузку по пути это не запускает). Вручную не задаётся" /></div>' +
       "</div>" +
       "</div>" +
       renderPreviewFold("fio", pack, [ui.col_fio, ui.col_tn]) +
@@ -1413,7 +1414,7 @@
       '<div class="field"><label class="field-label" for="f-source-name">Имя файла</label>' +
       '<input class="field-input" id="f-source-name" readonly /></div>' +
       '<div class="field"><label class="field-label" for="f-source-path">Путь к файлу</label>' +
-      '<input class="field-input" id="f-source-path" readonly data-tip="Инфо: путь для автозагрузки — имя файла при ручной загрузке или usedPath при открытии JSON. Вручную не задаётся" /></div>' +
+      '<input class="field-input" id="f-source-path" readonly data-tip="Инфо: имя файла при загрузке (страница открыта локально — саму автозагрузку по пути это не запускает). Вручную не задаётся" /></div>' +
       "</div>" +
       "</div>" +
       renderPreviewFold("source", pack, [t.column_id, t.column_fact]) +
@@ -1807,6 +1808,7 @@
       contestPack: null,
       reportPack: null,
       selectedStatuses: {},
+      requireInReport: false,
     };
   }
 
@@ -1900,6 +1902,29 @@
     var reportNote = importTour.reportPack
       ? "REPORT: " + importTour.reportPack.rows.length + " строк"
       : "REPORT не загружен — дата турниров будет сегодняшней";
+    // Опция "какие турниры брать" имеет смысл, только если REPORT вообще загружен —
+    // иначе фильтровать не по чему, требование сбрасываем.
+    if (!importTour.reportPack) importTour.requireInReport = false;
+    var reportScopeHtml = "";
+    if (importTour.reportPack) {
+      var reqOn = !!importTour.requireInReport;
+      reportScopeHtml =
+        '<div class="filter-block__label" style="margin-top:14px">Какие турниры брать</div>' +
+        '<div class="chip-row" id="import-tour-report-scope" role="group">' +
+        '<button type="button" class="chip' +
+        (!reqOn ? " is-on" : "") +
+        '" data-report-scope="all" aria-pressed="' +
+        (!reqOn ? "true" : "false") +
+        '" data-tip="Все турниры с отмеченным статусом, вне зависимости от REPORT">' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h10"/></svg>Все</button>' +
+        '<button type="button" class="chip' +
+        (reqOn ? " is-on" : "") +
+        '" data-report-scope="in_report" aria-pressed="' +
+        (reqOn ? "true" : "false") +
+        '" data-tip="Только турниры, для которых в загруженном REPORT уже есть строки (по TOURNAMENT_CODE)">' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/><path d="M12 18v-6"/><path d="M9 15l3 3 3-3"/></svg>Только из REPORT</button>' +
+        "</div>";
+    }
     host.innerHTML =
       '<div class="info-box">SCHEDULE: ' +
       importTour.schedulePack.rows.length +
@@ -1916,6 +1941,7 @@
       '<div class="import-tour-status-scroll"><div class="chip-row" id="import-tour-status-list" role="group">' +
       (chips || '<span class="filter-hint">В SCHEDULE нет строк со статусом.</span>') +
       "</div></div>" +
+      reportScopeHtml +
       '<div class="info-box" id="import-tour-status-count"></div>';
 
     host.querySelectorAll("[data-status]").forEach(function (chip) {
@@ -1926,6 +1952,17 @@
         chip.setAttribute("aria-pressed", importTour.selectedStatuses[status] ? "true" : "false");
         updateImportTourStatusCount();
         updateImportTourPrimaryState();
+      });
+    });
+    host.querySelectorAll("[data-report-scope]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        importTour.requireInReport = btn.getAttribute("data-report-scope") === "in_report";
+        host.querySelectorAll("[data-report-scope]").forEach(function (b) {
+          var on = b === btn;
+          b.classList.toggle("is-on", on);
+          b.setAttribute("aria-pressed", on ? "true" : "false");
+        });
+        updateImportTourStatusCount();
       });
     });
     var allBtn = $("import-tour-status-all");
@@ -1956,11 +1993,21 @@
       return importTour.selectedStatuses[s];
     });
     var rows = importTour.schedulePack ? importTour.schedulePack.rows : [];
+    var reportCodes =
+      importTour.requireInReport && importTour.reportPack
+        ? ReportCore.buildReportCodeSet(importTour.reportPack.rows)
+        : null;
     var n = rows.filter(function (r) {
-      return statuses.indexOf(String((r && r.TOURNAMENT_STATUS) || "").trim()) >= 0;
+      if (statuses.indexOf(String((r && r.TOURNAMENT_STATUS) || "").trim()) < 0) return false;
+      if (reportCodes && !reportCodes[String((r && r.TOURNAMENT_CODE) || "").trim()]) return false;
+      return true;
     }).length;
     el.textContent = statuses.length
-      ? "Отмечено статусов: " + statuses.length + " · строк в SCHEDULE: " + n
+      ? "Отмечено статусов: " +
+        statuses.length +
+        " · строк в SCHEDULE: " +
+        n +
+        (reportCodes ? " (только из REPORT)" : "")
       : "Отметьте хотя бы один статус.";
   }
 
@@ -2029,7 +2076,8 @@
       importTour.contestPack.rows,
       reportRows,
       statuses,
-      existingCodes
+      existingCodes,
+      { requireInReport: !!(importTour.reportPack && importTour.requireInReport) }
     );
     if (result.tournaments.length) {
       state.tournaments = state.tournaments.concat(result.tournaments);
@@ -2042,6 +2090,7 @@
 
     var parts = ["загружено: " + result.stats.imported];
     if (result.stats.withWarnings) parts.push("требуют проверки: " + result.stats.withWarnings);
+    if (result.stats.skippedNotInReport) parts.push("нет в REPORT: " + result.stats.skippedNotInReport);
     if (result.stats.skippedDuplicate) parts.push("пропущено, уже есть: " + result.stats.skippedDuplicate);
     if (result.stats.skippedNoCode) parts.push("без кода турнира: " + result.stats.skippedNoCode);
     var msg = "Турниры из списков: " + parts.join(" · ");
@@ -2822,7 +2871,9 @@
     var loadedFio = false;
     var failed = [];
 
-    // автозагрузка источников турниров, если путь/имя доступны по HTTP
+    // Автозагрузка источников по сохранённому пути — только если страница открыта через
+    // http(s)-сервер (ReportIO.tryReadTableFromPaths сама возвращает null под file://,
+    // без попытки fetch). При открытии двойным кликом источники всегда грузятся вручную.
     for (var i = 0; i < state.tournaments.length; i++) {
       var t = state.tournaments[i];
       t.source_file_b64 = "";
@@ -2888,9 +2939,10 @@
         state.fioUi.source_error = "";
       } else if (!state.fioEntries.length) {
         state.fioUi.source_error =
-          "не удалось загрузить таблицу ФИО «" +
+          "таблицу ФИО «" +
           (state.fioUi.file_path || state.fioUi.file_name) +
-          "» — загрузите файл вручную";
+          "» нужно загрузить вручную" +
+          (ReportIO.isLocalFileProtocol() ? " (страница открыта локально)" : " — автозагрузка не удалась");
         failed.push(state.fioUi.file_name || state.fioUi.file_path);
         // путь не сработал — не показываем его как рабочий; имя файла оставляем как подсказку
         state.fioUi.file_path = "";
@@ -2898,9 +2950,10 @@
         state.fioUi.source_error =
           "записи ФИО из JSON есть (" +
           state.fioEntries.length +
-          "), таблица не подтянулась — загрузите файл «" +
+          "), таблицу «" +
           (state.fioUi.file_path || state.fioUi.file_name) +
-          "» вручную";
+          "» нужно загрузить вручную" +
+          (ReportIO.isLocalFileProtocol() ? " (страница открыта локально)" : " — автозагрузка не удалась");
         state.fioUi.file_path = "";
       }
     }
@@ -2913,7 +2966,10 @@
     if (loadedFio) parts.push("таблица ФИО");
     if (state.fioEntries.length) parts.push("записей ФИО: " + state.fioEntries.length);
     if (failed.length) {
-      parts.push("не загружено: " + failed.slice(0, 3).join(", ") + (failed.length > 3 ? "…" : ""));
+      var failedList = failed.slice(0, 3).join(", ") + (failed.length > 3 ? "…" : "");
+      parts.push(
+        (ReportIO.isLocalFileProtocol() ? "загрузите вручную: " : "не загружено: ") + failedList
+      );
     }
     if (parts.length) showToast("JSON: " + parts.join(" · "));
   }
@@ -2924,25 +2980,29 @@
     });
   }
 
-  async function loadConfig() {
-    try {
-      var res = await fetch("config.json", { cache: "no-store" });
-      state.config = await res.json();
-      window.ReportConfig = state.config;
-    } catch (e) {
-      state.config = {
-        csv_delimiter: ";",
-        csv_encodings: ["utf-8", "windows-1251", "ibm866"],
-        person_number_length: 20,
-        number_decimals: 5,
-        priority_type: "1",
-        missing_person_placeholder: "00000000",
-        no_duplicate_mark: "-",
-        missing_fio_flag: "ДА",
-        preview_row_limit: 100,
-      };
-      window.ReportConfig = state.config;
-    }
+  /**
+   * Настройки страницы — встроены прямо в код (не отдельный config.json).
+   * Страница открывается двойным кликом по report_app.html (file://, без сервера):
+   * fetch к файлу рядом со страницей под file:// браузер блокирует, поэтому отдельный
+   * JSON-файл настроек означал бы недостижимый код. Править значения — здесь.
+   */
+  var DEFAULT_CONFIG = {
+    csv_delimiter: ";",
+    csv_encodings: ["utf-8", "windows-1251", "ibm866"],
+    person_number_length: 20,
+    number_decimals: 5,
+    priority_type: "1",
+    missing_person_placeholder: "00000000",
+    no_duplicate_mark: "-",
+    missing_fio_flag: "ДА",
+    preview_row_limit: 100,
+    local_storage_settings_key: "spod_web_report_settings_v1",
+    local_storage_fio_key: "spod_web_report_fio_v1",
+  };
+
+  function loadConfig() {
+    state.config = DEFAULT_CONFIG;
+    window.ReportConfig = state.config;
   }
 
   function initTips() {
@@ -2963,7 +3023,7 @@
   }
 
   async function init() {
-    await loadConfig();
+    loadConfig();
     clearLegacyStorage();
     restoreDraft();
 

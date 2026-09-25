@@ -19,14 +19,11 @@ test_web_report_core.script       →  test_web_report_core.mjs
   Docs/TODO_WEB_REPORT.md
   Docs/WEB_REPORT_USER_GUIDE.md
   common/web-report/README.md
-  common/web-report/config.json
   common/web-report/ПРАВИЛЬНЫЕ_ИМЕНА.txt
   common/web-report/examples/*
 
-После переименования скриптов:
-  cd common/web-report
-  python3 -m http.server 8770
-  → http://127.0.0.1:8770/report_app.html
+После переименования скриптов — открыть common/web-report/report_app.html
+двойным кликом (локальный сервер не нужен).
 
 Остальные файлы уже с правильными именами.
 
