@@ -738,10 +738,12 @@ body::after { width: 380px; height: 380px; right: -60px; bottom: 10%; background
   min-width: 0;
 }
 .chip-row {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(72px, 1fr));
+  /* Ширина чипа — по содержимому (не равные grid-колонки): при 2 чипах в широкой
+     модалке grid растягивал их на полконтейнера, а в узкой панели фильтров такая
+     же сетка обрезала длинные подписи ("Содержит", "Только из REPORT"). */
+  display: flex;
+  flex-wrap: wrap;
   gap: 6px;
-  align-items: stretch;
 }
 .chip-row--seg { margin-top: 8px; }
 .chip {
@@ -755,11 +757,10 @@ body::after { width: 380px; height: 380px; right: -60px; bottom: 10%; background
   background: rgba(148, 163, 184, 0.12);
   color: #64748b;
   border-radius: 999px;
-  padding: 6px 10px;
+  padding: 6px 12px;
   font: inherit;
   font-size: 12px;
   font-weight: 700;
-  text-align: center;
   white-space: nowrap;
   cursor: pointer;
 }

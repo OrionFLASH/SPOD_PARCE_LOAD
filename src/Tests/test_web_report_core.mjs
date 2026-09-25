@@ -727,6 +727,51 @@ function testBuildTournamentsFromSourceFiles() {
   assert.deepStrictEqual(Object.assign({}, codes), { T1: true });
 }
 
+function testReportUpdatePreviewAndApply() {
+  // Исходный REPORT: T1 — 3 табельных (P1,P2,P3), T2 — 1 (P9), T3 отсутствует вовсе.
+  const original = [
+    { MANAGER_PERSON_NUMBER: "P1", CONTEST_CODE: "C1", TOURNAMENT_CODE: "T1", CONTEST_DATE: "2026-01-01", PLAN_VALUE: "1.00000", FACT_VALUE: "1.00000", priority_type: "1" },
+    { MANAGER_PERSON_NUMBER: "P2", CONTEST_CODE: "C1", TOURNAMENT_CODE: "T1", CONTEST_DATE: "2026-01-01", PLAN_VALUE: "1.00000", FACT_VALUE: "2.00000", priority_type: "1" },
+    { MANAGER_PERSON_NUMBER: "P3", CONTEST_CODE: "C1", TOURNAMENT_CODE: "T1", CONTEST_DATE: "2026-01-01", PLAN_VALUE: "1.00000", FACT_VALUE: "3.00000", priority_type: "1" },
+    { MANAGER_PERSON_NUMBER: "P9", CONTEST_CODE: "C2", TOURNAMENT_CODE: "T2", CONTEST_DATE: "2026-01-01", PLAN_VALUE: "1.00000", FACT_VALUE: "9.00000", priority_type: "1" },
+    // турнир, который сейчас вообще не готовится к выгрузке — должен остаться нетронутым
+    { MANAGER_PERSON_NUMBER: "P0", CONTEST_CODE: "C0", TOURNAMENT_CODE: "T0", CONTEST_DATE: "2025-01-01", PLAN_VALUE: "1.00000", FACT_VALUE: "0.00000", priority_type: "1" },
+  ];
+  // Новые готовые строки: T1 — P1 (осталась), P2 (осталась), P4 (новая); P3 ушла. T2 отсутствует
+  // в новых строках вовсе (турнир не готов/не включён в этот раз) — его прошлый REPORT не трогаем.
+  const fresh = [
+    { MANAGER_PERSON_NUMBER: "P1", CONTEST_CODE: "C1", TOURNAMENT_CODE: "T1", CONTEST_DATE: "2026-02-01", PLAN_VALUE: "1.00000", FACT_VALUE: "10.00000", priority_type: "1" },
+    { MANAGER_PERSON_NUMBER: "P2", CONTEST_CODE: "C1", TOURNAMENT_CODE: "T1", CONTEST_DATE: "2026-02-01", PLAN_VALUE: "1.00000", FACT_VALUE: "20.00000", priority_type: "1" },
+    { MANAGER_PERSON_NUMBER: "P4", CONTEST_CODE: "C1", TOURNAMENT_CODE: "T1", CONTEST_DATE: "2026-02-01", PLAN_VALUE: "1.00000", FACT_VALUE: "40.00000", priority_type: "1" },
+  ];
+
+  const preview = ReportCore.buildReportUpdatePreview(original, fresh);
+  // T2 нет в preview — его не было в fresh, значит его прошлые данные не подлежат замене.
+  assert.deepStrictEqual(
+    preview.map((p) => p.tournament_code),
+    ["T1"]
+  );
+  const t1 = preview[0];
+  assert.strictEqual(t1.beforeCount, 3);
+  assert.strictEqual(t1.afterCount, 3);
+  assert.strictEqual(t1.removedCount, 1); // P3 ушёл
+  assert.strictEqual(t1.keptCount, 2); // P1, P2 остались
+  assert.strictEqual(t1.addedCount, 1); // P4 новый
+
+  // Применяем обновление только по T1 (T2/T0 не выбраны — их прошлые строки должны сохраниться).
+  const updated = ReportCore.applyReportUpdate(original, fresh, ["T1"]);
+  const byPerson = Object.fromEntries(updated.map((r) => [r.MANAGER_PERSON_NUMBER, r]));
+  assert.strictEqual(updated.length, 5); // 3 старых T0/T2/? минус старые T1(3) плюс новые T1(3): 5-3+3=5
+  assert.ok(!byPerson.P3); // P3 (старый T1) удалён
+  assert.strictEqual(byPerson.P1.FACT_VALUE, "10.00000"); // P1 — новые данные
+  assert.strictEqual(byPerson.P9.TOURNAMENT_CODE, "T2"); // T2 не тронут, как был
+  assert.strictEqual(byPerson.P0.TOURNAMENT_CODE, "T0"); // T0 не тронут, как был
+
+  // Пустой выбор — REPORT не меняется вовсе.
+  const untouched = ReportCore.applyReportUpdate(original, fresh, []);
+  assert.deepStrictEqual(untouched, original);
+}
+
 function testCsvEncodingDetection() {
   // UTF-8 без BOM с кириллицей: раньше эвристика ошибочно предпочитала windows-1251
   // (каждый 2-байтовый UTF-8 символ кириллицы давал два псевдокириллических символа
@@ -778,6 +823,7 @@ const tests = [
   ["scheduleStatusCounts", testScheduleStatusCounts],
   ["buildTournamentsFromSourceFiles", testBuildTournamentsFromSourceFiles],
   ["csvEncodingDetection", testCsvEncodingDetection],
+  ["reportUpdatePreviewAndApply", testReportUpdatePreviewAndApply],
   ["parseNumber", testParseNumber],
   ["pad", testPad],
   ["tnMode", testTnMode],

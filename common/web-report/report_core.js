@@ -1373,6 +1373,89 @@
     return { tournaments: out, stats: stats };
   }
 
+  /** Группирует строки по TOURNAMENT_CODE (пустой код — строка пропускается). */
+  function groupRowsByTournamentCode(rows) {
+    var map = Object.create(null);
+    (rows || []).forEach(function (row) {
+      var code = String((row && row.TOURNAMENT_CODE) || "").trim();
+      if (!code) return;
+      if (!map[code]) map[code] = [];
+      map[code].push(row);
+    });
+    return map;
+  }
+
+  /**
+   * Предпросмотр обновления REPORT новыми (готовыми к выгрузке CSV) строками.
+   * Только турниры, у которых есть новые строки, — остальной REPORT не участвует
+   * и не попадает в предпросмотр (в него не вносится никаких изменений).
+   * Табельный — по MANAGER_PERSON_NUMBER (готовые строки уже без дублей по нему).
+   * @param {object[]} originalReportRows — весь ранее загруженный REPORT, как есть
+   * @param {object[]} newRows — готовые к выгрузке строки CSV (7 колонок REPORT)
+   * @returns {Array<{tournament_code:string, beforeCount:number, afterCount:number,
+   *   removedCount:number, keptCount:number, addedCount:number}>} — по возрастанию tournament_code
+   */
+  function buildReportUpdatePreview(originalReportRows, newRows) {
+    var beforeByCode = groupRowsByTournamentCode(originalReportRows);
+    var afterByCode = groupRowsByTournamentCode(newRows);
+    return Object.keys(afterByCode)
+      .sort()
+      .map(function (code) {
+        var before = beforeByCode[code] || [];
+        var after = afterByCode[code] || [];
+        var beforePersons = Object.create(null);
+        before.forEach(function (row) {
+          beforePersons[String((row && row.MANAGER_PERSON_NUMBER) || "").trim()] = true;
+        });
+        var afterPersons = Object.create(null);
+        after.forEach(function (row) {
+          afterPersons[String((row && row.MANAGER_PERSON_NUMBER) || "").trim()] = true;
+        });
+        var removedCount = 0;
+        var keptCount = 0;
+        Object.keys(beforePersons).forEach(function (p) {
+          if (afterPersons[p]) keptCount += 1;
+          else removedCount += 1;
+        });
+        var addedCount = 0;
+        Object.keys(afterPersons).forEach(function (p) {
+          if (!beforePersons[p]) addedCount += 1;
+        });
+        return {
+          tournament_code: code,
+          beforeCount: before.length,
+          afterCount: after.length,
+          removedCount: removedCount,
+          keptCount: keptCount,
+          addedCount: addedCount,
+        };
+      });
+  }
+
+  /**
+   * Применить обновление REPORT: у отмеченных турниров все их прежние строки заменяются
+   * новыми целиком; всё остальное (не отмеченные турниры и всё, чего не было в newRows) —
+   * не трогается и остаётся как было.
+   * @param {object[]} originalReportRows
+   * @param {object[]} newRows
+   * @param {string[]} selectedCodes — какие TOURNAMENT_CODE обновлять
+   * @returns {object[]}
+   */
+  function applyReportUpdate(originalReportRows, newRows, selectedCodes) {
+    var selected = Object.create(null);
+    (selectedCodes || []).forEach(function (c) {
+      var code = String(c || "").trim();
+      if (code) selected[code] = true;
+    });
+    var kept = (originalReportRows || []).filter(function (row) {
+      return !selected[String((row && row.TOURNAMENT_CODE) || "").trim()];
+    });
+    var added = (newRows || []).filter(function (row) {
+      return selected[String((row && row.TOURNAMENT_CODE) || "").trim()];
+    });
+    return kept.concat(added);
+  }
+
   function cloneTournament(source) {
     var src = source || {};
     var copy = createEmptyTournament({
@@ -1684,6 +1767,9 @@
     buildContestIndex: buildContestIndex,
     buildReportDateIndex: buildReportDateIndex,
     buildReportCodeSet: buildReportCodeSet,
+    groupRowsByTournamentCode: groupRowsByTournamentCode,
+    buildReportUpdatePreview: buildReportUpdatePreview,
+    applyReportUpdate: applyReportUpdate,
     buildTournamentsFromSourceFiles: buildTournamentsFromSourceFiles,
     cloneTournament: cloneTournament,
     tournamentFieldsOk: tournamentFieldsOk,

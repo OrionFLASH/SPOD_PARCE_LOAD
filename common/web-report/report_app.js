@@ -25,6 +25,9 @@
       apply_issues: [],
     },
     lastResult: null,
+    // Весь REPORT, загруженный при последнем "Загрузить списки" (для «Обновить REPORT»);
+    // не сохраняется в JSON настроек — данные строк там не хранятся в принципе.
+    importedReportPack: null,
     checkState: {
       duplicatesCleared: false,
       fioDupCleared: false,
@@ -54,6 +57,12 @@
     reportPack: null,
     selectedStatuses: {},
     requireInReport: false,
+  };
+
+  /** Транзитное состояние модалки «Обновить REPORT» (пересчитывается при открытии). */
+  var reportUpdate = {
+    preview: [],
+    selected: {},
   };
 
   function $(id) {
@@ -383,6 +392,18 @@
     $("btn-check").disabled = !st.canCheck || noActive;
     $("btn-export-csv").disabled = !(state.lastResult && state.lastResult.ok);
     $("btn-export-xlsx").disabled = !(state.lastResult && state.lastResult.ok);
+    // «Обновить REPORT»: ровно тогда, когда CSV реально скачался бы (гейт зелёный,
+    // а не просто кнопка не серая), и когда есть весь REPORT из «Загрузить списки».
+    var reportUpdateBtn = $("btn-update-report");
+    if (reportUpdateBtn) {
+      var csvReallyReady = !!(
+        state.lastResult &&
+        state.lastResult.ok &&
+        state.lastResult.csvGate &&
+        state.lastResult.csvGate.ok
+      );
+      reportUpdateBtn.disabled = !(csvReallyReady && state.importedReportPack);
+    }
   }
 
   function hasActiveFioMode() {
@@ -2084,6 +2105,10 @@
       state.activeId = result.tournaments[0].id;
       invalidateChecks();
     }
+    // Запоминаем весь загруженный REPORT для «Обновить REPORT» — до сброса importTour.
+    if (importTour.reportPack) {
+      state.importedReportPack = importTour.reportPack;
+    }
     closeModal("modal-import-tour");
     resetImportTour();
     renderAll();
@@ -2780,6 +2805,139 @@
     showToast("XLSX сохранён");
   }
 
+  /**
+   * «Обновить REPORT»: строки готовых турниров заменяют прежние в загруженном при
+   * «Загрузить списки» REPORT (весь остальной REPORT не трогается), новый файл
+   * скачивается с меткой времени в имени. Доступно только когда CSV реально готов
+   * к выгрузке (гейт зелёный) — см. renderStages.
+   */
+  function openReportUpdateModal() {
+    if (!state.importedReportPack) {
+      alert("REPORT ещё не загружен — сначала «Загрузить списки» с файлом REPORT.");
+      return;
+    }
+    if (!state.lastResult || !state.lastResult.ok) {
+      alert("Сначала нажмите «Сформировать».");
+      return;
+    }
+    var prepared = prepareExportRows();
+    if (!prepared.validation.ok) {
+      showCsvBlockModal(prepared.validation);
+      setStatus("CSV заблокирован — REPORT не обновить");
+      return;
+    }
+    var preview = ReportCore.buildReportUpdatePreview(state.importedReportPack.rows, prepared.csvRows);
+    if (!preview.length) {
+      alert("Нет ни одного турнира с готовыми к выгрузке строками.");
+      return;
+    }
+    reportUpdate.preview = preview;
+    reportUpdate.selected = {};
+    preview.forEach(function (p) {
+      reportUpdate.selected[p.tournament_code] = true;
+    });
+    renderReportUpdateModal();
+    openModal("modal-report-update");
+
+    $("report-update-apply").onclick = function () {
+      var selectedCodes = Object.keys(reportUpdate.selected).filter(function (c) {
+        return reportUpdate.selected[c];
+      });
+      if (!selectedCodes.length) {
+        alert("Отметьте хотя бы один турнир.");
+        return;
+      }
+      var updatedRows = ReportCore.applyReportUpdate(state.importedReportPack.rows, prepared.csvRows, selectedCodes);
+      var filename = ReportIO.timestampName("REPORT", "csv");
+      ReportIO.downloadReportCsv(updatedRows, filename);
+      // Дальнейшие обновления в этой сессии идут поверх уже обновлённого REPORT.
+      state.importedReportPack = Object.assign({}, state.importedReportPack, { rows: updatedRows });
+      closeModal("modal-report-update");
+      showToast("REPORT обновлён: турниров — " + selectedCodes.length + " · " + filename);
+      setStatus("REPORT обновлён (" + selectedCodes.length + " турниров)");
+    };
+    $("report-update-cancel").onclick = function () {
+      closeModal("modal-report-update");
+    };
+  }
+
+  function renderReportUpdateModal() {
+    var host = $("report-update-body");
+    if (!host) return;
+    var codeToName = {};
+    state.tournaments.forEach(function (t) {
+      codeToName[t.tournament_code] = t.full_name || t.tournament_code;
+    });
+    var rowsHtml = reportUpdate.preview
+      .map(function (p) {
+        var checked = !!reportUpdate.selected[p.tournament_code];
+        return (
+          "<tr>" +
+          '<td><label class="check-row"><input type="checkbox" data-report-code="' +
+          escapeHtml(p.tournament_code) +
+          '"' +
+          (checked ? " checked" : "") +
+          " /><span>" +
+          escapeHtml(p.tournament_code) +
+          "</span></label>" +
+          '<div class="ct-name" style="margin-top:2px">' +
+          escapeHtml(codeToName[p.tournament_code] || "") +
+          "</div></td>" +
+          "<td>" +
+          p.beforeCount +
+          "</td>" +
+          "<td>" +
+          p.afterCount +
+          "</td>" +
+          "<td>" +
+          p.removedCount +
+          "</td>" +
+          "<td>" +
+          p.keptCount +
+          "</td>" +
+          "<td>" +
+          p.addedCount +
+          "</td>" +
+          "</tr>"
+        );
+      })
+      .join("");
+    host.innerHTML =
+      '<div class="toolbar-row" style="margin-top:0">' +
+      '<button type="button" class="btn btn-sm" id="report-update-select-all">Отметить все</button>' +
+      '<button type="button" class="btn btn-sm" id="report-update-select-none">Снять все</button>' +
+      "</div>" +
+      '<div class="preview-table-wrap"><table class="preview-table"><thead><tr>' +
+      "<th>Турнир</th><th>Было строк</th><th>Станет</th><th>Ушло табельных</th><th>Осталось</th><th>Новых</th>" +
+      "</tr></thead><tbody>" +
+      rowsHtml +
+      "</tbody></table></div>";
+
+    host.querySelectorAll("[data-report-code]").forEach(function (cb) {
+      cb.addEventListener("change", function () {
+        reportUpdate.selected[cb.getAttribute("data-report-code")] = !!cb.checked;
+      });
+    });
+    var allBtn = $("report-update-select-all");
+    var noneBtn = $("report-update-select-none");
+    if (allBtn) {
+      allBtn.addEventListener("click", function () {
+        reportUpdate.preview.forEach(function (p) {
+          reportUpdate.selected[p.tournament_code] = true;
+        });
+        renderReportUpdateModal();
+      });
+    }
+    if (noneBtn) {
+      noneBtn.addEventListener("click", function () {
+        reportUpdate.preview.forEach(function (p) {
+          reportUpdate.selected[p.tournament_code] = false;
+        });
+        renderReportUpdateModal();
+      });
+    }
+  }
+
   function buildSettingsPayload() {
     // "Путь к файлу" — инфо-поле (readonly): state.fioUi.file_path уже актуален
     // (ставится при ручной загрузке файла или автозагрузкой из JSON), из DOM его читать не нужно.
@@ -3062,6 +3220,7 @@
     });
     $("btn-export-csv").addEventListener("click", exportCsv);
     $("btn-export-xlsx").addEventListener("click", exportXlsx);
+    $("btn-update-report").addEventListener("click", openReportUpdateModal);
 
     $("btn-sidebar-hide").addEventListener("click", function () {
       setSidebarOpen(false);
