@@ -1533,6 +1533,7 @@
    * Разница нового REPORT с загруженным: только строки, которые появились («НОВАЯ»)
    * или ушли («УДАЛЕНА»), по табельному внутри турнира. Сравниваются только турниры,
    * у которых есть новые строки (остальной REPORT не меняется — как в «Обновить REPORT»).
+   * Турнир без пришедших/ушедших — одна строка «БЕЗ ИЗМЕНЕНИЙ».
    */
   function buildReportDiffRows(originalReportRows, newRows) {
     var beforeByCode = groupRowsByTournamentCode(originalReportRows);
@@ -1561,12 +1562,29 @@
         after.forEach(function (r) {
           afterSet[personOf(r)] = true;
         });
+        var changed = 0;
         before.forEach(function (r) {
-          if (!afterSet[personOf(r)]) out.push(pick(r, "УДАЛЕНА"));
+          if (!afterSet[personOf(r)]) {
+            out.push(pick(r, "УДАЛЕНА"));
+            changed += 1;
+          }
         });
         after.forEach(function (r) {
-          if (!beforeSet[personOf(r)]) out.push(pick(r, "НОВАЯ"));
+          if (!beforeSet[personOf(r)]) {
+            out.push(pick(r, "НОВАЯ"));
+            changed += 1;
+          }
         });
+        if (!changed) {
+          // турнир выгружен, но состав табельных тот же — явная строка, чтобы лист не был пустым
+          var mark = { ИЗМЕНЕНИЕ: "БЕЗ ИЗМЕНЕНИЙ" };
+          REPORT_DIFF_COLUMNS.slice(1).forEach(function (c) {
+            mark[c] = "";
+          });
+          mark.TOURNAMENT_CODE = code;
+          mark.CONTEST_CODE = String((after[0] && after[0].CONTEST_CODE) || "");
+          out.push(mark);
+        }
       });
     return out;
   }

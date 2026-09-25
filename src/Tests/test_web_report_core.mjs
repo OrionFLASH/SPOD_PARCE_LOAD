@@ -927,6 +927,15 @@ function testReportDiffRows() {
     ["УДАЛЕНА:T1:A", "НОВАЯ:T1:C", "НОВАЯ:T2:D"]
   );
   assert.strictEqual(diff[0].FACT_VALUE, "1"); // удалённая — значения из старого REPORT
+  // тот же состав табельных → явная строка «БЕЗ ИЗМЕНЕНИЙ» (лист не пустой)
+  const same = ReportCore.buildReportDiffRows(original, [
+    { TOURNAMENT_CODE: "T1", CONTEST_CODE: "C1", MANAGER_PERSON_NUMBER: "A", FACT_VALUE: "7" },
+    { TOURNAMENT_CODE: "T1", CONTEST_CODE: "C1", MANAGER_PERSON_NUMBER: "B", FACT_VALUE: "8" },
+  ]);
+  assert.deepStrictEqual(
+    same.map((r) => r.ИЗМЕНЕНИЕ + ":" + r.TOURNAMENT_CODE + ":" + r.CONTEST_CODE + ":" + r.MANAGER_PERSON_NUMBER),
+    ["БЕЗ ИЗМЕНЕНИЙ:T1:C1:"]
+  );
 }
 
 function testXlsxExtraSheets() {
