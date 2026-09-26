@@ -1,5 +1,5 @@
 {
- "schema": 2,
+ "schema": 3,
  "sheet_order": [
   "SUMMARY",
   "CONSISTENCY",
@@ -180,7 +180,7 @@
     "TOURNAMENT-SCHEDULE=>COUNT_nunique_DELETED",
     "TOURNAMENT-SCHEDULE=>COUNT_TOURNAMENT_CODE"
    ],
-   "layout": "5e73d22e682e43f6b30721c5971057737990a81dc8d3bc42f24a2e48b1ec4750",
+   "layout": "40a3138a163fbbce8cf5d85bc8fb02f5eb9ff5095469d5b31f120f8d2a493f50",
    "columns": {
     "CONTEST_CODE": {
      "values": "734ca5cdc22b9b66d6c705f44df350b4aa1edc00f88795406ef4091403db1530",
@@ -846,7 +846,7 @@
     "violations",
     "sample"
    ],
-   "layout": "3a84f306f2c3ea81329d4dd3d71ea638213abaa7160e7e83cf97db6375f6d774",
+   "layout": "49de4659b634ec1b68d86e911040aff2d3061524e3893e2931dc0628c0f60c86",
    "columns": {
     "ТИП ПРОВЕРКИ": {
      "values": "f1c679abe2a47086f07f1cb42b6e35a89a700ce9a9f2de415e824f1ffd405669",
@@ -998,7 +998,7 @@
     "TOURNAMENT-SCHEDULE=>COUNT_nunique_SUMMING_UP",
     "TOURNAMENT-SCHEDULE=>COUNT_nunique_DELETED"
    ],
-   "layout": "d56626e0aaade773cd358cf2c86fe010fb9658f0c706efacc1e445ce1b759ea1",
+   "layout": "3cc058ff5f4f4e32d506e19d1a3b932b89c7eb257ba30a36c24b65a32a346e17",
    "columns": {
     "CONTEST_CODE": {
      "values": "c6bce9aa86b0b3a43d2b77419aa12d52c6610953bbf6c5725cde656102381d65",
@@ -1384,7 +1384,7 @@
     "LIST-REWARDS=>COUNT_Код награды",
     "Сводка: nonRewards и rewards (getCondition)"
    ],
-   "layout": "473509e58674d602e42649082e60438e888d9b1fca8a233e02a8cc85bcfdd1b4",
+   "layout": "323e4f0e2550fe6aab2d37d85efa9603918bacd70830742c6ef5a31a949514d5",
    "columns": {
     "REWARD_CODE": {
      "values": "000602e1f709b5a144d168635d82af0e6322f038a28c703e1fa4c9b0738c6dc1",
@@ -1775,7 +1775,7 @@
     "TOURNAMENT-SCHEDULE=>COUNT_nunique_SUMMING_UP",
     "TOURNAMENT-SCHEDULE=>COUNT_nunique_DELETED"
    ],
-   "layout": "f282cb6d47ed56bdb1d5c76843ba282096af7e69ef062651a0106eed239f4fb9",
+   "layout": "c1d9016c4f59a7706123c1ca0b13d5342e27c15fe9121193a0effec2242eb539",
    "columns": {
     "TOURNAMENT_CODE": {
      "values": "322b91699a047b47f52d0870cf1c41d1da2a54105c94db1a99feecb614afb12d",
@@ -2054,7 +2054,7 @@
     "REWARD=>FULL_NAME",
     "REWARD=>REWARD_TYPE"
    ],
-   "layout": "3e48fc0f665c1bd18512242956bbfc3742d1349ce69aec329a25456182f2f8f9",
+   "layout": "8eafa26b71e126cd5606fb01dc0b8b2fb0b913fdcb34d2351dfa780af7ae4af9",
    "columns": {
     "CONTEST_CODE": {
      "values": "05afb05c942ee3d9407906dca6ba6171322510115d7cda6836421cbf25549833",
@@ -2150,7 +2150,7 @@
     "TOURNAMENT-SCHEDULE=>TOURNAMENT_STATUS",
     "TOURNAMENT-SCHEDULE=>TARGET_TYPE"
    ],
-   "layout": "fbaf880d65112e4e3408ea5b69af83280cbb4b2b827db26375ada19addab61f6",
+   "layout": "c20696f83e964f106a0b5751c938d2698e4f348ab2eaa336f7645f52695feff3",
    "columns": {
     "CONTEST_CODE": {
      "values": "4444d81a1e433149ab275a2d6a25e3155e494012649582215a8926b3636df8ee",
@@ -2262,7 +2262,7 @@
     "ДУБЛЬ: N",
     "CONTEST-DATA=>FULL_NAME"
    ],
-   "layout": "a2e550f9a9fefb68ab71cbce3e946b0eeffd1e534753df7d9e02ce7ce25b9fbb",
+   "layout": "42674b4db437efad9dde549900864bd1747034e6003685ff752865685ee0c8b4",
    "columns": {
     "CONTEST_CODE": {
      "values": "35c08c4f5ea592487270d9029ebe0c5b1d332fba48144346946665779274af21",
@@ -2414,7 +2414,7 @@
     "LIST-REWARDS=>COUNT_Код турнира",
     "LIST-REWARDS=>COUNT_size_REWARDS"
    ],
-   "layout": "ae7b7ac2f4594c54f127bd6787ce7b308ab7d1740ef40e8e9da99b8687342216",
+   "layout": "42c06951f764ac261e2d8a58528c4b1506a0790709fc546857a73e491fef0c2a",
    "columns": {
     "MANAGER_PERSON_NUMBER": {
      "values": "3d55a6b7d6b292c0b0c3b33dbdc2200f7a206953a21caff1e9d91759f89845a3",
@@ -2598,7 +2598,7 @@
     "ДУБЛЬ: TB_CODE-GOSB_CODE",
     "FIELD_LENGTH_CHECK"
    ],
-   "layout": "4edf9eaaa992600d1daf5b2fce7b86f662a596b0fdf24d174dcac7894ee35953",
+   "layout": "164c5bb79bb62a1071c32703944689e3da95d7415e81b3d86512228625f04c2b",
    "columns": {
     "TB_CODE": {
      "values": "ec3fabc09c7fba8d175de22cc3f478cefd6191d86027142255dfb70000f3b879",
@@ -2697,7 +2697,7 @@
     "ORG_UNIT_V20=>TB_CODE",
     "ORG_UNIT_V20=>TB_SHORT_NAME"
    ],
-   "layout": "893473c6882d8f65282bf518ecc0a7fd4d23993d5c1462c0da3e4c0c56d36de1",
+   "layout": "290454e25c433468b221033bc29c28a8546cf29ecd50eb33077d05724d43ce36",
    "columns": {
     "RULE_NUM": {
      "values": "c489484859855ab42fe9fd9a3dac2798b76b43d3c1974b1ba90e5be421a8e077",
@@ -2834,7 +2834,7 @@
     "ORG_UNIT_V20=>TB_CODE",
     "ORG_UNIT_V20=>TB_SHORT_NAME"
    ],
-   "layout": "30ba874f880a49a5aac8d03edf0a451c2508547a9fd8b9b4437b27c0a81bcda4",
+   "layout": "080bfd5eca917eba5b8c759ac6471642a95a809aaa4d905b9736c5f425baaf56",
    "columns": {
     "PERSON_NUMBER": {
      "values": "46933fe80c091ce2b17e7786770c33d30ceadc6909c3befa8741cc83a5358fc8",
@@ -3012,7 +3012,7 @@
     "FILE_SIZE_BYTES",
     "STATUS"
    ],
-   "layout": "d6888ac19601cd72c3d1736f4cd4217e338a57faa97aec157fb7bdcf2736b916",
+   "layout": "17de215a525d90bee72d12116430546c1b10cf85dfa3cbfcea980d4f0a2395ca",
    "columns": {
     "FILE_NAME": {
      "values": "e4de652b35febad44858a3edbee58b057384845c152fd68afdb75d321bc3d815",
@@ -3083,7 +3083,7 @@
     "Количество кристаллов за сезон, признак выполнения условий",
     "Оставшееся количество товара, доступного участнику за сезон"
    ],
-   "layout": "d48e9b980fd2f6c2c78fb09615d6e0945bbbdd271b0c69f2cf79ee859242fa9c",
+   "layout": "7bffebe3621110e0c27f89778bbf10ca3ebf14960ddb8344f8115e4712b7f585",
    "columns": {
     "Уникальный идентификатор транзакции": {
      "values": "7f9999e4434a53c74321f6a5549c35ec01afdc22a5caa5ba3aa5c9eefb777944",
@@ -3211,7 +3211,7 @@
     "Место в рейтинге ТБ",
     "Место в рейтинге ГОСБ"
    ],
-   "layout": "0a3ae80710576349ca57408ded29d8bdc51180a2e67b955dcb0285ffa5a1c32a",
+   "layout": "fafdc4f89a57ca61d658b38c16b10ddee32b5469f3ad5c2195fbd10b6d38137f",
    "columns": {
     "Табельный номер": {
      "values": "7cf82dc7e4ceb84f1f94552d0144cb50f1a4d15aa0f62ec0c83f4c9a4c6e662b",
@@ -3340,7 +3340,7 @@
     "ORG_UNIT_V20=>TB_FULL_NAME",
     "ORG_UNIT_V20=>GOSB_NAME"
    ],
-   "layout": "d020d99b5e11a963a4fda6247267ee1eac5d8e15f70f1f00fda3f0cd761ea82e",
+   "layout": "13b8d108092093a7f729b2e760fe1779e2fd56d4fe572e13a3c3144739236b90",
    "columns": {
     "Табельный номер": {
      "values": "e308003e531cd9f12b325e98ecb23c0d7d47a8e16470b305bffd5f29975a4e88",
@@ -3649,7 +3649,7 @@
     "STATISTICS=>ГОСБ",
     "STATISTICS=>ORG_UNIT_V20=>GOSB_NAME"
    ],
-   "layout": "0b0eae329d2f5d3fcd5fa257bdb37b40eaa353b953a5620f293531677f43a1df",
+   "layout": "1144584e5f3c7c1682a28cdbb9c7822dff224bc5eb5fb30677893e2bca91d12f",
    "columns": {
     "Уникальный идентификатор записи": {
      "values": "a71407e6c05e6108b7fbdd3882f41045c282dd28c58c43db02227f027f8f3036",
@@ -3823,7 +3823,7 @@
     "CONTEST-DATA=>BUSINESS_STATUS",
     "CONTEST-DATA=>BUSINESS_BLOCK"
    ],
-   "layout": "e0c59f1f6ca66b03a9fc8ee138794b956df7123845e2947e54628e64cf984632",
+   "layout": "f7ad3668227206e5704b40d7f8de81677715ab22fde374d4bb4ce7b94a380da3",
    "columns": {
     "Код конкурса": {
      "values": "af4e91b8d78b193f17d56259343de6b4517c2dc7517467dbc16f4c15738a04cb",
@@ -3941,7 +3941,7 @@
     "Место в рейтинге ТБ",
     "Место в рейтинге ГОСБ"
    ],
-   "layout": "4ffb5d29f363d1ff981f4b1244f9829e31621e3a770340d441c8cbf7bfa8e885",
+   "layout": "601cda5707466ba1b644df8ebe6583cea2307b875a64022a7cdf5f45c39be629",
    "columns": {
     "Табельный номер": {
      "values": "395ef37377112be07ae735b5bb77508f2a86970a7b97227942ee0cd769743ce3",
@@ -4029,7 +4029,7 @@
     "Место в рейтинге ТБ",
     "Место в рейтинге ГОСБ"
    ],
-   "layout": "4ffb5d29f363d1ff981f4b1244f9829e31621e3a770340d441c8cbf7bfa8e885",
+   "layout": "601cda5707466ba1b644df8ebe6583cea2307b875a64022a7cdf5f45c39be629",
    "columns": {
     "Табельный номер": {
      "values": "395ef37377112be07ae735b5bb77508f2a86970a7b97227942ee0cd769743ce3",
@@ -4117,7 +4117,7 @@
     "Место в рейтинге ТБ",
     "Место в рейтинге ГОСБ"
    ],
-   "layout": "4ffb5d29f363d1ff981f4b1244f9829e31621e3a770340d441c8cbf7bfa8e885",
+   "layout": "601cda5707466ba1b644df8ebe6583cea2307b875a64022a7cdf5f45c39be629",
    "columns": {
     "Табельный номер": {
      "values": "4fb5d2a95e0459afe18b0d2d42565db57a5a49ae9a326e67c4afe70facc785c6",
@@ -4205,7 +4205,7 @@
     "Место в рейтинге ТБ",
     "Место в рейтинге ГОСБ"
    ],
-   "layout": "4ffb5d29f363d1ff981f4b1244f9829e31621e3a770340d441c8cbf7bfa8e885",
+   "layout": "601cda5707466ba1b644df8ebe6583cea2307b875a64022a7cdf5f45c39be629",
    "columns": {
     "Табельный номер": {
      "values": "4fb5d2a95e0459afe18b0d2d42565db57a5a49ae9a326e67c4afe70facc785c6",
@@ -4293,7 +4293,7 @@
     "Место в рейтинге ТБ",
     "Место в рейтинге ГОСБ"
    ],
-   "layout": "4ffb5d29f363d1ff981f4b1244f9829e31621e3a770340d441c8cbf7bfa8e885",
+   "layout": "601cda5707466ba1b644df8ebe6583cea2307b875a64022a7cdf5f45c39be629",
    "columns": {
     "Табельный номер": {
      "values": "9f93569dfa24885692e88f9c61021a4a0220316e4bcacba3f9922dd08da46d70",
@@ -4381,7 +4381,7 @@
     "Место в рейтинге ТБ",
     "Место в рейтинге ГОСБ"
    ],
-   "layout": "4ffb5d29f363d1ff981f4b1244f9829e31621e3a770340d441c8cbf7bfa8e885",
+   "layout": "601cda5707466ba1b644df8ebe6583cea2307b875a64022a7cdf5f45c39be629",
    "columns": {
     "Табельный номер": {
      "values": "4fb5d2a95e0459afe18b0d2d42565db57a5a49ae9a326e67c4afe70facc785c6",
@@ -4469,7 +4469,7 @@
     "Место в рейтинге ТБ",
     "Место в рейтинге ГОСБ"
    ],
-   "layout": "4ffb5d29f363d1ff981f4b1244f9829e31621e3a770340d441c8cbf7bfa8e885",
+   "layout": "601cda5707466ba1b644df8ebe6583cea2307b875a64022a7cdf5f45c39be629",
    "columns": {
     "Табельный номер": {
      "values": "9f93569dfa24885692e88f9c61021a4a0220316e4bcacba3f9922dd08da46d70",
@@ -4557,7 +4557,7 @@
     "Место в рейтинге ТБ",
     "Место в рейтинге ГОСБ"
    ],
-   "layout": "4ffb5d29f363d1ff981f4b1244f9829e31621e3a770340d441c8cbf7bfa8e885",
+   "layout": "601cda5707466ba1b644df8ebe6583cea2307b875a64022a7cdf5f45c39be629",
    "columns": {
     "Табельный номер": {
      "values": "395ef37377112be07ae735b5bb77508f2a86970a7b97227942ee0cd769743ce3",
@@ -4645,7 +4645,7 @@
     "Место в рейтинге ТБ",
     "Место в рейтинге ГОСБ"
    ],
-   "layout": "4ffb5d29f363d1ff981f4b1244f9829e31621e3a770340d441c8cbf7bfa8e885",
+   "layout": "601cda5707466ba1b644df8ebe6583cea2307b875a64022a7cdf5f45c39be629",
    "columns": {
     "Табельный номер": {
      "values": "4fb5d2a95e0459afe18b0d2d42565db57a5a49ae9a326e67c4afe70facc785c6",
@@ -4733,7 +4733,7 @@
     "Место в рейтинге ТБ",
     "Место в рейтинге ГОСБ"
    ],
-   "layout": "4ffb5d29f363d1ff981f4b1244f9829e31621e3a770340d441c8cbf7bfa8e885",
+   "layout": "601cda5707466ba1b644df8ebe6583cea2307b875a64022a7cdf5f45c39be629",
    "columns": {
     "Табельный номер": {
      "values": "4fb5d2a95e0459afe18b0d2d42565db57a5a49ae9a326e67c4afe70facc785c6",
@@ -4821,7 +4821,7 @@
     "Место в рейтинге ТБ",
     "Место в рейтинге ГОСБ"
    ],
-   "layout": "4ffb5d29f363d1ff981f4b1244f9829e31621e3a770340d441c8cbf7bfa8e885",
+   "layout": "601cda5707466ba1b644df8ebe6583cea2307b875a64022a7cdf5f45c39be629",
    "columns": {
     "Табельный номер": {
      "values": "9f93569dfa24885692e88f9c61021a4a0220316e4bcacba3f9922dd08da46d70",
@@ -4917,7 +4917,7 @@
     "Количество кристаллов за сезон, признак выполнения условий",
     "Оставшееся количество товара, доступного участнику за сезон"
    ],
-   "layout": "704d000928d5715eb15bdbc1b94f0908242006aff3e2d581dd0f93227be2b90f",
+   "layout": "6b665927b16b0bac853eb6b94bf6f2e26863218f6ee5afa4accf2d4b02ea369e",
    "columns": {
     "Уникальный идентификатор транзакции": {
      "values": "4023780d945a52898a4c63eea76a8cf5a64efba817cc32b6fe7f2f8367360896",
@@ -5053,7 +5053,7 @@
     "Количество кристаллов за сезон, признак выполнения условий",
     "Оставшееся количество товара, доступного участнику за сезон"
    ],
-   "layout": "704d000928d5715eb15bdbc1b94f0908242006aff3e2d581dd0f93227be2b90f",
+   "layout": "6b665927b16b0bac853eb6b94bf6f2e26863218f6ee5afa4accf2d4b02ea369e",
    "columns": {
     "Уникальный идентификатор транзакции": {
      "values": "161720172045392b882bd2a6add893ab228e831d841676002d83dfd90fd69630",
@@ -5189,7 +5189,7 @@
     "Количество кристаллов за сезон, признак выполнения условий",
     "Оставшееся количество товара, доступного участнику за сезон"
    ],
-   "layout": "704d000928d5715eb15bdbc1b94f0908242006aff3e2d581dd0f93227be2b90f",
+   "layout": "6b665927b16b0bac853eb6b94bf6f2e26863218f6ee5afa4accf2d4b02ea369e",
    "columns": {
     "Уникальный идентификатор транзакции": {
      "values": "26e7e5c9dc50cc75a29fd2a0233e4301efb4d97bbdcb3cee55899813688a81d0",
@@ -5325,7 +5325,7 @@
     "Количество кристаллов за сезон, признак выполнения условий",
     "Оставшееся количество товара, доступного участнику за сезон"
    ],
-   "layout": "704d000928d5715eb15bdbc1b94f0908242006aff3e2d581dd0f93227be2b90f",
+   "layout": "6b665927b16b0bac853eb6b94bf6f2e26863218f6ee5afa4accf2d4b02ea369e",
    "columns": {
     "Уникальный идентификатор транзакции": {
      "values": "d199dee17ff627aa6338ebfe110da218285630b1719f5ed0c96ce02bef3a9f9b",
@@ -5461,7 +5461,7 @@
     "Количество кристаллов за сезон, признак выполнения условий",
     "Оставшееся количество товара, доступного участнику за сезон"
    ],
-   "layout": "704d000928d5715eb15bdbc1b94f0908242006aff3e2d581dd0f93227be2b90f",
+   "layout": "6b665927b16b0bac853eb6b94bf6f2e26863218f6ee5afa4accf2d4b02ea369e",
    "columns": {
     "Уникальный идентификатор транзакции": {
      "values": "e1e551439297424c013ed921d4cecdd357782494557e9da865f9204a72858377",
@@ -5597,7 +5597,7 @@
     "Количество кристаллов за сезон, признак выполнения условий",
     "Оставшееся количество товара, доступного участнику за сезон"
    ],
-   "layout": "704d000928d5715eb15bdbc1b94f0908242006aff3e2d581dd0f93227be2b90f",
+   "layout": "6b665927b16b0bac853eb6b94bf6f2e26863218f6ee5afa4accf2d4b02ea369e",
    "columns": {
     "Уникальный идентификатор транзакции": {
      "values": "d60cad5c4d3748506287914d746570fb990a4951edf9ac836a1e8506b76caf5e",
@@ -5782,7 +5782,7 @@
     "Кем создана запись",
     "Версия записи"
    ],
-   "layout": "a9e1beafa9a2ebcd059927610dfac0a9e69a22e7975850ceae14263061d4dd1a",
+   "layout": "6e043b137b67b092499a64f311cf47ad000ca7b79eddc9eaa6fb13edfa4d61a0",
    "columns": {
     "Уникальный идентификатор записи": {
      "values": "cb8092a2d2fdd258191f589270188452a58bacef035861832a6ac8cbfb53b838",
@@ -6161,7 +6161,7 @@
     "ORG_UNIT_V20=>TB_CODE",
     "ORG_UNIT_V20=>TB_SHORT_NAME"
    ],
-   "layout": "893473c6882d8f65282bf518ecc0a7fd4d23993d5c1462c0da3e4c0c56d36de1",
+   "layout": "290454e25c433468b221033bc29c28a8546cf29ecd50eb33077d05724d43ce36",
    "columns": {
     "RULE_NUM": {
      "values": "7e31915d249a4a1e17e7e15b850f7b8a1544af787f9ca5ff64ee8a668228cbcc",

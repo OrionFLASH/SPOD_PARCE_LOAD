@@ -153,6 +153,21 @@ def load_config_dict(config_path: str) -> Dict[str, Any]:
     return merged
 
 
+_EXCEL_WRITERS = ("openpyxl", "write_only")
+
+
+def parse_excel_writer(cfg: Dict[str, Any]) -> str:
+    """
+    performance.excel_writer: "openpyxl" (по умолчанию — pandas.to_excel + оформление ячеек) или
+    "write_only" (потоковая запись openpyxl, тот же вид книги, быстрее и меньше памяти — PERF-07).
+    """
+    raw = (cfg.get("performance") or {}).get("excel_writer", "openpyxl")
+    value = str(raw or "openpyxl").strip().lower()
+    if value not in _EXCEL_WRITERS:
+        raise ValueError(f"performance.excel_writer: допустимо {list(_EXCEL_WRITERS)}, получено {raw!r}")
+    return value
+
+
 def parse_log_retention_days(cfg: Dict[str, Any]) -> int:
     """logging.retention_days: целое ≥ 0; отсутствует / пусто / 0 — логи не удаляются (LOG-04)."""
     raw = (cfg.get("logging") or {}).get("retention_days", 0)
@@ -641,6 +656,8 @@ class Config:
         self.skip_data_alignment_sheets: List[str] = parse_skip_data_alignment_sheets(
             self._cfg
         )
+        # Способ записи основной книги Excel: "openpyxl" (по умолчанию) | "write_only" (PERF-07)
+        self.excel_writer: str = parse_excel_writer(self._cfg)
 
         # Выгрузка сырых данных (source): сортировка листов при записи в SPOD_PROM source *.xlsx
         _source = self._cfg.get("source_export") or {}

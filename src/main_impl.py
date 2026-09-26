@@ -129,7 +129,7 @@ def _load_config_globals():
     global SOURCE_EXPORT_SORT
     global INPUT_ARCHIVE_SQLITE, PROJECT_BASE_DIR, RATING_ITEM_MATRIX, SEASON_ORDER_SUMMARY
     global MANAGER_STATS
-    global SKIP_DATA_ALIGNMENT_SHEETS
+    global SKIP_DATA_ALIGNMENT_SHEETS, EXCEL_WRITER
 
     from src.config_holder import get_current_config
 
@@ -236,6 +236,7 @@ def _load_config_globals():
                 )
             else:
                 SKIP_DATA_ALIGNMENT_SHEETS = list(_skip_align)
+            EXCEL_WRITER = getattr(_c, "excel_writer", "openpyxl")
             TOURNAMENT_STATUS_CHOICES = _c.tournament_status_choices
             PROJECT_BASE_DIR = _c.base_dir
             INPUT_ARCHIVE_SQLITE = getattr(_c, "input_archive_sqlite", None) or {"enabled": False}
@@ -337,6 +338,9 @@ def _load_config_globals():
     MAX_WORKERS_CPU = _cfg["performance"]["max_workers_cpu"]
     MAX_WORKERS = MAX_WORKERS_CPU
     SKIP_DATA_ALIGNMENT_SHEETS = parse_skip_data_alignment_sheets(_cfg)
+    from src.config_loader import parse_excel_writer
+
+    EXCEL_WRITER = parse_excel_writer(_cfg)
     _TOURNAMENT_STATUS_DEFAULT = [
         "НЕОПРЕДЕЛЕН", "АКТИВНЫЙ", "ЗАПЛАНИРОВАН",
         "ПОДВЕДЕНИЕ ИТОГОВ", "ПОДВЕДЕНИЕ ИТОГОВ", "ПОДВЕДЕНИЕ ИТОГОВ", "ЗАВЕРШЕН",
@@ -444,6 +448,10 @@ try:
     SKIP_DATA_ALIGNMENT_SHEETS
 except NameError:
     SKIP_DATA_ALIGNMENT_SHEETS = parse_skip_data_alignment_sheets({})
+try:
+    EXCEL_WRITER
+except NameError:
+    EXCEL_WRITER = "openpyxl"
 # === КОНЕЦ ЗАГРУЗКИ КОНФИГА ===
 
 # Выходной файл Excel (шаблон из конфига output_filenames.main)
@@ -1228,6 +1236,146 @@ def write_source_excel(
     return output_path
 
 
+def _force_int_cell_value(value: Any) -> Any:
+    """Как force_int в apply_column_formats: целое значение вместо 1.0 / "1" (прочие — без изменений)."""
+    if value is None or isinstance(value, int):
+        return value
+    try:
+        raw = _normalize_string_for_numeric_cell(value)
+        if raw != "":
+            v = float(raw)
+            if v == int(v):
+                return int(v)
+    except (TypeError, ValueError, OverflowError):
+        pass
+    return value
+
+
+def _build_write_only_sheet_plan(sheet_name: str, df_written: pd.DataFrame, params: Dict[str, Any],
+                                 use_color_scheme: bool):
+    """
+    План листа для потоковой записи (PERF-07): то же оформление, что даёт прежний путь
+    pandas.to_excel → _format_sheet (заголовок pandas → шрифт/выравнивание заголовка → цветовая
+    схема → выравнивание данных → COLUMN_FORMATS), ширины, закрепление, автофильтр.
+    """
+    from pandas.io.excel._openpyxl import OpenpyxlWriter
+    from pandas.io.formats.excel import ExcelFormatter
+
+    from src.excel_write_only import CellStyle, ColumnPlan, SheetPlan, excel_value_with_format
+
+    params = params if isinstance(params, dict) else {}
+    n_cols = df_written.shape[1]
+    n_rows = len(df_written)
+    header_values: List[Any] = [excel_value_with_format(c)[0] for c in df_written.columns] if n_cols else [None]
+    width_cols = len(header_values)
+
+    pandas_header = OpenpyxlWriter._convert_to_style_kwargs(ExcelFormatter(pd.DataFrame()).header_style)
+    align_center = Alignment(horizontal="center", vertical="center", wrap_text=True)
+    align_data = Alignment(horizontal="left", vertical="center", wrap_text=True)
+    header_styles = [
+        CellStyle(font=Font(bold=True), border=pandas_header.get("border") if n_cols else None, alignment=align_center)
+        for _ in range(width_cols)
+    ]
+    data_fill: List[Optional[PatternFill]] = [None] * width_cols
+    data_font: List[Optional[Font]] = [None] * width_cols
+
+    if use_color_scheme:
+        for conf in _all_color_schemes():
+            if sheet_name not in conf["sheets"]:
+                continue
+            colnames = conf["columns"] if conf["columns"] else list(header_values)
+            scope = conf.get("style_scope", "header")
+            for colname in colnames:
+                try:
+                    idx = header_values.index(colname)
+                except ValueError:
+                    continue
+                hb, hf = conf.get("header_bg"), conf.get("header_fg")
+                cb, cf = conf.get("column_bg"), conf.get("column_fg")
+                if scope == "header":
+                    if hb:
+                        header_styles[idx].fill = PatternFill(start_color=hb, end_color=hb, fill_type="solid")
+                    if hf:
+                        header_styles[idx].font = Font(color=hf)
+                elif scope == "all":
+                    if hb:
+                        header_styles[idx].fill = PatternFill(start_color=hb, end_color=hb, fill_type="solid")
+                        if hf:
+                            header_styles[idx].font = Font(color=hf)
+                    elif cb:
+                        header_styles[idx].fill = PatternFill(start_color=cb, end_color=cb, fill_type="solid")
+                        if cf:
+                            header_styles[idx].font = Font(color=cf)
+                    if cb:
+                        data_fill[idx] = PatternFill(start_color=cb, end_color=cb, fill_type="solid")
+                        if cf:
+                            data_font[idx] = Font(color=cf)
+
+    skip_align = sheet_skips_data_alignment(sheet_name, SKIP_DATA_ALIGNMENT_SHEETS)
+    extra_fmt = params.get("column_format_rules")
+    covered = _column_indices_covered_by_column_formats(sheet_name, header_values, extra_rules=extra_fmt)
+    align: List[Optional[Alignment]] = [
+        None if (skip_align or (j + 1) in covered) else align_data for j in range(width_cols)
+    ]
+    rule_fmt: List[Optional[str]] = [None] * width_cols
+    force_int = [False] * width_cols
+    for rule in _iter_sheet_format_rules(sheet_name, extra_fmt):
+        if not _format_rule_has_column_selector(rule):
+            continue
+        data_type = (rule.get("data_type") or "general").lower()
+        if data_type == "number":
+            num_fmt = _build_excel_number_format(rule)
+        elif data_type == "date":
+            num_fmt = _build_excel_date_format(rule)
+        else:
+            num_fmt = None
+        h = rule.get("horizontal", "left").lower()
+        v = rule.get("vertical", "center").lower()
+        rule_align = Alignment(
+            horizontal={"left": "left", "center": "center", "right": "right"}.get(h, "left"),
+            vertical={"top": "top", "center": "center", "bottom": "bottom"}.get(v, "center"),
+            wrap_text=bool(rule.get("wrap_text", False)),
+        )
+        is_force_int = data_type == "number" and int(rule.get("decimal_places", 0)) == 0
+        for j, raw_header in enumerate(header_values):
+            header = str(raw_header) if raw_header is not None else ""
+            if not _column_matches_format_rule(header, rule):
+                continue
+            if num_fmt is not None:
+                rule_fmt[j] = num_fmt
+            if is_force_int:
+                force_int[j] = True
+            if not skip_align:
+                align[j] = rule_align
+
+    columns = [
+        ColumnPlan(
+            style=CellStyle(font=data_font[j], fill=data_fill[j], alignment=align[j]),
+            rule_number_format=rule_fmt[j],
+            convert=_force_int_cell_value if force_int[j] else None,
+        )
+        for j in range(n_cols)
+    ]
+    lengths = _content_lengths_from_df(df_written) if n_cols else [0]
+    widths = {
+        get_column_letter(j + 1): calculate_column_width(
+            header_values[j], None, params, j + 1, data_len=lengths[j], header_value=header_values[j]
+        )
+        for j in range(width_cols)
+    }
+    last = f"{get_column_letter(width_cols)}{n_rows + 1 if n_cols else 1}"
+    return SheetPlan(
+        title=sheet_name,
+        df=df_written,
+        header_styles=header_styles,
+        columns=columns,
+        widths=widths,
+        freeze=params.get("freeze", "A2"),
+        auto_filter=f"A1:{last}",
+        empty_header_style=header_styles[0] if not n_cols else None,
+    )
+
+
 @debug_timed()
 def write_to_excel(
     sheets_data: Dict[str, Any],
@@ -1325,6 +1473,21 @@ def write_to_excel(
         for sn in ordered_sheets:
             if sn not in prepared_sheets and sn in sheets_data and sheets_data[sn] is not None:
                 prepared_sheets[sn] = sheets_data[sn]
+
+        if EXCEL_WRITER == "write_only":
+            # PERF-07 (этап 2): потоковая запись по плану — тот же вид книги, меньше времени и памяти
+            from src.excel_write_only import write_workbook
+
+            plans = []
+            for sheet_name in ordered_sheets:
+                data = prepared_sheets.get(sheet_name)
+                if data is None or len(data) < 1 or data[0] is None:
+                    logging.warning(f"[write_to_excel] Пропущен лист {sheet_name}: данные отсутствуют или равны None")
+                    continue
+                plans.append(_build_write_only_sheet_plan(sheet_name, data[0], data[1], use_color_scheme))
+            write_workbook(output_path, plans, active_title="SUMMARY")
+            logging.info(f"[write_to_excel] Книга записана потоково (write_only): листов {len(plans)}")
+            return
 
         # Создаем Excel файл с помощью pandas ExcelWriter
         with pd.ExcelWriter(output_path, engine="openpyxl") as writer:
@@ -1447,7 +1610,7 @@ def _content_lengths_from_df(df: pd.DataFrame, max_rows: int = _AUTO_COLUMN_WIDT
     return lengths
 
 
-def calculate_column_width(col_name, ws, params, col_num, data_len: Optional[int] = None):
+def calculate_column_width(col_name, ws, params, col_num, data_len: Optional[int] = None, header_value: Any = None):
     """
     Вычисляет ширину колонки на основе параметров и содержимого.
 
@@ -1455,6 +1618,7 @@ def calculate_column_width(col_name, ws, params, col_num, data_len: Optional[int
       (оценка по заголовку и первым N строкам данных, см. ``_AUTO_COLUMN_WIDTH_MAX_DATA_ROWS``).
     - col_width_mode == число (или строка-число): фиксированная ширина, min/max не используются.
     - Иначе: ширина по содержимому, ограниченная min/max.
+    ws=None (потоковая запись, PERF-07): заголовок — header_value, длина данных — data_len.
     """
     # Получаем параметры для конкретной колонки (если добавлена через merge — MERGE_FIELDS_ADVANCED)
     added_cols_width = params.get("added_columns_width", {})
@@ -1482,13 +1646,13 @@ def calculate_column_width(col_name, ws, params, col_num, data_len: Optional[int
 
     # Вычисляем ширину на основе содержимого (выборка строк — ускорение; фиксированный режим выше уже обработан)
     content_width = min_width
-    hval = ws.cell(row=1, column=col_num).value
+    hval = ws.cell(row=1, column=col_num).value if ws is not None else header_value
     if hval is not None:
         content_width = max(content_width, len(str(hval)))
     if data_len is not None:
         # Длина данных посчитана заранее по записанному DataFrame (PERF-04)
         content_width = max(content_width, data_len)
-    elif ws.max_row >= 2:
+    elif ws is not None and ws.max_row >= 2:
         last_scan = min(ws.max_row, 1 + _AUTO_COLUMN_WIDTH_MAX_DATA_ROWS)
         for row_idx in range(2, last_scan + 1):
             val = ws.cell(row=row_idx, column=col_num).value
@@ -2246,20 +2410,23 @@ def generate_dynamic_color_scheme_from_merge_fields():
     return dynamic_scheme
 
 
+def _all_color_schemes() -> List[Dict[str, Any]]:
+    """COLOR_SCHEME из конфига + схемы, сгенерированные по MERGE_FIELDS_ADVANCED (с кешем)."""
+    global _color_scheme_cache, _color_scheme_cache_key
+    current_key = id(MERGE_FIELDS_ADVANCED)  # Простая проверка на изменение
+    if _color_scheme_cache is None or _color_scheme_cache_key != current_key:
+        _color_scheme_cache = COLOR_SCHEME + generate_dynamic_color_scheme_from_merge_fields()
+        _color_scheme_cache_key = current_key
+    return _color_scheme_cache
+
+
 def apply_color_scheme(ws, sheet_name):
     """
     Окрашивает заголовки и/или всю колонку на листе Excel по схеме COLOR_SCHEME.
     Также применяет динамически сгенерированную схему из MERGE_FIELDS_ADVANCED.
     Все действия логируются напрямую в местах вызова.
     """
-    # ОПТИМИЗАЦИЯ v5.0: Используем кэш для цветовых схем
-    global _color_scheme_cache, _color_scheme_cache_key
-    # Проверяем, нужно ли обновить кэш (если MERGE_FIELDS_ADVANCED изменились)
-    current_key = id(MERGE_FIELDS_ADVANCED)  # Простая проверка на изменение
-    if _color_scheme_cache is None or _color_scheme_cache_key != current_key:
-        _color_scheme_cache = COLOR_SCHEME + generate_dynamic_color_scheme_from_merge_fields()
-        _color_scheme_cache_key = current_key
-    all_color_schemes = _color_scheme_cache
+    all_color_schemes = _all_color_schemes()
 
     for color_conf in all_color_schemes:
         if sheet_name not in color_conf["sheets"]:

@@ -1,5 +1,5 @@
 {
- "schema": 2,
+ "schema": 3,
  "sheet_order": [
   "CONTEST-DATA",
   "REWARD",
@@ -51,7 +51,7 @@
     "BUSINESS_BLOCK",
     "FACT_POST_PROCESSING"
    ],
-   "layout": "86cf69cba4db5dd39d66f6b80d2b64030c667b76d0a3a6ff6d3c09e6ccda82f3",
+   "layout": "15bf1e362e018dc3255cc0ce80bb3c64bdf6bf2a9cb6e9a8c322daebf71a1c16",
    "columns": {
     "CONTEST_CODE": {
      "values": "c6bce9aa86b0b3a43d2b77419aa12d52c6610953bbf6c5725cde656102381d65",
@@ -193,7 +193,7 @@
     "REWARD_COST",
     "REWARD_ADD_DATA"
    ],
-   "layout": "32d3409d494fc1039703a351f94368a083d8eef07cdb95113e54e2e6284cdb0c",
+   "layout": "cdda2d2ba56a8f92d14f33b923934d21ba14953c19c5ceebe12fcf8b882951b0",
    "columns": {
     "REWARD_CODE": {
      "values": "5fa059d25bbe36a5255def60705344e50f335de4e6561e450a9eaf69c59563d5",
@@ -253,7 +253,7 @@
     "CALC_TYPE",
     "TRN_INDICATOR_FILTER"
    ],
-   "layout": "f0f931d84821d89998b7b503c50941d391d5026160b2dba6916541be138e21a2",
+   "layout": "0554176adbd8e3a2e8dee5d4637db75bb9f4f084ba81f11c687ba0010bad9038",
    "columns": {
     "TOURNAMENT_CODE": {
      "values": "322b91699a047b47f52d0870cf1c41d1da2a54105c94db1a99feecb614afb12d",
@@ -341,7 +341,7 @@
     "GROUP_CODE",
     "REWARD_CODE"
    ],
-   "layout": "a12c4b808b2a0e440937a1ae4028787b02cd3fcbde316c8148440f6f767e447e",
+   "layout": "db9d3356deab78001da0b9b286b57b1fd52524b9246f9aef360823095667312e",
    "columns": {
     "CONTEST_CODE": {
      "values": "a9ccda5c362ed2214d0447c42099fa2b5817038130a4fbe3ecc4894455745cad",
@@ -374,7 +374,7 @@
     "ADD_CALC_CRITERION_2",
     "BASE_CALC_CODE"
    ],
-   "layout": "95903280a144858c4926450df2eeb6727ed0907c965746d8d874cb19ce3a398c",
+   "layout": "83345abef8cdd419e79715d289e83492c2f6e64d325c286d08917e80155d591f",
    "columns": {
     "CONTEST_CODE": {
      "values": "b8e6a046da04327ebed002569572e51fde4ac074cebb5d7aacbb5778f9d3eab7",
@@ -440,7 +440,7 @@
     "CALC_TYPE",
     "N"
    ],
-   "layout": "08f77f0a6b1e3b402e8972de2356797f063932e29b22f678bf8b60ee4ce0424a",
+   "layout": "f142d3aea1f516dfa6fae1d49927e9caaf858757297f70aa5554595f4f607799",
    "columns": {
     "CONTEST_CODE": {
      "values": "35c08c4f5ea592487270d9029ebe0c5b1d332fba48144346946665779274af21",
@@ -537,7 +537,7 @@
     "FACT_VALUE",
     "priority_type"
    ],
-   "layout": "99cb9fe9986c69e7cea104c880f489adf25630982a6a913b0169a7fbfcf82e64",
+   "layout": "91af59612b0cdbe1fa464e61a92497a762455f834d1ec24c7ef6a0b8e4d322f4",
    "columns": {
     "MANAGER_PERSON_NUMBER": {
      "values": "62b74ebb265044dddb966af6ec67a5c520d1d3ccfafae0572a24a97d5a5b9f35",
@@ -593,7 +593,7 @@
     "GROUPING_CNT",
     "ORG_UNIT_CODE"
    ],
-   "layout": "4941725ab4d07b5bca06a0a364fa625af41855650b988d298698699065c981d0",
+   "layout": "3a6a6513eeceb371f97b683624c9fc60455aecda62989c02e1d1dd3c06c920d6",
    "columns": {
     "TB_CODE": {
      "values": "93ea1d8184ec76f649cfda8d0214c17c9b7f57aa5b715929c6ceaca321a4bbd7",
@@ -671,7 +671,7 @@
     "TB_CODE",
     "GOSB_CODE"
    ],
-   "layout": "9789fd31b1d6558b62d419debd94cfdd587a0067deda43267b7348343a6c2c3c",
+   "layout": "667f0ee61aea238c13af908e5fd2498b44dae9f37efc0f082736e4c6977d514b",
    "columns": {
     "RULE_NUM": {
      "values": "c489484859855ab42fe9fd9a3dac2798b76b43d3c1974b1ba90e5be421a8e077",
@@ -763,7 +763,7 @@
     "GENDER",
     "ORG_UNIT_CODE"
    ],
-   "layout": "ecf623a2aa9ef72f9e932dce6a2866bd1d325d22b096aeabcb37c805de87bc4b",
+   "layout": "07fc2f5cce767735a3d052fc4d56f7634b5a2da37fc7372a8fc97dc05024acd1",
    "columns": {
     "PERSON_NUMBER": {
      "values": "644248ccac9b23d5269f95fa8c4382ca9270c93f07eaec3153ceee7742721105",
@@ -871,7 +871,7 @@
     "TB_CODE",
     "GOSB_CODE"
    ],
-   "layout": "9789fd31b1d6558b62d419debd94cfdd587a0067deda43267b7348343a6c2c3c",
+   "layout": "667f0ee61aea238c13af908e5fd2498b44dae9f37efc0f082736e4c6977d514b",
    "columns": {
     "RULE_NUM": {
      "values": "7e31915d249a4a1e17e7e15b850f7b8a1544af787f9ca5ff64ee8a668228cbcc",

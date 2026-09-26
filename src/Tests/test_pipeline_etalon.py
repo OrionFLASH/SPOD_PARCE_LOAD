@@ -57,7 +57,7 @@ _RUNNER = (
 )
 
 
-def _build_isolated_project(base: Path) -> Path:
+def _build_isolated_project(base: Path, excel_writer: str = "openpyxl") -> Path:
     """Каталог-проект: config/config.json (без $include) + синтетический IN."""
     cfg: Dict[str, Any] = load_config_dict(default_config_path(str(ROOT)))
     input_files = write_fixture_inputs(str(base / cfg["paths"]["input"]), cfg["input_files"][BLOCK])
@@ -67,6 +67,7 @@ def _build_isolated_project(base: Path) -> Path:
     cfg["run_outputs"] = {BLOCK: ["main_only"]}
     cfg["input_archive_sqlite"] = dict(cfg.get("input_archive_sqlite") or {}, enabled=False)
     cfg["logging"] = dict(cfg.get("logging") or {}, level="INFO")
+    cfg["performance"] = dict(cfg.get("performance") or {}, excel_writer=excel_writer)
     cfg_dir = base / "config"
     cfg_dir.mkdir(parents=True, exist_ok=True)
     cfg_path = cfg_dir / "config.json"
@@ -203,3 +204,14 @@ def test_source_only_matches_etalon(tmp_path: Path) -> None:
     expected = json.loads(SOURCE_ETALON_PATH.read_text(encoding="utf-8"))
     diffs, _ = compare_fingerprints(expected, actual, strict_order=True)
     assert not diffs, "source-книга отличается от эталона:\n  - " + "\n  - ".join(diffs)
+
+
+def test_write_only_writer_matches_same_etalon(tmp_path: Path) -> None:
+    """PERF-07: потоковая запись (performance.excel_writer = write_only) даёт ту же книгу, что и обычная."""
+    proc = _run_main(tmp_path, _build_isolated_project(tmp_path, excel_writer="write_only"))
+    assert proc.returncode == 0, proc.stdout[-3000:] + proc.stderr[-3000:]
+    books = list((tmp_path / "OUT" / BLOCK).rglob(f"SPOD_{BLOCK} main_*.xlsx"))
+    assert len(books) == 1, books
+    expected = json.loads(ETALON_PATH.read_text(encoding="utf-8"))
+    diffs, _ = compare_fingerprints(expected, fingerprint_workbook(str(books[0])), strict_order=True)
+    assert not diffs, "write_only отличается от эталона:\n  - " + "\n  - ".join(diffs)
