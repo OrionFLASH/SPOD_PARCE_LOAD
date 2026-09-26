@@ -17,8 +17,6 @@ test_web_report_core.script       →  test_web_report_core.mjs
 
 Документация (имена без переименования):
   Docs/PLAN_WEB_REPORT.md
-  Docs/PLAN_WEB_REPORT_TODO3.md
-  Docs/TODO_WEB_REPORT.md
   Docs/WEB_REPORT_USER_GUIDE.md
   common/web-report/README.md
   common/web-report/ПРАВИЛЬНЫЕ_ИМЕНА.txt

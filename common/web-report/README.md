@@ -2,7 +2,7 @@
 
 Полностью локальная веб-страница — без сервера, без интернета, без установки: рядом с `web-edit-full` / `web-fill-full`. Берёт данные по одному или нескольким турнирам — из CSV/Excel вручную или массово из выгрузок `SCHEDULE`/`CONTEST`/`REPORT` — сверяет ФИО со справочником, разрешает дубли и собирает единый **REPORT**: CSV для загрузки в SPOD и XLSX с полной диагностикой.
 
-Это технический справочник (полное описание файлов, модели данных, форматов и правил). Пошаговые сценарии работы — отдельно, в [`Docs/WEB_REPORT_USER_GUIDE.md`](../../Docs/WEB_REPORT_USER_GUIDE.md). История доработок по волнам — [`Docs/PLAN_WEB_REPORT.md`](../../Docs/PLAN_WEB_REPORT.md) и [`Docs/PLAN_WEB_REPORT_TODO3.md`](../../Docs/PLAN_WEB_REPORT_TODO3.md); чеклист — [`Docs/TODO_WEB_REPORT.md`](../../Docs/TODO_WEB_REPORT.md).
+Это технический справочник (полное описание файлов, модели данных, форматов и правил). Пошаговые сценарии работы — отдельно, в [`Docs/WEB_REPORT_USER_GUIDE.md`](../../Docs/WEB_REPORT_USER_GUIDE.md). История доработок по волнам и чеклист — [`Docs/PLAN_WEB_REPORT.md`](../../Docs/PLAN_WEB_REPORT.md).
 
 ## Открытие
 

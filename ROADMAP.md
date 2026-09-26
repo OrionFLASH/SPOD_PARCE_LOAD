@@ -550,7 +550,7 @@ IN/
 
 ## Пункт 26 — web-report: подготовка REPORT из турниров (локальная страница)
 
-**Документы:** [`Docs/PLAN_WEB_REPORT.md`](Docs/PLAN_WEB_REPORT.md), [`Docs/TODO_WEB_REPORT.md`](Docs/TODO_WEB_REPORT.md).  
+**Документы:** [`Docs/PLAN_WEB_REPORT.md`](Docs/PLAN_WEB_REPORT.md) (план + чеклист волн 26.0–26.70 вместе).  
 **Код:** `common/web-report/` (рядом с web-edit-full / web-fill-full). UI и кнопки в той же цветовой гамме.
 
 | # | Задача | Статус |
