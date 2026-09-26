@@ -43,6 +43,7 @@ from src.config_loader import (
     sheet_skips_data_alignment,
 )  # Разбор run_outputs / run_blocks / шаблоны имён / skip Alignment
 from src.consistency_checks import run_consistency_checks_and_attach_summary  # Проверки консистентности (отдельный модуль)
+from src.runtime_env import environment_summary  # Версии Python/пакетов и платформа — в лог при старте
 from src.debug_timing import (
     debug_phase,
     debug_timed,
@@ -5184,6 +5185,7 @@ def main():
     _load_config_globals()
     overall_start = datetime.now()
     log_file = setup_logger()
+    logging.info(f"[env] {environment_summary()}")
     blocks = list(RUN_BLOCKS) if RUN_BLOCKS else ["PROM"]
     parallel = bool(RUN_BLOCKS_PARALLEL) and len(blocks) > 1
     logging.info(

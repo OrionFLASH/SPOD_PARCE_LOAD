@@ -1,0 +1,3 @@
+# Windows-скрипты: переводы строк CRLF в рабочем каталоге (cmd.exe ненадёжно читает LF)
+*.bat text eol=crlf
+*.cmd text eol=crlf

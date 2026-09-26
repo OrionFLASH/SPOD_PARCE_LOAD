@@ -73,7 +73,9 @@ SPOD_PROM/
 │   ├── web-report/         # Подготовка REPORT: турниры CSV/Excel → CSV+XLSX
 │   ├── param_catalog_review/  # catalog.json (+ MD-снимок) для blank Excel
 │   └── templates/CONTEST_BADGE_FORM/  # CONTEST_BADGE_FORM_BLANK.xlsx
-├── requirements.txt        # Зависимости (pandas, openpyxl и др.) для main.py
+├── requirements.txt        # Справка: минимальные версии pandas/numpy/openpyxl (не ставится на рабочей машине)
+├── run_main.bat            # Запуск на Windows: проверка Anaconda 3.12 без pip, код завершения
+├── run_main.sh             # То же для macOS/Linux
 ├── IN/                     # Корень входа: IN/<BLOCK>/{SPOD,FILE,POST,JS}/ (BLOCK=PROM|IFT|PSI)
 ├── OUT/                    # Базовый каталог вывода (paths.output); файлы по блоку и дате: OUT/<BLOCK>/YYYY/DD-MM/
 ├── BACKUP/                 # Резервные копии
@@ -1268,38 +1270,62 @@ python folder_parce.py --config config_folder_parce.json
 - pip (для базового Python) или conda (для Anaconda)
 - Виртуальное окружение (рекомендуется)
 
-### Зависимости main.py: базовый Python и Anaconda 3.10
+### Зависимости main.py: Anaconda 3.12 без установки пакетов
 
-Код использует только стандартную библиотеку Python (os, sys, json, re, csv, logging, datetime, typing, concurrent.futures, threading, inspect и др.) плюс **внешние пакеты**:
+Целевое окружение — **Anaconda 3.12** (проверено: Python 3.12.7, pandas 2.2.2, numpy 1.26.4, openpyxl 3.1.5). На рабочей машине **`pip install` запрещён**: код использует только стандартную библиотеку и пакеты, входящие в base Anaconda.
 
-| Пакет     | Назначение                    | Базовый Python 3.10 | Anaconda 3.10/3.12 |
-|-----------|-------------------------------|----------------------|--------------------|
-| **pandas**| DataFrame, чтение/обработка CSV| ❌ ставить вручную   | ✅ входит в base   |
-| **openpyxl** | Запись Excel, стили, форматирование, форма BADGE | ❌ ставить вручную | ✅ обычно в base   |
-| **numpy** | Векторизованный расчёт статуса турнира (`np.select`) | ❌ (ставится с pandas) | ✅ входит в base |
+| Пакет     | Назначение                    | Минимум | Anaconda 3.12 |
+|-----------|-------------------------------|---------|---------------|
+| **pandas**| DataFrame, чтение/обработка CSV| 2.2     | ✅ входит в base |
+| **openpyxl** | Запись Excel, стили, форматирование, форма BADGE | 3.1 | ✅ входит в base |
+| **numpy** | Векторизованный расчёт статуса турнира (`np.select`) | 1.26 | ✅ входит в base |
 
-- **Базовый Python 3.10** (с python.org): внешних библиотек **нет** в поставке. Нужна установка: `pip install -r requirements.txt` (или минимум `pip install pandas openpyxl`).
-- **Anaconda 3.10/3.12**: в base обычно уже есть numpy, pandas и openpyxl — **дополнительные пакеты не требуются**. Если чего-то не хватает: `conda install pandas openpyxl`.
-
-В `tournament.py` и `main_impl.py` при отсутствии numpy используется запасной вариант на чистом pandas (медленнее, но без numpy).
+- **`requirements.txt`** — только справка для разработки (минимальные версии), на рабочей машине не используется.
+- **`venv/` проекта** (Python 3.14, numpy 2.x) целевым окружением **не является**: проверки и тесты — под Anaconda 3.12.
+- Проверка окружения без установки: **`python -m src.runtime_env`** (версии и код 0; при несоответствии — список проблем и код 3). Те же версии пишутся в лог при каждом запуске (строка **`[env]`**).
 
 ### Установка и запуск main.py
 
-Запуск выполняется **из корня проекта** (каталог, где лежат `main.py` и `config.json`). Конфигурация читается из `config.json` в корне; входные CSV — из каталога, заданного в `paths.input` (по умолчанию `SPOD/`).
+Запуск — **из корня проекта** (каталог с `main.py` и `config/`). Конфигурация — `config/config.json`; пути IN/OUT/LOGS считаются от корня проекта.
+
+**Windows (cmd / PowerShell):** скрипт **`run_main.bat`** — проверяет Python ≥ 3.12 и пакеты (ничего не устанавливает), запускает `main.py` с переданными аргументами и печатает код завершения.
+
+```bat
+rem Из Anaconda Prompt (python уже в PATH):
+run_main.bat
+
+rem Или явно указать интерпретатор Anaconda 3.12:
+set SPOD_PYTHON=C:\ProgramData\anaconda3\python.exe
+run_main.bat
+```
+
+В PowerShell: `.\run_main.bat` (переменная — `$env:SPOD_PYTHON = "C:\ProgramData\anaconda3\python.exe"`). Вывод переводится в UTF-8 (`PYTHONIOENCODING=utf-8`), поэтому перенаправление `run_main.bat > out.txt` не падает на символах ✓ ⚠ █. При запуске двойным щелчком окно ждёт нажатия клавиши (отключить: `SPOD_NO_PAUSE=1`). Код 3 — не найден подходящий Python или пакеты.
+
+**GigaIDE:** Run-конфигурация Python — интерпретатор Anaconda 3.12 (`…\anaconda3\python.exe`), скрипт `main.py`, **Working directory = корень проекта**.
+
+**macOS / Linux:** `./run_main.sh` (интерпретатор: `SPOD_PYTHON`, иначе `python3.12` из PATH, иначе `/opt/anaconda3/bin/python3.12`).
+
+### Эталонный тест всего пайплайна (TEST-01)
+
+`src/Tests/test_pipeline_etalon.py` прогоняет `main_impl.main()` на **синтетическом** наборе CSV блока PROM (генератор `src/Tests/fixtures/pipeline_prom_fixture.py`; реальные данные в репозиторий не попадают) во временном каталоге и сравнивает основную книгу с эталоном `src/Tests/fixtures/pipeline_prom_etalon.json`. Эталон — **отпечаток** книги (`src/Tools/pipeline_fingerprint.py`): по каждому листу и колонке — хеши значений, оформления и ширина, плюс разметка листа (закрепление, автофильтр). Время прогона и даты файлов на листе STAT_FILE не сравниваются.
 
 ```bash
-# Создание виртуального окружения (рекомендуется)
-python3 -m venv venv
-source venv/bin/activate  # Linux/macOS
-# или: venv\Scripts\activate  # Windows
-
-# Установка зависимостей (из корня проекта)
-pip install -r requirements.txt
-# или вручную: pip install pandas openpyxl
-
-# Запуск из корня проекта
-python main.py
+python -m pytest src/Tests                                   # все тесты, включая эталонный
+set SPOD_UPDATE_ETALON=1 && python -m pytest src/Tests/test_pipeline_etalon.py   # Windows: пересоздать эталон
+SPOD_UPDATE_ETALON=1 python3.12 -m pytest src/Tests/test_pipeline_etalon.py      # macOS
 ```
+
+Эталон пересоздаётся **только** при осознанном изменении результата (правка конфига, исправление вроде BUG-02) — изменения видны в `git diff` эталона.
+
+Сверка на **реальных** данных (локально, отпечаток в репозиторий не кладётся):
+
+```bash
+python src/Tools/pipeline_fingerprint.py snapshot "OUT/PROM/…/SPOD_PROM main_….xlsx" -o after.json
+python src/Tools/pipeline_fingerprint.py compare before.json after.json      # 0 — совпадает, 1 — расхождения
+python src/Tools/pipeline_fingerprint.py diff-cells before.xlsx after.xlsx --sheet GROUP --max 20
+```
+
+Для сравнимых прогонов запускайте с **`PYTHONHASHSEED=0`**: без него порядок строк SUMMARY меняется от запуска к запуску (обход `set()` строк). Порядок колонок «ПРОВЕРКА: …» зависит от завершения потоков проверок и выводится как примечание (`compare --strict-order` — считать расхождением).
 
 Выходной Excel создаётся в каталоге `paths.output` (по умолчанию `OUT/`), логи — в `paths.logs` (по умолчанию `LOGS/`).
 
@@ -1333,6 +1359,13 @@ python main.py
 ---
 
 ## История версий
+
+### Версия 1.7.93 — рефакторинг, этап 0: эталонный тест и запуск без pip (TEST-01, ENV-01)
+
+- **TEST-01:** `src/Tests/test_pipeline_etalon.py` — сквозной прогон `main_impl.main()` на синтетическом наборе PROM (`src/Tests/fixtures/pipeline_prom_fixture.py`) и сравнение основной книги с эталоном `src/Tests/fixtures/pipeline_prom_etalon.json`; инструмент отпечатка/сравнения `src/Tools/pipeline_fingerprint.py` (+ тесты `test_pipeline_fingerprint.py`).
+- **ENV-01:** `run_main.bat` (Windows cmd/PowerShell) и `run_main.sh` (вместо bash-скрипта `run_main.py` с `pip install`): проверка Anaconda 3.12 без установки пакетов, код завершения; `src/runtime_env.py` — проверка окружения, строка `[env]` с версиями в логе; `requirements.txt` — минимальные версии, только справка.
+- Найдено при снятии эталона (**BUG-13**, в `Docs/REFACTORING_REVIEW_2026-09-26.json`): порядок строк SUMMARY и колонок «ПРОВЕРКА: …» меняется от запуска к запуску при тех же данных; сами значения не меняются. Для сравнимых прогонов — `PYTHONHASHSEED=0`.
+- Выходные данные программы не изменялись.
 
 ### Версия 1.7.92 — consistency: обёртка JSON `"` и array_value_keys
 

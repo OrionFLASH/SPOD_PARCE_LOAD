@@ -2,7 +2,7 @@
   "meta": {
     "title": "SPOD_PROM — анализ основной программы (main.py → src/main_impl.py): ошибки, производительность, логирование, структура",
     "date": "2026-09-26",
-    "status": "Только анализ и рекомендации. Код НЕ изменялся. Версия 2 — дополнена по ответам на вопросы (раздел decisions).",
+    "status": "Анализ и рекомендации; внедрение поэтапно по roadmap. Этап 0 (TEST-01, ENV-01) выполнен — см. measurements.stage0_after и status у находок.",
     "scope": [
       "main.py",
       "src/main_impl.py (5720 строк, прочитан полностью)",
@@ -27,6 +27,11 @@
         "v": 2,
         "date": "2026-09-26",
         "note": "решения по вопросам Q1,Q2,Q4–Q7; проверка модуля gender в рантайме; разбор неопределённого пола; Windows-специфика"
+      },
+      {
+        "v": 3,
+        "date": "2026-09-26",
+        "note": "этап 0 выполнен: TEST-01, ENV-01 (status: done); замер после этапа; новая находка BUG-13 (недетерминированный порядок строк/колонок); Q8 — ответ"
       }
     ]
   },
@@ -88,6 +93,55 @@
     "micro_benchmarks": {
       "CallerFormatter_vs_standard": "1024 мкс на запись против 4 мкс у logging.Formatter с %(funcName)s — в 255 раз медленнее (глубина стека 25)",
       "openpyxl_alignment_assignment": "20 000×20 ячеек: cell.alignment = X — 0,74 с; копирование готового cell._style — 0,26 с (×2,9), результат идентичен"
+    },
+    "stage0_after": {
+      "note": "После этапа 0 (TEST-01, ENV-01). Копия проекта в scratchpad (IN + свежая копия OUT/DB/PROM), блок PROM, run_outputs=[main_only], архив тёплый; рабочие OUT/ и OUT/DB не затрагивались. Все прогоны — Anaconda 3.12.7, macOS Apple Silicon.",
+      "pytest": "python3.12 -m pytest src/Tests — 185 passed за 2,8 с (было 179 за 0,97 с: +2 эталонных теста всего пайплайна, +4 теста отпечатка)",
+      "baseline_3f595da": {
+        "runs": "4 прогона: 2 со случайным PYTHONHASHSEED, 2 с PYTHONHASHSEED=0",
+        "wall_clock_sec": [
+          45.4,
+          46.3,
+          46.2,
+          46.1
+        ],
+        "peak_rss_gb": [
+          2.08,
+          2.06,
+          2.08,
+          2.06
+        ],
+        "phases_sec_seeded": {
+          "01": 0.38,
+          "02": 0.55,
+          "03": 1.01,
+          "05": 4.42,
+          "06": 38.5
+        },
+        "determinism": "со случайным seed — различаются порядок строк SUMMARY и ширина 9 колонок SUMMARY, порядок колонок «ПРОВЕРКА» (BUG-13); с PYTHONHASHSEED=0 — только порядок колонок «ПРОВЕРКА»"
+      },
+      "after_stage0": {
+        "runs": "2 прогона через ./run_main.sh, PYTHONHASHSEED=0 (включает проверку окружения)",
+        "exit_code": 0,
+        "wall_clock_sec": [
+          47.7,
+          46.7
+        ],
+        "peak_rss_gb": [
+          2.08,
+          2.05
+        ],
+        "phases_sec": {
+          "01": 0.37,
+          "02": 0.52,
+          "03": 0.91,
+          "05": 4.54,
+          "06": 38.2
+        },
+        "log": "0 WARNING/ERROR; строка [env] с версиями"
+      },
+      "result_vs_etalon": "Отпечатки обоих прогонов совпадают с эталоном 3f595da (37 листов: число строк/колонок, значения, оформление, ширины, разметка); отличие — только порядок колонок «ПРОВЕРКА» (BUG-13, как и между прогонами старого кода).",
+      "conclusion": "Этап 0 не меняет ни результат, ни производительность: разница во времени (+0,5…1,5 с) в пределах разброса прогонов; фазы совпадают до десятых секунды. Сравнение с исходным замером отчёта (45,2 с; 2,03 ГБ; 06 — 37,7 с; 05 — 4,34 с) — тот же уровень."
     }
   },
   "findings": [
@@ -626,7 +680,22 @@
       "description": "Скрипт при отсутствии pandas выполняет pip install — нарушает требование целевой машины. requirements.txt закрепляет pandas 2.3.3 / numpy 2.3.3, а Anaconda 3.12 даёт 2.2.2 / 1.26.4.",
       "recommendation": "Для Windows (решение Q2) — run_main.bat: проверка «python --version» ≥ 3.12 и «python -c \"import pandas, openpyxl\"», при ошибке — понятное сообщение без установки пакетов; запуск python main.py и вывод %ERRORLEVEL% (коды из LOG-02). run_main.sh оставить для macOS или удалить pip install. В requirements.txt — минимальные версии (pandas>=2.2, numpy>=1.26, openpyxl>=3.1) с пометкой «только для dev». При старте писать в лог версии Python/pandas/numpy/openpyxl и платформу. Тесты гонять в conda-окружении 3.12.",
       "effort_days": 0.5,
-      "stdlib_or_anaconda_ok": true
+      "stdlib_or_anaconda_ok": true,
+      "status": "done",
+      "result": {
+        "files": [
+          "run_main.bat",
+          "run_main.sh (вместо run_main.py — это был bash-скрипт с pip install)",
+          "src/runtime_env.py",
+          "requirements.txt",
+          ".gitattributes (*.bat → CRLF)",
+          "src/main_impl.py (строка [env] в лог при старте)",
+          "README.md"
+        ],
+        "summary": "run_main.bat: chcp 65001, интерпретатор из SPOD_PYTHON или python из PATH, проверка python -m src.runtime_env (Python ≥ 3.12, pandas ≥ 2.2, numpy ≥ 1.26, openpyxl ≥ 3.1) без установки пакетов, PYTHONIOENCODING=utf-8, запуск main.py с аргументами, печать кода завершения, пауза только при запуске двойным щелчком (SPOD_NO_PAUSE=1 — без паузы). Код 3 — окружение не подходит. run_main.sh — то же для macOS (без venv и pip). requirements.txt — минимальные версии, «только справка». В лог при каждом старте: [env] Python | pandas | numpy | openpyxl | платформа | интерпретатор.",
+        "verification": "python -m src.runtime_env: Anaconda 3.12 → 0; venv 3.14 → 0; системный Python 3.9 без пакетов → 3 с перечнем проблем. run_main.sh с неподходящим интерпретатором → 3; полный прогон через run_main.sh → 0. run_main.bat на Windows НЕ проверялся (нет Windows-машины) — проверить на целевом компьютере: запуск из cmd, PowerShell, двойным щелчком, с перенаправлением > out.txt, с SPOD_PYTHON.",
+        "open": "Q3 (версии Anaconda на целевой машине) — run_main.bat выведет их первой строкой."
+      }
     },
     {
       "id": "TEST-01",
@@ -642,7 +711,22 @@
       "description": "179 тестов покрывают модули, но не сквозной результат main_impl. Механизм baseline уже есть (SAVE_MERGE_BASELINE), но не оформлен как тест и сравнивает только 3 строки.",
       "recommendation": "Маленький обезличенный набор CSV в src/Tests/fixtures → прогон пайплайна → сравнение всех листов (колонки + хеш содержимого) с эталоном JSON; отдельно тесты на BUG-01…BUG-03. Сделать ДО любых оптимизаций.",
       "effort_days": 1.5,
-      "stdlib_or_anaconda_ok": true
+      "stdlib_or_anaconda_ok": true,
+      "status": "done",
+      "result": {
+        "files": [
+          "src/Tests/test_pipeline_etalon.py",
+          "src/Tests/fixtures/pipeline_prom_fixture.py",
+          "src/Tests/fixtures/pipeline_prom_etalon.json",
+          "src/Tools/pipeline_fingerprint.py",
+          "src/Tests/test_pipeline_fingerprint.py"
+        ],
+        "summary": "Сквозной тест: синтетический (не реальный — репозиторий публичный) набор CSV для всех 32 листов PROM из config → main_impl.main() в отдельном процессе во временном каталоге (PYTHONHASHSEED=0, архив SQLite выключен, run_outputs=main_only) → отпечаток основной книги (по каждой колонке хеш значений, хеш оформления, ширина; разметка листа; STAT_FILE.FILE_DATE/DATA_UPDATE_DATE исключены) → сравнение с эталоном. Синтетика содержит дубли ключей с разными значениями (BUG-02), строку с лишним полем CSV, неопределённый пол, сироты; даты до 2021 и после 2098 — статус турниров не зависит от дня запуска.",
+        "verification": "Тест стабилен (3 прогона подряд). Проверка чувствительности: временная подмена «последнее → первое» в merge (как BUG-02) — тест падает ровно на полях из evidence BUG-02: GROUP (TOURNAMENT_STATUS, TARGET_TYPE), TOURNAMENT-SCHEDULE (INDICATOR_CODE), SUMMARY (INDICATOR_CODE/WEIGHT/VALUE/N) + каскад через REWARD-LINK. Правка откачена.",
+        "etalon_update": "SPOD_UPDATE_ETALON=1 python -m pytest src/Tests/test_pipeline_etalon.py — только при осознанном изменении результата (конфиг, BUG-02 и т.п.); изменения эталона видны в git diff.",
+        "real_data_check": "Для реальных данных — локальный отпечаток (не в репозитории): pipeline_fingerprint.py snapshot/compare/diff-cells.",
+        "tests_time_sec": 2.1
+      }
     },
     {
       "id": "ENV-02",
@@ -676,6 +760,26 @@
       "recommendation": "Логику не менять. Для прозрачности в лог писать разбивку причин: «пустое отчество и имя/фамилия не распознаны: N; фамилия замаскирована: M». Если такие записи — не сотрудники, фильтровать их отдельно (вопрос к владельцу данных).",
       "effort_days": 0.25,
       "stdlib_or_anaconda_ok": true
+    },
+    {
+      "id": "BUG-13",
+      "category": "correctness",
+      "severity": "medium",
+      "priority": "P1",
+      "verification": "CONFIRMED",
+      "title": "Порядок строк SUMMARY и колонок «ПРОВЕРКА: …» меняется от запуска к запуску на одних и тех же данных",
+      "location": [
+        "src/main_impl.py:2538-2543 (collect_summary_keys: коды в set())",
+        "src/consistency_checks.py:1954-1958, 2042-2046 (ThreadPoolExecutor: колонки проверок добавляются на лист из потоков)"
+      ],
+      "description": "1) Ключи SUMMARY собираются в set() строк; порядок обхода множества строк зависит от PYTHONHASHSEED, который у каждого процесса случайный → порядок 2601 строки SUMMARY разный в каждом запуске, а вслед за ним и автоширина колонок (считается по первым 500 строкам). 2) Правила консистентности выполняются параллельно и добавляют колонки «ПРОВЕРКА: …» на листы в порядке завершения потоков.",
+      "evidence": "Найдено при снятии эталона (этап 0): 2 прогона кода 3f595da на одинаковых данных — SUMMARY: тот же набор строк, другой порядок (значения 125 колонок по позициям различаются), ширина 9 колонок различается; CONTEST-DATA/REWARD/INDICATOR: тот же набор колонок, другой порядок колонок «ПРОВЕРКА». С PYTHONHASHSEED=0 остаётся только порядок колонок проверок.",
+      "impact": "Сравнение двух выгрузок (глазами или diff) показывает ложные изменения; внешний вид файла «плавает». Значения не меняются.",
+      "recommendation": "collect_summary_keys: выдавать ключи в детерминированном порядке (sorted по кортежу ключей) — удобно сделать вместе с PERF-02, где функция переписывается. consistency: после параллельных фаз переставить колонки «ПРОВЕРКА» на листах в порядке правил конфига. Изменение МЕНЯЕТ порядок строк/колонок выходного файла (не значения) — предупредить перед внедрением, затем пересоздать эталон TEST-01 и перейти на compare --strict-order.",
+      "workaround_now": "Для сравнимых прогонов — PYTHONHASHSEED=0 (эталонный тест так и запускается); порядок колонок проверок pipeline_fingerprint.compare по умолчанию выводит как примечание.",
+      "effort_days": 0.5,
+      "stdlib_or_anaconda_ok": true,
+      "status": "open"
     }
   ],
   "not_recommended": [
@@ -705,7 +809,9 @@
         "ENV-01"
       ],
       "effort_days": 2,
-      "goal": "Эталон результата (с учётом того, что BUG-02 изменит 7 полей) и тесты в Anaconda 3.12"
+      "goal": "Эталон результата (с учётом того, что BUG-02 изменит 7 полей) и тесты в Anaconda 3.12",
+      "status": "done",
+      "result": "TEST-01 и ENV-01 выполнены; результат на реальных данных совпадает с эталоном 3f595da; время и память без изменений (см. measurements.stage0_after)."
     },
     {
       "stage": 1,
@@ -720,6 +826,7 @@
         "LOG-01",
         "LOG-05 (Windows)",
         "PERF-02",
+        "BUG-13 (вместе с PERF-02; меняет порядок строк SUMMARY и колонок «ПРОВЕРКА» — предупредить)",
         "PERF-03",
         "BUG-09"
       ],
@@ -842,7 +949,8 @@
       "id": "Q8",
       "about": "процесс",
       "question": "Внедрять ли рекомендации поэтапно по roadmap (эталонный тест и замеры после каждого этапа) и закоммитить ли этот отчёт в main?",
-      "status": "open"
+      "status": "answered",
+      "answer": "Да: поэтапно по roadmap, после каждого этапа — pytest и полный прогон PROM на копии с замером; коммит в main (fast-forward) и push."
     },
     {
       "id": "Q9",
@@ -900,6 +1008,13 @@
       "answer": "multiply_rows оставить и переписать через pd.merge",
       "affects": [
         "BUG-08"
+      ]
+    },
+    {
+      "question": "Q8",
+      "answer": "Поэтапное внедрение; после каждого этапа — pytest под Anaconda 3.12, полный прогон PROM на копии проекта, сравнение с эталоном и замерами; коммит + fast-forward в main + push",
+      "affects": [
+        "roadmap"
       ]
     }
   ]

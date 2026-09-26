@@ -1,12 +1,8 @@
-# Зависимости для main.py (чтение CSV, обработка, запись Excel).
-# Для базового Python 3.10+ — pip install -r requirements.txt
-# Для Anaconda 3.12 — pandas/openpyxl/numpy обычно уже в base.
+# Зависимости main.py — справочно и для разработки. На рабочей машине ничего не устанавливается:
+# используется Anaconda 3.12 (pandas, numpy, openpyxl входят в base), pip install запрещён.
+# Минимальные версии = проверенное окружение Anaconda 3.12 (Python 3.12.7, pandas 2.2.2,
+# numpy 1.26.4, openpyxl 3.1.5). Проверка окружения без установки: python -m src.runtime_env
 # Запись Excel-формы BADGE: только stdlib (zipfile/xml), без xlsxwriter.
-et_xmlfile==2.0.0
-numpy==2.3.3
-openpyxl==3.1.5
-pandas==2.3.3
-python-dateutil==2.9.0.post0
-pytz==2025.2
-six==1.17.0
-tzdata==2025.2
+pandas>=2.2
+numpy>=1.26
+openpyxl>=3.1
