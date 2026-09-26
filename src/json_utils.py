@@ -3,6 +3,7 @@
 Утилиты для разбора и разворота JSON-полей в DataFrame.
 """
 
+import ast
 import json
 import logging
 import re
@@ -32,10 +33,33 @@ def _log_json_parse_error(context: str, raw: str, ex_first: Exception, ex_after_
         )
 
 
+# Типографские кавычки → ASCII (явные коды: при редактировании сами символы легко теряются — BUG-03)
+_TYPOGRAPHIC_QUOTES = {0x201C: '"', 0x201D: '"', 0x201E: '"', 0x2018: "'", 0x2019: "'"}
+
+
+def _repair_json_syntax(fixed: str) -> str:
+    """Исправления синтаксиса без замены кавычек внутри значений."""
+    fixed = re.sub(r'"{2,}([^"\s]+)"{2,}', r'"\1"', fixed)          # ""key"" → "key"
+    fixed = re.sub(r'"{2,}([^"\s]+)"{2,}\s*:', r'"\1":', fixed)     # "key""": → "key":
+    fixed = re.sub(r':\s*"{2,}([^"\s]+)"{2,}', r':"\1"', fixed)     # :"""value""" → :"value"
+    fixed = re.sub(r',\s*([}\]])', r'\1', fixed)                    # висячая запятая
+    fixed = re.sub(r'(\"[^"]+\")\s+(\")', r'\1: \2', fixed)          # "key" "value" → "key": "value"
+    fixed = re.sub(r'(\"[^"]+\")\s*:\s*', r'\1:', fixed)             # пробелы вокруг двоеточия
+    return fixed
+
+
 def safe_json_loads(s: str) -> Any:
     """
     Преобразует строку в объект JSON. Возвращает dict/list или None при ошибке.
-    Толерантен к разным кавычкам и пустым строкам; исправляет типичные ошибки JSON.
+
+    Попытки по порядку (BUG-03), каждая — только если предыдущая не разобралась:
+      1) json.loads как есть;
+      2) тройные кавычки SPOD (три символа ") → обычные + исправления синтаксиса; апострофы и
+         типографские кавычки внутри значений НЕ трогаются (O'Neil, «Конкурс “Лучший”»);
+      3) то же + типографские “ ” ‘ ’ → ASCII-кавычки;
+      4) литерал Python ({'a': 'b'}, True/None) через ast.literal_eval;
+      5) прежний «агрессивный» вариант (все ' → ") — чтобы строки, которые разбирались раньше,
+         разбирались и сейчас.
     """
     if not isinstance(s, str):
         return s
@@ -45,21 +69,32 @@ def safe_json_loads(s: str) -> Any:
     try:
         return json.loads(s)
     except Exception as ex:
+        first_error = ex
+    base = _repair_json_syntax(s.replace('"""', '"'))
+    typographic = base.translate(_TYPOGRAPHIC_QUOTES)
+    candidates = [base]
+    if typographic != base:
+        candidates.append(typographic)
+    last_error: Exception = first_error
+    for candidate in candidates:
         try:
-            fixed = s
-            fixed = fixed.replace('"""', '"')
-            fixed = fixed.replace("'", '"').replace('"', '"').replace('"', '"')
-            fixed = fixed.replace(''', '"').replace(''', '"')
-            fixed = re.sub(r'"{2,}([^"\s]+)"{2,}', r'"\1"', fixed)
-            fixed = re.sub(r'"{2,}([^"\s]+)"{2,}\s*:', r'"\1":', fixed)
-            fixed = re.sub(r':\s*"{2,}([^"\s]+)"{2,}', r':"\1"', fixed)
-            fixed = re.sub(r',\s*([}\]])', r'\1', fixed)
-            fixed = re.sub(r'(\"[^"]+\")\s+(\")', r'\1: \2', fixed)
-            fixed = re.sub(r'(\"[^"]+\")\s*:\s*', r'\1:', fixed)
-            return json.loads(fixed)
-        except Exception as ex2:
-            _log_json_parse_error("safe_json_loads", s, ex, ex2)
-            return None
+            return json.loads(candidate)
+        except Exception as ex:
+            last_error = ex
+    if typographic[:1] in "{[":
+        try:
+            value = ast.literal_eval(typographic)
+            if isinstance(value, (dict, list)):
+                return value
+        except Exception:
+            pass
+    try:
+        aggressive = _repair_json_syntax(s.replace('"""', '"').translate(_TYPOGRAPHIC_QUOTES).replace("'", '"'))
+        return json.loads(aggressive)
+    except Exception as ex:
+        last_error = ex
+    _log_json_parse_error("safe_json_loads", s, first_error, last_error)
+    return None
 
 
 def safe_json_loads_preserve_triple_quotes(s: str) -> Any:

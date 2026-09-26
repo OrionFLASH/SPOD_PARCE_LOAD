@@ -1,5 +1,5 @@
 {
- "schema": 1,
+ "schema": 2,
  "sheet_order": [
   "SUMMARY",
   "CONSISTENCY",
@@ -48,6 +48,7 @@
  "sheets": {
   "SUMMARY": {
    "rows": 47,
+   "row_set": "09f625f2d3e058eb4d885e5a30c3723c9d78f4451de6b917a3b68c00efa1dda7",
    "cols": 128,
    "header": [
     "CONTEST_CODE",
@@ -182,622 +183,622 @@
    "layout": "5e73d22e682e43f6b30721c5971057737990a81dc8d3bc42f24a2e48b1ec4750",
    "columns": {
     "CONTEST_CODE": {
-     "values": "1dae5f1fb6276bddab57b859b8becb62307cf0a27768764439ca52a9a6b14086",
+     "values": "734ca5cdc22b9b66d6c705f44df350b4aa1edc00f88795406ef4091403db1530",
      "styles": "419d9ce5adc3c18a43d377b5401f639bb61e3c72d2def1e23c3ec1c364122943",
      "width": "12|1|||"
     },
     "TOURNAMENT_CODE": {
-     "values": "d3bcd992e6ec697114779caa0d74b039495f0187062c73de5dfe958b04e09214",
+     "values": "024d6a5343e4ba19af2491c88fd7565360d1da5bd65df0122918ce419db9b723",
      "styles": "419d9ce5adc3c18a43d377b5401f639bb61e3c72d2def1e23c3ec1c364122943",
      "width": "15|1|||"
     },
     "REWARD_CODE": {
-     "values": "08cf4ba84d08e7218345ea9f94d607e25b1b6ebe3fc58d59107dcd53ea2c39b9",
+     "values": "76372510bbd2847f2b48f6652a97851017ab1d0ba4850649f51721aa087c6d10",
      "styles": "419d9ce5adc3c18a43d377b5401f639bb61e3c72d2def1e23c3ec1c364122943",
      "width": "12|1|||"
     },
     "GROUP_CODE": {
-     "values": "e5b127a35e2c7b52853cc08353732f8a49955298cf048e6084e60117f1c1be0c",
+     "values": "48b4017f19e1707d614f89cab29acbd54fa6bca8ba2897b4e2263d242405591c",
      "styles": "419d9ce5adc3c18a43d377b5401f639bb61e3c72d2def1e23c3ec1c364122943",
      "width": "10|1|||"
     },
     "GROUP_VALUE": {
-     "values": "d903057e9c61aa659417a187b225dab0d0f541395851548741d0ccbbcad79136",
+     "values": "edd9abb1c1c9d612f655d917a45bcc7d6d5f8ae530c0e614a3c4dc1ab937e51e",
      "styles": "419d9ce5adc3c18a43d377b5401f639bb61e3c72d2def1e23c3ec1c364122943",
      "width": "11|1|||"
     },
     "INDICATOR_CODE": {
-     "values": "be67a8fd4dc99e4c23634e519a492bb6cdb1461efa9ad7f7f5a05268cbb8fdeb",
+     "values": "288e8ee2ec9004b3c5596cbe86d546220405559f06a1155586cf778b01b7ca96",
      "styles": "7875a12a7c989f08ac3688ec400510ae8ae36f0a14fceea26897ce8212cea991",
      "width": "14|1|||"
     },
     "INDICATOR_ADD_CALC_TYPE": {
-     "values": "77023bb0c8956da127dddedb9d2b60e9ef6e30da797970ed1c06813f16ab2057",
+     "values": "7e6e6189921f670affd71409dd48e2574af4119a0c8a754e30e2e3ed6c733bed",
      "styles": "419d9ce5adc3c18a43d377b5401f639bb61e3c72d2def1e23c3ec1c364122943",
      "width": "23|1|||"
     },
     "CONTEST-DATA=>FULL_NAME": {
-     "values": "bc591498bc609ffc56a724bfad45318ae85f580a3a885503f598bfba6e790c02",
+     "values": "2f277ed0f8e150832ec5dc6fb3bf9956454b38ecfe10bc822413bf1430d76e41",
      "styles": "3110dfd1d8e75bbbeab992bc35c5b9e90083e488507b8d2686e835a31b2167e7",
      "width": "27|1|||"
     },
     "CONTEST-DATA=>CONTEST_DESCRIPTION": {
-     "values": "6956a2fe304a1ca8bdd36cb25ba42efce331fd82f3875c8035dca26f4f9b95a7",
+     "values": "a5691b5dd5f2d87e547450eac58484a67cc82e8e7840fdf4660f9f2fa7b40568",
      "styles": "3110dfd1d8e75bbbeab992bc35c5b9e90083e488507b8d2686e835a31b2167e7",
      "width": "36|1|||"
     },
     "CONTEST-DATA=>CONTEST_FEATURE => feature": {
-     "values": "9de7200ca174679c7c53f7f6dc6352013a5695ba1d70007979a9c710508a326b",
+     "values": "2e7b0df20fda8dc989dd0ecc96e38c2afb684d0b58ad72da1b57416830d5d689",
      "styles": "3110dfd1d8e75bbbeab992bc35c5b9e90083e488507b8d2686e835a31b2167e7",
      "width": "40|1|||"
     },
     "CONTEST-DATA=>CONTEST_FEATURE => momentRewarding": {
-     "values": "694feb1ada06de84c56156fb9556764cfb37b6ed940a1cd0a6318e747aa7d146",
+     "values": "387e3024439bb9878d59d547cd58627658e87a9e87e35956117dd335f710d43f",
      "styles": "3110dfd1d8e75bbbeab992bc35c5b9e90083e488507b8d2686e835a31b2167e7",
      "width": "48|1|||"
     },
     "CONTEST-DATA=>TARGET_TYPE": {
-     "values": "47990beb17ca13ae8b246cc47f1420babbf21547ede040fcb96d90ac4399d53a",
+     "values": "886ec0f82a57108d10db3bafd7ccf3fca87f36c0048100d0fb5a20409b670fa1",
      "styles": "3110dfd1d8e75bbbeab992bc35c5b9e90083e488507b8d2686e835a31b2167e7",
      "width": "25|1|||"
     },
     "CONTEST-DATA=>CONTEST_FEATURE => vid": {
-     "values": "69eb46591e776dd53e94a5a853bcb40e41c0cd42aa153e42e4cd5f69f26ae34d",
+     "values": "e115e7bd345a52667dbda632d7129b78a0ed8830517ebb2d42dc1e9c4ed70331",
      "styles": "3110dfd1d8e75bbbeab992bc35c5b9e90083e488507b8d2686e835a31b2167e7",
      "width": "36|1|||"
     },
     "CONTEST-DATA=>CONTEST_TYPE": {
-     "values": "4c23b134ddcb27d3bf35a0cfb7f4b092901f0467ba37b3ebcbc1836247742865",
+     "values": "e1702b0fda7d43047b6eec9804c61e41088b821b74c77758f7d1ae5144b9236e",
      "styles": "3110dfd1d8e75bbbeab992bc35c5b9e90083e488507b8d2686e835a31b2167e7",
      "width": "26|1|||"
     },
     "CONTEST-DATA=>PRODUCT_GROUP": {
-     "values": "97559c9d6c5a061cb77467ec3ecc5e4293821339414b1bb55c5ed8ab3165414b",
+     "values": "aab4b53824f7a79b426cb70f6141a25165d13227a33b2dd27c051433cf03cca8",
      "styles": "3110dfd1d8e75bbbeab992bc35c5b9e90083e488507b8d2686e835a31b2167e7",
      "width": "27|1|||"
     },
     "CONTEST-DATA=>PRODUCT": {
-     "values": "e8c2ff67601f7f4adcaacb96df2bd310def91ada009062ee74a6c1dc96c5a159",
+     "values": "ffb172a2aa61ef5dcf807c0197724508306b0eb62e233ce3b1b1f1b15a7e3f53",
      "styles": "3110dfd1d8e75bbbeab992bc35c5b9e90083e488507b8d2686e835a31b2167e7",
      "width": "21|1|||"
     },
     "CONTEST-DATA=>FACTOR_MATCH": {
-     "values": "a85e5929727209470b8a66b8d17063e00a52b7aa0736a75ef1215f5a2a03419e",
+     "values": "a0c2b1011f000f666a4eb6836a2e4982af4cf728f47b038492ad490b2710c2fa",
      "styles": "3110dfd1d8e75bbbeab992bc35c5b9e90083e488507b8d2686e835a31b2167e7",
      "width": "26|1|||"
     },
     "CONTEST-DATA=>FACTOR_MARK_TYPE": {
-     "values": "08d39a1e2fc6fff28c7580c7134fd1c16f8705a6fd8b7cc318dcde7802b64df3",
+     "values": "0c4317a2a5a6812cd78f5f19990f22b2c2d2855d9b78b1cef90fd72a5c95ce09",
      "styles": "3110dfd1d8e75bbbeab992bc35c5b9e90083e488507b8d2686e835a31b2167e7",
      "width": "30|1|||"
     },
     "CONTEST-DATA=>PLAN_METHOD_CODE": {
-     "values": "94ee20579b8817d1e9d467e30665a3a05a6eb400e20ab9071e1cf44b994d803d",
+     "values": "ffba4e187b46424ad90ec19ac0fa7bc3d4c94ddc0e7b5d5a6cd5a99bc8302e33",
      "styles": "3110dfd1d8e75bbbeab992bc35c5b9e90083e488507b8d2686e835a31b2167e7",
      "width": "30|1|||"
     },
     "CONTEST-DATA=>PLAN_MOD_METOD": {
-     "values": "1ae06234ec753bfadf9b19868cb58dd97a0570d86685be1e420826ac4b7c77bb",
+     "values": "13f01d4f04e1d93813091c863ebb5abb9322c31272261fdadc8e35eac42f54f1",
      "styles": "3110dfd1d8e75bbbeab992bc35c5b9e90083e488507b8d2686e835a31b2167e7",
      "width": "28|1|||"
     },
     "CONTEST-DATA=>PLAN_MOD_VALUE": {
-     "values": "c7015dbcc2efc5f4662c927a331a8b73f8bce1ed80a06636db6205ee8c508ef2",
+     "values": "18780b3a0aae016dd6083bd84815ca1599b657f99eddb226ce245a9b43b494b7",
      "styles": "3110dfd1d8e75bbbeab992bc35c5b9e90083e488507b8d2686e835a31b2167e7",
      "width": "28|1|||"
     },
     "CONTEST-DATA=>BUSINESS_BLOCK": {
-     "values": "a316bdfd643142d5f54f4a0d014f4a0adf9f4a936974fa34cc2f87eeb610efb8",
+     "values": "65f427dbcc05114cd95eaa51911fc8a01706ee348f2d599e5e7a7955d6bddf70",
      "styles": "3110dfd1d8e75bbbeab992bc35c5b9e90083e488507b8d2686e835a31b2167e7",
      "width": "28|1|||"
     },
     "CONTEST-DATA=>CONTEST_FEATURE => businessBlock": {
-     "values": "b2bfe4f3e71eb41d20b339a576cf5e0aec209c9a95f7180e76581133358f1d1a",
+     "values": "13c4c076fcef607651205061b80935f700c7703f3fa6cf05f151356ca558a5aa",
      "styles": "3110dfd1d8e75bbbeab992bc35c5b9e90083e488507b8d2686e835a31b2167e7",
      "width": "46|1|||"
     },
     "CONTEST-DATA=>CONTEST_FEATURE => tournamentStartMailing": {
-     "values": "a1e9b26d914c159e592800f7681acd5edae27ab67c9f442f34c90eb13a42e39d",
+     "values": "806947bd3be31340addd39deabb2d7e22dbce4116d2bf9cd6b1ff8326648def9",
      "styles": "3110dfd1d8e75bbbeab992bc35c5b9e90083e488507b8d2686e835a31b2167e7",
      "width": "55|1|||"
     },
     "CONTEST-DATA=>CONTEST_FEATURE => tournamentEndMailing": {
-     "values": "3b38ef2e4186c490bfcc999eb70ff169c1b8e66069191006498f7af47d4dc03b",
+     "values": "d61bea2c9d035f9ec19272eb9cbcfb6332138bf8f7763c1e5c4814ea9bb1712e",
      "styles": "3110dfd1d8e75bbbeab992bc35c5b9e90083e488507b8d2686e835a31b2167e7",
      "width": "53|1|||"
     },
     "CONTEST-DATA=>CONTEST_FEATURE => tournamentRewardingMailing": {
-     "values": "44d29bb15b8af43c1fd8d333effd6fd6a65adf13a7cf2082515893ae407dffb9",
+     "values": "16c75f959ad8fe9c8c556a170f97d6fbe778da86df3973d2300c69012b31fa77",
      "styles": "3110dfd1d8e75bbbeab992bc35c5b9e90083e488507b8d2686e835a31b2167e7",
      "width": "59|1|||"
     },
     "CONTEST-DATA=>CONTEST_FEATURE => tournamentLikeMailing": {
-     "values": "c39d21a8a09b2137ba15ed24b01e482f5ed9e0a393e0fe59ff06f2c28b08f631",
+     "values": "7ff290db0d0ec127dab482bd31dc633b65454906dae152fffdcd3ea4756b7dd4",
      "styles": "3110dfd1d8e75bbbeab992bc35c5b9e90083e488507b8d2686e835a31b2167e7",
      "width": "54|1|||"
     },
     "CONTEST-DATA=>CONTEST_FEATURE => persomanNumberVisible": {
-     "values": "f96fa499f1f85b1077e3eb728093fbf76bcff074dec8eac46707094c8e768921",
+     "values": "a5be9a6b7e2ae15dad336cd5c17a20e86c76d2757906379138c91325277555ba",
      "styles": "3110dfd1d8e75bbbeab992bc35c5b9e90083e488507b8d2686e835a31b2167e7",
      "width": "54|1|||"
     },
     "CONTEST-DATA=>CREATE_DT": {
-     "values": "7ab1eabaa9b0fb94bb3a200e1172de569669dfffd29a1262db6b820e9494d099",
+     "values": "be0d94071962ef61db4c953b300f49860a058e45aefdf4f6c7ccdaa13f622755",
      "styles": "3110dfd1d8e75bbbeab992bc35c5b9e90083e488507b8d2686e835a31b2167e7",
      "width": "23|1|||"
     },
     "CONTEST-DATA=>CLOSE_DT": {
-     "values": "e9088a86e8be245ca43f5e79a21b645dd118913b77d98c99fa3fc22db65428d9",
+     "values": "71a85f29d9349e2f462c6182c9e1ef3fc52f694d13de925abc554bc5c3f48322",
      "styles": "3110dfd1d8e75bbbeab992bc35c5b9e90083e488507b8d2686e835a31b2167e7",
      "width": "22|1|||"
     },
     "CONTEST-DATA=>BUSINESS_STATUS": {
-     "values": "f4097b256744df1bdf74b4e4773b8d78ad56644326d34c3924ac22acafd0b3e0",
+     "values": "3694e79c28444c58e9441ee0056bc4f8e5b7c2143e35f46091844a2aefb8bf8e",
      "styles": "3110dfd1d8e75bbbeab992bc35c5b9e90083e488507b8d2686e835a31b2167e7",
      "width": "29|1|||"
     },
     "CONTEST-DATA=>SHOW_INDICATOR": {
-     "values": "4cdd0281c38d03cb8e30219ceea19e246c08f578d247ac6d68a24d3190d8d9d0",
+     "values": "a823dd4a588786f015e9a4acebf6126e2dba1138a8331592d99c89d39e4e6d2e",
      "styles": "3110dfd1d8e75bbbeab992bc35c5b9e90083e488507b8d2686e835a31b2167e7",
      "width": "28|1|||"
     },
     "CONTEST-DATA=>CONTEST_SUBJECT": {
-     "values": "c21cc98f21a42db96b14650a4043fc67b87f9ac0dda18ef015704c4fb5cd2cdb",
+     "values": "6a44df1998e791d14454016d72424d864ebe0e7d09873d59e2feefa2d34ab7d8",
      "styles": "3110dfd1d8e75bbbeab992bc35c5b9e90083e488507b8d2686e835a31b2167e7",
      "width": "29|1|||"
     },
     "CONTEST-DATA=>CONTEST_INDICATOR_METHOD": {
-     "values": "86e31ef5c64702bb1e9601a03588a8e61eaed0a9134d1b463c20b46ff08a2c37",
+     "values": "c0a62fe6ab1dc74e3f2c8071632976bf0252805f048186c64d1484293cf52699",
      "styles": "3110dfd1d8e75bbbeab992bc35c5b9e90083e488507b8d2686e835a31b2167e7",
      "width": "38|1|||"
     },
     "CONTEST-DATA=>CONTEST_FACTOR_METHOD": {
-     "values": "bbd3c61374b02e21fb48af04eab3de47eb494a09bd10599d451bc8fbbf797439",
+     "values": "dd164e82ca8ed134554ef65e20a22f5fe49ea39c942616ee1d0cee49f0bbd1d7",
      "styles": "3110dfd1d8e75bbbeab992bc35c5b9e90083e488507b8d2686e835a31b2167e7",
      "width": "35|1|||"
     },
     "CONTEST-DATA=>CONTEST_PERIOD": {
-     "values": "74bd5ce8e628245d757b7000b23c6202e7df24774ea12b1b4c23add787e951c6",
+     "values": "e8945649094e689b71d538a7d9996823c1737645105e9182383309683a37bc4e",
      "styles": "3110dfd1d8e75bbbeab992bc35c5b9e90083e488507b8d2686e835a31b2167e7",
      "width": "28|1|||"
     },
     "CONTEST-DATA=>SOURCE_UPD_FREQUENCY": {
-     "values": "a3802da069a99b571a582095ffe81ff65dda432f130fd4170052fbc21cf070b5",
+     "values": "a5c6c4a5147edf6816da72ac16f818b37ed7a46fd5cbb1349a0ea59e2da6b5a2",
      "styles": "3110dfd1d8e75bbbeab992bc35c5b9e90083e488507b8d2686e835a31b2167e7",
      "width": "34|1|||"
     },
     "CONTEST-DATA=>CALC_TYPE": {
-     "values": "f1717d8d79638bd68d2449e440a7097b8e49647e8cad2a3d1e63a7985348c716",
+     "values": "9e6940721f01f6f534482b61d06989f2099e8dd51e63d2c5556e651c37761159",
      "styles": "3110dfd1d8e75bbbeab992bc35c5b9e90083e488507b8d2686e835a31b2167e7",
      "width": "23|1|||"
     },
     "CONTEST-DATA=>FACT_POST_PROCESSING": {
-     "values": "333ee87af79f1e9be4b9e2ae69faa845d2abf77acc0da13e26749df66915f024",
+     "values": "a2079739d70ad14d62f7ab2cb3990cd0030c9ccd7010aeecb837ad6fac3ea646",
      "styles": "3110dfd1d8e75bbbeab992bc35c5b9e90083e488507b8d2686e835a31b2167e7",
      "width": "34|1|||"
     },
     "CONTEST-DATA=>CONTEST_FEATURE => minNumber": {
-     "values": "5ee1eab474eb070c1d93d908238acb7f3d08105c9ca793505fee8871772b5b6b",
+     "values": "39f3345650ba1f2e09209d7a032280904ab590ad535ac18f0db87179665be163",
      "styles": "3110dfd1d8e75bbbeab992bc35c5b9e90083e488507b8d2686e835a31b2167e7",
      "width": "42|1|||"
     },
     "CONTEST-DATA=>CONTEST_FEATURE => capacity": {
-     "values": "94682b245de43bf306c211b3aefce1ee6ac848817ff87bab3a0001f9d96bbec5",
+     "values": "9cb8c87abfde7fd125413d27ce344d499520308a65c96fbee036d654eaf764ba",
      "styles": "3110dfd1d8e75bbbeab992bc35c5b9e90083e488507b8d2686e835a31b2167e7",
      "width": "41|1|||"
     },
     "CONTEST-DATA=>CONTEST_FEATURE => accuracy": {
-     "values": "3b16743142f03634667595216e57ae57a3f3686e36b59c42f120fc0e342030f0",
+     "values": "7c9df90aaf037e9e55c07f363fc0478fc782ca2a403a0ca4ad89847da7ad421f",
      "styles": "3110dfd1d8e75bbbeab992bc35c5b9e90083e488507b8d2686e835a31b2167e7",
      "width": "41|1|||"
     },
     "CONTEST-DATA=>CONTEST_FEATURE => typeRewarding": {
-     "values": "0c6c64fed79799e193ffd3c1d6e20e24c0aee7fe6f026fa71d835b14ddb55746",
+     "values": "d38fac4741ba7bd08d1e0955add516bc14a583fc458180544fffc9578da89059",
      "styles": "3110dfd1d8e75bbbeab992bc35c5b9e90083e488507b8d2686e835a31b2167e7",
      "width": "46|1|||"
     },
     "CONTEST-DATA=>CONTEST_FEATURE => preferences": {
-     "values": "1c2b9401c9d96a4b9a7c9ac285d9634522b85c3317ea5458a5e2d25cda3a1888",
+     "values": "8f8347d6636a05b60b1bdd0fbd95a38870be871db9c443f6794cba6c5a41a97f",
      "styles": "3110dfd1d8e75bbbeab992bc35c5b9e90083e488507b8d2686e835a31b2167e7",
      "width": "44|1|||"
     },
     "CONTEST-DATA=>CONTEST_FEATURE => tournamentTeam": {
-     "values": "d23710c4c1c14efec2c7fa0cccb04fc71659abc62a6ddb1a421633eb617ea886",
+     "values": "aedb53a0123b9957241088889b2afd0613b1e9f386ac3e1dd92a4662b370d092",
      "styles": "3110dfd1d8e75bbbeab992bc35c5b9e90083e488507b8d2686e835a31b2167e7",
      "width": "47|1|||"
     },
     "CONTEST-DATA=>CONTEST_FEATURE => helpCodeList": {
-     "values": "9b833eec048ec92a16de66195f98092d85d39e1538fabc2ad64437a25045c838",
+     "values": "d1dd0fca2d943c0f4e92cf1c9e2a0716eebc36add3044244db1b4131b52830d3",
      "styles": "3110dfd1d8e75bbbeab992bc35c5b9e90083e488507b8d2686e835a31b2167e7",
      "width": "45|1|||"
     },
     "CONTEST-DATA=>CONTEST_FEATURE": {
-     "values": "ae3637e1ecfab65e9cded848f38da75b2e5d5921966da9da7fb92e97b1733a0c",
+     "values": "71fc4dfbd3a841ee345ab7f2b051cea5c9264b1089936bebc95505ce30d7e896",
      "styles": "3110dfd1d8e75bbbeab992bc35c5b9e90083e488507b8d2686e835a31b2167e7",
      "width": "150|1|||"
     },
     "REWARD=>FULL_NAME": {
-     "values": "605e8ec5d86fea90ff1664ad354508b0b0630ca5bfccac2b5d48458e7b63e715",
+     "values": "77e40ec706ff16840aadaa703f53a5cfb0726a781dd3fba4a90669d3734d0ea5",
      "styles": "5efd2d30f4c3e153e2b3ef781949223c2333762dcb5981d02b12768eeb5441f6",
      "width": "17|1|||"
     },
     "REWARD=>REWARD_DESCRIPTION": {
-     "values": "2fdfa6da9578d38ede77255275d1604a1679a33d072660e1e874b5a7f18fdd25",
+     "values": "925e938ec65a2776b5939013657158a20bdd1a32fe4ed54f8b97ee7e6f131810",
      "styles": "5efd2d30f4c3e153e2b3ef781949223c2333762dcb5981d02b12768eeb5441f6",
      "width": "60|1|||"
     },
     "REWARD=>REWARD_TYPE": {
-     "values": "ce10b8867d10dfc88e4434ab60d078b40f7c48c3ba30eec48aa582a0db97cbd6",
+     "values": "8e43bf4069963aed79020322d40e77d8b213e4a1acbd2d5b6f15bb84bdf9ef7d",
      "styles": "5efd2d30f4c3e153e2b3ef781949223c2333762dcb5981d02b12768eeb5441f6",
      "width": "19|1|||"
     },
     "REWARD=>REWARD_COST": {
-     "values": "c85db4f87e8fdc712ee33407948d1fedf151751928510ff4886ee9db934d6bbd",
+     "values": "fc72a0eabb01959025492671c297adb3058b819827ea38a8f86df2e3c059c8b1",
      "styles": "5efd2d30f4c3e153e2b3ef781949223c2333762dcb5981d02b12768eeb5441f6",
      "width": "19|1|||"
     },
     "REWARD=>ADD_DATA => feature": {
-     "values": "2c9f3bbbaf65cb7b7db8b73a1741f114fa9e7b720585397d1ad16e41e9a2ae3b",
+     "values": "ab2db1c5dfe79ce3d58f9d67dc6e515dedf2266783864c99c5b3183318cf5d97",
      "styles": "5efd2d30f4c3e153e2b3ef781949223c2333762dcb5981d02b12768eeb5441f6",
      "width": "27|1|||"
     },
     "REWARD=>ADD_DATA => itemFeature": {
-     "values": "1948ed2c502f89b59560c15f236e49fe22fc8e1d50f4b442bb7622c4c604695b",
+     "values": "4e93a7b6574dedcaad256b61d4f6d2d9d8d2872bd374ba79295bc6812c3c8c92",
      "styles": "5efd2d30f4c3e153e2b3ef781949223c2333762dcb5981d02b12768eeb5441f6",
      "width": "31|1|||"
     },
     "REWARD=>ADD_DATA => rewardRule": {
-     "values": "15397e7dadf4b7cca34328df6247e187bcf1fc52125d02fdea55ee90b5f325c5",
+     "values": "1c1d681b8370ea6060b7698d45c5c2258e1b815779db987ac83ad43dcb5871b3",
      "styles": "5efd2d30f4c3e153e2b3ef781949223c2333762dcb5981d02b12768eeb5441f6",
      "width": "30|1|||"
     },
     "REWARD=>ADD_DATA => hidden": {
-     "values": "b57fbf9dbd4767ec107e15435363dbd161c57b55701f81574b4def8ed63f731c",
+     "values": "c0c1725d9b223038310c3efc697a3fecd17fdff1b1c658f5863ca89a2edb206f",
      "styles": "5efd2d30f4c3e153e2b3ef781949223c2333762dcb5981d02b12768eeb5441f6",
      "width": "26|1|||"
     },
     "REWARD=>ADD_DATA => hiddenRewardList": {
-     "values": "a245d2613eaec05e442282bd435bbec79294334ded5356a12fd8c88cbd5a8c92",
+     "values": "ebdb725cf38983057099c8916de99bf3a340410c078211d36cbd56fa4721f315",
      "styles": "5efd2d30f4c3e153e2b3ef781949223c2333762dcb5981d02b12768eeb5441f6",
      "width": "36|1|||"
     },
     "REWARD=>ADD_DATA => persomanNumberVisible": {
-     "values": "bb50e4435e6ea993cf003118371844070037ecae59837b8ce67ad181dbc3347f",
+     "values": "ac93bf7addd97f7883cf61a5e936b925c88575f32f770324651ded677324066d",
      "styles": "5efd2d30f4c3e153e2b3ef781949223c2333762dcb5981d02b12768eeb5441f6",
      "width": "41|1|||"
     },
     "REWARD=>ADD_DATA => nftFlg": {
-     "values": "67dfcad33f06a4d839f4cbdbf7395558f48c2f96f9ca326b98f66d8ad71e2baf",
+     "values": "67cbbe50f7cb8a6ed577b8d9069c99aa1bc642d2f8cbafc1c40dd841e3ba4939",
      "styles": "5efd2d30f4c3e153e2b3ef781949223c2333762dcb5981d02b12768eeb5441f6",
      "width": "26|1|||"
     },
     "REWARD=>ADD_DATA => newsType": {
-     "values": "362786b71291a2f19f993b1d54f9e233e29fd844938abf5723a7e427af219832",
+     "values": "8e4b3b4cfc2461674516c8da7702319c35a6ec2407ff57b3655512de92255253",
      "styles": "5efd2d30f4c3e153e2b3ef781949223c2333762dcb5981d02b12768eeb5441f6",
      "width": "28|1|||"
     },
     "REWARD=>ADD_DATA => winCriterion": {
-     "values": "c3c5ebe0cc6d97635bb9be58fe526237890121a601fcf716eecca63d22c70016",
+     "values": "2c54315e4378deaab9229da86ee6325b113abe48924fa0598294193843ab2862",
      "styles": "5efd2d30f4c3e153e2b3ef781949223c2333762dcb5981d02b12768eeb5441f6",
      "width": "32|1|||"
     },
     "REWARD=>ADD_DATA => rewardAgainGlobal": {
-     "values": "4509ef62b0ae31d557c2d18a27d1bf0a1fc85074d330664498932945cbd3465e",
+     "values": "8c67780e987fa282172d28425b483ffeb7f9bbebaa35b9853cd946d228987091",
      "styles": "5efd2d30f4c3e153e2b3ef781949223c2333762dcb5981d02b12768eeb5441f6",
      "width": "37|1|||"
     },
     "REWARD=>ADD_DATA => rewardAgainTournament": {
-     "values": "b07f95a4c3a84cebbd3575644dc5d239ec791ec03a18ada853b7386e58ea37e7",
+     "values": "2be1c9f3f188e7252e9cb0ce3116c255442a33ee2c3aca9ebd13f1453014af34",
      "styles": "5efd2d30f4c3e153e2b3ef781949223c2333762dcb5981d02b12768eeb5441f6",
      "width": "41|1|||"
     },
     "REWARD=>ADD_DATA => outstanding": {
-     "values": "3bcbd6062f6a80bfe816f4a605a2acc921be4bbe36581626abedd81408260ece",
+     "values": "92ab30582072366c6a9155f8875fc4315a6fe0411ce6586402af673b44882888",
      "styles": "5efd2d30f4c3e153e2b3ef781949223c2333762dcb5981d02b12768eeb5441f6",
      "width": "31|1|||"
     },
     "REWARD=>ADD_DATA => teamNews": {
-     "values": "3e53e6aebdd119e28ca551aa8b004e0bdcacae196f6eeef7d2a6b3efedb4a287",
+     "values": "6dc00b5947891a586b1d387973dae587da42207a9e920961987abf6aa07258e9",
      "styles": "5efd2d30f4c3e153e2b3ef781949223c2333762dcb5981d02b12768eeb5441f6",
      "width": "28|1|||"
     },
     "REWARD=>ADD_DATA => singleNews": {
-     "values": "c6ced7cb2c72a74cc1c2f84afe947b857aecd699e2239addfaef67a512a6505c",
+     "values": "90bf1b664b8c514835491404945d9171b5aac60de5cfab4b01d1637546540cf1",
      "styles": "5efd2d30f4c3e153e2b3ef781949223c2333762dcb5981d02b12768eeb5441f6",
      "width": "30|1|||"
     },
     "REWARD=>ADD_DATA => fileName": {
-     "values": "2ff7236ffa8eb9a2a39510926cbcfee1a2b7f79f4012c8f48e237cbddc844fa9",
+     "values": "88cd5c82c62b7af70efa56978c1d72f401460146ead310bb008699ecaae1d23e",
      "styles": "5efd2d30f4c3e153e2b3ef781949223c2333762dcb5981d02b12768eeb5441f6",
      "width": "28|1|||"
     },
     "REWARD=>ADD_DATA => refreshOldNews": {
-     "values": "fd072034c2bb755cf84f904306b8edb981be47e9f504420ffc800d1251167ebd",
+     "values": "f78a1ede279bacb21c48e7bf494eab4a52be074ee2ac624ddefedf6e11c196e7",
      "styles": "5efd2d30f4c3e153e2b3ef781949223c2333762dcb5981d02b12768eeb5441f6",
      "width": "34|1|||"
     },
     "REWARD=>ADD_DATA => businessBlock": {
-     "values": "bba8cdf26d0cf2ae5e2813f69a950ed71158854f4728743587e656c85deedae3",
+     "values": "372b5ef63d528d2d3dea744cad9ef847a4a690ccb723f222f9d566f7ebf1ebc6",
      "styles": "5efd2d30f4c3e153e2b3ef781949223c2333762dcb5981d02b12768eeb5441f6",
      "width": "33|1|||"
     },
     "REWARD=>ADD_DATA => recommendationLevel": {
-     "values": "6f941f321d8ea2eba2da144f5b877bc548e7e379e2745f67b1642558e0623df5",
+     "values": "8b35ea877c6209ca3ebc4509de1722454311d6662a61444e6cebc21d93729585",
      "styles": "5efd2d30f4c3e153e2b3ef781949223c2333762dcb5981d02b12768eeb5441f6",
      "width": "39|1|||"
     },
     "REWARD=>ADD_DATA => priority": {
-     "values": "d263bf561985ffcd75cf5b7abc34b13f93d91fac0a8ebc63d16f400ed8e1e328",
+     "values": "f83fc30923f6f4a05df2e816b0550debadb9af064aaafd655be9e2b8e6e02317",
      "styles": "5efd2d30f4c3e153e2b3ef781949223c2333762dcb5981d02b12768eeb5441f6",
      "width": "28|1|||"
     },
     "REWARD=>ADD_DATA => masterBadge": {
-     "values": "c748a116f83fdde89ea02df612ae6e0ecf6407d7ba9f63b954f34ca0a10de8c0",
+     "values": "ef5b3f0500fb127512a8f8acd2a9ffe4584d65cdac7f9c96fd715e83755e6a7a",
      "styles": "5efd2d30f4c3e153e2b3ef781949223c2333762dcb5981d02b12768eeb5441f6",
      "width": "31|1|||"
     },
     "REWARD=>ADD_DATA => parentRewardCode": {
-     "values": "27b4f6d796531cf84e453bbb17da5e6cfdeda2a575e857d78d679211c72cf781",
+     "values": "360ef52120d422e36528465854260a1706cc4e7bba24212bc9ee5f7a3efecd81",
      "styles": "5efd2d30f4c3e153e2b3ef781949223c2333762dcb5981d02b12768eeb5441f6",
      "width": "36|1|||"
     },
     "REWARD=>ADD_DATA => helpCodeList": {
-     "values": "2a6cbfc422a15d073550eac405f778a5c4f483c17573d6b9d8bd3815e51abb7e",
+     "values": "4f3ac99d125d1f49b323d93bb20bf5bc68b09abd65776ad76cf5f963cff70061",
      "styles": "5efd2d30f4c3e153e2b3ef781949223c2333762dcb5981d02b12768eeb5441f6",
      "width": "32|1|||"
     },
     "REWARD=>ADD_DATA => seasonItem": {
-     "values": "5a8d0769b10083e5b7b29babac54aef7c6d41480c17f5ba96252fe4e1d5dd8c1",
+     "values": "df9d7bef209ab6ecdfa69a0ef19b353606ee68f29bcb40c36f5f848fc8a8b785",
      "styles": "5efd2d30f4c3e153e2b3ef781949223c2333762dcb5981d02b12768eeb5441f6",
      "width": "30|1|||"
     },
     "REWARD=>ADD_DATA": {
-     "values": "b82b80c9b7c3abec5f990d75cf75e6ec3eb572749c95b072c519b39f7ee2b246",
+     "values": "9c6cb93b31701afd060df6f40eb3c8241fee248ba5cdf42261c6cf4cda0b371a",
      "styles": "5efd2d30f4c3e153e2b3ef781949223c2333762dcb5981d02b12768eeb5441f6",
      "width": "150|1|||"
     },
     "TOURNAMENT-SCHEDULE=>START_DT": {
-     "values": "96355fb3cb717433ba517b41b1e2d08ca4317ecd3af08a9eb6d60c4f8493aae6",
+     "values": "a3c34f5a69e806e63d04e72606f7d792e152e08cf11137228311defe8b11062e",
      "styles": "8b76c17ab669f5233c83ce7c5fadce9a4b805e171e8da34555c49a3bea52ec7c",
      "width": "29|1|||"
     },
     "TOURNAMENT-SCHEDULE=>END_DT": {
-     "values": "e929da4727e449a6485a808d4945f532eb682c2d71c663d6826e3a74d79d9ac7",
+     "values": "251be3789361be4e3a30c536f5e5d93a2278783d4f2b7f9b43b24dff1f5017ad",
      "styles": "8b76c17ab669f5233c83ce7c5fadce9a4b805e171e8da34555c49a3bea52ec7c",
      "width": "27|1|||"
     },
     "TOURNAMENT-SCHEDULE=>RESULT_DT": {
-     "values": "39d5be27f750dcf8ebff5db6eb49a820146681262eea00d18d44a567463e7504",
+     "values": "1320856fcf1b6d350a87c6e5f4001009f6837347a09763a815013841ff0f050c",
      "styles": "8b76c17ab669f5233c83ce7c5fadce9a4b805e171e8da34555c49a3bea52ec7c",
      "width": "30|1|||"
     },
     "TOURNAMENT-SCHEDULE=>TOURNAMENT_STATUS": {
-     "values": "8c5540576308b1dcc08063e643835d8a729102f7b8c1767366f18a2423ac186e",
+     "values": "2841063a6fc8fe7e7dd4a9c4e3d31af72dbca8437db18da4526e63be86271743",
      "styles": "8b76c17ab669f5233c83ce7c5fadce9a4b805e171e8da34555c49a3bea52ec7c",
      "width": "38|1|||"
     },
     "TOURNAMENT-SCHEDULE=>TARGET_TYPE": {
-     "values": "5a0efa6ab12c13e7fdde3452cca11263b2a3888903182ffda5a5a84af95c9a44",
+     "values": "0f20780c90140b0e6da29c26e791847bbb1da13ca3d0345a65f9cca08a6ec7e5",
      "styles": "8b76c17ab669f5233c83ce7c5fadce9a4b805e171e8da34555c49a3bea52ec7c",
      "width": "39|1|||"
     },
     "TOURNAMENT-SCHEDULE=>PERIOD_TYPE": {
-     "values": "243420d21e238eccaf366b852cc66de237b0d190d52e540372905bad0eb248dd",
+     "values": "13e377b9563b8d9be64de810a9e05d031c052e04d264fdfb003cbd4dbe059195",
      "styles": "8b76c17ab669f5233c83ce7c5fadce9a4b805e171e8da34555c49a3bea52ec7c",
      "width": "32|1|||"
     },
     "TOURNAMENT-SCHEDULE=>PLAN_PERIOD_START_DT": {
-     "values": "99711958007747378880e6425b6b6ea6097c397f97fe72712e1ea376c1f22964",
+     "values": "37252359f771c385daf298964c76a523a6b5bfc15ff07e63aba8173de9b6251e",
      "styles": "8b76c17ab669f5233c83ce7c5fadce9a4b805e171e8da34555c49a3bea52ec7c",
      "width": "41|1|||"
     },
     "TOURNAMENT-SCHEDULE=>PLAN_PERIOD_END_DT": {
-     "values": "f3595a0b4a63d1af5386d4a965dba40ead90e0decc669e2a46311e222b3a73e7",
+     "values": "5475aed1123b64235b930c0777f12bbfd6a5404493cf5871304cd72e600ca975",
      "styles": "8b76c17ab669f5233c83ce7c5fadce9a4b805e171e8da34555c49a3bea52ec7c",
      "width": "39|1|||"
     },
     "TOURNAMENT-SCHEDULE=>CRITERION_MARK_TYPE": {
-     "values": "6dcb1903341c6644d178f50caa277b1b236641982ddbbd03995c37ff0b07711c",
+     "values": "bbb81b05a4f18e6c9bb8862476419cc8aa412d7f3efb2057289d9b4898016d02",
      "styles": "8b76c17ab669f5233c83ce7c5fadce9a4b805e171e8da34555c49a3bea52ec7c",
      "width": "40|1|||"
     },
     "TOURNAMENT-SCHEDULE=>CRITERION_MARK_VALUE": {
-     "values": "e11a02e680c5516d3572459afe16aed9126367eee4f18ad607ccd3db66a1df8b",
+     "values": "064185f2a91f86f3b1c1c2a1df978644e3b37132e5ac79e3e50b78d1f8e0fe9d",
      "styles": "8b76c17ab669f5233c83ce7c5fadce9a4b805e171e8da34555c49a3bea52ec7c",
      "width": "41|1|||"
     },
     "TOURNAMENT-SCHEDULE=>FILTER_PERIOD_ARR": {
-     "values": "284bfc290c2474fa83844f81ffbab9082cdccaf2765eb8176b5450264989d50d",
+     "values": "2172d60947db17ff9cb70cdb0d082fd1d31ff006ee20a891e2a00a2ee179ebda",
      "styles": "8b76c17ab669f5233c83ce7c5fadce9a4b805e171e8da34555c49a3bea52ec7c",
      "width": "38|1|||"
     },
     "TOURNAMENT-SCHEDULE=>CONTEST_CODE": {
-     "values": "d294388357f44834e04cd8c2ab75ab427de65aedd75bb16c3e05e3420c831025",
+     "values": "2e884901c1d349a335ffa3133fc2431293e133e0c2d53e5af43471405f57b7e3",
      "styles": "8b76c17ab669f5233c83ce7c5fadce9a4b805e171e8da34555c49a3bea52ec7c",
      "width": "33|1|||"
     },
     "TOURNAMENT-SCHEDULE=>CALC_TYPE": {
-     "values": "c8b8070428da1642b8654b5e648e271793e67cb3f5014f2b54509fae2b205229",
+     "values": "dcbccc26e0e86e46c0547bfa901f375250ee41dc3bc9e20188b3b0cf9e6a6418",
      "styles": "8b76c17ab669f5233c83ce7c5fadce9a4b805e171e8da34555c49a3bea52ec7c",
      "width": "30|1|||"
     },
     "TOURNAMENT-SCHEDULE=>TRN_INDICATOR_FILTER": {
-     "values": "b1ae74385b3007041d89f0bc286c61ee87696fac4314c1c96837a7e2d6b0a8e1",
+     "values": "1a446660f2d8461e0969a43c5bb19290e1c8b8733dcdf2caf5a326af63d0b32d",
      "styles": "8b76c17ab669f5233c83ce7c5fadce9a4b805e171e8da34555c49a3bea52ec7c",
      "width": "41|1|||"
     },
     "GROUP=>GET_CALC_METHOD": {
-     "values": "2b987c434a8100dcb321225179213b2c9f8a357897187c038e14b9e3322dd2a9",
+     "values": "aaa4e6022c78c34ec2ffa36605273d001abfeb17f0dfbcbfd6be83a4c2cbb5e5",
      "styles": "f65f90e3f5e1e44372f011511df43abe2b7b9da2ba799930a6a15be075e3dba5",
      "width": "22|1|||"
     },
     "GROUP=>GET_CALC_CRITERION": {
-     "values": "d5839ded9064309165464f45938a39e74d6a85796e775011c109636b8ce64033",
+     "values": "661732171a06ea6f1066574214d18053d393100d56ddaca87e2322242eca0743",
      "styles": "f65f90e3f5e1e44372f011511df43abe2b7b9da2ba799930a6a15be075e3dba5",
      "width": "25|1|||"
     },
     "GROUP=>ADD_CALC_CRITERION": {
-     "values": "a42298024465f7ce307902ead8adde8c946e15fca1debfa877edbe688aef1543",
+     "values": "1999446d7a0fa2db75021b3a112f086ceae6d94d79715a7fb47ce9686af665af",
      "styles": "f65f90e3f5e1e44372f011511df43abe2b7b9da2ba799930a6a15be075e3dba5",
      "width": "25|1|||"
     },
     "GROUP=>ADD_CALC_CRITERION_2": {
-     "values": "f11cb3418faed052d8f5312f4877eb41b7e494f1f87acd43db96506fd1a234ce",
+     "values": "b4221cbc0aadd2985272e30b9cbe1d7e5008e198471284ce935fa3c75ab8c323",
      "styles": "f65f90e3f5e1e44372f011511df43abe2b7b9da2ba799930a6a15be075e3dba5",
      "width": "27|1|||"
     },
     "GROUP=>BASE_CALC_CODE": {
-     "values": "f40a047f52d315002a914eff092ec9ae083389bc0cbb1978dea38c3fa0e7c2de",
+     "values": "2f873c320d4ea984575fd17c63279ce6412f8364d03dc5ce475524ba9e0756ce",
      "styles": "f65f90e3f5e1e44372f011511df43abe2b7b9da2ba799930a6a15be075e3dba5",
      "width": "21|1|||"
     },
     "INDICATOR=>INDICATOR_CALC_TYPE": {
-     "values": "a48a4f270eaab5fe93a744c2e6bdca19db089f66d9c376a7138a86bb4f2f604e",
+     "values": "28b0c562544fa26525bc264c48b0308f54a19f81fec51a02db926ef54901d78b",
      "styles": "9d4a268417c1223b0bb5b2a4667611acfdcbff5abd3621fe3785b2594d7f995d",
      "width": "30|1|||"
     },
     "INDICATOR=>INDICATOR_ADD_CALC_TYPE": {
-     "values": "23b2e5af6f04cfe9f358db9450964757b250d3954fbcd199cb4f3a20bf62ec05",
+     "values": "6ab1b2f47589189fead6459c29391773a6581516f279c6b0c02fafb0f9a33995",
      "styles": "9d4a268417c1223b0bb5b2a4667611acfdcbff5abd3621fe3785b2594d7f995d",
      "width": "34|1|||"
     },
     "INDICATOR=>INDICATOR_CODE": {
-     "values": "77f576b02a8553b1c7324301877a5f756e705c66a79be90d159233c192d63f0c",
+     "values": "33122a5e6f53c92701d99fbac9300d9eb53288a9b5dd8b9cf5717fa480e90648",
      "styles": "9d4a268417c1223b0bb5b2a4667611acfdcbff5abd3621fe3785b2594d7f995d",
      "width": "25|1|||"
     },
     "INDICATOR=>INDICATOR_AGG_FUNCTION": {
-     "values": "2974e72051f472042bf4749a58c11d9e01eb170be9556f732c1b5d725925fcf4",
+     "values": "07a104436c8705365f7861ac980034e219d5266d9d87e39b94ab192cde63738b",
      "styles": "9d4a268417c1223b0bb5b2a4667611acfdcbff5abd3621fe3785b2594d7f995d",
      "width": "33|1|||"
     },
     "INDICATOR=>INDICATOR_WEIGHT": {
-     "values": "57e2e56f1eeaade7fc4151f1e2c3e93a1d01cfd86d2d1ed68a311259b1d4d7b7",
+     "values": "0f7707f644e60d0aa61fccd7022c1cb96fc05df17dcfd218d87988b66eed6c07",
      "styles": "9d4a268417c1223b0bb5b2a4667611acfdcbff5abd3621fe3785b2594d7f995d",
      "width": "27|1|||"
     },
     "INDICATOR=>INDICATOR_MARK_TYPE": {
-     "values": "b0d21f6c6df5bbdffd3412473818a354fa3d8f53c02a3de4cd0ea0c6c88fe26f",
+     "values": "9a30ecd70b28c1ff213fe9fcad473ba467ccb69801624497ed9de126e35de133",
      "styles": "9d4a268417c1223b0bb5b2a4667611acfdcbff5abd3621fe3785b2594d7f995d",
      "width": "30|1|||"
     },
     "INDICATOR=>INDICATOR_MATCH": {
-     "values": "71ed755f0f5e4dc7a495eb9044ad9d67cb9273811144705e6fa0d0100315ce25",
+     "values": "f9cf44a9b330d951e73430f043d4680e27df48b97e62208eebb99d0ff320f338",
      "styles": "9d4a268417c1223b0bb5b2a4667611acfdcbff5abd3621fe3785b2594d7f995d",
      "width": "26|1|||"
     },
     "INDICATOR=>INDICATOR_VALUE": {
-     "values": "9a25a73481c0198e3b9cb427de84dfee748c3ae4ca1aca44c1a629971e7a456e",
+     "values": "e3e858daee3f628ebe2859505437ffc844f19c97effe8faef553467034610b9e",
      "styles": "9d4a268417c1223b0bb5b2a4667611acfdcbff5abd3621fe3785b2594d7f995d",
      "width": "26|1|||"
     },
     "INDICATOR=>INDICATOR_OBJECT": {
-     "values": "af0a5b0228415fbe967d24b3a43cc4a82192699f16f78327f28a72b7e44f6d8a",
+     "values": "89cd5b60b01c1495af4166246084983517d2e2cda6dd2ce2f5e7d001a99125e4",
      "styles": "9d4a268417c1223b0bb5b2a4667611acfdcbff5abd3621fe3785b2594d7f995d",
      "width": "27|1|||"
     },
     "INDICATOR=>CONTEST_CRITERION": {
-     "values": "c4bcad967411bd393951b2d211289904e37517fea2bb45695592a41690b5050f",
+     "values": "29326d8a8fd3493cc78fbe06ea181f7c42f4b1d10fa08ef32b4c89470c15a86d",
      "styles": "9d4a268417c1223b0bb5b2a4667611acfdcbff5abd3621fe3785b2594d7f995d",
      "width": "28|1|||"
     },
     "INDICATOR=>CONTESTANT_SELECTION": {
-     "values": "27ba6a64d5f708b3a9ac027e8b12414fd69f149c7818534cd81254cb80f7f98a",
+     "values": "81c772244f656a7f3012245f7389974a4de4791e131ced39b2c930f939a4f564",
      "styles": "9d4a268417c1223b0bb5b2a4667611acfdcbff5abd3621fe3785b2594d7f995d",
      "width": "31|1|||"
     },
     "INDICATOR=>CALC_TYPE": {
-     "values": "cffdec21145c122f69695e24846d71b14d5bd37d9d9fcb947d7f948ee45e728f",
+     "values": "74d84274c43a805f7277f292a6fd77b82b51f6fa5500afb4be68b3d16e1fc580",
      "styles": "9d4a268417c1223b0bb5b2a4667611acfdcbff5abd3621fe3785b2594d7f995d",
      "width": "20|1|||"
     },
     "INDICATOR=>N": {
-     "values": "aa1294e668fb08c5aea57efcacbb4977cd1ca9b580eb8fd5e57111e2cb2ea012",
+     "values": "9e06baf1b9a4d1faaa7a0fe1033868524ff78a7d36b98b1f816236a861e2c13e",
      "styles": "9d4a268417c1223b0bb5b2a4667611acfdcbff5abd3621fe3785b2594d7f995d",
      "width": "12|1|||"
     },
     "INDICATOR=>INDICATOR_FILTER": {
-     "values": "9fdf28478958e943d28173e7ee1eca251ee4b6551bab8733006943c593ef0f58",
+     "values": "dbafbf2deb4fc9fcdc00e6907e5ac190066e426ab69ec21ef63b63fcab4e5e6d",
      "styles": "9d4a268417c1223b0bb5b2a4667611acfdcbff5abd3621fe3785b2594d7f995d",
      "width": "27|1|||"
     },
     "REWARD_LINK => CONTEST_CODE": {
-     "values": "1d29ce77744f651e251eec3e0216d3ea95833f0692dc5230ccf6b1fb5ed06b36",
+     "values": "95b6a0c134e286c77b7f82c85553bd973112b89753a03b9b3da319597026a96b",
      "styles": "7875a12a7c989f08ac3688ec400510ae8ae36f0a14fceea26897ce8212cea991",
      "width": "27|1|||"
     },
     "LIST-TOURNAMENT=>Бизнес-статус турнира": {
-     "values": "4c1f7ef09b1cd99c8671828f92746a99d5f83857254a91035ceb408615ddcb16",
+     "values": "2f757f5864ab731b1d5414c9152fb0e696079f13ccf49e8acd801870723ba543",
      "styles": "7ac8fb9801a67887c035a73cbabd1d838552be5524ba5767fbc932d90cf27156",
      "width": "38|1|||"
     },
     "LIST-TOURNAMENT=>Дата, после которой можно закрывать турнир и подводить итоги": {
-     "values": "f9aab2ab8d169aeb5f75c5e66bc87f4322524190471ac261411f8f7721c4512e",
+     "values": "433d76567c33e63c4323ab143d8c5095b62e5aeec1c3964c8d951f380224d83b",
      "styles": "7ac8fb9801a67887c035a73cbabd1d838552be5524ba5767fbc932d90cf27156",
      "width": "77|1|||"
     },
     "LIST-TOURNAMENT=>Дата обновления данных источника": {
-     "values": "1ef9c2d5c13c69fb8c5c2b151cdcca569f0515ffb4e3d70d2b45f4334ddeaec6",
+     "values": "cc01286e52dd3a498840a8dd59e420e5f78f7593736a2b358662926807a10495",
      "styles": "7ac8fb9801a67887c035a73cbabd1d838552be5524ba5767fbc932d90cf27156",
      "width": "49|1|||"
     },
     "REPORT=>CONTEST_DATE": {
-     "values": "8a3f5fec909e3542cd631cd62d637f632509e4a6e3cca3b2f37eecf2462b5fea",
+     "values": "af19ce70f56b6d8655a60c139de35a3d2441ba9f58cbe4e8c0e0c1517d192cb0",
      "styles": "784b1f879ae9acecd6bbd8f66fa5e24439232c3d707c3f02fded472dd4ae29ef",
      "width": "20|1|||"
     },
     "REPORT=>COUNT_CONTEST_DATE": {
-     "values": "ce6890b86e535fe77757499881c8767051fe92ba60f4cbcf3aaa22ca4b46f67a",
+     "values": "059bbc70e00d99ae9ba5846d4f6dac3ae38c245c9c172cbfc4b86ee3345f6634",
      "styles": "784b1f879ae9acecd6bbd8f66fa5e24439232c3d707c3f02fded472dd4ae29ef",
      "width": "26|1|||"
     },
     "REWARD=>COUNT_REWARD_CODE": {
-     "values": "ab98e4c1b9302db5b41b8fa37c178e548ddb3702d220e317d9d9f6af633ecfd7",
+     "values": "45883842514228dd07ba12c96938a5d572e3df9495796d9fe5f4353f9cd40021",
      "styles": "5efd2d30f4c3e153e2b3ef781949223c2333762dcb5981d02b12768eeb5441f6",
      "width": "25|1|||"
     },
     "LIST-REWARDS=>COUNT_Код награды": {
-     "values": "6ec67de73a6deb3f2abbf2b3af2bc13b23ec12bd1c41c9da27f0ffcb102235d1",
+     "values": "82971b0e4780ab88f6f99c80645fa03042df97e2922473a375635d3594930493",
      "styles": "3110dfd1d8e75bbbeab992bc35c5b9e90083e488507b8d2686e835a31b2167e7",
      "width": "31|1|||"
     },
     "LIST-REWARDS=>COUNT_Код турнира": {
-     "values": "ca5b09b8c8bc066ddccfdf1246ca55aa836e308b63f7daa232b91f37dd304919",
+     "values": "9f2f8beae8a78dc5099af8c44b2f43edd74f1b6efcaf30acf88daad79497b044",
      "styles": "3110dfd1d8e75bbbeab992bc35c5b9e90083e488507b8d2686e835a31b2167e7",
      "width": "31|1|||"
     },
     "CONTEST-DATA=>COUNT_CONTEST_CODE": {
-     "values": "6b9235205d1c061c5cab838e14d21c114ec0373e99bac3e2bfc38c05c384bb00",
+     "values": "41c9b3ebbf839e6a58c2573f8522da346e05c856b7623eb16f3661dde2967c95",
      "styles": "3110dfd1d8e75bbbeab992bc35c5b9e90083e488507b8d2686e835a31b2167e7",
      "width": "32|1|||"
     },
     "TOURNAMENT-SCHEDULE=>COUNT_CONTEST_CODE": {
-     "values": "cd4a93b09f1a30cb2d17af17bd051ed61c4ec225afa4f76e6e0aa52c0ae4ada3",
+     "values": "aeb35b2d80511b1dc2f065566cfa19132272479cc512c61b9b027a241cac89ad",
      "styles": "8b76c17ab669f5233c83ce7c5fadce9a4b805e171e8da34555c49a3bea52ec7c",
      "width": "39|1|||"
     },
     "GROUP=>COUNT_CONTEST_CODE": {
-     "values": "3bca5c874ab4a8d09bdeef68ad0d348a62c78312b82ef0b6f264e5febf027c41",
+     "values": "ed8f91b8301ab87d4a31aaa54b32eb92a820b58393aab14ccc7718669086ae9b",
      "styles": "f65f90e3f5e1e44372f011511df43abe2b7b9da2ba799930a6a15be075e3dba5",
      "width": "25|1|||"
     },
     "INDICATOR=>COUNT_INDICATOR_MARK_TYPE": {
-     "values": "0f70b7e87df94e7f0434cf3af18fdbb8efcf7320efae4ea8113843471dfa4de3",
+     "values": "8af5bf0c6240a16ee4e04ca3db119fa7535f21dd24f9b0c3a767b5f7f1edb251",
      "styles": "9d4a268417c1223b0bb5b2a4667611acfdcbff5abd3621fe3785b2594d7f995d",
      "width": "36|1|||"
     },
     "REWARD-LINK=>COUNT_REWARD_CODE": {
-     "values": "16d0192333e386250d4a1a10af3de4d017bf971500b709328a1b808c45ded989",
+     "values": "f275fe0aaebe0aeb763735f836c0c142803a2834b209beecc13c47a3baeaebe4",
      "styles": "49a3189f2ba6345032e31c354a3e04ea4dd86a8964112e89455744c30bb8edea",
      "width": "30|1|||"
     },
     "TOURNAMENT-SCHEDULE=>COUNT_nunique_ACTIVE": {
-     "values": "6f66673d67a62c8466553fa6e1a3b9ed263403fb8fd5f6604d61e118acde7c77",
+     "values": "62c18f2203ed02b340211e8100bed2b7d345896e58fa3ff70078b83831f5a77c",
      "styles": "8b76c17ab669f5233c83ce7c5fadce9a4b805e171e8da34555c49a3bea52ec7c",
      "width": "41|1|||"
     },
     "TOURNAMENT-SCHEDULE=>COUNT_nunique_COMPLETED": {
-     "values": "3a81a1b4ba9d734d9d0cb184e36d48f84f209617c409a0b425f60bc2fb4091f2",
+     "values": "66ba2b572b9696834f636d9ed46b3749d5ed4ee07fe9d2bf4cd72940c28e4bd0",
      "styles": "8b76c17ab669f5233c83ce7c5fadce9a4b805e171e8da34555c49a3bea52ec7c",
      "width": "44|1|||"
     },
@@ -807,7 +808,7 @@
      "width": "44|1|||"
     },
     "TOURNAMENT-SCHEDULE=>COUNT_nunique_SUMMING_UP": {
-     "values": "dbd3d0c3fc6a441a07952f14ee81addaa3cd54f30098bb378a38086aed72f21a",
+     "values": "96dfd98f9aabc3dac8dc30aff333380c670ced2a66ef68b43fe9fd2e10184540",
      "styles": "8b76c17ab669f5233c83ce7c5fadce9a4b805e171e8da34555c49a3bea52ec7c",
      "width": "45|1|||"
     },
@@ -817,7 +818,7 @@
      "width": "42|1|||"
     },
     "TOURNAMENT-SCHEDULE=>COUNT_TOURNAMENT_CODE": {
-     "values": "e1b9871dcf5ca57ff92eada5b26fed27820adf2bdf8ec5407e99c60615e712b5",
+     "values": "7cc83aaab19db03ef73f60616841b5578507ddffcd558922f6a790a14663b5c3",
      "styles": "8b76c17ab669f5233c83ce7c5fadce9a4b805e171e8da34555c49a3bea52ec7c",
      "width": "42|1|||"
     }
@@ -825,6 +826,7 @@
   },
   "CONSISTENCY": {
    "rows": 100,
+   "row_set": "bbccd5c64f3d36da8b45817248aeaa5cb5ff7e2e19c7f6898bf0f284e32c7704",
    "cols": 16,
    "header": [
     "ТИП ПРОВЕРКИ",
@@ -930,6 +932,7 @@
   },
   "CONTEST-DATA": {
    "rows": 6,
+   "row_set": "c8b26e8c47e39830ce4d9fc02520d09685ee66656ad3650f3beb48c6fc99d9f2",
    "cols": 62,
    "header": [
     "CONTEST_CODE",
@@ -980,14 +983,14 @@
     "CONTEST_FEATURE => tournamentTeam",
     "CONTEST_FEATURE => preferences",
     "CONTEST_FEATURE => helpCodeList",
+    "ПРОВЕРКА: SPOD-JSON (CONTEST-DATA)",
+    "ПРОВЕРКА: SPOD-JSON (CONTEST_PERIOD)",
+    "ПРОВЕРКА: CONTEST_CODE в GROUP",
     "ДУБЛЬ: CONTEST_CODE",
     "ПРОВЕРКА ФОРМАТ: CREATE_DT",
     "ПРОВЕРКА ФОРМАТ: CLOSE_DT",
     "ПРОВЕРКА: BUSINESS_BLOCK IN",
     "ПРОВЕРКА: CONTEST_FEATURE.businessBlock IN",
-    "ПРОВЕРКА: SPOD-JSON (CONTEST-DATA)",
-    "ПРОВЕРКА: CONTEST_CODE в GROUP",
-    "ПРОВЕРКА: SPOD-JSON (CONTEST_PERIOD)",
     "TOURNAMENT-SCHEDULE=>COUNT_TOURNAMENT_CODE",
     "TOURNAMENT-SCHEDULE=>COUNT_nunique_ACTIVE",
     "TOURNAMENT-SCHEDULE=>COUNT_nunique_COMPLETED",
@@ -1237,6 +1240,21 @@
      "styles": "5bc165d7e90c54d9b0b02ecbc54153ae8a778221049efb0b5216a0e5ba4bfba6",
      "width": "31|1|||"
     },
+    "ПРОВЕРКА: SPOD-JSON (CONTEST-DATA)": {
+     "values": "c912ce9527444809da237175d0e2c982ac1023f181d9d50615c9e92d00d23c1c",
+     "styles": "5bc165d7e90c54d9b0b02ecbc54153ae8a778221049efb0b5216a0e5ba4bfba6",
+     "width": "37|1|||"
+    },
+    "ПРОВЕРКА: SPOD-JSON (CONTEST_PERIOD)": {
+     "values": "e36ba839a2f46ee97d693846fb6770192df8ef36869550e746585de19e9d2908",
+     "styles": "5bc165d7e90c54d9b0b02ecbc54153ae8a778221049efb0b5216a0e5ba4bfba6",
+     "width": "36|1|||"
+    },
+    "ПРОВЕРКА: CONTEST_CODE в GROUP": {
+     "values": "beb7868ce7ce39c0c39632b3372f97b2bd5871f1776b310882b69b802ac31c36",
+     "styles": "5bc165d7e90c54d9b0b02ecbc54153ae8a778221049efb0b5216a0e5ba4bfba6",
+     "width": "30|1|||"
+    },
     "ДУБЛЬ: CONTEST_CODE": {
      "values": "49898aab685a3d37a4d095a2528421bbc9f1b9893ac94fcbe42183330fa4161f",
      "styles": "5bc165d7e90c54d9b0b02ecbc54153ae8a778221049efb0b5216a0e5ba4bfba6",
@@ -1261,21 +1279,6 @@
      "values": "a1d7edf63831d42f626135700d96afd32b630c50a346b82df7a0b60a5c43dc7b",
      "styles": "5bc165d7e90c54d9b0b02ecbc54153ae8a778221049efb0b5216a0e5ba4bfba6",
      "width": "42|1|||"
-    },
-    "ПРОВЕРКА: SPOD-JSON (CONTEST-DATA)": {
-     "values": "c912ce9527444809da237175d0e2c982ac1023f181d9d50615c9e92d00d23c1c",
-     "styles": "5bc165d7e90c54d9b0b02ecbc54153ae8a778221049efb0b5216a0e5ba4bfba6",
-     "width": "37|1|||"
-    },
-    "ПРОВЕРКА: CONTEST_CODE в GROUP": {
-     "values": "beb7868ce7ce39c0c39632b3372f97b2bd5871f1776b310882b69b802ac31c36",
-     "styles": "5bc165d7e90c54d9b0b02ecbc54153ae8a778221049efb0b5216a0e5ba4bfba6",
-     "width": "30|1|||"
-    },
-    "ПРОВЕРКА: SPOD-JSON (CONTEST_PERIOD)": {
-     "values": "e36ba839a2f46ee97d693846fb6770192df8ef36869550e746585de19e9d2908",
-     "styles": "5bc165d7e90c54d9b0b02ecbc54153ae8a778221049efb0b5216a0e5ba4bfba6",
-     "width": "36|1|||"
     },
     "TOURNAMENT-SCHEDULE=>COUNT_TOURNAMENT_CODE": {
      "values": "68d5d55722d8c9a33de455b87ec3c5f81a5dfdb1e64b4546545b8d4f350a13ef",
@@ -1311,6 +1314,7 @@
   },
   "REWARD": {
    "rows": 7,
+   "row_set": "50562e28a69e48efcce05ab45c9d4c455c5b8a6a504358390af45b9a15b027f0",
    "cols": 66,
    "header": [
     "REWARD_CODE",
@@ -1358,15 +1362,15 @@
     "ADD_DATA => seasonItem",
     "ADD_DATA => recommendationLevel",
     "ADD_DATA => helpCodeList",
+    "ПРОВЕРКА: SPOD-JSON (REWARD_ADD_DATA)",
     "ПРОВЕРКА: parentRewardCode (ADD_DATA) = REWARD_CODE (BADGE masterBadge=Y)",
     "ПРОВЕРКА: parentRewardCode (ADD_DATA) = REWARD_CODE (LABEL)",
     "ПРОВЕРКА: parentRewardCode ≠ REWARD_CODE (BADGE masterBadge=N)",
     "ПРОВЕРКА: parentRewardCode из ADD_DATA в REWARD_CODE",
     "ПРОВЕРКА: priority уникален по CONTEST (REWARD-LINK)",
+    "ПРОВЕРКА: REWARD_CODE в REWARD-LINK",
     "ДУБЛЬ: REWARD_CODE",
     "ПРОВЕРКА: REWARD_ADD_DATA.businessBlock IN",
-    "ПРОВЕРКА: REWARD_CODE в REWARD-LINK",
-    "ПРОВЕРКА: SPOD-JSON (REWARD_ADD_DATA)",
     "REWARD_LINK => CONTEST_CODE",
     "TOURNAMENT-SCHEDULE=>COUNT_TOURNAMENT_CODE",
     "CONTEST-DATA=>FULL_NAME",
@@ -1607,6 +1611,11 @@
      "styles": "3b5b66a94643c477d996da006244e28e7d74bfc6d9ece7844e58d92196d7458e",
      "width": "24|1|||"
     },
+    "ПРОВЕРКА: SPOD-JSON (REWARD_ADD_DATA)": {
+     "values": "ec24ecc173aa75a0d42f1238873dca5b7e469b694fbe13d8dfca97925a261134",
+     "styles": "3b5b66a94643c477d996da006244e28e7d74bfc6d9ece7844e58d92196d7458e",
+     "width": "71|1|||"
+    },
     "ПРОВЕРКА: parentRewardCode (ADD_DATA) = REWARD_CODE (BADGE masterBadge=Y)": {
      "values": "80f438828a7d9c4a13ec47d83a24eedb2ff84693bea0ac9b180c9a306093a92b",
      "styles": "3b5b66a94643c477d996da006244e28e7d74bfc6d9ece7844e58d92196d7458e",
@@ -1632,6 +1641,11 @@
      "styles": "3b5b66a94643c477d996da006244e28e7d74bfc6d9ece7844e58d92196d7458e",
      "width": "88|1|||"
     },
+    "ПРОВЕРКА: REWARD_CODE в REWARD-LINK": {
+     "values": "2ff2ad86abeebecebc1bd631626e2e700927a720d45621579390fa5a9c46d2cc",
+     "styles": "3b5b66a94643c477d996da006244e28e7d74bfc6d9ece7844e58d92196d7458e",
+     "width": "35|1|||"
+    },
     "ДУБЛЬ: REWARD_CODE": {
      "values": "049c9afdf8f366e3ccd20696912a0e96361e5b7e87ef23a08664ad5e47abda8a",
      "styles": "3b5b66a94643c477d996da006244e28e7d74bfc6d9ece7844e58d92196d7458e",
@@ -1642,18 +1656,8 @@
      "styles": "3b5b66a94643c477d996da006244e28e7d74bfc6d9ece7844e58d92196d7458e",
      "width": "42|1|||"
     },
-    "ПРОВЕРКА: REWARD_CODE в REWARD-LINK": {
-     "values": "2ff2ad86abeebecebc1bd631626e2e700927a720d45621579390fa5a9c46d2cc",
-     "styles": "3b5b66a94643c477d996da006244e28e7d74bfc6d9ece7844e58d92196d7458e",
-     "width": "35|1|||"
-    },
-    "ПРОВЕРКА: SPOD-JSON (REWARD_ADD_DATA)": {
-     "values": "ec24ecc173aa75a0d42f1238873dca5b7e469b694fbe13d8dfca97925a261134",
-     "styles": "3b5b66a94643c477d996da006244e28e7d74bfc6d9ece7844e58d92196d7458e",
-     "width": "71|1|||"
-    },
     "REWARD_LINK => CONTEST_CODE": {
-     "values": "5e6e7fe33bd608c46534c4c86bb6ed3d6a4a64e1d64c4dec0fac4e8288e5eab3",
+     "values": "dca1ee4573e7eb78b2b53c496b86ee8cdb76839ce5df341dbee312ee52768d05",
      "styles": "05b3b5a84a0c36cca26a3259abacb91f968abc47de755cde5522b515a636d531",
      "width": "27|1|||"
     },
@@ -1663,17 +1667,17 @@
      "width": "11|1|||"
     },
     "CONTEST-DATA=>FULL_NAME": {
-     "values": "8690ae89b538877ff55ec544e0282c55b00501a6fda3cfd67a6688b2b94bfe83",
+     "values": "40631cf1f4968d33e1bb881836498548e815509b3cd2e15eeea66e340dacdf10",
      "styles": "d59a78ab7bc9fe240dc80f369064c40327920403e46dbe485ff2896923bfeb85",
      "width": "27|1|||"
     },
     "CONTEST-DATA=>CONTEST_TYPE": {
-     "values": "909bcaaeadf14f4d21199e6701a2d9664230ddd9770c4762857f19cc9ad2a717",
+     "values": "1b0fc9a419519c703859086beaa5e18a7356dbcbf01fc0253be8a143292f4bc6",
      "styles": "d59a78ab7bc9fe240dc80f369064c40327920403e46dbe485ff2896923bfeb85",
      "width": "26|1|||"
     },
     "CONTEST-DATA=>CONTEST_DESCRIPTION": {
-     "values": "56d6d1645720f8f04a79363db94f6d5b4f430de62a13e4bf564aca942e808037",
+     "values": "b1895d487fa2383145b2d179b7f898cf8f9a20da75fd81f70b700ead09f2c4c6",
      "styles": "d59a78ab7bc9fe240dc80f369064c40327920403e46dbe485ff2896923bfeb85",
      "width": "36|1|||"
     },
@@ -1683,17 +1687,17 @@
      "width": "27|1|||"
     },
     "CONTEST-DATA=>PRODUCT": {
-     "values": "5562e863fd2fb3f995b37c554def7c4080ec74fab01f00e6b169615ce04f833a",
+     "values": "4a2ceffbe7d2f426d3310399ae211b413d0900f1751a8b4cd7deb234837cec6d",
      "styles": "d59a78ab7bc9fe240dc80f369064c40327920403e46dbe485ff2896923bfeb85",
      "width": "21|1|||"
     },
     "CONTEST-DATA=>TARGET_TYPE": {
-     "values": "543a70937f157122325c57225cd5c02d1978859673637d0690352f46cf1c9f88",
+     "values": "2ad025aac7e70aeac00dcaa3221349727a96121eaebeb179b29cdeaa4aaec089",
      "styles": "d59a78ab7bc9fe240dc80f369064c40327920403e46dbe485ff2896923bfeb85",
      "width": "25|1|||"
     },
     "CONTEST-DATA=>CONTEST_FEATURE => businessBlock": {
-     "values": "a88813d203159e7ca437af93f380b9d1e44911c6ff90948441a644daafd5d96e",
+     "values": "d37e106577873df562940e5dd968c891d4b860623b2d0771ddef115ac608be76",
      "styles": "d59a78ab7bc9fe240dc80f369064c40327920403e46dbe485ff2896923bfeb85",
      "width": "46|1|||"
     },
@@ -1716,6 +1720,7 @@
   },
   "TOURNAMENT-SCHEDULE": {
    "rows": 9,
+   "row_set": "4bb18c45f54c5aad537defd58046ae36a32f783f1dfbafab4ef6e8cae831d5f4",
    "cols": 51,
    "header": [
     "TOURNAMENT_CODE",
@@ -1733,16 +1738,16 @@
     "TARGET_TYPE",
     "CALC_TYPE",
     "TRN_INDICATOR_FILTER",
+    "ПРОВЕРКА: SPOD-JSON (FILTER_PERIOD_ARR)",
+    "ПРОВЕРКА: SPOD-JSON (TARGET_TYPE)",
+    "ПРОВЕРКА: CONTEST_CODE в CONTEST-DATA",
+    "ПРОВЕРКА: CONTEST_CODE в INDICATOR",
+    "ПРОВЕРКА: CONTEST_CODE в GROUP",
     "ДУБЛЬ: TOURNAMENT_CODE",
     "ПРОВЕРКА ФОРМАТ: START_DT",
     "ПРОВЕРКА ФОРМАТ: END_DT",
     "ПРОВЕРКА ФОРМАТ: RESULT_DT",
     "ПРОВЕРКА: TOURNAMENT_STATUS IN",
-    "ПРОВЕРКА: CONTEST_CODE в CONTEST-DATA",
-    "ПРОВЕРКА: CONTEST_CODE в INDICATOR",
-    "ПРОВЕРКА: CONTEST_CODE в GROUP",
-    "ПРОВЕРКА: SPOD-JSON (FILTER_PERIOD_ARR)",
-    "ПРОВЕРКА: SPOD-JSON (TARGET_TYPE)",
     "CALC_TOURNAMENT_STATUS",
     "CONTEST-DATA=>FULL_NAME",
     "CONTEST-DATA=>BUSINESS_BLOCK",
@@ -1847,6 +1852,31 @@
      "styles": "30de8d0cd0356fb0fedb83098d59e1404e9f08a4831abd445895340a832ddc75",
      "width": "20|1|||"
     },
+    "ПРОВЕРКА: SPOD-JSON (FILTER_PERIOD_ARR)": {
+     "values": "9733e0d58968192cee8610e34d33449209dcd5fb8bbc2f614560c5cc4a4bac1b",
+     "styles": "30de8d0cd0356fb0fedb83098d59e1404e9f08a4831abd445895340a832ddc75",
+     "width": "39|1|||"
+    },
+    "ПРОВЕРКА: SPOD-JSON (TARGET_TYPE)": {
+     "values": "02b5510b1e31cd5adb2600c51691732e080ee6d32d2ec860eed20df3f505d48b",
+     "styles": "30de8d0cd0356fb0fedb83098d59e1404e9f08a4831abd445895340a832ddc75",
+     "width": "33|1|||"
+    },
+    "ПРОВЕРКА: CONTEST_CODE в CONTEST-DATA": {
+     "values": "98a255a38859adfcd74bc3e3d9d0755df9d0eac6be5c45f43587c4e2b00e81b6",
+     "styles": "30de8d0cd0356fb0fedb83098d59e1404e9f08a4831abd445895340a832ddc75",
+     "width": "37|1|||"
+    },
+    "ПРОВЕРКА: CONTEST_CODE в INDICATOR": {
+     "values": "2ed563d36321818e6b6ab0a4e20b751f8826a9a61d5bb23ec50520ef927711bb",
+     "styles": "30de8d0cd0356fb0fedb83098d59e1404e9f08a4831abd445895340a832ddc75",
+     "width": "34|1|||"
+    },
+    "ПРОВЕРКА: CONTEST_CODE в GROUP": {
+     "values": "548caea6d0ec0ed90e44baf3996d9357a3dea8686518a8afab6b29258b03a139",
+     "styles": "30de8d0cd0356fb0fedb83098d59e1404e9f08a4831abd445895340a832ddc75",
+     "width": "30|1|||"
+    },
     "ДУБЛЬ: TOURNAMENT_CODE": {
      "values": "6392144334ef1d5bc986b939fc44b896f5bc1595bed75ae9df57227837e4438f",
      "styles": "30de8d0cd0356fb0fedb83098d59e1404e9f08a4831abd445895340a832ddc75",
@@ -1871,31 +1901,6 @@
      "values": "08a34d10bf87a401d925adba530148a751e6338a0fcc7b4d20145efbb66ea0ce",
      "styles": "30de8d0cd0356fb0fedb83098d59e1404e9f08a4831abd445895340a832ddc75",
      "width": "30|1|||"
-    },
-    "ПРОВЕРКА: CONTEST_CODE в CONTEST-DATA": {
-     "values": "98a255a38859adfcd74bc3e3d9d0755df9d0eac6be5c45f43587c4e2b00e81b6",
-     "styles": "30de8d0cd0356fb0fedb83098d59e1404e9f08a4831abd445895340a832ddc75",
-     "width": "37|1|||"
-    },
-    "ПРОВЕРКА: CONTEST_CODE в INDICATOR": {
-     "values": "2ed563d36321818e6b6ab0a4e20b751f8826a9a61d5bb23ec50520ef927711bb",
-     "styles": "30de8d0cd0356fb0fedb83098d59e1404e9f08a4831abd445895340a832ddc75",
-     "width": "34|1|||"
-    },
-    "ПРОВЕРКА: CONTEST_CODE в GROUP": {
-     "values": "548caea6d0ec0ed90e44baf3996d9357a3dea8686518a8afab6b29258b03a139",
-     "styles": "30de8d0cd0356fb0fedb83098d59e1404e9f08a4831abd445895340a832ddc75",
-     "width": "30|1|||"
-    },
-    "ПРОВЕРКА: SPOD-JSON (FILTER_PERIOD_ARR)": {
-     "values": "9733e0d58968192cee8610e34d33449209dcd5fb8bbc2f614560c5cc4a4bac1b",
-     "styles": "30de8d0cd0356fb0fedb83098d59e1404e9f08a4831abd445895340a832ddc75",
-     "width": "39|1|||"
-    },
-    "ПРОВЕРКА: SPOD-JSON (TARGET_TYPE)": {
-     "values": "02b5510b1e31cd5adb2600c51691732e080ee6d32d2ec860eed20df3f505d48b",
-     "styles": "30de8d0cd0356fb0fedb83098d59e1404e9f08a4831abd445895340a832ddc75",
-     "width": "33|1|||"
     },
     "CALC_TOURNAMENT_STATUS": {
      "values": "81fbc41413bf06814962f416739ecba8aa71b46d018ace6942aa68026d200bd1",
@@ -1953,7 +1958,7 @@
      "width": "35|1|||"
     },
     "INDICATOR=>INDICATOR_CODE": {
-     "values": "a1c1072cebb942450c36b09bbfa4eb3edbd1ce4cd0b44c0cb62b1683ec26d262",
+     "values": "88d0f6c9b6d1417561726e4329a9bd469d3c4eb99cb225f6ec66913e2cdbe4f3",
      "styles": "1052ec922298a4a7017b90863d80fddf07f4616ff18a98cc75d7cf8b8b3f30fe",
      "width": "35|1|||"
     },
@@ -1993,7 +1998,7 @@
      "width": "30|1|||"
     },
     "REWARD=>COUNT_REWARD_CODE": {
-     "values": "8d9e1d81f8dd8e947d94dbf4e38eb72635d42f9ca935ca79892b02efee4c4044",
+     "values": "edfb61a88e3690954f61b6bc017c526ab92035884836de5158bc280a475a0b94",
      "styles": "47e090f94a0299223dc05dc4e81a6cf5f6242977a8db4534cdfda38820ab29d1",
      "width": "15|1|||"
     },
@@ -2031,16 +2036,17 @@
   },
   "REWARD-LINK": {
    "rows": 8,
+   "row_set": "ce809b4ced210a77e0838ee478f233588c459c567aeb5b6c26ccfa663bc4ba0e",
    "cols": 14,
    "header": [
     "CONTEST_CODE",
     "GROUP_CODE",
     "REWARD_CODE",
-    "ДУБЛЬ: CONTEST_CODE_GROUP_CODE_REWARD_CODE",
-    "ДУБЛЬ: REWARD_CODE",
     "ПРОВЕРКА: CONTEST_CODE в CONTEST-DATA",
     "ПРОВЕРКА: REWARD_CODE в REWARD",
+    "ДУБЛЬ: CONTEST_CODE_GROUP_CODE_REWARD_CODE",
     "ПРОВЕРКА: пара в GROUP",
+    "ДУБЛЬ: REWARD_CODE",
     "CONTEST-DATA=>FULL_NAME",
     "CONTEST-DATA=>CONTEST_FEATURE",
     "CONTEST-DATA=>TARGET_TYPE",
@@ -2065,16 +2071,6 @@
      "styles": "c2b2c9dc32beb7411794b3ca88879f458c5f5389853bfc1e17a11dc7775c6c30",
      "width": "11|1|||"
     },
-    "ДУБЛЬ: CONTEST_CODE_GROUP_CODE_REWARD_CODE": {
-     "values": "611eb4ac2890b6ad287643692a6c27351621f920eaa42182499ceeedeb3c6786",
-     "styles": "c2b2c9dc32beb7411794b3ca88879f458c5f5389853bfc1e17a11dc7775c6c30",
-     "width": "30|1|||"
-    },
-    "ДУБЛЬ: REWARD_CODE": {
-     "values": "079d2bbc92d1ab320056d0a354c5895a55e0a554c1fc15e6ce99495809f7484b",
-     "styles": "c2b2c9dc32beb7411794b3ca88879f458c5f5389853bfc1e17a11dc7775c6c30",
-     "width": "18|1|||"
-    },
     "ПРОВЕРКА: CONTEST_CODE в CONTEST-DATA": {
      "values": "912986fb424d0d77155777d3b1eeff9b69325a5eefb963403da8954344931565",
      "styles": "c2b2c9dc32beb7411794b3ca88879f458c5f5389853bfc1e17a11dc7775c6c30",
@@ -2085,10 +2081,20 @@
      "styles": "c2b2c9dc32beb7411794b3ca88879f458c5f5389853bfc1e17a11dc7775c6c30",
      "width": "30|1|||"
     },
+    "ДУБЛЬ: CONTEST_CODE_GROUP_CODE_REWARD_CODE": {
+     "values": "611eb4ac2890b6ad287643692a6c27351621f920eaa42182499ceeedeb3c6786",
+     "styles": "c2b2c9dc32beb7411794b3ca88879f458c5f5389853bfc1e17a11dc7775c6c30",
+     "width": "30|1|||"
+    },
     "ПРОВЕРКА: пара в GROUP": {
      "values": "dd47319a1bc925e4ff1b7f09ac7c34a27f3cb1f0c1b35e36746633af06dd1de6",
      "styles": "c2b2c9dc32beb7411794b3ca88879f458c5f5389853bfc1e17a11dc7775c6c30",
      "width": "22|1|||"
+    },
+    "ДУБЛЬ: REWARD_CODE": {
+     "values": "079d2bbc92d1ab320056d0a354c5895a55e0a554c1fc15e6ce99495809f7484b",
+     "styles": "c2b2c9dc32beb7411794b3ca88879f458c5f5389853bfc1e17a11dc7775c6c30",
+     "width": "18|1|||"
     },
     "CONTEST-DATA=>FULL_NAME": {
      "values": "e481c14cb6b8bd18e7496bf69ec22ec57cc22052a4b7c7409971bb9d55d191ac",
@@ -2124,6 +2130,7 @@
   },
   "GROUP": {
    "rows": 9,
+   "row_set": "867d12a9c74057badf0132a4ba1b199fa44dedd311587e30f7f6ed35b6cc6372",
    "cols": 16,
    "header": [
     "CONTEST_CODE",
@@ -2134,8 +2141,8 @@
     "ADD_CALC_CRITERION",
     "ADD_CALC_CRITERION_2",
     "BASE_CALC_CODE",
-    "ДУБЛЬ: CONTEST_CODE_GROUP_CODE_GROUP_VALUE",
     "ПРОВЕРКА: CONTEST_CODE в CONTEST-DATA",
+    "ДУБЛЬ: CONTEST_CODE_GROUP_CODE_GROUP_VALUE",
     "ПРОВЕРКА: пара в REWARD-LINK",
     "CONTEST-DATA=>FULL_NAME",
     "CONTEST-DATA=>CONTEST_TYPE",
@@ -2185,13 +2192,13 @@
      "styles": "30de8d0cd0356fb0fedb83098d59e1404e9f08a4831abd445895340a832ddc75",
      "width": "14|1|||"
     },
-    "ДУБЛЬ: CONTEST_CODE_GROUP_CODE_GROUP_VALUE": {
-     "values": "52ef88218f9ef630a7c4f49ac0716eb92086c42ab8c80458ecc1d605089d0c27",
+    "ПРОВЕРКА: CONTEST_CODE в CONTEST-DATA": {
+     "values": "7087741d2b50d89a7a1fd1a7a0bb2515a29f4ec8df4577b6f78d6852ca4f0683",
      "styles": "30de8d0cd0356fb0fedb83098d59e1404e9f08a4831abd445895340a832ddc75",
      "width": "20|1|||"
     },
-    "ПРОВЕРКА: CONTEST_CODE в CONTEST-DATA": {
-     "values": "7087741d2b50d89a7a1fd1a7a0bb2515a29f4ec8df4577b6f78d6852ca4f0683",
+    "ДУБЛЬ: CONTEST_CODE_GROUP_CODE_GROUP_VALUE": {
+     "values": "52ef88218f9ef630a7c4f49ac0716eb92086c42ab8c80458ecc1d605089d0c27",
      "styles": "30de8d0cd0356fb0fedb83098d59e1404e9f08a4831abd445895340a832ddc75",
      "width": "20|1|||"
     },
@@ -2216,12 +2223,12 @@
      "width": "35|1|||"
     },
     "TOURNAMENT-SCHEDULE=>TOURNAMENT_STATUS": {
-     "values": "d553545cb77cb4941c16784f564ebae519e3c6bad6554047541ef4288eb34f1c",
+     "values": "1db3717d5ce44b785f11128ba62b794bede4587a485000f51a17e4bea5c0bde1",
      "styles": "a31253884e5a18e0dd1d1fad6128965979aa200366a3c8c81b1f31e4bc3feb0b",
      "width": "30|1|||"
     },
     "TOURNAMENT-SCHEDULE=>TARGET_TYPE": {
-     "values": "a3efb4ddd2f19103e42bd8ec808dc09361a33c51f39e9f219eee950ff528f92f",
+     "values": "b1cd8f9258400582be7e83b8b78bdde94aa64437e66408c7efed09cb615d4db5",
      "styles": "a31253884e5a18e0dd1d1fad6128965979aa200366a3c8c81b1f31e4bc3feb0b",
      "width": "30|1|||"
     }
@@ -2229,6 +2236,7 @@
   },
   "INDICATOR": {
    "rows": 6,
+   "row_set": "761fbc9432f918b0ef3040072ad8a1ed8151c86798396b99fbf41aa5faf0f213",
    "cols": 22,
    "header": [
     "CONTEST_CODE",
@@ -2247,11 +2255,11 @@
     "CONTESTANT_SELECTION",
     "CALC_TYPE",
     "N",
-    "ДУБЛЬ: CONTEST_CODE_INDICATOR_ADD_CALC_TYPE_INDICATOR_CODE",
-    "ДУБЛЬ: N",
+    "ПРОВЕРКА: SPOD-JSON (INDICATOR_FILTER)",
     "ПРОВЕРКА: CONTEST_CODE в CONTEST-DATA",
     "ПРОВЕРКА: CONTEST_CODE в GROUP",
-    "ПРОВЕРКА: SPOD-JSON (INDICATOR_FILTER)",
+    "ДУБЛЬ: CONTEST_CODE_INDICATOR_ADD_CALC_TYPE_INDICATOR_CODE",
+    "ДУБЛЬ: N",
     "CONTEST-DATA=>FULL_NAME"
    ],
    "layout": "a2e550f9a9fefb68ab71cbce3e946b0eeffd1e534753df7d9e02ce7ce25b9fbb",
@@ -2336,15 +2344,10 @@
      "styles": "c01928194be5e9c1f85cdc23df83868b836de9a4a0da94b7c3a88cf39e5083c6",
      "width": "8|1|||"
     },
-    "ДУБЛЬ: CONTEST_CODE_INDICATOR_ADD_CALC_TYPE_INDICATOR_CODE": {
-     "values": "f921809e447fea594f07c8524a82a0ea642abb03eb47bb78a96c97cc62c87078",
+    "ПРОВЕРКА: SPOD-JSON (INDICATOR_FILTER)": {
+     "values": "87ac2b7073193c28788129ab3089b68f5e393f95587134652d7dd2087b8fab4a",
      "styles": "5bc165d7e90c54d9b0b02ecbc54153ae8a778221049efb0b5216a0e5ba4bfba6",
-     "width": "58|1|||"
-    },
-    "ДУБЛЬ: N": {
-     "values": "40826c794233373046743639d235b755baf391c128b28e4916ddcd094f9068c5",
-     "styles": "5bc165d7e90c54d9b0b02ecbc54153ae8a778221049efb0b5216a0e5ba4bfba6",
-     "width": "8|1|||"
+     "width": "38|1|||"
     },
     "ПРОВЕРКА: CONTEST_CODE в CONTEST-DATA": {
      "values": "6838ab74b5c5af93d082788bd5a2629749becf3bc2f81326fce73fd608c3a629",
@@ -2356,10 +2359,15 @@
      "styles": "5bc165d7e90c54d9b0b02ecbc54153ae8a778221049efb0b5216a0e5ba4bfba6",
      "width": "30|1|||"
     },
-    "ПРОВЕРКА: SPOD-JSON (INDICATOR_FILTER)": {
-     "values": "87ac2b7073193c28788129ab3089b68f5e393f95587134652d7dd2087b8fab4a",
+    "ДУБЛЬ: CONTEST_CODE_INDICATOR_ADD_CALC_TYPE_INDICATOR_CODE": {
+     "values": "f921809e447fea594f07c8524a82a0ea642abb03eb47bb78a96c97cc62c87078",
      "styles": "5bc165d7e90c54d9b0b02ecbc54153ae8a778221049efb0b5216a0e5ba4bfba6",
-     "width": "38|1|||"
+     "width": "58|1|||"
+    },
+    "ДУБЛЬ: N": {
+     "values": "40826c794233373046743639d235b755baf391c128b28e4916ddcd094f9068c5",
+     "styles": "5bc165d7e90c54d9b0b02ecbc54153ae8a778221049efb0b5216a0e5ba4bfba6",
+     "width": "8|1|||"
     },
     "CONTEST-DATA=>FULL_NAME": {
      "values": "3a9487a8fc7e237967f30b36d7964845f3fc3d53abc49c3d30b0562244d79f35",
@@ -2370,6 +2378,7 @@
   },
   "REPORT": {
    "rows": 18,
+   "row_set": "a784c3f98381c3cd6aad47d85bff21d755ddd32e8727c9f8222e9be828205826",
    "cols": 32,
    "header": [
     "MANAGER_PERSON_NUMBER",
@@ -2379,14 +2388,14 @@
     "PLAN_VALUE",
     "FACT_VALUE",
     "priority_type",
+    "ПРОВЕРКА: CONTEST_CODE в CONTEST-DATA",
+    "ПРОВЕРКА: пара в TOURNAMENT-SCHEDULE",
     "ДУБЛЬ: MANAGER_PERSON_NUMBER_TOURNAMENT_CODE_CONTEST_CODE",
     "FIELD_LENGTH_CHECK",
     "ПРОВЕРКА ФОРМАТ: CONTEST_DATE",
     "ПРОВЕРКА ФОРМАТ: PLAN_VALUE",
     "ПРОВЕРКА ФОРМАТ: FACT_VALUE",
     "ПРОВЕРКА ФОРМАТ: MANAGER_PERSON_NUMBER",
-    "ПРОВЕРКА: CONTEST_CODE в CONTEST-DATA",
-    "ПРОВЕРКА: пара в TOURNAMENT-SCHEDULE",
     "CONTEST-DATA=>CONTEST_TYPE",
     "CONTEST-DATA=>FULL_NAME",
     "CONTEST-DATA=>BUSINESS_STATUS",
@@ -2442,6 +2451,16 @@
      "styles": "28c5f96ba2c397b78147c8de408c3e4f57ddb277ae6a7d0f47d1967d85658868",
      "width": "13|1|||"
     },
+    "ПРОВЕРКА: CONTEST_CODE в CONTEST-DATA": {
+     "values": "0d85c51cba9235e089fdfe093eb8947cc3e903f7269fbfc3f0f9aa29106935b3",
+     "styles": "0b95448d0f9aec6291e82a38aa54834502322a714c55039e70da5ba8bee6f5f6",
+     "width": "25|1|||"
+    },
+    "ПРОВЕРКА: пара в TOURNAMENT-SCHEDULE": {
+     "values": "2894013522d9aee83cda74150f22742d99c758b3adcf5471d0980e26aa426f24",
+     "styles": "0b95448d0f9aec6291e82a38aa54834502322a714c55039e70da5ba8bee6f5f6",
+     "width": "25|1|||"
+    },
     "ДУБЛЬ: MANAGER_PERSON_NUMBER_TOURNAMENT_CODE_CONTEST_CODE": {
      "values": "8f20804f3b706da7d93ebcd180a3d7db7e131a4378cfc8d52f4301c68ae2c442",
      "styles": "0b95448d0f9aec6291e82a38aa54834502322a714c55039e70da5ba8bee6f5f6",
@@ -2469,16 +2488,6 @@
     },
     "ПРОВЕРКА ФОРМАТ: MANAGER_PERSON_NUMBER": {
      "values": "44a86bda16d2e14c96a4468f8f224fcf06ba6a2155080f54b508060c8f980f92",
-     "styles": "0b95448d0f9aec6291e82a38aa54834502322a714c55039e70da5ba8bee6f5f6",
-     "width": "25|1|||"
-    },
-    "ПРОВЕРКА: CONTEST_CODE в CONTEST-DATA": {
-     "values": "0d85c51cba9235e089fdfe093eb8947cc3e903f7269fbfc3f0f9aa29106935b3",
-     "styles": "0b95448d0f9aec6291e82a38aa54834502322a714c55039e70da5ba8bee6f5f6",
-     "width": "25|1|||"
-    },
-    "ПРОВЕРКА: пара в TOURNAMENT-SCHEDULE": {
-     "values": "2894013522d9aee83cda74150f22742d99c758b3adcf5471d0980e26aa426f24",
      "styles": "0b95448d0f9aec6291e82a38aa54834502322a714c55039e70da5ba8bee6f5f6",
      "width": "25|1|||"
     },
@@ -2571,6 +2580,7 @@
   },
   "ORG_UNIT_V20": {
    "rows": 5,
+   "row_set": "321b8dfef8fa2c1047409a4546a37834cd2e8706d611528512e40e262b7ec2f6",
    "cols": 14,
    "header": [
     "TB_CODE",
@@ -2664,6 +2674,7 @@
   },
   "USER_ROLE": {
    "rows": 4,
+   "row_set": "14c8413da8f5c2faa398640c597adfdec19fa69840252c8d28e5e5a881b2183a",
    "cols": 19,
    "header": [
     "RULE_NUM",
@@ -2787,6 +2798,7 @@
   },
   "EMPLOYEE": {
    "rows": 10,
+   "row_set": "e517d69d9e55271b591a8c8065baf72bb91c81d36a78caafd3180749dd6caae5",
    "cols": 32,
    "header": [
     "PERSON_NUMBER",
@@ -2806,6 +2818,7 @@
     "UCH_CODE",
     "GENDER",
     "ORG_UNIT_CODE",
+    "ПРОВЕРКА: ORG_UNIT_CODE в ORG_UNIT_V20",
     "ДУБЛЬ: POSITION_NAME_KPK_CODE_ORG_UNIT_CODE",
     "ДУБЛЬ: PERSON_NUMBER",
     "ДУБЛЬ: PERSON_NUMBER_ADD",
@@ -2813,7 +2826,6 @@
     "ПРОВЕРКА: BUSINESS_BLOCK IN",
     "ПРОВЕРКА ФОРМАТ: PERSON_NUMBER",
     "ПРОВЕРКА ФОРМАТ: PERSON_NUMBER_ADD",
-    "ПРОВЕРКА: ORG_UNIT_CODE в ORG_UNIT_V20",
     "AUTO_GENDER",
     "ORG_UNIT_V20=>ORG_UNIT_CODE",
     "ORG_UNIT_V20=>GOSB_CODE",
@@ -2909,6 +2921,11 @@
      "styles": "8d70a29cdc44292cee9ad27a1004dd9d2858e46947030b5ecff4edaaea1e88c0",
      "width": "15|1|||"
     },
+    "ПРОВЕРКА: ORG_UNIT_CODE в ORG_UNIT_V20": {
+     "values": "abed8f8c66f050ea12342004cb32de21fa0cab0d22c8f7326b7e6c07d4713ba9",
+     "styles": "8d70a29cdc44292cee9ad27a1004dd9d2858e46947030b5ecff4edaaea1e88c0",
+     "width": "38|1|||"
+    },
     "ДУБЛЬ: POSITION_NAME_KPK_CODE_ORG_UNIT_CODE": {
      "values": "a76810d7038b854a89e5b3fba4c8e6b62514ab24ab7a9b08722e4409f68c3538",
      "styles": "8d70a29cdc44292cee9ad27a1004dd9d2858e46947030b5ecff4edaaea1e88c0",
@@ -2943,11 +2960,6 @@
      "values": "7fef4ca2e93b6f16ec70d32700e96c88c1239a48e3385e141cb4d4b94a0088a4",
      "styles": "8d70a29cdc44292cee9ad27a1004dd9d2858e46947030b5ecff4edaaea1e88c0",
      "width": "34|1|||"
-    },
-    "ПРОВЕРКА: ORG_UNIT_CODE в ORG_UNIT_V20": {
-     "values": "abed8f8c66f050ea12342004cb32de21fa0cab0d22c8f7326b7e6c07d4713ba9",
-     "styles": "8d70a29cdc44292cee9ad27a1004dd9d2858e46947030b5ecff4edaaea1e88c0",
-     "width": "38|1|||"
     },
     "AUTO_GENDER": {
      "values": "49aaddd0d5991b16a78efcedc42b0ca43c01762eda9e1f9fcf430f9ace2e5a69",
@@ -2988,6 +3000,7 @@
   },
   "STAT_FILE": {
    "rows": 33,
+   "row_set": "6a7eecfe777cb9eedf537422ec64a7a6b268ddd0a4f1a08d0c4a43550c228c37",
    "cols": 8,
    "header": [
     "FILE_NAME",
@@ -3045,6 +3058,7 @@
   },
   "ORDER": {
    "rows": 16,
+   "row_set": "9a703e655132d378b791d12b729b31b96df87938540017ed81f3a0ac9de5d17a",
    "cols": 21,
    "header": [
     "Уникальный идентификатор транзакции",
@@ -3180,6 +3194,7 @@
   },
   "RATING": {
    "rows": 45,
+   "row_set": "4dc5dfc8b3b09575b374656b9fbcd750b057d1628c8dd648ddac8c07f2dc9e52",
    "cols": 13,
    "header": [
     "Табельный номер",
@@ -3267,6 +3282,7 @@
   },
   "STATISTICS": {
    "rows": 9,
+   "row_set": "3d1682bf686725b363993eaf8d9c5e9608f93e951e13130f8da0c60229aa44f1",
    "cols": 54,
    "header": [
     "Табельный номер",
@@ -3600,6 +3616,7 @@
   },
   "LIST-REWARDS": {
    "rows": 10,
+   "row_set": "812e94819fbe2a0d7dfbcde10998b4612e0b7c7e9b8f25b49655331a7b80f1f1",
    "cols": 29,
    "header": [
     "Уникальный идентификатор записи",
@@ -3783,6 +3800,7 @@
   },
   "LIST-TOURNAMENT": {
    "rows": 8,
+   "row_set": "e5aac7b78299923f3ead6a1e70ab12eece20c2dc266b05cb98bb660c229483aa",
    "cols": 19,
    "header": [
     "Код конкурса",
@@ -3906,6 +3924,7 @@
   },
   "RATING_2025_2 (KMKKSB)": {
    "rows": 5,
+   "row_set": "1c322d0e6615387d2e9064771ead6a4085e8354155e039b27f914b0adc8cc525",
    "cols": 13,
    "header": [
     "Табельный номер",
@@ -3993,6 +4012,7 @@
   },
   "RATING_2026_1 (KMKKSB)": {
    "rows": 5,
+   "row_set": "fa3094153c7943ef07d40a35b498dbd07712a9bab6594e7e61ecd46678651e66",
    "cols": 13,
    "header": [
     "Табельный номер",
@@ -4080,6 +4100,7 @@
   },
   "RATING_2026_1 (AKMKKSB)": {
    "rows": 5,
+   "row_set": "b1bbb61792d65848b8d9277c02c8ad974a7b0b4bee0732d4265df17db5703e0e",
    "cols": 13,
    "header": [
     "Табельный номер",
@@ -4167,6 +4188,7 @@
   },
   "RATING_2026 (MKKMMB)": {
    "rows": 5,
+   "row_set": "51321ff7869eea7b2eed05a8ff63caa3914041731a437d9fbd4ab892ecc25782",
    "cols": 13,
    "header": [
     "Табельный номер",
@@ -4254,6 +4276,7 @@
   },
   "RATING_2026_1 (CSM)": {
    "rows": 5,
+   "row_set": "c126e348075a9d2e612c9fc8ef798ebd6810dc1138940b15fd261691c47f01c8",
    "cols": 13,
    "header": [
     "Табельный номер",
@@ -4341,6 +4364,7 @@
   },
   "RATING_2025_1 (KMKKSB)": {
    "rows": 5,
+   "row_set": "e76582eacddd7b24c4d50eef3c715e6a8cfe63c16949d6ad92a55158aa9cf781",
    "cols": 13,
    "header": [
     "Табельный номер",
@@ -4428,6 +4452,7 @@
   },
   "RATING_2024 (KMKKSB)": {
    "rows": 5,
+   "row_set": "aa7634ff5ac182cfa10a043b32cb79eca481888c799805b7b867c6131b749106",
    "cols": 13,
    "header": [
     "Табельный номер",
@@ -4515,6 +4540,7 @@
   },
   "RATING_ALLTIME (KMKKSB)": {
    "rows": 5,
+   "row_set": "bb9e9b38254a6b1656cbfa285d1bd64167a9eeec566773900d12ceb77b134b51",
    "cols": 13,
    "header": [
     "Табельный номер",
@@ -4602,6 +4628,7 @@
   },
   "RATING_ALLTIME (AKMKKSB)": {
    "rows": 5,
+   "row_set": "bd06cd35cf3f82b4be1bfd2323614d2e36fbc2cfb6bf75a16c998315102aec22",
    "cols": 13,
    "header": [
     "Табельный номер",
@@ -4689,6 +4716,7 @@
   },
   "RATING_ALLTIME (MKKMMB)": {
    "rows": 5,
+   "row_set": "e68ccb9b6e3fafaa5b3fcf1bd7c2534b73c5d9cf0b39f3cf7ca9a6d9bb6e927c",
    "cols": 13,
    "header": [
     "Табельный номер",
@@ -4776,6 +4804,7 @@
   },
   "RATING_ALLTIME (CSM)": {
    "rows": 5,
+   "row_set": "1be4ee7555583b01811bd739b4f25a8905673640094b023c8a4f50d9a67a4f7d",
    "cols": 13,
    "header": [
     "Табельный номер",
@@ -4863,6 +4892,7 @@
   },
   "ORDER_2025_2 (KMKKSB)": {
    "rows": 4,
+   "row_set": "cd8b0ce79ba05ba91418b790e499c986d3a42e83e35ab576a540461103807540",
    "cols": 21,
    "header": [
     "Уникальный идентификатор транзакции",
@@ -4998,6 +5028,7 @@
   },
   "ORDER_2025_2 (MNS)": {
    "rows": 4,
+   "row_set": "de02e7c51f2c3eb4a4d9e1ff91611bc46ebae90a2ff839a418eb794249084ac9",
    "cols": 21,
    "header": [
     "Уникальный идентификатор транзакции",
@@ -5133,6 +5164,7 @@
   },
   "ORDER_NA (KMKKSB)": {
    "rows": 4,
+   "row_set": "f0d6cda7b6fd2e35cc250150c7496b07693f54a6fd51fb258a56379061224632",
    "cols": 21,
    "header": [
     "Уникальный идентификатор транзакции",
@@ -5268,6 +5300,7 @@
   },
   "ORDER_2025_1 (MNS)": {
    "rows": 4,
+   "row_set": "8e91e95615d1debf8507079d9ce6270b4ed368e5ddd29fa3948f1e22a74a28cc",
    "cols": 21,
    "header": [
     "Уникальный идентификатор транзакции",
@@ -5403,6 +5436,7 @@
   },
   "ORDER_ALL (MNS)": {
    "rows": 4,
+   "row_set": "9844b5f05fd2065a0d06ba433c399700a4dc559785b0a9357ed09b3d7fa46a2f",
    "cols": 21,
    "header": [
     "Уникальный идентификатор транзакции",
@@ -5538,6 +5572,7 @@
   },
   "ORDER_2024 (MNS)": {
    "rows": 4,
+   "row_set": "9b74f31f677c34d520239681f5693bf3da5131df95b19994c001eaf297c6f83c",
    "cols": 21,
    "header": [
     "Уникальный идентификатор транзакции",
@@ -5673,6 +5708,7 @@
   },
   "YEAR_STATA": {
    "rows": 6,
+   "row_set": "04b36ee66e0e44789cb6d2874ad57e0aca41ab4d54fe327eaf5263efec555a3c",
    "cols": 70,
    "header": [
     "Уникальный идентификатор записи",
@@ -6102,6 +6138,7 @@
   },
   "USER_ROLE SB": {
    "rows": 4,
+   "row_set": "9cb990a069906453f90e0eceb1f1618990f2782967fdc6b7882ee251165127aa",
    "cols": 19,
    "header": [
     "RULE_NUM",

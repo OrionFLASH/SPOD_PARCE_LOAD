@@ -3,7 +3,7 @@
 Отпечаток выходной книги Excel для эталонного сравнения результата пайплайна (TEST-01).
 
 Отпечаток — JSON без самих данных: для каждого листа порядок листов, число строк/колонок,
-заголовок, хеш «разметки» листа (ширины колонок, закрепление, автофильтр, условное
+заголовок, хеш набора строк без учёта их порядка (row_set), хеш «разметки» листа (ширины колонок, закрепление, автофильтр, условное
 форматирование — всё из XML листа, кроме sheetData) и по каждой колонке два хеша:
 значений ячеек и их оформления (формат числа, шрифт, заливка, выравнивание, границы).
 Персональные данные в отпечаток не попадают, поэтому его можно хранить рядом с кодом.
@@ -32,7 +32,7 @@ from xml.etree import ElementTree as ET
 
 import openpyxl
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 # Колонки, значения которых меняются от прогона к прогону при тех же входных данных.
 # Для них хеш значений не считается (оформление и наличие колонки — сравниваются).
@@ -183,13 +183,25 @@ def fingerprint_workbook(
             header: List[Any] = []
             value_h: List[Any] = []
             style_h: List[Any] = []
+            row_digests: List[bytes] = []
+            row_cols: List[int] = []
             nrows = 0
+            skip_row = set(volatile.get(ws.title, []))
             for row in ws.iter_rows(min_col=1, max_col=max_col):
                 nrows += 1
                 if nrows == 1:
                     header = [c.value for c in row]
                     value_h = [hashlib.sha256() for _ in row]
                     style_h = [hashlib.sha256() for _ in row]
+                    # Порядок колонок для хеша строки — по имени (не зависит от перестановки колонок)
+                    keys_1 = _unique_column_keys(header)
+                    row_cols = [j for _k, j in sorted((k, j) for j, k in enumerate(keys_1)) if keys_1[j] not in skip_row]
+                else:
+                    row_digests.append(
+                        hashlib.sha256(
+                            "\x1f".join(_value_token(row[j].value) for j in row_cols).encode("utf-8")
+                        ).digest()
+                    )
                 for j, cell in enumerate(row):
                     # EmptyCell (нет ячейки в XML) — отдельный ключ кеша: её _style_id тоже 0
                     sid = (getattr(cell, "_style_id", 0) or 0) if cell.font is not None else -1
@@ -209,8 +221,10 @@ def fingerprint_workbook(
                     "styles": sh.hexdigest(),
                     "width": widths.get(idx, ""),
                 }
+            row_set = hashlib.sha256(b"".join(sorted(row_digests))).hexdigest()
             sheets[ws.title] = {
                 "rows": nrows,
+                "row_set": row_set,
                 "cols": max_col,
                 "header": [None if h is None else str(h) for h in header],
                 "layout": layout_hash,
@@ -273,6 +287,10 @@ def compare_fingerprints(
                 if ec.get(aspect) != ac.get(aspect):
                     changed[aspect].append(col)
         labels = {"values": "значения", "styles": "оформление", "width": "ширина"}
+        if changed["values"] and es.get("row_set") and es.get("row_set") == as_.get("row_set"):
+            # Набор строк тот же (без учёта порядка) — сообщаем кратко
+            diffs.append(f"[{name}] изменился только порядок строк (набор строк тот же)")
+            changed["values"] = []
         for aspect, cols in changed.items():
             if cols:
                 diffs.append(f"[{name}] {labels[aspect]} в колонках ({len(cols)}): {cols}")

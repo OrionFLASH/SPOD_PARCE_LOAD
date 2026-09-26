@@ -11,12 +11,12 @@ from src.config_holder import set_current_config
 from src import main_impl
 
 
-def main() -> None:
+def main() -> int:
+    """Код возврата: 0 — успех, 1 — ошибки обработки/записи, 2 — нет входных файлов."""
     config = Config()
     set_current_config(config)
-    main_impl.main()
+    return main_impl.main()
 
 
 if __name__ == "__main__":
-    main()
-    sys.exit(0)
+    sys.exit(main())

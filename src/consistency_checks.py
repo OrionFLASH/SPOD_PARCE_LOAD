@@ -2397,6 +2397,36 @@ def log_and_console_consistency_report(results: List[Dict[str, Any]]) -> None:
             logging.debug(f"[consistency]   ... и ещё {len(sample) - 10}")
 
 
+def _order_check_columns_by_rules(
+    sheets_data: Dict[str, Any],
+    columns_before: Dict[str, List[Any]],
+    results: List[Dict[str, Any]],
+) -> None:
+    """
+    BUG-13: проверки выполняются в потоках и добавляют колонки на листы в порядке завершения.
+    Ставим добавленные колонки в порядке правил конфига (results идут по порядку правил);
+    исходные колонки листа остаются на своих местах.
+    """
+    rank: Dict[Any, int] = {}
+    for i, res in enumerate(results):
+        col = res.get("column_on_sheet")
+        if col and col not in rank:
+            rank[col] = i
+    for name, before in columns_before.items():
+        item = sheets_data.get(name)
+        if not (isinstance(item, (list, tuple)) and item and isinstance(item[0], pd.DataFrame)):
+            continue
+        df = item[0]
+        before_set = set(before)
+        added = [c for c in df.columns if c not in before_set]
+        if len(added) < 2:
+            continue
+        ordered = sorted(added, key=lambda c: (rank.get(c, len(rank)), added.index(c)))
+        if ordered != added:
+            kept = [c for c in df.columns if c in before_set]
+            sheets_data[name] = (df[kept + ordered], *item[1:])
+
+
 @debug_timed()
 def run_consistency_checks_and_attach_summary(
     sheets_data: Dict[str, Any],
@@ -2409,12 +2439,18 @@ def run_consistency_checks_and_attach_summary(
     записать отчёт в лог-файл. Возвращает список результатов правил (для краткой сводки в консоли).
     """
     summary_sheet_name = config.get("summary_sheet_name", "CONSISTENCY")
+    columns_before = {
+        name: list(item[0].columns)
+        for name, item in sheets_data.items()
+        if isinstance(item, (list, tuple)) and item and isinstance(item[0], pd.DataFrame)
+    }
     results = run_all_consistency_checks(
         sheets_data,
         config,
         current_block=current_block,
         max_workers=max_workers,
     )
+    _order_check_columns_by_rules(sheets_data, columns_before, results)
     # config здесь — секция consistency_checks (summary_sheet_name + rules), а не весь config.json
     rules = config.get("rules") or []
     df_summary = build_consistency_summary_df(results, rules=rules)

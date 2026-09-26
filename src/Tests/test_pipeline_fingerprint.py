@@ -77,3 +77,14 @@ def test_diff_cells_aligns_columns_by_name(tmp_path: Path) -> None:
     a = _book(tmp_path / "a.xlsx", ["K", "V"], [["x", 1], ["y", 2]])
     b = _book(tmp_path / "b.xlsx", ["V", "K"], [[1, "x"], [3, "y"]])
     assert diff_cells(a, b, "DATA") == ["строка 3, колонка V: 2 → 3"]
+
+
+def test_row_order_only_is_reported_briefly(tmp_path: Path) -> None:
+    a = fingerprint_workbook(_book(tmp_path / "a.xlsx", ["K", "V"], [["x", 1], ["y", 2]]))
+    b = fingerprint_workbook(_book(tmp_path / "b.xlsx", ["K", "V"], [["y", 2], ["x", 1]]))
+    diffs, _ = compare_fingerprints(a, b)
+    assert diffs == ["[DATA] изменился только порядок строк (набор строк тот же)"]
+    c = fingerprint_workbook(_book(tmp_path / "c.xlsx", ["V", "K"], [[2, "y"], [1, "x"]]))
+    diffs, notes = compare_fingerprints(a, c)
+    assert diffs == ["[DATA] изменился только порядок строк (набор строк тот же)"]
+    assert notes == ["[DATA] изменился только порядок колонок"]

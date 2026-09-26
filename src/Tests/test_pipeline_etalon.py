@@ -15,8 +15,9 @@ src/Tests/fixtures/pipeline_prom_etalon.json.
   macOS:    SPOD_UPDATE_ETALON=1 python3.12 -m pytest src/Tests/test_pipeline_etalon.py
 и изменения эталона проверяются в git diff вместе с кодом.
 
-PYTHONHASHSEED=0: порядок строк SUMMARY сейчас зависит от порядка обхода set() строк,
-а он без фиксированного seed меняется от запуска к запуску.
+PYTHONHASHSEED=0 — страховка: до исправления BUG-13 порядок строк SUMMARY зависел от обхода set()
+строк и менялся от запуска к запуску; сейчас порядок строк и колонок детерминирован и
+сравнивается строго (strict_order).
 """
 
 from __future__ import annotations
@@ -52,7 +53,7 @@ _RUNNER = (
     "from src.config_holder import set_current_config\n"
     "from src import main_impl\n"
     "set_current_config(Config(sys.argv[1]))\n"
-    "main_impl.main()\n"
+    "sys.exit(main_impl.main())\n"
 )
 
 
@@ -73,9 +74,7 @@ def _build_isolated_project(base: Path) -> Path:
     return cfg_path
 
 
-def run_fixture_pipeline(base: Path) -> Path:
-    """Прогнать пайплайн на синтетике; вернуть путь к основной книге."""
-    cfg_path = _build_isolated_project(base)
+def _run_main(base: Path, cfg_path: Path) -> subprocess.CompletedProcess:
     env = dict(os.environ)
     env["PYTHONHASHSEED"] = "0"
     env["PYTHONIOENCODING"] = "utf-8"
@@ -90,6 +89,12 @@ def run_fixture_pipeline(base: Path) -> Path:
         errors="replace",
         timeout=600,
     )
+    return proc
+
+
+def run_fixture_pipeline(base: Path) -> Path:
+    """Прогнать пайплайн на синтетике; вернуть путь к основной книге."""
+    proc = _run_main(base, _build_isolated_project(base))
     assert proc.returncode == 0, (
         f"пайплайн завершился с кодом {proc.returncode}\n"
         f"--- stdout (хвост) ---\n{proc.stdout[-3000:]}\n--- stderr (хвост) ---\n{proc.stderr[-3000:]}"
@@ -113,7 +118,8 @@ def test_pipeline_matches_etalon(fixture_output: Path) -> None:
         f"нет эталона {ETALON_PATH}; создать: SPOD_UPDATE_ETALON=1 python -m pytest {Path(__file__).name}"
     )
     expected = json.loads(ETALON_PATH.read_text(encoding="utf-8"))
-    diffs, _notes = compare_fingerprints(expected, actual)
+    # Порядок строк и колонок детерминирован (BUG-13) — сравниваем строго
+    diffs, _notes = compare_fingerprints(expected, actual, strict_order=True)
     assert not diffs, (
         "результат пайплайна отличается от эталона:\n  - "
         + "\n  - ".join(diffs)
@@ -141,3 +147,37 @@ def test_fixture_output_has_key_sheets(fixture_output: Path) -> None:
         assert "Тестовый конкурс продаж" in full_names
     finally:
         wb.close()
+
+
+def test_missing_input_file_exit_code_2_before_reading(tmp_path: Path) -> None:
+    """BUG-06 / LOG-02: нет входного файла — код 2, до чтения CSV и записи Excel."""
+    cfg_path = _build_isolated_project(tmp_path)
+    victim = next((tmp_path / "IN").rglob("GROUP.csv"))
+    victim.unlink()
+    proc = _run_main(tmp_path, cfg_path)
+    assert proc.returncode == 2, proc.stdout[-2000:] + proc.stderr[-2000:]
+    assert "GROUP.csv" in proc.stderr
+    assert not list((tmp_path / "OUT").rglob("*.xlsx")) if (tmp_path / "OUT").exists() else True
+    logs = list((tmp_path / "LOGS").rglob("*.log"))
+    assert logs, "лог-файл должен быть создан"
+    log_text = logs[0].read_text(encoding="utf-8")
+    assert "read_csv_file" not in log_text, "CSV не должны читаться, если файла не хватает"
+    assert "код возврата: 2" in log_text
+
+
+def test_parallel_blocks_exit_code_and_outputs(tmp_path: Path) -> None:
+    """run_blocks_parallel: каждый блок в своём процессе; код 0 и основная книга на каждый блок."""
+    cfg_path = _build_isolated_project(tmp_path)
+    cfg = json.loads(cfg_path.read_text(encoding="utf-8"))
+    cfg["run_blocks"] = ["PROM", "IFT"]
+    cfg["run_blocks_parallel"] = True
+    cfg["input_files"]["IFT"] = cfg["input_files"][BLOCK]
+    cfg["run_outputs"]["IFT"] = ["main_only"]
+    cfg_path.write_text(json.dumps(cfg, ensure_ascii=False), encoding="utf-8")
+    proc = _run_main(tmp_path, cfg_path)
+    assert proc.returncode == 0, proc.stdout[-3000:] + proc.stderr[-3000:]
+    for block in ("PROM", "IFT"):
+        books = list((tmp_path / "OUT" / block).rglob(f"SPOD_{block} main_*.xlsx"))
+        assert len(books) == 1, f"{block}: {books}"
+    # Лог каждого процесса-блока — отдельный файл не гарантируется (BUG-11), но итог есть в выводе
+    assert "код возврата: 0" in proc.stdout

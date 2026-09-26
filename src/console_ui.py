@@ -511,6 +511,39 @@ def render_progress_bar(done: int, total: int, width: int = 24) -> str:
     return "[" + "#" * filled + "-" * (width - filled) + "]"
 
 
+def configure_console_output() -> None:
+    """
+    Безопасный вывод в консоль Windows (LOG-05): символы, которых нет в кодировке консоли
+    (cp866/cp1251), заменяются на «?», а не роняют программу UnicodeEncodeError.
+    При выводе не в терминал (перенаправление в файл, консоль IDE) — кодировка UTF-8.
+    """
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure is None:
+            continue
+        try:
+            is_tty = bool(stream.isatty())
+        except Exception:
+            is_tty = False
+        try:
+            if is_tty:
+                reconfigure(errors="replace")
+            else:
+                reconfigure(encoding="utf-8", errors="replace")
+        except Exception:
+            pass
+
+
+def print_run_result(warnings: int, errors: int, log_file: Optional[str], exit_code: int) -> None:
+    """Итог прогона (LOG-02): число предупреждений/ошибок из лога и код возврата."""
+    w = terminal_width()
+    status = "успех" if exit_code == 0 else ("нет входных файлов" if exit_code == 2 else "есть ошибки")
+    line = f"Предупреждений: {warnings}, ошибок: {errors}; код возврата: {exit_code} ({status})"
+    print(_truncate(line, w), flush=True)
+    if (warnings or errors) and log_file:
+        print(f"  см. лог: {_truncate(log_file, w - 12)}", flush=True)
+
+
 def stderr_message(lines: List[str]) -> None:
     """Критические сообщения пользователю в stderr."""
     for ln in lines:

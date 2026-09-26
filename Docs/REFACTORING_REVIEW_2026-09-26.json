@@ -2,7 +2,7 @@
   "meta": {
     "title": "SPOD_PROM — анализ основной программы (main.py → src/main_impl.py): ошибки, производительность, логирование, структура",
     "date": "2026-09-26",
-    "status": "Анализ и рекомендации; внедрение поэтапно по roadmap. Этап 0 (TEST-01, ENV-01) выполнен — см. measurements.stage0_after и status у находок.",
+    "status": "Внедрение поэтапно по roadmap. Выполнены этапы 0 и 1 — см. measurements.stage*_after и status у находок.",
     "scope": [
       "main.py",
       "src/main_impl.py (5720 строк, прочитан полностью)",
@@ -32,6 +32,11 @@
         "v": 3,
         "date": "2026-09-26",
         "note": "этап 0 выполнен: TEST-01, ENV-01 (status: done); замер после этапа; новая находка BUG-13 (недетерминированный порядок строк/колонок); Q8 — ответ"
+      },
+      {
+        "v": 4,
+        "date": "2026-09-26",
+        "note": "этап 1 выполнен (BUG-01/02/03/04/06/09/13, LOG-01/02/05, PERF-02/03); BUG-11 частично; замер stage1_after"
       }
     ]
   },
@@ -142,6 +147,36 @@
       },
       "result_vs_etalon": "Отпечатки обоих прогонов совпадают с эталоном 3f595da (37 листов: число строк/колонок, значения, оформление, ширины, разметка); отличие — только порядок колонок «ПРОВЕРКА» (BUG-13, как и между прогонами старого кода).",
       "conclusion": "Этап 0 не меняет ни результат, ни производительность: разница во времени (+0,5…1,5 с) в пределах разброса прогонов; фазы совпадают до десятых секунды. Сравнение с исходным замером отчёта (45,2 с; 2,03 ГБ; 06 — 37,7 с; 05 — 4,34 с) — тот же уровень."
+    },
+    "stage1_after": {
+      "note": "После этапа 1. Копия проекта, PYTHONHASHSEED=0, запуск через run_main.sh; эталон — прогон s1c (после BUG-02) и s1final: строгое совпадение (детерминизм подтверждён).",
+      "pytest": "214 passed за 5,1 с",
+      "wall_clock_sec": [
+        42.28,
+        42.6,
+        42.66
+      ],
+      "peak_rss_gb": [
+        2.01,
+        2.0,
+        2.02
+      ],
+      "phases_sec": {
+        "01": 0.44,
+        "02": 0.52,
+        "03": 0.77,
+        "05": 0.51,
+        "06": 38.7
+      },
+      "debug_level": {
+        "wall_clock_sec": 42.3,
+        "phase_01_sec": 0.54,
+        "log": "16 473 строки, 8,9 МБ",
+        "before": "50,4 с; этап 01 — 3,81 с"
+      },
+      "log": "WARNING: 8 записей (7 подробностей BUG-02 в файле + 1 сводная); ERROR: 0; код возврата 0",
+      "result_vs_stage0": "Отличия только согласованные: BUG-13 — порядок строк SUMMARY (набор тот же) и ширина 7 колонок SUMMARY, порядок колонок проверок; BUG-02 — 149 ячеек в 7 полях. BUG-03 на реальных данных изменений не дал.",
+      "conclusion": "wall-clock 45–46 → 42,7 с (−3,3 с, этап 05 −3,8 с); память без изменений (~2,0 ГБ). Основное время — запись Excel (этап 06, 38,7 с) — это этап 2."
     }
   },
   "findings": [
@@ -160,7 +195,12 @@
       "recommendation": "Убрать общий try/except или пробрасывать исключение (raise) после logging.exception. В main — ловить на уровне блока, печатать понятное сообщение в консоль и завершаться с ненулевым кодом. Отдельно: перед записью проверять, что целевой файл не заблокирован. Для Windows (решение Q2): файл, открытый в Excel, заблокирован — ловить PermissionError отдельно и писать в консоль «Закройте файл … в Excel и повторите». Код возврата 1 (решение Q5).",
       "effort_days": 0.5,
       "stdlib_or_anaconda_ok": true,
-      "decision": "Q2, Q5"
+      "decision": "Q2, Q5",
+      "status": "done",
+      "result": {
+        "summary": "write_to_excel: logging.exception + удаление недописанного файла + OutputWriteError (PermissionError → «закройте файл … в Excel и повторите»). main ловит на уровне блока, код 1, остальные блоки продолжают.",
+        "tests": "src/Tests/test_exit_codes_and_console.py"
+      }
     },
     {
       "id": "BUG-02",
@@ -179,7 +219,13 @@
       "recommendation": "Реализовать правило «первое совпадение»: ref_first = df_ref.drop_duplicates(subset=<ключи после нормализации>, keep='first'); ref_map строить по ref_first. Перед этим посчитать неуникальные ключи с РАЗНЫМИ значениями поля (groupby(keys)[col].nunique() > 1) и писать WARNING: «[MERGE] <src>→<dst>, поле <col>: N ключей с разными значениями, взято первое (примеры ключей: …)». Чтобы не засорять консоль, в консоль — одна сводная строка на прогон, детали — в лог-файл. Изменение МЕНЯЕТ выходные данные в 7 полях (см. evidence) — зафиксировать в эталонном тесте TEST-01 и в README. Проверить согласованность с collect_summary_keys (там уже берётся первое).",
       "effort_days": 1,
       "stdlib_or_anaconda_ok": true,
-      "decision": "Q1: первое значение + WARNING"
+      "decision": "Q1: первое значение + WARNING",
+      "status": "done",
+      "result": {
+        "summary": "Первое совпадение (duplicated(keep='first')) + по каждому полю число ключей с разными значениями: подробности (правило, поле, N, 5 примеров ключей) — WARNING только в лог-файл, одна сводная строка WARNING в консоль на блок.",
+        "changed_output": "PROM: ровно 7 полей из evidence, 149 ячеек: GROUP ← TOURNAMENT_STATUS 121 (72 ключа), TARGET_TYPE 7 (6 ключей); TOURNAMENT-SCHEDULE ← INDICATOR_CODE 5 (3 ключа); SUMMARY ← INDICATOR_CODE/WEIGHT/VALUE/N по 4 (2 ключа). Каскада в другие колонки нет.",
+        "tests": "src/Tests/test_merge_first_match.py; эталон TEST-01 пересоздан"
+      }
     },
     {
       "id": "BUG-03",
@@ -196,7 +242,13 @@
       "impact": "JSON с «умными» кавычками не разворачивается; апострофы внутри строк ломают разбор.",
       "recommendation": "Заменить на явные коды: s.translate({0x201C: '\"', 0x201D: '\"', 0x2018: \"'\", 0x2019: \"'\"}); одинарные кавычки менять только если json.loads упал и строка похожа на Python-литерал (ast.literal_eval как второй вариант). Оставить ОДНУ реализацию (json_utils) и импортировать её в main_impl. Добавить тест с “ ” и апострофом.",
       "effort_days": 0.5,
-      "stdlib_or_anaconda_ok": true
+      "stdlib_or_anaconda_ok": true,
+      "status": "done",
+      "result": {
+        "summary": "Одна реализация src/json_utils.safe_json_loads (копия в main_impl удалена, импорт). Ступени: json.loads → тройные кавычки + синтаксис без замены кавычек → + типографские “ ” ‘ ’ (явные коды) → ast.literal_eval → прежний агрессивный ' → \" (чтобы всё, что разбиралось раньше, разбиралось и сейчас).",
+        "changed_output": "PROM: изменений нет (в выгрузке нет JSON с апострофами/типографскими кавычками, где поведение отличается). Где отличается: JSON с апострофом внутри значения раньше давал None — теперь разбирается; проверка json_spod_format может перестать ложно отмечать такие строки.",
+        "tests": "src/Tests/test_safe_json_loads.py"
+      }
     },
     {
       "id": "BUG-04",
@@ -214,7 +266,12 @@
       "recommendation": "Удалить CallerFormatter; формат файла: '%(asctime)s | %(levelname)s | %(threadName)s | %(message)s [def: %(funcName)s]' — logging сам даёт funcName вызывающей функции.",
       "expected_gain": "−5 с на DEBUG-прогоне, ≈−1 с на INFO",
       "effort_days": 0.25,
-      "stdlib_or_anaconda_ok": true
+      "stdlib_or_anaconda_ok": true,
+      "status": "done",
+      "result": {
+        "summary": "CallerFormatter удалён из main_impl (копия в logging_setup.py не тронута — Q6); файловый формат '%(asctime)s | %(levelname)s | %(message)s [def: %(funcName)s]', record.msg не меняется — суффикс не попадает в консоль. Колонку threadName не добавлял: в сообщениях уже есть [поток: …], формат строк лога сохранён.",
+        "measured": "DEBUG-прогон PROM: 42,3 с (было 50,4 с), этап 01: 0,54 с (было 3,81 с); лог 16 473 строки / 8,9 МБ"
+      }
     },
     {
       "id": "BUG-05",
@@ -245,7 +302,12 @@
       "description": "check_input_files_exist() вызывается ПОСЛЕ чтения всех CSV, разворота JSON и записи SQLite-архива (и после source Excel). При отсутствии файла программа тратит всё это время впустую, а sys.exit(1) при последовательном прогоне нескольких блоков прерывает и следующие блоки.",
       "recommendation": "Проверять наличие файлов первым шагом _run_pipeline_for_block (fail-fast); вместо sys.exit бросать собственное исключение (например MissingInputFilesError), ловить в main(), продолжать другие блоки и выставлять итоговый код возврата. Код возврата 2 (решение Q5).",
       "effort_days": 0.5,
-      "stdlib_or_anaconda_ok": true
+      "stdlib_or_anaconda_ok": true,
+      "status": "done",
+      "result": {
+        "summary": "Проверка входных файлов — первым шагом блока (после формы BADGE), до чтения CSV/JSON/архива; MissingInputFilesError вместо sys.exit, код 2, другие блоки продолжают.",
+        "tests": "test_pipeline_etalon.py::test_missing_input_file_exit_code_2_before_reading"
+      }
     },
     {
       "id": "BUG-07",
@@ -294,7 +356,11 @@
       "description": "Второй pd.to_datetime по nat_mask вызывается с тем же format, что и первый, и всегда даёт тот же NaT.",
       "recommendation": "Вторую попытку делать с другим вариантом (format='mixed' или dayfirst=True) либо удалить.",
       "effort_days": 0.1,
-      "stdlib_or_anaconda_ok": true
+      "stdlib_or_anaconda_ok": true,
+      "status": "done",
+      "result": {
+        "summary": "Повтор pd.to_datetime убран, когда формат задан явно (давал тот же NaT). Без явного формата повтор оставлен: pandas заново угадывает формат по оставшимся строкам — это не пустая работа, и замена на format='mixed' изменила бы результат."
+      }
     },
     {
       "id": "BUG-10",
@@ -327,7 +393,11 @@
       "description": "Запасной путь указывает на <корень>/config.json, а конфиг лежит в config/config.json. Имя лога содержит время с точностью до минуты и открывается в режиме 'a' — параллельные процессы блоков (и два запуска в одну минуту) пишут в один файл вперемешку.",
       "recommendation": "Использовать default_config_path(); в имя лога добавить секунды и код блока/PID.",
       "effort_days": 0.25,
-      "stdlib_or_anaconda_ok": true
+      "stdlib_or_anaconda_ok": true,
+      "status": "partial",
+      "result": {
+        "summary": "Путь конфига по умолчанию для параллельного режима — default_config_path() (сделано при переписывании main в этапе 1). Имя лога с секундами и кодом блока — в этапе 3."
+      }
     },
     {
       "id": "BUG-12",
@@ -380,7 +450,13 @@
       "evidence": "cProfile: 9,06 с, из них 6,97 с — _indicator_code_for_contest_type.",
       "expected_gain": "этап 05: 4,3 с → <1 с",
       "effort_days": 1,
-      "stdlib_or_anaconda_ok": true
+      "stdlib_or_anaconda_ok": true,
+      "status": "done",
+      "result": {
+        "summary": "collect_summary_keys переписана на словари (один проход по каждому листу); прежняя версия — src/Tests/legacy_collect_summary_keys.py, тест сравнивает набор строк (фикстура + граничные случаи: NaN, «-», пробелы, сироты).",
+        "measured": "этап 05: 4,30 → 0,49–0,52 с",
+        "tests": "src/Tests/test_collect_summary_keys.py"
+      }
     },
     {
       "id": "PERF-03",
@@ -395,7 +471,13 @@
       "description": "В проде выполняются обе реализации и сравниваются; построчная iterrows сводит выигрыш векторизации к нулю. То же задумано для validate_field_lengths (но там код мёртвый).",
       "recommendation": "Оставить векторную версию, сравнение перенести в pytest (фикстура с разными ФИО).",
       "effort_days": 0.25,
-      "stdlib_or_anaconda_ok": true
+      "stdlib_or_anaconda_ok": true,
+      "status": "done",
+      "result": {
+        "summary": "В пайплайне только add_auto_gender_column_vectorized; сравнение с построчной версией — pytest на наборе граничных ФИО.",
+        "measured": "этап 03: 0,91 → 0,77 с",
+        "tests": "src/Tests/test_auto_gender_equivalence.py"
+      }
     },
     {
       "id": "PERF-04",
@@ -525,7 +607,11 @@
       "description": "logging.error(f\"… {e}\") теряет стек — по логу нельзя понять место падения. В read_csv_file ошибка пишется дважды + INFO [END].",
       "recommendation": "logging.exception(...) (или exc_info=True) во всех except, где исключение не пробрасывается.",
       "effort_days": 0.25,
-      "stdlib_or_anaconda_ok": true
+      "stdlib_or_anaconda_ok": true,
+      "status": "done",
+      "result": {
+        "summary": "logging.exception в 6 except (read_csv_file — одна запись вместо трёх, process_single_file, параллельный merge, группировка, merge SUMMARY, проверка длины полей). Ожидаемые предупреждения (сортировка/автофильтр пропущены) — без traceback."
+      }
     },
     {
       "id": "LOG-02",
@@ -542,7 +628,13 @@
       "recommendation": "Коды возврата: 0 — успех; 1 — ошибка обработки/записи (BUG-01, исключение в блоке); 2 — нет входных файлов (BUG-06). main.py: sys.exit(main_impl.main()) вместо безусловного sys.exit(0). Счётчик-хендлер (logging.Handler + collections.Counter по levelname) и строка в футере консоли: «Предупреждений: N, ошибок: M → см. лог <путь>». При нескольких блоках — итоговый код = максимальный по блокам, остальные блоки продолжают работу.",
       "effort_days": 0.5,
       "stdlib_or_anaconda_ok": true,
-      "decision": "Q5: да"
+      "decision": "Q5: да",
+      "status": "done",
+      "result": {
+        "summary": "main_impl.main() возвращает код 0/1/2 (1 — исключение в блоке или записи ERROR в логе; 2 — нет входных файлов), main.py: sys.exit(main()). Счётчик-хендлер WARNING/ERROR; итог в консоль «Предупреждений: N, ошибок: M; код возврата: K (…)» + путь к логу. Несколько блоков — максимальный код; параллельный режим возвращает код и счётчики из процессов-блоков.",
+        "tests": "test_pipeline_etalon.py (коды 0 и 2, параллельный режим), test_exit_codes_and_console.py",
+        "note": "Пустой лист перед записью понижен с ERROR до WARNING (лист записывается корректно, это не ошибка обработки и не должно давать код 1)."
+      }
     },
     {
       "id": "LOG-03",
@@ -591,7 +683,13 @@
       "description": "Консоль печатает ✓ … ⚠️ ❌ █. При запуске из планировщика/с перенаправлением в файл на Windows sys.stdout использует cp1251 → UnicodeEncodeError. Кодировка нигде не настраивается. Решение Q2: целевая ОС — Windows. Консоль cmd/PowerShell с Python 3.12 пишет UTF-8 в настоящее окно консоли, но при перенаправлении (> out.txt) или в консоли IDE кодировка может быть cp1251/cp866 → UnicodeEncodeError на символах ✓ … ⚠️ ❌ █.",
       "recommendation": "В начале main(): для sys.stdout/sys.stderr вызвать reconfigure(errors='replace') (Python 3.7+, stdlib); опционально encoding='utf-8' при не-TTY. В лог-файле эмодзи заменить на [WARN]/[ERR]. Прогресс-бар: ASCII-вариант при sys.stdout.encoding не UTF-8.",
       "effort_days": 0.25,
-      "stdlib_or_anaconda_ok": true
+      "stdlib_or_anaconda_ok": true,
+      "status": "done",
+      "result": {
+        "summary": "console_ui.configure_console_output() в начале main: TTY — errors='replace'; не TTY (перенаправление, консоль IDE) — UTF-8 + replace. run_main.bat задаёт PYTHONIOENCODING=utf-8. Эмодзи в сообщениях лога → [WARN]/[ERR]. Прогресс-бар уже ASCII (#/-).",
+        "tests": "test_exit_codes_and_console.py::test_configure_console_output_redirected_cp1251",
+        "not_verified": "реальная консоль Windows (cmd/PowerShell/GigaIDE) — проверить на целевой машине"
+      }
     },
     {
       "id": "STR-01",
@@ -779,7 +877,12 @@
       "workaround_now": "Для сравнимых прогонов — PYTHONHASHSEED=0 (эталонный тест так и запускается); порядок колонок проверок pipeline_fingerprint.compare по умолчанию выводит как примечание.",
       "effort_days": 0.5,
       "stdlib_or_anaconda_ok": true,
-      "status": "open"
+      "status": "done",
+      "result": {
+        "summary": "collect_summary_keys возвращает строки, отсортированные по 7 ключам; после параллельных проверок консистентности добавленные колонки на каждом листе ставятся в порядке правил конфига (consistency_checks._order_check_columns_by_rules).",
+        "changed_output": "Только порядок (значения те же): строки SUMMARY; колонки «ПРОВЕРКА/ДУБЛЬ…» на листах; из-за другого набора первых 500 строк изменилась автоширина 7 колонок SUMMARY.",
+        "verified": "Синтетика с PYTHONHASHSEED=1 и 777 — идентичные книги; два реальных прогона — строгое совпадение; эталон TEST-01 сравнивается со строгим порядком."
+      }
     }
   ],
   "not_recommended": [
@@ -831,7 +934,9 @@
         "BUG-09"
       ],
       "effort_days": 5.5,
-      "expected": "честные ошибки и коды возврата; безопасный вывод в консоль Windows; этап 05 4,3 → <1 с; DEBUG-прогон −5 с"
+      "expected": "честные ошибки и коды возврата; безопасный вывод в консоль Windows; этап 05 4,3 → <1 с; DEBUG-прогон −5 с",
+      "status": "done",
+      "result": "Все пункты выполнены (+BUG-13). Выход: 42,7 с (было 45–46 с), этап 05 0,5 с, DEBUG-прогон 42,3 с. Изменения вывода — только согласованные: BUG-02 (149 ячеек в 7 полях) и BUG-13 (порядок)."
     },
     {
       "stage": 2,
