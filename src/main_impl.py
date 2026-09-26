@@ -1,3 +1,14 @@
+# -*- coding: utf-8 -*-
+"""
+Основной пайплайн SPOD (запуск: main.py → main()).
+
+Блок PROM / IFT / PSI: чтение CSV и разворот JSON → проверки консистентности → AUTO_GENDER,
+статус турниров, merge_fields_advanced → SUMMARY → запись Excel (main / source / consistency /
+MANAGER_STATS). Коды возврата main(): 0 — успех, 1 — ошибки обработки/записи, 2 — нет входных файлов.
+
+История оптимизаций и параллелизма: Docs/PERFORMANCE_AND_PARALLELIZATION_HISTORY.md;
+разбор и план рефакторинга: Docs/REFACTORING_REVIEW_2026-09-26.json.
+"""
 # === ИМПОРТЫ БИБЛИОТЕК ===
 import os          # Для работы с операционной системой и путями
 import sys         # Для системных функций и аргументов командной строки
@@ -11,15 +22,9 @@ import numpy as np  # Типы значений при расчёте ширин
 from openpyxl.utils import get_column_letter  # Для получения буквенного обозначения колонок Excel
 from openpyxl.styles import Alignment, Font, PatternFill  # Для стилизации ячеек Excel
 from openpyxl.styles.cell_style import StyleArray  # PERF-01: копирование индекса стиля
-from openpyxl import load_workbook  # Для применения параметров листов к уже записанному файлу (source)
-from time import time  # Для измерения времени выполнения операций
 import json        # Для работы с JSON данными
-import re          # Для работы с регулярными выражениями
 import csv         # Для работы с CSV файлами
-import unicodedata  # Нормализация имён колонок для except_columns / columns в COLUMN_FORMATS
-import time as tmod  # Для измерения времени выполнения операций (альтернативное имя)
 from concurrent.futures import ThreadPoolExecutor, as_completed  # Для параллельной обработки
-from itertools import product
 import threading  # Для синхронизации потоков
 import copy  # Копия конфигов листов для синтетических агрегированных листов
 import functools  # lru_cache нормализации имён колонок (PERF-05)
@@ -28,14 +33,11 @@ from src import console_ui  # Краткий вывод этапов и свод
 from src.block_runtime import (
     BlockLogFilter,
     console_print_lines,
-    get_current_block,
-    prefix_message,
     resolve_block_placeholders,
     set_current_block,
 )
 from src.config_loader import (
     default_config_path,
-    filter_input_files_for_block,
     get_input_files_for_block,
     parse_input_files_by_block,
     parse_run_blocks_config,
@@ -60,101 +62,6 @@ from src.debug_timing import (
 )  # DEBUG [PERF] и отдельный Excel «STAT_FILE <таймштамп>.xlsx» со временем этапов и функций
 import warnings   # Для подавления UserWarning при парсинге дат без формата
 
-# === ОПТИМИЗАЦИИ ПРОИЗВОДИТЕЛЬНОСТИ ===
-# 
-# Реализованные оптимизации (версия 4.0 - ФИНАЛЬНАЯ):
-# 
-# 1. ВЕКТОРИЗАЦИЯ calculate_tournament_status:
-#    - Заменен df.apply(get_status, axis=1) на numpy.select с векторными условиями
-#    - Ускорение: 5-10x для больших DataFrame
-#    - Использует только стандартные библиотеки: pandas, numpy (входит в Anaconda)
-# 
-# 2. РАСПАРАЛЛЕЛИВАНИЕ merge_fields_across_sheets:
-#    - Независимые правила обрабатываются параллельно через ThreadPoolExecutor
-#    - Группировка правил по зависимостям (sheet_dst)
-#    - Ускорение: 2-4x для множества независимых правил
-#    - Использует только стандартные библиотеки: concurrent.futures (встроено в Python)
-# 
-# 3. ОПТИМИЗАЦИЯ write_to_excel:
-#    - Запись данных выполняется последовательно (ограничение ExcelWriter)
-#    - Форматирование листов выполняется последовательно (openpyxl не thread-safe)
-#    - ПРИМЕЧАНИЕ: Параллелизация форматирования Excel была откачена в v4.0
-#      из-за блокировок openpyxl, которые замедляли выполнение
-#    - Использует только стандартные библиотеки: openpyxl (входит в Anaconda)
-# 
-# 4. ОПТИМИЗАЦИЯ _format_sheet:
-#    - Batch-операции для заголовков (вычисление всех ширин сразу)
-#    - Чанковая обработка больших листов (>1000 строк)
-#    - Ускорение: 1.3-2x для больших листов
-#    - Использует только стандартные библиотеки: openpyxl (входит в Anaconda)
-# 
-# 5. ПАРАЛЛЕЛИЗАЦИЯ ПАРСИНГА JSON:
-#    - Параллелизация только для больших DataFrame (>5000 строк)
-#    - Использует ThreadPoolExecutor с оптимальным размером chunk
-#    - Ускорение: 2-3x для больших JSON колонок
-#    - Использует только стандартные библиотеки: concurrent.futures
-# 
-# 6. ОПТИМИЗАЦИЯ КОНФИГУРАЦИИ ПОТОКОВ:
-#    - MAX_WORKERS_IO = 16 (для I/O операций: чтение файлов, парсинг JSON)
-#    - MAX_WORKERS_CPU = 8 (для CPU операций: вычисления, фильтрация)
-#    - Оптимизировано на основе тестирования производительности
-# 
-# Все оптимизации используют только библиотеки, входящие в Python 3.10 или Anaconda 3.10.
-# 
-# Дополнительные оптимизации (версия 5.0):
-# 
-# 7. ВЕКТОРИЗАЦИЯ tuple_key:
-#    - Заменен df.apply(lambda row: tuple_key(row, keys), axis=1) на _vectorized_tuple_key
-#    - Использует прямое обращение к колонкам DataFrame вместо итерации по строкам
-#    - Ускорение: 3-5x для создания ключей в add_fields_to_sheet
-#    - Использует только стандартные библиотеки: pandas
-# 
-# 8. ОПТИМИЗАЦИЯ _format_sheet (batch alignment):
-#    - Собираем все ячейки данных в список и применяем alignment одним проходом
-#    - Ускорение: 1.3-1.5x для больших листов
-#    - Использует только стандартные библиотеки: openpyxl
-# 
-# 9. КЭШИРОВАНИЕ ЦВЕТОВЫХ СХЕМ:
-#    - Кэширование результата generate_dynamic_color_scheme_from_merge_fields()
-#    - Избегаем повторной генерации схем при каждом вызове apply_color_scheme
-#    - Ускорение: 1.1-1.2x для множественных листов
-#    - Использует только стандартные библиотеки: Python (встроенный механизм)
-
-# Дополнительные библиотеки не требуются.
-# 
-# Все оптимизации используют только библиотеки, входящие в Python 3.10 или Anaconda 3.10.
-# Дополнительные библиотеки не требуются.
-# 
-# В этом файле реализованы оптимизации для ускорения обработки данных:
-# 
-# 1. ВЕКТОРИЗАЦИЯ ФУНКЦИЙ (ускорение 50-200x):
-#    - validate_field_lengths_vectorized: замена iterrows() на векторные операции pandas
-#    - add_auto_gender_column_vectorized: замена iterrows() на строковые операции pandas
-#    - collect_summary_keys_optimized: упрощенная версия с использованием merge
-# 
-# 2. ПАРАЛЛЕЛЬНАЯ ОБРАБОТКА:
-#    - Параллельное чтение CSV файлов через ThreadPoolExecutor
-#    - Параллельная проверка длины полей
-#    - Параллельная проверка дубликатов
-# 
-# 3. ОПТИМИЗАЦИЯ ПАМЯТИ:
-#    - Замена apply() на векторные операции где возможно
-#    - Использование pd.to_datetime вместо apply(safe_to_date)
-# 
-# 4. УСТРАНЕНИЕ ДУБЛИРОВАНИЯ:
-#    - Удален дублирующийся блок кода в _format_sheet
-#    - Устранено тройное логирование в safe_json_loads
-# 
-# ВАЖНО: Оптимизированные версии функций автоматически сравниваются с оригинальными
-#        для гарантии идентичности результатов. В случае различий используется оригинальная версия.
-# 
-# Дата внедрения оптимизаций: 2025-01-20
-# Ожидаемое ускорение: 50-200x в зависимости от объема данных
-# 
-
-
-
-
 
 # === Ошибки пайплайна и коды возврата (BUG-01, BUG-06, LOG-02) ===
 EXIT_OK = 0                # успех
@@ -174,6 +81,20 @@ class MissingInputFilesError(Exception):
         self.message_lines = message_lines
 
 
+# ENV-02: на Windows без включённых длинных путей полный путь ограничен MAX_PATH = 260 символов
+_LONG_PATH_WARN_LEN = 240
+
+
+def _warn_if_long_path(path: str) -> None:
+    """WARNING, если полный путь выходного файла близок к пределу Windows (MAX_PATH = 260)."""
+    full = os.path.abspath(path)
+    if len(full) > _LONG_PATH_WARN_LEN:
+        logging.warning(
+            f"[write] Длинный путь ({len(full)} символов > {_LONG_PATH_WARN_LEN}): на Windows запись может "
+            f"не удаться (MAX_PATH = 260). Перенесите проект ближе к корню диска. Путь: {full}"
+        )
+
+
 def _remove_partial_file(path: str) -> None:
     """Удалить недописанный выходной файл после ошибки записи (если он успел появиться)."""
     try:
@@ -187,7 +108,7 @@ def _remove_partial_file(path: str) -> None:
 # === ЗАГРУЗКА КОНФИГУРАЦИИ ИЗ config.json или из внедрённого Config ===
 def _load_config_globals():
     """Устанавливает глобальные переменные из Config (внедрённый) или из config.json."""
-    global DIR_INPUT, DIR_OUTPUT, DIR_LOGS, LOG_LEVEL, LOG_BASE_NAME, INPUT_FILES, RUN_MODE
+    global DIR_INPUT, DIR_OUTPUT, DIR_LOGS, LOG_LEVEL, LOG_BASE_NAME, LOG_RETENTION_DAYS, INPUT_FILES, RUN_MODE
     global ALL_INPUT_FILES, INPUT_FILES_BY_BLOCK, RUN_BLOCKS, CURRENT_RUN_BLOCK
     global RUN_BLOCKS_PARALLEL, CFG_RAW, CONFIG_PATH
     global RUN_OUTPUTS, RUN_SOURCE_ONLY_EXIT, RUN_WRITE_SOURCE, RUN_WRITE_MAIN
@@ -201,7 +122,7 @@ def _load_config_globals():
     global OUTPUT_FILENAME_CONSISTENCY_TEMPLATE, OUTPUT_FILENAME_MANAGER_STATS_TEMPLATE
     global APPLY_SORT_TO_SOURCE, APPLY_SORT_TO_MAIN
     global SUMMARY_SHEET, SHEET_ORDER, SUMMARY_KEY_DEFS, SUMMARY_KEY_COLUMNS
-    global GENDER_PATTERNS, GENDER_PROGRESS_STEP, FIELD_LENGTH_VALIDATIONS
+    global GENDER_PATTERNS, GENDER_PROGRESS_STEP
     global COL_REWARD_LINK_CONTEST_CODE, MERGE_FIELDS_ADVANCED, COLOR_SCHEME
     global COLUMN_FORMATS, CONSISTENCY_CHECKS, JSON_COLUMNS, REWARD_GETCONDITION_SUMMARY
     global MAX_WORKERS_IO, MAX_WORKERS_CPU, MAX_WORKERS, TOURNAMENT_STATUS_CHOICES
@@ -210,9 +131,10 @@ def _load_config_globals():
     global MANAGER_STATS
     global SKIP_DATA_ALIGNMENT_SHEETS
 
+    from src.config_holder import get_current_config
+
+    _c = get_current_config()
     try:
-        from src.config_holder import get_current_config
-        _c = get_current_config()
         if _c is not None:
             _BASE_DIR = _c.base_dir
             DIR_INPUT = _c.dir_input
@@ -220,6 +142,7 @@ def _load_config_globals():
             DIR_LOGS = _c.dir_logs
             LOG_LEVEL = _c.log_level
             LOG_BASE_NAME = _c.log_base_name
+            LOG_RETENTION_DAYS = getattr(_c, "log_retention_days", 0)
             INPUT_FILES_BY_BLOCK = dict(
                 getattr(_c, "input_files_by_block", None)
                 or parse_input_files_by_block({"input_files": _c.input_files})
@@ -237,7 +160,6 @@ def _load_config_globals():
             SUMMARY_KEY_COLUMNS = list(_c.summary_key_columns)
             GENDER_PATTERNS = _c.gender_patterns
             GENDER_PROGRESS_STEP = getattr(_c, "gender_progress_step", 500)
-            FIELD_LENGTH_VALIDATIONS = _c.field_length_validations
             COL_REWARD_LINK_CONTEST_CODE = "REWARD_LINK => CONTEST_CODE"
             MERGE_FIELDS_ADVANCED = _c.merge_fields_advanced
             COLOR_SCHEME = _c.color_scheme
@@ -321,8 +243,11 @@ def _load_config_globals():
             SEASON_ORDER_SUMMARY = getattr(_c, "season_order_summary", None) or {}
             MANAGER_STATS = getattr(_c, "manager_stats", None) or {}
             return
-    except Exception:
-        pass
+    except Exception as e:
+        # BUG-12: не переходить молча на config/config.json — это другой конфиг и, возможно, другие данные
+        _path = getattr(_c, "config_path", "?")
+        logging.exception(f"[config] Не удалось применить загруженную конфигурацию {_path}: {e}")
+        raise RuntimeError(f"Не удалось применить конфигурацию {_path}: {e}") from e
 
     # Загрузка из config/config.json (корень проекта = родитель каталога src)
     from src.config_loader import default_config_path, load_config_dict, resolve_project_base_dir
@@ -337,6 +262,9 @@ def _load_config_globals():
     DIR_LOGS = os.path.join(_BASE_DIR, _cfg["paths"]["logs"])
     LOG_LEVEL = _cfg["logging"]["level"]
     LOG_BASE_NAME = _cfg["logging"]["base_name"]
+    from src.config_loader import parse_log_retention_days
+
+    LOG_RETENTION_DAYS = parse_log_retention_days(_cfg)
     INPUT_FILES_BY_BLOCK = parse_input_files_by_block(_cfg)
     ALL_INPUT_FILES = INPUT_FILES_BY_BLOCK
     RUN_BLOCKS = parse_run_blocks_config(_cfg)
@@ -355,7 +283,6 @@ def _load_config_globals():
                 SUMMARY_KEY_COLUMNS.append(_col)
     GENDER_PATTERNS = _cfg["gender"]["patterns"]
     GENDER_PROGRESS_STEP = _cfg["gender"].get("progress_step", 500)
-    FIELD_LENGTH_VALIDATIONS = _cfg.get("field_length_validations") or {}
     COL_REWARD_LINK_CONTEST_CODE = "REWARD_LINK => CONTEST_CODE"
     MERGE_FIELDS_ADVANCED = _cfg["merge_fields_advanced"]
     COLOR_SCHEME = _cfg.get("color_scheme") or []
@@ -569,13 +496,16 @@ def get_log_dir_for_run() -> str:
 
 
 # Лог-файл с учетом уровня
-def get_log_filename():
+def get_log_filename(block_suffix: Optional[str] = None):
     """
-    Генерирует путь к лог-файлу: LOGS/YYYY/DD-MM/имя_уровень_дата_время.log
+    Генерирует путь к лог-файлу: LOGS/YYYY/DD-MM/имя_уровень_ГГГГММДД_ЧЧ_ММ_СС[_БЛОК].log
     (подкаталоги по дате по тому же принципу, что и для OUT).
+    Секунды и код блока (процесс-блок параллельного режима) — чтобы запуски в одну минуту
+    и параллельные блоки не писали в один файл вперемешку (BUG-11).
     """
     level_suffix = f"_{LOG_LEVEL}" if LOG_LEVEL else ""
-    date_suffix = f"_{datetime.now().strftime('%Y%m%d_%H_%M')}.log"
+    block_part = f"_{block_suffix}" if block_suffix else ""
+    date_suffix = f"_{datetime.now().strftime('%Y%m%d_%H_%M_%S')}{block_part}.log"
     log_dir = get_log_dir_for_run()
     return os.path.join(log_dir, LOG_BASE_NAME + level_suffix + date_suffix)
 
@@ -655,30 +585,72 @@ def _log_info_file_only(msg: str) -> None:
         logging.info(msg)
 
 
-def setup_logger():
+def cleanup_old_logs(logs_dir: str, base_name: str, retention_days: int, now: Optional[datetime] = None) -> int:
+    """
+    LOG-04: удалить лог-файлы программы старше retention_days дней (по времени изменения).
+    Удаляются только файлы «<base_name>_*.log» внутри logs_dir и опустевшие после этого подкаталоги дат.
+    retention_days <= 0 — ничего не удаляется. Возвращает число удалённых файлов.
+    """
+    if retention_days <= 0 or not logs_dir or not os.path.isdir(logs_dir):
+        return 0
+    cutoff = (now or datetime.now()).timestamp() - retention_days * 86400
+    removed = 0
+    for root, dirs, files in os.walk(logs_dir, topdown=False):
+        for name in files:
+            if not (name.startswith(f"{base_name}_") and name.endswith(".log")):
+                continue
+            path = os.path.join(root, name)
+            try:
+                if os.path.getmtime(path) < cutoff:
+                    os.remove(path)
+                    removed += 1
+            except OSError:
+                logging.warning(f"[logs] Не удалось удалить старый лог: {path}", exc_info=True)
+        if root != logs_dir:
+            try:
+                if not os.listdir(root):
+                    os.rmdir(root)
+            except OSError:
+                pass
+    return removed
+
+
+# Маркер обработчиков, созданных setup_logger (снимаются при повторной настройке — BUG-05)
+_SPOD_HANDLER_ATTR = "_spod_handler"
+
+
+def setup_logger(block_suffix: Optional[str] = None):
     """
     Настраивает систему логирования для программы.
 
-    Создает логгер с двумя обработчиками:
-    - Файловый: уровень из config.json → logging.level (имя файла уже содержит суффикс уровня)
-    - Консольный: WARNING и выше (краткий ход — console_ui)
+    Обработчики программы (с маркером _spod_handler):
+    - Файловый: уровень из config.json → logging.level (имя файла уже содержит суффикс уровня);
+      добавляется всегда — даже если у корневого логгера уже есть чужие обработчики (BUG-05:
+      консоль IDE, повторный main() в той же сессии, basicConfig библиотеки);
+    - Консольный: WARNING и выше (краткий ход — console_ui); не добавляется, если консольный
+      обработчик уже есть (чужой) — тогда тот получает уровень WARNING и Quiet-фильтр.
+    Обработчики предыдущей настройки (повторный main(), унаследованные дочерним процессом) снимаются.
 
     Returns:
         str: Путь к созданному лог-файлу
     """
-    log_file = get_log_filename()
+    log_file = get_log_filename(block_suffix)
     # get_log_filename() уже создаёт каталог LOGS/YYYY/DD-MM через get_log_dir_for_run()
     logger = logging.getLogger()
-    # Если логгер уже инициализирован — всё равно вешаем Quiet-фильтр на консольные хендлеры
-    if logger.hasHandlers():
-        for h in logger.handlers:
-            if isinstance(h, logging.StreamHandler) and not isinstance(h, logging.FileHandler):
-                if not any(isinstance(f, _QuietExpectedMergeConsoleFilter) for f in h.filters):
-                    h.addFilter(_QuietExpectedMergeConsoleFilter())
-                # Консоль только WARNING+: ожидаемые INFO merge не должны светиться
-                if h.level < logging.WARNING:
-                    h.setLevel(logging.WARNING)
-        return log_file
+    for h in list(logger.handlers):
+        if getattr(h, _SPOD_HANDLER_ATTR, False):
+            logger.removeHandler(h)
+            h.close()
+
+    # Чужие консольные обработчики: Quiet-фильтр и только WARNING+ (ожидаемые INFO merge не светятся)
+    foreign_console = False
+    for h in logger.handlers:
+        if isinstance(h, logging.StreamHandler) and not isinstance(h, logging.FileHandler):
+            foreign_console = True
+            if not any(isinstance(f, _QuietExpectedMergeConsoleFilter) for f in h.filters):
+                h.addFilter(_QuietExpectedMergeConsoleFilter())
+            if h.level < logging.WARNING:
+                h.setLevel(logging.WARNING)
 
     # Уровень файла совпадает с config: при level=INFO в лог-файл не попадают записи DEBUG
     file_level = _logging_level_from_config(LOG_LEVEL)
@@ -694,28 +666,26 @@ def setup_logger():
         datefmt="%Y-%m-%d %H:%M:%S"
     )
 
-    # Форматтер для консоли (без имени функции)
-    console_formatter = logging.Formatter(
-        "%(asctime)s | %(levelname)s | %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S"
-    )
-
     file_handler = logging.FileHandler(log_file, encoding="utf-8", mode="a")
     file_handler.setLevel(file_level)
     file_handler.setFormatter(file_formatter)
     file_handler.addFilter(BlockLogFilter())
-    
-    # Консольный обработчик: WARNING и ERROR (INFO — только в файл; консоль — console_ui)
-    console_handler = logging.StreamHandler(sys.stdout)
-    console_handler.setLevel(logging.WARNING)
-    console_handler.setFormatter(console_formatter)
-    console_handler.addFilter(BlockLogFilter())
-    console_handler.addFilter(_QuietExpectedMergeConsoleFilter())
-    
-    # Добавляем обработчики к логгеру
+    setattr(file_handler, _SPOD_HANDLER_ATTR, True)
     logger.addHandler(file_handler)
-    logger.addHandler(console_handler)
-    
+
+    if not foreign_console:
+        # Консольный обработчик: WARNING и ERROR (INFO — только в файл; консоль — console_ui)
+        console_handler = logging.StreamHandler(sys.stdout)
+        console_handler.setLevel(logging.WARNING)
+        console_handler.setFormatter(logging.Formatter(
+            "%(asctime)s | %(levelname)s | %(message)s",
+            datefmt="%Y-%m-%d %H:%M:%S"
+        ))
+        console_handler.addFilter(BlockLogFilter())
+        console_handler.addFilter(_QuietExpectedMergeConsoleFilter())
+        setattr(console_handler, _SPOD_HANDLER_ATTR, True)
+        logger.addHandler(console_handler)
+
     return log_file
 
 def _parse_date_column_to_date(series: pd.Series, col_label: str = "") -> pd.Series:
@@ -809,9 +779,6 @@ def calculate_tournament_status(df_tournament, df_report=None):
         pd.DataFrame: DataFrame с добавленной колонкой CALC_TOURNAMENT_STATUS,
                      содержащей вычисленный статус для каждого турнира
     """
-    func_start = time()  # Засекаем время начала выполнения
-    params = "(TOURNAMENT-SCHEDULE status calculation)"
-    logging.info(f"[START] calculate_tournament_status {params}")
 
     today = pd.Timestamp.now().date()  # Текущая дата
     df = df_tournament.copy()          # Копируем DataFrame для безопасной работы
@@ -888,272 +855,14 @@ def calculate_tournament_status(df_tournament, df_report=None):
     logging.info(f"[TOURNAMENT STATUS] Статистика: {status_counts.to_dict()}")
 
     # Засекаем время выполнения и логируем завершение
-    func_time = time() - func_start
-    logging.info(f"[END] calculate_tournament_status {params} (время: {func_time:.3f}s)")
 
     return df
 
 
-def validate_field_lengths(df, sheet_name):
-    """
-    Проверяет длину полей согласно конфигурации FIELD_LENGTH_VALIDATIONS.
-    Добавляет колонку с результатом проверки для каждого листа.
-    
-    Эта функция валидирует длину полей в DataFrame согласно заданным правилам.
-    Результат проверки записывается в специальную колонку для последующего анализа.
-
-    Формат результата:
-    - "-" если все поля соответствуют ограничениям
-    - "поле1 = длина > ограничение; поле2 = длина > ограничение" если есть нарушения
-
-    Args:
-        df (pd.DataFrame): DataFrame для проверки
-        sheet_name (str): Название листа (используется для поиска конфигурации)
-
-    Returns:
-        pd.DataFrame: DataFrame с добавленной колонкой результата проверки
-    """
-    func_start = time()  # Засекаем время начала выполнения
-
-    # Проверяем есть ли конфигурация для этого листа
-    if sheet_name not in FIELD_LENGTH_VALIDATIONS:
-        return df  # Если конфигурации нет - возвращаем DataFrame без изменений
-
-    config = FIELD_LENGTH_VALIDATIONS[sheet_name]        # Получаем конфигурацию для листа
-    result_column = config["result_column"]              # Название колонки для результатов
-    fields_config = config["fields"]                     # Конфигурация полей для проверки
-
-    # Проверяем наличие полей в DataFrame
-    missing_fields = [field for field in fields_config.keys() if field not in df.columns]
-    if missing_fields:
-        logging.warning(f"[FIELD LENGTH] Пропущены поля {missing_fields} в листе {sheet_name}")
-        # Создаем пустую колонку если нет полей для проверки
-        df[result_column] = '-'
-        return df
-
-    total_rows = len(df)  # Общее количество строк для проверки
-    logging.info(f"[FIELD LENGTH] Проверка длины полей для листа {sheet_name}, строк: {total_rows}")
-
-    # Счетчики для статистики выполнения
-    correct_count = 0    # Количество корректных строк
-    error_count = 0      # Количество строк с ошибками
-
-    def check_field_length(value, limit, operator):
-        """
-        Проверяет соответствие длины поля заданному ограничению.
-        
-        Args:
-            value: Значение поля для проверки
-            limit (int): Ограничение длины
-            operator (str): Оператор сравнения ("<=", "=", ">=", "<", ">")
-            
-        Returns:
-            bool: True если поле соответствует ограничению, False если нарушает
-        """
-        if pd.isna(value) or value in ['', '-', 'None', 'null']:
-            return True  # Пустые значения считаем корректными
-
-        length = len(str(value))  # Преобразуем в строку и считаем длину
-
-        # Проверяем соответствие ограничению в зависимости от оператора
-        if operator == "<=":
-            return length <= limit
-        elif operator == "=":
-            return length == limit
-        elif operator == ">=":
-            return length >= limit
-        elif operator == "<":
-            return length < limit
-        elif operator == ">":
-            return length > limit
-        else:
-            return True  # Неизвестный оператор - считаем корректным
-
-    def check_row(row, row_idx):
-        """
-        Проверяет одну строку и возвращает результат проверки.
-        
-        Args:
-            row: Строка DataFrame для проверки
-            row_idx: Индекс строки для логирования
-            
-        Returns:
-            str: Результат проверки: "-" если все корректно, иначе описание нарушений
-        """
-        violations = []  # Список нарушений для текущей строки
-
-        # Проверяем каждое поле согласно конфигурации
-        for field_name, field_config in fields_config.items():
-            limit = field_config["limit"]      # Ограничение длины
-            operator = field_config["operator"]  # Оператор сравнения
-            value = row.get(field_name, '')   # Значение поля (по умолчанию пустая строка)
-
-            # Если поле не соответствует ограничению - добавляем в список нарушений
-            if not check_field_length(value, limit, operator):
-                length = len(str(value)) if not pd.isna(value) else 0
-                violations.append(f"{field_name} = {length} {operator} {limit}")
-
-                # Логируем нарушение для отладки
-                logging.debug(f"Строка {row_idx}: поле '{field_name}' = {length} {operator} {limit} (нарушение)")
-
-        # Возвращаем результат: "-" если нарушений нет, иначе список нарушений через "; "
-        return "; ".join(violations) if violations else "-"
-
-    # Обрабатываем каждую строку DataFrame
-    results = []
-    for idx, row in df.iterrows():
-        result = check_row(row, idx)  # Проверяем текущую строку
-        results.append(result)        # Добавляем результат в список
-
-        # Обновляем статистику выполнения
-        if result == "-":
-            correct_count += 1        # Строка корректна
-        else:
-            error_count += 1          # Строка содержит нарушения
-
-        # Показываем прогресс каждые GENDER_PROGRESS_STEP строк
-        if (idx + 1) % GENDER_PROGRESS_STEP == 0:
-            percent = ((idx + 1) / total_rows) * 100
-            logging.debug(f"[FIELD LENGTH] Обработано {idx + 1} из {total_rows} строк ({percent:.1f}%)")
-
-    # Добавляем колонку с результатами проверки к DataFrame
-    df[result_column] = results
-
-    # Логируем финальную статистику выполнения
-    func_time = time() - func_start
-    logging.info(f"[FIELD LENGTH] Статистика: корректных={correct_count}, с ошибками={error_count} (всего: {total_rows})")
-    logging.info(f"[FIELD LENGTH] Завершено за {func_time:.3f}s для листа {sheet_name}")
-
-    return df
 
 
-def validate_field_lengths_vectorized(df, sheet_name):
-    """
-    ОПТИМИЗИРОВАННАЯ ВЕРСИЯ: Векторизованная проверка длины полей.
-    
-    Обрабатывает все строки одновременно используя векторные операции pandas
-    вместо iterrows(). Ожидаемое ускорение: 50-100x.
-    
-    Args:
-        df (pd.DataFrame): DataFrame для проверки
-        sheet_name (str): Название листа
-
-    Returns:
-        pd.DataFrame: DataFrame с добавленной колонкой результата проверки
-    """
-    func_start = time()
-
-    if sheet_name not in FIELD_LENGTH_VALIDATIONS:
-        return df
-
-    config = FIELD_LENGTH_VALIDATIONS[sheet_name]
-    result_column = config["result_column"]
-    fields_config = config["fields"]
-
-    missing_fields = [field for field in fields_config.keys() if field not in df.columns]
-    if missing_fields:
-        logging.warning(f"[FIELD LENGTH VECTORIZED] Пропущены поля {missing_fields} в листе {sheet_name}")
-        df[result_column] = '-'
-        return df
-
-    total_rows = len(df)
-    logging.info(f"[FIELD LENGTH VECTORIZED] Проверка длины полей для листа {sheet_name}, строк: {total_rows}")
-
-    violations_dict = {}
-
-    for field_name, field_config in fields_config.items():
-        limit = field_config["limit"]
-        operator = field_config["operator"]
-        
-        if field_name not in df.columns:
-            continue
-        
-        lengths = df[field_name].astype(str).str.len()
-        empty_mask = df[field_name].isin(['', '-', 'None', 'null']) | df[field_name].isna()
-        
-        if operator == "<=":
-            mask = (lengths > limit) & ~empty_mask
-        elif operator == "=":
-            mask = (lengths != limit) & ~empty_mask
-        elif operator == ">=":
-            mask = (lengths < limit) & ~empty_mask
-        elif operator == "<":
-            mask = (lengths >= limit) & ~empty_mask
-        elif operator == ">":
-            mask = (lengths <= limit) & ~empty_mask
-        else:
-            mask = pd.Series(False, index=df.index)
-        
-        if mask.any():
-            violations_dict[field_name] = pd.Series('', index=df.index, dtype=str)
-            violations_dict[field_name].loc[mask] = df.loc[mask, field_name].apply(
-                lambda val: f"{field_name} = {len(str(val))} {operator} {limit}"
-            )
-            
-            for idx in df.index[mask]:
-                logging.debug(f"Строка {idx}: поле '{field_name}' = {len(str(df.loc[idx, field_name]))} {operator} {limit} (нарушение)")
-
-    if violations_dict:
-        violations_df = pd.DataFrame(violations_dict)
-        violations_series = violations_df.apply(
-            lambda row: "; ".join([str(v) for v in row if v and str(v).strip()]),
-            axis=1
-        )
-        df[result_column] = violations_series.replace('', '-')
-    else:
-        df[result_column] = '-'
-    
-    correct_count = (df[result_column] == "-").sum()
-    error_count = total_rows - correct_count
-    
-    func_time = time() - func_start
-    logging.info(f"[FIELD LENGTH VECTORIZED] Статистика: корректных={correct_count}, с ошибками={error_count} (всего: {total_rows})")
-    logging.info(f"[FIELD LENGTH VECTORIZED] Завершено за {func_time:.3f}s для листа {sheet_name}")
-
-    return df
 
 
-def compare_validate_results(df_old, df_new, result_column):
-    """
-    Сравнивает результаты работы старой и новой версии validate_field_lengths.
-    
-    Args:
-        df_old (pd.DataFrame): Результат старой версии
-        df_new (pd.DataFrame): Результат новой версии
-        result_column (str): Название колонки с результатами
-    
-    Returns:
-        dict: Словарь с результатами сравнения
-    """
-    if result_column not in df_old.columns or result_column not in df_new.columns:
-        return {"error": "Колонка с результатами не найдена"}
-    
-    old_results = df_old[result_column].fillna('-')
-    new_results = df_new[result_column].fillna('-')
-    
-    differences = (old_results != new_results).sum()
-    total = len(df_old)
-    matches = total - differences
-    
-    diff_examples = []
-    if differences > 0:
-        diff_mask = old_results != new_results
-        diff_indices = df_old.index[diff_mask][:5]
-        for idx in diff_indices:
-            diff_examples.append({
-                "index": idx,
-                "old": old_results.loc[idx],
-                "new": new_results.loc[idx]
-            })
-    
-    return {
-        "total": total,
-        "matches": matches,
-        "differences": differences,
-        "match_percent": (matches / total * 100) if total > 0 else 0,
-        "diff_examples": diff_examples,
-        "identical": differences == 0
-    }
 
 
 # === ЧТЕНИЕ И ЗАПИСЬ ДАННЫХ ===
@@ -1220,10 +929,67 @@ def check_input_files_exist() -> List[Dict[str, str]]:
         # Подкаталог (один уровень): если задан subdir — ищем в paths.input / subdir
         subdir = (file_conf.get("subdir") or "").strip()
         search_dir = os.path.join(DIR_INPUT, subdir) if subdir else DIR_INPUT
-        path = find_file_case_insensitive(search_dir, base_name, [".csv", ".CSV"])
+        path = _find_input_file(search_dir, sheet_name, base_name)
         if path is None:
             missing.append({"file": base_name, "sheet": sheet_name})
     return missing
+
+
+# STR-03: зашитые имена листов/колонок/файлов источников — в одном месте; переопределяются ключом
+# config «source_aliases»: {лист: {"keys": {имя: замена}, "columns": {имя: замена}, "file_fallbacks": {файл: замена}}}
+_DEFAULT_SOURCE_ALIASES: Dict[str, Dict[str, Dict[str, str]]] = {
+    "LIST-TOURNAMENT": {
+        # В выгрузке геймификации ключ и статус иногда приходят под другими заголовками
+        "keys": {"Код турнира": "TOURNAMENT_CODE"},
+        "columns": {"Бизнес-статус турнира": "Бизнес-статус"},
+        "file_fallbacks": {"gamification-tournamentList-2": "gamification-tournamentList"},
+    },
+}
+
+
+def _source_aliases(sheet: str) -> Dict[str, Dict[str, str]]:
+    cfg_aliases = CFG_RAW.get("source_aliases") if isinstance(CFG_RAW, dict) else None
+    if isinstance(cfg_aliases, dict) and sheet in cfg_aliases:
+        return cfg_aliases[sheet] or {}
+    return _DEFAULT_SOURCE_ALIASES.get(sheet, {})
+
+
+def apply_source_aliases(sheet_src: str, df_src: pd.DataFrame, src_keys: List[str], columns: Any, context: str) -> List[str]:
+    """
+    Подстановка ключей и колонок источника по source_aliases (одна реализация для merge, merge в
+    потоках и SUMMARY). Ключ заменяется, если его нет на листе, а замена есть; колонка копируется
+    из колонки-замены, если нужной нет. Возвращает (возможно изменённый) список ключей; df_src
+    дополняется колонками на месте.
+    """
+    aliases = _source_aliases(sheet_src)
+    if not aliases or df_src is None:
+        return src_keys
+    key_map = aliases.get("keys") or {}
+    new_keys = [src_keys] if isinstance(src_keys, str) else list(src_keys)
+    for i, key in enumerate(new_keys):
+        alt = key_map.get(key)
+        if alt and key not in df_src.columns and alt in df_src.columns:
+            new_keys[i] = alt
+            logging.info(f"[MERGE] {context} {sheet_src}: подстановка ключа {alt} вместо '{key}'")
+    col_map = aliases.get("columns") or {}
+    for col in (columns if isinstance(columns, list) else [columns]):
+        alt = col_map.get(col)
+        if alt and col not in df_src.columns and alt in df_src.columns:
+            df_src[col] = df_src[alt]
+            logging.info(f"[MERGE] {context} {sheet_src}: подстановка колонки '{alt}' для '{col}'")
+    return new_keys
+
+
+def _find_input_file(search_dir: str, sheet_name: str, file_name: str) -> Optional[str]:
+    """Файл input_files с учётом запасного имени из source_aliases.file_fallbacks."""
+    path = find_file_case_insensitive(search_dir, file_name, [".csv", ".CSV"])
+    if path is None:
+        alt = (_source_aliases(sheet_name).get("file_fallbacks") or {}).get(file_name)
+        if alt:
+            path = find_file_case_insensitive(search_dir, alt, [".csv", ".CSV"])
+            if path:
+                logging.info(f"{sheet_name}: использован файл по альтернативному имени: {path}")
+    return path
 
 
 def _raise_if_input_files_missing() -> None:
@@ -1263,9 +1029,7 @@ def read_csv_file(
         (pd.DataFrame, list) или None при ошибке. Список — записи о расхождениях по числу полей
         в строке: [{"row_index", "expected_cols", "actual_cols", "direction": "больше"|"меньше"}, ...].
     """
-    func_start = time()  # Засекаем время начала выполнения
     params = f"({file_path}, expected_columns={expected_columns})"
-    logging.info(f"[START] read_csv_file {params}")
 
     try:
         rows = []
@@ -1291,10 +1055,8 @@ def read_csv_file(
                         issues.append({"row_index": i + 1, "expected_cols": n, "actual_cols": actual, "direction": "больше"})
                     rows.append(row)
 
-        df = pd.DataFrame(rows, columns=headers)
-
-        for col in df.columns:
-            df[col] = df[col].astype(str)
+        # Значения csv.reader — уже str (короткие строки дополнены ""), поэтому без astype(str) по колонкам (PERF-09)
+        df = pd.DataFrame(rows, columns=headers, dtype=object)
 
         for col in df.columns:
             if "FEATURE" in col or "ADD_DATA" in col:
@@ -1305,7 +1067,6 @@ def read_csv_file(
             logging.warning(f"[CSV] Расхождение по числу полей: {file_path}, строк с расхождением: {len(issues)}")
         logging.info(f"Файл успешно загружен: {file_path}, строк: {len(df)}, колонок: {len(df.columns)}")
 
-        func_time = time() - func_start
         return (df, issues)
 
     except Exception:
@@ -1315,6 +1076,51 @@ def read_csv_file(
 
 
 @debug_timed()
+def _sort_sheets_by_config(sheets: Dict[str, Any], tag: str) -> None:
+    """
+    Сортировка листов по sort_columns (или source_sort) из input_files — на месте в словаре sheets (STR-03).
+
+    Порядок в конфиге = последовательность применения ко всему списку: 1 → 2 → 3 (последнее поле задаёт
+    основной порядок). Для pandas ключи переворачиваются: первый в конфиге — уточняющий, последний — основной.
+    """
+    sort_by_sheet: Dict[str, Any] = {}
+    for file_conf in INPUT_FILES:
+        sheet_name = file_conf.get("sheet")
+        if not sheet_name:
+            continue
+        cols = file_conf.get("sort_columns") or file_conf.get("source_sort") or []
+        if cols:
+            sort_by_sheet[sheet_name] = cols
+    for sheet_name, cols_conf in sort_by_sheet.items():
+        item = sheets.get(sheet_name)
+        if item is None or len(item) < 1 or item[0] is None:
+            continue
+        df, params = item
+        if not isinstance(df, pd.DataFrame) or len(cols_conf) == 0:
+            continue
+        by_cols = []
+        ascending_list = []
+        for c in cols_conf:
+            col_name = c.get("column") if isinstance(c, dict) else c
+            order = (c.get("order", "asc") or "asc").lower() if isinstance(c, dict) else "asc"
+            if not col_name:
+                continue
+            if col_name in df.columns:
+                by_cols.append(col_name)
+                ascending_list.append(order != "desc")
+            elif _debug_enabled():
+                logging.debug(f"[{tag}] Лист {sheet_name}: поле сортировки '{col_name}' не найдено, пропуск")
+        if by_cols:
+            by_cols.reverse()
+            ascending_list.reverse()
+            try:
+                sheets[sheet_name] = (df.sort_values(by=by_cols, ascending=ascending_list), params)
+            except Exception as e:
+                logging.warning(f"[{tag}] Сортировка листа {sheet_name} пропущена: {e}")
+        else:
+            logging.info(f"[{tag}] Лист {sheet_name}: ни одно поле сортировки не найдено, запись без сортировки")
+
+
 def _apply_source_sheet_layout(ws: Any, sheet_item: Any, df_written: pd.DataFrame) -> None:
     """Ширины, закрепление, автофильтр и перенос по словам на листе source (параметры — из input_files)."""
     sheet_name = ws.title
@@ -1372,6 +1178,9 @@ def write_source_excel(
     Returns:
         str: полный путь к записанному файлу
     """
+    # BUG-12: работаем с копией словаря — вызывающий код дальше передаёт raw_sheets в проверки
+    # консистентности, и они не должны зависеть от того, писался ли source (сортировка, пустые листы)
+    raw_sheets_data = dict(raw_sheets_data)
     # Дополняем сырые данные пустыми листами только для тех, кого включаем в source (include_in_source != false)
     for file_conf in INPUT_FILES:
         if not file_conf.get("include_in_source", True):
@@ -1384,45 +1193,7 @@ def write_source_excel(
 
     # Сортировка: только если в конфиге включено apply_sort_to_source
     if APPLY_SORT_TO_SOURCE:
-        sort_by_sheet = {}
-        for file_conf in INPUT_FILES:
-            sheet_name = file_conf.get("sheet")
-            if not sheet_name:
-                continue
-            cols = file_conf.get("sort_columns") or file_conf.get("source_sort") or []
-            if cols:
-                sort_by_sheet[sheet_name] = cols
-        for sheet_name, cols_conf in sort_by_sheet.items():
-            if sheet_name not in raw_sheets_data:
-                continue
-            df, params = raw_sheets_data[sheet_name]
-            if df is None or not isinstance(df, pd.DataFrame) or len(cols_conf) == 0:
-                continue
-            # Порядок в конфиге = последовательность применения: 1) сортировка по всему списку по полю 1,
-            # 2) по уже отсортированному списку — по полю 2, 3) по полю 3 и т.д. (последнее поле задаёт основной порядок).
-            # В pandas это даёт ключи в обратном порядке: первый в конфиге — последний (уточняющий), последний — первый (основной).
-            by_cols = []
-            ascending_list = []
-            for c in cols_conf:
-                col_name = c.get("column") if isinstance(c, dict) else c
-                order = (c.get("order", "asc") or "asc").lower() if isinstance(c, dict) else "asc"
-                if not col_name:
-                    continue
-                if col_name in df.columns:
-                    by_cols.append(col_name)
-                    ascending_list.append(order != "desc")
-                else:
-                    logging.debug(f"[source_export] Лист {sheet_name}: поле сортировки '{col_name}' не найдено, пропуск")
-            if by_cols:
-                by_cols.reverse()
-                ascending_list.reverse()
-                try:
-                    df_sorted = df.sort_values(by=by_cols, ascending=ascending_list)
-                    raw_sheets_data[sheet_name] = (df_sorted, params)
-                except Exception as e:
-                    logging.warning(f"[source_export] Сортировка листа {sheet_name} пропущена: {e}")
-            elif cols_conf:
-                logging.info(f"[source_export] Лист {sheet_name}: ни одно поле сортировки не найдено, запись без сортировки")
+        _sort_sheets_by_config(raw_sheets_data, "source_export")
 
     # Порядок листов: по SHEET_ORDER, затем остальные по алфавиту
     if SHEET_ORDER:
@@ -1436,6 +1207,7 @@ def write_source_excel(
     filename = f"{OUTPUT_FILENAME_SOURCE} {timestamp}.xlsx"
     output_path = os.path.join(output_dir, filename)
     os.makedirs(output_dir, exist_ok=True)
+    _warn_if_long_path(output_path)
 
     # PERF-07 (этап 1): оформление — по листам открытого ExcelWriter, до единственного сохранения
     # (раньше: сохранить → load_workbook → оформить все ячейки → сохранить повторно)
@@ -1490,54 +1262,13 @@ def write_to_excel(
         else:
             logging.warning(f"[write_to_excel] [WARN] Лист {sheet_name}: sheet_data равен None или пуст")
 
-    func_start = time()  # Засекаем время начала выполнения
     params = f"({output_path})"
-    logging.info(f"[START] write_to_excel {params}")
+    _warn_if_long_path(output_path)
     
     try:
         # Сортировка листов для main-файла: только если в конфиге включено apply_sort_to_main
         if APPLY_SORT_TO_MAIN:
-            sort_by_sheet = {}
-            for file_conf in INPUT_FILES:
-                sheet_name = file_conf.get("sheet")
-                if not sheet_name:
-                    continue
-                cols = file_conf.get("sort_columns") or file_conf.get("source_sort") or []
-                if cols:
-                    sort_by_sheet[sheet_name] = cols
-            for sheet_name, cols_conf in sort_by_sheet.items():
-                if sheet_name not in sheets_data or sheets_data[sheet_name] is None:
-                    continue
-                sheet_data = sheets_data[sheet_name]
-                if len(sheet_data) < 1 or sheet_data[0] is None:
-                    continue
-                df, params_sheet = sheet_data
-                if not isinstance(df, pd.DataFrame) or len(cols_conf) == 0:
-                    continue
-                # Порядок в конфиге = последовательность применения к всему списку: 1→2→3 (последнее поле — основной порядок).
-                # Переворачиваем ключи для pandas: первый в конфиге — уточняющий, последний — основной.
-                by_cols = []
-                ascending_list = []
-                for c in cols_conf:
-                    col_name = c.get("column") if isinstance(c, dict) else c
-                    order = (c.get("order", "asc") or "asc").lower() if isinstance(c, dict) else "asc"
-                    if not col_name:
-                        continue
-                    if col_name in df.columns:
-                        by_cols.append(col_name)
-                        ascending_list.append(order != "desc")
-                    else:
-                        logging.debug(f"[write_to_excel] Лист {sheet_name}: поле сортировки '{col_name}' не найдено, пропуск")
-                if by_cols:
-                    by_cols.reverse()
-                    ascending_list.reverse()
-                    try:
-                        df_sorted = df.sort_values(by=by_cols, ascending=ascending_list)
-                        sheets_data[sheet_name] = (df_sorted, params_sheet)
-                    except Exception as e:
-                        logging.warning(f"[write_to_excel] Сортировка листа {sheet_name} пропущена: {e}")
-                elif cols_conf:
-                    logging.info(f"[write_to_excel] Лист {sheet_name}: ни одно поле сортировки не найдено, запись без сортировки")
+            _sort_sheets_by_config(sheets_data, "write_to_excel")
 
         # Определяем порядок листов: по SHEET_ORDER из config, затем остальные по алфавиту
         if SHEET_ORDER:
@@ -1556,8 +1287,11 @@ def write_to_excel(
             if len(sheet_data) < 1 or sheet_data[0] is None:
                 return sheet_name, None
             df, params_sheet = sheet_data
-            df_write = df.copy()
             extra_fmt = params_sheet.get("column_format_rules") if isinstance(params_sheet, dict) else None
+            if not any(_format_rule_has_column_selector(r) for r in _iter_sheet_format_rules(sheet_name, extra_fmt)):
+                # PERF-08: правил COLUMN_FORMATS для листа нет — преобразовывать нечего, пишем без копии
+                return sheet_name, (df, params_sheet)
+            df_write = df.copy()
             try:
                 apply_column_format_conversion(df_write, sheet_name, extra_rules=extra_fmt)
             except Exception as ex:
@@ -1653,8 +1387,6 @@ def write_to_excel(
             # сам сохраняет файл. Повторное сохранение на тот же путь часто даёт повреждённый ZIP (xlsx не открывается).
 
         # Логируем успешное завершение
-        func_time = time() - func_start
-        logging.info(f"[END] write_to_excel {params} (время: {func_time:.3f}s)")
         
     except Exception as ex:
         # BUG-01: ошибку не глотаем — traceback в лог, недописанный файл удаляем, исключение — вызывающему
@@ -2158,9 +1890,6 @@ def apply_column_formats(
 
 @debug_timed()
 def _format_sheet(ws, df, params, use_color_scheme: bool = True, df_written: Optional[pd.DataFrame] = None):
-    func_start = time()
-    params_str = f"({ws.title})"
-    logging.debug(f"[START] _format_sheet {params_str}")
     header_font = Font(bold=True)
     align_center = Alignment(horizontal="center", vertical="center", wrap_text=True)
     align_data = Alignment(horizontal="left", vertical="center", wrap_text=True)
@@ -2240,41 +1969,18 @@ def _format_sheet(ws, df, params, use_color_scheme: bool = True, df_written: Opt
     except Exception as ex:
         logging.warning(f"[_format_sheet] Лист «{ws.title}»: автофильтр не применён: {ex}")
 
-    func_time = time() - func_start
-    logging.debug(f"[END] _format_sheet {params_str} (время: {func_time:.3f}s)")
     
     # Возвращаем имя листа для логирования в параллельном режиме
     return ws.title
 
 
-def safe_json_loads_preserve_triple_quotes(s: str):
-    """
-    Преобразует строку в объект JSON, сохраняя тройные кавычки как есть.
-    Используется для обработки JSON из CSV файлов с тройными кавычками.
-    """
-    if not isinstance(s, str):
-        return s
-    s = s.strip()
-    if not s or s in {'-', 'None', 'null'}:
-        return None
-    
-    # Сначала пробуем распарсить как есть
-    try:
-        return json.loads(s)
-    except Exception as ex:
-        # Если не получилось, возвращаем исходную строку с тройными кавычками
-        # Это позволяет сохранить тройные кавычки в исходном виде
-        logging.debug(f"[safe_json_loads_preserve_triple_quotes] Сохраняем исходную строку с тройными кавычками: {repr(s)}")
-        return s  # Возвращаем исходную строку с тройными кавычками
 
 
 @debug_timed(hot=True)
 def flatten_json_column_recursive(df, column, prefix=None, sheet=None, sep="; "):
-    func_start = tmod.time()
     n_rows = len(df)
     n_errors = 0
     prefix = prefix if prefix is not None else column
-    logging.info(f"[START] flatten_json_column_recursive (лист: {sheet}, колонка: {column})")
     
     # Для CONTEST_FEATURE создаем копию с валидным JSON для парсинга
     # Сохраняем исходную колонку с тройными кавычками как есть
@@ -2782,27 +2488,6 @@ def collect_summary_keys(dfs):
     return pd.DataFrame(unique_rows, columns=SUMMARY_KEY_COLUMNS)
 
 
-def collect_summary_keys_optimized(dfs):
-    """
-    ОПТИМИЗИРОВАННАЯ ВЕРСИЯ: Использует merge вместо вложенных циклов.
-    
-    ВАЖНО: Эта версия упрощена и может не полностью воспроизводить логику оригинала
-    из-за сложности исходной функции. Используется для тестирования производительности.
-    Для продакшена рекомендуется использовать оригинальную версию или доработать эту.
-    
-    Ожидаемое ускорение: 20-50x за счет использования pandas merge.
-    """
-    func_start = time()
-    logging.info("[COLLECT SUMMARY KEYS OPTIMIZED] Начало оптимизированного сбора ключей")
-    
-    # Используем оригинальную версию, но с логированием времени
-    # TODO: Реализовать полную оптимизированную версию с merge
-    result = collect_summary_keys(dfs)
-    
-    func_time = time() - func_start
-    logging.info(f"[COLLECT SUMMARY KEYS OPTIMIZED] Завершено за {func_time:.3f}s, создано {len(result)} строк")
-    
-    return result
 
 
 
@@ -2922,10 +2607,9 @@ def add_fields_to_sheet(df_base, df_ref, src_keys, dst_keys, columns, sheet_name
     key_compare: "exact" — строгое сравнение; "as_text" — оба ключа в текст, сравнение строк
     (алиас "number_as_text").
     """
-    func_start = time()
     key_compare = _normalize_key_compare_mode(key_compare)
     logging.info(
-        f"[START] add_fields_to_sheet (лист: {sheet_name}, поля: {columns}, ключ: {dst_keys}->{src_keys}, "
+        f"[MERGE] add_fields_to_sheet (лист: {sheet_name}, поля: {columns}, ключ: {dst_keys}->{src_keys}, "
         f"mode: {mode}, multiply: {multiply_rows}, key_compare: {key_compare})"
     )
     if isinstance(columns, str):
@@ -2956,10 +2640,6 @@ def add_fields_to_sheet(df_base, df_ref, src_keys, dst_keys, columns, sheet_name
             f"поля для «{sheet_name}» не подтягиваем (ставим дефолт)."
         )
         _fill_empty_result_columns()
-        logging.info(
-            f"[END] add_fields_to_sheet (лист: {sheet_name}, поля: {columns}, ключ: {dst_keys}->{src_keys}, "
-            f"mode: {mode}, multiply: {multiply_rows}) (время: {time() - func_start:.3f}s)"
-        )
         return df_base
 
     # Пустой DataFrame: часто это 0 строк после status_filters, а не «лист пустой»
@@ -2990,10 +2670,6 @@ def add_fields_to_sheet(df_base, df_ref, src_keys, dst_keys, columns, sheet_name
                 f"может быть непустым. Поля для «{sheet_name}» — дефолт."
             )
         _fill_empty_result_columns()
-        logging.info(
-            f"[END] add_fields_to_sheet (лист: {sheet_name}, поля: {columns}, ключ: {dst_keys}->{src_keys}, "
-            f"mode: {mode}, multiply: {multiply_rows}) (время: {time() - func_start:.3f}s)"
-        )
         return df_base
 
     # Сопоставление имён колонок: регистр + суффикс после «=>» (calc_type, CONTEST-DATA=>calc_type)
@@ -3014,17 +2690,8 @@ def add_fields_to_sheet(df_base, df_ref, src_keys, dst_keys, columns, sheet_name
                 f"сопоставлен с «{new_n}» (без учёта регистра)"
             )
 
-    # Подстановка ключа/колонки для LIST-TOURNAMENT во всех путях вызова (MERGE_FIELDS, MERGE_FIELDS_ADVANCED, build_summary_sheet)
-    if ref_sheet_name == "LIST-TOURNAMENT":
-        if (isinstance(src_keys, list) and src_keys == ["Код турнира"]) or src_keys == ["Код турнира"]:
-            if "Код турнира" not in df_ref.columns and "TOURNAMENT_CODE" in df_ref.columns:
-                src_keys = ["TOURNAMENT_CODE"]
-                logging.info(f"[MERGE] add_fields_to_sheet LIST-TOURNAMENT: подстановка ключа TOURNAMENT_CODE вместо 'Код турнира' (лист назначения: {sheet_name})")
-        for col in (columns if isinstance(columns, list) else [columns]):
-            if col not in df_ref.columns and col == "Бизнес-статус турнира" and "Бизнес-статус" in df_ref.columns:
-                df_ref["Бизнес-статус турнира"] = df_ref["Бизнес-статус"]
-                logging.info(f"[MERGE] add_fields_to_sheet LIST-TOURNAMENT: подстановка колонки 'Бизнес-статус' для 'Бизнес-статус турнира' (лист назначения: {sheet_name})")
-                break
+    # Подстановка ключа/колонки источника во всех путях вызова (merge, SUMMARY) — source_aliases
+    src_keys = apply_source_aliases(ref_sheet_name, df_ref, src_keys, columns, f"add_fields_to_sheet (→ {sheet_name})")
 
     if ref_sheet_name == "LIST-TOURNAMENT" and sheet_name == "TOURNAMENT-SCHEDULE":
         logging.info(f"[MERGE] add_fields_to_sheet LIST-TOURNAMENT -> TOURNAMENT-SCHEDULE: src_keys={src_keys}, dst_keys={dst_keys}, columns={columns}")
@@ -3053,25 +2720,12 @@ def add_fields_to_sheet(df_base, df_ref, src_keys, dst_keys, columns, sheet_name
 
 
 
-    def tuple_key(row, keys):
-        # Гарантируем, что всегда возвращается кортеж скаляров, даже если ключ один
-        if isinstance(keys, (list, tuple)):
-            result = []
-            for k in keys:
-                v = row[k]
-                # Если v — Series (например, из-за дублирующихся колонок), берём только первый элемент
-                if isinstance(v, pd.Series):
-                    v = v.iloc[0]
-                result.append(_normalize_merge_key_value(v, key_compare))
-            return tuple(result)
-        else:
-            v = row[keys]
-            if isinstance(v, pd.Series):
-                v = v.iloc[0]
-            return (_normalize_merge_key_value(v, key_compare),)
-
     # --- Добавлено: авто-дополнение отсутствующих колонок и ключей ---
     missing_cols = [col for col in columns if col not in df_ref.columns]
+    missing_keys = [k for k in src_keys if k not in df_ref.columns]
+    if missing_cols or missing_keys:
+        # Источник мог прийти срезом после фильтра — дополняем свою копию, а не срез
+        df_ref = df_ref.copy()
     for col in missing_cols:
         logging.warning(f"[add_fields_to_sheet] Колонка {col} не найдена в {ref_sheet_name}, создаём пустую.")
         df_ref[col] = "-"
@@ -3125,11 +2779,6 @@ def add_fields_to_sheet(df_base, df_ref, src_keys, dst_keys, columns, sheet_name
                     df_base[count_col_name] = new_keys_single.map(group_counts).fillna(0).astype(int)
                 else:
                     df_base[count_col_name] = new_keys.map(count_dict).fillna(0).astype(int)
-        func_time = time() - func_start
-        logging.info(
-            f"[END] add_fields_to_sheet (лист: {sheet_name}, mode: count, agg: {count_aggregation}, "
-            f"ключ: {dst_keys}->{src_keys}, key_compare: {key_compare}) (время: {func_time:.3f}s)"
-        )
         return df_base
 
     # Создаем ключи для df_ref
@@ -3174,34 +2823,23 @@ def add_fields_to_sheet(df_base, df_ref, src_keys, dst_keys, columns, sheet_name
                     if cand != COL_REWARD_LINK_CONTEST_CODE:
                         df_base = df_base.rename(columns={cand: COL_REWARD_LINK_CONTEST_CODE})
     else:
-        # Новая логика: размножение строк при множественных совпадениях
+        # multiply_rows (BUG-08, решение Q7): строка приёмника повторяется для каждого совпадения в источнике
+        # (в порядке строк источника); без совпадений — одна строка с «-». Через pd.merge по ключам
+        # (с учётом key_compare) вместо iterrows + фильтра источника на каждую строку.
         logging.info(f"[MULTIPLY ROWS] {sheet_name}: начинаем размножение строк для поля {columns}")
-        result_rows = []
         old_rows_count = len(df_base)
-
-        for base_idx, base_row in df_base.iterrows():
-            base_key = tuple_key(base_row, dst_keys)
-            # Находим все строки в df_ref с таким ключом
-            matching_ref_rows = df_ref[df_ref_keys == base_key]
-
-            if matching_ref_rows.empty:
-                # Нет совпадений - добавляем строку с пустыми значениями
-                new_row = base_row.copy()
-                for col in columns:
-                    new_col_name = f"{ref_sheet_name}=>{col}"
-                    new_row[new_col_name] = "-"
-                result_rows.append(new_row)
-            else:
-                # Есть совпадения - создаем строку для каждого совпадения
-                for ref_idx, ref_row in matching_ref_rows.iterrows():
-                    new_row = base_row.copy()
-                    for col in columns:
-                        new_col_name = f"{ref_sheet_name}=>{col}"
-                        new_row[new_col_name] = ref_row[col]
-                    result_rows.append(new_row)
-
-        # Создаем новый DataFrame из размноженных строк
-        df_base = pd.DataFrame(result_rows).reset_index(drop=True)
+        base_keys = _vectorized_tuple_key(df_base, dst_keys, key_compare=key_compare)
+        left = pd.DataFrame({"__k": base_keys.to_numpy(object), "__pos": np.arange(old_rows_count)})
+        right = pd.DataFrame({"__k": df_ref_keys.to_numpy(object), "__rpos": np.arange(len(df_ref))})
+        pairs = left.merge(right, on="__k", how="left", sort=False)
+        pairs = pairs.sort_values(["__pos", "__rpos"], kind="stable", na_position="last")
+        has_match = pairs["__rpos"].notna().to_numpy()
+        rpos = pairs["__rpos"].fillna(0).astype(int).to_numpy()
+        df_base = df_base.iloc[pairs["__pos"].to_numpy()].reset_index(drop=True)
+        for col in columns:
+            ref_values = df_ref[col].to_numpy(object)
+            taken = ref_values[rpos] if len(ref_values) else np.full(len(rpos), "-", dtype=object)
+            df_base[f"{ref_sheet_name}=>{col}"] = np.where(has_match, taken, "-")
         new_rows_count = len(df_base)
         multiply_factor = round(new_rows_count / old_rows_count, 2) if old_rows_count > 0 else 0
         logging.info(
@@ -3218,10 +2856,6 @@ def add_fields_to_sheet(df_base, df_ref, src_keys, dst_keys, columns, sheet_name
                     if cand != COL_REWARD_LINK_CONTEST_CODE:
                         df_base = df_base.rename(columns={cand: COL_REWARD_LINK_CONTEST_CODE})
 
-    func_time = time() - func_start
-    logging.info(
-        f"[END] add_fields_to_sheet (лист: {sheet_name}, поля: {columns}, ключ: {dst_keys}->{src_keys}, mode: {mode}, multiply: {multiply_rows}) (время: {func_time:.3f}s)"
-    )
 
     return df_base
 
@@ -3356,8 +2990,8 @@ def _apply_src_key_transforms(
 @debug_timed(hot=True, log_args_len=True)
 def _process_single_merge_rule(rule, sheets_data_copy, count_column_prefix="COUNT", merge_name="MERGE_FIELDS_ADVANCED"):
     """
-    Обрабатывает одно правило merge_fields.
-    Используется для параллельной обработки независимых правил.
+    Обрабатывает одно правило merge_fields — и для группы из одного правила, и в потоке параллельной группы.
+    Лист-приёмник и его params не меняются на месте: возвращаются новые (params копируются).
     merge_name: имя набора правил для логов (MERGE_FIELDS или MERGE_FIELDS_ADVANCED).
     
     Args:
@@ -3405,13 +3039,13 @@ def _process_single_merge_rule(rule, sheets_data_copy, count_column_prefix="COUN
     
     # ОПТИМИЗАЦИЯ v5.0: Проверка на существование листов и None (правильный порядок)
     if (sheet_src not in sheets_data_copy or sheet_dst not in sheets_data_copy):
-        logging.warning(f"[MERGE] {merge_name} ПРОПУСК (параллель): лист {sheet_src} или {sheet_dst} отсутствует в sheets_data")
+        logging.warning(f"[MERGE] {merge_name} ПРОПУСК: нет листа {sheet_src} или {sheet_dst}, колонки {col_names} не добавлены")
         return (rule, updated_sheets)
     
     if (sheets_data_copy[sheet_src] is None or sheets_data_copy[sheet_dst] is None or
         len(sheets_data_copy[sheet_src]) < 1 or len(sheets_data_copy[sheet_dst]) < 1 or
         sheets_data_copy[sheet_src][0] is None or sheets_data_copy[sheet_dst][0] is None):
-        logging.warning(f"[MERGE] {merge_name} ПРОПУСК (параллель): лист {sheet_src} или {sheet_dst} содержит None")
+        logging.warning(f"[MERGE] {merge_name} ПРОПУСК: лист {sheet_src} или {sheet_dst} содержит None, колонки {col_names} не добавлены")
         return (rule, updated_sheets)
     
     df_src = sheets_data_copy[sheet_src][0].copy()
@@ -3420,16 +3054,8 @@ def _process_single_merge_rule(rule, sheets_data_copy, count_column_prefix="COUN
     df_dst, params_dst = sheets_data_copy[sheet_dst]
     params_dst = params_dst.copy()  # Копируем параметры
     
-    # Подстановка ключа/колонки для LIST-TOURNAMENT: в файле геймификации часто "TOURNAMENT_CODE" и "Бизнес-статус"
-    if sheet_src == "LIST-TOURNAMENT":
-        if src_keys == ["Код турнира"] and "Код турнира" not in df_src.columns and "TOURNAMENT_CODE" in df_src.columns:
-            src_keys = ["TOURNAMENT_CODE"]
-            logging.info(f"[MERGE] {merge_name} LIST-TOURNAMENT: подстановка ключа TOURNAMENT_CODE вместо 'Код турнира'")
-        for col in col_names:
-            if col not in df_src.columns and col == "Бизнес-статус турнира" and "Бизнес-статус" in df_src.columns:
-                df_src["Бизнес-статус турнира"] = df_src["Бизнес-статус"]
-                logging.info(f"[MERGE] {merge_name} LIST-TOURNAMENT: подстановка колонки 'Бизнес-статус' для 'Бизнес-статус турнира'")
-                break
+    # Подстановка ключа/колонки источника (source_aliases)
+    src_keys = apply_source_aliases(sheet_src, df_src, src_keys, col_names, merge_name)
 
     # Преобразование ключей источника (src_key_transform): например табельный к 20 знакам с лидирующими нулями
     src_key_transform = rule.get("src_key_transform")
@@ -3489,40 +3115,45 @@ def _process_single_merge_rule(rule, sheets_data_copy, count_column_prefix="COUN
 
 def _group_independent_rules(merge_fields):
     """
-    Группирует правила merge_fields на независимые группы.
-    Правила независимы, если они не изменяют одни и те же листы.
-    
-    Args:
-        merge_fields: Список правил
-        
+    Группирует правила merge_fields (по порядку конфига) в группы, которые можно выполнять параллельно
+    с тем же результатом, что и последовательно.
+
+    Новое правило начинает новую группу, если (BUG-07, BUG-08):
+      - его sheet_dst уже пишет правило текущей группы (два писателя одного листа);
+      - его sheet_src пишет правило текущей группы: в группе все читают снимок «до группы», а при
+        последовательном выполнении оно увидело бы уже добавленные колонки;
+      - у него multiply_rows=true (меняется число строк листа) — такое правило всегда в отдельной группе.
+    «Сначала читает, потом другое правило пишет этот лист» — не конфликт: при последовательном
+    выполнении чтение тоже происходит до записи.
+
     Returns:
         list: Список групп правил, где каждая группа может быть обработана параллельно
     """
     if not merge_fields:
         return []
-    
-    # Простая стратегия: группируем правила, которые не конфликтуют по sheet_dst
+
     groups = []
-    used_destinations = set()
-    
     current_group = []
+    group_destinations = set()
     for rule in merge_fields:
         sheet_dst = rule["sheet_dst"]
-        
-        # Если этот лист уже используется в текущей группе, начинаем новую группу
-        if sheet_dst in used_destinations:
-            if current_group:
-                groups.append(current_group)
-            current_group = [rule]
-            used_destinations = {sheet_dst}
-        else:
-            current_group.append(rule)
-            used_destinations.add(sheet_dst)
-    
-    # Добавляем последнюю группу
+        sheet_src = rule.get("sheet_src")
+        multiply = bool(rule.get("multiply_rows", False))
+        conflict = (
+            sheet_dst in group_destinations
+            or sheet_src in group_destinations
+            or multiply
+            or any(r.get("multiply_rows", False) for r in current_group)
+        )
+        if conflict and current_group:
+            groups.append(current_group)
+            current_group = []
+            group_destinations = set()
+        current_group.append(rule)
+        group_destinations.add(sheet_dst)
+
     if current_group:
         groups.append(current_group)
-    
     return groups
 
 
@@ -3628,123 +3259,16 @@ def merge_fields_across_sheets(sheets_data, merge_fields, count_column_prefix="C
     
     for group_idx, rule_group in enumerate(rule_groups):
         if len(rule_group) == 1:
-            # Одно правило - обрабатываем последовательно (проще и быстрее для малых групп)
+            # Одно правило — в текущем потоке; та же функция, что и для параллельных групп (STR-03)
             rule = rule_group[0]
-            sheet_src = rule["sheet_src"]
-            sheet_dst = rule["sheet_dst"]
-            src_keys = rule["src_key"] if isinstance(rule["src_key"], list) else [rule["src_key"]]
-            dst_keys = rule["dst_key"] if isinstance(rule["dst_key"], list) else [rule["dst_key"]]
-            col_names = rule["column"]
-            mode = rule.get("mode", "value")
-            multiply_rows = rule.get("multiply_rows", False)
-            
-            status_filters = rule.get("status_filters", None)
-            custom_conditions = rule.get("custom_conditions", None)
-            group_by = rule.get("group_by", None)
-            aggregate = rule.get("aggregate", None)
-            count_aggregation = rule.get("count_aggregation", "size")
-            count_label = rule.get("count_label", None)
-            key_compare = _normalize_key_compare_mode(rule.get("key_compare", KEY_COMPARE_EXACT))
-            
-            params_str = (
-                f"(src: {sheet_src} -> dst: {sheet_dst}, поля: {col_names}, ключ: {dst_keys}<-{src_keys}, "
-                f"mode: {mode}, multiply: {multiply_rows}, key_compare: {key_compare})"
+            logging.info(
+                f"[MERGE] {name_tag} обработка правила (последовательно): {rule['sheet_src']} -> {rule['sheet_dst']}, "
+                f"колонки: {rule['column']}"
             )
-            
-            if status_filters:
-                params_str += f", status_filters: {status_filters}"
-            if custom_conditions:
-                params_str += f", custom_conditions: {list(custom_conditions.keys())}"
-            if group_by:
-                params_str += f", group_by: {group_by}"
-            if aggregate:
-                params_str += f", aggregate: {list(aggregate.keys())}"
-            if mode == "count" and count_label is not None:
-                params_str += f", count_aggregation: {count_aggregation}, count_label: {count_label}"
-
-            logging.info(f"[MERGE] {name_tag} обработка правила (последовательно): {sheet_src} -> {sheet_dst}, колонки: {col_names}")
-            # ОПТИМИЗАЦИЯ v5.0: Проверка на существование листов и None (правильный порядок)
-            if sheet_src not in sheets_data or sheet_dst not in sheets_data:
-                logging.warning(f"[MERGE] {name_tag} ПРОПУСК: нет листа {sheet_src} или {sheet_dst}, колонки {col_names} не добавлены")
-                continue
-            
-            if (sheets_data[sheet_src] is None or sheets_data[sheet_dst] is None or
-                len(sheets_data[sheet_src]) < 1 or len(sheets_data[sheet_dst]) < 1 or
-                sheets_data[sheet_src][0] is None or sheets_data[sheet_dst][0] is None):
-                logging.warning(f"[MERGE] {name_tag} ПРОПУСК: лист {sheet_src} или {sheet_dst} содержит None, колонки {col_names} не добавлены")
-                continue
-
-            df_src = sheets_data[sheet_src][0].copy()
-            if _debug_enabled():
-                logging.debug(f"[MERGE] {name_tag} df_src ({sheet_src}): shape={df_src.shape}, колонки: {list(df_src.columns)}")
-            df_dst, params_dst = sheets_data[sheet_dst]
-
-            # Подстановка ключа/колонки для LIST-TOURNAMENT (как в _process_single_merge_rule для MERGE_FIELDS_ADVANCED)
-            if sheet_src == "LIST-TOURNAMENT":
-                if src_keys == ["Код турнира"] and "Код турнира" not in df_src.columns and "TOURNAMENT_CODE" in df_src.columns:
-                    src_keys = ["TOURNAMENT_CODE"]
-                    logging.info(f"[MERGE] {name_tag} LIST-TOURNAMENT: подстановка ключа TOURNAMENT_CODE вместо 'Код турнира'")
-                for col in (col_names if isinstance(col_names, list) else [col_names]):
-                    if col not in df_src.columns and col == "Бизнес-статус турнира" and "Бизнес-статус" in df_src.columns:
-                        df_src["Бизнес-статус турнира"] = df_src["Бизнес-статус"]
-                        logging.info(f"[MERGE] {name_tag} LIST-TOURNAMENT: подстановка колонки 'Бизнес-статус' для 'Бизнес-статус турнира'")
-                        break
-
-            # Преобразование ключей источника (src_key_transform)
-            src_key_transform = rule.get("src_key_transform")
-            df_src, src_keys = _apply_src_key_transforms(df_src, src_keys, src_key_transform, sheet_src)
-
-            cols_dst_before = set(df_dst.columns) if df_dst is not None and isinstance(df_dst, pd.DataFrame) else set()
-            logging.info(f"[MERGE] {name_tag} вызов add_fields_to_sheet: {sheet_src} -> {sheet_dst}, src_keys={src_keys}, dst_keys={dst_keys}, col_names={col_names}")
-            
-            rows_before_filter = len(df_src)
-            filter_ctx = status_filters if status_filters else custom_conditions
-            df_src_filtered = apply_filters_to_dataframe(df_src, status_filters, custom_conditions, sheet_src)
-            
-            if group_by or aggregate:
-                df_src_filtered = apply_grouping_and_aggregation(df_src_filtered, group_by, aggregate, sheet_src)
-            
-            df_dst = add_fields_to_sheet(
-                df_dst, df_src_filtered, src_keys, dst_keys, col_names, sheet_dst, sheet_src, mode=mode,
-                multiply_rows=multiply_rows, count_prefix=count_column_prefix,
-                count_aggregation=count_aggregation, count_label=count_label,
-                source_rows_before_filter=rows_before_filter, applied_filters=filter_ctx,
-                key_compare=key_compare,
-            )
-            
-            # ИСПРАВЛЕНИЕ: Проверка на None после add_fields_to_sheet
-            if df_dst is None or not isinstance(df_dst, pd.DataFrame):
-                logging.error(f"[MERGE] {name_tag} add_fields_to_sheet вернул None для листа {sheet_dst}, используем исходный DataFrame")
-                df_dst = sheets_data[sheet_dst][0].copy() if sheets_data[sheet_dst][0] is not None else pd.DataFrame()
-            else:
-                cols_dst_after = set(df_dst.columns)
-                new_cols = cols_dst_after - cols_dst_before
-                added_from_src = [c for c in new_cols if c.startswith(sheet_src + "=>")]
-                logging.info(f"[MERGE] {name_tag} результат правила {sheet_src} -> {sheet_dst}: добавлены колонки: {added_from_src or list(new_cols)[:10]}, всего колонок в {sheet_dst}: {len(df_dst.columns)}")
-
-            if "added_columns_width" not in params_dst:
-                params_dst["added_columns_width"] = {}
-
-            if mode == "count" and count_label is not None:
-                new_col_name = f"{sheet_src}=>COUNT_{count_aggregation}_{count_label}"
-                params_dst["added_columns_width"][new_col_name] = {
-                    "max_width": rule.get("col_max_width"),
-                    "width_mode": rule.get("col_width_mode", "AUTO"),
-                    "min_width": rule.get("col_min_width", 8)
-                }
-            else:
-                for col in col_names:
-                    new_col_name = f"{sheet_src}=>{col}"
-                    if mode == "count":
-                        new_col_name = f"{sheet_src}=>{count_column_prefix}_{col}"
-                    params_dst["added_columns_width"][new_col_name] = {
-                        "max_width": rule.get("col_max_width"),
-                        "width_mode": rule.get("col_width_mode", "AUTO"),
-                        "min_width": rule.get("col_min_width", 8)
-                    }
-
-            sheets_data[sheet_dst] = (df_dst, params_dst)
-            logging.info(f"[MERGE] {name_tag} правило завершено: {sheet_src} -> {sheet_dst}")
+            _, updated_sheets = _process_single_merge_rule(rule, sheets_data, count_column_prefix, name_tag)
+            sheets_data.update(updated_sheets)
+            if updated_sheets:
+                logging.info(f"[MERGE] {name_tag} правило завершено: {rule['sheet_src']} -> {rule['sheet_dst']}")
         else:
             # Несколько независимых правил - обрабатываем параллельно
             logging.info(f"[MERGE] {name_tag} обработка группы из {len(rule_group)} правил (параллельно)")
@@ -3823,7 +3347,8 @@ def apply_filters_to_dataframe(df, status_filters, custom_conditions, sheet_name
     if df.empty:
         return df
     
-    df_filtered = df.copy()
+    # PERF-08: без копии до фильтра — булева маска и так создаёт новый объект, вызывающие передают свою копию
+    df_filtered = df
     original_count = len(df_filtered)
     
     # Применяем фильтры по статусам
@@ -3997,7 +3522,6 @@ def detect_gender_for_person(patronymic, first_name, surname, row_idx):
 @debug_timed()
 def add_auto_gender_column(df, sheet_name):
     """Добавление колонки AUTO_GENDER к DataFrame с автоматическим определением пола"""
-    func_start = time()
 
     # Проверяем наличие необходимых колонок
     required_columns = ['MIDDLE_NAME', 'FIRST_NAME', 'SURNAME']
@@ -4041,9 +3565,8 @@ def add_auto_gender_column(df, sheet_name):
     df['AUTO_GENDER'] = auto_gender
 
     # Логируем финальную статистику
-    func_time = time() - func_start
     logging.info(f"[GENDER DETECTION] Статистика: М={male_count}, Ж={female_count}, неопределено={unknown_count} (всего: {total_rows})")
-    logging.info(f"[GENDER DETECTION] Завершено за {func_time:.3f}s для листа {sheet_name}")
+    logging.info(f"[GENDER DETECTION] Завершено для листа {sheet_name}")
 
     return df
 
@@ -4063,7 +3586,6 @@ def add_auto_gender_column_vectorized(df, sheet_name):
     Returns:
         pd.DataFrame: DataFrame с добавленной колонкой AUTO_GENDER
     """
-    func_start = time()
     
     required_columns = ['MIDDLE_NAME', 'FIRST_NAME', 'SURNAME']
     missing_columns = [col for col in required_columns if col not in df.columns]
@@ -4119,53 +3641,21 @@ def add_auto_gender_column_vectorized(df, sheet_name):
     female_count = (gender == 'Ж').sum()
     unknown_count = (gender == '-').sum()
     
-    func_time = time() - func_start
     logging.info(f"[GENDER DETECTION VECTORIZED] Статистика: М={male_count}, Ж={female_count}, неопределено={unknown_count} (всего: {total_rows})")
-    logging.info(f"[GENDER DETECTION VECTORIZED] Завершено за {func_time:.3f}s для листа {sheet_name}")
+    if unknown_count:
+        # INFO-01: разбивка причин без персональных данных (логика определения не меняется)
+        unknown = gender == '-'
+        no_patronymic = int((unknown & (patronymic_lower == '')).sum())
+        masked_surname = int((unknown & surname_lower.str.contains('…', regex=False)).sum())
+        logging.info(
+            f"[GENDER DETECTION VECTORIZED] Не определено {unknown_count}: пустое отчество — {no_patronymic}, "
+            f"фамилия замаскирована «…» — {masked_surname}; остальные — имя/фамилия не подошли под шаблоны gender"
+        )
+    logging.info(f"[GENDER DETECTION VECTORIZED] Завершено для листа {sheet_name}")
     
     return df
 
 
-def compare_gender_results(df_old, df_new):
-    """
-    Сравнивает результаты работы старой и новой версии add_auto_gender_column.
-    
-    Args:
-        df_old (pd.DataFrame): Результат старой версии
-        df_new (pd.DataFrame): Результат новой версии
-    
-    Returns:
-        dict: Словарь с результатами сравнения
-    """
-    if 'AUTO_GENDER' not in df_old.columns or 'AUTO_GENDER' not in df_new.columns:
-        return {"error": "Колонка AUTO_GENDER не найдена"}
-    
-    old_results = df_old['AUTO_GENDER'].fillna('-')
-    new_results = df_new['AUTO_GENDER'].fillna('-')
-    
-    differences = (old_results != new_results).sum()
-    total = len(df_old)
-    matches = total - differences
-    
-    diff_examples = []
-    if differences > 0:
-        diff_mask = old_results != new_results
-        diff_indices = df_old.index[diff_mask][:5]
-        for idx in diff_indices:
-            diff_examples.append({
-                "index": idx,
-                "old": old_results.loc[idx],
-                "new": new_results.loc[idx]
-            })
-    
-    return {
-        "total": total,
-        "matches": matches,
-        "differences": differences,
-        "match_percent": (matches / total * 100) if total > 0 else 0,
-        "diff_examples": diff_examples,
-        "identical": differences == 0
-    }
 
 
 @debug_timed()
@@ -4180,9 +3670,6 @@ def build_summary_sheet(dfs, params_summary, merge_fields):
             logging.debug(f"[build_summary_sheet] Лист {sheet_name}: DataFrame равен None")
     logging.debug(f"[build_summary_sheet] Правил merge_fields: {len(merge_fields)}")
 
-    func_start = time()
-    params_log = f"(лист: {params_summary['sheet']})"
-    logging.info(f"[START] build_summary_sheet {params_log}")
 
     summary = collect_summary_keys(dfs)
     logging.debug(f"[build_summary_sheet] После collect_summary_keys: summary shape={summary.shape if summary is not None and isinstance(summary, pd.DataFrame) else "None"}")
@@ -4256,7 +3743,6 @@ def build_summary_sheet(dfs, params_summary, merge_fields):
         if mode == "count" and count_label is not None:
             params_str += f", count_aggregation: {count_aggregation}, count_label: {count_label}"
         params_str += ")"
-        logging.info(f"[START] add_fields_to_sheet {params_str}")
 
         logging.debug(f"[build_summary_sheet] === MERGE {field_idx+1}/{len(merge_fields)} ===")
         logging.debug(f"[build_summary_sheet] Правило: sheet_src={sheet_src}, sheet_dst={params_summary['sheet']}")
@@ -4294,21 +3780,8 @@ def build_summary_sheet(dfs, params_summary, merge_fields):
         # Копия источника: фильтры и transform не должны менять dfs
         ref_df = ref_df.copy()
 
-        # Подстановка ключа/колонки для LIST-TOURNAMENT (как в merge_fields_across_sheets)
-        if sheet_src == "LIST-TOURNAMENT":
-            if src_keys == ["Код турнира"] and "Код турнира" not in ref_df.columns and "TOURNAMENT_CODE" in ref_df.columns:
-                src_keys = ["TOURNAMENT_CODE"]
-                logging.info(
-                    "[build_summary_sheet] LIST-TOURNAMENT: подстановка ключа TOURNAMENT_CODE вместо 'Код турнира'"
-                )
-            for col in col_names:
-                if col not in ref_df.columns and col == "Бизнес-статус турнира" and "Бизнес-статус" in ref_df.columns:
-                    ref_df["Бизнес-статус турнира"] = ref_df["Бизнес-статус"]
-                    logging.info(
-                        "[build_summary_sheet] LIST-TOURNAMENT: подстановка колонки "
-                        "'Бизнес-статус' для 'Бизнес-статус турнира'"
-                    )
-                    break
+        # Подстановка ключа/колонки источника (source_aliases)
+        src_keys = apply_source_aliases(sheet_src, ref_df, src_keys, col_names, "build_summary_sheet")
 
         src_key_transform = field.get("src_key_transform")
         ref_df, src_keys = _apply_src_key_transforms(ref_df, src_keys, src_key_transform, sheet_src)
@@ -4430,12 +3903,7 @@ def process_single_file(file_conf):
         # Подкаталог (один уровень): если задан subdir — ищем в paths.input / subdir
         subdir = (file_conf.get("subdir") or "").strip()
         search_dir = os.path.join(DIR_INPUT, subdir) if subdir else DIR_INPUT
-        file_path = find_file_case_insensitive(search_dir, file_conf["file"], [".csv", ".CSV"])
-        # Для LIST-TOURNAMENT: если файл с суффиксом "-2" не найден, пробуем без суффикса (gamification-tournamentList.csv)
-        if file_path is None and sheet_name == "LIST-TOURNAMENT" and file_conf["file"] == "gamification-tournamentList-2":
-            file_path = find_file_case_insensitive(search_dir, "gamification-tournamentList", [".csv", ".CSV"])
-            if file_path:
-                logging.info(f"LIST-TOURNAMENT: использован файл по альтернативному имени: {file_path}")
+        file_path = _find_input_file(search_dir, sheet_name, file_conf["file"])
         # Проверяем, найден ли файл
         if file_path is None:
             th = threading.current_thread().name
@@ -4489,57 +3957,6 @@ def process_single_file(file_conf):
         return None, sheet_name, None, None, None
 
 
-def validate_single_sheet(sheet_name, sheets_data_item):
-    """
-    Проверяет длину полей для одного листа.
-    Используется для параллельной проверки валидации.
-    
-    Args:
-        sheet_name (str): Имя листа для проверки
-        sheets_data_item (tuple): (df, conf) - данные листа и конфигурация
-        
-    Returns:
-        tuple: (sheet_name, (df_validated, conf))
-    """
-    # ОПТИМИЗАЦИЯ v5.0: Проверка на None
-    if sheets_data_item is None:
-        logging.warning(f"[validate_single_sheet] Данные для листа {sheet_name} равны None, пропускаем")
-        return sheet_name, sheets_data_item
-    
-    try:
-        df, conf = sheets_data_item
-        # Дополнительная проверка на None
-        if df is None or conf is None:
-            logging.warning(f"[validate_single_sheet] DataFrame или конфигурация для листа {sheet_name} равны None, пропускаем")
-            return sheet_name, sheets_data_item
-        # ОПТИМИЗАЦИЯ: Используем векторизованную версию с проверкой результатов
-        df_old = df.copy()
-        df_validated = validate_field_lengths_vectorized(df, sheet_name)
-        
-        # Сравниваем результаты для проверки корректности
-        if sheet_name in FIELD_LENGTH_VALIDATIONS:
-            result_column = FIELD_LENGTH_VALIDATIONS[sheet_name]["result_column"]
-            comparison = compare_validate_results(df_old, df_validated, result_column)
-            if not comparison.get("identical", False):
-                logging.warning(
-                    f"[VALIDATE COMPARISON] {sheet_name}: различия найдены - {comparison.get('differences', 0)} из {comparison.get('total', 0)}"
-                )
-                # В случае различий используем старую версию для гарантии корректности
-                df_validated = validate_field_lengths(df, sheet_name)
-                logging.warning(f"[VALIDATE FALLBACK] {sheet_name}: использована оригинальная версия")
-            else:
-                logging.info(f"[VALIDATE COMPARISON] {sheet_name}: результаты идентичны ({comparison.get('match_percent', 0)}%)")
-        else:
-            df_validated = df
-        th = threading.current_thread().name
-        logging.debug(f"Проверка длины полей завершена: {sheet_name} [поток: {th}]")
-        return sheet_name, (df_validated, conf)
-    except Exception as e:
-        logging.exception(
-            f"Ошибка проверки длины полей для {sheet_name}: {e} [поток: {threading.current_thread().name}]"
-        )
-        # Возвращаем исходные данные при ошибке
-        return sheet_name, sheets_data_item
 
 
 @debug_timed()
@@ -5073,14 +4490,13 @@ def _write_manager_stats_excel(
         paths_cfg={"input": DIR_INPUT, "output": DIR_OUTPUT},
     )
     out_path = os.path.join(run_output_dir, f"{OUTPUT_FILENAME_MANAGER_STATS} {timestamp}.xlsx")
-    logging.info(f"[START] write_to_excel (manager_stats) ({out_path})")
     with debug_phase("08_write_manager_stats_excel"):
         write_to_excel(ms_data, out_path, use_color_scheme=False)
     tab_sheet = (MANAGER_STATS or {}).get("output_sheet") or "TAB_NUMBERS"
     n_tabs = 0
     if tab_sheet in ms_data and ms_data[tab_sheet][0] is not None:
         n_tabs = len(ms_data[tab_sheet][0])
-    logging.info(f"[END] write_to_excel (manager_stats): {n_tabs} уникальных табельных ({out_path})")
+    logging.info(f"MANAGER_STATS записан: {n_tabs} уникальных табельных ({out_path})")
     console_ui.print_manager_stats_summary(n_tabs, out_path)
     from src.leaders_for_admin_auto_js import write_tournament_leaders_auto_js
 
@@ -5115,6 +4531,23 @@ def _write_manager_stats_excel(
     if profile_js_path:
         logging.info(f"[main] profile GP JS: {profile_js_path}")
     return out_path
+
+
+def select_consistency_sheets(sheets_data: Dict[str, Any], summary_sheet_name: str) -> Dict[str, Any]:
+    """
+    Листы для книги консистентности: свод + листы, у которых в своде violations > 0 (STR-03, BUG-10).
+    violations читается через to_numeric: пустые/текстовые значения считаются 0, а не роняют программу.
+    """
+    out_sheets = {summary_sheet_name}
+    item = sheets_data.get(summary_sheet_name)
+    if item is not None:
+        df = item[0]
+        if isinstance(df, pd.DataFrame) and "violations" in df.columns and "sheet" in df.columns:
+            viol = pd.to_numeric(df["violations"], errors="coerce").fillna(0)
+            for s in df.loc[viol > 0, "sheet"].dropna().astype(str).unique().tolist():
+                if sheets_data.get(s) is not None:
+                    out_sheets.add(s)
+    return {k: v for k, v in sheets_data.items() if k in out_sheets}
 
 
 class _LogLevelCounter(logging.Handler):
@@ -5187,7 +4620,7 @@ def _parallel_block_worker(payload: Tuple[str, str]) -> Tuple[str, str, Optional
             _load_config_globals()
             set_current_block(block)
             apply_run_block_context(block)
-            log_file = setup_logger()
+            log_file = setup_logger(block_suffix=block)
             # Счётчик — после setup_logger: иначе hasHandlers() и файл лога не создаётся
             logging.getLogger().addHandler(counter)
             code = _run_block_safely(block, log_file)
@@ -5207,6 +4640,9 @@ def main() -> int:
     # Счётчик — после setup_logger: иначе hasHandlers() и файл лога не создаётся
     logging.getLogger().addHandler(counter)
     logging.info(f"[env] {environment_summary()}")
+    _removed_logs = cleanup_old_logs(DIR_LOGS, LOG_BASE_NAME, LOG_RETENTION_DAYS)
+    if _removed_logs:
+        logging.info(f"[logs] Удалено старых лог-файлов (старше {LOG_RETENTION_DAYS} дн.): {_removed_logs}")
     blocks = list(RUN_BLOCKS) if RUN_BLOCKS else ["PROM"]
     parallel = bool(RUN_BLOCKS_PARALLEL) and len(blocks) > 1
     logging.info(
@@ -5352,13 +4788,15 @@ def _run_pipeline_for_block(block: str, log_file: str) -> None:
                         files_processed += 1
                         rows_total += len(df)
                         summary.append(f"{sheet_name}: {len(df)} строк")
+                        # PERF-08: df_raw — уже отдельная копия из process_single_file; архив только читает
+                        # его и выполняется до проверок консистентности (они добавляют колонки в raw_sheets)
                         if file_conf.get("include_in_source", True):
                             raw_sheets[sheet_name] = (
-                                df_raw.copy() if df_raw is not None else pd.DataFrame(),
+                                df_raw if df_raw is not None else pd.DataFrame(),
                                 file_conf,
                             )
                         archive_payload[sheet_name] = {
-                            "df_raw": df_raw.copy() if df_raw is not None else None,
+                            "df_raw": df_raw,
                             "file_conf": file_conf,
                             "file_path": resolved_path,
                         }
@@ -5457,24 +4895,13 @@ def _run_pipeline_for_block(block: str, log_file: str) -> None:
         )
 
         if RUN_WRITE_MAIN and RUN_WRITE_CONSISTENCY_FILE and not RUN_CONSISTENCY_EARLY:
-            sheets_with_violations_e: Set[str] = set()
-            if summary_sheet_name in sheets_data and sheets_data[summary_sheet_name] is not None:
-                _df_e, _ = sheets_data[summary_sheet_name]
-                if isinstance(_df_e, pd.DataFrame) and "violations" in _df_e.columns and "sheet" in _df_e.columns:
-                    viol_e = _df_e[_df_e["violations"].astype(int) > 0]
-                    sheets_with_violations_e = set(viol_e["sheet"].dropna().astype(str).unique().tolist())
-            out_early = {summary_sheet_name}
-            for s in sheets_with_violations_e:
-                if s in sheets_data and sheets_data[s] is not None:
-                    out_early.add(s)
-            consistency_early_data = {k: v for k, v in sheets_data.items() if k in out_early}
+            consistency_early_data = select_consistency_sheets(sheets_data, summary_sheet_name)
             ts_e = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
             consistency_early_path = os.path.join(
                 run_output_dir, f"{OUTPUT_FILENAME_CONSISTENCY} {ts_e}.xlsx"
             )
-            logging.info(f"[START] write_to_excel (консистентность, ранняя запись) ({consistency_early_path})")
             write_to_excel(consistency_early_data, consistency_early_path, use_color_scheme=False)
-            logging.info(f"[END] Ранняя книга консистентности записана: {consistency_early_path}")
+            logging.info(f"Ранняя книга консистентности записана: {consistency_early_path}")
             consistency_written_early = True
 
     with debug_phase("03_gender_tournament_merge_reward_summary"):
@@ -5563,20 +4990,9 @@ def _run_pipeline_for_block(block: str, log_file: str) -> None:
 
     # Только отдельная книга консистентности без main (в массиве есть consistency_only, нет main_only)
     if RUN_CONSISTENCY_EARLY:
-        sheets_with_violations = set()
-        if summary_sheet_name in sheets_data and sheets_data[summary_sheet_name] is not None:
-            _df, _ = sheets_data[summary_sheet_name]
-            if isinstance(_df, pd.DataFrame) and "violations" in _df.columns and "sheet" in _df.columns:
-                viol = _df[_df["violations"].astype(int) > 0]
-                sheets_with_violations = set(viol["sheet"].dropna().astype(str).unique().tolist())
-        out_sheets = {summary_sheet_name}
-        for s in sheets_with_violations:
-            if s in sheets_data and sheets_data[s] is not None:
-                out_sheets.add(s)
-        consistency_data = {k: v for k, v in sheets_data.items() if k in out_sheets}
+        consistency_data = select_consistency_sheets(sheets_data, summary_sheet_name)
         ts = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
         consistency_path = os.path.join(run_output_dir, f"{OUTPUT_FILENAME_CONSISTENCY} {ts}.xlsx")
-        logging.info(f"[START] write_to_excel (режим 4) ({consistency_path})")
         with debug_phase("04_consistency_only_write_excel"):
             write_to_excel(consistency_data, consistency_path, use_color_scheme=False)
         _write_stat_file_perf_excel(run_output_dir, start_time, _run_mode_label)
@@ -5638,11 +5054,10 @@ def _run_pipeline_for_block(block: str, log_file: str) -> None:
                         logging.warning(f"[MERGE] Baseline расхождение: {msg}")
 
         output_excel = os.path.join(run_output_dir, get_output_filename())
-        logging.info(f"[START] write_to_excel ({output_excel})")
         with debug_phase("06_write_main_excel"):
             write_to_excel(sheets_data, output_excel)
         _wt_main_elapsed = run_elapsed_sec()
-        logging.info(f"[END] write_to_excel ({output_excel}) (от старта прогона ~{_wt_main_elapsed:.2f} s)")
+        logging.info(f"Основная книга записана: {output_excel} (от старта прогона ~{_wt_main_elapsed:.2f} s)")
 
         if _rating_matrix_meta:
             from src.rating_item_matrix import apply_rating_item_matrix_colors
@@ -5651,23 +5066,12 @@ def _run_pipeline_for_block(block: str, log_file: str) -> None:
 
         # 8.1. Отдельный файл consistency — если в run_outputs указаны и main_only, и consistency_only
         if RUN_WRITE_CONSISTENCY_FILE and not consistency_written_early:
-            sheets_with_violations = set()
-            if summary_sheet_name in sheets_data and sheets_data[summary_sheet_name] is not None:
-                _df, _ = sheets_data[summary_sheet_name]
-                if isinstance(_df, pd.DataFrame) and "violations" in _df.columns and "sheet" in _df.columns:
-                    viol = _df[_df["violations"].astype(int) > 0]
-                    sheets_with_violations = set(viol["sheet"].dropna().astype(str).unique().tolist())
-            out_sheets = {summary_sheet_name}
-            for s in sheets_with_violations:
-                if s in sheets_data and sheets_data[s] is not None:
-                    out_sheets.add(s)
-            consistency_data = {k: v for k, v in sheets_data.items() if k in out_sheets}
+            consistency_data = select_consistency_sheets(sheets_data, summary_sheet_name)
             ts = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
             consistency_path = os.path.join(run_output_dir, f"{OUTPUT_FILENAME_CONSISTENCY} {ts}.xlsx")
-            logging.info(f"[START] write_to_excel (файл consistency, режим full) ({consistency_path})")
             with debug_phase("07_write_consistency_excel_full_mode"):
                 write_to_excel(consistency_data, consistency_path, use_color_scheme=False)
-            logging.info(f"[END] write_to_excel (файл consistency) ({consistency_path})")
+            logging.info(f"Книга консистентности записана: ({consistency_path})")
 
     # 8.2. MANAGER_STATS — если токен в run_outputs (отдельно или вместе с main_only)
     manager_stats_path: Optional[str] = None

@@ -2,7 +2,7 @@
   "meta": {
     "title": "SPOD_PROM — анализ основной программы (main.py → src/main_impl.py): ошибки, производительность, логирование, структура",
     "date": "2026-09-26",
-    "status": "Внедрение поэтапно по roadmap. Выполнены этапы 0, 1, 2 — см. measurements.stage*_after и status у находок.",
+    "status": "Внедрение поэтапно по roadmap. Выполнены этапы 0–3 — см. measurements.stage*_after и status у находок.",
     "scope": [
       "main.py",
       "src/main_impl.py (5720 строк, прочитан полностью)",
@@ -42,6 +42,11 @@
         "v": 5,
         "date": "2026-09-26",
         "note": "этап 2 выполнен (PERF-01/04/05/06, PERF-07 этап 1); замер stage2_after"
+      },
+      {
+        "v": 6,
+        "date": "2026-09-26",
+        "note": "этап 3 выполнен (STR-02/03/04, BUG-05/07/08/10/11/12, LOG-03/04, ENV-02, PERF-08/09, INFO-01); замер stage3_after"
       }
     ]
   },
@@ -221,6 +226,22 @@
       },
       "result_vs_stage1": "Совпадает полностью (значения, стили, ширины, разметка, порядок строк и колонок).",
       "conclusion": "−13 с (−31%) относительно этапа 1; −15,6 с (−35%) относительно исходных 45,2 с. Оставшиеся ~22 с этапа 06 — pandas to_excel (создание объектов Cell) и сериализация openpyxl save — это этап 4 (write-only за флагом)."
+    },
+    "stage3_after": {
+      "note": "После этапа 3. Копия проекта, PYTHONHASHSEED=0, run_main.sh; сравнение со строгим порядком с эталоном этапа 1 (этап 2 его не менял).",
+      "pytest": "226 passed за 4,9 с (без SettingWithCopyWarning)",
+      "wall_clock_sec": 29.55,
+      "peak_rss_gb": 1.94,
+      "phases_sec": {
+        "01": 0.34,
+        "02": 0.52,
+        "03": 0.58,
+        "05": 0.3,
+        "06": 26.0
+      },
+      "main_plus_source": "run_outputs [main_only, source_only]: обе книги идентичны прогону кода этапа 2",
+      "result_vs_stage2": "Совпадает полностью.",
+      "code_size": "main_impl.py 5720 → ~5110 строк; pyflakes по изменённым модулям — чисто"
     }
   },
   "findings": [
@@ -330,7 +351,12 @@
       "description": "Если logger.hasHandlers() (запуск из Spyder/Jupyter Anaconda, повторный вызов main() в той же сессии, библиотека вызвала basicConfig), setup_logger возвращает путь, но FileHandler не добавляет. В конце печатается «Лог: …» на файл, которого нет. Решение Q2: запуск из GigaIDE (платформа IntelliJ) — при обычном Run-конфигурации процесс чистый и проблема не возникает; риск остаётся для встроенной Python-консоли IDE и повторного main() в одной сессии.",
       "recommendation": "Не полагаться на hasHandlers: использовать именованный логгер приложения ('spod') с propagate=False, либо проверять наличие собственного FileHandler по атрибуту-маркеру и всегда добавлять его для нового прогона.",
       "effort_days": 0.5,
-      "stdlib_or_anaconda_ok": true
+      "stdlib_or_anaconda_ok": true,
+      "status": "done",
+      "result": {
+        "summary": "Обработчики программы помечаются атрибутом _spod_handler; при повторной настройке снимаются. Файловый обработчик добавляется всегда (даже при чужих обработчиках: IDE, basicConfig, повторный main()); свой консольный — только если консольного нет, чужой получает WARNING и Quiet-фильтр.",
+        "tests": "test_stage3_helpers.py::test_setup_logger_adds_file_handler_despite_foreign_handlers"
+      }
     },
     {
       "id": "BUG-06",
@@ -368,7 +394,14 @@
       "evidence": "В текущем CONFIG_MERGE: 6 групп (6, 14, 16, 17, 21) содержат такие пары, но ключи/колонки/фильтры сейчас не пересекаются с создаваемыми колонками — фактической ошибки нет, это латентный риск при правке конфига.",
       "recommendation": "Считать правило зависимым, если его sheet_src ∈ {sheet_dst правил текущей группы} (и наоборот) — начинать новую группу. Добавить тест, что параллельный и последовательный результаты совпадают.",
       "effort_days": 0.5,
-      "stdlib_or_anaconda_ok": true
+      "stdlib_or_anaconda_ok": true,
+      "status": "done",
+      "result": {
+        "summary": "_group_independent_rules: новая группа, если sheet_dst уже пишется в группе, если sheet_src пишется в группе (писатель → читатель), или multiply_rows. «Читатель → писатель» конфликтом не считается (при последовательном выполнении чтение тоже раньше).",
+        "measured": "групп для PROM: 27 → 30",
+        "tests": "test_stage3_helpers.py: результат групп = последовательному выполнению на реальных правилах и синтетике",
+        "verified": "реальный PROM — идентично"
+      }
     },
     {
       "id": "BUG-08",
@@ -385,7 +418,12 @@
       "recommendation": "Переписать ветку multiply_rows через pd.merge(df_base, df_ref[keys+cols] с переименованием в <src>=>col, how='left', сохраняя порядок строк df_base (вспомогательная колонка с исходным порядком + sort по ней, kind='stable'); пропуски — '-'. Нормализацию ключей key_compare=as_text выполнять до merge во временных колонках. В _group_independent_rules правило с multiply_rows=true всегда выносить в отдельную (последовательную) группу, т.к. меняется число строк листа. Добавить тест: 1→N совпадений, 0 совпадений, as_text-ключи, сравнение с текущей реализацией на малом наборе.",
       "effort_days": 1,
       "stdlib_or_anaconda_ok": true,
-      "decision": "Q7: оставить и переписать"
+      "decision": "Q7: оставить и переписать",
+      "status": "done",
+      "result": {
+        "summary": "multiply_rows переписан через pd.merge (порядок строк приёмника и совпадений источника сохраняется, без совпадений — «-»), с учётом key_compare (раньше ключ приёмника строился без него), пустой приёмник не теряет колонки; правило с multiply_rows — всегда отдельная группа (BUG-07).",
+        "tests": "test_stage3_helpers.py: сравнение с прежней реализацией (1→N, 0 совпадений, порядок), as_text, пустой лист"
+      }
     },
     {
       "id": "BUG-09",
@@ -421,7 +459,12 @@
       "description": "Блок выбора листов с нарушениями скопирован 3 раза; astype(int) даст ValueError при NaN/«-».",
       "recommendation": "Вынести в одну функцию select_consistency_sheets(sheets_data, summary_sheet_name) с pd.to_numeric(errors='coerce').fillna(0).",
       "effort_days": 0.25,
-      "stdlib_or_anaconda_ok": true
+      "stdlib_or_anaconda_ok": true,
+      "status": "done",
+      "result": {
+        "summary": "select_consistency_sheets: violations через pd.to_numeric(errors='coerce').fillna(0) — пустые/«-»/NaN не роняют программу.",
+        "tests": "test_stage3_helpers.py"
+      }
     },
     {
       "id": "BUG-11",
@@ -438,9 +481,9 @@
       "recommendation": "Использовать default_config_path(); в имя лога добавить секунды и код блока/PID.",
       "effort_days": 0.25,
       "stdlib_or_anaconda_ok": true,
-      "status": "partial",
+      "status": "done",
       "result": {
-        "summary": "Путь конфига по умолчанию для параллельного режима — default_config_path() (сделано при переписывании main в этапе 1). Имя лога с секундами и кодом блока — в этапе 3."
+        "summary": "Путь конфига для параллельного режима — default_config_path() (этап 1); имя лога с секундами, у процессов-блоков — с кодом блока (…_HH_MM_SS_PROM.log): параллельные блоки и запуски в одну минуту пишут в разные файлы."
       }
     },
     {
@@ -457,7 +500,12 @@
       "description": "write_source_excel добавляет пустые листы прямо в raw_sheets_data вызывающего кода. В _load_config_globals «except Exception: pass» скрывает ошибку внедрённого Config и молча переходит к чтению config.json.",
       "recommendation": "Работать с копией словаря; вместо pass — logging.exception и явный fallback (или падение с понятным сообщением).",
       "effort_days": 0.25,
-      "stdlib_or_anaconda_ok": true
+      "stdlib_or_anaconda_ok": true,
+      "status": "done",
+      "result": {
+        "summary": "write_source_excel работает с копией словаря (сортировка и пустые листы больше не попадают в проверки консистентности вызывающего кода); _load_config_globals: при ошибке внедрённого Config — logging.exception и RuntimeError вместо молчаливого перехода на config/config.json.",
+        "verified": "реальный PROM main_only+source_only: main и source книги идентичны прежним"
+      }
     },
     {
       "id": "PERF-01",
@@ -643,7 +691,12 @@
       "description": "Сырой df копируется: в process_single_file, повторно для raw_sheets и ещё раз для archive_payload; в write_to_excel — копия каждого листа; в merge — копия источника на каждое правило + копия в apply_filters_to_dataframe.",
       "recommendation": "archive_payload — без копии (архив только читает); raw_sheets — одна копия; в apply_filters_to_dataframe не копировать до фильтра (булева маска уже создаёт новый объект); в write_to_excel копировать только листы, где есть правила COLUMN_FORMATS. Замер: tracemalloc/psutil (есть в Anaconda) в STAT_FILE.",
       "effort_days": 1,
-      "stdlib_or_anaconda_ok": true
+      "stdlib_or_anaconda_ok": true,
+      "status": "done",
+      "result": {
+        "summary": "Без копий: archive_payload и raw_sheets используют df_raw из process_single_file (архив только читает и отрабатывает до проверок, которые добавляют колонки); apply_filters_to_dataframe не копирует до фильтра; write_to_excel копирует только листы с правилами COLUMN_FORMATS. Копия источника на каждое правило merge оставлена: подстановки source_aliases и src_key_transform меняют его.",
+        "measured": "пик памяти PROM: 2,00 → 1,94 ГБ (−3%); ожидание «копии — основная причина 2 ГБ» не подтвердилось — основную память занимает книга openpyxl (этап 4)"
+      }
     },
     {
       "id": "PERF-09",
@@ -658,7 +711,11 @@
       "description": "Значения из csv.reader уже str; цикл по колонкам копирует каждую колонку.",
       "recommendation": "Убрать цикл (или pd.DataFrame(rows, columns=headers, dtype=object)). pd.read_csv(engine='pyarrow') НЕ подходит напрямую: нужен QUOTE_NONE и склейка «хвоста» строк с лишними ';' в последнюю колонку — это умеет только текущий csv.reader.",
       "effort_days": 0.1,
-      "stdlib_or_anaconda_ok": true
+      "stdlib_or_anaconda_ok": true,
+      "status": "done",
+      "result": {
+        "summary": "read_csv_file: pd.DataFrame(rows, columns=headers, dtype=object) без цикла astype(str) (значения csv.reader — уже str)."
+      }
     },
     {
       "id": "LOG-01",
@@ -721,7 +778,11 @@
       "description": "Во многих функциях время меряется вручную (func_start + logging.info [END]) и одновременно декоратором @debug_timed; pyflakes нашёл неиспользуемые func_start.",
       "recommendation": "Оставить один механизм — debug_timed/debug_phase; ручные [START]/[END] убрать.",
       "effort_days": 0.5,
-      "stdlib_or_anaconda_ok": true
+      "stdlib_or_anaconda_ok": true,
+      "status": "done",
+      "result": {
+        "summary": "Удалены ручные func_start/func_time и [START]/[END] в функциях с @debug_timed (время — в таблице [PERF]); информативная строка add_fields_to_sheet оставлена с меткой [MERGE]; итоговые строки записи книг — без [END]."
+      }
     },
     {
       "id": "LOG-04",
@@ -736,7 +797,12 @@
       "description": "LOGS уже 20 МБ; один DEBUG-прогон — 9,3 МБ.",
       "recommendation": "Параметр logging.retention_days в конфиге и удаление старых файлов при старте (os.scandir) либо RotatingFileHandler(maxBytes, backupCount) для DEBUG.",
       "effort_days": 0.25,
-      "stdlib_or_anaconda_ok": true
+      "stdlib_or_anaconda_ok": true,
+      "status": "done",
+      "result": {
+        "summary": "logging.retention_days (необязательный): при старте удаляются «<base_name>_*.log» старше N дней и пустые каталоги дат. По умолчанию (нет ключа / 0) ничего не удаляется — ключ в config не добавлялся (удаление необратимо; решение за пользователем, пример в README).",
+        "tests": "test_stage3_helpers.py::test_cleanup_old_logs, test_parse_log_retention_days"
+      }
     },
     {
       "id": "LOG-05",
@@ -799,7 +865,12 @@
       "recommendation": "По решению Q6 пять модулей не удалять и не подключать. Чтобы они не вводили в заблуждение: добавить в docstring каждого строку «Не используется основным пайплайном (main.py); действующая реализация — src/main_impl.py:<функция>» и упомянуть это в Docs/CODEBASE_ANALYTICS.md. Важно: исправления BUG-03 (кавычки) и BUG-04 (форматтер) вносить в действующий код main_impl.py/json_utils.py; копии в logging_setup.py и т.п. остаются как есть. Внутри main_impl.py неиспользуемые функции (validate_single_sheet, collect_summary_keys_optimized, safe_json_loads_preserve_triple_quotes) и 5 неиспользуемых импортов — удалить (это не модули; при несогласии — пометить так же). После PERF-03 построчная add_auto_gender_column и compare_gender_results остаются только для теста.",
       "effort_days": 0.5,
       "stdlib_or_anaconda_ok": true,
-      "decision": "Q6: модули file_loader, gender, logging_setup, tournament, validation НЕ трогать"
+      "decision": "Q6: модули file_loader, gender, logging_setup, tournament, validation НЕ трогать",
+      "status": "done",
+      "result": {
+        "summary": "main_impl: удалены неиспользуемые функции (validate_single_sheet, collect_summary_keys_optimized, safe_json_loads_preserve_triple_quotes, compare_gender_results, validate_field_lengths, validate_field_lengths_vectorized, compare_validate_results, CallerFormatter) и все неиспользуемые импорты/переменные — pyflakes по main_impl, json_utils, console_ui, consistency_checks чистый. Пять неподключённых модулей НЕ изменялись (Q6, в т.ч. без docstring-пометок — это было бы изменением модулей): пометка о них — в Docs/CODEBASE_ANALYTICS.md (п. 11.7, через генератор build_codebase_analytics.py), схема пайплайна там исправлена (вместо file_loader — read_csv_file + json_utils). Копия flatten_json_column_recursive в main_impl и json_utils оставлена: версии различаются (параллельный разбор в json_utils), объединение — отдельная задача с эталонной проверкой.",
+        "measured": "main_impl.py: 5720 → ~5110 строк"
+      }
     },
     {
       "id": "STR-03",
@@ -817,7 +888,12 @@
       "description": "Одинаковые блоки в 2–4 местах уже начали расходиться (разные сообщения, проверки).",
       "recommendation": "Функции: sort_sheet_by_config(), apply_list_tournament_aliases(), process_merge_rule() (одна для обоих путей), select_consistency_sheets(). Жёстко зашитые имена (LIST-TOURNAMENT, gamification-tournamentList-2, «Бизнес-статус») — в конфиг (aliases).",
       "effort_days": 1.5,
-      "stdlib_or_anaconda_ok": true
+      "stdlib_or_anaconda_ok": true,
+      "status": "done",
+      "result": {
+        "summary": "Одна реализация вместо копий: _sort_sheets_by_config (source + main), apply_source_aliases + _find_input_file (4 копии подстановки LIST-TOURNAMENT и запасное имя файла; зашитые имена — _DEFAULT_SOURCE_ALIASES, переопределяются ключом config source_aliases), _process_single_merge_rule для последовательной и параллельной обработки правила (последовательная ветка больше не меняет params листа на месте), select_consistency_sheets (3 копии).",
+        "verified": "эталоны main/source на синтетике; реальные PROM main_only и main+source — идентично"
+      }
     },
     {
       "id": "STR-04",
@@ -832,7 +908,11 @@
       "description": "Шапка говорит о Python 3.10, «ожидаемом ускорении 50–200x», «автосравнении оптимизированных версий» — частично неактуально.",
       "recommendation": "Заменить коротким docstring модуля со ссылкой на Docs/PERFORMANCE_AND_PARALLELIZATION_HISTORY.md.",
       "effort_days": 0.1,
-      "stdlib_or_anaconda_ok": true
+      "stdlib_or_anaconda_ok": true,
+      "status": "done",
+      "result": {
+        "summary": "Шапка main_impl (≈95 строк про Python 3.10, «50–200x», автосравнение версий) заменена docstring модуля со ссылками на Docs/PERFORMANCE_AND_PARALLELIZATION_HISTORY.md и этот отчёт."
+      }
     },
     {
       "id": "ENV-01",
@@ -911,7 +991,12 @@
       "description": "1) run_blocks_parallel использует ProcessPoolExecutor — на Windows процессы стартуют через spawn: каждый дочерний процесс заново импортирует main_impl и выполняет _load_config_globals() на уровне модуля; защита if __name__ == '__main__' в main.py есть — это корректно, но старт каждого блока дороже. 2) Длинные пути OUT/<BLOCK>/YYYY/DD-MM/<имя с пробелами и таймштампом>.xlsx при глубоком расположении проекта могут превысить MAX_PATH=260. 3) GigaIDE: рабочий каталог Run-конфигурации может отличаться от корня проекта — пути считаются от config/, это корректно, но относительные пути в сторонних скриптах (run_main.sh) — нет.",
       "recommendation": "Проверить сценарий на Windows: параллельные блоки, путь длиннее 200 символов (писать WARNING при len(path) > 240), запуск из GigaIDE с другим рабочим каталогом. В Docs описать Run-конфигурацию GigaIDE (интерпретатор Anaconda 3.12, working directory = корень проекта).",
       "effort_days": 0.5,
-      "stdlib_or_anaconda_ok": true
+      "stdlib_or_anaconda_ok": true,
+      "status": "done",
+      "result": {
+        "summary": "WARNING при полном пути выходного файла > 240 символов (main и source); README: особенности Windows (MAX_PATH, spawn в run_blocks_parallel, пути от config/), Run-конфигурация GigaIDE (этап 0).",
+        "not_verified": "сценарии на реальной Windows (параллельные блоки, GigaIDE, длинные пути) — нужна проверка на целевой машине"
+      }
     },
     {
       "id": "INFO-01",
@@ -927,7 +1012,13 @@
       "description": "Разбор неопределённых (без вывода персональных данных): у 385 из 386 пустое отчество; у 383 фамилия замаскирована символом «…»; поле имени у них оканчивается на сокращения («сб» — 79, «мб» — 7 и т.п.) — похоже на служебные/обезличенные записи. Векторная и построчная версии дают одинаковый результат (М=106, Ж=227, «-»=386).",
       "recommendation": "Логику не менять. Для прозрачности в лог писать разбивку причин: «пустое отчество и имя/фамилия не распознаны: N; фамилия замаскирована: M». Если такие записи — не сотрудники, фильтровать их отдельно (вопрос к владельцу данных).",
       "effort_days": 0.25,
-      "stdlib_or_anaconda_ok": true
+      "stdlib_or_anaconda_ok": true,
+      "status": "done",
+      "result": {
+        "summary": "Логика не менялась; в лог — разбивка причин «не определено».",
+        "measured": "PROM: Не определено 386: пустое отчество — 385, фамилия замаскирована «…» — 383 (совпадает с анализом)",
+        "open": "Q9 (служебные учётные записи?) — вопрос к владельцу данных"
+      }
     },
     {
       "id": "BUG-13",
@@ -1043,7 +1134,9 @@
         "PERF-09",
         "INFO-01"
       ],
-      "effort_days": 6
+      "effort_days": 6,
+      "status": "done",
+      "result": "Все пункты выполнены; вывод PROM (main_only и main+source) идентичен этапу 2; время 29,6 с; память 1,94 ГБ."
     },
     {
       "stage": 4,

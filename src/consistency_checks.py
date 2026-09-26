@@ -1393,7 +1393,6 @@ def collect_json_field_equals_column_result(
     violations_mask = col_series.ne("") & col_series.ne("OK")
     n_violations = int(violations_mask.sum())
     total_applicable = int((col_series.ne("")).sum())
-    total = len(df)
     sample = []
     if n_violations > 0:
         vio_idx = df.index[violations_mask].tolist()[: _MAX_SAMPLE]

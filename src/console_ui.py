@@ -10,7 +10,7 @@ from __future__ import annotations
 import shutil
 import sys
 import textwrap
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, List, Optional
 
 # Счётчик завершённых верхнеуровневых фаз (depth==0) для «[N] ✓» и прогресс-бара
 _phase_done_count: List[int] = [0]

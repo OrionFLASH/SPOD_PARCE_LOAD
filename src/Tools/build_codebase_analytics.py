@@ -346,7 +346,7 @@ def render_md(data: Dict[str, Any]) -> str:
         "    subgraph infra [Инфраструктура]",
         "        cfg[config_loader + config.json]",
         "        ui[console_ui.py]",
-        "        log[logging_setup · debug_timing]",
+        "        log[debug_timing · логирование в main_impl]",
         "    end",
         "    subgraph aux [Вспомогательное]",
         "        tests[Tests · 8 файлов]",
@@ -438,7 +438,7 @@ def render_md(data: Dict[str, Any]) -> str:
     )
 
     add("---", "", "## 8. Пайплайн выполнения", "", "```mermaid", "sequenceDiagram",
-        "    participant M as main.py", "    participant I as main_impl", "    participant L as file_loader",
+        "    participant M as main.py", "    participant I as main_impl", "    participant L as read_csv_file + json_utils",
         "    participant C as consistency_checks", "    participant E as enrich", "    participant X as Excel",
         "    M->>I: Config + run_outputs", "    I->>L: CSV из IN/", "    I->>C: Проверки сырых данных",
         "    I->>E: merge, gender, tournament", "    opt rating_item_matrix", "    I->>E: ITEM на RATING", "    end",
@@ -477,6 +477,12 @@ def render_md(data: Dict[str, Any]) -> str:
         f"4. **Зависимости:** `pandas` — основная внешняя; Excel — `openpyxl`; type hints в {t.get('type_hints_funcs', 0)} функциях.",
         f"5. **Хабы:** `config_loader`, `profile_gp_auto_js`, `manager_stats` — наиболее связанные модули.",
         f"6. **main_impl.py** — монолитный orchestrator (~{top[0]['code_lines'] / total_code * 100:.0f}% LOC); кандидат на декомпозицию.",
+        "7. **Не подключены к main.py** (решение Q6 — оставлены как есть, не удалять и не подключать): "
+        "`src/file_loader.py`, `src/gender.py`, `src/logging_setup.py`, `src/tournament.py`, `src/validation.py` — "
+        "копии кода незавершённого рефакторинга. Действующие реализации — в `src/main_impl.py` "
+        "(`process_single_file`/`read_csv_file`, `add_auto_gender_column_vectorized`, `setup_logger`, "
+        "`calculate_tournament_status`, проверки длины — `src/consistency_checks.py`) и `src/json_utils.py`. "
+        "Исправления вносить в действующий код.",
         "",
         "---",
         "",

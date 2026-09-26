@@ -153,6 +153,20 @@ def load_config_dict(config_path: str) -> Dict[str, Any]:
     return merged
 
 
+def parse_log_retention_days(cfg: Dict[str, Any]) -> int:
+    """logging.retention_days: целое ≥ 0; отсутствует / пусто / 0 — логи не удаляются (LOG-04)."""
+    raw = (cfg.get("logging") or {}).get("retention_days", 0)
+    if raw in (None, "", False):
+        return 0
+    try:
+        days = int(raw)
+    except (TypeError, ValueError):
+        raise ValueError(f"logging.retention_days: ожидается целое число дней, получено {raw!r}")
+    if days < 0:
+        raise ValueError(f"logging.retention_days: не может быть отрицательным ({days})")
+    return days
+
+
 def parse_skip_data_alignment_sheets(cfg: Dict[str, Any]) -> List[str]:
     """
     Список шаблонов листов без Alignment на ячейках данных.
@@ -560,6 +574,8 @@ class Config:
         # Логирование
         self.log_level: str = self._cfg["logging"]["level"]
         self.log_base_name: str = self._cfg["logging"]["base_name"]
+        # Хранить логи N дней (старые *.log программы удаляются при старте); 0 или нет ключа — не удалять
+        self.log_retention_days: int = parse_log_retention_days(self._cfg)
 
         # Входные файлы по блокам: input_files = { "PROM": [...], "IFT": [...], "PSI": [...] }
         self.input_files_by_block: Dict[str, List[Dict[str, Any]]] = parse_input_files_by_block(

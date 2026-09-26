@@ -7,7 +7,6 @@ import ast
 import json
 import logging
 import re
-import time as tmod
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Dict, List, Optional
 
@@ -109,7 +108,7 @@ def safe_json_loads_preserve_triple_quotes(s: str) -> Any:
         return None
     try:
         return json.loads(s)
-    except Exception as ex:
+    except Exception:
         logging.debug(
             f"[safe_json_loads_preserve_triple_quotes] Сохраняем исходную строку с тройными кавычками: {repr(s)}"
         )
@@ -129,7 +128,6 @@ def flatten_json_column_recursive(
     Рекурсивно разворачивает JSON-колонку в несколько колонок.
     Для больших данных (>5000 строк) использует параллельный парсинг.
     """
-    func_start = tmod.time()
     n_rows = len(df)
     n_errors = 0
     prefix = prefix if prefix is not None else column
