@@ -68,3 +68,27 @@ def test_configure_console_output_redirected_cp1251(monkeypatch: pytest.MonkeyPa
     print("✓ █ готово")
     stream.flush()
     assert raw.getvalue().decode("utf-8") == "✓ █ готово\n"
+
+
+def test_excel_cell_text_matches_written_cells(tmp_path: Path) -> None:
+    """PERF-04: текст значений для ширины = текст ячеек после записи pandas → openpyxl."""
+    import datetime as dt
+    import numpy as np
+
+    df = pd.DataFrame({
+        "i": pd.Series([1, None, 3], dtype="Int64"),
+        "f": [1.0, np.nan, 2.5],
+        "d": pd.Series([pd.Timestamp("2025-01-01"), pd.NaT, pd.Timestamp("2025-03-04 05:06:07")]),
+        "o": ["x", None, dt.date(2024, 5, 6)],
+        "b": [True, False, True],
+        "s": ["", "текст", "-"],
+    })
+    # Как в write_to_excel: ширина считается по листу в памяти до сохранения (после reload 1.0 читается как 1)
+    with pd.ExcelWriter(tmp_path / "w.xlsx", engine="openpyxl") as writer:
+        df.to_excel(writer, index=False, sheet_name="S")
+        ws = writer.sheets["S"]
+        for j, col in enumerate(df.columns, start=1):
+            for i, v in enumerate(df[col].tolist(), start=2):
+                cell = ws.cell(row=i, column=j).value
+                t = main_impl._excel_cell_text(v)
+                assert len(t or "") == len("" if cell is None else str(cell)), (col, v, cell)

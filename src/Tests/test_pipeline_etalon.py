@@ -181,3 +181,25 @@ def test_parallel_blocks_exit_code_and_outputs(tmp_path: Path) -> None:
         assert len(books) == 1, f"{block}: {books}"
     # Лог каждого процесса-блока — отдельный файл не гарантируется (BUG-11), но итог есть в выводе
     assert "код возврата: 0" in proc.stdout
+
+
+SOURCE_ETALON_PATH = ROOT / "src" / "Tests" / "fixtures" / "pipeline_prom_source_etalon.json"
+
+
+def test_source_only_matches_etalon(tmp_path: Path) -> None:
+    """Режим source_only: книга сырых данных «SPOD_PROM source …» совпадает с эталоном (PERF-07)."""
+    cfg_path = _build_isolated_project(tmp_path)
+    cfg = json.loads(cfg_path.read_text(encoding="utf-8"))
+    cfg["run_outputs"] = {BLOCK: ["source_only"]}
+    cfg_path.write_text(json.dumps(cfg, ensure_ascii=False), encoding="utf-8")
+    proc = _run_main(tmp_path, cfg_path)
+    assert proc.returncode == 0, proc.stdout[-3000:] + proc.stderr[-3000:]
+    books = list((tmp_path / "OUT" / BLOCK).rglob(f"SPOD_{BLOCK} source *.xlsx"))
+    assert len(books) == 1, books
+    actual = fingerprint_workbook(str(books[0]))
+    if os.environ.get("SPOD_UPDATE_ETALON") == "1":
+        SOURCE_ETALON_PATH.write_text(json.dumps(actual, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
+        pytest.skip(f"эталон пересоздан: {SOURCE_ETALON_PATH}")
+    expected = json.loads(SOURCE_ETALON_PATH.read_text(encoding="utf-8"))
+    diffs, _ = compare_fingerprints(expected, actual, strict_order=True)
+    assert not diffs, "source-книга отличается от эталона:\n  - " + "\n  - ".join(diffs)

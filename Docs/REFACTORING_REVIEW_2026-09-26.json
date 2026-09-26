@@ -2,7 +2,7 @@
   "meta": {
     "title": "SPOD_PROM — анализ основной программы (main.py → src/main_impl.py): ошибки, производительность, логирование, структура",
     "date": "2026-09-26",
-    "status": "Внедрение поэтапно по roadmap. Выполнены этапы 0 и 1 — см. measurements.stage*_after и status у находок.",
+    "status": "Внедрение поэтапно по roadmap. Выполнены этапы 0, 1, 2 — см. measurements.stage*_after и status у находок.",
     "scope": [
       "main.py",
       "src/main_impl.py (5720 строк, прочитан полностью)",
@@ -37,6 +37,11 @@
         "v": 4,
         "date": "2026-09-26",
         "note": "этап 1 выполнен (BUG-01/02/03/04/06/09/13, LOG-01/02/05, PERF-02/03); BUG-11 частично; замер stage1_after"
+      },
+      {
+        "v": 5,
+        "date": "2026-09-26",
+        "note": "этап 2 выполнен (PERF-01/04/05/06, PERF-07 этап 1); замер stage2_after"
       }
     ]
   },
@@ -177,6 +182,45 @@
       "log": "WARNING: 8 записей (7 подробностей BUG-02 в файле + 1 сводная); ERROR: 0; код возврата 0",
       "result_vs_stage0": "Отличия только согласованные: BUG-13 — порядок строк SUMMARY (набор тот же) и ширина 7 колонок SUMMARY, порядок колонок проверок; BUG-02 — 149 ячеек в 7 полях. BUG-03 на реальных данных изменений не дал.",
       "conclusion": "wall-clock 45–46 → 42,7 с (−3,3 с, этап 05 −3,8 с); память без изменений (~2,0 ГБ). Основное время — запись Excel (этап 06, 38,7 с) — это этап 2."
+    },
+    "stage2_after": {
+      "note": "После этапа 2. Копия проекта, PYTHONHASHSEED=0, run_main.sh; сравнение со строгим порядком с эталоном этапа 1.",
+      "pytest": "216 passed за 4,8 с",
+      "wall_clock_sec": [
+        30.3,
+        29.99,
+        29.6
+      ],
+      "peak_rss_gb": [
+        1.99,
+        2.01,
+        2.0
+      ],
+      "phases_sec": {
+        "01": 0.4,
+        "02": 0.52,
+        "03": 0.63,
+        "05": 0.31,
+        "06": 25.9
+      },
+      "top_functions_sec": {
+        "write_to_excel": 25.9,
+        "_format_sheet (×37)": 3.48,
+        "apply_column_format_conversion (×37)": 0.99
+      },
+      "source_only": {
+        "old_sec": 6.91,
+        "new_sec": 3.02,
+        "source_write_old_sec": 5.76,
+        "source_write_new_sec": 1.97
+      },
+      "optional_flag_REPORT": {
+        "wall_clock_sec": 27.37,
+        "phase_06_sec": 24.4,
+        "note": "не включено; см. README"
+      },
+      "result_vs_stage1": "Совпадает полностью (значения, стили, ширины, разметка, порядок строк и колонок).",
+      "conclusion": "−13 с (−31%) относительно этапа 1; −15,6 с (−35%) относительно исходных 45,2 с. Оставшиеся ~22 с этапа 06 — pandas to_excel (создание объектов Cell) и сериализация openpyxl save — это этап 4 (write-only за флагом)."
     }
   },
   "findings": [
@@ -432,7 +476,13 @@
       "expected_gain": "_format_sheet 15,6 с → ~6–8 с (−20% wall-clock)",
       "effort_days": 1.5,
       "stdlib_or_anaconda_ok": true,
-      "decision": "Q4: упрощение — только флагом"
+      "decision": "Q4: упрощение — только флагом",
+      "status": "done",
+      "result": {
+        "summary": "п.1: _StyleIdCopier — стиль (alignment / number_format) ставится первой ячейке обычным присваиванием, остальным копируется индекс в StyleArray (как делает сам openpyxl, без хеширования объекта стиля на ячейку); применено в _format_sheet, apply_column_formats и source-книге. п.2: флаг performance.skip_data_alignment_sheets задокументирован в README с замером; значения по умолчанию не менялись (Q4).",
+        "measured": "_format_sheet: 15,9 → 3,5 с; флаг + REPORT (не включён): ещё 30,0 → 27,4 с",
+        "verified": "книга main и source идентичны (стили, форматы, ширины; строгий порядок) — синтетика и реальные данные"
+      }
     },
     {
       "id": "PERF-02",
@@ -493,7 +543,12 @@
       "description": "1033 вызова, в каждом до 500 обращений ws.cell(); 4,1 с под профилировщиком. Данные уже есть в df.",
       "recommendation": "Считать один раз на лист: df.head(500).astype(str).apply(lambda s: s.str.len().max()) + длина заголовка; передавать в _format_sheet словарь ширин.",
       "effort_days": 0.5,
-      "stdlib_or_anaconda_ok": true
+      "stdlib_or_anaconda_ok": true,
+      "status": "done",
+      "result": {
+        "summary": "Ширины: длины текста по записанному DataFrame (первые 500 строк) с тем же преобразованием значений, что делает pandas при записи (пропуск → пусто, int/float/datetime); ws.cell() используется только если DataFrame не передан.",
+        "verified": "тест _excel_cell_text против ячеек листа в ExcelWriter; ширины в эталонах совпадают"
+      }
     },
     {
       "id": "PERF-05",
@@ -511,7 +566,12 @@
       "recommendation": "Убрать force_int-проход; заранее (один раз на правило) построить frozenset нормализованных имён, normalize_csv_column_header обернуть functools.lru_cache; числа нормализовать векторно: s.str.strip().str.replace(r'[\\s\\u00a0\\u202f\\u2009\\u2007]', '', regex=True).str.replace(',', '.').",
       "expected_gain": "−2…4 с на этапе 06",
       "effort_days": 1,
-      "stdlib_or_anaconda_ok": true
+      "stdlib_or_anaconda_ok": true,
+      "status": "done",
+      "result": {
+        "summary": "Сделано: lru_cache нормализации имён колонок и кеш наборов except_columns/columns/column_prefixes на правило; force_int не обрабатывает уже целые ячейки (результат тот же). НЕ внедрено: векторная нормализация чисел через .str — на pandas 2.2 / object-колонках она медленнее поэлементной (1,4 млн значений: 0,56 с против 0,24 с), и str.translate не быстрее (время — вызов функции Python). Двойная конвертация чисел оставлена в безопасном виде: при сбое apply_column_format_conversion (например, дробный вес при decimal_places=0) force_int в Excel остаётся нужным.",
+        "measured": "apply_column_format_conversion ~1,0 с (без изменений), вклад PERF-05 в итог мал"
+      }
     },
     {
       "id": "PERF-06",
@@ -533,7 +593,11 @@
       "description": "224 вызова logging.*(f\"...\") в main_impl.py; аргументы f-строки считаются до проверки уровня. Особенно дорого to_string() широких DataFrame (сотни колонок) и list(df.columns) в циклах merge.",
       "recommendation": "Для тяжёлых DEBUG — if logger.isEnabledFor(logging.DEBUG): …; в остальных — %-стиль logging.debug('… %s', x). Правило для кода: не вызывать to_string() в логах без проверки уровня.",
       "effort_days": 0.5,
-      "stdlib_or_anaconda_ok": true
+      "stdlib_or_anaconda_ok": true,
+      "status": "done",
+      "result": {
+        "summary": "Уровень корневого логгера = минимум уровней обработчиков (при INFO logging.debug отсекается сразу); 16 тяжёлых DEBUG-сообщений (to_string(), списки колонок) обёрнуты в if _debug_enabled(). Остальные 200+ f-строк — дешёвые, перевод на %-стиль не дал бы измеримого эффекта."
+      }
     },
     {
       "id": "PERF-07",
@@ -552,7 +616,13 @@
       "effort_days": 4,
       "risk": "Нужна побайтовая/визуальная сверка выходных xlsx с эталоном; автофильтр и ширины колонок в write-only задаются иначе.",
       "stdlib_or_anaconda_ok": true,
-      "decision": "Q4: write-only писатель — только за флагом performance.excel_writer: \"openpyxl\" (по умолчанию) | \"write_only\""
+      "decision": "Q4: write-only писатель — только за флагом performance.excel_writer: \"openpyxl\" (по умолчанию) | \"write_only\"",
+      "status": "partial",
+      "result": {
+        "summary": "Этап 1 выполнен: write_source_excel оформляет листы в открытом ExcelWriter (без load_workbook и второго сохранения). Этап 2 (write-only писатель за флагом) — в roadmap этапа 4.",
+        "measured": "source-книга PROM (source_only): 6,9 → 3,0 с прогон, запись 5,8 → 2,0 с, память 532 → 441 МБ; книга идентична",
+        "tests": "test_pipeline_etalon.py::test_source_only_matches_etalon (эталон снят до изменения)"
+      }
     },
     {
       "id": "PERF-08",
@@ -949,7 +1019,9 @@
         "PERF-07 (этап 1: source без load_workbook)"
       ],
       "effort_days": 4,
-      "expected": "этап 06 37,7 → ~22–26 с; wall-clock 45 → ~28–32 с (оценка, проверить замером)"
+      "expected": "этап 06 37,7 → ~22–26 с; wall-clock 45 → ~28–32 с (оценка, проверить замером)",
+      "status": "done",
+      "result": "PROM: 42,7 → 29,6 с (ожидание было 28–32 с); этап 06: 38,7 → 25,9 с; main и source идентичны прежним. PERF-05: векторизация чисел не внедрена (медленнее)."
     },
     {
       "stage": 3,

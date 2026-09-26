@@ -6,8 +6,11 @@ from typing import Optional, List, Dict, Any, Tuple, Set, Mapping, Sequence  # �
 import pandas as pd  # Для работы с данными в табличном формате
 import logging     # Для логирования процессов
 from datetime import datetime  # Для работы с датами и временем
+from datetime import date as date_cls  # Тип даты (расчёт ширины колонок, разбор дат)
+import numpy as np  # Типы значений при расчёте ширины колонок (PERF-04)
 from openpyxl.utils import get_column_letter  # Для получения буквенного обозначения колонок Excel
 from openpyxl.styles import Alignment, Font, PatternFill  # Для стилизации ячеек Excel
+from openpyxl.styles.cell_style import StyleArray  # PERF-01: копирование индекса стиля
 from openpyxl import load_workbook  # Для применения параметров листов к уже записанному файлу (source)
 from time import time  # Для измерения времени выполнения операций
 import json        # Для работы с JSON данными
@@ -19,6 +22,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed  # Для пар
 from itertools import product
 import threading  # Для синхронизации потоков
 import copy  # Копия конфигов листов для синтетических агрегированных листов
+import functools  # lru_cache нормализации имён колонок (PERF-05)
 
 from src import console_ui  # Краткий вывод этапов и сводок в консоль (stdlib)
 from src.block_runtime import (
@@ -618,6 +622,11 @@ class _QuietExpectedMergeConsoleFilter(logging.Filter):
         return not any(m in msg for m in self._SKIP_MARKERS)
 
 
+def _debug_enabled() -> bool:
+    """PERF-06: DEBUG реально пишется (уровень корневого логгера = минимум уровней обработчиков)."""
+    return logging.getLogger().isEnabledFor(logging.DEBUG)
+
+
 def _log_info_file_only(msg: str) -> None:
     """
     Пишет INFO только в FileHandler (не в консоль).
@@ -674,7 +683,9 @@ def setup_logger():
     # Уровень файла совпадает с config: при level=INFO в лог-файл не попадают записи DEBUG
     file_level = _logging_level_from_config(LOG_LEVEL)
 
-    logger.setLevel(logging.DEBUG)
+    # Уровень корневого логгера = самый подробный из обработчиков (файл — из config, консоль — WARNING):
+    # при INFO вызовы logging.debug(...) отсекаются сразу, без создания записи (PERF-06)
+    logger.setLevel(min(file_level, logging.WARNING))
 
     # Форматтер для файла: имя вызывающей функции даёт сам logging (%(funcName)s) — без inspect.stack()
     # и без изменения record.msg (иначе суффикс попадал и в консоль) — BUG-04
@@ -1287,7 +1298,8 @@ def read_csv_file(
 
         for col in df.columns:
             if "FEATURE" in col or "ADD_DATA" in col:
-                logging.debug(f"CSV {file_path} поле {col}: {df[col].dropna().head(2).to_list()}")
+                if _debug_enabled():
+                    logging.debug(f"CSV {file_path} поле {col}: {df[col].dropna().head(2).to_list()}")
 
         if issues:
             logging.warning(f"[CSV] Расхождение по числу полей: {file_path}, строк с расхождением: {len(issues)}")
@@ -1303,6 +1315,45 @@ def read_csv_file(
 
 
 @debug_timed()
+def _apply_source_sheet_layout(ws: Any, sheet_item: Any, df_written: pd.DataFrame) -> None:
+    """Ширины, закрепление, автофильтр и перенос по словам на листе source (параметры — из input_files)."""
+    sheet_name = ws.title
+    params: Dict[str, Any] = {}
+    if isinstance(sheet_item, (list, tuple)) and len(sheet_item) >= 2 and isinstance(sheet_item[1], dict):
+        file_conf = sheet_item[1]
+        params = {
+            "max_col_width": file_conf.get("max_col_width", 60),
+            "freeze": file_conf.get("freeze", "A2"),
+            "col_width_mode": file_conf.get("col_width_mode", "AUTO"),
+            "min_col_width": file_conf.get("min_col_width", 10),
+        }
+    if not params:
+        params = {"max_col_width": 60, "freeze": "A2", "col_width_mode": "AUTO", "min_col_width": 10}
+    header_cells = list(ws[1])
+    data_lengths: Optional[List[int]] = None
+    if df_written.shape[1] == len(header_cells):
+        data_lengths = _content_lengths_from_df(df_written)
+    for col_num, cell in enumerate(header_cells, 1):
+        width = calculate_column_width(
+            cell.value, ws, params, col_num,
+            data_len=data_lengths[col_num - 1] if data_lengths is not None else None,
+        )
+        ws.column_dimensions[get_column_letter(col_num)].width = width
+    ws.freeze_panes = params.get("freeze", "A2")
+    # Автофильтр по умолчанию на всех листах source (только при валидных границах листа)
+    try:
+        if ws.max_row and ws.max_column and ws.dimensions:
+            ws.auto_filter.ref = ws.dimensions
+    except Exception as ex:
+        logging.warning(f"[source_export] Лист «{sheet_name}»: автофильтр не применён: {ex}")
+    # Перенос по словам во всех ячейках листа source (по умолчанию)
+    if ws.max_row is not None and ws.max_column is not None and ws.max_row >= 1:
+        wrap_setter = _StyleIdCopier("alignment", Alignment(wrap_text=True, vertical="top"))
+        for row in ws.iter_rows(min_row=1, max_row=ws.max_row, min_col=1, max_col=ws.max_column):
+            for cell in row:
+                wrap_setter.apply(cell)
+
+
 def write_source_excel(
     raw_sheets_data: Dict[str, Any],
     output_dir: str,
@@ -1386,57 +1437,20 @@ def write_source_excel(
     output_path = os.path.join(output_dir, filename)
     os.makedirs(output_dir, exist_ok=True)
 
+    # PERF-07 (этап 1): оформление — по листам открытого ExcelWriter, до единственного сохранения
+    # (раньше: сохранить → load_workbook → оформить все ячейки → сохранить повторно)
     with pd.ExcelWriter(output_path, engine="openpyxl") as writer:
+        written: Dict[str, pd.DataFrame] = {}
         for sheet_name in ordered_sheets:
             df, _ = raw_sheets_data[sheet_name]
-            if df is None:
-                pd.DataFrame().to_excel(writer, index=False, sheet_name=sheet_name)
-            else:
-                df.to_excel(writer, index=False, sheet_name=sheet_name)
-
-    # Параметры отображения для каждого листа source-файла — свои из конфига (input_files для этого листа)
-    try:
-        wb = load_workbook(output_path)
-        for ws in wb.worksheets:
-            sheet_name = ws.title
-            params = {}
-            if sheet_name in raw_sheets_data and len(raw_sheets_data[sheet_name]) >= 2:
-                file_conf = raw_sheets_data[sheet_name][1]
-                if isinstance(file_conf, dict):
-                    params = {
-                        "max_col_width": file_conf.get("max_col_width", 60),
-                        "freeze": file_conf.get("freeze", "A2"),
-                        "col_width_mode": file_conf.get("col_width_mode", "AUTO"),
-                        "min_col_width": file_conf.get("min_col_width", 10),
-                    }
-            if not params:
-                params = {"max_col_width": 60, "freeze": "A2", "col_width_mode": "AUTO", "min_col_width": 10}
-            header_cells = list(ws[1])
-            for col_num, cell in enumerate(header_cells, 1):
-                col_letter = get_column_letter(col_num)
-                width = calculate_column_width(cell.value, ws, params, col_num)
-                ws.column_dimensions[col_letter].width = width
-            ws.freeze_panes = params.get("freeze", "A2")
-            # Автофильтр по умолчанию на всех листах source (только при валидных границах листа)
-            try:
-                if ws.max_row and ws.max_column and ws.dimensions:
-                    ws.auto_filter.ref = ws.dimensions
-            except Exception as ex:
-                logging.warning(f"[source_export] Лист «{sheet_name}»: автофильтр не применён: {ex}")
-            # Перенос по словам во всех ячейках листа source (по умолчанию)
-            _src_wrap = Alignment(wrap_text=True, vertical="top")
-            if ws.max_row is not None and ws.max_column is not None and ws.max_row >= 1:
-                for row in ws.iter_rows(
-                    min_row=1,
-                    max_row=ws.max_row,
-                    min_col=1,
-                    max_col=ws.max_column,
-                ):
-                    for cell in row:
-                        cell.alignment = _src_wrap
-        wb.save(output_path)
-    except Exception as e:
-        logging.warning(f"[source_export] Не удалось применить параметры листов к {output_path}: {e}")
+            df_out = pd.DataFrame() if df is None else df
+            df_out.to_excel(writer, index=False, sheet_name=sheet_name)
+            written[sheet_name] = df_out
+        try:
+            for sheet_name in ordered_sheets:
+                _apply_source_sheet_layout(writer.sheets[sheet_name], raw_sheets_data[sheet_name], written[sheet_name])
+        except Exception as e:
+            logging.warning(f"[source_export] Не удалось применить параметры листов к {output_path}: {e}")
 
     logging.info(f"Выгрузка сырых данных записана: {output_path}")
     return output_path
@@ -1469,7 +1483,8 @@ def write_to_excel(
                 if len(df) == 0:
                     logging.warning(f"[write_to_excel] [WARN] Лист {sheet_name} ПУСТОЙ (0 строк)!")
                 else:
-                    logging.debug(f"[write_to_excel] Лист {sheet_name} первые 3 строки:\n{df.head(3).to_string()}")
+                    if _debug_enabled():
+                        logging.debug(f"[write_to_excel] Лист {sheet_name} первые 3 строки:\n{df.head(3).to_string()}")
             else:
                 logging.warning(f"[write_to_excel] [WARN] Лист {sheet_name}: DataFrame равен None")
         else:
@@ -1595,7 +1610,8 @@ def write_to_excel(
                 if len(df_write) == 0:
                     logging.warning(f"[write_to_excel] [WARN] Лист {sheet_name} ПУСТОЙ перед записью (0 строк)")
                 else:
-                    logging.debug(f"[write_to_excel] Первые 3 строки перед записью:\n{df_write.head(3).to_string()}")
+                    if _debug_enabled():
+                        logging.debug(f"[write_to_excel] Первые 3 строки перед записью:\n{df_write.head(3).to_string()}")
 
                 df_write.to_excel(writer, index=False, sheet_name=sheet_name)
                 logging.info(f"Лист Excel записан: {sheet_name} (строк: {len(df_write)}, колонок: {len(df_write.columns)})")
@@ -1616,7 +1632,9 @@ def write_to_excel(
                 
                 df, params_sheet = sheet_data
                 ws = writer.sheets[sheet_name]
-                _format_sheet(ws, df, params_sheet, use_color_scheme=use_color_scheme)  # Применяем форматирование
+                written = prepared_sheets.get(sheet_name)
+                df_written = written[0] if written is not None and len(written) >= 1 else None
+                _format_sheet(ws, df, params_sheet, use_color_scheme=use_color_scheme, df_written=df_written)
                 logging.info(f"Лист Excel сформирован: {sheet_name} (строк: {len(df)}, колонок: {len(df.columns)})")
             
             # Делаем SUMMARY лист активным по умолчанию (если он есть в файле)
@@ -1655,7 +1673,49 @@ def write_to_excel(
 _AUTO_COLUMN_WIDTH_MAX_DATA_ROWS = 500
 
 
-def calculate_column_width(col_name, ws, params, col_num):
+def _excel_cell_text(val: Any) -> Optional[str]:
+    """
+    Текст значения так, как его увидит расчёт ширины после записи pandas → openpyxl
+    (pandas ExcelWriter: пропуск → пустая ячейка, целые → int, дробные → float, Timestamp → datetime).
+    None — пустая ячейка.
+    """
+    if val is None:
+        return None
+    if isinstance(val, str):
+        return val
+    try:
+        if pd.isna(val):
+            return ""
+    except (TypeError, ValueError):
+        pass
+    if isinstance(val, pd.Timestamp):
+        return str(val.to_pydatetime())
+    if isinstance(val, (bool, np.bool_)):
+        return str(bool(val))
+    if isinstance(val, (int, np.integer)):
+        return str(int(val))
+    if isinstance(val, (float, np.floating)):
+        return str(float(val))
+    if isinstance(val, (datetime, date_cls)):
+        return str(val)
+    return str(val)
+
+
+def _content_lengths_from_df(df: pd.DataFrame, max_rows: int = _AUTO_COLUMN_WIDTH_MAX_DATA_ROWS) -> List[int]:
+    """PERF-04: максимальная длина текста в первых max_rows строках каждой колонки (без обхода ячеек листа)."""
+    head = df.iloc[:max_rows]
+    lengths: List[int] = []
+    for j in range(head.shape[1]):
+        best = 0
+        for v in head.iloc[:, j].tolist():
+            t = _excel_cell_text(v)
+            if t is not None and len(t) > best:
+                best = len(t)
+        lengths.append(best)
+    return lengths
+
+
+def calculate_column_width(col_name, ws, params, col_num, data_len: Optional[int] = None):
     """
     Вычисляет ширину колонки на основе параметров и содержимого.
 
@@ -1693,7 +1753,10 @@ def calculate_column_width(col_name, ws, params, col_num):
     hval = ws.cell(row=1, column=col_num).value
     if hval is not None:
         content_width = max(content_width, len(str(hval)))
-    if ws.max_row >= 2:
+    if data_len is not None:
+        # Длина данных посчитана заранее по записанному DataFrame (PERF-04)
+        content_width = max(content_width, data_len)
+    elif ws.max_row >= 2:
         last_scan = min(ws.max_row, 1 + _AUTO_COLUMN_WIDTH_MAX_DATA_ROWS)
         for row_idx in range(2, last_scan + 1):
             val = ws.cell(row=row_idx, column=col_num).value
@@ -1774,14 +1837,38 @@ def _config_date_format_to_pandas(fmt: Optional[str]) -> Optional[str]:
     return fmt if "%" in fmt else None
 
 
-def _normalize_column_name_for_format_match(name: Optional[str]) -> str:
-    """
-    Имя колонки для сравнения с ``except_columns`` / ``columns`` в COLUMN_FORMATS.
-    Делегирует в csv_headers (BOM, NFKC, пробелы).
-    """
+@functools.lru_cache(maxsize=65536)
+def _normalize_header_cached(name: str) -> str:
     from src.csv_headers import normalize_csv_column_header
 
     return normalize_csv_column_header(name)
+
+
+def _normalize_column_name_for_format_match(name: Optional[str]) -> str:
+    """
+    Имя колонки для сравнения с ``except_columns`` / ``columns`` в COLUMN_FORMATS.
+    Делегирует в csv_headers (BOM, NFKC, пробелы); строки кешируются (PERF-05).
+    """
+    if isinstance(name, str):
+        return _normalize_header_cached(name)
+    from src.csv_headers import normalize_csv_column_header
+
+    return normalize_csv_column_header(name)
+
+
+# PERF-05: нормализованные except_columns / columns / column_prefixes правила — один раз на правило
+_format_rule_sets_cache: Dict[int, Tuple[Mapping[str, Any], frozenset, frozenset, Tuple[str, ...]]] = {}
+
+
+def _format_rule_sets(rule: Mapping[str, Any]) -> Tuple[frozenset, frozenset, Tuple[str, ...]]:
+    cached = _format_rule_sets_cache.get(id(rule))
+    if cached is not None and cached[0] is rule:
+        return cached[1], cached[2], cached[3]
+    except_norm = frozenset(_normalize_column_name_for_format_match(x) for x in (rule.get("except_columns") or []))
+    allowed_norm = frozenset(_normalize_column_name_for_format_match(x) for x in (rule.get("columns") or []))
+    prefixes = tuple(_normalize_column_name_for_format_match(x) for x in (rule.get("column_prefixes") or []))
+    _format_rule_sets_cache[id(rule)] = (rule, except_norm, allowed_norm, prefixes)
+    return except_norm, allowed_norm, prefixes
 
 
 def _format_header_match_keys(col_name: str) -> set[str]:
@@ -1819,19 +1906,15 @@ def _column_matches_format_rule(col_name: str, rule: Mapping[str, Any]) -> bool:
     header_norm = _normalize_column_name_for_format_match(col_name)
     except_cols = rule.get("except_columns") or []
     columns_list = rule.get("columns") or []
-    prefixes = rule.get("column_prefixes") or []
+    except_norm, allowed_norm, prefixes = _format_rule_sets(rule)
     if except_cols:
-        except_norm = {_normalize_column_name_for_format_match(x) for x in except_cols}
         # Не применять правило, если полное имя или суффикс после => в except
         return header_keys.isdisjoint(except_norm)
     if columns_list:
-        allowed_norm = {_normalize_column_name_for_format_match(x) for x in columns_list}
         return not header_keys.isdisjoint(allowed_norm)
-    if prefixes:
-        for prefix in prefixes:
-            pnorm = _normalize_column_name_for_format_match(prefix)
-            if pnorm and header_norm.startswith(pnorm):
-                return True
+    for pnorm in prefixes:
+        if pnorm and header_norm.startswith(pnorm):
+            return True
     return False
 
 
@@ -1886,6 +1969,7 @@ def apply_column_format_conversion(
                     # После read_csv_file значения строковые; убираем разряды (пробел/NBSP), запятую в десятичную точку.
                     # Текстовые значения (имена ТБ/ГОСБ после merge) не затираем в NA.
                     original = col_data
+                    # Поэлементно: векторный вариант через .str (6 проходов) на object-колонках медленнее в ~2 раза
                     normalized = original.map(_normalize_string_for_numeric_cell)
                     ser = pd.to_numeric(normalized, errors="coerce")
                     decimal_places = int(rule.get("decimal_places", 0))
@@ -1959,6 +2043,37 @@ def _column_indices_covered_by_column_formats(
     return covered
 
 
+class _StyleIdCopier:
+    """
+    Быстрое назначение одного и того же стиля многим ячейкам (PERF-01).
+
+    Присваивание ``cell.alignment = X`` / ``cell.number_format = F`` каждый раз хеширует объект стиля
+    и ищет его в индексе книги. Здесь стиль ставится первой ячейке обычным способом, а остальным
+    копируется уже вычисленный индекс в их StyleArray — результат в xlsx тот же, в разы быстрее.
+    Остальные атрибуты стиля ячейки (шрифт, заливка, формат) не затрагиваются.
+    """
+
+    __slots__ = ("attr", "value", "id_field", "style_id")
+
+    _ID_FIELD = {"alignment": "alignmentId", "number_format": "numFmtId"}
+
+    def __init__(self, attr: str, value: Any) -> None:
+        self.attr = attr
+        self.value = value
+        self.id_field = self._ID_FIELD[attr]
+        self.style_id: Optional[int] = None
+
+    def apply(self, cell: Any) -> None:
+        if self.style_id is None:
+            setattr(cell, self.attr, self.value)
+            self.style_id = getattr(cell._style, self.id_field)
+        else:
+            # Как в openpyxl StyleDescriptor.__set__: у ячейки без стиля StyleArray создаётся лениво
+            if not cell._style:
+                cell._style = StyleArray()
+            setattr(cell._style, self.id_field, self.style_id)
+
+
 def apply_column_formats(
     ws: Any,
     sheet_name: str,
@@ -2017,21 +2132,23 @@ def apply_column_formats(
             # Для числа с 0 знаков после запятой: записать в ячейку целое значение (1, 2), а не 1.0, 2.0,
             # иначе Excel в части локалей отображает "1,0"
             force_int = (data_type == "number" and int(rule.get("decimal_places", 0)) == 0)
-            for row_idx in range(2, ws.max_row + 1):
-                cell = ws.cell(row=row_idx, column=col_idx)
-                if num_fmt is not None:
-                    cell.number_format = num_fmt
-                if force_int and cell.value is not None:
+            fmt_setter = _StyleIdCopier("number_format", num_fmt) if num_fmt is not None else None
+            align_setter = _StyleIdCopier("alignment", alignment) if not skip_data_align else None
+            for (cell,) in ws.iter_rows(min_row=2, max_row=ws.max_row, min_col=col_idx, max_col=col_idx):
+                if fmt_setter is not None:
+                    fmt_setter.apply(cell)
+                # int уже целое — пропускаем (PERF-05); bool — тоже int, и раньше он не менялся
+                if force_int and cell.value is not None and not isinstance(cell.value, int):
                     try:
                         raw = _normalize_string_for_numeric_cell(cell.value)
                         if raw != "":
                             v = float(raw)
                             if v == int(v):
                                 cell.value = int(v)
-                    except (TypeError, ValueError):
+                    except (TypeError, ValueError, OverflowError):
                         pass
-                if not skip_data_align:
-                    cell.alignment = alignment
+                if align_setter is not None:
+                    align_setter.apply(cell)
             logging.debug(
                 f"[COLUMN_FORMATS] Применён формат к листу {sheet_name}, колонка {col_idx} "
                 f"«{raw_header}» (тип: {data_type})"
@@ -2040,7 +2157,7 @@ def apply_column_formats(
 
 
 @debug_timed()
-def _format_sheet(ws, df, params, use_color_scheme: bool = True):
+def _format_sheet(ws, df, params, use_color_scheme: bool = True, df_written: Optional[pd.DataFrame] = None):
     func_start = time()
     params_str = f"({ws.title})"
     logging.debug(f"[START] _format_sheet {params_str}")
@@ -2051,7 +2168,11 @@ def _format_sheet(ws, df, params, use_color_scheme: bool = True):
     # ОПТИМИЗАЦИЯ: Batch-операции для заголовков - вычисляем все ширины сразу
     header_cells = list(ws[1])
     column_widths = {}
-    
+    # PERF-04: длины данных — по DataFrame, который записан на лист (а не ws.cell() по 500 строк на колонку)
+    data_lengths: Optional[List[int]] = None
+    if df_written is not None and df_written.shape[1] == len(header_cells):
+        data_lengths = _content_lengths_from_df(df_written)
+
     for col_num, cell in enumerate(header_cells, 1):
         cell.font = header_font
         cell.alignment = align_center
@@ -2059,7 +2180,10 @@ def _format_sheet(ws, df, params, use_color_scheme: bool = True):
         col_name = cell.value
         
         # Вычисляем ширину колонки
-        width = calculate_column_width(col_name, ws, params, col_num)
+        width = calculate_column_width(
+            col_name, ws, params, col_num,
+            data_len=data_lengths[col_num - 1] if data_lengths is not None else None,
+        )
         column_widths[col_letter] = width
         
         # Определяем режим для логирования
@@ -2091,11 +2215,12 @@ def _format_sheet(ws, df, params, use_color_scheme: bool = True):
             cols_covered_by_rules = _column_indices_covered_by_column_formats(
                 ws.title, col_names_header, extra_rules=extra_fmt
             )
+            align_setter = _StyleIdCopier("alignment", align_data)
             for row in ws.iter_rows(min_row=2, max_row=ws.max_row, max_col=ws.max_column):
                 for cell in row:
                     if cell.column in cols_covered_by_rules:
                         continue
-                    cell.alignment = align_data
+                    align_setter.apply(cell)
         else:
             logging.debug(
                 f"[_format_sheet] {ws.title}: Alignment данных пропущен "
@@ -2914,11 +3039,15 @@ def add_fields_to_sheet(df_base, df_ref, src_keys, dst_keys, columns, sheet_name
     logging.debug(f"[add_fields_to_sheet] Ключи: dst_keys={dst_keys}, src_keys={src_keys}")
     logging.debug(f"[add_fields_to_sheet] Режим: mode={mode}, multiply_rows={multiply_rows}")
     if df_base is not None and isinstance(df_base, pd.DataFrame) and len(df_base) > 0:
-        logging.debug(f"[add_fields_to_sheet] df_base колонки: {list(df_base.columns)}")
-        logging.debug(f"[add_fields_to_sheet] df_base первые 3 строки:\n{df_base.head(3).to_string()}")
+        if _debug_enabled():
+            logging.debug(f"[add_fields_to_sheet] df_base колонки: {list(df_base.columns)}")
+        if _debug_enabled():
+            logging.debug(f"[add_fields_to_sheet] df_base первые 3 строки:\n{df_base.head(3).to_string()}")
     if df_ref is not None and isinstance(df_ref, pd.DataFrame) and len(df_ref) > 0:
-        logging.debug(f"[add_fields_to_sheet] df_ref колонки: {list(df_ref.columns)}")
-        logging.debug(f"[add_fields_to_sheet] df_ref первые 3 строки:\n{df_ref.head(3).to_string()}")
+        if _debug_enabled():
+            logging.debug(f"[add_fields_to_sheet] df_ref колонки: {list(df_ref.columns)}")
+        if _debug_enabled():
+            logging.debug(f"[add_fields_to_sheet] df_ref первые 3 строки:\n{df_ref.head(3).to_string()}")
 
 
 
@@ -3286,7 +3415,8 @@ def _process_single_merge_rule(rule, sheets_data_copy, count_column_prefix="COUN
         return (rule, updated_sheets)
     
     df_src = sheets_data_copy[sheet_src][0].copy()
-    logging.debug(f"[MERGE] {merge_name} df_src ({sheet_src}): shape={df_src.shape}, колонки: {list(df_src.columns)}")
+    if _debug_enabled():
+        logging.debug(f"[MERGE] {merge_name} df_src ({sheet_src}): shape={df_src.shape}, колонки: {list(df_src.columns)}")
     df_dst, params_dst = sheets_data_copy[sheet_dst]
     params_dst = params_dst.copy()  # Копируем параметры
     
@@ -3545,7 +3675,8 @@ def merge_fields_across_sheets(sheets_data, merge_fields, count_column_prefix="C
                 continue
 
             df_src = sheets_data[sheet_src][0].copy()
-            logging.debug(f"[MERGE] {name_tag} df_src ({sheet_src}): shape={df_src.shape}, колонки: {list(df_src.columns)}")
+            if _debug_enabled():
+                logging.debug(f"[MERGE] {name_tag} df_src ({sheet_src}): shape={df_src.shape}, колонки: {list(df_src.columns)}")
             df_dst, params_dst = sheets_data[sheet_dst]
 
             # Подстановка ключа/колонки для LIST-TOURNAMENT (как в _process_single_merge_rule для MERGE_FIELDS_ADVANCED)
@@ -4039,10 +4170,12 @@ def compare_gender_results(df_old, df_new):
 
 @debug_timed()
 def build_summary_sheet(dfs, params_summary, merge_fields):
-    logging.debug(f"[build_summary_sheet] === НАЧАЛО === Доступные листы в dfs: {list(dfs.keys())}")
+    if _debug_enabled():
+        logging.debug(f"[build_summary_sheet] === НАЧАЛО === Доступные листы в dfs: {list(dfs.keys())}")
     for sheet_name, df in dfs.items():
         if df is not None and isinstance(df, pd.DataFrame):
-            logging.debug(f"[build_summary_sheet] Лист {sheet_name}: shape={df.shape}, колонки={list(df.columns)[:10]}...")
+            if _debug_enabled():
+                logging.debug(f"[build_summary_sheet] Лист {sheet_name}: shape={df.shape}, колонки={list(df.columns)[:10]}...")
         else:
             logging.debug(f"[build_summary_sheet] Лист {sheet_name}: DataFrame равен None")
     logging.debug(f"[build_summary_sheet] Правил merge_fields: {len(merge_fields)}")
@@ -4054,8 +4187,10 @@ def build_summary_sheet(dfs, params_summary, merge_fields):
     summary = collect_summary_keys(dfs)
     logging.debug(f"[build_summary_sheet] После collect_summary_keys: summary shape={summary.shape if summary is not None and isinstance(summary, pd.DataFrame) else "None"}")
     if summary is not None and isinstance(summary, pd.DataFrame) and len(summary) > 0:
-        logging.debug(f"[build_summary_sheet] summary колонки: {list(summary.columns)}")
-        logging.debug(f"[build_summary_sheet] summary первые 3 строки:\n{summary.head(3).to_string()}")
+        if _debug_enabled():
+            logging.debug(f"[build_summary_sheet] summary колонки: {list(summary.columns)}")
+        if _debug_enabled():
+            logging.debug(f"[build_summary_sheet] summary первые 3 строки:\n{summary.head(3).to_string()}")
 
     
     # ОПТИМИЗАЦИЯ v5.0: Проверка на None
@@ -4092,7 +4227,8 @@ def build_summary_sheet(dfs, params_summary, merge_fields):
                     )
 
     logging.info(f"Summary: Каркас: {len(summary)} строк (реальные комбинации ключей)")
-    logging.debug(f"{params_summary['sheet']}: первые строки после разворачивания:\n{summary.head(5).to_string()}")
+    if _debug_enabled():
+        logging.debug(f"{params_summary['sheet']}: первые строки после разворачивания:\n{summary.head(5).to_string()}")
 
     # Универсально добавляем все поля по merge_fields
     # (как merge_fields_across_sheets: status_filters, count_label, count_aggregation)
@@ -4130,7 +4266,8 @@ def build_summary_sheet(dfs, params_summary, merge_fields):
             f"{summary.shape if summary is not None and isinstance(summary, pd.DataFrame) else 'None'}"
         )
         if summary is not None and isinstance(summary, pd.DataFrame) and len(summary) > 0:
-            logging.debug(f"[build_summary_sheet] summary ДО merge первые 3 строки:\n{summary.head(3).to_string()}")
+            if _debug_enabled():
+                logging.debug(f"[build_summary_sheet] summary ДО merge первые 3 строки:\n{summary.head(3).to_string()}")
 
         # Детальное логирование для merge_fields с GROUP
         if sheet_src == "GROUP":
@@ -4338,7 +4475,8 @@ def process_single_file(file_conf):
                 logging.warning(f"[JSON FLATTEN] {sheet_name}: поле '{col}' не найдено в колонках! [поток: {th}]")
         
         # Для дебага: логируем итоговый список колонок после всех разворотов
-        logging.debug(f"{sheet_name}: колонки после разворачивания: {', '.join(df.columns.tolist())} [поток: {th}]")
+        if _debug_enabled():
+            logging.debug(f"{sheet_name}: колонки после разворачивания: {', '.join(df.columns.tolist())} [поток: {th}]")
 
         logging.info(f"Файл успешно обработан: {sheet_name}, строк: {len(df)} [поток: {th}]")
         

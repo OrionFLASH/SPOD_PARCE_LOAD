@@ -1,0 +1,944 @@
+{
+ "schema": 2,
+ "sheet_order": [
+  "CONTEST-DATA",
+  "REWARD",
+  "TOURNAMENT-SCHEDULE",
+  "REWARD-LINK",
+  "GROUP",
+  "INDICATOR",
+  "REPORT",
+  "ORG_UNIT_V20",
+  "USER_ROLE",
+  "EMPLOYEE",
+  "USER_ROLE SB"
+ ],
+ "volatile": {
+  "STAT_FILE": [
+   "FILE_DATE",
+   "DATA_UPDATE_DATE"
+  ]
+ },
+ "sheets": {
+  "CONTEST-DATA": {
+   "rows": 6,
+   "row_set": "99effc2bcb97a3466141aecc297c1e5357e99a9b59af97d5a3905733b9d13131",
+   "cols": 25,
+   "header": [
+    "CONTEST_CODE",
+    "FULL_NAME",
+    "CREATE_DT",
+    "CLOSE_DT",
+    "BUSINESS_STATUS",
+    "CONTEST_TYPE",
+    "CONTEST_DESCRIPTION",
+    "CONTEST_FEATURE",
+    "SHOW_INDICATOR",
+    "PRODUCT_GROUP",
+    "PRODUCT",
+    "CONTEST_SUBJECT",
+    "FACTOR_MARK_TYPE",
+    "CONTEST_INDICATOR_METHOD",
+    "CONTEST_FACTOR_METHOD",
+    "PLAN_METHOD_CODE",
+    "PLAN_MOD_METOD",
+    "PLAN_MOD_VALUE",
+    "FACTOR_MATCH",
+    "CONTEST_PERIOD",
+    "TARGET_TYPE",
+    "SOURCE_UPD_FREQUENCY",
+    "CALC_TYPE",
+    "BUSINESS_BLOCK",
+    "FACT_POST_PROCESSING"
+   ],
+   "layout": "86cf69cba4db5dd39d66f6b80d2b64030c667b76d0a3a6ff6d3c09e6ccda82f3",
+   "columns": {
+    "CONTEST_CODE": {
+     "values": "c6bce9aa86b0b3a43d2b77419aa12d52c6610953bbf6c5725cde656102381d65",
+     "styles": "d860d3a6eb45689ff29011a618395afa9496157a60b4598ea4150853b8628775",
+     "width": "12|1|||"
+    },
+    "FULL_NAME": {
+     "values": "94f79f0af610eea98c584f28e5c8b429506a9080689cf1254552c332a0bd829c",
+     "styles": "d860d3a6eb45689ff29011a618395afa9496157a60b4598ea4150853b8628775",
+     "width": "27|1|||"
+    },
+    "CREATE_DT": {
+     "values": "a34da96b73bbf93a68b74c9ae2c1dad3bf6aaac246f86b24bfca39e136928d70",
+     "styles": "d860d3a6eb45689ff29011a618395afa9496157a60b4598ea4150853b8628775",
+     "width": "12|1|||"
+    },
+    "CLOSE_DT": {
+     "values": "dd348693cf7de2cec0a07bc8e7c04f48d64c2ea05d0d5dcf1ad7a042c1882d72",
+     "styles": "d860d3a6eb45689ff29011a618395afa9496157a60b4598ea4150853b8628775",
+     "width": "12|1|||"
+    },
+    "BUSINESS_STATUS": {
+     "values": "112face06db75781ce497e368c461c390d50b1823a8a790c36cb0fbffee9b07d",
+     "styles": "d860d3a6eb45689ff29011a618395afa9496157a60b4598ea4150853b8628775",
+     "width": "15|1|||"
+    },
+    "CONTEST_TYPE": {
+     "values": "708b132275463982f41354e230a589694a768f33059381807ff426b158efd0b6",
+     "styles": "d860d3a6eb45689ff29011a618395afa9496157a60b4598ea4150853b8628775",
+     "width": "14|1|||"
+    },
+    "CONTEST_DESCRIPTION": {
+     "values": "8380598ff69f53bce183718a21e8207f79b8f1ae89f642ea079738590d59b8d1",
+     "styles": "d860d3a6eb45689ff29011a618395afa9496157a60b4598ea4150853b8628775",
+     "width": "36|1|||"
+    },
+    "CONTEST_FEATURE": {
+     "values": "c52f5c8388a36030699b8e01bfdf2eade513737b3b4b62365aa8548b2fcfef2f",
+     "styles": "d860d3a6eb45689ff29011a618395afa9496157a60b4598ea4150853b8628775",
+     "width": "120|1|||"
+    },
+    "SHOW_INDICATOR": {
+     "values": "e0c130bde006b37e3e54ac783c56441bb4370f0e6ae4bfd4203d7f55483aa255",
+     "styles": "d860d3a6eb45689ff29011a618395afa9496157a60b4598ea4150853b8628775",
+     "width": "14|1|||"
+    },
+    "PRODUCT_GROUP": {
+     "values": "df445ac260e14775a376132719cc4f9cfc667bda4f95059dce0d59397bfd7bb5",
+     "styles": "d860d3a6eb45689ff29011a618395afa9496157a60b4598ea4150853b8628775",
+     "width": "13|1|||"
+    },
+    "PRODUCT": {
+     "values": "8f85f4b3dd937658fc2061e55ac22960001e847d1641bc624149057936558d24",
+     "styles": "d860d3a6eb45689ff29011a618395afa9496157a60b4598ea4150853b8628775",
+     "width": "12|1|||"
+    },
+    "CONTEST_SUBJECT": {
+     "values": "5c3df0b8e212eb08fd6b6af709e60963bd24d845a907defe679f8c79a6a6b151",
+     "styles": "d860d3a6eb45689ff29011a618395afa9496157a60b4598ea4150853b8628775",
+     "width": "15|1|||"
+    },
+    "FACTOR_MARK_TYPE": {
+     "values": "229df41eef1c31b378b85a8f67903466d40e0e0854c58471ae26f8ea3d5f1879",
+     "styles": "d860d3a6eb45689ff29011a618395afa9496157a60b4598ea4150853b8628775",
+     "width": "16|1|||"
+    },
+    "CONTEST_INDICATOR_METHOD": {
+     "values": "75337766e94655d3cb8b3fff842ea5fa8e324acfc84c906d12e45259f7dca9b8",
+     "styles": "d860d3a6eb45689ff29011a618395afa9496157a60b4598ea4150853b8628775",
+     "width": "24|1|||"
+    },
+    "CONTEST_FACTOR_METHOD": {
+     "values": "baa275cf92eda67bb312dc36c26610ca14a5c577edd4b704d6dc36307e6dac4c",
+     "styles": "d860d3a6eb45689ff29011a618395afa9496157a60b4598ea4150853b8628775",
+     "width": "21|1|||"
+    },
+    "PLAN_METHOD_CODE": {
+     "values": "b5ba534d879892097e13ca1e09a160dc87fd2ec72003895023bcc2b7cc7e8544",
+     "styles": "d860d3a6eb45689ff29011a618395afa9496157a60b4598ea4150853b8628775",
+     "width": "16|1|||"
+    },
+    "PLAN_MOD_METOD": {
+     "values": "191d769e38efa63641f246e0124278e17225ff8a8a3e26df629b3fa8b4f3ae2e",
+     "styles": "d860d3a6eb45689ff29011a618395afa9496157a60b4598ea4150853b8628775",
+     "width": "14|1|||"
+    },
+    "PLAN_MOD_VALUE": {
+     "values": "422454c65bb3eb5c40afb9c1ce1121566f4722f425496720cff8b6f1815d05ad",
+     "styles": "d860d3a6eb45689ff29011a618395afa9496157a60b4598ea4150853b8628775",
+     "width": "14|1|||"
+    },
+    "FACTOR_MATCH": {
+     "values": "84816d3c4ba25c8eb9b8c01b7d1d581261943bb628732deec9fad7a284eedff7",
+     "styles": "d860d3a6eb45689ff29011a618395afa9496157a60b4598ea4150853b8628775",
+     "width": "12|1|||"
+    },
+    "CONTEST_PERIOD": {
+     "values": "e3899e79c64cc014b5382254906d1dcc5e31da648e66f7e527a05602da095c04",
+     "styles": "d860d3a6eb45689ff29011a618395afa9496157a60b4598ea4150853b8628775",
+     "width": "14|1|||"
+    },
+    "TARGET_TYPE": {
+     "values": "e15e608a21973747d3b59f2b63fe66488ac2a089adddeba62cd20794c7d24aee",
+     "styles": "d860d3a6eb45689ff29011a618395afa9496157a60b4598ea4150853b8628775",
+     "width": "12|1|||"
+    },
+    "SOURCE_UPD_FREQUENCY": {
+     "values": "8767c4af1a5e4109869f6db1f0441bcee3837436c39af4db23d96998f3bf319c",
+     "styles": "d860d3a6eb45689ff29011a618395afa9496157a60b4598ea4150853b8628775",
+     "width": "20|1|||"
+    },
+    "CALC_TYPE": {
+     "values": "3a411cd6d8b911ecc254a93a1ba35662ba45b4d45de6b589c6125826c413db25",
+     "styles": "d860d3a6eb45689ff29011a618395afa9496157a60b4598ea4150853b8628775",
+     "width": "12|1|||"
+    },
+    "BUSINESS_BLOCK": {
+     "values": "2a488c0057a824bcf6807759016f459b72e225df0437f40bc16b9a51e727e468",
+     "styles": "d860d3a6eb45689ff29011a618395afa9496157a60b4598ea4150853b8628775",
+     "width": "25|1|||"
+    },
+    "FACT_POST_PROCESSING": {
+     "values": "07d25b435372bba1cd385cf9241757aefa8849081c30c2caf90b5a8a797f0bca",
+     "styles": "d860d3a6eb45689ff29011a618395afa9496157a60b4598ea4150853b8628775",
+     "width": "20|1|||"
+    }
+   }
+  },
+  "REWARD": {
+   "rows": 7,
+   "row_set": "be076436c774ae7f11e3a8dd5c5114fc96967205ce0c8f0796801625b28c0511",
+   "cols": 7,
+   "header": [
+    "REWARD_CODE",
+    "REWARD_TYPE",
+    "FULL_NAME",
+    "REWARD_DESCRIPTION",
+    "REWARD_CONDITION",
+    "REWARD_COST",
+    "REWARD_ADD_DATA"
+   ],
+   "layout": "32d3409d494fc1039703a351f94368a083d8eef07cdb95113e54e2e6284cdb0c",
+   "columns": {
+    "REWARD_CODE": {
+     "values": "5fa059d25bbe36a5255def60705344e50f335de4e6561e450a9eaf69c59563d5",
+     "styles": "23dc935c089da66c1b89b4e91974752b26228b5ca7a149c3fa8434f77db1406c",
+     "width": "12|1|||"
+    },
+    "REWARD_TYPE": {
+     "values": "28091364e18c658b38cf1a38cfb010d836655f21d05f9ceba63d6844aee6b6b1",
+     "styles": "23dc935c089da66c1b89b4e91974752b26228b5ca7a149c3fa8434f77db1406c",
+     "width": "11|1|||"
+    },
+    "FULL_NAME": {
+     "values": "f09245422c51925a9665310dfcb2e52ebdb693ef3bebbe172fce295c15836dc7",
+     "styles": "23dc935c089da66c1b89b4e91974752b26228b5ca7a149c3fa8434f77db1406c",
+     "width": "15|1|||"
+    },
+    "REWARD_DESCRIPTION": {
+     "values": "674f24ce38d7eaffe7a185f4041237968a34d9645484b2d491a7dfd9249112b4",
+     "styles": "23dc935c089da66c1b89b4e91974752b26228b5ca7a149c3fa8434f77db1406c",
+     "width": "60|1|||"
+    },
+    "REWARD_CONDITION": {
+     "values": "43287474331930eff8b4c14e493040e7ef0c204dc920e9b89378ef9b198de9a7",
+     "styles": "23dc935c089da66c1b89b4e91974752b26228b5ca7a149c3fa8434f77db1406c",
+     "width": "16|1|||"
+    },
+    "REWARD_COST": {
+     "values": "e58b9482948b8b8d96113292a6ae180033e4e79ebf48d6d1732ad16ee89e5ea6",
+     "styles": "23dc935c089da66c1b89b4e91974752b26228b5ca7a149c3fa8434f77db1406c",
+     "width": "11|1|||"
+    },
+    "REWARD_ADD_DATA": {
+     "values": "6b6af78f644aa2b6df7e0a9b03880cb144473ecc0cc9ab184bb0fca792c4eb36",
+     "styles": "23dc935c089da66c1b89b4e91974752b26228b5ca7a149c3fa8434f77db1406c",
+     "width": "200|1|||"
+    }
+   }
+  },
+  "TOURNAMENT-SCHEDULE": {
+   "rows": 9,
+   "row_set": "b72b6c28b2da23b77d0a46a77c2da0cdc255601184adc971c67142cfe0d48ac4",
+   "cols": 15,
+   "header": [
+    "TOURNAMENT_CODE",
+    "PERIOD_TYPE",
+    "START_DT",
+    "END_DT",
+    "RESULT_DT",
+    "PLAN_PERIOD_START_DT",
+    "PLAN_PERIOD_END_DT",
+    "CRITERION_MARK_TYPE",
+    "CRITERION_MARK_VALUE",
+    "FILTER_PERIOD_ARR",
+    "TOURNAMENT_STATUS",
+    "CONTEST_CODE",
+    "TARGET_TYPE",
+    "CALC_TYPE",
+    "TRN_INDICATOR_FILTER"
+   ],
+   "layout": "f0f931d84821d89998b7b503c50941d391d5026160b2dba6916541be138e21a2",
+   "columns": {
+    "TOURNAMENT_CODE": {
+     "values": "322b91699a047b47f52d0870cf1c41d1da2a54105c94db1a99feecb614afb12d",
+     "styles": "41dffd80ff7d849c77d1f52fc6fdba67eff177df741d415cc8627cae1c5a49d5",
+     "width": "15|1|||"
+    },
+    "PERIOD_TYPE": {
+     "values": "44b7d7268688b3a30cfe3f2f5033455d43afb9ad1caaac14738e5b174b422db5",
+     "styles": "41dffd80ff7d849c77d1f52fc6fdba67eff177df741d415cc8627cae1c5a49d5",
+     "width": "11|1|||"
+    },
+    "START_DT": {
+     "values": "872e749e8248828f72235e92721f0f02fe23f21e4a1456f683664dfed9cda955",
+     "styles": "41dffd80ff7d849c77d1f52fc6fdba67eff177df741d415cc8627cae1c5a49d5",
+     "width": "10|1|||"
+    },
+    "END_DT": {
+     "values": "69178c8305776ecdd5721731d5ab62ae2ec63c888a23f8f6006a797384247fb4",
+     "styles": "41dffd80ff7d849c77d1f52fc6fdba67eff177df741d415cc8627cae1c5a49d5",
+     "width": "10|1|||"
+    },
+    "RESULT_DT": {
+     "values": "d81f81f21b987b5589ace9a4462aa2597496fe0481eaeaa3f767ad3bda304333",
+     "styles": "41dffd80ff7d849c77d1f52fc6fdba67eff177df741d415cc8627cae1c5a49d5",
+     "width": "10|1|||"
+    },
+    "PLAN_PERIOD_START_DT": {
+     "values": "e79a1feb7d06857a27fadd6411403e1b34d57051d8997d19a0fc2f2b70585567",
+     "styles": "41dffd80ff7d849c77d1f52fc6fdba67eff177df741d415cc8627cae1c5a49d5",
+     "width": "20|1|||"
+    },
+    "PLAN_PERIOD_END_DT": {
+     "values": "dcf272dc8928e4eed7b8c3621e8ce742525e9b36a53a903aba2f4b4716a42f33",
+     "styles": "41dffd80ff7d849c77d1f52fc6fdba67eff177df741d415cc8627cae1c5a49d5",
+     "width": "18|1|||"
+    },
+    "CRITERION_MARK_TYPE": {
+     "values": "2ae77afe346b3672635e520b246e4fa591dd7914d9997ea5e813b4fa2522fae7",
+     "styles": "41dffd80ff7d849c77d1f52fc6fdba67eff177df741d415cc8627cae1c5a49d5",
+     "width": "19|1|||"
+    },
+    "CRITERION_MARK_VALUE": {
+     "values": "522f96b45fb0591eaa33ab6b49e9d42caa66d8c737b491957c8835de485c233f",
+     "styles": "41dffd80ff7d849c77d1f52fc6fdba67eff177df741d415cc8627cae1c5a49d5",
+     "width": "20|1|||"
+    },
+    "FILTER_PERIOD_ARR": {
+     "values": "503ac7f97a972dd0aeec2bcb945bd54168beecf44fbdd16c39b769f87f5f15cd",
+     "styles": "41dffd80ff7d849c77d1f52fc6fdba67eff177df741d415cc8627cae1c5a49d5",
+     "width": "17|1|||"
+    },
+    "TOURNAMENT_STATUS": {
+     "values": "ca8ed8e7c8753caba19b6e332ea374d90868e8a00d75857854875af443c5cb9a",
+     "styles": "41dffd80ff7d849c77d1f52fc6fdba67eff177df741d415cc8627cae1c5a49d5",
+     "width": "17|1|||"
+    },
+    "CONTEST_CODE": {
+     "values": "21c062840179a8800b5bf330ff5a79fd477e5b164534a3478b236fa8e1c94140",
+     "styles": "41dffd80ff7d849c77d1f52fc6fdba67eff177df741d415cc8627cae1c5a49d5",
+     "width": "12|1|||"
+    },
+    "TARGET_TYPE": {
+     "values": "ff91ff9cf9e4883286c4da98886f93016da7e12550fd3b5024211f2328d700ca",
+     "styles": "41dffd80ff7d849c77d1f52fc6fdba67eff177df741d415cc8627cae1c5a49d5",
+     "width": "39|1|||"
+    },
+    "CALC_TYPE": {
+     "values": "aca16f83ac8591e6e34ec9ecf4803594fa9cd8a3567852eda5fbb5b26d341b82",
+     "styles": "41dffd80ff7d849c77d1f52fc6fdba67eff177df741d415cc8627cae1c5a49d5",
+     "width": "10|1|||"
+    },
+    "TRN_INDICATOR_FILTER": {
+     "values": "f1e64d6e0496cda0f424a5d302b96b36d0b2c33d0243d35e5f54461ea7883acb",
+     "styles": "41dffd80ff7d849c77d1f52fc6fdba67eff177df741d415cc8627cae1c5a49d5",
+     "width": "20|1|||"
+    }
+   }
+  },
+  "REWARD-LINK": {
+   "rows": 8,
+   "row_set": "2630693e4ef04457884b63762aec240e6ece316b5311d8ea272fdc9da8666da6",
+   "cols": 3,
+   "header": [
+    "CONTEST_CODE",
+    "GROUP_CODE",
+    "REWARD_CODE"
+   ],
+   "layout": "a12c4b808b2a0e440937a1ae4028787b02cd3fcbde316c8148440f6f767e447e",
+   "columns": {
+    "CONTEST_CODE": {
+     "values": "a9ccda5c362ed2214d0447c42099fa2b5817038130a4fbe3ecc4894455745cad",
+     "styles": "6f073763e0231dad3cb58f5e2bf9645301584f306f5861ee92cca1e5a832c538",
+     "width": "12|1|||"
+    },
+    "GROUP_CODE": {
+     "values": "921b90389b37dd3d7ab94f8d7595a1caa05291ac7a5fabed8572d7838d3f6570",
+     "styles": "6f073763e0231dad3cb58f5e2bf9645301584f306f5861ee92cca1e5a832c538",
+     "width": "10|1|||"
+    },
+    "REWARD_CODE": {
+     "values": "bb059532a3170d66caa740e66665a69f46f19844367c87ddc70f7f626bd7d0fc",
+     "styles": "6f073763e0231dad3cb58f5e2bf9645301584f306f5861ee92cca1e5a832c538",
+     "width": "11|1|||"
+    }
+   }
+  },
+  "GROUP": {
+   "rows": 9,
+   "row_set": "6339d71e8c98ca8883fbff79e2dd69a871d606b95873d792326ca2a84f8d49ce",
+   "cols": 8,
+   "header": [
+    "CONTEST_CODE",
+    "GROUP_CODE",
+    "GROUP_VALUE",
+    "GET_CALC_METHOD",
+    "GET_CALC_CRITERION",
+    "ADD_CALC_CRITERION",
+    "ADD_CALC_CRITERION_2",
+    "BASE_CALC_CODE"
+   ],
+   "layout": "95903280a144858c4926450df2eeb6727ed0907c965746d8d874cb19ce3a398c",
+   "columns": {
+    "CONTEST_CODE": {
+     "values": "b8e6a046da04327ebed002569572e51fde4ac074cebb5d7aacbb5778f9d3eab7",
+     "styles": "41dffd80ff7d849c77d1f52fc6fdba67eff177df741d415cc8627cae1c5a49d5",
+     "width": "12|1|||"
+    },
+    "GROUP_CODE": {
+     "values": "fb4953ea1f5ae468aa6107507f23d0c425cfdbd5eec72435fc993428a3563eb5",
+     "styles": "41dffd80ff7d849c77d1f52fc6fdba67eff177df741d415cc8627cae1c5a49d5",
+     "width": "10|1|||"
+    },
+    "GROUP_VALUE": {
+     "values": "fce5959dbcce78c107d41be7ec395641cbcbbdb252517a43bc76f81db1003015",
+     "styles": "41dffd80ff7d849c77d1f52fc6fdba67eff177df741d415cc8627cae1c5a49d5",
+     "width": "11|1|||"
+    },
+    "GET_CALC_METHOD": {
+     "values": "700c367a5e1435153f9c6b860e52cf62de1947e4445a9243ab0663aff444207c",
+     "styles": "41dffd80ff7d849c77d1f52fc6fdba67eff177df741d415cc8627cae1c5a49d5",
+     "width": "15|1|||"
+    },
+    "GET_CALC_CRITERION": {
+     "values": "d6ba990b0e87501ab98cf50b26d97a1758953cf63241725ba54f4f3b9820a17e",
+     "styles": "41dffd80ff7d849c77d1f52fc6fdba67eff177df741d415cc8627cae1c5a49d5",
+     "width": "18|1|||"
+    },
+    "ADD_CALC_CRITERION": {
+     "values": "3e5feb9834a05d23cc6cd832da7e494bb9fdf987bd06a004bd4a296aea166bef",
+     "styles": "41dffd80ff7d849c77d1f52fc6fdba67eff177df741d415cc8627cae1c5a49d5",
+     "width": "18|1|||"
+    },
+    "ADD_CALC_CRITERION_2": {
+     "values": "744499b8550082f047bf494716ec26244c23f9bf94fc550e001fde1cf470636f",
+     "styles": "41dffd80ff7d849c77d1f52fc6fdba67eff177df741d415cc8627cae1c5a49d5",
+     "width": "20|1|||"
+    },
+    "BASE_CALC_CODE": {
+     "values": "dba96648a5148d58026b9adc59efbba8baaee3399560533949c816e54b5bbac1",
+     "styles": "41dffd80ff7d849c77d1f52fc6fdba67eff177df741d415cc8627cae1c5a49d5",
+     "width": "14|1|||"
+    }
+   }
+  },
+  "INDICATOR": {
+   "rows": 6,
+   "row_set": "e4d45182d86163e79675c3b817986635c1b2b93d76275ceeea2e23171c0d6a73",
+   "cols": 16,
+   "header": [
+    "CONTEST_CODE",
+    "INDICATOR_CALC_TYPE",
+    "INDICATOR_ADD_CALC_TYPE",
+    "FULL_NAME",
+    "INDICATOR_CODE",
+    "INDICATOR_AGG_FUNCTION",
+    "INDICATOR_WEIGHT",
+    "INDICATOR_OBJECT",
+    "INDICATOR_MARK_TYPE",
+    "INDICATOR_MATCH",
+    "INDICATOR_VALUE",
+    "CONTEST_CRITERION",
+    "INDICATOR_FILTER",
+    "CONTESTANT_SELECTION",
+    "CALC_TYPE",
+    "N"
+   ],
+   "layout": "08f77f0a6b1e3b402e8972de2356797f063932e29b22f678bf8b60ee4ce0424a",
+   "columns": {
+    "CONTEST_CODE": {
+     "values": "35c08c4f5ea592487270d9029ebe0c5b1d332fba48144346946665779274af21",
+     "styles": "d860d3a6eb45689ff29011a618395afa9496157a60b4598ea4150853b8628775",
+     "width": "12|1|||"
+    },
+    "INDICATOR_CALC_TYPE": {
+     "values": "54c9fca2252f0a24696035d026b4acb179f2df3fcead118d45af7737f10a3af1",
+     "styles": "d860d3a6eb45689ff29011a618395afa9496157a60b4598ea4150853b8628775",
+     "width": "19|1|||"
+    },
+    "INDICATOR_ADD_CALC_TYPE": {
+     "values": "4b00c9283046183643b7d1bc955d06befee83e3e969769d421c8c6a71398d06f",
+     "styles": "d860d3a6eb45689ff29011a618395afa9496157a60b4598ea4150853b8628775",
+     "width": "23|1|||"
+    },
+    "FULL_NAME": {
+     "values": "7e999eab8b74f7607bc8e873e01827f84b908e507ec363a5d9747d47f18d69b7",
+     "styles": "d860d3a6eb45689ff29011a618395afa9496157a60b4598ea4150853b8628775",
+     "width": "20|1|||"
+    },
+    "INDICATOR_CODE": {
+     "values": "0d54bc86d8c423eb291beb7b93de009eca140c2c3965f93e783dafbff1dec02d",
+     "styles": "d860d3a6eb45689ff29011a618395afa9496157a60b4598ea4150853b8628775",
+     "width": "14|1|||"
+    },
+    "INDICATOR_AGG_FUNCTION": {
+     "values": "22b76ff1240f9bcd178112f7402b01867934443102f936457eab138b0b1498d4",
+     "styles": "d860d3a6eb45689ff29011a618395afa9496157a60b4598ea4150853b8628775",
+     "width": "22|1|||"
+    },
+    "INDICATOR_WEIGHT": {
+     "values": "6a07cff1fe53a81cc6c22863cd76d2d28d1ffc30d95574b82bf4068f9db5f066",
+     "styles": "d860d3a6eb45689ff29011a618395afa9496157a60b4598ea4150853b8628775",
+     "width": "16|1|||"
+    },
+    "INDICATOR_OBJECT": {
+     "values": "127e0dfe7a62787e27da21c3a48f5aad0c0f0b55367fc230881077e23d39ed2a",
+     "styles": "d860d3a6eb45689ff29011a618395afa9496157a60b4598ea4150853b8628775",
+     "width": "16|1|||"
+    },
+    "INDICATOR_MARK_TYPE": {
+     "values": "d9eb92a342190b52bd8895c016a38ae81679286f6710955d7612749890dc4261",
+     "styles": "d860d3a6eb45689ff29011a618395afa9496157a60b4598ea4150853b8628775",
+     "width": "19|1|||"
+    },
+    "INDICATOR_MATCH": {
+     "values": "6b954916581fc0f2765eb1c187d9dbe00a82da4a00702ebfe60ad160f64889df",
+     "styles": "d860d3a6eb45689ff29011a618395afa9496157a60b4598ea4150853b8628775",
+     "width": "15|1|||"
+    },
+    "INDICATOR_VALUE": {
+     "values": "cd192e3493af2cd86045e4cac172c1ea769f3c979abe681e937af0785de15e6a",
+     "styles": "d860d3a6eb45689ff29011a618395afa9496157a60b4598ea4150853b8628775",
+     "width": "15|1|||"
+    },
+    "CONTEST_CRITERION": {
+     "values": "80428f6ad58e1d3f576541a0844379470c58984bb6f67944211e19a625034511",
+     "styles": "d860d3a6eb45689ff29011a618395afa9496157a60b4598ea4150853b8628775",
+     "width": "17|1|||"
+    },
+    "INDICATOR_FILTER": {
+     "values": "08f4d6a70ea4c721c3dc2f30c9db3d1b664d0a052d0bf9ad8ac3c11952a759f8",
+     "styles": "d860d3a6eb45689ff29011a618395afa9496157a60b4598ea4150853b8628775",
+     "width": "16|1|||"
+    },
+    "CONTESTANT_SELECTION": {
+     "values": "2e4f5053e6819a27043d2bb3c1308ee22ea10cc6292dd7a3ddb028a73b585511",
+     "styles": "d860d3a6eb45689ff29011a618395afa9496157a60b4598ea4150853b8628775",
+     "width": "20|1|||"
+    },
+    "CALC_TYPE": {
+     "values": "366cf73ec36b5c6adc2f6bf100c4732fc7748b0b5958391afb04dbc9fb5bfe24",
+     "styles": "d860d3a6eb45689ff29011a618395afa9496157a60b4598ea4150853b8628775",
+     "width": "9|1|||"
+    },
+    "N": {
+     "values": "5b96ab5b96a75fbc599e36eda0c9d0742fcad00f37ad0c3494afff309929a39f",
+     "styles": "d860d3a6eb45689ff29011a618395afa9496157a60b4598ea4150853b8628775",
+     "width": "8|1|||"
+    }
+   }
+  },
+  "REPORT": {
+   "rows": 18,
+   "row_set": "76c6b80d7f639ab50a05db095ffd3882d99e3111c98da2563a64b5488864b183",
+   "cols": 7,
+   "header": [
+    "MANAGER_PERSON_NUMBER",
+    "CONTEST_CODE",
+    "TOURNAMENT_CODE",
+    "CONTEST_DATE",
+    "PLAN_VALUE",
+    "FACT_VALUE",
+    "priority_type"
+   ],
+   "layout": "99cb9fe9986c69e7cea104c880f489adf25630982a6a913b0169a7fbfcf82e64",
+   "columns": {
+    "MANAGER_PERSON_NUMBER": {
+     "values": "62b74ebb265044dddb966af6ec67a5c520d1d3ccfafae0572a24a97d5a5b9f35",
+     "styles": "5901c702d2a11ad8a3169e2dc4facc9caec2a8099f39e4dbd754eab363a24bbd",
+     "width": "21|1|||"
+    },
+    "CONTEST_CODE": {
+     "values": "6b705842868d4a0f5f53a7ec50af1ab371af84ba1f2dbd2a2b9e0271b5c53d7e",
+     "styles": "5901c702d2a11ad8a3169e2dc4facc9caec2a8099f39e4dbd754eab363a24bbd",
+     "width": "12|1|||"
+    },
+    "TOURNAMENT_CODE": {
+     "values": "8e3ab2ec3ee5041ffe90c1fc5215693f2c39d5c19e6fcffa0b8f0ac62035079b",
+     "styles": "5901c702d2a11ad8a3169e2dc4facc9caec2a8099f39e4dbd754eab363a24bbd",
+     "width": "15|1|||"
+    },
+    "CONTEST_DATE": {
+     "values": "d09580b9f49bb1df3c0944b56dc6a35c6de16b757d7e26fc5c44cc9ae0b4142f",
+     "styles": "5901c702d2a11ad8a3169e2dc4facc9caec2a8099f39e4dbd754eab363a24bbd",
+     "width": "12|1|||"
+    },
+    "PLAN_VALUE": {
+     "values": "0dc4616a9984c53c5721a992f4b7bc81a3b201c027212f14935196e1add3b2a1",
+     "styles": "5901c702d2a11ad8a3169e2dc4facc9caec2a8099f39e4dbd754eab363a24bbd",
+     "width": "14|1|||"
+    },
+    "FACT_VALUE": {
+     "values": "b69426022bc63f1892f74badb6040485a741c452cf8eec4efc9383e5d36156d8",
+     "styles": "5901c702d2a11ad8a3169e2dc4facc9caec2a8099f39e4dbd754eab363a24bbd",
+     "width": "13|1|||"
+    },
+    "priority_type": {
+     "values": "b8d2d4a838d359f044daf3416f24d24776221e6725a0820852b70b69c99139c1",
+     "styles": "5901c702d2a11ad8a3169e2dc4facc9caec2a8099f39e4dbd754eab363a24bbd",
+     "width": "13|1|||"
+    }
+   }
+  },
+  "ORG_UNIT_V20": {
+   "rows": 5,
+   "row_set": "ae47e2d075f9793bc482eaaae75d47f7fdd3e693ab701c7a306dea6f07faf21c",
+   "cols": 11,
+   "header": [
+    "TB_CODE",
+    "TB_FULL_NAME",
+    "TB_SHORT_NAME",
+    "GOSB_CODE",
+    "GOSB_NAME",
+    "GOSB_SHORT_NAME",
+    "CLUSTER_CODE",
+    "GROUPING_CODE",
+    "GOSB_CNT",
+    "GROUPING_CNT",
+    "ORG_UNIT_CODE"
+   ],
+   "layout": "4941725ab4d07b5bca06a0a364fa625af41855650b988d298698699065c981d0",
+   "columns": {
+    "TB_CODE": {
+     "values": "93ea1d8184ec76f649cfda8d0214c17c9b7f57aa5b715929c6ceaca321a4bbd7",
+     "styles": "fcdcc2d3e1aaae6ba237ea2e3400eb77a77b1ffc07a5d92d19f194c84246bd5f",
+     "width": "10|1|||"
+    },
+    "TB_FULL_NAME": {
+     "values": "1f173c6c38118d1d383de672fd1c5c50b0a43fb5cad27a5e8b3fd3d6f6c96b60",
+     "styles": "fcdcc2d3e1aaae6ba237ea2e3400eb77a77b1ffc07a5d92d19f194c84246bd5f",
+     "width": "19|1|||"
+    },
+    "TB_SHORT_NAME": {
+     "values": "a8898f7c3bfb0c5fa62657792651c1496af913c1da68179d889c6127a0a1c415",
+     "styles": "fcdcc2d3e1aaae6ba237ea2e3400eb77a77b1ffc07a5d92d19f194c84246bd5f",
+     "width": "13|1|||"
+    },
+    "GOSB_CODE": {
+     "values": "684a2bfa86b651b3c9348662f0d853652e2ea222a755d2e5f88c2f326b5e2d7c",
+     "styles": "fcdcc2d3e1aaae6ba237ea2e3400eb77a77b1ffc07a5d92d19f194c84246bd5f",
+     "width": "10|1|||"
+    },
+    "GOSB_NAME": {
+     "values": "a92c6e6b845fa3d19eadccfd40938402cafdd13512493866d1c6a88c6ffb3758",
+     "styles": "fcdcc2d3e1aaae6ba237ea2e3400eb77a77b1ffc07a5d92d19f194c84246bd5f",
+     "width": "30|1|||"
+    },
+    "GOSB_SHORT_NAME": {
+     "values": "148944c1c0ad0b03a5d47fe415613224be44d536b8cc0f27f81c8b4a72150c02",
+     "styles": "fcdcc2d3e1aaae6ba237ea2e3400eb77a77b1ffc07a5d92d19f194c84246bd5f",
+     "width": "15|1|||"
+    },
+    "CLUSTER_CODE": {
+     "values": "1f084decddac894262560d223dfa252b74345520d56ecc5ed5f8e8d92839ce34",
+     "styles": "fcdcc2d3e1aaae6ba237ea2e3400eb77a77b1ffc07a5d92d19f194c84246bd5f",
+     "width": "12|1|||"
+    },
+    "GROUPING_CODE": {
+     "values": "853e96667cb64498ffae6fb2e9dca1c9f74cc1957f2da56a2bc14c45704521a5",
+     "styles": "fcdcc2d3e1aaae6ba237ea2e3400eb77a77b1ffc07a5d92d19f194c84246bd5f",
+     "width": "13|1|||"
+    },
+    "GOSB_CNT": {
+     "values": "bdc2e2618eb09e214d32831b88bee686657692bf722dd7dcbc17a35a73f7615f",
+     "styles": "fcdcc2d3e1aaae6ba237ea2e3400eb77a77b1ffc07a5d92d19f194c84246bd5f",
+     "width": "10|1|||"
+    },
+    "GROUPING_CNT": {
+     "values": "c2d79d7419134f65bfe1fcb6437d57e1293fe34ac09201dcdcf2612f9858e20e",
+     "styles": "fcdcc2d3e1aaae6ba237ea2e3400eb77a77b1ffc07a5d92d19f194c84246bd5f",
+     "width": "12|1|||"
+    },
+    "ORG_UNIT_CODE": {
+     "values": "1458db17cd7e34984656dd2ca956d3b761fc51cfbe34e0649ea5f505c748bcb2",
+     "styles": "fcdcc2d3e1aaae6ba237ea2e3400eb77a77b1ffc07a5d92d19f194c84246bd5f",
+     "width": "13|1|||"
+    }
+   }
+  },
+  "USER_ROLE": {
+   "rows": 4,
+   "row_set": "fa4222cdf8ecb28445085c2a7ba674db49773335333594cbe6831b34f6b09d08",
+   "cols": 13,
+   "header": [
+    "RULE_NUM",
+    "ROLE_CODE",
+    "ROLE_NAME",
+    "PERSON_NUMBER_ARR",
+    "STAGE_ETALONE_CODE_ARR",
+    "POST_ETALONE_CODE_ARR",
+    "DIV_CODE_ARR",
+    "EXCLUDE_DIV_CODE_ARR",
+    "BUSINESS_BLOCK",
+    "UCH_CODE",
+    "ORG_UNIT_CODE",
+    "TB_CODE",
+    "GOSB_CODE"
+   ],
+   "layout": "9789fd31b1d6558b62d419debd94cfdd587a0067deda43267b7348343a6c2c3c",
+   "columns": {
+    "RULE_NUM": {
+     "values": "c489484859855ab42fe9fd9a3dac2798b76b43d3c1974b1ba90e5be421a8e077",
+     "styles": "b1ecbeff5658e657ffe74d4bc2d1edb7916c465187e2ee47f189069b4551f64e",
+     "width": "12|1|||"
+    },
+    "ROLE_CODE": {
+     "values": "afc39b2c96f88c31ca2b34789a6dc745e74c340378c7d76b903d80751c2dec2e",
+     "styles": "b1ecbeff5658e657ffe74d4bc2d1edb7916c465187e2ee47f189069b4551f64e",
+     "width": "12|1|||"
+    },
+    "ROLE_NAME": {
+     "values": "8a1c99b75c6823cb71a96da4d2c9af3071a55967b1d9107068acd7c215841f36",
+     "styles": "b1ecbeff5658e657ffe74d4bc2d1edb7916c465187e2ee47f189069b4551f64e",
+     "width": "36|1|||"
+    },
+    "PERSON_NUMBER_ARR": {
+     "values": "389230197be1c948698f1e7395f9cd259e5b6224fab016cc1a44e3e417f34855",
+     "styles": "b1ecbeff5658e657ffe74d4bc2d1edb7916c465187e2ee47f189069b4551f64e",
+     "width": "17|1|||"
+    },
+    "STAGE_ETALONE_CODE_ARR": {
+     "values": "160cf3a8761d541880abcbb3addec99ac3e9452fe354a716e100018ca1d06922",
+     "styles": "b1ecbeff5658e657ffe74d4bc2d1edb7916c465187e2ee47f189069b4551f64e",
+     "width": "22|1|||"
+    },
+    "POST_ETALONE_CODE_ARR": {
+     "values": "c5afdd4d475723028bd66ebb2fc790f80779cdfab73faad133b759fc2247f1e5",
+     "styles": "b1ecbeff5658e657ffe74d4bc2d1edb7916c465187e2ee47f189069b4551f64e",
+     "width": "21|1|||"
+    },
+    "DIV_CODE_ARR": {
+     "values": "03aa369b545c2c112777da67f198168b5912ba0fb9b189f289124740b6831c12",
+     "styles": "b1ecbeff5658e657ffe74d4bc2d1edb7916c465187e2ee47f189069b4551f64e",
+     "width": "12|1|||"
+    },
+    "EXCLUDE_DIV_CODE_ARR": {
+     "values": "ef91b0ca0d6999410450af1ebbf3559f5392a24478f416111fd85cfcad956d6a",
+     "styles": "b1ecbeff5658e657ffe74d4bc2d1edb7916c465187e2ee47f189069b4551f64e",
+     "width": "20|1|||"
+    },
+    "BUSINESS_BLOCK": {
+     "values": "99b65b1e1f30083749cf2f6c7b8a2e13dc0591ff221e7869fd509aead5ef7497",
+     "styles": "b1ecbeff5658e657ffe74d4bc2d1edb7916c465187e2ee47f189069b4551f64e",
+     "width": "14|1|||"
+    },
+    "UCH_CODE": {
+     "values": "39814eb7916a163c8d701d732e5ea69fa6fd420db82b0577647eaa34b0fcb967",
+     "styles": "b1ecbeff5658e657ffe74d4bc2d1edb7916c465187e2ee47f189069b4551f64e",
+     "width": "12|1|||"
+    },
+    "ORG_UNIT_CODE": {
+     "values": "23090bde9ddadcb15ad3395020569d11a27a50acd9cbe8d76b02f5ec59de2222",
+     "styles": "b1ecbeff5658e657ffe74d4bc2d1edb7916c465187e2ee47f189069b4551f64e",
+     "width": "13|1|||"
+    },
+    "TB_CODE": {
+     "values": "9a97d11de2d77f47bf4c06aebed30a573f1708ffee1d37ec3aea898926d93f5a",
+     "styles": "b1ecbeff5658e657ffe74d4bc2d1edb7916c465187e2ee47f189069b4551f64e",
+     "width": "12|1|||"
+    },
+    "GOSB_CODE": {
+     "values": "6bb044f096d88fac5d6011c0b049ca81aeada92a727ce51cab948d43e177b85a",
+     "styles": "b1ecbeff5658e657ffe74d4bc2d1edb7916c465187e2ee47f189069b4551f64e",
+     "width": "12|1|||"
+    }
+   }
+  },
+  "EMPLOYEE": {
+   "rows": 10,
+   "row_set": "00530cc682799b4e452ea840c6e8e172443a49981dfa2c9b678a4c93fb5d579c",
+   "cols": 17,
+   "header": [
+    "PERSON_NUMBER",
+    "PERSON_NUMBER_ADD",
+    "SURNAME",
+    "FIRST_NAME",
+    "MIDDLE_NAME",
+    "MANAGER_FULL_NAME",
+    "POSITION_NAME",
+    "TB_CODE",
+    "GOSB_CODE",
+    "BUSINESS_BLOCK",
+    "PRIORITY_TYPE",
+    "KPK_CODE",
+    "KPK_NAME",
+    "ROLE_CODE",
+    "UCH_CODE",
+    "GENDER",
+    "ORG_UNIT_CODE"
+   ],
+   "layout": "ecf623a2aa9ef72f9e932dce6a2866bd1d325d22b096aeabcb37c805de87bc4b",
+   "columns": {
+    "PERSON_NUMBER": {
+     "values": "644248ccac9b23d5269f95fa8c4382ca9270c93f07eaec3153ceee7742721105",
+     "styles": "a330aeacd7a20e1678a6b290d4ad54e66039e8c247634b29af4226968012acd8",
+     "width": "20|1|||"
+    },
+    "PERSON_NUMBER_ADD": {
+     "values": "a248c417cfeb6e9e2fddaa5a65cb33657c991c71b11aeed9cce0b391ff0f7970",
+     "styles": "a330aeacd7a20e1678a6b290d4ad54e66039e8c247634b29af4226968012acd8",
+     "width": "20|1|||"
+    },
+    "SURNAME": {
+     "values": "3feb7891f6aa90435be4109cc88b7ffb6b35e7d0872207fbc62bffdd917f4fc9",
+     "styles": "a330aeacd7a20e1678a6b290d4ad54e66039e8c247634b29af4226968012acd8",
+     "width": "15|1|||"
+    },
+    "FIRST_NAME": {
+     "values": "a84213fe3c0de720ea5a98cd24c85d67957577166f0b7b1d3de7f02e5d6ce796",
+     "styles": "a330aeacd7a20e1678a6b290d4ad54e66039e8c247634b29af4226968012acd8",
+     "width": "15|1|||"
+    },
+    "MIDDLE_NAME": {
+     "values": "106611a658701c8781f86de206ff669d7881efd4eaa0ca68ff6ee073c90ead2a",
+     "styles": "a330aeacd7a20e1678a6b290d4ad54e66039e8c247634b29af4226968012acd8",
+     "width": "15|1|||"
+    },
+    "MANAGER_FULL_NAME": {
+     "values": "673deda07d9979f2aa4b277f36c86e6052c78778d3d91b3ff7f781ed6c6d8d2f",
+     "styles": "a330aeacd7a20e1678a6b290d4ad54e66039e8c247634b29af4226968012acd8",
+     "width": "24|1|||"
+    },
+    "POSITION_NAME": {
+     "values": "ab3f7105ae10705d5b0dd5a21984be32f9461a68033c931d437da816e811aedd",
+     "styles": "a330aeacd7a20e1678a6b290d4ad54e66039e8c247634b29af4226968012acd8",
+     "width": "16|1|||"
+    },
+    "TB_CODE": {
+     "values": "116d649d0982b0ccd15f6932703e99fa64b6d4fc1d56e11f2aac050557c0b58e",
+     "styles": "a330aeacd7a20e1678a6b290d4ad54e66039e8c247634b29af4226968012acd8",
+     "width": "15|1|||"
+    },
+    "GOSB_CODE": {
+     "values": "7c7018052a95988bf6a31fe53d94f538bd7258eb4c674c1a44e34ee18a1ded42",
+     "styles": "a330aeacd7a20e1678a6b290d4ad54e66039e8c247634b29af4226968012acd8",
+     "width": "15|1|||"
+    },
+    "BUSINESS_BLOCK": {
+     "values": "796393c461b33f3280d91a096cb8fd651a1152afb1efd81613798b6465816cd6",
+     "styles": "a330aeacd7a20e1678a6b290d4ad54e66039e8c247634b29af4226968012acd8",
+     "width": "15|1|||"
+    },
+    "PRIORITY_TYPE": {
+     "values": "f4fdfd898c455ff330a81aba54d170a4d6178703dad2fa636dfaacd17f4cd398",
+     "styles": "a330aeacd7a20e1678a6b290d4ad54e66039e8c247634b29af4226968012acd8",
+     "width": "15|1|||"
+    },
+    "KPK_CODE": {
+     "values": "cc73988b07958479215dc0d2d3e9a71281bbc720fc1830add33f5a7aeb2e4c4b",
+     "styles": "a330aeacd7a20e1678a6b290d4ad54e66039e8c247634b29af4226968012acd8",
+     "width": "15|1|||"
+    },
+    "KPK_NAME": {
+     "values": "60cb4d52b7442aba12d5867015aea89563288982c8195c5d45b6b801d0a416e1",
+     "styles": "a330aeacd7a20e1678a6b290d4ad54e66039e8c247634b29af4226968012acd8",
+     "width": "15|1|||"
+    },
+    "ROLE_CODE": {
+     "values": "e0c656fa8431c078e6e359784d1390a45de9749486bec2497550531952437930",
+     "styles": "a330aeacd7a20e1678a6b290d4ad54e66039e8c247634b29af4226968012acd8",
+     "width": "15|1|||"
+    },
+    "UCH_CODE": {
+     "values": "c53a98109b61410748b29c3c0e510726ff99c55ae6bb06e9e3d3acddf36875aa",
+     "styles": "a330aeacd7a20e1678a6b290d4ad54e66039e8c247634b29af4226968012acd8",
+     "width": "15|1|||"
+    },
+    "GENDER": {
+     "values": "7e793345561582ba309e0c3bdaf93b5a1328c008f7bbd23dc55f463927c6cd4b",
+     "styles": "a330aeacd7a20e1678a6b290d4ad54e66039e8c247634b29af4226968012acd8",
+     "width": "15|1|||"
+    },
+    "ORG_UNIT_CODE": {
+     "values": "23757ed546d3d62bb6e8488134b89b6271bae2a3fac5176b06d1ca09ac19153c",
+     "styles": "a330aeacd7a20e1678a6b290d4ad54e66039e8c247634b29af4226968012acd8",
+     "width": "15|1|||"
+    }
+   }
+  },
+  "USER_ROLE SB": {
+   "rows": 4,
+   "row_set": "1945c9a27927699c1263551b02f8371b54794bf65282ff7f28dacf3f41d75f9c",
+   "cols": 13,
+   "header": [
+    "RULE_NUM",
+    "ROLE_CODE",
+    "ROLE_NAME",
+    "PERSON_NUMBER_ARR",
+    "STAGE_ETALONE_CODE_ARR",
+    "POST_ETALONE_CODE_ARR",
+    "DIV_CODE_ARR",
+    "EXCLUDE_DIV_CODE_ARR",
+    "BUSINESS_BLOCK",
+    "UCH_CODE",
+    "ORG_UNIT_CODE",
+    "TB_CODE",
+    "GOSB_CODE"
+   ],
+   "layout": "9789fd31b1d6558b62d419debd94cfdd587a0067deda43267b7348343a6c2c3c",
+   "columns": {
+    "RULE_NUM": {
+     "values": "7e31915d249a4a1e17e7e15b850f7b8a1544af787f9ca5ff64ee8a668228cbcc",
+     "styles": "b1ecbeff5658e657ffe74d4bc2d1edb7916c465187e2ee47f189069b4551f64e",
+     "width": "12|1|||"
+    },
+    "ROLE_CODE": {
+     "values": "afc39b2c96f88c31ca2b34789a6dc745e74c340378c7d76b903d80751c2dec2e",
+     "styles": "b1ecbeff5658e657ffe74d4bc2d1edb7916c465187e2ee47f189069b4551f64e",
+     "width": "12|1|||"
+    },
+    "ROLE_NAME": {
+     "values": "8a1c99b75c6823cb71a96da4d2c9af3071a55967b1d9107068acd7c215841f36",
+     "styles": "b1ecbeff5658e657ffe74d4bc2d1edb7916c465187e2ee47f189069b4551f64e",
+     "width": "36|1|||"
+    },
+    "PERSON_NUMBER_ARR": {
+     "values": "389230197be1c948698f1e7395f9cd259e5b6224fab016cc1a44e3e417f34855",
+     "styles": "b1ecbeff5658e657ffe74d4bc2d1edb7916c465187e2ee47f189069b4551f64e",
+     "width": "17|1|||"
+    },
+    "STAGE_ETALONE_CODE_ARR": {
+     "values": "160cf3a8761d541880abcbb3addec99ac3e9452fe354a716e100018ca1d06922",
+     "styles": "b1ecbeff5658e657ffe74d4bc2d1edb7916c465187e2ee47f189069b4551f64e",
+     "width": "22|1|||"
+    },
+    "POST_ETALONE_CODE_ARR": {
+     "values": "c5afdd4d475723028bd66ebb2fc790f80779cdfab73faad133b759fc2247f1e5",
+     "styles": "b1ecbeff5658e657ffe74d4bc2d1edb7916c465187e2ee47f189069b4551f64e",
+     "width": "21|1|||"
+    },
+    "DIV_CODE_ARR": {
+     "values": "03aa369b545c2c112777da67f198168b5912ba0fb9b189f289124740b6831c12",
+     "styles": "b1ecbeff5658e657ffe74d4bc2d1edb7916c465187e2ee47f189069b4551f64e",
+     "width": "12|1|||"
+    },
+    "EXCLUDE_DIV_CODE_ARR": {
+     "values": "ef91b0ca0d6999410450af1ebbf3559f5392a24478f416111fd85cfcad956d6a",
+     "styles": "b1ecbeff5658e657ffe74d4bc2d1edb7916c465187e2ee47f189069b4551f64e",
+     "width": "20|1|||"
+    },
+    "BUSINESS_BLOCK": {
+     "values": "99b65b1e1f30083749cf2f6c7b8a2e13dc0591ff221e7869fd509aead5ef7497",
+     "styles": "b1ecbeff5658e657ffe74d4bc2d1edb7916c465187e2ee47f189069b4551f64e",
+     "width": "14|1|||"
+    },
+    "UCH_CODE": {
+     "values": "39814eb7916a163c8d701d732e5ea69fa6fd420db82b0577647eaa34b0fcb967",
+     "styles": "b1ecbeff5658e657ffe74d4bc2d1edb7916c465187e2ee47f189069b4551f64e",
+     "width": "12|1|||"
+    },
+    "ORG_UNIT_CODE": {
+     "values": "23090bde9ddadcb15ad3395020569d11a27a50acd9cbe8d76b02f5ec59de2222",
+     "styles": "b1ecbeff5658e657ffe74d4bc2d1edb7916c465187e2ee47f189069b4551f64e",
+     "width": "13|1|||"
+    },
+    "TB_CODE": {
+     "values": "9a97d11de2d77f47bf4c06aebed30a573f1708ffee1d37ec3aea898926d93f5a",
+     "styles": "b1ecbeff5658e657ffe74d4bc2d1edb7916c465187e2ee47f189069b4551f64e",
+     "width": "12|1|||"
+    },
+    "GOSB_CODE": {
+     "values": "6bb044f096d88fac5d6011c0b049ca81aeada92a727ce51cab948d43e177b85a",
+     "styles": "b1ecbeff5658e657ffe74d4bc2d1edb7916c465187e2ee47f189069b4551f64e",
+     "width": "12|1|||"
+    }
+   }
+  }
+ }
+}
