@@ -1,0 +1,906 @@
+{
+  "meta": {
+    "title": "SPOD_PROM — анализ основной программы (main.py → src/main_impl.py): ошибки, производительность, логирование, структура",
+    "date": "2026-09-26",
+    "status": "Только анализ и рекомендации. Код НЕ изменялся. Версия 2 — дополнена по ответам на вопросы (раздел decisions).",
+    "scope": [
+      "main.py",
+      "src/main_impl.py (5720 строк, прочитан полностью)",
+      "src/json_utils.py, src/debug_timing.py, src/logging_setup.py, src/file_loader.py, src/validation.py (выборочно)",
+      "граф импортов src/* (что достижимо из main.py)"
+    ],
+    "constraint": "Только стандартная библиотека Python 3.12 и пакеты, входящие в Anaconda 3.12; pip install на целевой машине запрещён.",
+    "legend": {
+      "severity": "critical | high | medium | low",
+      "priority": "P0 — делать первым; P1 — высокий эффект; P2 — средний; P3 — по возможности",
+      "verification": "CONFIRMED — воспроизведено запуском/замером/чтением кода; PLAUSIBLE — вывод по коду, сценарий не воспроизводился",
+      "effort_days": "оценка трудозатрат в рабочих днях",
+      "stdlib_or_anaconda_ok": "true — решение не требует внешних модулей"
+    },
+    "revision": [
+      {
+        "v": 1,
+        "date": "2026-09-26",
+        "note": "первичный анализ"
+      },
+      {
+        "v": 2,
+        "date": "2026-09-26",
+        "note": "решения по вопросам Q1,Q2,Q4–Q7; проверка модуля gender в рантайме; разбор неопределённого пола; Windows-специфика"
+      }
+    ]
+  },
+  "environment_check": {
+    "target_like_runtime_used_for_checks": "/opt/anaconda3/bin/python3.12 — Python 3.12.7 (Anaconda), pandas 2.2.2, numpy 1.26.4, openpyxl 3.1.5, pyarrow 16.1.0, lxml 5.2.1, ujson 5.10.0, psutil 5.9.0, pytest 7.4.4",
+    "not_available_in_anaconda": [
+      "xlsxwriter",
+      "orjson",
+      "polars",
+      "python-calamine"
+    ],
+    "dev_venv_differs": "venv/ проекта — Python 3.14.0, pandas 2.3.3, numpy 2.3.3 (см. requirements.txt). Это НЕ целевое окружение: разные мажорные версии numpy и минорные pandas.",
+    "consequence_for_old_proposals": "В Docs/PERFORMANCE_OPTIMIZATION_PROPOSALS.md пункты P1-2 (xlsxwriter) и P3-1 (orjson) неприменимы — этих пакетов в Anaconda 3.12 нет. Пункт P0-2 (батчинг SQL) и WAL уже реализованы.",
+    "compile_check": "python3.12 -m compileall main.py src — OK",
+    "tests": "python3.12 -m pytest src/Tests — 179 passed за 0,97 с",
+    "static_analysis": "python3.12 -m pyflakes: 5 неиспользуемых импортов в main_impl.py (unicodedata, itertools.product, get_current_block, prefix_message, filter_input_files_for_block), 3 неиспользуемые переменные; аналогично в json_utils.py и console_ui.py"
+  },
+  "measurements": {
+    "note": "Прогоны на копии проекта в scratchpad (IN + OUT/DB/PROM), чтобы не менять рабочие OUT и SQLite-архив. Блок PROM, run_outputs=[main_only], архив «тёплый» (SHA всех файлов без изменений). macOS, Apple Silicon — на целевой машине абсолютные числа будут другими, пропорции близки.",
+    "run_info_level": {
+      "exit_code": 0,
+      "wall_clock_sec": 45.2,
+      "peak_rss_gb": 2.03,
+      "input": "32 файла, 112 531 строка (IN = 145 МБ)",
+      "phases_sec": {
+        "01_parallel_csv_read_and_json_flatten": 0.35,
+        "02_consistency_pipeline_raw_and_csv_mismatch": 0.51,
+        "03_gender_tournament_merge_reward_summary": 0.91,
+        "05_summary_stat_baseline": 4.34,
+        "06_write_main_excel": 37.7
+      },
+      "top_functions_sec": {
+        "write_to_excel": 37.7,
+        "_format_sheet (×37)": 15.6,
+        "process_single_file (×32, суммарно по потокам)": 5.41,
+        "build_summary_sheet": 4.34,
+        "read_csv_file (×32)": 3.02,
+        "add_fields_to_sheet (×68)": 1.16,
+        "apply_column_format_conversion (×37)": 1.04
+      },
+      "log": "722 строки INFO, 0 WARNING/ERROR"
+    },
+    "run_debug_level": {
+      "wall_clock_sec": 50.4,
+      "phase_01_sec": 3.81,
+      "log_size": "9,3 МБ, 16 471 строка",
+      "conclusion": "DEBUG добавляет ~5 с; этап 01 замедляется в ~11 раз из-за форматтера логов (см. LOG-01)"
+    },
+    "cprofile_highlights": {
+      "note": "под профилировщиком всё медленнее ~2×; важны доли",
+      "openpyxl StyleableObject.__set__ (присваивание cell.alignment/number_format)": "1 752 742 вызова, 29,5 с cumulative — ~50% времени write_to_excel",
+      "pandas to_excel (_write_cells)": "20,9 с",
+      "openpyxl save (сериализация XML)": "20,0 с",
+      "collect_summary_keys": "9,06 с, из них _indicator_code_for_contest_type — 6,97 с (10 258 вызовов, каждый фильтрует весь INDICATOR с astype(str).str.strip())",
+      "calculate_column_width": "4,13 с (1033 вызова, ws.cell() по 500 строк на колонку)",
+      "apply_column_formats": "4,75 с",
+      "_normalize_string_for_numeric_cell": "1 418 004 вызова через Series.map, 1,03 с"
+    },
+    "micro_benchmarks": {
+      "CallerFormatter_vs_standard": "1024 мкс на запись против 4 мкс у logging.Formatter с %(funcName)s — в 255 раз медленнее (глубина стека 25)",
+      "openpyxl_alignment_assignment": "20 000×20 ячеек: cell.alignment = X — 0,74 с; копирование готового cell._style — 0,26 с (×2,9), результат идентичен"
+    }
+  },
+  "findings": [
+    {
+      "id": "BUG-01",
+      "category": "correctness",
+      "severity": "high",
+      "priority": "P0",
+      "verification": "CONFIRMED",
+      "title": "Ошибка записи Excel проглатывается — программа сообщает об успехе",
+      "location": [
+        "src/main_impl.py:1631-1635"
+      ],
+      "description": "write_to_excel оборачивает всю запись в try/except Exception, пишет logging.error без traceback и возвращает None. Вызывающий код (строки 5655, 5461, 5593, 5681, 5102) не узнаёт об ошибке: консоль печатает «обработка завершена» и путь к несуществующему/повреждённому файлу, код возврата 0.",
+      "impact": "Пользователь или планировщик не видят сбой (например, файл открыт в Excel → PermissionError).",
+      "recommendation": "Убрать общий try/except или пробрасывать исключение (raise) после logging.exception. В main — ловить на уровне блока, печатать понятное сообщение в консоль и завершаться с ненулевым кодом. Отдельно: перед записью проверять, что целевой файл не заблокирован. Для Windows (решение Q2): файл, открытый в Excel, заблокирован — ловить PermissionError отдельно и писать в консоль «Закройте файл … в Excel и повторите». Код возврата 1 (решение Q5).",
+      "effort_days": 0.5,
+      "stdlib_or_anaconda_ok": true,
+      "decision": "Q2, Q5"
+    },
+    {
+      "id": "BUG-02",
+      "category": "correctness",
+      "severity": "high",
+      "priority": "P0",
+      "verification": "CONFIRMED",
+      "title": "Merge (mode=value) берёт ПОСЛЕДНЕЕ совпадение, а документация обещает ПЕРВОЕ",
+      "location": [
+        "src/main_impl.py:3229-3239",
+        "docstring src/main_impl.py:3007-3013"
+      ],
+      "description": "ref_map = dict(zip(df_ref_keys, df_ref[col])) — при дублях ключа в источнике dict сохраняет последнее значение. Комментарий «Старая логика: первое найденное значение» и docstring не соответствуют поведению. Кроме того, collect_summary_keys (_indicator_code_for_contest_type) берёт ПЕРВОЕ значение — поведение внутри программы непоследовательно.",
+      "evidence": "Проверка на данных PROM: 7 полей с неуникальным ключом и разными значениями. TOURNAMENT-SCHEDULE→GROUP по CONTEST_CODE: TOURNAMENT_STATUS — 72 ключа, TARGET_TYPE — 6; INDICATOR→TOURNAMENT-SCHEDULE INDICATOR_CODE — 3; INDICATOR→SUMMARY (INDICATOR_CODE, INDICATOR_WEIGHT, INDICATOR_VALUE, N) — по 2.",
+      "impact": "Значение в выходном Excel зависит от порядка строк в CSV; при смене порядка выгрузки результат меняется молча.",
+      "recommendation": "Реализовать правило «первое совпадение»: ref_first = df_ref.drop_duplicates(subset=<ключи после нормализации>, keep='first'); ref_map строить по ref_first. Перед этим посчитать неуникальные ключи с РАЗНЫМИ значениями поля (groupby(keys)[col].nunique() > 1) и писать WARNING: «[MERGE] <src>→<dst>, поле <col>: N ключей с разными значениями, взято первое (примеры ключей: …)». Чтобы не засорять консоль, в консоль — одна сводная строка на прогон, детали — в лог-файл. Изменение МЕНЯЕТ выходные данные в 7 полях (см. evidence) — зафиксировать в эталонном тесте TEST-01 и в README. Проверить согласованность с collect_summary_keys (там уже берётся первое).",
+      "effort_days": 1,
+      "stdlib_or_anaconda_ok": true,
+      "decision": "Q1: первое значение + WARNING"
+    },
+    {
+      "id": "BUG-03",
+      "category": "correctness",
+      "severity": "medium",
+      "priority": "P1",
+      "verification": "CONFIRMED",
+      "title": "«Починка» JSON в safe_json_loads не работает: замены кавычек — пустые операции",
+      "location": [
+        "src/main_impl.py:2128-2132",
+        "src/json_utils.py:50-52"
+      ],
+      "description": "Типографские кавычки (“ ” ‘ ’) были потеряны при редактировании: fixed.replace('\"', '\"') ничего не меняет, а строка fixed.replace(''', '\"').replace(''', '\"') синтаксически разбирается как replace(<тройная строка \", '\"').replace(\">, '\"') — то есть заменяет бессмысленный фрагмент текста. Также replace(\"'\", '\"') портит значения с апострофом (O'Brien). Код продублирован в двух модулях.",
+      "impact": "JSON с «умными» кавычками не разворачивается; апострофы внутри строк ломают разбор.",
+      "recommendation": "Заменить на явные коды: s.translate({0x201C: '\"', 0x201D: '\"', 0x2018: \"'\", 0x2019: \"'\"}); одинарные кавычки менять только если json.loads упал и строка похожа на Python-литерал (ast.literal_eval как второй вариант). Оставить ОДНУ реализацию (json_utils) и импортировать её в main_impl. Добавить тест с “ ” и апострофом.",
+      "effort_days": 0.5,
+      "stdlib_or_anaconda_ok": true
+    },
+    {
+      "id": "BUG-04",
+      "category": "logging",
+      "severity": "medium",
+      "priority": "P0",
+      "verification": "CONFIRMED",
+      "title": "CallerFormatter портит сообщение для всех обработчиков и очень медленный",
+      "location": [
+        "src/main_impl.py:151-183",
+        "src/logging_setup.py:32-55"
+      ],
+      "description": "format() переписывает record.msg (добавляет « [def: …]») и обнуляет args. Запись общая для всех хендлеров, поэтому суффикс попадает и в консоль; при повторном форматировании суффикс дублируется. inspect.stack() на каждую запись строит полный стек с чтением исходников — 1 мс на запись (×255 к стандартному форматтеру). Фильтр 'logging' not in filename также пропускает собственный модуль logging_setup.py.",
+      "evidence": "Бенчмарк: 1024 мкс vs 4 мкс. Тест: консольный хендлер получил «hello x [def: …]». При DEBUG этап 01: 0,35 → 3,81 с.",
+      "recommendation": "Удалить CallerFormatter; формат файла: '%(asctime)s | %(levelname)s | %(threadName)s | %(message)s [def: %(funcName)s]' — logging сам даёт funcName вызывающей функции.",
+      "expected_gain": "−5 с на DEBUG-прогоне, ≈−1 с на INFO",
+      "effort_days": 0.25,
+      "stdlib_or_anaconda_ok": true
+    },
+    {
+      "id": "BUG-05",
+      "category": "logging",
+      "severity": "medium",
+      "priority": "P2",
+      "verification": "PLAUSIBLE",
+      "title": "Лог-файл не создаётся, если у root-логгера уже есть обработчики",
+      "location": [
+        "src/main_impl.py:667-675"
+      ],
+      "description": "Если logger.hasHandlers() (запуск из Spyder/Jupyter Anaconda, повторный вызов main() в той же сессии, библиотека вызвала basicConfig), setup_logger возвращает путь, но FileHandler не добавляет. В конце печатается «Лог: …» на файл, которого нет. Решение Q2: запуск из GigaIDE (платформа IntelliJ) — при обычном Run-конфигурации процесс чистый и проблема не возникает; риск остаётся для встроенной Python-консоли IDE и повторного main() в одной сессии.",
+      "recommendation": "Не полагаться на hasHandlers: использовать именованный логгер приложения ('spod') с propagate=False, либо проверять наличие собственного FileHandler по атрибуту-маркеру и всегда добавлять его для нового прогона.",
+      "effort_days": 0.5,
+      "stdlib_or_anaconda_ok": true
+    },
+    {
+      "id": "BUG-06",
+      "category": "correctness",
+      "severity": "medium",
+      "priority": "P1",
+      "verification": "CONFIRMED",
+      "title": "Проверка наличия входных файлов выполняется слишком поздно; sys.exit внутри блока",
+      "location": [
+        "src/main_impl.py:5366-5378",
+        "src/main_impl.py:5395-5406"
+      ],
+      "description": "check_input_files_exist() вызывается ПОСЛЕ чтения всех CSV, разворота JSON и записи SQLite-архива (и после source Excel). При отсутствии файла программа тратит всё это время впустую, а sys.exit(1) при последовательном прогоне нескольких блоков прерывает и следующие блоки.",
+      "recommendation": "Проверять наличие файлов первым шагом _run_pipeline_for_block (fail-fast); вместо sys.exit бросать собственное исключение (например MissingInputFilesError), ловить в main(), продолжать другие блоки и выставлять итоговый код возврата. Код возврата 2 (решение Q5).",
+      "effort_days": 0.5,
+      "stdlib_or_anaconda_ok": true
+    },
+    {
+      "id": "BUG-07",
+      "category": "correctness",
+      "severity": "medium",
+      "priority": "P2",
+      "verification": "CONFIRMED",
+      "title": "Параллельные группы merge не учитывают зависимость «источник = цель другого правила»",
+      "location": [
+        "src/main_impl.py:3522-3558",
+        "src/main_impl.py:3780-3835"
+      ],
+      "description": "_group_independent_rules разделяет правила только по sheet_dst. Правило, читающее лист, который в той же группе изменяет другое правило, видит снимок до группы — семантика отличается от последовательного выполнения в порядке конфига.",
+      "evidence": "В текущем CONFIG_MERGE: 6 групп (6, 14, 16, 17, 21) содержат такие пары, но ключи/колонки/фильтры сейчас не пересекаются с создаваемыми колонками — фактической ошибки нет, это латентный риск при правке конфига.",
+      "recommendation": "Считать правило зависимым, если его sheet_src ∈ {sheet_dst правил текущей группы} (и наоборот) — начинать новую группу. Добавить тест, что параллельный и последовательный результаты совпадают.",
+      "effort_days": 0.5,
+      "stdlib_or_anaconda_ok": true
+    },
+    {
+      "id": "BUG-08",
+      "category": "correctness",
+      "severity": "low",
+      "priority": "P2",
+      "verification": "PLAUSIBLE",
+      "title": "multiply_rows в параллельной группе ломает выравнивание строк; ветка O(N×M)",
+      "location": [
+        "src/main_impl.py:3261-3289",
+        "src/main_impl.py:3806-3810"
+      ],
+      "description": "При multiply_rows=true число строк меняется, а результат параллельной группы вливается pd.concat(axis=1) по индексу — строки перемешаются/появятся NaN. Сама ветка — iterrows + фильтр df_ref на каждую строку. Сейчас во всех правилах multiply_rows=false.",
+      "recommendation": "Переписать ветку multiply_rows через pd.merge(df_base, df_ref[keys+cols] с переименованием в <src>=>col, how='left', сохраняя порядок строк df_base (вспомогательная колонка с исходным порядком + sort по ней, kind='stable'); пропуски — '-'. Нормализацию ключей key_compare=as_text выполнять до merge во временных колонках. В _group_independent_rules правило с multiply_rows=true всегда выносить в отдельную (последовательную) группу, т.к. меняется число строк листа. Добавить тест: 1→N совпадений, 0 совпадений, as_text-ключи, сравнение с текущей реализацией на малом наборе.",
+      "effort_days": 1,
+      "stdlib_or_anaconda_ok": true,
+      "decision": "Q7: оставить и переписать"
+    },
+    {
+      "id": "BUG-09",
+      "category": "correctness",
+      "severity": "low",
+      "priority": "P2",
+      "verification": "CONFIRMED",
+      "title": "Повторный разбор дат с тем же форматом — пустая работа",
+      "location": [
+        "src/main_impl.py:1898-1911"
+      ],
+      "description": "Второй pd.to_datetime по nat_mask вызывается с тем же format, что и первый, и всегда даёт тот же NaT.",
+      "recommendation": "Вторую попытку делать с другим вариантом (format='mixed' или dayfirst=True) либо удалить.",
+      "effort_days": 0.1,
+      "stdlib_or_anaconda_ok": true
+    },
+    {
+      "id": "BUG-10",
+      "category": "robustness",
+      "severity": "low",
+      "priority": "P2",
+      "verification": "PLAUSIBLE",
+      "title": "astype(int) по колонке violations упадёт на пустых/текстовых значениях",
+      "location": [
+        "src/main_impl.py:5449",
+        "src/main_impl.py:5582",
+        "src/main_impl.py:5670"
+      ],
+      "description": "Блок выбора листов с нарушениями скопирован 3 раза; astype(int) даст ValueError при NaN/«-».",
+      "recommendation": "Вынести в одну функцию select_consistency_sheets(sheets_data, summary_sheet_name) с pd.to_numeric(errors='coerce').fillna(0).",
+      "effort_days": 0.25,
+      "stdlib_or_anaconda_ok": true
+    },
+    {
+      "id": "BUG-11",
+      "category": "robustness",
+      "severity": "low",
+      "priority": "P3",
+      "verification": "CONFIRMED",
+      "title": "Параллельный режим блоков: неверный путь конфига по умолчанию и общий лог-файл",
+      "location": [
+        "src/main_impl.py:5201-5203",
+        "src/main_impl.py:571-579"
+      ],
+      "description": "Запасной путь указывает на <корень>/config.json, а конфиг лежит в config/config.json. Имя лога содержит время с точностью до минуты и открывается в режиме 'a' — параллельные процессы блоков (и два запуска в одну минуту) пишут в один файл вперемешку.",
+      "recommendation": "Использовать default_config_path(); в имя лога добавить секунды и код блока/PID.",
+      "effort_days": 0.25,
+      "stdlib_or_anaconda_ok": true
+    },
+    {
+      "id": "BUG-12",
+      "category": "robustness",
+      "severity": "low",
+      "priority": "P3",
+      "verification": "CONFIRMED",
+      "title": "write_source_excel изменяет переданный словарь; _load_config_globals глушит ошибки",
+      "location": [
+        "src/main_impl.py:1315-1322",
+        "src/main_impl.py:323-324"
+      ],
+      "description": "write_source_excel добавляет пустые листы прямо в raw_sheets_data вызывающего кода. В _load_config_globals «except Exception: pass» скрывает ошибку внедрённого Config и молча переходит к чтению config.json.",
+      "recommendation": "Работать с копией словаря; вместо pass — logging.exception и явный fallback (или падение с понятным сообщением).",
+      "effort_days": 0.25,
+      "stdlib_or_anaconda_ok": true
+    },
+    {
+      "id": "PERF-01",
+      "category": "performance",
+      "severity": "high",
+      "priority": "P1",
+      "verification": "CONFIRMED",
+      "title": "Поштучное присваивание стилей в _format_sheet / apply_column_formats",
+      "location": [
+        "src/main_impl.py:2080-2084",
+        "src/main_impl.py:2006-2020"
+      ],
+      "description": "~1,75 млн присваиваний cell.alignment/number_format; каждое хеширует объект стиля и ищет его в IndexedList книги. Это ~50% времени этапа 06.",
+      "recommendation": "1) Без изменения внешнего вида (включить всегда): назначение стиля первой ячейке и копирование cell._style = copy(first._style) для остальных — результат в xlsx идентичен, ×2,9 на шаге выравнивания. 2) Упрощение — только через конфиг (решение Q4): уже существует флаг performance.skip_data_alignment_sheets (config/CONFIG_RUN_INPUT.json:155, сейчас LIST-REWARDS, STATISTICS, RATING*, ORDER*). Значения по умолчанию НЕ менять; в README описать, что добавление REPORT (33 тыс. строк, сейчас форматируется полностью) даст дополнительное ускорение. Новый флаг не нужен — достаточно документировать существующий.",
+      "evidence": "Бенчмарк ×2,9 на шаге выравнивания.",
+      "expected_gain": "_format_sheet 15,6 с → ~6–8 с (−20% wall-clock)",
+      "effort_days": 1.5,
+      "stdlib_or_anaconda_ok": true,
+      "decision": "Q4: упрощение — только флагом"
+    },
+    {
+      "id": "PERF-02",
+      "category": "performance",
+      "severity": "high",
+      "priority": "P1",
+      "verification": "CONFIRMED",
+      "title": "collect_summary_keys: квадратичные фильтрации DataFrame в циклах",
+      "location": [
+        "src/main_impl.py:2565-2578",
+        "src/main_impl.py:2580-2846"
+      ],
+      "description": "_indicator_code_for_contest_type вызывается 10 258 раз и каждый раз фильтрует весь INDICATOR с astype(str).str.strip(). Аналогично в циклах по кодам повторяются tournaments[tournaments.CONTEST_CODE == code], groups.iterrows() и проверка 'pair not in list' (O(n²)).",
+      "recommendation": "Один раз построить словари: groupby('CONTEST_CODE') → уникальные TOURNAMENT_CODE, REWARD_CODE, пары (GROUP_CODE, GROUP_VALUE) через drop_duplicates, INDICATOR_ADD_CALC_TYPE, и dict[(contest, type)] → первый INDICATOR_CODE. Логику не менять; сравнить результат со старой функцией в тесте (множество строк summary_keys).",
+      "evidence": "cProfile: 9,06 с, из них 6,97 с — _indicator_code_for_contest_type.",
+      "expected_gain": "этап 05: 4,3 с → <1 с",
+      "effort_days": 1,
+      "stdlib_or_anaconda_ok": true
+    },
+    {
+      "id": "PERF-03",
+      "category": "performance",
+      "severity": "medium",
+      "priority": "P1",
+      "verification": "CONFIRMED",
+      "title": "AUTO_GENDER считается дважды (построчно и векторно) при каждом запуске",
+      "location": [
+        "src/main_impl.py:5467-5501"
+      ],
+      "description": "В проде выполняются обе реализации и сравниваются; построчная iterrows сводит выигрыш векторизации к нулю. То же задумано для validate_field_lengths (но там код мёртвый).",
+      "recommendation": "Оставить векторную версию, сравнение перенести в pytest (фикстура с разными ФИО).",
+      "effort_days": 0.25,
+      "stdlib_or_anaconda_ok": true
+    },
+    {
+      "id": "PERF-04",
+      "category": "performance",
+      "severity": "medium",
+      "priority": "P1",
+      "verification": "CONFIRMED",
+      "title": "Ширина колонок считается через ws.cell() вместо DataFrame",
+      "location": [
+        "src/main_impl.py:1644-1698",
+        "src/main_impl.py:2041-2061"
+      ],
+      "description": "1033 вызова, в каждом до 500 обращений ws.cell(); 4,1 с под профилировщиком. Данные уже есть в df.",
+      "recommendation": "Считать один раз на лист: df.head(500).astype(str).apply(lambda s: s.str.len().max()) + длина заголовка; передавать в _format_sheet словарь ширин.",
+      "effort_days": 0.5,
+      "stdlib_or_anaconda_ok": true
+    },
+    {
+      "id": "PERF-05",
+      "category": "performance",
+      "severity": "medium",
+      "priority": "P2",
+      "verification": "CONFIRMED",
+      "title": "Двойная конвертация чисел и лишние нормализации имён колонок",
+      "location": [
+        "src/main_impl.py:2010-2018",
+        "src/main_impl.py:1802-1821",
+        "src/main_impl.py:1875"
+      ],
+      "description": "apply_column_formats повторно приводит ячейки к int (force_int), хотя apply_column_format_conversion уже сделал Int64. _column_matches_format_rule на каждой колонке заново нормализует (NFKC) все except_columns/columns правила. _normalize_string_for_numeric_cell вызывается 1,4 млн раз через Series.map.",
+      "recommendation": "Убрать force_int-проход; заранее (один раз на правило) построить frozenset нормализованных имён, normalize_csv_column_header обернуть functools.lru_cache; числа нормализовать векторно: s.str.strip().str.replace(r'[\\s\\u00a0\\u202f\\u2009\\u2007]', '', regex=True).str.replace(',', '.').",
+      "expected_gain": "−2…4 с на этапе 06",
+      "effort_days": 1,
+      "stdlib_or_anaconda_ok": true
+    },
+    {
+      "id": "PERF-06",
+      "category": "performance",
+      "severity": "medium",
+      "priority": "P2",
+      "verification": "CONFIRMED",
+      "title": "Ленивое логирование: f-строки с df.head().to_string() вычисляются и при INFO",
+      "location": [
+        "src/main_impl.py:1462",
+        "src/main_impl.py:1588",
+        "src/main_impl.py:3137",
+        "src/main_impl.py:3140",
+        "src/main_impl.py:4220",
+        "src/main_impl.py:4257",
+        "src/main_impl.py:4295",
+        "src/main_impl.py:4396"
+      ],
+      "description": "224 вызова logging.*(f\"...\") в main_impl.py; аргументы f-строки считаются до проверки уровня. Особенно дорого to_string() широких DataFrame (сотни колонок) и list(df.columns) в циклах merge.",
+      "recommendation": "Для тяжёлых DEBUG — if logger.isEnabledFor(logging.DEBUG): …; в остальных — %-стиль logging.debug('… %s', x). Правило для кода: не вызывать to_string() в логах без проверки уровня.",
+      "effort_days": 0.5,
+      "stdlib_or_anaconda_ok": true
+    },
+    {
+      "id": "PERF-07",
+      "category": "performance",
+      "severity": "medium",
+      "priority": "P3",
+      "verification": "CONFIRMED",
+      "title": "Запись Excel в два прохода (pandas to_excel + форматирование + save)",
+      "location": [
+        "src/main_impl.py:1571-1625",
+        "src/main_impl.py:1379-1427"
+      ],
+      "description": "pandas.to_excel создаёт полные объекты Cell (~4 млн), затем форматирование проходит по ним же, затем save сериализует. write_source_excel вообще сохраняет файл, заново открывает load_workbook и проходит по всем ячейкам ради wrap_text.",
+      "recommendation": "Этап 1: в write_source_excel форматировать через writer.sheets до выхода из with (как в main) — убрать load_workbook. Этап 2 (опционально): собственный писатель на openpyxl Workbook(write_only=True) + WriteOnlyCell со стилями (документация openpyxl: freeze_panes и ширины задаются до добавления строк; файл сохраняется один раз). Даёт потоковую запись и снижение памяти. Если делать этап 2 — включать флагом performance.excel_writer=\"write_only\", по умолчанию оставлять текущий путь (решение Q4).",
+      "expected_gain": "этап 2: этап 06 37,7 с → ~15–20 с; память −30…50% (оценка, требует замера)",
+      "effort_days": 4,
+      "risk": "Нужна побайтовая/визуальная сверка выходных xlsx с эталоном; автофильтр и ширины колонок в write-only задаются иначе.",
+      "stdlib_or_anaconda_ok": true,
+      "decision": "Q4: write-only писатель — только за флагом performance.excel_writer: \"openpyxl\" (по умолчанию) | \"write_only\""
+    },
+    {
+      "id": "PERF-08",
+      "category": "memory",
+      "severity": "medium",
+      "priority": "P2",
+      "verification": "CONFIRMED",
+      "title": "Лишние копии DataFrame — пик памяти 2 ГБ на 145 МБ входа",
+      "location": [
+        "src/main_impl.py:4481",
+        "src/main_impl.py:5316-5324",
+        "src/main_impl.py:1534",
+        "src/main_impl.py:3450",
+        "src/main_impl.py:3709",
+        "src/main_impl.py:3857",
+        "src/main_impl.py:4320"
+      ],
+      "description": "Сырой df копируется: в process_single_file, повторно для raw_sheets и ещё раз для archive_payload; в write_to_excel — копия каждого листа; в merge — копия источника на каждое правило + копия в apply_filters_to_dataframe.",
+      "recommendation": "archive_payload — без копии (архив только читает); raw_sheets — одна копия; в apply_filters_to_dataframe не копировать до фильтра (булева маска уже создаёт новый объект); в write_to_excel копировать только листы, где есть правила COLUMN_FORMATS. Замер: tracemalloc/psutil (есть в Anaconda) в STAT_FILE.",
+      "effort_days": 1,
+      "stdlib_or_anaconda_ok": true
+    },
+    {
+      "id": "PERF-09",
+      "category": "performance",
+      "severity": "low",
+      "priority": "P3",
+      "verification": "CONFIRMED",
+      "title": "read_csv_file: лишний цикл astype(str) по всем колонкам",
+      "location": [
+        "src/main_impl.py:1271-1274"
+      ],
+      "description": "Значения из csv.reader уже str; цикл по колонкам копирует каждую колонку.",
+      "recommendation": "Убрать цикл (или pd.DataFrame(rows, columns=headers, dtype=object)). pd.read_csv(engine='pyarrow') НЕ подходит напрямую: нужен QUOTE_NONE и склейка «хвоста» строк с лишними ';' в последнюю колонку — это умеет только текущий csv.reader.",
+      "effort_days": 0.1,
+      "stdlib_or_anaconda_ok": true
+    },
+    {
+      "id": "LOG-01",
+      "category": "logging",
+      "severity": "medium",
+      "priority": "P1",
+      "verification": "CONFIRMED",
+      "title": "Исключения логируются без traceback",
+      "location": [
+        "src/main_impl.py:1287-1292",
+        "src/main_impl.py:4509-4513",
+        "src/main_impl.py:3834-3835",
+        "src/main_impl.py:4406-4420",
+        "src/main_impl.py:3965-3967"
+      ],
+      "description": "logging.error(f\"… {e}\") теряет стек — по логу нельзя понять место падения. В read_csv_file ошибка пишется дважды + INFO [END].",
+      "recommendation": "logging.exception(...) (или exc_info=True) во всех except, где исключение не пробрасывается.",
+      "effort_days": 0.25,
+      "stdlib_or_anaconda_ok": true
+    },
+    {
+      "id": "LOG-02",
+      "category": "output",
+      "severity": "medium",
+      "priority": "P0",
+      "verification": "CONFIRMED",
+      "title": "Нет итога по предупреждениям/ошибкам и кода возврата",
+      "location": [
+        "src/main_impl.py:5046-5062",
+        "main.py:22-23"
+      ],
+      "description": "В конце консоль не показывает, сколько было WARNING/ERROR; main.py всегда sys.exit(0).",
+      "recommendation": "Коды возврата: 0 — успех; 1 — ошибка обработки/записи (BUG-01, исключение в блоке); 2 — нет входных файлов (BUG-06). main.py: sys.exit(main_impl.main()) вместо безусловного sys.exit(0). Счётчик-хендлер (logging.Handler + collections.Counter по levelname) и строка в футере консоли: «Предупреждений: N, ошибок: M → см. лог <путь>». При нескольких блоках — итоговый код = максимальный по блокам, остальные блоки продолжают работу.",
+      "effort_days": 0.5,
+      "stdlib_or_anaconda_ok": true,
+      "decision": "Q5: да"
+    },
+    {
+      "id": "LOG-03",
+      "category": "logging",
+      "severity": "low",
+      "priority": "P2",
+      "verification": "CONFIRMED",
+      "title": "Дублирующиеся [START]/[END] и ручные таймеры рядом с @debug_timed",
+      "location": [
+        "src/main_impl.py:803-883",
+        "src/main_impl.py:1243-1292",
+        "src/main_impl.py:1468-1635"
+      ],
+      "description": "Во многих функциях время меряется вручную (func_start + logging.info [END]) и одновременно декоратором @debug_timed; pyflakes нашёл неиспользуемые func_start.",
+      "recommendation": "Оставить один механизм — debug_timed/debug_phase; ручные [START]/[END] убрать.",
+      "effort_days": 0.5,
+      "stdlib_or_anaconda_ok": true
+    },
+    {
+      "id": "LOG-04",
+      "category": "logging",
+      "severity": "low",
+      "priority": "P2",
+      "verification": "CONFIRMED",
+      "title": "Нет ротации/очистки логов",
+      "location": [
+        "src/main_impl.py:652-710"
+      ],
+      "description": "LOGS уже 20 МБ; один DEBUG-прогон — 9,3 МБ.",
+      "recommendation": "Параметр logging.retention_days в конфиге и удаление старых файлов при старте (os.scandir) либо RotatingFileHandler(maxBytes, backupCount) для DEBUG.",
+      "effort_days": 0.25,
+      "stdlib_or_anaconda_ok": true
+    },
+    {
+      "id": "LOG-05",
+      "category": "output",
+      "severity": "medium",
+      "priority": "P1",
+      "verification": "CONFIRMED (сценарий по коду; ОС подтверждена ответом Q2)",
+      "title": "Консольный вывод с Unicode-символами может упасть на Windows при перенаправлении",
+      "location": [
+        "src/console_ui.py",
+        "src/main_impl.py:1460",
+        "src/main_impl.py:1586"
+      ],
+      "description": "Консоль печатает ✓ … ⚠️ ❌ █. При запуске из планировщика/с перенаправлением в файл на Windows sys.stdout использует cp1251 → UnicodeEncodeError. Кодировка нигде не настраивается. Решение Q2: целевая ОС — Windows. Консоль cmd/PowerShell с Python 3.12 пишет UTF-8 в настоящее окно консоли, но при перенаправлении (> out.txt) или в консоли IDE кодировка может быть cp1251/cp866 → UnicodeEncodeError на символах ✓ … ⚠️ ❌ █.",
+      "recommendation": "В начале main(): для sys.stdout/sys.stderr вызвать reconfigure(errors='replace') (Python 3.7+, stdlib); опционально encoding='utf-8' при не-TTY. В лог-файле эмодзи заменить на [WARN]/[ERR]. Прогресс-бар: ASCII-вариант при sys.stdout.encoding не UTF-8.",
+      "effort_days": 0.25,
+      "stdlib_or_anaconda_ok": true
+    },
+    {
+      "id": "STR-01",
+      "category": "structure",
+      "severity": "high",
+      "priority": "P2",
+      "verification": "CONFIRMED",
+      "title": "Монолит 5720 строк на ~60 глобальных переменных",
+      "location": [
+        "src/main_impl.py:187-423",
+        "src/main_impl.py:425-498"
+      ],
+      "description": "Конфиг раскладывается в глобалы через global; apply_run_block_context переписывает их для каждого блока. Функции неявно зависят от глобального состояния — трудно тестировать, нельзя гонять блоки в потоках, легко получить рассинхрон. С учётом Q6 разбиение делать новыми модулями или внутри main_impl, не используя существующие неподключённые модули.",
+      "recommendation": "Постепенно: dataclass RunContext (пути, флаги run_outputs, правила) создаётся на блок и передаётся явно. Разбить main_impl на модули: io_csv.py, json_flatten (уже json_utils), merge.py, summary_keys.py, excel_writer.py, pipeline.py. Переносить по одному модулю, с тестами на каждом шаге.",
+      "effort_days": 5,
+      "stdlib_or_anaconda_ok": true
+    },
+    {
+      "id": "STR-02",
+      "category": "structure",
+      "severity": "medium",
+      "priority": "P1",
+      "verification": "CONFIRMED",
+      "title": "Мёртвый и дублирующийся код (модули — оставить по решению Q6)",
+      "location": [
+        "src/file_loader.py",
+        "src/gender.py",
+        "src/logging_setup.py",
+        "src/tournament.py",
+        "src/validation.py",
+        "src/main_impl.py:888-1147 (validate_field_lengths*, compare_validate_results)",
+        "src/main_impl.py:4516-4566 (validate_single_sheet)",
+        "src/main_impl.py:2880-2900 (collect_summary_keys_optimized)",
+        "src/main_impl.py:2111-2361 (копия json_utils)"
+      ],
+      "description": "5 модулей недостижимы из main.py (незавершённый рефакторинг — копии кода из main_impl). В main_impl не вызываются validate_single_sheet (в нём к тому же сравнение всегда даёт «различия» и включает медленный fallback), collect_summary_keys_optimized, safe_json_loads_preserve_triple_quotes. safe_json_loads/flatten_json_column_recursive существуют в двух копиях.",
+      "recommendation": "По решению Q6 пять модулей не удалять и не подключать. Чтобы они не вводили в заблуждение: добавить в docstring каждого строку «Не используется основным пайплайном (main.py); действующая реализация — src/main_impl.py:<функция>» и упомянуть это в Docs/CODEBASE_ANALYTICS.md. Важно: исправления BUG-03 (кавычки) и BUG-04 (форматтер) вносить в действующий код main_impl.py/json_utils.py; копии в logging_setup.py и т.п. остаются как есть. Внутри main_impl.py неиспользуемые функции (validate_single_sheet, collect_summary_keys_optimized, safe_json_loads_preserve_triple_quotes) и 5 неиспользуемых импортов — удалить (это не модули; при несогласии — пометить так же). После PERF-03 построчная add_auto_gender_column и compare_gender_results остаются только для теста.",
+      "effort_days": 0.5,
+      "stdlib_or_anaconda_ok": true,
+      "decision": "Q6: модули file_loader, gender, logging_setup, tournament, validation НЕ трогать"
+    },
+    {
+      "id": "STR-03",
+      "category": "structure",
+      "severity": "medium",
+      "priority": "P2",
+      "verification": "CONFIRMED",
+      "title": "Копипаста логики",
+      "location": [
+        "src/main_impl.py:1325-1364 и 1474-1515 (сортировка листов)",
+        "src/main_impl.py:3112-3121, 3456-3464, 3714-3722, 4323-4336 (подстановка LIST-TOURNAMENT)",
+        "src/main_impl.py:3661-3778 и 3390-3519 (обработка правила merge последовательно/параллельно)",
+        "src/main_impl.py:5445-5463, 5578-5593, 5666-5681 (выбор листов для consistency)"
+      ],
+      "description": "Одинаковые блоки в 2–4 местах уже начали расходиться (разные сообщения, проверки).",
+      "recommendation": "Функции: sort_sheet_by_config(), apply_list_tournament_aliases(), process_merge_rule() (одна для обоих путей), select_consistency_sheets(). Жёстко зашитые имена (LIST-TOURNAMENT, gamification-tournamentList-2, «Бизнес-статус») — в конфиг (aliases).",
+      "effort_days": 1.5,
+      "stdlib_or_anaconda_ok": true
+    },
+    {
+      "id": "STR-04",
+      "category": "structure",
+      "severity": "low",
+      "priority": "P2",
+      "verification": "CONFIRMED",
+      "title": "Устаревшие и вводящие в заблуждение комментарии в шапке",
+      "location": [
+        "src/main_impl.py:57-147"
+      ],
+      "description": "Шапка говорит о Python 3.10, «ожидаемом ускорении 50–200x», «автосравнении оптимизированных версий» — частично неактуально.",
+      "recommendation": "Заменить коротким docstring модуля со ссылкой на Docs/PERFORMANCE_AND_PARALLELIZATION_HISTORY.md.",
+      "effort_days": 0.1,
+      "stdlib_or_anaconda_ok": true
+    },
+    {
+      "id": "ENV-01",
+      "category": "environment",
+      "severity": "medium",
+      "priority": "P1",
+      "verification": "CONFIRMED",
+      "title": "run_main.sh ставит пакеты через pip и использует venv на Python 3.14",
+      "location": [
+        "run_main.sh",
+        "requirements.txt"
+      ],
+      "description": "Скрипт при отсутствии pandas выполняет pip install — нарушает требование целевой машины. requirements.txt закрепляет pandas 2.3.3 / numpy 2.3.3, а Anaconda 3.12 даёт 2.2.2 / 1.26.4.",
+      "recommendation": "Для Windows (решение Q2) — run_main.bat: проверка «python --version» ≥ 3.12 и «python -c \"import pandas, openpyxl\"», при ошибке — понятное сообщение без установки пакетов; запуск python main.py и вывод %ERRORLEVEL% (коды из LOG-02). run_main.sh оставить для macOS или удалить pip install. В requirements.txt — минимальные версии (pandas>=2.2, numpy>=1.26, openpyxl>=3.1) с пометкой «только для dev». При старте писать в лог версии Python/pandas/numpy/openpyxl и платформу. Тесты гонять в conda-окружении 3.12.",
+      "effort_days": 0.5,
+      "stdlib_or_anaconda_ok": true
+    },
+    {
+      "id": "TEST-01",
+      "category": "tests",
+      "severity": "medium",
+      "priority": "P0",
+      "verification": "CONFIRMED",
+      "title": "Нет регрессионного теста всего пайплайна перед рефакторингом",
+      "location": [
+        "src/Tests",
+        "src/main_impl.py:3561-3617 (_dump_sheets_data_for_baseline)"
+      ],
+      "description": "179 тестов покрывают модули, но не сквозной результат main_impl. Механизм baseline уже есть (SAVE_MERGE_BASELINE), но не оформлен как тест и сравнивает только 3 строки.",
+      "recommendation": "Маленький обезличенный набор CSV в src/Tests/fixtures → прогон пайплайна → сравнение всех листов (колонки + хеш содержимого) с эталоном JSON; отдельно тесты на BUG-01…BUG-03. Сделать ДО любых оптимизаций.",
+      "effort_days": 1.5,
+      "stdlib_or_anaconda_ok": true
+    },
+    {
+      "id": "ENV-02",
+      "category": "environment",
+      "severity": "medium",
+      "priority": "P1",
+      "verification": "PLAUSIBLE",
+      "title": "Windows-специфика запуска (решение Q2)",
+      "location": [
+        "src/main_impl.py:5199-5228",
+        "src/main_impl.py:532-554",
+        "src/main_impl.py:1153-1195"
+      ],
+      "description": "1) run_blocks_parallel использует ProcessPoolExecutor — на Windows процессы стартуют через spawn: каждый дочерний процесс заново импортирует main_impl и выполняет _load_config_globals() на уровне модуля; защита if __name__ == '__main__' в main.py есть — это корректно, но старт каждого блока дороже. 2) Длинные пути OUT/<BLOCK>/YYYY/DD-MM/<имя с пробелами и таймштампом>.xlsx при глубоком расположении проекта могут превысить MAX_PATH=260. 3) GigaIDE: рабочий каталог Run-конфигурации может отличаться от корня проекта — пути считаются от config/, это корректно, но относительные пути в сторонних скриптах (run_main.sh) — нет.",
+      "recommendation": "Проверить сценарий на Windows: параллельные блоки, путь длиннее 200 символов (писать WARNING при len(path) > 240), запуск из GigaIDE с другим рабочим каталогом. В Docs описать Run-конфигурацию GigaIDE (интерпретатор Anaconda 3.12, working directory = корень проекта).",
+      "effort_days": 0.5,
+      "stdlib_or_anaconda_ok": true
+    },
+    {
+      "id": "INFO-01",
+      "category": "data-quality",
+      "severity": "low",
+      "priority": "P3",
+      "verification": "CONFIRMED",
+      "title": "AUTO_GENDER: 386 из 719 сотрудников «неопределено» — это особенность данных, не ошибка алгоритма",
+      "location": [
+        "src/main_impl.py:4083-4157",
+        "config/CONFIG_MERGE.json:100"
+      ],
+      "description": "Разбор неопределённых (без вывода персональных данных): у 385 из 386 пустое отчество; у 383 фамилия замаскирована символом «…»; поле имени у них оканчивается на сокращения («сб» — 79, «мб» — 7 и т.п.) — похоже на служебные/обезличенные записи. Векторная и построчная версии дают одинаковый результат (М=106, Ж=227, «-»=386).",
+      "recommendation": "Логику не менять. Для прозрачности в лог писать разбивку причин: «пустое отчество и имя/фамилия не распознаны: N; фамилия замаскирована: M». Если такие записи — не сотрудники, фильтровать их отдельно (вопрос к владельцу данных).",
+      "effort_days": 0.25,
+      "stdlib_or_anaconda_ok": true
+    }
+  ],
+  "not_recommended": [
+    {
+      "item": "xlsxwriter / orjson / polars",
+      "reason": "нет в Anaconda 3.12, установка запрещена"
+    },
+    {
+      "item": "Параллельное форматирование одной книги openpyxl в потоках",
+      "reason": "openpyxl не потокобезопасен; история проекта фиксирует регрессии"
+    },
+    {
+      "item": "pd.read_csv(engine='pyarrow') вместо csv.reader",
+      "reason": "нет QUOTE_NONE-логики и склейки лишних ';' в последнюю колонку; пришлось бы терять учёт строк с неверным числом полей"
+    },
+    {
+      "item": "ProcessPoolExecutor для JSON flatten сейчас",
+      "reason": "этап 01 занимает 0,35 с при тёплом кэше — выигрыш не окупит сложность; вернуться при холодных прогонах с тяжёлым JSON"
+    }
+  ],
+  "roadmap": [
+    {
+      "stage": 0,
+      "name": "Страховка",
+      "items": [
+        "TEST-01",
+        "ENV-01"
+      ],
+      "effort_days": 2,
+      "goal": "Эталон результата (с учётом того, что BUG-02 изменит 7 полей) и тесты в Anaconda 3.12"
+    },
+    {
+      "stage": 1,
+      "name": "Быстрые исправления",
+      "items": [
+        "BUG-01",
+        "LOG-02 (коды возврата 0/1/2)",
+        "BUG-04",
+        "BUG-02 (первое + WARNING)",
+        "BUG-03",
+        "BUG-06",
+        "LOG-01",
+        "LOG-05 (Windows)",
+        "PERF-02",
+        "PERF-03",
+        "BUG-09"
+      ],
+      "effort_days": 5.5,
+      "expected": "честные ошибки и коды возврата; безопасный вывод в консоль Windows; этап 05 4,3 → <1 с; DEBUG-прогон −5 с"
+    },
+    {
+      "stage": 2,
+      "name": "Ускорение Excel без изменения вида",
+      "items": [
+        "PERF-01 (п.1 — копирование стиля; п.2 — только документировать флаг)",
+        "PERF-04",
+        "PERF-05",
+        "PERF-06",
+        "PERF-07 (этап 1: source без load_workbook)"
+      ],
+      "effort_days": 4,
+      "expected": "этап 06 37,7 → ~22–26 с; wall-clock 45 → ~28–32 с (оценка, проверить замером)"
+    },
+    {
+      "stage": 3,
+      "name": "Структура и логирование",
+      "items": [
+        "STR-02 (пометки в неподключённых модулях, чистка main_impl)",
+        "STR-03",
+        "STR-04",
+        "BUG-07",
+        "BUG-08 (переписать multiply_rows)",
+        "BUG-10",
+        "BUG-11",
+        "BUG-12",
+        "BUG-05",
+        "LOG-03",
+        "LOG-04",
+        "ENV-02",
+        "PERF-08",
+        "PERF-09",
+        "INFO-01"
+      ],
+      "effort_days": 6
+    },
+    {
+      "stage": 4,
+      "name": "Глубокая переработка (по решению)",
+      "items": [
+        "STR-01 (без использования неподключённых модулей)",
+        "PERF-07 (write-only писатель за флагом performance.excel_writer)"
+      ],
+      "effort_days": 8,
+      "expected": "при включении флага: этап 06 → ~15–20 с, память −30…50%"
+    }
+  ],
+  "tools_used": {
+    "context7": [
+      "openpyxl (/websites/openpyxl_readthedocs_io_en_stable): write-only режим, WriteOnlyCell со стилями, ограничения (freeze_panes до записи строк, одно сохранение), затраты памяти ~50× размера файла",
+      "pandas (/websites/pandas_pydata): ограничения engine='pyarrow' в read_csv, on_bad_lines с pyarrow (pandas 2.2), merge(validate=...), drop_duplicates(keep=...)"
+    ],
+    "testsprite": {
+      "account": "Free, 150 кредитов",
+      "done": "testsprite_generate_code_summary → записан testsprite_tests/tmp/code_summary.yaml",
+      "limitation": "Генерация/выполнение тестов TestSprite работает через туннель к запущенному локальному HTTP-серверу (bootstrap с localPort). У SPOD_PROM нет сервера — это пакетная CLI-программа, поэтому backend test plan не сгенерирован (инструмент требует bootstrap с типом backend и портом). Проверка работы выполнена напрямую: pytest (179 passed), 3 полных прогона под Anaconda 3.12, cProfile, бенчмарки."
+    },
+    "other": [
+      "cProfile/pstats",
+      "/usr/bin/time -l",
+      "pyflakes (Anaconda)",
+      "ast-анализ графа импортов"
+    ]
+  },
+  "questions": [
+    {
+      "id": "Q1",
+      "about": "BUG-02",
+      "question": "Если в источнике merge несколько строк с одним ключом (например, у CONTEST_CODE несколько турниров с разными TOURNAMENT_STATUS), какое значение должно попадать: первое, последнее, все через «; » или это ошибка данных (WARNING)? Сейчас фактически берётся последнее.",
+      "status": "answered",
+      "answer": "Первое значение + WARNING"
+    },
+    {
+      "id": "Q2",
+      "about": "BUG-05, LOG-05",
+      "question": "На какой ОС и как запускается программа на целевом компьютере: Windows cmd/PowerShell, Spyder/Jupyter из Anaconda, планировщик задач с перенаправлением вывода в файл?",
+      "status": "answered",
+      "answer": "Windows cmd/PowerShell, GigaIDE"
+    },
+    {
+      "id": "Q3",
+      "about": "ENV-01",
+      "question": "Совпадает ли Anaconda на целевой машине с локальной (Python 3.12.7, pandas 2.2.2, numpy 1.26.4, openpyxl 3.1.5)? Можно получить вывод: python -c \"import sys,pandas,numpy,openpyxl;print(sys.version,pandas.__version__,numpy.__version__,openpyxl.__version__)\"",
+      "status": "open"
+    },
+    {
+      "id": "Q4",
+      "about": "PERF-01, PERF-07",
+      "question": "Насколько важно оформление крупных листов (перенос по словам и выравнивание каждой ячейки в LIST-REWARDS, REPORT, STATISTICS, RATING)? Можно ли оставить на них только заголовок + форматы чисел/дат?",
+      "status": "answered",
+      "answer": "Только через флаг, по умолчанию как сейчас"
+    },
+    {
+      "id": "Q5",
+      "about": "LOG-02",
+      "question": "Нужен ли ненулевой код возврата при ошибках (для планировщика/скриптов), или программа запускается только вручную?",
+      "status": "answered",
+      "answer": "Да, коды 0/1/2"
+    },
+    {
+      "id": "Q6",
+      "about": "STR-02",
+      "question": "Модули src/file_loader.py, gender.py, logging_setup.py, tournament.py, validation.py не используются — это начатый рефакторинг, который нужно довести, или их можно удалить?",
+      "status": "answered",
+      "answer": "Модули не трогать (проверено: не загружаются)"
+    },
+    {
+      "id": "Q7",
+      "about": "BUG-08",
+      "question": "Планируется ли использовать multiply_rows=true в правилах merge? Если нет — ветку можно удалить.",
+      "status": "answered",
+      "answer": "Оставить и переписать через pd.merge"
+    },
+    {
+      "id": "Q8",
+      "about": "процесс",
+      "question": "Внедрять ли рекомендации поэтапно по roadmap (эталонный тест и замеры после каждого этапа) и закоммитить ли этот отчёт в main?",
+      "status": "open"
+    },
+    {
+      "id": "Q9",
+      "about": "INFO-01",
+      "status": "open",
+      "question": "Записи EMPLOYEE с замаскированной фамилией «…» и сокращениями в поле имени — это служебные учётные записи? Нужно ли их исключать из расчёта пола/статистик?"
+    }
+  ],
+  "decisions": [
+    {
+      "question": "Q1",
+      "answer": "При дублях ключа в merge брать ПЕРВОЕ значение + WARNING в лог",
+      "affects": [
+        "BUG-02"
+      ]
+    },
+    {
+      "question": "Q2",
+      "answer": "Windows cmd/PowerShell и запуск из GigaIDE",
+      "affects": [
+        "BUG-01",
+        "BUG-05",
+        "LOG-05",
+        "ENV-01",
+        "ENV-02"
+      ]
+    },
+    {
+      "question": "Q4",
+      "answer": "Упрощение оформления крупных листов — только через флаг; по умолчанию внешний вид как сейчас",
+      "affects": [
+        "PERF-01",
+        "PERF-07"
+      ]
+    },
+    {
+      "question": "Q5",
+      "answer": "Нужен ненулевой код возврата: 0 — успех, 1 — ошибки обработки/записи, 2 — нет входных файлов",
+      "affects": [
+        "LOG-02",
+        "BUG-01",
+        "BUG-06"
+      ]
+    },
+    {
+      "question": "Q6",
+      "answer": "Модули file_loader, gender, logging_setup, tournament, validation — НЕ трогать",
+      "affects": [
+        "STR-02"
+      ],
+      "verification": "Перед решением проверено: при полном прогоне загружается 27 модулей src.*, src.gender среди них нет (трассировка sys.modules). Пол для EMPLOYEE считает копия логики в src/main_impl.py:4029-4157 по шаблонам из раздела \"gender\" в config/CONFIG_MERGE.json:100 — отсюда впечатление, что gender используется."
+    },
+    {
+      "question": "Q7",
+      "answer": "multiply_rows оставить и переписать через pd.merge",
+      "affects": [
+        "BUG-08"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,38 @@
+project: SPOD_PROM
+type: backend-batch-cli
+entry_point: main.py -> src/main_impl.py:main
+runtime:
+  target: "Python 3.12 (Anaconda 3.12: pandas 2.2.2, numpy 1.26.4, openpyxl 3.1.5, pyarrow 16.1)"
+  constraint: "pip install запрещён на целевой машине; только stdlib + пакеты Anaconda"
+  dev_env_note: "venv разработки — Python 3.14, pandas 2.3.3, numpy 2.3.3 (отличается от целевого)"
+tech_stack:
+  - Python 3.12
+  - pandas
+  - numpy
+  - openpyxl
+  - sqlite3 (stdlib)
+  - csv / json / logging / concurrent.futures (stdlib)
+http_server: none
+features:
+  - name: Загрузка конфигурации
+    description: "config/config.json + $include CONFIG_*.json, блоки PROM/IFT/PSI, run_outputs"
+    files: [src/config_loader.py, src/config_holder.py, src/main_impl.py]
+  - name: Параллельное чтение CSV и разворот JSON-колонок
+    description: "csv.reader (;), нормализация числа полей, flatten_json_column_recursive"
+    files: [src/main_impl.py, src/json_utils.py, src/csv_headers.py]
+  - name: Архив входных CSV в SQLite (v1/v2, построчно)
+    files: [src/input_archive_sqlite.py, src/input_archive_sqlite_v2.py, src/input_archive_row_parallel.py]
+  - name: Проверки консистентности
+    files: [src/consistency_checks.py, src/json_spod_format_check.py]
+  - name: Обогащение листов (merge по правилам MERGE_FIELDS_ADVANCED), AUTO_GENDER, статус турнира
+    files: [src/main_impl.py]
+  - name: Лист SUMMARY, матрица RATING×ITEM, сводка ORDER-SEASON
+    files: [src/main_impl.py, src/rating_item_matrix.py, src/season_order_summary.py]
+  - name: Запись Excel (main / source / consistency / MANAGER_STATS / STAT_FILE)
+    files: [src/main_impl.py, src/debug_timing.py, src/manager_stats.py]
+  - name: Консольный вывод этапов и логирование в файл
+    files: [src/console_ui.py, src/block_runtime.py, src/main_impl.py]
+tests:
+  framework: pytest
+  location: src/Tests
+  count: 179
