@@ -1,6 +1,6 @@
 # Каталог документации SPOD
 
-Актуальная карта `Docs/` после ревизии (2026-07-15). Устаревшие планы, дубли и черновики удалены.
+Актуальная карта `Docs/` после ревизии (2026-09-26): консолидация похожих документов в один — fill/fill-full (волны 16/18/19/20), web-report (план+чеклист), CONTEST_BADGE_FORM (+история решений), consistency (пункт 21, план+чеклист), SEASON_ORDER_SUMMARY (+логика «КМ:»). Устаревшие планы, дубли и черновики удалены.
 
 ## Источник истины
 
@@ -26,16 +26,8 @@
 - Подготовка REPORT из турниров: **`common/web-report/`** — CSV/Excel → сверка ФИО/дублей → CSV+XLSX. Полный технический справочник — [`../common/web-report/README.md`](../common/web-report/README.md) (модель данных, форматы, JSON v3, гейты CSV, конфиг). Пользовательский гид по сценариям работы — **[`WEB_REPORT_USER_GUIDE.md`](WEB_REPORT_USER_GUIDE.md)**. План и чеклист волн (26.0–26.70) — **[`PLAN_WEB_REPORT.md`](PLAN_WEB_REPORT.md)**.
 - **Объединённая страница web-report + web-fill: `common/web-SPOD-Edit/`** — оболочка `web_spod_edit.html`, вкладки «Подготовка REPORT» / «Заполнение SPOD», общий трейс-лог. Техническое описание — [`../common/web-SPOD-Edit/README.md`](../common/web-SPOD-Edit/README.md); пользовательский гид по обеим программам — **[`WEB_SPOD_EDIT_USER_GUIDE.md`](WEB_SPOD_EDIT_USER_GUIDE.md)**; план и решения — [`PLAN_WEB_SPOD_EDIT.md`](PLAN_WEB_SPOD_EDIT.md).
 - Примеры снимков JSON для импорта: **`common/examples/`** (`README.md`, подпапки `web-fill/{curated,badges,contests}/`). Каталоги UI и «Сохранить JSON» остаются в папках приложений.
-- `PLAN_WEB_FILL.md` — план fill / fill-full. Пункт 16 выполнен (16.16–16.18 — только fill-full). Снимки `common/examples/web-fill/` из CSV `CONFIG_RUN_INPUT.json`.
-- `TODO_WEB_FILL.md` — чеклист к пункту 16 ROADMAP.
-- `PLAN_WEB_FILL_FULL.md` — план волны fill-full (выбор выгрузки, бизнес-блок, ITEM/`r_`, полный код в JSON, разбиение JS). Пункт **18** выполнен в fill-full.
-- `TODO_WEB_FILL_FULL.md` — чеклист к пункту 18. Пожелания: `common/ToDo FILL EDIT.txt`.
-- `PLAN_WEB_FILL_STANDS.md` — стенды PROM/PSI, merge, фильтр стенда. Пункт **19** (не перезаписывает 18).
-- `TODO_WEB_FILL_STANDS.md` — чеклист к пункту 19.
-- `PLAN_WEB_FILL_EDIT_WAVE20.md` — волна 20: тексты каталога, JSON-пусто, зависимости ключей (fill-full + edit-full).
-- `TODO_WEB_FILL_EDIT_WAVE20.md` — чеклист к пункту 20. Пожелания: `common/ToDo FILL EDIT.txt`.
-- `PLAN_CONSISTENCY_JSON_WRAP_ARRAYS.md` — пункт **21**: обёртка JSON `"`, массивы helpCodeList / seasonItem в `json_spod_format`.
-- `TODO_CONSISTENCY_JSON_WRAP_ARRAYS.md` — чеклист к пункту 21.
+- `PLAN_WEB_FILL.md` — план + чеклист fill/fill-full, все волны в одном документе: **16** (снимки `common/examples/web-fill/` из CSV `CONFIG_RUN_INPUT.json`), **18** (выбор выгрузки, бизнес-блок, ITEM/`r_`, полный код в JSON, разбиение JS), **19** (стенды PROM/PSI, merge, фильтр стенда), **20** (тексты каталога, JSON-пусто, зависимости ключей). Все выполнены. Пожелания: `common/ToDo FILL EDIT.txt`.
+- `PLAN_CONSISTENCY_JSON_WRAP_ARRAYS.md` — план + чеклист пункта **21**: обёртка JSON `"`, массивы helpCodeList / seasonItem в `json_spod_format`.
 - Шаблон BLANK: **`common/templates/CONTEST_BADGE_FORM/CONTEST_BADGE_FORM_BLANK.xlsx`** (stub в `Docs/templates/…`).
 
 ## Консистентность
@@ -43,7 +35,7 @@
 - `CONSISTENCY_CHECKS_FORMAT.md` — типы правил, поля, id, лист CONSISTENCY (п. 2.8: обёртка `"`, `array_value_keys`).
 - `CONSISTENCY_SAMPLE_FORMAT.md` — формат колонки `sample`.
 - `SPOD_CONSISTENCY_CHECKS_SQL_MIRROR.md` + `.sql` (+ `_PLAIN.sql`) — SQL-зеркало части правил (не из Python).
-- П. **21** ROADMAP — см. `PLAN_CONSISTENCY_JSON_WRAP_ARRAYS.md` / `TODO_CONSISTENCY_JSON_WRAP_ARRAYS.md`.
+- П. **21** ROADMAP — см. `PLAN_CONSISTENCY_JSON_WRAP_ARRAYS.md`.
 
 ## Архив SQLite
 
@@ -53,8 +45,7 @@
 ## RATING / ORDER / MANAGER_STATS
 
 - `RATING_MATRIX_COLORS_AND_LOGIC.md` — матрица ITEM, цвета, itemAmount.
-- `SEASON_ORDER_SUMMARY.md` — обзор листа ORDER-SEASON-SUMMARY.
-- `SEASON_ORDER_SUMMARY_KM_LOGIC.md` — колонки «КМ:».
+- `SEASON_ORDER_SUMMARY.md` — обзор листа ORDER-SEASON-SUMMARY + подробная логика колонок «КМ:».
 - `MANAGER_STATS.md` — отдельная книга табельных / enrich / JS.
 
 ## POST / перенос

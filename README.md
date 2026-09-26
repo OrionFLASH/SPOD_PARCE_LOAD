@@ -103,7 +103,7 @@ SPOD_PROM/
 - `Docs/INPUT_ARCHIVE_ROW_LEVEL.md` — архив **v2** (построчно) + таблица `row_key_columns`.
 - `Docs/INPUT_ARCHIVE_SQLITE_DESIGN.md` — архив **v1** (снимки файла).
 - `Docs/RATING_MATRIX_COLORS_AND_LOGIC.md` — матрица ITEM на RATING.
-- `Docs/SEASON_ORDER_SUMMARY.md` / `SEASON_ORDER_SUMMARY_KM_LOGIC.md` — сводка заказов сезона.
+- `Docs/SEASON_ORDER_SUMMARY.md` — сводка заказов сезона + подробная логика колонок «КМ:».
 - `Docs/MANAGER_STATS.md` — книга MANAGER_STATS.
 - `Docs/CODEBASE_ANALYTICS.md` — метрики кода (`build_codebase_analytics.py`).
 - `Docs/JSON/` — каталог входных CSV/JSON (`SPOD_INPUT_DATA_CATALOG.md`, `examples/`).

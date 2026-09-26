@@ -493,7 +493,7 @@ config/
 ```
 
 Токен в `run_outputs`: `"season_order_summary"`.  
-Логика и колонки «КМ:» — `Docs/SEASON_ORDER_SUMMARY.md`, `SEASON_ORDER_SUMMARY_KM_LOGIC.md`.  
+Логика и колонки «КМ:» — `Docs/SEASON_ORDER_SUMMARY.md`.  
 Группы заказов часто берутся из `rating_item_matrix.item_order_groups`.
 
 ---
