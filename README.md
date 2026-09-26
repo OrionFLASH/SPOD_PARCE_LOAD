@@ -864,7 +864,7 @@ SPOD_PROM/
 
 **Назначение:** перенос **WEB-страниц** (edit/fill), **каталогов**, **примеров JSON** и **утилит экспорта** без переименования файлов.
 
-**Состав:** **`POST/SPOD_PROM/`** — `common/{web-edit,web-edit-full,web-fill,web-fill-full,param_catalog_review,examples}`, фрагмент **`Docs/`** (PLAN_WEB_FILL, PLAN_WEB_FILL_FULL, TODO, param_review), **`src/Tools/`** (export/sync каталогов), **`src/Tests/`** (web-fill), **`config/CONFIG_RUN_INPUT.json`**. Карта — **`POST/SPOD_PROM/СОСТАВ_ПАКЕТА.txt`**.
+**Состав:** **`POST/SPOD_PROM/`** — `common/{web-edit,web-edit-full,web-fill,web-fill-full,param_catalog_review,examples}`, фрагмент **`Docs/`** (PLAN_WEB_FILL, param_review), **`src/Tools/`** (export/sync каталогов), **`src/Tests/`** (web-fill), **`config/CONFIG_RUN_INPUT.json`**. Карта — **`POST/SPOD_PROM/СОСТАВ_ПАКЕТА.txt`**.
 
 **Обновление:** **`python src/Tools/sync_post_web_bundle.py`** (папка **`POST/SPOD_PROM/`** перед сборкой удаляется и создаётся заново).
 
@@ -1380,7 +1380,7 @@ python main.py
 
 ### Версия 1.7.84 — план fill-full (выбор, бизнес-блок, коды, JSON, JS)
 
-- Документы волны **18** (код не начат): `Docs/PLAN_WEB_FILL_FULL.md`, `Docs/TODO_WEB_FILL_FULL.md`, пункт ROADMAP. Пожелания — `common/ToDo FILL EDIT.txt`.
+- Документы волны **18**: `Docs/PLAN_WEB_FILL.md` (раздел «Волна 18»), пункт ROADMAP. Пожелания — `common/ToDo FILL EDIT.txt`.
 
 ### Версия 1.7.83 — fill-full: коды r_/t_ и список ITEM
 
@@ -1455,7 +1455,7 @@ python main.py
 - Импорт fill: фантомные пустые строки отсекаются; пустой массив не дополняется `emptyScheduleRow`. Expand `t_CODE` / `r_CODE` для реальных строк сохранён.
 - Левая панель скрывается без колонтитулов; справа — «Поиск и фильтры» (Турниры/Награды/Архив, ПРОМ/ТЕСТ, статус, дата).
 - Легенда цветов вкладок слева. `INDICATOR_CODE` — dropdown + combobox; списки методов/агрегаций обновлены в каталоге.
-- Fill ≡ fill-full (`sync_web_fill_singlefile.py`). Документы: `Docs/PLAN_WEB_FILL.md`, `Docs/TODO_WEB_FILL.md`, ROADMAP §16.
+- Fill ≡ fill-full (`sync_web_fill_singlefile.py`). Документы: `Docs/PLAN_WEB_FILL.md` (раздел «Волна 16»), ROADMAP §16.
 
 ### Версия 1.10.0 — web-SPOD-Edit: web-report и web-fill на одной странице (27)
 

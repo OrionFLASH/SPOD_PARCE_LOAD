@@ -4,7 +4,7 @@
 При необходимости задай дополнительные вопросы
 
 Статус волны 20 (fill-full + edit-full): всё ниже — [v].
-План/чеклист: Docs/PLAN_WEB_FILL_EDIT_WAVE20.md, Docs/TODO_WEB_FILL_EDIT_WAVE20.md, ROADMAP п.20.
+План/чеклист: Docs/PLAN_WEB_FILL.md (раздел «Волна 20»), ROADMAP п.20.
 
 
 

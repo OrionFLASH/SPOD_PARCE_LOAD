@@ -18,16 +18,14 @@
 - `IN_OUT_DATA_POLICY.md` — политика: не удалять `IN/`/`OUT/` без явного разрешения.
 - `JSON/README.md` + `JSON/SPOD_INPUT_DATA_CATALOG.md` — каталог полей входных CSV/JSON (пересборка Tools).
 - `params_catalog/README.md` + `params_catalog/SPOD_PARAMS_CATALOG_LEAF_v3.xlsx` — Excel-перечень колонок и конечных JSON-ключей + оформление из `CONFIG_FORMATS` (v2 сохранён).
-- `CONTEST_BADGE_FORM.md` — Excel-форма конкурса BADGE (export/import через `run_outputs`).
+- `CONTEST_BADGE_FORM.md` — Excel-форма конкурса BADGE (export/import через `run_outputs`) + история решений проектирования v1 (бывший `PLAN_CONTEST_BADGE_FORM.md`, слит внутрь). Каталог параметров (119, полный MD-снимок) — напрямую `common/param_catalog_review/CONTEST_BADGE_FORM_PARAM_REVIEW.md`.
 - `CONTEST_BADGE_FORM_FILLING.md` — **заполнение шаблона**: цвета, порядок полей, типичные ошибки, цикл export→import.
-- `CONTEST_BADGE_FORM_PARAM_REVIEW.md` — stub: актуальный MD-снимок в **`common/param_catalog_review/`**.
 - Редактор описаний: **`common/web-edit/`** (данные **`common/param_catalog_review/catalog.json`**). Сборка: `python src/Tools/build_param_review_editor.py`. Длинные списки (≥16 вариантов, в т.ч. `INDICATOR_CODE`) — combobox сверху карточки. Метки **ПКАП / ФАБРИКА** — поле `marks[]` в каталоге (после `allow_empty`), UI в web-edit / web-edit-full.
 - Полный каталог (скан PROM SPOD): **`common/web-edit-full/`** — `README.md`, `game_edit_catalog.json`; пересборка `python src/Tools/build_web_edit_full_catalog.py`.
 - Заполнение параметров SPOD: **`common/web-fill/`** (однофайловый HTML) и **`common/web-fill-full/`** (html + css + js + catalog). С 16.16 UX дорабатывается только в fill-full.
 - Подготовка REPORT из турниров: **`common/web-report/`** — CSV/Excel → сверка ФИО/дублей → CSV+XLSX. Полный технический справочник — [`../common/web-report/README.md`](../common/web-report/README.md) (модель данных, форматы, JSON v3, гейты CSV, конфиг). Пользовательский гид по сценариям работы — **[`WEB_REPORT_USER_GUIDE.md`](WEB_REPORT_USER_GUIDE.md)**. План волн [`PLAN_WEB_REPORT.md`](PLAN_WEB_REPORT.md) / [`PLAN_WEB_REPORT_TODO3.md`](PLAN_WEB_REPORT_TODO3.md), чеклист [`TODO_WEB_REPORT.md`](TODO_WEB_REPORT.md).
 - **Объединённая страница web-report + web-fill: `common/web-SPOD-Edit/`** — оболочка `web_spod_edit.html`, вкладки «Подготовка REPORT» / «Заполнение SPOD», общий трейс-лог. Техническое описание — [`../common/web-SPOD-Edit/README.md`](../common/web-SPOD-Edit/README.md); пользовательский гид по обеим программам — **[`WEB_SPOD_EDIT_USER_GUIDE.md`](WEB_SPOD_EDIT_USER_GUIDE.md)**; план и решения — [`PLAN_WEB_SPOD_EDIT.md`](PLAN_WEB_SPOD_EDIT.md).
 - Примеры снимков JSON для импорта: **`common/examples/`** (`README.md`, подпапки `web-fill/{curated,badges,contests}/`). Каталоги UI и «Сохранить JSON» остаются в папках приложений.
-- `PLAN_CONTEST_BADGE_FORM.md` — согласованный план формы BADGE.
 - `PLAN_WEB_FILL.md` — план fill / fill-full. Пункт 16 выполнен (16.16–16.18 — только fill-full). Снимки `common/examples/web-fill/` из CSV `CONFIG_RUN_INPUT.json`.
 - `TODO_WEB_FILL.md` — чеклист к пункту 16 ROADMAP.
 - `PLAN_WEB_FILL_FULL.md` — план волны fill-full (выбор выгрузки, бизнес-блок, ITEM/`r_`, полный код в JSON, разбиение JS). Пункт **18** выполнен в fill-full.

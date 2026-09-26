@@ -2,7 +2,7 @@
 
 Статусы: `[v]` сделано · `[w]` в работе · `[ ]` не сделано · `[x]` отменено
 
-Согласование: пункты **2**, **3**, **6**, **7** — реализованы (см. планы в `Docs/`). Пункт **8** — анализ разбиения конфига (реализация после выбора варианта). Пункт **16** — fill/fill-full (`Docs/PLAN_WEB_FILL.md`); **16.1 сделано** — сверка JSON=CSV и пересборка примеров fill из файлов `CONFIG_RUN_INPUT.json`. Пункт **17** — примеры JSON в `common/examples/`. Пункт **18** — доработки fill-full (`Docs/PLAN_WEB_FILL_FULL.md`); **18.1–18.5 сделаны** в `web-fill-full`. Пункт **19** — стенды PROM/PSI и UX фильтров (`Docs/PLAN_WEB_FILL_STANDS.md`); код восстановлен поверх пункта 18. Пункт **20** — волна ToDo FILL EDIT (`Docs/PLAN_WEB_FILL_EDIT_WAVE20.md`): fill-full + edit-full. Пункт **26** — `web-report` (подготовка REPORT из турниров). Пункт **27** — `web-SPOD-Edit`: web-report и web-fill-full на одной странице (`Docs/PLAN_WEB_SPOD_EDIT.md`).
+Согласование: пункты **2**, **3**, **6**, **7** — реализованы (см. планы в `Docs/`). Пункт **8** — анализ разбиения конфига (реализация после выбора варианта). Пункты **16, 18, 19, 20** — fill/fill-full, все волны собраны в один документ `Docs/PLAN_WEB_FILL.md` (JSON без выдумок и панели/фильтры/каталог → выбор выгрузки/бизнес-блок/коды ITEM/split JS → стенды PROM/PSI → тексты/JSON-пусто/зависимости ключей), все сделаны. Пункт **17** — примеры JSON в `common/examples/`. Пункт **26** — `web-report` (подготовка REPORT из турниров). Пункт **27** — `web-SPOD-Edit`: web-report и web-fill-full на одной странице (`Docs/PLAN_WEB_SPOD_EDIT.md`).
 
 ---
 
@@ -306,7 +306,7 @@ IN/
 
 ## Пункт 15 — Excel-форма конкурса BADGE (export / import)
 
-**Документы:** `Docs/CONTEST_BADGE_FORM.md`, заполнение — `Docs/CONTEST_BADGE_FORM_FILLING.md` (план: `Docs/PLAN_CONTEST_BADGE_FORM.md`).
+**Документы:** `Docs/CONTEST_BADGE_FORM.md` (техника + история решений), заполнение — `Docs/CONTEST_BADGE_FORM_FILLING.md`.
 
 | # | Задача | Статус |
 |---|--------|--------|
@@ -335,7 +335,7 @@ IN/
 
 ## Пункт 16 — Fill / fill-full: JSON без выдумок, панели, фильтры, каталог
 
-**Документы:** [`Docs/PLAN_WEB_FILL.md`](Docs/PLAN_WEB_FILL.md) (план), [`Docs/TODO_WEB_FILL.md`](Docs/TODO_WEB_FILL.md) (чеклист).  
+**Документы:** [`Docs/PLAN_WEB_FILL.md`](Docs/PLAN_WEB_FILL.md) — раздел «Волна 16» (план + чеклист вместе; там же волны 18/19/20).  
 **Страницы:** `common/web-fill/`, `common/web-fill-full/`. С **16.16** UX — только fill-full. Каталог — через `web-edit` + `sync_web_fill_catalog.py`.  
 **Статус:** пункт **16** выполнен, включая пересборку `common/examples/web-fill/**/*.json` и полный снимок всех конкурсов PROM SPOD (`contests/spod_fill_all_contests.json`) из файлов `config/CONFIG_RUN_INPUT.json` (листы каталога fill).
 
@@ -396,7 +396,7 @@ IN/
 
 ## Пункт 18 — Fill-full: выбор выгрузки, бизнес-блок, коды ITEM, полный код в JSON, разбиение JS
 
-**Документы:** [`Docs/PLAN_WEB_FILL_FULL.md`](Docs/PLAN_WEB_FILL_FULL.md) (план), [`Docs/TODO_WEB_FILL_FULL.md`](Docs/TODO_WEB_FILL_FULL.md) (чеклист).  
+**Документы:** [`Docs/PLAN_WEB_FILL.md`](Docs/PLAN_WEB_FILL.md) — раздел «Волна 18».  
 **Пожелания:** [`common/ToDo FILL EDIT.txt`](common/ToDo%20FILL%20EDIT.txt).  
 **Страницы:** `common/web-fill-full/` (основное). Однофайловый fill не зеркалить, пока не попросят. Разбиение JS edit-full не делали.  
 **Статус:** пункт **18** выполнен в fill-full (18.1–18.5). Однофайловый fill не зеркалился. Разбиение JS edit-full не делали.
@@ -428,7 +428,7 @@ IN/
 
 ## Пункт 19 — Стенды PROM/PSI, фильтры «все/снять», ПКАП после «Можно пусто»
 
-**Документы:** [`Docs/PLAN_WEB_FILL_STANDS.md`](Docs/PLAN_WEB_FILL_STANDS.md), [`Docs/TODO_WEB_FILL_STANDS.md`](Docs/TODO_WEB_FILL_STANDS.md).  
+**Документы:** [`Docs/PLAN_WEB_FILL.md`](Docs/PLAN_WEB_FILL.md) — раздел «Волна 19».  
 **Страницы:** `common/web-fill-full/` (стенды, фильтры). Edit: `web-edit` / `web-edit-full`.  
 **Правило:** код вшивать в текущие 6 JS-файлов fill-full. Пункт **18** (выбор JSON, бизнес-блок, `ITEM_`, `*_ENDING`, split) не откатывать.
 
@@ -455,7 +455,7 @@ IN/
 
 ## Пункт 20 — Fill-full / edit-full: тексты, JSON-пусто, зависимости ключей
 
-**Документы:** [`Docs/PLAN_WEB_FILL_EDIT_WAVE20.md`](Docs/PLAN_WEB_FILL_EDIT_WAVE20.md), [`Docs/TODO_WEB_FILL_EDIT_WAVE20.md`](Docs/TODO_WEB_FILL_EDIT_WAVE20.md).  
+**Документы:** [`Docs/PLAN_WEB_FILL.md`](Docs/PLAN_WEB_FILL.md) — раздел «Волна 20».  
 **Страницы:** `common/web-fill-full/`, `common/web-edit-full/`. Однофайловые не зеркалим.  
 **Правило:** пункты **18** и **19** не откатывать. Пустые JSON-колонки — метаданные в edit, fill только по каталогу.
 

@@ -48,7 +48,7 @@ cd common/web-fill-full && python3 -m http.server 8766
 
 Пустые массивы GROUP / INDICATOR / SCHEDULE / пары не дополняются заглушками при импорте — только кнопка «Добавить».
 
-Следующая волна (выбор конкурсов для выгрузки, мастер бизнес-блока, `ITEM_`, полный код в JSON, разбиение JS) — план [`Docs/PLAN_WEB_FILL_FULL.md`](../../Docs/PLAN_WEB_FILL_FULL.md), пункт ROADMAP **18** (сделано в fill-full). Стенды PROM/PSI — [`Docs/PLAN_WEB_FILL_STANDS.md`](../../Docs/PLAN_WEB_FILL_STANDS.md), пункт **19**.
+Волны доработок (выбор конкурсов для выгрузки, мастер бизнес-блока, `ITEM_`, полный код в JSON, разбиение JS — пункт ROADMAP **18**; стенды PROM/PSI — пункт **19**; тексты/JSON-пусто/зависимости ключей — пункт **20**) — все в одном плане [`Docs/PLAN_WEB_FILL.md`](../../Docs/PLAN_WEB_FILL.md).
 
 ## Синхронизация
 
