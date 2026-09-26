@@ -2,7 +2,7 @@
 
 Статусы: `[v]` сделано · `[w]` в работе · `[ ]` не сделано · `[x]` отменено
 
-Согласование: пункты **2**, **3**, **6**, **7** — реализованы (см. планы в `Docs/`). Пункт **8** — анализ разбиения конфига (реализация после выбора варианта). Пункт **16** — fill/fill-full (`Docs/PLAN_WEB_FILL.md`); **16.1 сделано** — сверка JSON=CSV и пересборка примеров fill из файлов `CONFIG_RUN_INPUT.json`. Пункт **17** — примеры JSON в `common/examples/`. Пункт **18** — доработки fill-full (`Docs/PLAN_WEB_FILL_FULL.md`); **18.1–18.5 сделаны** в `web-fill-full`. Пункт **19** — стенды PROM/PSI и UX фильтров (`Docs/PLAN_WEB_FILL_STANDS.md`); код восстановлен поверх пункта 18. Пункт **20** — волна ToDo FILL EDIT (`Docs/PLAN_WEB_FILL_EDIT_WAVE20.md`): fill-full + edit-full. Пункт **26** — `web-report` (подготовка REPORT из турниров).
+Согласование: пункты **2**, **3**, **6**, **7** — реализованы (см. планы в `Docs/`). Пункт **8** — анализ разбиения конфига (реализация после выбора варианта). Пункт **16** — fill/fill-full (`Docs/PLAN_WEB_FILL.md`); **16.1 сделано** — сверка JSON=CSV и пересборка примеров fill из файлов `CONFIG_RUN_INPUT.json`. Пункт **17** — примеры JSON в `common/examples/`. Пункт **18** — доработки fill-full (`Docs/PLAN_WEB_FILL_FULL.md`); **18.1–18.5 сделаны** в `web-fill-full`. Пункт **19** — стенды PROM/PSI и UX фильтров (`Docs/PLAN_WEB_FILL_STANDS.md`); код восстановлен поверх пункта 18. Пункт **20** — волна ToDo FILL EDIT (`Docs/PLAN_WEB_FILL_EDIT_WAVE20.md`): fill-full + edit-full. Пункт **26** — `web-report` (подготовка REPORT из турниров). Пункт **27** — `web-SPOD-Edit`: web-report и web-fill-full на одной странице (`Docs/PLAN_WEB_SPOD_EDIT.md`).
 
 ---
 
@@ -621,3 +621,19 @@ IN/
 | 26.69 | Фильтр «Статус по датам» на правой панели: чипы Не старт / Активен / Итоги / Закрыть / Нет дат со счётчиками и цветом статуса + «Только „закроется сейчас“» | [v] |
 | 26.70 | Docs + архив (актуализация 26.69) | [v] |
 
+---
+
+## Пункт 27 — web-SPOD-Edit: web-report + web-fill на одной странице
+
+**Документы:** [`Docs/PLAN_WEB_SPOD_EDIT.md`](Docs/PLAN_WEB_SPOD_EDIT.md), [`Docs/WEB_SPOD_EDIT_USER_GUIDE.md`](Docs/WEB_SPOD_EDIT_USER_GUIDE.md).  
+**Код:** `common/web-SPOD-Edit/` (оболочка `web_spod_edit.html`; программы как есть в `report/` и `fill/`; синхронизация — `src/Tools/sync_web_spod_edit.py`).
+
+| # | Задача | Статус |
+|---|--------|--------|
+| 27.1 | Каталог и копии программ как есть | [v] |
+| 27.2 | Оболочка: вкладки вверху (стиль web-fill-full), программы во фреймах, по умолчанию web-report | [v] |
+| 27.3 | Общий трейс-лог на все области (shell / report / fill) | [v] |
+| 27.4 | Перехват «Назад» в оболочке | [v] |
+| 27.5 | Утилита синхронизации с исходниками | [v] |
+| 27.6 | Сквозное тестирование | [v] |
+| 27.7 | Документация и пользовательский путь | [v] |
