@@ -1,6 +1,6 @@
 # Аналитика кодовой базы SPOD_PROM
 
-> **Дата снимка:** 2026-09-26 17:49  
+> **Дата снимка:** 2026-09-26 18:17  
 > **Метод:** статический разбор AST + подсчёт строк (Python 3, без `IN/`, `OUT/`, `LOGS/`)  
 > **Пересборка:** `python src/Tools/build_codebase_analytics.py`
 
@@ -12,32 +12,32 @@
 
 | Показатель | Значение |
 |------------|----------|
-| Python-файлов | **107** |
-| Модулей ядра `src/` (без Tests/Tools) | **42** |
-| Всего строк (физических) | **41 754** |
-| **Строк кода** (без пустых и `#`) | **36 360** |
-| Пустых строк | 4 607 |
-| Строк комментариев `#` | 787 |
-| Классов (определений / уникальных имён) | **32** / 30 |
-| Функций верхнего уровня | **1147** |
-| Методов классов | 72 |
-| Вложенных функций | 65 |
-| **Всего callable** (fn+method+nested) | **1284** |
-| Модульных переменных | 391 |
-| Декораторов | 44 |
-| Функций с type hints | 1257 |
-| Блоков `try/except` | 168 |
-| Импортов `import` / `from` | 321 / 480 |
+| Python-файлов | **109** |
+| Модулей ядра `src/` (без Tests/Tools) | **43** |
+| Всего строк (физических) | **42 260** |
+| **Строк кода** (без пустых и `#`) | **36 790** |
+| Пустых строк | 4 674 |
+| Строк комментариев `#` | 796 |
+| Классов (определений / уникальных имён) | **36** / 34 |
+| Функций верхнего уровня | **1159** |
+| Методов классов | 75 |
+| Вложенных функций | 68 |
+| **Всего callable** (fn+method+nested) | **1302** |
+| Модульных переменных | 397 |
+| Декораторов | 48 |
+| Функций с type hints | 1274 |
+| Блоков `try/except` | 172 |
+| Импортов `import` / `from` | 329 / 499 |
 | `config.json` | **0** строк |
-| Документация MD | **45** файлов  **15 222** строк |
-| `README.md` | 2 430 строк |
+| Документация MD | **46** файлов  **15 411** строк |
+| `README.md` | 2 453 строк |
 ### Визуальный масштаб
 
 ```
-Python LOC     [████████████████████████████████████████████████████] 36 360
+Python LOC     [█████████████████████████████████████████████████████] 36 790
 config.json    [░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░] 0
-Документация   [██████████████████████░░░░░░░░░░░░░░] 15 222
-ВСЕГО текста   [███████████████████████████████████████████████████] ~56 976
+Документация   [██████████████████████░░░░░░░░░░░░░░] 15 411
+ВСЕГО текста   [████████████████████████████████████████████████████] ~57 671
 ```
 ---
 
@@ -78,17 +78,17 @@ flowchart TB
 
 ```mermaid
 pie title Строки кода Python
-    "Ядро (src/)" : 22857
-    "Утилиты (Tools)" : 7014
-    "Тесты" : 6472
+    "Ядро (src/)" : 23227
+    "Утилиты (Tools)" : 7018
+    "Тесты" : 6528
     "Точки входа" : 15
     "Пакет" : 2
 ```
 | Категория | Файлов | LOC | Доля | Классов | Функций |
 |-----------|--------|-----|------|---------|---------|
-| Ядро (src/) | 45 | 22 857 | 62.9% | 19 | 664 |
-| Утилиты (Tools) | 22 | 7 014 | 19.3% | 4 | 225 |
-| Тесты | 38 | 6 472 | 17.8% | 9 | 257 |
+| Ядро (src/) | 46 | 23 227 | 63.1% | 23 | 672 |
+| Утилиты (Tools) | 22 | 7 018 | 19.1% | 4 | 225 |
+| Тесты | 39 | 6 528 | 17.7% | 9 | 261 |
 | Точки входа | 1 | 15 | 0.0% | 0 | 1 |
 | Пакет | 1 | 2 | 0.0% | 0 | 0 |
 ---
@@ -97,7 +97,7 @@ pie title Строки кода Python
 
 | # | Файл | Категория | Всего | LOC | Классы | Fn |
 |---|------|-----------|-------|-----|--------|-----|
-| 1 | `src/main_impl.py` | Ядро (src/) | 5114 | 4176 | 5 | 89 |
+| 1 | `src/main_impl.py` | Ядро (src/) | 5281 | 4329 | 5 | 92 |
 | 2 | `src/manager_stats.py` | Ядро (src/) | 3133 | 2819 | 3 | 88 |
 | 3 | `src/consistency_checks.py` | Ядро (src/) | 2459 | 2226 | 0 | 55 |
 | 4 | `src/Tests/test_manager_stats.py` | Тесты | 2270 | 2165 | 0 | 40 |
@@ -113,11 +113,11 @@ pie title Строки кода Python
 | 14 | `src/leaders_for_admin_auto_js.py` | Ядро (src/) | 739 | 678 | 0 | 7 |
 | 15 | `folder_parce.py` | Ядро (src/) | 754 | 655 | 2 | 21 |
 ```
-main_impl.py                             ████████████████████████████ 4 176
-manager_stats.py                         ███████████████████░░░░░░░░░ 2 819
-consistency_checks.py                    ███████████████░░░░░░░░░░░░░ 2 226
-Tests/test_manager_stats.py              ███████████████░░░░░░░░░░░░░ 2 165
-Tools/build_spod_params_excel.py         ███████████░░░░░░░░░░░░░░░░░ 1 618
+main_impl.py                             ████████████████████████████ 4 329
+manager_stats.py                         ██████████████████░░░░░░░░░░ 2 819
+consistency_checks.py                    ██████████████░░░░░░░░░░░░░░ 2 226
+Tests/test_manager_stats.py              ██████████████░░░░░░░░░░░░░░ 2 165
+Tools/build_spod_params_excel.py         ██████████░░░░░░░░░░░░░░░░░░ 1 618
 input_archive_sqlite.py                  ████████░░░░░░░░░░░░░░░░░░░░ 1 232
 Tools/export_web_fill_examples_from_spod ██████░░░░░░░░░░░░░░░░░░░░░░ 868
 contest_badge_form/form_io.py            █████░░░░░░░░░░░░░░░░░░░░░░░ 817
@@ -126,14 +126,14 @@ json_spod_format_check.py                █████░░░░░░░░
 Tools/build_spod_input_catalog.py        █████░░░░░░░░░░░░░░░░░░░░░░░ 737
 contest_badge_form/xlsx_write.py         █████░░░░░░░░░░░░░░░░░░░░░░░ 730
 rating_item_matrix.py                    █████░░░░░░░░░░░░░░░░░░░░░░░ 701
-leaders_for_admin_auto_js.py             █████░░░░░░░░░░░░░░░░░░░░░░░ 678
+leaders_for_admin_auto_js.py             ████░░░░░░░░░░░░░░░░░░░░░░░░ 678
 folder_parce.py                          ████░░░░░░░░░░░░░░░░░░░░░░░░ 655
 ```
 ---
 
 ## 5. Классы
 
-**32** определений в **20** файлах.
+**36** определений в **21** файлах.
 
 | Класс | Файл |
 |-------|------|
@@ -155,6 +155,10 @@ folder_parce.py                          ████░░░░░░░░░
 | `BlockLogFilter` | `src/block_runtime.py` |
 | `Config` | `src/config_loader.py` |
 | `_SheetBuilder` | `src/contest_badge_form/xlsx_write.py` |
+| `CellStyle` | `src/excel_write_only.py` |
+| `ColumnPlan` | `src/excel_write_only.py` |
+| `SheetPlan` | `src/excel_write_only.py` |
+| `_StyleTemplates` | `src/excel_write_only.py` |
 | `FileLoader` | `src/file_loader.py` |
 | `RowHashRecord` | `src/input_archive_row_parallel.py` |
 | `ClassifiedRow` | `src/input_archive_row_parallel.py` |
@@ -175,19 +179,19 @@ folder_parce.py                          ████░░░░░░░░░
 
 ```mermaid
 flowchart LR
-    core[Ядро: 664]
-    tests[Тесты: 257]
+    core[Ядро: 672]
+    tests[Тесты: 261]
     tools[Tools: 225]
     entry[Вход: 1]
-    methods[Методы: 72]
-    nested[Вложенные: 65]
+    methods[Методы: 75]
+    nested[Вложенные: 68]
 ```
 | Тип | Количество |
 |-----|------------|
-| Верхний уровень | 1147 |
-| Методы | 72 |
-| Вложенные | 65 |
-| **Итого** | **1284** |
+| Верхний уровень | 1159 |
+| Методы | 75 |
+| Вложенные | 68 |
+| **Итого** | **1302** |
 ---
 
 ## 7. Модули и зависимости
@@ -197,10 +201,10 @@ flowchart LR
 | Модуль | Файлов-импортёров |
 |--------|-------------------|
 | `src.contest_badge_form` | 42 |
-| `src.config_loader` | 27 |
+| `src.config_loader` | 29 |
 | `src.main_impl` | 12 |
-| `src.src` | 10 |
-| `src.Tools` | 9 |
+| `src.src` | 11 |
+| `src.Tools` | 10 |
 | `src.csv_headers` | 9 |
 | `src.profile_gp_auto_js` | 9 |
 | `src.manager_stats` | 8 |
@@ -221,22 +225,22 @@ flowchart LR
 
 | Пакет | Упоминаний |
 |-------|------------|
-| **pandas** | 48 |
-| **openpyxl** | 24 |
-| **pytest** | 8 |
-| **numpy** | 7 |
+| **pandas** | 52 |
+| **openpyxl** | 29 |
+| **numpy** | 9 |
+| **pytest** | 9 |
 
 ### Стандартная библиотека (топ-10)
 
 | Модуль | Упоминаний |
 |--------|------------|
-| `__future__` | 91 |
-| `typing` | 68 |
-| `pathlib` | 46 |
+| `__future__` | 93 |
+| `typing` | 69 |
+| `pathlib` | 47 |
 | `json` | 43 |
 | `logging` | 37 |
-| `datetime` | 34 |
-| `sys` | 33 |
+| `datetime` | 36 |
+| `sys` | 34 |
 | `os` | 28 |
 | `re` | 20 |
 | `collections` | 14 |
@@ -307,6 +311,7 @@ sequenceDiagram
 | `src/Tests/test_consistency_include_in_source_false.py` | test | 89 | 79 | 9 | 1 | 0 | 2 | 4 |
 | `src/Tests/test_contest_badge_form.py` | test | 172 | 145 | 24 | 3 | 4 | 1 | 14 |
 | `src/Tests/test_csv_headers.py` | test | 17 | 10 | 6 | 1 | 0 | 2 | 2 |
+| `src/Tests/test_excel_write_only.py` | test | 59 | 46 | 12 | 1 | 0 | 3 | 10 |
 | `src/Tests/test_exit_codes_and_console.py` | test | 94 | 72 | 20 | 2 | 0 | 7 | 11 |
 | `src/Tests/test_field_in_values_json.py` | test | 83 | 67 | 15 | 1 | 0 | 5 | 3 |
 | `src/Tests/test_flatten_json_batch.py` | test | 23 | 16 | 6 | 1 | 0 | 1 | 5 |
@@ -318,7 +323,7 @@ sequenceDiagram
 | `src/Tests/test_merge_spod_fill_stands.py` | test | 108 | 94 | 13 | 1 | 0 | 5 | 3 |
 | `src/Tests/test_merge_warnings_and_headers.py` | test | 177 | 152 | 24 | 1 | 0 | 10 | 6 |
 | `src/Tests/test_path_data_guard.py` | test | 39 | 28 | 10 | 1 | 0 | 3 | 4 |
-| `src/Tests/test_pipeline_etalon.py` | test | 205 | 172 | 30 | 3 | 0 | 9 | 13 |
+| `src/Tests/test_pipeline_etalon.py` | test | 217 | 182 | 32 | 3 | 0 | 10 | 13 |
 | `src/Tests/test_pipeline_fingerprint.py` | test | 90 | 72 | 17 | 1 | 0 | 6 | 7 |
 | `src/Tests/test_post_transfer_crypto.py` | test | 41 | 29 | 11 | 1 | 0 | 4 | 3 |
 | `src/Tests/test_rating_item_matrix.py` | test | 115 | 93 | 21 | 1 | 0 | 9 | 3 |
@@ -348,7 +353,7 @@ sequenceDiagram
 | `src/Tools/pack_post_encrypted_leaders.py` | tool | 72 | 55 | 15 | 2 | 0 | 4 | 6 |
 | `src/Tools/pack_post_encrypted_program.py` | tool | 153 | 126 | 25 | 2 | 0 | 4 | 7 |
 | `src/Tools/patch_web_fill_catalog_lists.py` | tool | 235 | 220 | 14 | 1 | 0 | 3 | 5 |
-| `src/Tools/pipeline_fingerprint.py` | tool | 388 | 345 | 37 | 6 | 0 | 11 | 13 |
+| `src/Tools/pipeline_fingerprint.py` | tool | 394 | 349 | 37 | 8 | 0 | 11 | 13 |
 | `src/Tools/post_transfer_crypto.py` | tool | 158 | 125 | 30 | 3 | 0 | 12 | 8 |
 | `src/Tools/safe_post_decrypt_test.py` | tool | 76 | 56 | 19 | 1 | 0 | 2 | 6 |
 | `src/Tools/sync_post_txt.py` | tool | 517 | 440 | 76 | 1 | 0 | 21 | 9 |
@@ -360,7 +365,7 @@ sequenceDiagram
 | `src/archive_json_columns.py` | core | 236 | 196 | 36 | 4 | 0 | 10 | 6 |
 | `src/block_runtime.py` | core | 103 | 76 | 24 | 3 | 1 | 8 | 4 |
 | `src/config_holder.py` | core | 20 | 12 | 7 | 1 | 0 | 2 | 2 |
-| `src/config_loader.py` | core | 718 | 592 | 87 | 39 | 1 | 17 | 6 |
+| `src/config_loader.py` | core | 735 | 604 | 91 | 40 | 1 | 18 | 6 |
 | `src/consistency_checks.py` | core | 2459 | 2226 | 210 | 23 | 0 | 55 | 12 |
 | `src/console_ui.py` | core | 685 | 593 | 86 | 6 | 0 | 29 | 10 |
 | `src/contest_badge_form/__init__.py` | core | 8 | 4 | 3 | 1 | 0 | 0 | 2 |
@@ -376,6 +381,7 @@ sequenceDiagram
 | `src/contest_badge_form/xlsx_write.py` | core | 852 | 730 | 89 | 33 | 1 | 26 | 10 |
 | `src/csv_headers.py` | core | 122 | 101 | 17 | 4 | 0 | 4 | 4 |
 | `src/debug_timing.py` | core | 464 | 398 | 54 | 12 | 0 | 16 | 11 |
+| `src/excel_write_only.py` | core | 245 | 205 | 34 | 6 | 4 | 4 | 12 |
 | `src/file_loader.py` | core | 180 | 164 | 14 | 2 | 1 | 0 | 10 |
 | `src/gender.py` | core | 204 | 183 | 20 | 1 | 0 | 5 | 5 |
 | `src/input_archive_row_hash.py` | core | 93 | 72 | 20 | 1 | 0 | 8 | 5 |
@@ -387,7 +393,7 @@ sequenceDiagram
 | `src/leaders_for_admin_auto_js.py` | core | 739 | 678 | 60 | 1 | 0 | 7 | 10 |
 | `src/leaders_for_admin_json.py` | core | 164 | 139 | 24 | 1 | 0 | 8 | 7 |
 | `src/logging_setup.py` | core | 107 | 89 | 17 | 1 | 1 | 3 | 7 |
-| `src/main_impl.py` | core | 5114 | 4176 | 624 | 314 | 5 | 89 | 55 |
+| `src/main_impl.py` | core | 5281 | 4329 | 639 | 313 | 5 | 92 | 60 |
 | `src/manager_stats.py` | core | 3133 | 2819 | 312 | 2 | 3 | 88 | 17 |
 | `src/path_data_guard.py` | core | 53 | 38 | 14 | 1 | 1 | 4 | 2 |
 | `src/profile_gp_auto_js.py` | core | 441 | 385 | 55 | 1 | 0 | 12 | 12 |
@@ -403,11 +409,11 @@ sequenceDiagram
 
 ## 10. Документация
 
-**45** файлов  **15 222** строк.
+**46** файлов  **15 411** строк.
 
 | Файл | Строк |
 |------|-------|
-| `README.md` | 2 430 |
+| `README.md` | 2 453 |
 | `common/param_catalog_review/CONTEST_BADGE_FORM_PARAM_REVIEW.md` | 2 012 |
 | `Docs/JSON/SPOD_INPUT_DATA_CATALOG.md` | 1 697 |
 | `Docs/CONSISTENCY_CHECKS_FORMAT.md` | 660 |
@@ -415,21 +421,21 @@ sequenceDiagram
 | `ROADMAP.md` | 639 |
 | `Docs/CONFIG_FILES.md` | 582 |
 | `Docs/WEB_SPOD_EDIT_USER_GUIDE.md` | 457 |
+| `Docs/CODEBASE_ANALYTICS.md` | 437 |
 | `Docs/PLAN_WEB_REPORT.md` | 407 |
 | `src/Tools/catalog_glossary/REWARD_ADD_DATA_glossary.md` | 380 |
 | `common/web-report/README.md` | 371 |
-| `Docs/CODEBASE_ANALYTICS.md` | 355 |
-| … ещё 33 | |
+| … ещё 34 | |
 ---
 
 ## 11. Выводы
 
-1. **Три файла — ~25% кода:** `main_impl.py`  `manager_stats.py`  `consistency_checks.py` (9 160 LOC из 36 360).
+1. **Три файла — ~25% кода:** `main_impl.py`  `manager_stats.py`  `consistency_checks.py` (9 313 LOC из 36 790).
 2. **config.json** (0 строк) по объёму сопоставим с крупнейшим модулем.
-3. **Тесты:** 38 файлов  6 472 LOC; лидер — `test_manager_stats.py`.
-4. **Зависимости:** `pandas` — основная внешняя; Excel — `openpyxl`; type hints в 1257 функциях.
+3. **Тесты:** 39 файлов  6 528 LOC; лидер — `test_manager_stats.py`.
+4. **Зависимости:** `pandas` — основная внешняя; Excel — `openpyxl`; type hints в 1274 функциях.
 5. **Хабы:** `config_loader`, `profile_gp_auto_js`, `manager_stats` — наиболее связанные модули.
-6. **main_impl.py** — монолитный orchestrator (~11% LOC); кандидат на декомпозицию.
+6. **main_impl.py** — монолитный orchestrator (~12% LOC); кандидат на декомпозицию.
 7. **Не подключены к main.py** (решение Q6 — оставлены как есть, не удалять и не подключать): `src/file_loader.py`, `src/gender.py`, `src/logging_setup.py`, `src/tournament.py`, `src/validation.py` — копии кода незавершённого рефакторинга. Действующие реализации — в `src/main_impl.py` (`process_single_file`/`read_csv_file`, `add_auto_gender_column_vectorized`, `setup_logger`, `calculate_tournament_status`, проверки длины — `src/consistency_checks.py`) и `src/json_utils.py`. Исправления вносить в действующий код.
 
 ---

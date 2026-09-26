@@ -59,6 +59,8 @@
 - `PERFORMANCE_OPTIMIZATION_PROPOSALS.md` — бэклог ускорения (часть пунктов ещё открыта).
 - `PERFORMANCE_AND_PARALLELIZATION_HISTORY.md` — краткая история уже сделанных оптимизаций.
 - `CODEBASE_ANALYTICS.md` — снимок метрик кода (`build_codebase_analytics.py`).
+- `REFACTORING_REVIEW_2026-09-26.json` — анализ и поэтапный план рефакторинга `main.py`/`main_impl.py` (ошибки, производительность, логирование, структура); этапы 0–4 выполнены и в `main`, статусы находок и замеры — в самом файле (`findings[].status/result`, `measurements.stage*_after`).
+- `STR-01_SPLIT_MAIN_IMPL_TODO.md` — план возврата к единственному незавершённому пункту того рефакторинга (разбиение `main_impl.py` на модули), приостановленному по решению пользователя.
 
 ## Правила актуализации
 
