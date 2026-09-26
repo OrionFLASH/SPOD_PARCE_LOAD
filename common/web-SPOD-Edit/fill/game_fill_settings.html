@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Заполнение SPOD — полный контур (web-fill-full)</title>
+  <link rel="stylesheet" href="game_fill_styles.css" />
+</head>
+<body>
+<div class="app">
+  <header class="chrome-top">
+    <nav class="top-nav" id="section-nav" hidden aria-label="Шаги заполнения"></nav>
+  </header>
+
+  <div class="chrome-mid">
+    <aside class="sidebar" id="contest-sidebar" aria-label="Список конкурсов">
+      <div class="sidebar-head">
+        <div class="side-block-title">Конкурсы</div>
+      </div>
+      <div class="contest-tabs-scroll">
+        <div class="contest-tabs" id="contest-tabs"></div>
+      </div>
+      <div class="sidebar-contest-actions">
+        <button type="button" class="btn btn-sidebar" id="btn-add-contest" data-tip="Добавить ещё один конкурс (свои BADGE / таблицы)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+          Добавить конкурс
+        </button>
+        <button type="button" class="btn btn-sidebar" id="btn-copy-contest" data-tip="Создать полную копию текущего конкурса с выбором групп, наград/связей и турниров">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
+          Копировать конкурс
+        </button>
+        <div class="sidebar-select-row">
+          <button type="button" class="btn btn-sidebar" id="btn-select-mode" aria-pressed="false" data-tip="Режим выбора конкурсов для JSON и CSV. Фильтры не сбрасывают уже отмеченное">Выбрать</button>
+          <button type="button" class="btn btn-icon" id="btn-select-all" hidden data-tip="Отметить все видимые сейчас (с учётом фильтров и поиска)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M7 12l3 3 7-7"/></svg>
+          </button>
+          <button type="button" class="btn btn-icon" id="btn-select-none" hidden data-tip="Снять все отметки в сессии, в том числе скрытые фильтром">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="2"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="tone-legend" data-tip="Цвет вкладки — по самому «живому» статусу турниров в расписании: активный → подведение итогов → завершён → только отменён/удалён → нет турниров">
+        <div class="tone-legend__title">Цвет списка</div>
+        <p class="tone-legend__hint">по самому «живому» статусу</p>
+        <ul class="tone-legend__list">
+          <li class="tone-legend__item tone-legend__item--active"><span class="tone-legend__dot"></span>Активный</li>
+          <li class="tone-legend__item tone-legend__item--results"><span class="tone-legend__dot"></span>Подведение</li>
+          <li class="tone-legend__item tone-legend__item--done"><span class="tone-legend__dot"></span>Завершён</li>
+          <li class="tone-legend__item tone-legend__item--cancel"><span class="tone-legend__dot"></span>Отменён / удалён</li>
+          <li class="tone-legend__item tone-legend__item--empty"><span class="tone-legend__dot"></span>Нет турниров</li>
+        </ul>
+      </div>
+    </aside>
+    <main class="main">
+      <div id="workspace" class="workspace"></div>
+    </main>
+    <aside class="sidebar sidebar--filters" id="filters-sidebar" aria-label="Поиск и фильтры">
+      <div class="sidebar-head">
+        <div class="side-block-title">Поиск и фильтры</div>
+      </div>
+      <div class="filters-scroll">
+        <div class="filter-block filter-block--search">
+          <div class="filter-block__label" data-tip="Поиск по коду и названиям конкурса, награды, турнира, бизнес-блоку">Поиск</div>
+          <div class="contest-search" data-tip="Поиск по CONTEST_CODE, FULL_NAME, CONTEST_DESCRIPTION, REWARD_CODE, REWARD_TYPE, REWARD FULL_NAME/DESCRIPTION, TOURNAMENT_CODE, бизнес-блоку">
+            <span class="contest-search__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg></span>
+            <input type="search" id="contest-search" class="contest-search__input" placeholder="Код конкурса, награды, турнира…" autocomplete="off" />
+          </div>
+          <div class="contest-kind-filters contest-search-mode" role="radiogroup" aria-label="Режим поиска">
+            <button type="button" class="contest-kind-btn" data-search-mode="starts" aria-pressed="false" data-tip="Поле начинается с введённой строки">Начинается с</button>
+            <button type="button" class="contest-kind-btn is-on" data-search-mode="contains" aria-pressed="true" data-tip="Поле содержит подстроку (по умолчанию)">Содержит</button>
+            <button type="button" class="contest-kind-btn" data-search-mode="equals" aria-pressed="false" data-tip="Поле в точности равно строке">Равно</button>
+          </div>
+        </div>
+        <div class="filter-block" data-filter-group="type">
+          <div class="filter-block__head">
+            <div class="filter-block__label" data-tip="Показать турнирные, индивидуальные или архив. Выкл. — скрыть">Тип</div>
+          <div class="filter-block__acts" role="group" aria-label="Все чипы: тип">
+              <button type="button" class="filter-block__act filter-block__act--on" data-filter-act="on" aria-label="Включить все" data-tip="Включить турниры, награды и архив"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></button>
+              <button type="button" class="filter-block__act filter-block__act--off" data-filter-act="off" aria-label="Сбросить" data-tip="Выключить все чипы типа"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 12h8"/></svg></button>
+            </div>
+          </div>
+          <div class="contest-kind-filters" role="group" aria-label="Фильтр типа конкурсов">
+            <button type="button" class="contest-kind-btn contest-kind-btn--tournament is-on" id="filter-tournaments" aria-pressed="true" data-tip="Показать турнирные конкурсы (нажмите, чтобы скрыть)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M8 21h8"/><path d="M12 17v4"/><path d="M7 4h10v5a5 5 0 0 1-10 0V4z"/><path d="M5 6H3a2 2 0 0 0 2 4h0"/><path d="M19 6h2a2 2 0 0 1-2 4h0"/></svg>
+              <span>Турниры</span>
+            </button>
+            <button type="button" class="contest-kind-btn contest-kind-btn--reward is-on" id="filter-rewards" aria-pressed="true" data-tip="Показать индивидуальные (награды); нажмите, чтобы скрыть">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="8" r="5"/><path d="M8.2 12.5 7 21l5-2 5 2-1.2-8.5"/><path d="M12 3v2"/></svg>
+              <span>Награды</span>
+            </button>
+            <button type="button" class="contest-kind-btn contest-kind-btn--archive" id="filter-archive" aria-pressed="false" data-tip="Показать архив удалённых конкурсов и частей (по умолчанию скрыт)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 7h18"/><path d="M5 7v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7"/><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/><path d="M10 12h4"/></svg>
+              <span>Архив</span>
+            </button>
+          </div>
+        </div>
+        <div class="filter-block" data-filter-group="bb">
+          <div class="filter-block__head">
+            <div class="filter-block__label" data-tip="ИЛИ: CONTEST.BUSINESS_BLOCK · FEATURE.businessBlock · ADD.businessBlock. «Остальные» — не четыре каталожных кода. «Пусто» — во всех трёх пусто">Бизнес-блок</div>
+          <div class="filter-block__acts" role="group" aria-label="Все чипы: бизнес-блок">
+              <button type="button" class="filter-block__act filter-block__act--on" data-filter-act="on" aria-label="Включить все" data-tip="Включить все коды бизнес-блока"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></button>
+              <button type="button" class="filter-block__act filter-block__act--off" data-filter-act="off" aria-label="Сбросить" data-tip="Выключить все коды бизнес-блока"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 12h8"/></svg></button>
+            </div>
+          </div>
+          <div class="contest-kind-filters" role="group" aria-label="Фильтр бизнес-блока">
+            <button type="button" class="contest-kind-btn is-on" data-bb="MKKMMB" aria-pressed="true" data-tip="МКК ММБ">MKKMMB</button>
+            <button type="button" class="contest-kind-btn is-on" data-bb="KMKKSB" aria-pressed="true" data-tip="КМ ККСБ">KMKKSB</button>
+            <button type="button" class="contest-kind-btn is-on" data-bb="AKMKKSB" aria-pressed="true" data-tip="АКМ ККСБ">AKMKKSB</button>
+            <button type="button" class="contest-kind-btn is-on" data-bb="CSM" aria-pressed="true" data-tip="Руководитель по внедрению проектов">CSM</button>
+            <button type="button" class="contest-kind-btn contest-kind-btn--bb-other is-on" data-bb="__OTHER__" aria-pressed="true" data-tip="Любой код кроме MKKMMB, KMKKSB, AKMKKSB, CSM (MNS, SERVICEMEN, …)">Остальные</button>
+            <button type="button" class="contest-kind-btn contest-kind-btn--bb-empty is-on" data-bb="__EMPTY__" aria-pressed="true" data-tip="Во всех трёх полях пусто">Пусто</button>
+          </div>
+        </div>
+        <div class="filter-block" data-filter-group="rtype">
+          <div class="filter-block__head">
+            <div class="filter-block__label" data-tip="Есть хотя бы одна награда выбранного типа. «Нет награды» — наград нет или REWARD_TYPE пустой">Тип награды</div>
+          <div class="filter-block__acts" role="group" aria-label="Все чипы: тип награды">
+              <button type="button" class="filter-block__act filter-block__act--on" data-filter-act="on" aria-label="Включить все" data-tip="Включить все типы наград"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></button>
+              <button type="button" class="filter-block__act filter-block__act--off" data-filter-act="off" aria-label="Сбросить" data-tip="Выключить все типы наград"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 12h8"/></svg></button>
+            </div>
+          </div>
+          <div id="filter-reward-types" class="rtype-rows" role="group" aria-label="Фильтр REWARD_TYPE"></div>
+        </div>
+        <div class="filter-block" data-filter-group="status">
+          <div class="filter-block__head">
+            <div class="filter-block__label" data-tip="Хотя бы один период с выбранным статусом. «Нет турниров» — расписания нет или оно пустое">Статус турнира</div>
+          <div class="filter-block__acts" role="group" aria-label="Все чипы: статус">
+              <button type="button" class="filter-block__act filter-block__act--on" data-filter-act="on" aria-label="Включить все" data-tip="Включить все статусы включая отменён/удалён"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></button>
+              <button type="button" class="filter-block__act filter-block__act--off" data-filter-act="off" aria-label="Сбросить" data-tip="Выключить все статусы"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 12h8"/></svg></button>
+            </div>
+          </div>
+          <div class="status-filters" role="group" aria-label="Фильтр статуса расписания">
+            <div class="status-filters__row">
+              <button type="button" class="status-filter-btn status-filter-btn--active is-on" id="filter-st-active" aria-pressed="true" data-status="АКТИВНЫЙ">Активный</button>
+              <button type="button" class="status-filter-btn status-filter-btn--results is-on" id="filter-st-results" aria-pressed="true" data-status="ПОДВЕДЕНИЕ ИТОГОВ">Подведение</button>
+              <button type="button" class="status-filter-btn status-filter-btn--done is-on" id="filter-st-done" aria-pressed="true" data-status="ЗАВЕРШЕН">Завершён</button>
+            </div>
+            <div class="status-filters__row">
+              <button type="button" class="status-filter-btn status-filter-btn--cancel" id="filter-st-cancel" aria-pressed="false" data-status="ОТМЕНЕН">Отменён</button>
+              <button type="button" class="status-filter-btn status-filter-btn--deleted" id="filter-st-deleted" aria-pressed="false" data-status="УДАЛЕН">Удалён</button>
+              <button type="button" class="status-filter-btn status-filter-btn--empty is-on" id="filter-st-empty" aria-pressed="true" data-status="__EMPTY__" data-tip="Нет строк SCHEDULE, ключа нет, либо статус и код турнира пустые">Нет турниров</button>
+            </div>
+          </div>
+        </div>
+        <div class="filter-block" data-filter-group="date">
+          <div class="filter-block__head">
+            <div class="filter-block__label" data-tip="Дата попадает в START_DT…END_DT. Пустое расписание дату не проходит — сбросьте дату">Дата в периоде</div>
+          <div class="filter-block__acts" role="group" aria-label="Дата фильтра">
+              <button type="button" class="filter-block__act filter-block__act--on" data-filter-act="on" aria-label="Включить все" data-tip="Дата не ставится этой кнопкой — только сброс"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></button>
+              <button type="button" class="filter-block__act filter-block__act--off" data-filter-act="off" aria-label="Сбросить" data-tip="Сбросить дату"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 12h8"/></svg></button>
+            </div>
+          </div>
+          <div class="filter-date" id="filter-date-host"></div>
+          <button type="button" class="btn btn-compact" id="filter-date-clear" hidden>Сбросить дату</button>
+        </div>
+        <div class="filter-block" data-filter-group="env">
+          <div class="filter-block__head">
+            <div class="filter-block__label" data-tip="ИЛИ по полям vid и TARGET_TYPE: подстрока ПРОМ / ТЕСТ. Не путать со стендом PROM/PSI">Среда</div>
+          <div class="filter-block__acts" role="group" aria-label="Все чипы: среда">
+              <button type="button" class="filter-block__act filter-block__act--on" data-filter-act="on" aria-label="Включить все" data-tip="Включить ПРОМ и ТЕСТ"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></button>
+              <button type="button" class="filter-block__act filter-block__act--off" data-filter-act="off" aria-label="Сбросить" data-tip="Выключить ПРОМ и ТЕСТ"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 12h8"/></svg></button>
+            </div>
+          </div>
+          <div class="contest-kind-filters" role="group" aria-label="Фильтр ПРОМ / ТЕСТ">
+            <button type="button" class="contest-kind-btn is-on" id="filter-env-prom" aria-pressed="true" data-tip="Показать конкурсы, где в vid или TARGET_TYPE есть ПРОМ">ПРОМ</button>
+            <button type="button" class="contest-kind-btn is-on" id="filter-env-test" aria-pressed="true" data-tip="Показать конкурсы, где в vid или TARGET_TYPE есть ТЕСТ">ТЕСТ</button>
+          </div>
+        </div>
+        <div class="filter-block" data-filter-group="stand">
+          <div class="filter-block__head">
+            <div class="filter-block__label" data-tip="Источник выгрузки SPOD. PROM / PSI — есть метка (в т.ч. оба сразу). Только PROM / только PSI — ровно один стенд, без пары. Не путать со «Средой»">Стенд</div>
+          <div class="filter-block__acts" role="group" aria-label="Все чипы: стенд">
+              <button type="button" class="filter-block__act filter-block__act--on" data-filter-act="on" aria-label="Включить все" data-tip="Включить PROM, PSI и «только PROM/PSI»"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></button>
+              <button type="button" class="filter-block__act filter-block__act--off" data-filter-act="off" aria-label="Сбросить" data-tip="Выключить все чипы стенда"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 12h8"/></svg></button>
+            </div>
+          </div>
+          <div class="stand-filter-rows" role="group" aria-label="Фильтр стенда PROM / PSI">
+            <div class="contest-kind-filters">
+              <button type="button" class="contest-kind-btn contest-kind-btn--stand-prom is-on" id="filter-stand-prom" aria-pressed="true" data-stand="PROM" data-tip="Есть метка PROM, в том числе вместе с PSI">PROM</button>
+              <button type="button" class="contest-kind-btn contest-kind-btn--stand-psi" id="filter-stand-psi" aria-pressed="false" data-stand="PSI" data-tip="Есть метка PSI, в том числе вместе с PROM">PSI</button>
+            </div>
+            <div class="contest-kind-filters">
+              <button type="button" class="contest-kind-btn contest-kind-btn--stand-prom-only" id="filter-stand-prom-only" aria-pressed="false" data-stand="PROM_ONLY" data-tip="Только PROM: метка PROM есть, PSI нет">Только PROM</button>
+              <button type="button" class="contest-kind-btn contest-kind-btn--stand-psi-only" id="filter-stand-psi-only" aria-pressed="false" data-stand="PSI_ONLY" data-tip="Только PSI: метка PSI есть, PROM нет">Только PSI</button>
+            </div>
+          </div>
+        </div>
+        <div class="filter-block filter-block--bulk" role="group" aria-label="Пакетное включение фильтров">
+          <div class="filter-block__label">Все фильтры</div>
+          <div class="filter-bulk">
+            <button type="button" class="btn btn-compact filter-bulk__btn" id="filter-all-off" data-tip="Выключить все чипы фильтров и сбросить дату">Сбросить все фильтры</button>
+            <button type="button" class="btn btn-compact filter-bulk__btn filter-bulk__btn--on" id="filter-all-on" data-tip="Включить все чипы: тип, среда, стенд, бизнес-блок, награды, статусы (включая архив и пустые). Дату не ставит">Установить все</button>
+          </div>
+        </div>
+      </div>
+    </aside>
+    <button type="button" class="sidebar-edge-btn sidebar-edge-btn--left-collapse" id="btn-sidebar-hide" aria-controls="contest-sidebar" aria-expanded="true" data-tip="Скрыть список конкурсов">
+      <span class="sidebar-edge-btn__arrow" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 6l-6 6 6 6"/></svg></span>
+      <span class="sidebar-edge-btn__label">Конкурсы</span>
+      <span class="sidebar-edge-btn__arrow" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 6l-6 6 6 6"/></svg></span>
+    </button>
+    <button type="button" class="sidebar-edge-btn sidebar-edge-btn--left-reopen" id="btn-sidebar-show" aria-controls="contest-sidebar" aria-expanded="false" data-tip="Показать список конкурсов">
+      <span class="sidebar-edge-btn__arrow" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></span>
+      <span class="sidebar-edge-btn__label">Конкурсы</span>
+      <span class="sidebar-edge-btn__arrow" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></span>
+    </button>
+    <button type="button" class="sidebar-edge-btn sidebar-edge-btn--right-collapse" id="btn-filters-hide" aria-controls="filters-sidebar" aria-expanded="true" data-tip="Скрыть поиск и фильтры">
+      <span class="sidebar-edge-btn__arrow" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></span>
+      <span class="sidebar-edge-btn__label">Фильтры</span>
+      <span class="sidebar-edge-btn__arrow" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></span>
+    </button>
+    <button type="button" class="sidebar-edge-btn sidebar-edge-btn--right-reopen" id="btn-filters-show" aria-controls="filters-sidebar" aria-expanded="false" data-tip="Показать поиск и фильтры">
+      <span class="sidebar-edge-btn__arrow" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 6l-6 6 6 6"/></svg></span>
+      <span class="sidebar-edge-btn__label">Фильтры</span>
+      <span class="sidebar-edge-btn__arrow" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 6l-6 6 6 6"/></svg></span>
+    </button>
+  </div>
+
+  <footer class="chrome-foot" id="chrome-foot">
+    <div class="foot-block foot-block--project">
+      <span class="foot-label">Проект</span>
+      <label class="btn btn-compact file-pick" id="btn-import-project-label" data-tip="Импорт снимка JSON: contests (активные) + archive (отдельно)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21V9"/><path d="M7 14l5-5 5 5"/><path d="M5 3h14"/></svg>
+        <span>Импорт JSON</span>
+        <input type="file" id="import-project" class="file-pick__input" accept=".json,application/json,text/json,text/plain" />
+      </label>
+      <button type="button" class="btn btn-primary btn-compact btn-export-label" id="btn-save-project" data-tip="Скачать JSON: активные contests и archive раздельно. В CSV архив не попадает. Если включён выбор и отмечены не все — только выбранные, без архива.">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 21h14"/></svg>
+        <span class="btn-stack">
+          <span class="btn-stack__main" id="btn-save-project-label">Скачать все JSON</span>
+          <span class="btn-stack__sub" id="btn-save-project-sub"></span>
+        </span>
+      </button>
+      <button type="button" class="btn btn-compact" id="btn-reset-catalog" data-tip="Сбросить конкурсы к дефолтам каталога">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>
+        Сброс
+      </button>
+    </div>
+    <div class="foot-sep" aria-hidden="true"></div>
+    <div class="foot-block foot-block--meta" title="Заполнение параметров SPOD">
+      <p class="foot-meta__title" id="page-title">Заполнение параметров SPOD</p>
+      <p class="foot-meta__intro" id="page-intro">Каталог: —</p>
+    </div>
+    <div class="foot-sep" aria-hidden="true"></div>
+    <div class="foot-block foot-block--export">
+      <span class="foot-label">Экспорт CSV</span>
+      <div class="export-inline">
+        <button type="button" class="btn btn-primary btn-compact btn-export-label" id="btn-export-all" data-tip="Все 6 CSV в выбранную папку (Chrome) или по очереди · только активные конкурсы, без архива. Если включён выбор и отмечены не все — только выбранные.">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M8 7h12v14H8z"/><path d="M4 3h12v4"/><path d="M4 3v14h4"/><path d="M12 12v5"/><path d="M9.5 14.5 12 17l2.5-2.5"/></svg>
+          <span class="btn-stack">
+            <span class="btn-stack__main" id="btn-export-all-label">Скачать все CSV</span>
+            <span class="btn-stack__sub" id="btn-export-all-sub"></span>
+          </span>
+        </button>
+        <button type="button" class="btn btn-compact" data-export="contest" data-tip="CSV · CONTEST-DATA">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M8 21V11l4-2 4 2v10"/><path d="M6 21h12"/><path d="M10 14h4"/><path d="M12 9V5"/><circle cx="12" cy="4" r="1.5"/></svg>
+          CONTEST
+        </button>
+        <button type="button" class="btn btn-compact" data-export="reward" data-tip="CSV · REWARD (BADGE)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="9" r="5"/><path d="M8.5 13.5 7 21l5-2 5 2-1.5-7.5"/><path d="M12 4v2"/></svg>
+          REWARD
+        </button>
+        <button type="button" class="btn btn-compact" data-export="reward_link" data-tip="CSV · REWARD-LINK">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.07 0l1.41-1.41a5 5 0 0 0-7.07-7.07L10 5.93"/><path d="M14 11a5 5 0 0 0-7.07 0L5.52 12.4a5 5 0 0 0 7.07 7.07L14 18.07"/></svg>
+          LINK
+        </button>
+        <button type="button" class="btn btn-compact" data-export="group" data-tip="CSV · GROUP">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M3 19c0-2.8 2.7-5 6-5s6 2.2 6 5"/><path d="M14.5 19c.3-1.8 1.8-3.2 3.8-3.5 1.7.2 3.2 1.3 3.7 3.5"/></svg>
+          GROUP
+        </button>
+        <button type="button" class="btn btn-compact" data-export="indicator" data-tip="CSV · INDICATOR">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 19V5"/><path d="M4 19h16"/><path d="M8 16v-5"/><path d="M12 16V8"/><path d="M16 16v-3"/><path d="M8 11l4-4 4 3"/></svg>
+          INDICATOR
+        </button>
+        <button type="button" class="btn btn-compact" data-export="schedule" data-tip="CSV · TOURNAMENT-SCHEDULE">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18"/><path d="M8 3v4"/><path d="M16 3v4"/><path d="M8 14h3"/><path d="M13 14h3"/><path d="M8 17h8"/></svg>
+          SCHEDULE
+        </button>
+      </div>
+    </div>
+  </footer>
+</div>
+<div id="toast" class="toast" hidden><span id="toast-text">OK</span></div>
+<div id="glassTip" class="glass-tip" aria-hidden="true"></div>
+
+<script src="../spod_trace.js" data-area="fill"></script>
+<script src="catalog.js"></script>
+<script src="game_fill_core.js"></script>
+<script src="game_fill_model.js"></script>
+<script src="game_fill_filters.js"></script>
+<script src="game_fill_ui.js"></script>
+<script src="game_fill_io.js"></script>
+<script src="fill_trace_hooks.js"></script>
+<script src="game_fill_boot.js"></script>
+</body>
+</html>

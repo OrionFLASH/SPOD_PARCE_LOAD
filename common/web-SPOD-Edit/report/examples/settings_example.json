@@ -1,0 +1,58 @@
+{
+  "version": 3,
+  "kind": "spod_web_report_settings",
+  "tournaments": [
+    {
+      "id": "demo_tn_1",
+      "contest_code": "01_2026-1_16-2_1",
+      "tournament_code": "t_01_2026-1_16-2_1_2012",
+      "plan_value": "100.00000",
+      "contest_date": "2026-09-17",
+      "full_name": "500 млн руб. сделка лизинга",
+      "type_ind": "TN",
+      "period_code": "Y",
+      "column_id": "ТАБЕЛЬНЫЙ НОМЕР",
+      "column_fact": "ПОКАЗАТЕЛЬ",
+      "fact_op": "none",
+      "fact_op_value": "1",
+      "include_in_report": true,
+      "source_file_name": "sample_data_tn.csv",
+      "source_file_kind": "csv",
+      "sheet_name": "",
+      "table_start_row": 1,
+      "table_start_col": 1
+    },
+    {
+      "id": "demo_fio_1",
+      "contest_code": "01_2026-1_16-2_1",
+      "tournament_code": "t_01_2026-1_16-2_1_2013",
+      "plan_value": "50.00000",
+      "contest_date": "2026-09-17",
+      "full_name": "Турнир по ФИО (пример)",
+      "type_ind": "FIO",
+      "period_code": "Q1",
+      "column_id": "ФИО",
+      "column_fact": "ПОКАЗАТЕЛЬ",
+      "fact_op": "mul",
+      "fact_op_value": "100",
+      "include_in_report": true,
+      "source_file_name": "sample_data_fio.csv",
+      "source_file_kind": "csv",
+      "sheet_name": "",
+      "table_start_row": 1,
+      "table_start_col": 1
+    }
+  ],
+  "fio": {
+    "entries": [
+      { "fio": "Иванов Иван Иванович", "person_number": "12345" },
+      { "fio": "Петров Пётр Петрович", "person_number": "67890" }
+    ],
+    "file_name": "sample_fio_dictionary.csv",
+    "sheet_name": "",
+    "start_row": 1,
+    "start_col": 1,
+    "col_fio": "ФИО",
+    "col_tn": "ТАБЕЛЬНЫЙ"
+  }
+}

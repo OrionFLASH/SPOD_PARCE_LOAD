@@ -1,0 +1,193 @@
+/* web-SPOD-Edit — оболочка: тонкая панель вкладок сверху + две программы во фреймах.
+   Стиль — как у web-fill-full (стекло, мягкие тени, скругления). */
+:root {
+  --glass-bg-gradient: linear-gradient(165deg, #e8eef8 0%, #f5f0ea 42%, #e9f2f0 100%);
+  --glass-text: #1c2434;
+  --glass-muted: #5a6578;
+  --glass-blue: #007aff;
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  --glass-shadow-hover: 0 14px 44px rgba(0, 0, 0, 0.12), 0 4px 14px rgba(0, 0, 0, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.95);
+  --font: "SF Pro Display", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --bar-h: 46px;
+}
+* { box-sizing: border-box; }
+html, body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+  font-family: var(--font);
+  color: var(--glass-text);
+  background: var(--glass-bg-gradient);
+}
+
+.shell-bar {
+  position: relative;
+  z-index: 10;
+  height: var(--bar-h);
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 12px;
+  padding: 0 12px;
+  background: linear-gradient(180deg, rgba(250, 251, 253, 0.96) 0%, rgba(245, 247, 250, 0.9) 100%);
+  backdrop-filter: blur(16px) saturate(160%);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
+  border-bottom: 1px solid rgba(15, 23, 42, 0.07);
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.05);
+}
+.shell-brand { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.shell-brand__mark {
+  font-size: 10.5px;
+  font-weight: 750;
+  letter-spacing: 0.14em;
+  color: var(--glass-blue);
+  padding: 4px 7px;
+  border-radius: 8px;
+  background: rgba(0, 122, 255, 0.1);
+}
+.shell-brand__title { font-size: 13px; font-weight: 700; letter-spacing: -0.02em; color: var(--glass-muted); white-space: nowrap; }
+
+/* вкладки — сегмент в стиле кнопок fill-full */
+.shell-tabs {
+  display: inline-flex;
+  gap: 4px;
+  padding: 3px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  box-shadow: var(--glass-shadow);
+}
+.shell-tab {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 14px 0 11px;
+  border: 1px solid transparent;
+  border-radius: 11px;
+  background: transparent;
+  color: var(--glass-muted);
+  font: inherit;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+.shell-tab svg { width: 17px; height: 17px; flex: 0 0 auto; }
+.shell-tab__text { display: flex; flex-direction: column; align-items: flex-start; line-height: 1.1; }
+.shell-tab__text b { font-size: 12.5px; font-weight: 700; letter-spacing: -0.01em; white-space: nowrap; }
+.shell-tab__text small { font-size: 9.5px; font-weight: 600; opacity: 0.75; letter-spacing: 0.02em; }
+.shell-tab:hover { background: rgba(255, 255, 255, 0.85); color: var(--glass-text); }
+.shell-tab.is-active {
+  background: linear-gradient(180deg, #4aa3ff 0%, var(--glass-blue) 100%);
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(0, 122, 255, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+.shell-tab:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.35); }
+
+.shell-actions { display: flex; justify-content: flex-end; align-items: center; gap: 8px; min-width: 0; }
+
+/* программы */
+.shell-frames { position: absolute; top: var(--bar-h); left: 0; right: 0; bottom: 0; }
+.shell-frame {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+  visibility: hidden;
+  background: transparent;
+}
+.shell-frame.is-active { visibility: visible; }
+
+/* трейс-лог — тот же вид, что в web-report */
+.trace-ctl {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 4px 3px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+}
+.trace-switch { display: inline-flex; align-items: center; gap: 5px; cursor: pointer; font-size: 11px; font-weight: 700; color: var(--glass-muted); user-select: none; }
+.trace-switch input { position: absolute; opacity: 0; width: 0; height: 0; }
+.trace-switch__track { position: relative; width: 26px; height: 15px; border-radius: 999px; background: rgba(100, 116, 139, 0.35); transition: background 0.15s ease; }
+.trace-switch__track::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  transition: transform 0.15s ease;
+}
+.trace-switch input:checked + .trace-switch__track { background: #ff3b30; }
+.trace-switch input:checked + .trace-switch__track::after { transform: translateX(11px); }
+.trace-ctl.is-on .trace-switch__label { color: #c0261b; }
+.trace-ctl.is-on { border-color: rgba(255, 59, 48, 0.35); background: rgba(255, 59, 48, 0.06); }
+.trace-ctl.is-no-storage.is-on { border-style: dashed; }
+.trace-btn {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  height: 22px;
+  padding: 0 6px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--glass-muted);
+  font: inherit;
+  font-size: 10.5px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+.trace-btn svg { width: 12px; height: 12px; }
+.trace-btn:hover:not(:disabled) { background: rgba(15, 23, 42, 0.07); color: var(--glass-text); }
+.trace-btn:disabled { opacity: 0.4; cursor: default; }
+
+/* подсказка и уведомление оболочки (стекло, как в программах) */
+.shell-tip {
+  position: fixed;
+  z-index: 50;
+  max-width: min(340px, calc(100vw - 16px));
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: rgba(24, 32, 48, 0.72);
+  backdrop-filter: blur(16px) saturate(170%);
+  -webkit-backdrop-filter: blur(16px) saturate(170%);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.28);
+  color: #f8fafc;
+  font-size: 12px;
+  font-weight: 550;
+  line-height: 1.4;
+  pointer-events: none;
+}
+.shell-tip[hidden], .shell-toast[hidden] { display: none !important; }
+.shell-toast {
+  position: fixed;
+  right: 16px;
+  top: calc(var(--bar-h) + 10px);
+  z-index: 60;
+  padding: 9px 14px;
+  border-radius: 12px;
+  background: rgba(24, 32, 48, 0.82);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  color: #fff;
+  font-size: 12.5px;
+  font-weight: 600;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.25);
+}
+
+@media (max-width: 900px) {
+  .shell-brand__title { display: none; }
+  .shell-tab__text small { display: none; }
+}

@@ -1,0 +1,3754 @@
+/**
+ * UI web-report: панели, этапы, копия турнира, проверка, маппинг данных.
+ */
+(function () {
+  "use strict";
+
+  var state = {
+    config: null,
+    tournaments: [],
+    activeId: null,
+    dataByTournament: {},
+    fioEntries: [],
+    fioPack: null,
+    fioUi: {
+      sheet_name: "",
+      start_row: 1,
+      start_col: 1,
+      col_fio: "",
+      col_tn: "",
+      file_name: "",
+      source_file_kind: "",
+      source_error: "",
+      apply_warning: "",
+      apply_issues: [],
+    },
+    lastResult: null,
+    // Весь REPORT, загруженный при последнем "Загрузить списки" (для «Обновить REPORT»);
+    // не сохраняется в JSON настроек — данные строк там не хранятся в принципе.
+    importedReportPack: null,
+    // откуда REPORT: "lists" — «Загрузить списки», "manual" — кнопка «Загрузить REPORT»
+    importedReportSource: "",
+    checkState: {
+      duplicatesCleared: false,
+      fioDupCleared: false,
+      missingFioCleared: false,
+    },
+    lastResolutions: {},
+    lastFioResolutions: {},
+    checkedPipeline: null,
+    filters: {
+      search: "",
+      searchMode: "contains",
+      types: { TN: true, FIO: true },
+      included: { on: true, off: true },
+      ready: { ready: true, draft: true, copy: true },
+      // статус по датам SCHEDULE (ReportCore.tournamentTimeline)
+      timeline: { not_started: true, active: true, summarizing: true, closing: true, nodata: true },
+      closingNowOnly: false,
+    },
+    sidebarOpen: true,
+    filtersOpen: false,
+    chromeOpen: true,
+    previewOpen: { source: true, fio: true },
+  };
+
+  /** Транзитное состояние модалки «Загрузить списки» (сбрасывается при открытии). */
+  var importTour = {
+    step: "files",
+    schedulePack: null,
+    contestPack: null,
+    reportPack: null,
+    selectedStatuses: {},
+    requireInReport: false,
+  };
+
+  /** Транзитное состояние модалки «Обновить REPORT» (пересчитывается при открытии). */
+  var reportUpdate = {
+    preview: [],
+    selected: {},
+  };
+
+  function $(id) {
+    return document.getElementById(id);
+  }
+
+  function setStatus(text) {
+    var el = $("footer-status");
+    if (el) el.textContent = "Статус: " + text;
+    trace("STATUS", text);
+  }
+
+  /** Запись в трейс-лог (report_trace.js); без него — ничего. */
+  function trace(category, message, data) {
+    if (window.ReportTrace) window.ReportTrace.log(category, message, data);
+  }
+
+  /** Выполнить с замером в трейс-логе (если он включён). */
+  function traced(name, fn, data) {
+    return window.ReportTrace ? window.ReportTrace.time(name, fn, data) : fn();
+  }
+
+  function packSummary(pack) {
+    if (!pack) return null;
+    return {
+      file: pack.fileName,
+      kind: pack.kind,
+      sheet: pack.sheetName || "",
+      sheets: pack.sheetNames ? pack.sheetNames.length : 0,
+      rows: pack.rows ? pack.rows.length : 0,
+      cols: pack.columns ? pack.columns.length : 0,
+      origin: (pack.start_row || 1) + "," + (pack.start_col || 1),
+    };
+  }
+
+  function showToast(text) {
+    var toast = $("save-toast");
+    var label = $("save-toast-text");
+    if (!toast || !label) return;
+    label.textContent = text;
+    toast.hidden = false;
+    clearTimeout(showToast._t);
+    showToast._t = setTimeout(function () {
+      toast.hidden = true;
+    }, 2200);
+  }
+
+  function coreOpts() {
+    return ReportIO.coreOptions();
+  }
+
+  function storageKeys() {
+    var c = state.config || {};
+    return {
+      settings: c.local_storage_settings_key || "spod_web_report_settings_v1",
+      fio: c.local_storage_fio_key || "spod_web_report_fio_v1",
+    };
+  }
+
+  function persistDraft() {
+    // черновик в localStorage не используем: старт всегда пустой (п.7)
+  }
+
+  function restoreDraft() {
+    // намеренно пусто — турниры только через «Добавить» / JSON
+  }
+
+  function clearLegacyStorage() {
+    try {
+      var keys = storageKeys();
+      localStorage.removeItem(keys.settings);
+      localStorage.removeItem(keys.fio);
+    } catch (e) {}
+  }
+
+  function activeTournament() {
+    return state.tournaments.find(function (t) {
+      return t.id === state.activeId;
+    });
+  }
+
+  function ensureActive() {
+    if (!state.tournaments.length) {
+      state.activeId = null;
+      return;
+    }
+    if (!state.tournaments.some(function (t) {
+      return t.id === state.activeId;
+    })) {
+      state.activeId = state.tournaments[0].id;
+    }
+  }
+
+  function invalidateChecks(opts) {
+    var o = opts || {};
+    state.checkState = {
+      duplicatesCleared: false,
+      fioDupCleared: false,
+      missingFioCleared: false,
+    };
+    if (!o.keepResolutions) {
+      state.lastResolutions = {};
+      state.lastFioResolutions = {};
+    }
+    state.checkedPipeline = null;
+    state.lastResult = null;
+  }
+
+  function clearResolutions() {
+    state.lastResolutions = {};
+    state.lastFioResolutions = {};
+  }
+
+  function stages() {
+    return ReportCore.computeStages(state.tournaments, state.dataByTournament, state.fioEntries, state.checkState);
+  }
+
+  function escapeHtml(s) {
+    return String(s)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  function tournamentReadyKind(t) {
+    if (!ReportCore.tournamentIncluded(t)) return "off";
+    if (!ReportCore.tournamentIdentityUnlocked(t)) return "copy";
+    var pack = state.dataByTournament[t.id];
+    if (ReportCore.tournamentFieldsOk(t) && ReportCore.tournamentSourceOk(t, pack)) return "ready";
+    return "draft";
+  }
+
+  /** Поиск по одному полю в заданном режиме: contains / starts (начало слова) / exact. */
+  function fieldMatchesSearch(value, query, mode) {
+    var text = String(value == null ? "" : value).trim().toLowerCase();
+    if (!text || !query) return false;
+    if (mode === "exact") {
+      return text === query;
+    }
+    if (mode === "starts") {
+      var words = text.split(/[^a-zа-яё0-9]+/i);
+      return words.some(function (w) {
+        return w && w.indexOf(query) === 0;
+      });
+    }
+    return text.indexOf(query) >= 0;
+  }
+
+  function matchesFilters(t) {
+    var type = String(t.type_ind || "TN").toUpperCase() === "FIO" ? "FIO" : "TN";
+    if (!state.filters.types[type]) return false;
+    var includedKey = ReportCore.tournamentIncluded(t) ? "on" : "off";
+    if (!state.filters.included[includedKey]) return false;
+    var kind = tournamentReadyKind(t);
+    var readyMap = state.filters.ready;
+    if (kind === "off") {
+      // выключенные показываем всегда, если включён draft или ready
+      if (!readyMap.draft && !readyMap.ready && !readyMap.copy) return false;
+    } else if (!readyMap[kind]) {
+      return false;
+    }
+    var tl = ReportCore.tournamentTimeline(t);
+    if (!state.filters.timeline[tl.status]) return false;
+    if (state.filters.closingNowOnly && !tl.closingNow) return false;
+    var q = String(state.filters.search || "").trim().toLowerCase();
+    if (!q) return true;
+    var mode = state.filters.searchMode || "contains";
+    var fields = [t.contest_code, t.tournament_code, t.full_name, t.type_ind, t.period_code];
+    return fields.some(function (v) {
+      return fieldMatchesSearch(v, q, mode);
+    });
+  }
+
+  function setSidebarOpen(open) {
+    state.sidebarOpen = !!open;
+    var app = $("app-root");
+    if (app) app.classList.toggle("is-sidebar-collapsed", !state.sidebarOpen);
+    var hide = $("btn-sidebar-hide");
+    var show = $("btn-sidebar-show");
+    if (hide) hide.setAttribute("aria-expanded", state.sidebarOpen ? "true" : "false");
+    if (show) show.setAttribute("aria-expanded", state.sidebarOpen ? "true" : "false");
+  }
+
+  function setFiltersOpen(open) {
+    state.filtersOpen = !!open;
+    var app = $("app-root");
+    if (app) app.classList.toggle("is-filters-collapsed", !state.filtersOpen);
+  }
+
+  function setChromeOpen(open) {
+    state.chromeOpen = !!open;
+    var app = $("app-root");
+    if (app) app.classList.toggle("is-chrome-collapsed", !state.chromeOpen);
+    var btn = $("btn-chrome-toggle");
+    if (btn) btn.setAttribute("aria-expanded", state.chromeOpen ? "true" : "false");
+  }
+
+  /** Мини-иконки для статистики на плашках этапов (12×12). */
+  var STAGE_STAT_ICONS = {
+    list: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M8 6h13"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M3 6h.01"/><path d="M3 12h.01"/><path d="M3 18h.01"/></svg>',
+    check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12l5 5L20 7"/></svg>',
+    warn: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 3l10 18H2z"/><path d="M12 10v4"/><path d="M12 17h.01"/></svg>',
+    flag: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 21V4"/><path d="M5 4h11l-2 4 2 4H5"/></svg>',
+    edit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>',
+    lock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>',
+    file: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/></svg>',
+    rows: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18"/><path d="M3 15h18"/></svg>',
+    error: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="9"/><path d="M12 8v5"/><path d="M12 16h.01"/></svg>',
+    book: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 19V5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M19 17H6"/></svg>',
+    person: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="8" r="4"/><path d="M4 20c1.5-3.5 4.5-5 8-5s6.5 1.5 8 5"/></svg>',
+    question: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 0 1 5 .5c0 1.5-2.5 2-2.5 3.5"/><path d="M12 17h.01"/></svg>',
+    copy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>',
+    csv: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 21h14"/></svg>',
+    minus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="9"/><path d="M8 12h8"/></svg>',
+  };
+
+  function stageStat(icon, value, label, tone, tip) {
+    return (
+      '<span class="stage-stat' +
+      (tone ? " stage-stat--" + tone : "") +
+      '" data-tip="' +
+      escapeHtml(tip || label) +
+      '">' +
+      STAGE_STAT_ICONS[icon] +
+      "<b>" +
+      value +
+      "</b>" +
+      (label ? "<small>" + escapeHtml(label) + "</small>" : "") +
+      "</span>"
+    );
+  }
+
+  function isFioType(t) {
+    return String(t.type_ind || "").toUpperCase() === "FIO";
+  }
+
+  function renderStages() {
+    var st = stages();
+    var box = $("top-stages");
+    if (!box) return;
+
+    var included = ReportCore.includedTournaments(state.tournaments);
+    var total = state.tournaments.length;
+    var includedN = included.length;
+    var noActive = includedN === 0;
+    var anyFio = state.tournaments.some(isFioType);
+    var includedFio = included.some(isFioType);
+    // ФИО-этап не участвует: во всём списке нет ни одного турнира режима FIO
+    // (справочник — общий модал, а не «под турниром», так что от выбранного турнира не зависит)
+    var fioIdle = !anyFio;
+
+    function stageStatus(ok, idle) {
+      if (idle) return "idle";
+      return ok ? "done" : "bad";
+    }
+
+    var icons = {
+      tournaments:
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 6h13"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M3 6h.01"/><path d="M3 12h.01"/><path d="M3 18h.01"/></svg>',
+      fields:
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>',
+      sources:
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/><path d="M12 18v-6"/><path d="M9 15l3 3 3-3"/></svg>',
+      fio:
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c1.5-3.5 4.5-5 8-5s6.5 1.5 8 5"/></svg>',
+      dups:
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>',
+      output:
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/></svg>',
+    };
+
+    // --- счётчики для статистики на плашках ---
+    var importWarn = 0;
+    var closingSoon = 0;
+    state.tournaments.forEach(function (t) {
+      if (t.import_warning) importWarn += 1;
+      if (ReportCore.tournamentTimeline(t).status === "closing") closingSoon += 1;
+    });
+    var fieldsOkN = 0;
+    var withSourceN = 0;
+    var rowsTotal = 0;
+    var rowsErr = 0;
+    included.forEach(function (t) {
+      if (ReportCore.tournamentFieldsOk(t) && ReportCore.tournamentIdentityUnlocked(t)) fieldsOkN += 1;
+      var pack = state.dataByTournament[t.id];
+      if (ReportCore.tournamentSourceOk(t, pack)) withSourceN += 1;
+      if (pack && pack.rows) {
+        var rs = ReportCore.tournamentRowStats(t, pack, state.fioEntries, coreOpts());
+        rowsTotal += rs.total;
+        rowsErr += rs.errors;
+      }
+    });
+    var fioIssues = (state.fioUi.apply_issues || []).length;
+    var tnDupGroups = (st.duplicateGroups || []).length;
+    var fioDupGroups = (st.fioDuplicateGroups || []).length;
+    var dupResolved =
+      (tnDupGroups && state.checkState.duplicatesCleared ? tnDupGroups : 0) +
+      (fioDupGroups && state.checkState.fioDupCleared ? fioDupGroups : 0);
+    var res = state.lastResult && state.lastResult.ok ? state.lastResult : null;
+    var gateOk = !!(res && res.csvGate && res.csvGate.ok);
+    var excludedRows = res
+      ? (res.rows || []).filter(function (r) {
+          return r.include_in_csv === false;
+        }).length
+      : 0;
+    var gateErrors = res && res.csvGate ? (res.csvGate.rowsMarked || []).filter(function (r) {
+      return r.CSV_ERROR && r.CSV_ERROR !== "-" && r.include_in_csv !== false;
+    }).length : 0;
+
+    var tournamentsDetail;
+    var tournamentsOk = st.hasTournaments && !noActive;
+    if (total === 0) {
+      tournamentsDetail = "добавьте турнир";
+    } else if (noActive) {
+      tournamentsDetail = "нет к выгрузке (все выкл.)";
+    } else {
+      tournamentsDetail = includedN + " из " + total + " в отчёте";
+    }
+
+    var fieldsDetail = noActive
+      ? "ожидает активный турнир"
+      : st.fieldsFilled
+        ? "параметры заполнены"
+        : st.blockedCopies.length
+          ? "смените код и название копии"
+          : "заполните коды, название, план";
+
+    var sourcesDetail = noActive
+      ? "нечего загружать"
+      : st.sourcesOk
+        ? "файлы и колонки ок"
+        : "нужен файл и колонки";
+
+    var fioDetail;
+    if (!anyFio) {
+      fioDetail = "нет турниров FIO";
+    } else if (!includedFio) {
+      fioDetail = "FIO выключены в отчёте";
+    } else if (!st.sourcesOk) {
+      fioDetail = "сначала загрузите источник";
+    } else if (st.fioOk) {
+      fioDetail = "справочник покрывает";
+    } else {
+      fioDetail = "есть ФИО без табельного";
+    }
+
+    var dupsDetail = noActive
+      ? "ожидает данные"
+      : !st.sourcesOk
+        ? "после загрузки источников"
+        : st.duplicatesOk
+          ? tnDupGroups + fioDupGroups
+            ? "дубли решены"
+            : "конфликтов нет"
+          : "нужна проверка / решение";
+
+    var outputDetail = !res ? "нажмите «Сформировать»" : gateOk ? "CSV и XLSX готовы" : "CSV заблокирован";
+    var outputStatus = !res ? "idle" : gateOk ? "done" : "bad";
+
+    var items = [
+      {
+        key: "tournaments",
+        title: "Турниры",
+        detail: tournamentsDetail,
+        status: stageStatus(tournamentsOk, false),
+        tip: noActive ? "Нет активных турниров для выгрузки" : "Турниры, включённые в отчёт",
+        icon: icons.tournaments,
+        stats:
+          stageStat("list", total, "всего", "", "Всего турниров в списке") +
+          stageStat("check", includedN, "в отчёте", includedN ? "ok" : "", "Включены в проверку и выгрузку") +
+          (importWarn ? stageStat("warn", importWarn, "проверить", "warn", "Загружены из списков с пометкой «! СПИСКИ» — проверьте параметры") : "") +
+          (closingSoon ? stageStat("flag", closingSoon, "закрыть", "bad", "По датам SCHEDULE — пора закрывать (сегодня ≥ даты подведения итогов)") : ""),
+      },
+      {
+        key: "fields",
+        title: "Поля",
+        detail: fieldsDetail,
+        status: stageStatus(st.fieldsFilled, noActive),
+        tip: "Обязательные параметры включённых турниров",
+        icon: icons.fields,
+        stats: noActive
+          ? ""
+          : stageStat("check", fieldsOkN + "/" + includedN, "заполнено", fieldsOkN === includedN ? "ok" : "warn", "Включённые турниры с заполненными кодами, названием, планом и датой") +
+            (st.blockedCopies.length ? stageStat("lock", st.blockedCopies.length, "копии", "bad", "Копии, где не сменены код и название") : ""),
+      },
+      {
+        key: "sources",
+        title: "Источники",
+        detail: sourcesDetail,
+        status: stageStatus(st.sourcesOk, noActive),
+        tip: "CSV/Excel и выбранные колонки",
+        icon: icons.sources,
+        stats: noActive
+          ? ""
+          : stageStat("file", withSourceN + "/" + includedN, "файлов", withSourceN === includedN ? "ok" : "warn", "Включённые турниры с загруженным файлом и выбранными колонками") +
+            (rowsTotal ? stageStat("rows", rowsTotal, "строк", "", "Строк данных во включённых турнирах") : "") +
+            (rowsErr ? stageStat("error", rowsErr, "с ошибкой", "bad", "Строки с битым табельным, пустыми полями или без табельного по ФИО — в CSV не попадут") : ""),
+      },
+      {
+        key: "fio",
+        title: "ФИО",
+        detail: fioDetail,
+        status: stageStatus(st.fioOk && includedFio, fioIdle || noActive || !includedFio),
+        tip: fioIdle
+          ? "Этап ФИО не участвует (нет турниров режима FIO)"
+          : "Справочник ФИО ↔ табельный — общий для всех турниров FIO (кнопка «Справочник ФИО» слева)",
+        icon: icons.fio,
+        stats: fioIdle
+          ? ""
+          : stageStat("book", state.fioEntries.length, "в справочнике", "", "Записей ФИО ↔ табельный") +
+            ((st.missingFio || []).length ? stageStat("question", st.missingFio.length, "не найдено", "bad", "ФИО из источников, которых нет в справочнике") : "") +
+            (fioIssues ? stageStat("warn", fioIssues, "проблем", "warn", "Строки таблицы ФИО с дублями или битым табельным") : ""),
+      },
+      {
+        key: "dups",
+        title: "Дубли",
+        detail: dupsDetail,
+        status: stageStatus(st.duplicatesOk, noActive || !st.sourcesOk),
+        tip: "Конфликты ключей: конкурс + турнир + табельный (и ФИО для режима FIO)",
+        icon: icons.dups,
+        stats: noActive || !st.sourcesOk
+          ? ""
+          : (tnDupGroups ? stageStat("copy", tnDupGroups, "по ТН", state.checkState.duplicatesCleared ? "ok" : "warn", "Групп дублей по табельному") : "") +
+            (fioDupGroups ? stageStat("person", fioDupGroups, "по ФИО", state.checkState.fioDupCleared ? "ok" : "warn", "Групп дублей по ФИО") : "") +
+            (dupResolved ? stageStat("check", dupResolved, "решено", "ok", "Групп дублей с принятым решением") : "") +
+            (!tnDupGroups && !fioDupGroups ? stageStat("check", 0, "дублей", "ok", "Дублей не найдено") : ""),
+      },
+      {
+        key: "output",
+        title: "Выгрузка",
+        detail: outputDetail,
+        status: outputStatus,
+        tip: "Результат «Сформировать»: сколько строк уйдёт в XLSX и CSV",
+        icon: icons.output,
+        stats: !res
+          ? ""
+          : stageStat("rows", (res.xlsxRows || []).length, "XLSX", "", "Строк в XLSX (все, с пометками)") +
+            stageStat("csv", gateOk ? (res.csvRows || []).length : 0, "CSV", gateOk ? "ok" : "", "Строк в CSV") +
+            (excludedRows ? stageStat("minus", excludedRows, "исключено", "", "Строки, исключённые решениями по дублям") : "") +
+            (gateErrors ? stageStat("error", gateErrors, "ошибок", "bad", "Строки с ошибкой CSV_ERROR") : ""),
+      },
+    ];
+
+    box.innerHTML = items
+      .map(function (it) {
+        return (
+          '<div class="stage-chip is-' +
+          it.status +
+          '" data-stage="' +
+          it.key +
+          '" data-tip="' +
+          escapeHtml(it.tip) +
+          '">' +
+          '<div class="stage-chip__head">' +
+          '<span class="stage-chip__icon" aria-hidden="true">' +
+          it.icon +
+          "</span>" +
+          '<span class="stage-chip__body">' +
+          '<span class="stage-chip__title">' +
+          escapeHtml(it.title) +
+          "</span>" +
+          '<span class="stage-chip__detail">' +
+          escapeHtml(it.detail) +
+          "</span>" +
+          "</span></div>" +
+          (it.stats ? '<div class="stage-chip__stats">' + it.stats + "</div>" : "") +
+          "</div>"
+        );
+      })
+      .join("");
+
+    var processed = !!res;
+    var procBtn = $("btn-process");
+    procBtn.classList.toggle("is-done", processed);
+    procBtn.setAttribute(
+      "data-tip",
+      processed
+        ? "Отчёт сформирован. После любой правки данных отметка снимется — сформируйте заново"
+        : "Сформировать отчёт"
+    );
+    $("btn-process").disabled =
+      !st.hasTournaments || !st.fieldsFilled || !st.sourcesOk || st.blockedCopies.length > 0 || noActive;
+    $("btn-check").disabled = !st.canCheck || noActive;
+    $("btn-export-csv").disabled = !(state.lastResult && state.lastResult.ok);
+    $("btn-export-xlsx").disabled = !(state.lastResult && state.lastResult.ok);
+    // «Обновить REPORT»: ровно тогда, когда CSV реально скачался бы (гейт зелёный,
+    // а не просто кнопка не серая), и когда есть весь REPORT из «Загрузить списки».
+    var reportUpdateBtn = $("btn-update-report");
+    if (reportUpdateBtn) {
+      var csvReallyReady = !!(
+        state.lastResult &&
+        state.lastResult.ok &&
+        state.lastResult.csvGate &&
+        state.lastResult.csvGate.ok
+      );
+      reportUpdateBtn.disabled = !(csvReallyReady && state.importedReportPack);
+    }
+    // «Загрузить REPORT» — только если REPORT не пришёл из «Загрузить списки»
+    // (ручной можно перезагрузить — обновляться будет последний выбранный файл)
+    var loadRep = $("btn-load-report");
+    if (loadRep) {
+      var fromLists = state.importedReportSource === "lists";
+      loadRep.classList.toggle("is-disabled", fromLists);
+      loadRep.classList.toggle("is-loaded", state.importedReportSource === "manual");
+      var repInput = $("import-report-file");
+      if (repInput) repInput.disabled = fromLists;
+      var repLabel = $("btn-load-report-label");
+      if (repLabel) {
+        repLabel.textContent =
+          state.importedReportSource === "manual"
+            ? "REPORT: " + (state.importedReportPack.rows || []).length + " строк"
+            : "Загрузить REPORT";
+      }
+      loadRep.setAttribute(
+        "data-tip",
+        fromLists
+          ? "REPORT уже загружен через «Загрузить списки» — «Обновить REPORT» обновит его"
+          : state.importedReportSource === "manual"
+            ? "Загружен REPORT «" + state.importedReportPack.fileName + "» — «Обновить REPORT» обновит его. Нажмите, чтобы выбрать другой файл"
+            : "Загрузить текущий REPORT (CSV) для «Обновить REPORT» — когда турниры заведены вручную, а не через «Загрузить списки»"
+      );
+    }
+    var fioDictBtn = $("btn-fio-dict");
+    if (fioDictBtn) {
+      fioDictBtn.disabled = !anyFio;
+      // есть турниры FIO, а справочник ещё пуст — подсветить, что его нужно загрузить
+      var needFio = anyFio && !state.fioEntries.length;
+      fioDictBtn.classList.toggle("is-attention", needFio);
+      fioDictBtn.setAttribute(
+        "data-tip",
+        needFio
+          ? "Есть турниры режима FIO, а справочник ФИО ещё не загружен — откройте и загрузите таблицу или JSON"
+          : "Общий справочник ФИО ↔ табельный — один на все турниры режима FIO (кнопка активна, если хоть один такой турнир есть в списке)"
+      );
+    }
+  }
+
+  function hasAnyFioMode() {
+    return state.tournaments.some(function (t) {
+      return String(t.type_ind || "").toUpperCase() === "FIO";
+    });
+  }
+
+  /** Счётчики на чипах «Статус по датам» — по всему списку турниров (без учёта фильтров). */
+  function renderTimelineFilterCounts() {
+    var counts = { not_started: 0, active: 0, summarizing: 0, closing: 0, nodata: 0, closingNow: 0 };
+    state.tournaments.forEach(function (t) {
+      var tl = ReportCore.tournamentTimeline(t);
+      counts[tl.status] += 1;
+      if (tl.closingNow) counts.closingNow += 1;
+    });
+    document.querySelectorAll("[data-tl-count]").forEach(function (el) {
+      var key = el.getAttribute("data-tl-count");
+      el.textContent = String(counts[key] || 0);
+    });
+  }
+
+  function renderNav() {
+    var nav = $("tournament-nav");
+    nav.innerHTML = "";
+    var periodBadges = ReportCore.periodBadgesForTournaments(state.tournaments);
+    renderTimelineFilterCounts();
+    state.tournaments.filter(matchesFilters).forEach(function (t) {
+      var btn = document.createElement("button");
+      btn.type = "button";
+      var cls = "contest-tab";
+      if (t.id === state.activeId) cls += " active";
+      if (!ReportCore.tournamentIdentityUnlocked(t)) cls += " is-copy-lock";
+      if (!ReportCore.tournamentIncluded(t)) cls += " is-excluded";
+      if (t.source_error) cls += " is-error";
+      if (t.import_warning) cls += " is-import-warn";
+      btn.className = cls;
+      var kind = tournamentReadyKind(t);
+      var type = String(t.type_ind || "TN").toUpperCase();
+      var periodBadge = periodBadges[t.id] || ReportCore.normalizePeriodCode(t.period_code);
+      var pack = state.dataByTournament[t.id];
+      var rowStats = ReportCore.tournamentRowStats(t, pack, state.fioEntries, coreOpts());
+      var metricsHtml = "";
+      if (rowStats.loaded) {
+        metricsHtml =
+          '<div class="ct-metrics">' +
+          '<span class="ct-metric ct-metric--total" data-tip="Загружено табельных / строк">' +
+          metricIcon("total") +
+          "<b>" +
+          rowStats.total +
+          "</b></span>" +
+          '<span class="ct-metric ct-metric--err" data-tip="Строк с ошибкой (не попадут в CSV)">' +
+          metricIcon("error") +
+          "<b>" +
+          rowStats.errors +
+          "</b></span>" +
+          '<span class="ct-metric ct-metric--csv" data-tip="Строк, которые попадут в CSV">' +
+          metricIcon("csv") +
+          "<b>" +
+          rowStats.forCsv +
+          "</b></span>" +
+          "</div>";
+      } else if (t.source_file_name) {
+        metricsHtml =
+          '<div class="ct-metrics ct-metrics--empty">' +
+          '<span class="ct-metric ct-metric--miss" data-tip="Файл указан, но не загружен">' +
+          metricIcon("missing") +
+          " нет данных</span></div>";
+      }
+      var actions =
+        t.id === state.activeId
+          ? '<div class="ct-actions">' +
+            '<button type="button" class="tab-icon-btn" data-act="copy" data-tip="Копировать турнир (данные и параметры)">' +
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></button>' +
+            '<button type="button" class="tab-icon-btn tab-icon-btn--danger" data-act="remove" data-tip="Удалить турнир">' +
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12"/><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg></button>' +
+            "</div>"
+          : "";
+      btn.innerHTML =
+        '<div class="ct-text">' +
+        '<div class="ct-code">' +
+        escapeHtml(t.tournament_code || t.contest_code || t.id) +
+        "</div>" +
+        '<div class="ct-name">' +
+        escapeHtml(t.full_name || "Без названия") +
+        "</div>" +
+        '<div class="ct-badges">' +
+        '<span class="mini-badge mini-badge--period" data-tip="' +
+        escapeHtml(ReportCore.periodDisplay(t.period_code)) +
+        '">' +
+        escapeHtml(periodBadge) +
+        "</span>" +
+        '<span class="mini-badge' +
+        (type === "FIO" ? " mini-badge--fio" : "") +
+        '">' +
+        type +
+        "</span>" +
+        '<span class="mini-badge' +
+        (kind === "ready" ? " mini-badge--ok" : kind === "off" ? " mini-badge--off" : " mini-badge--warn") +
+        '">' +
+        (kind === "copy" ? "КОПИЯ" : kind === "ready" ? "OK" : kind === "off" ? "ВЫКЛ" : "DRAFT") +
+        "</span>" +
+        (t.import_warning
+          ? '<span class="mini-badge mini-badge--import-warn" data-tip="' +
+            escapeHtml("Загружено из списков, требует проверки: " + t.import_warning) +
+            '">! СПИСКИ</span>'
+          : "") +
+        navTimelineBadge(t) +
+        "</div>" +
+        metricsHtml +
+        "</div>" +
+        actions;
+      btn.addEventListener("click", function (ev) {
+        var actBtn = ev.target.closest("[data-act]");
+        if (actBtn) {
+          ev.preventDefault();
+          ev.stopPropagation();
+          var act = actBtn.getAttribute("data-act");
+          if (act === "copy") copyTournament();
+          if (act === "remove") removeTournament();
+          return;
+        }
+        flushEditorToState();
+        state.activeId = t.id;
+        renderAll();
+      });
+      nav.appendChild(btn);
+    });
+  }
+
+  function fillSelect(select, options, selected) {
+    select.innerHTML = "";
+    var empty = document.createElement("option");
+    empty.value = "";
+    empty.textContent = "— выберите —";
+    select.appendChild(empty);
+    var list = options ? options.slice() : [];
+    var sel = selected || "";
+    if (sel && list.indexOf(sel) < 0) {
+      list.push(sel);
+    }
+    list.forEach(function (name) {
+      var opt = document.createElement("option");
+      opt.value = name;
+      opt.textContent = name;
+      if (name === sel) opt.selected = true;
+      select.appendChild(opt);
+    });
+  }
+
+  function isExcelKind(kind, fileName) {
+    var k = String(kind || "").toLowerCase();
+    if (k === "excel" || /xlsx?|xlsm/.test(k)) return true;
+    var n = String(fileName || "").toLowerCase();
+    return /\.xlsx?$|\.xlsm$/.test(n);
+  }
+
+  /** Файл ещё не выбран вовсе (даже имени/пути из JSON нет) — поле листа показываем как «выбери». */
+  function noFileYet(pack, fileName, sheetName) {
+    return !pack && !String(fileName || "").trim() && !String(sheetName || "").trim();
+  }
+
+  function renderSheetFieldHtml(id, pack, kind, fileName, sheetName) {
+    var noFile = noFileYet(pack, fileName, sheetName);
+    var isExcel =
+      (pack && pack.kind === "excel") ||
+      isExcelKind(kind, fileName) ||
+      !!String(sheetName || "").trim();
+    // файл загружен и это не Excel (CSV) — листов нет, поле не нужно
+    if (!noFile && !isExcel) return "";
+    return (
+      '<div class="field field--sheet"><label class="field-label" for="' +
+      id +
+      '">Лист</label>' +
+      '<select class="field-select" id="' +
+      id +
+      '" data-tip="Лист Excel"' +
+      (noFile ? " disabled" : "") +
+      "></select></div>"
+    );
+  }
+
+  function fillSheetSelect(select, pack, preferred) {
+    if (!select) return;
+    if (!pack) {
+      select.innerHTML = '<option value="">— сначала загрузите файл —</option>';
+      return;
+    }
+    var names = pack.sheetNames && pack.sheetNames.length ? pack.sheetNames.slice() : [];
+    var sel = preferred || pack.sheetName || "";
+    fillSelect(select, names, sel);
+  }
+
+  function renderPreviewFold(kind, pack, highlightCols) {
+    var open = !!(state.previewOpen && state.previewOpen[kind]);
+    var hostId = kind === "fio" ? "fio-preview-host" : "data-preview-host";
+    var foldId = kind === "fio" ? "fio-preview-fold" : "data-preview-fold";
+    var title =
+      kind === "fio" ? "Превью таблицы ФИО" : "Превью данных источника";
+    var body;
+    if (pack) {
+      body = renderPreviewTable(pack, null, highlightCols);
+    } else {
+      body =
+        '<div class="warn-box">Файл ещё не загружен — превью появится после загрузки.</div>';
+    }
+    return (
+      '<details class="preview-fold" id="' +
+      foldId +
+      '"' +
+      (open ? " open" : "") +
+      ">" +
+      "<summary>" +
+      title +
+      (pack && pack.rows ? " · " + pack.rows.length + " строк" : "") +
+      "</summary>" +
+      '<div id="' +
+      hostId +
+      '">' +
+      body +
+      "</div></details>"
+    );
+  }
+
+  function bindPreviewFold(kind) {
+    var foldId = kind === "fio" ? "fio-preview-fold" : "data-preview-fold";
+    var el = $(foldId);
+    if (!el) return;
+    el.addEventListener("toggle", function () {
+      if (!state.previewOpen) state.previewOpen = { source: true, fio: true };
+      state.previewOpen[kind] = !!el.open;
+    });
+  }
+
+  function previewRowLimit() {
+    var c = state.config || {};
+    var n = Number(c.preview_row_limit);
+    return n > 0 ? n : 100;
+  }
+
+  function renderPreviewTable(pack, limit, highlightCols) {
+    var cols = pack.columns || [];
+    var total = (pack.rows || []).length;
+    var lim = limit == null ? previewRowLimit() : limit;
+    var rows = (pack.rows || []).slice(0, lim);
+    var hl = {};
+    (highlightCols || []).forEach(function (c) {
+      if (c) hl[c] = true;
+    });
+    var head = cols
+      .map(function (c) {
+        return '<th class="' + (hl[c] ? "is-selected" : "") + '">' + escapeHtml(c) + "</th>";
+      })
+      .join("");
+    var body = rows
+      .map(function (row) {
+        return (
+          "<tr>" +
+          cols
+            .map(function (c) {
+              return (
+                '<td class="' +
+                (hl[c] ? "is-selected" : "") +
+                '">' +
+                escapeHtml(row[c] == null ? "" : row[c]) +
+                "</td>"
+              );
+            })
+            .join("") +
+          "</tr>"
+        );
+      })
+      .join("");
+    var meta =
+      total > lim
+        ? '<div class="preview-meta">Показаны первые <b>' +
+          lim +
+          "</b> из <b>" +
+          total +
+          "</b> строк (прокрутка вправо/вниз).</div>"
+        : '<div class="preview-meta">Строк: <b>' +
+          total +
+          "</b>" +
+          (cols.length ? " · колонок: <b>" + cols.length + "</b>" : "") +
+          " (прокрутка вправо/вниз при необходимости).</div>";
+    return (
+      meta +
+      '<div class="preview-table-wrap"><table class="preview-table"><thead><tr>' +
+      head +
+      "</tr></thead><tbody>" +
+      body +
+      "</tbody></table></div>"
+    );
+  }
+
+  /**
+   * Справочник ФИО — общий модал (не «под турниром»): один и тот же список
+   * ФИО↔табельный используется всеми турнирами режима FIO. Рендерит и сразу
+   * биндит тело модалки (как renderReportUpdateModal) — вызывается заново
+   * после каждого изменения справочника, пока модалка открыта.
+   */
+  function renderFioDictModal() {
+    var host = $("fio-dict-body");
+    if (!host) return;
+    var pack = state.fioPack;
+    var ui = state.fioUi;
+    var sheetBlock = renderSheetFieldHtml(
+      "fio-sheet",
+      pack,
+      ui.source_file_kind,
+      ui.file_name,
+      ui.sheet_name
+    );
+    var fioErr = ui.source_error
+      ? '<div class="error-box">' + escapeHtml(ui.source_error) + "</div>"
+      : "";
+    var hasIssues = ui.apply_issues && ui.apply_issues.length > 0;
+    var fioApplyWarn = ui.apply_warning
+      ? '<div class="warn-box warn-box--row" id="fio-apply-warning">' +
+        "<span>" +
+        escapeHtml(ui.apply_warning) +
+        "</span>" +
+        (hasIssues
+          ? '<button type="button" class="btn btn-sm" id="btn-fio-issues" data-tip="Показать строки с дублями и нечисловым табельным">Подробнее</button>'
+          : "") +
+        "</div>"
+      : "";
+    host.innerHTML =
+      fioErr +
+      fioApplyWarn +
+      '<div class="toolbar-row toolbar-row--top">' +
+      '<div class="info-box info-box--inline">Записей: <b id="fio-stats">' +
+      state.fioEntries.length +
+      "</b></div>" +
+      '<label class="btn file-pick" data-tip="Загрузить ранее сохранённый JSON справочника">' +
+      "<span>Открыть JSON</span>" +
+      '<input type="file" id="import-fio-json" class="file-pick__input" accept=".json,application/json" /></label>' +
+      '<button type="button" class="btn" id="btn-save-fio" data-tip="Сохранить справочник ФИО в JSON">Сохранить JSON</button>' +
+      '<label class="btn btn-primary file-pick" data-tip="Загрузить CSV/Excel со столбцами ФИО и табельный">' +
+      '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21V9"/><path d="M7 14l5-5 5 5"/><path d="M5 3h14"/></svg> ' +
+      "<span>Загрузить таблицу ФИО</span>" +
+      '<input type="file" id="import-fio-table" class="file-pick__input" accept=".csv,.txt,.xlsx,.xls,.xlsm" /></label>' +
+      '<button type="button" class="btn btn-primary" id="btn-apply-fio-table" disabled data-tip="Взять строки из таблицы в справочник (нужны файл и колонки)">Применить</button>' +
+      "</div>" +
+      '<div class="fields-grid">' +
+      '<div class="fields-row fields-row--table-map' +
+      (sheetBlock ? "" : " fields-row--table-map--nosheet") +
+      '">' +
+      (sheetBlock || "") +
+      '<div class="field field--corner"><label class="field-label" for="fio-start-row">Стр.</label>' +
+      '<input class="field-input field-input--corner" id="fio-start-row" type="number" min="1" step="1" data-tip="Строка угла (заголовок)" /></div>' +
+      '<div class="field field--corner"><label class="field-label" for="fio-start-col">Кол.</label>' +
+      '<input class="field-input field-input--corner" id="fio-start-col" type="number" min="1" step="1" data-tip="Колонка угла" /></div>' +
+      '<div class="field field--colpick"><label class="field-label" for="fio-col-fio">Колонка ФИО</label>' +
+      '<select class="field-select" id="fio-col-fio"></select></div>' +
+      '<div class="field field--colpick"><label class="field-label" for="fio-col-tn">Колонка табельного</label>' +
+      '<select class="field-select" id="fio-col-tn"></select></div>' +
+      "</div>" +
+      '<div class="fields-row fields-row--file-meta">' +
+      '<div class="field"><label class="field-label" for="fio-file-name">Имя файла</label>' +
+      '<input class="field-input" id="fio-file-name" readonly /></div>' +
+      "</div>" +
+      "</div>" +
+      renderPreviewFold("fio", pack, [ui.col_fio, ui.col_tn]);
+
+    $("fio-start-row").value = ui.start_row || 1;
+    $("fio-start-col").value = ui.start_col || 1;
+    $("fio-file-name").value = ui.file_name || "";
+    var colOpts = pack ? pack.columns : [];
+    fillSelect($("fio-col-fio"), colOpts, ui.col_fio || "");
+    fillSelect($("fio-col-tn"), colOpts, ui.col_tn || "");
+    if ($("fio-sheet")) {
+      fillSheetSelect($("fio-sheet"), pack, ui.sheet_name || "");
+      $("fio-sheet").addEventListener("change", function () {
+        state.fioUi.sheet_name = $("fio-sheet").value;
+        if (state.fioPack) reapplyFioOrigin({ sheetName: $("fio-sheet").value });
+      });
+    }
+    bindPreviewFold("fio");
+    refreshFioFieldHighlights();
+
+    ["fio-start-row", "fio-start-col"].forEach(function (id) {
+      $(id).addEventListener("change", function () {
+        if (!state.fioPack) {
+          state.fioUi.start_row = Number($("fio-start-row").value) || 1;
+          state.fioUi.start_col = Number($("fio-start-col").value) || 1;
+          return;
+        }
+        reapplyFioOrigin({
+          start_row: Number($("fio-start-row").value) || 1,
+          start_col: Number($("fio-start-col").value) || 1,
+        });
+      });
+    });
+    ["fio-col-fio", "fio-col-tn"].forEach(function (id) {
+      $(id).addEventListener("change", function () {
+        state.fioUi.col_fio = $("fio-col-fio").value;
+        state.fioUi.col_tn = $("fio-col-tn").value;
+        state.fioUi.source_error = "";
+        if (state.fioPack && $("fio-preview-host")) {
+          $("fio-preview-host").innerHTML = renderPreviewTable(state.fioPack, null, [
+            state.fioUi.col_fio,
+            state.fioUi.col_tn,
+          ]);
+        }
+        updateFioApplyEnabled();
+        refreshFioFieldHighlights();
+      });
+    });
+    updateFioApplyEnabled();
+    if ($("btn-fio-issues")) {
+      $("btn-fio-issues").addEventListener("click", openFioIssuesModal);
+    }
+
+    $("import-fio-json").addEventListener("change", async function (ev) {
+      var file = ev.target.files && ev.target.files[0];
+      ev.target.value = "";
+      if (!file) return;
+      try {
+        state.fioEntries = ReportCore.parseFioDictionary(await readJsonFile(file));
+        state.fioUi.apply_warning = "";
+        state.fioUi.apply_issues = [];
+        invalidateChecks();
+        renderAll();
+        renderFioDictModal();
+        showToast("Справочник JSON загружен");
+      } catch (err) {
+        alert(err.message || String(err));
+      }
+    });
+    $("btn-save-fio").addEventListener("click", function () {
+      ReportIO.downloadJson(
+        ReportIO.timestampName("fio_dictionary", "json"),
+        ReportCore.serializeFioDictionary(state.fioEntries)
+      );
+      showToast("Справочник ФИО");
+    });
+    $("import-fio-table").addEventListener("change", async function (ev) {
+      var file = ev.target.files && ev.target.files[0];
+      ev.target.value = "";
+      if (!file) return;
+      try {
+        // новая загрузка: угол 1,1; колонки сбрасываем — нужно выбрать вручную
+        trace("ACTION", "загрузка таблицы ФИО", { file: file.name, sizeKB: Math.round(file.size / 1024) });
+        var newPack = await traced("readTableFile(ФИО)", function () {
+          return ReportIO.readTableFile(file, 1, 1);
+        });
+        trace("ACTION", "таблица ФИО прочитана", packSummary(newPack));
+        state.fioPack = newPack;
+        state.fioUi.file_name = newPack.fileName;
+        state.fioUi.sheet_name = newPack.sheetName || "";
+        state.fioUi.source_file_kind = newPack.kind || "";
+        state.fioUi.start_row = 1;
+        state.fioUi.start_col = 1;
+        state.fioUi.col_fio = "";
+        state.fioUi.col_tn = "";
+        state.fioUi.source_error = "";
+        state.fioUi.apply_warning = "";
+        state.fioUi.apply_issues = [];
+        renderAll();
+        renderFioDictModal();
+        showToast("Таблица ФИО загружена — выберите колонки");
+      } catch (err) {
+        alert(err.message || String(err));
+      }
+    });
+    $("btn-apply-fio-table").addEventListener("click", function () {
+      if (!state.fioPack) {
+        alert("Сначала загрузите таблицу ФИО");
+        return;
+      }
+      var colFio = $("fio-col-fio").value;
+      var colTn = $("fio-col-tn").value;
+      if (!colFio || !colTn) {
+        alert("Укажите колонки ФИО и табельного");
+        return;
+      }
+      state.fioUi.col_fio = colFio;
+      state.fioUi.col_tn = colTn;
+      var resolved = ReportCore.resolveFioTableEntries(state.fioPack.rows, colFio, colTn);
+      var entries = resolved.entries;
+      if (!entries.length) {
+        state.fioUi.apply_warning = "";
+        state.fioUi.apply_issues = [];
+        alert("Не удалось прочитать ни одной строки с ФИО");
+        return;
+      }
+      var byKey = Object.create(null);
+      state.fioEntries.forEach(function (e) {
+        byKey[ReportCore.normalizeFioKey(e.fio)] = e;
+      });
+      entries.forEach(function (e) {
+        byKey[ReportCore.normalizeFioKey(e.fio)] = e;
+      });
+      state.fioEntries = Object.keys(byKey).map(function (k) {
+        return byKey[k];
+      });
+      state.fioUi.apply_warning = resolved.stats.message || "";
+      state.fioUi.apply_issues = resolved.issues || [];
+      invalidateChecks();
+      renderAll();
+      renderFioDictModal();
+      var toastMsg = "В справочник: " + entries.length;
+      if (resolved.stats.message) {
+        toastMsg += ". " + resolved.stats.message;
+      }
+      showToast(toastMsg);
+    });
+  }
+
+  function openFioDictModal() {
+    if (!hasAnyFioMode()) return;
+    renderFioDictModal();
+    openModal("modal-fio-dict");
+  }
+
+  function refreshFioFieldHighlights() {
+    if (!$("fio-col-fio")) return;
+    function blank(v) {
+      return !String(v == null ? "" : v).trim();
+    }
+    function mark(id, need) {
+      var el = $(id);
+      if (!el) return;
+      if (el.classList.contains("is-error")) return;
+      el.classList.toggle("is-highlight", !!need);
+    }
+    var pack = state.fioPack;
+    mark("fio-col-fio", !pack || blank(state.fioUi.col_fio));
+    mark("fio-col-tn", !pack || blank(state.fioUi.col_tn));
+    mark("fio-file-name", !pack || blank(state.fioUi.file_name));
+    if ($("fio-sheet")) {
+      mark(
+        "fio-sheet",
+        !pack || blank(state.fioUi.sheet_name || (pack && pack.sheetName))
+      );
+    }
+  }
+
+  function updateFioApplyEnabled() {
+    var btn = $("btn-apply-fio-table");
+    if (!btn) return;
+    var ok =
+      !!state.fioPack &&
+      !!($("fio-col-fio") && $("fio-col-fio").value) &&
+      !!($("fio-col-tn") && $("fio-col-tn").value);
+    btn.disabled = !ok;
+  }
+
+  function openFioIssuesModal() {
+    var issues = state.fioUi.apply_issues || [];
+    var body = $("modal-fio-issues-body");
+    var modal = $("modal-fio-issues");
+    if (!body || !modal) return;
+    if (!issues.length) {
+      body.innerHTML = '<div class="info-box">Проблемных строк нет.</div>';
+    } else {
+      var rowsHtml = issues
+        .map(function (it) {
+          var tnShow = it.person_number === "" ? "—" : escapeHtml(String(it.person_number));
+          var reason = (it.reasons || []).join(", ") || "—";
+          return (
+            "<tr class=\"" +
+            (it.chosen ? "is-chosen" : "") +
+            (it.tnOk ? "" : " is-bad-tn") +
+            '">' +
+            "<td>" +
+            escapeHtml(it.fio) +
+            "</td>" +
+            "<td class=\"mono\">" +
+            tnShow +
+            "</td>" +
+            "<td>" +
+            escapeHtml(reason) +
+            "</td>" +
+            "<td>" +
+            (it.chosen
+              ? '<span class="mini-badge mini-badge--ok">выбран</span>'
+              : '<span class="mini-badge mini-badge--off">пропуск</span>') +
+            "</td></tr>"
+          );
+        })
+        .join("");
+      body.innerHTML =
+        '<div class="fio-issues-table-wrap"><table class="fio-issues-table">' +
+        "<thead><tr><th>ФИО</th><th>Табельный / значение</th><th>Что не так</th><th>В справочник</th></tr></thead>" +
+        "<tbody>" +
+        rowsHtml +
+        "</tbody></table></div>";
+    }
+    modal.hidden = false;
+  }
+
+  function closeFioIssuesModal() {
+    var modal = $("modal-fio-issues");
+    if (modal) modal.hidden = true;
+  }
+
+  function reapplyFioOrigin(partial) {
+    trace("ACTION", "reapplyFioOrigin", { partial: partial, before: packSummary(state.fioPack) });
+    if (!state.fioPack) return;
+    if (partial) {
+      if (partial.sheetName != null) state.fioUi.sheet_name = partial.sheetName;
+      if (partial.start_row != null) state.fioUi.start_row = partial.start_row;
+      if (partial.start_col != null) state.fioUi.start_col = partial.start_col;
+    }
+    state.fioPack = ReportIO.applyPackOrigin(state.fioPack, {
+      sheetName: state.fioUi.sheet_name || state.fioPack.sheetName,
+      start_row: state.fioUi.start_row,
+      start_col: state.fioUi.start_col,
+    });
+    state.fioUi.sheet_name = state.fioPack.sheetName || "";
+    state.fioUi.start_row = state.fioPack.start_row || 1;
+    state.fioUi.start_col = state.fioPack.start_col || 1;
+    if (state.fioUi.col_fio && state.fioPack.columns.indexOf(state.fioUi.col_fio) < 0) {
+      state.fioUi.col_fio = "";
+    }
+    if (state.fioUi.col_tn && state.fioPack.columns.indexOf(state.fioUi.col_tn) < 0) {
+      state.fioUi.col_tn = "";
+    }
+    renderAll();
+    renderFioDictModal();
+  }
+
+  /** SVG-иконка для мини-метрик (16×16). */
+  function metricIcon(kind) {
+    if (kind === "total") {
+      return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h10"/></svg>';
+    }
+    if (kind === "error") {
+      return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v5"/><path d="M12 16h.01"/></svg>';
+    }
+    if (kind === "csv") {
+      return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 21h14"/></svg>';
+    }
+    if (kind === "tournaments") {
+      return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 21h8"/><path d="M12 17v4"/><path d="M7 4h10v4a5 5 0 0 1-10 0V4z"/><path d="M5 6H3a4 4 0 0 0 4 4"/><path d="M19 6h2a4 4 0 0 1-4 4"/></svg>';
+    }
+    if (kind === "active") {
+      return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12l5 5L20 7"/></svg>';
+    }
+    if (kind === "filled") {
+      return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 12h8"/><path d="M8 8h8"/><path d="M8 16h5"/></svg>';
+    }
+    if (kind === "empty") {
+      return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M9 12h6"/></svg>';
+    }
+    if (kind === "dup") {
+      return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M4 16V6a2 2 0 0 1 2-2h10"/></svg>';
+    }
+    if (kind === "missing") {
+      return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M8 12h8"/></svg>';
+    }
+    if (kind === "fio") {
+      return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="3"/><path d="M5 19a7 7 0 0 1 14 0"/></svg>';
+    }
+    return "";
+  }
+
+  /** Сводная статистика по всем турнирам для правой/верхней панели. */
+  function computePanelStats() {
+    var total = state.tournaments.length;
+    var active = 0;
+    var filled = 0;
+    var draft = 0;
+    var copies = 0;
+    var withSource = 0;
+    var withoutSource = 0;
+    var rowsTotal = 0;
+    var rowsErrors = 0;
+    var rowsCsv = 0;
+    var fioIssues = (state.fioUi.apply_issues || []).length;
+    var fioDupNames = 0;
+    var fioBadTn = 0;
+    (state.fioUi.apply_issues || []).forEach(function (it) {
+      if (it.isDuplicate) fioDupNames += 1;
+      if (!it.tnOk) fioBadTn += 1;
+    });
+    state.tournaments.forEach(function (t) {
+      if (ReportCore.tournamentIncluded(t)) active += 1;
+      var kind = tournamentReadyKind(t);
+      if (kind === "ready") filled += 1;
+      else if (kind === "copy") copies += 1;
+      else if (kind !== "off") draft += 1;
+      var pack = state.dataByTournament[t.id];
+      if (pack && pack.rows) {
+        withSource += 1;
+        var rs = ReportCore.tournamentRowStats(t, pack, state.fioEntries, coreOpts());
+        rowsTotal += rs.total;
+        rowsErrors += rs.errors;
+        rowsCsv += rs.forCsv;
+      } else {
+        withoutSource += 1;
+      }
+    });
+    return {
+      total: total,
+      active: active,
+      filled: filled,
+      draft: draft,
+      copies: copies,
+      withSource: withSource,
+      withoutSource: withoutSource,
+      rowsTotal: rowsTotal,
+      rowsErrors: rowsErrors,
+      rowsCsv: rowsCsv,
+      fioEntries: state.fioEntries.length,
+      fioIssues: fioIssues,
+      fioDupNames: fioDupNames,
+      fioBadTn: fioBadTn,
+    };
+  }
+
+  function renderSideStats() {
+    var host = $("side-stats");
+    if (!host) return;
+    var s = computePanelStats();
+    if (!s.total) {
+      host.innerHTML = '<div class="side-stats__empty">Добавьте турнир — здесь появится сводка.</div>';
+      return;
+    }
+    function card(kind, label, value, tone, tip) {
+      return (
+        '<div class="stat-card' +
+        (tone ? " stat-card--" + tone : "") +
+        '" data-tip="' +
+        escapeHtml(tip || label) +
+        '">' +
+        '<span class="stat-card__icon" aria-hidden="true">' +
+        metricIcon(kind) +
+        "</span>" +
+        '<span class="stat-card__body">' +
+        '<span class="stat-card__label">' +
+        escapeHtml(label) +
+        "</span>" +
+        '<span class="stat-card__value">' +
+        value +
+        "</span></span></div>"
+      );
+    }
+    var html =
+      '<div class="stat-grid">' +
+      card(
+        "tournaments",
+        "Турниров",
+        s.total,
+        "",
+        "Всего турниров в списке (включая выключенные и копии)"
+      ) +
+      card(
+        "active",
+        "В выгрузке",
+        s.active,
+        s.active ? "ok" : "",
+        "Турниры с галочкой «включать в проверку/выгрузку»"
+      ) +
+      card(
+        "filled",
+        "Заполнено",
+        s.filled,
+        "ok",
+        "Готовые турниры: поля заполнены, источник загружен, код и название разблокированы"
+      ) +
+      card(
+        "empty",
+        "Неполных",
+        s.draft + s.copies,
+        s.draft + s.copies ? "warn" : "",
+        "Черновики и копии без смены кода/названия (не готовы к выгрузке)"
+      ) +
+      card(
+        "total",
+        "Строк загружено",
+        s.rowsTotal,
+        "",
+        "Сумма строк из загруженных файлов источников по всем турнирам"
+      ) +
+      card(
+        "error",
+        "С ошибкой",
+        s.rowsErrors,
+        s.rowsErrors ? "bad" : "",
+        "Строки с битым табельным, пустыми полями или флагом «табельный не найден» — в CSV не попадут"
+      ) +
+      card(
+        "csv",
+        "Попадут в CSV",
+        s.rowsCsv,
+        "ok",
+        "Строки без критических ошибок, которые можно выгрузить в CSV"
+      ) +
+      card(
+        "missing",
+        "Без источника",
+        s.withoutSource,
+        s.withoutSource ? "warn" : "",
+        "Турниры, у которых ещё не загружен файл данных"
+      ) +
+      "</div>";
+    if (hasAnyFioMode() || s.fioEntries || s.fioIssues) {
+      html +=
+        '<div class="stat-grid stat-grid--fio">' +
+        card(
+          "fio",
+          "Записей ФИО",
+          s.fioEntries,
+          "",
+          "Число записей в справочнике ФИО ↔ табельный"
+        ) +
+        card(
+          "dup",
+          "Проблем ФИО",
+          s.fioIssues,
+          s.fioIssues ? "warn" : "",
+          "Строки таблицы ФИО с дублями или некорректным табельным (см. «Подробнее»)"
+        ) +
+        card(
+          "error",
+          "Битый ТН",
+          s.fioBadTn,
+          s.fioBadTn ? "bad" : "",
+          "Строки справочника ФИО, где табельный пуст или не из цифр"
+        ) +
+        "</div>";
+    }
+    host.innerHTML = html;
+  }
+
+  /** Строка под этапами: только то, чего нет на плашках (предупреждение по таблице ФИО). */
+  function renderTopInfo() {
+    var el = $("top-info");
+    if (!el) return;
+    if (!state.fioUi.apply_warning) {
+      el.hidden = true;
+      el.innerHTML = "";
+      return;
+    }
+    el.hidden = false;
+    el.innerHTML =
+      '<span class="top-info__pill top-info__pill--warn">' +
+      metricIcon("dup") +
+      " " +
+      escapeHtml(state.fioUi.apply_warning) +
+      "</span>";
+  }
+
+  function renderSideResult() {
+    var host = $("side-result");
+    var summary = $("result-summary");
+    var warn = $("result-warnings");
+    if (!host || !summary) return;
+    if (!(state.lastResult && state.lastResult.ok)) {
+      host.hidden = true;
+      summary.textContent = "";
+      if (warn) {
+        warn.hidden = true;
+        warn.textContent = "";
+      }
+      return;
+    }
+    host.hidden = false;
+    summary.textContent =
+      "Строк XLSX: " +
+      state.lastResult.xlsxRows.length +
+      "; CSV: " +
+      state.lastResult.csvRows.length;
+    if (warn) {
+      if (state.lastResult.missingFio && state.lastResult.missingFio.length) {
+        warn.hidden = false;
+        warn.textContent = "ФИО без табельного: " + state.lastResult.missingFio.join("; ");
+      } else {
+        warn.hidden = true;
+        warn.textContent = "";
+      }
+    }
+  }
+
+  var TIMELINE_ICONS = {
+    not_started:
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
+    active:
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="9"/><path d="M10 8.5l5.5 3.5-5.5 3.5z" fill="currentColor"/></svg>',
+    summarizing:
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 3h12"/><path d="M6 21h12"/><path d="M7 3c0 5 10 5 10 9s-10 4-10 9"/><path d="M17 3c0 5-10 5-10 9s10 4 10 9"/></svg>',
+    closing:
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 21V4"/><path d="M5 4h11l-2 4 2 4H5"/></svg>',
+    nodata:
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 0 1 5 .5c0 1.5-2.5 2-2.5 3.5"/><path d="M12 17h.01"/></svg>',
+    closingNow:
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>',
+    start:
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></svg>',
+    end:
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="4" y="5" width="16" height="16" rx="2"/><path d="M4 10h16"/><path d="M9 3v4"/><path d="M15 3v4"/></svg>',
+    result:
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M8 21h8"/><path d="M12 17v4"/><path d="M7 4h10v4a5 5 0 0 1-10 0V4z"/></svg>',
+  };
+
+  function formatRuDate(iso) {
+    return iso ? iso.slice(8, 10) + "." + iso.slice(5, 7) + "." + iso.slice(0, 4) : "";
+  }
+
+  var NAV_TIMELINE_SHORT = {
+    not_started: "НЕ СТАРТ",
+    active: "АКТИВЕН",
+    summarizing: "ИТОГИ",
+    closing: "ЗАКРЫТЬ",
+    nodata: "НЕТ ДАТ",
+  };
+
+  /** Статус по датам SCHEDULE для карточки в списке турниров (только если даты вообще есть). */
+  function navTimelineBadge(t) {
+    var tl = ReportCore.tournamentTimeline(t);
+    if (!tl.hasAnyDate) return "";
+    var tip =
+      tl.label +
+      (tl.daysText ? " · " + tl.daysText : "") +
+      (tl.closingNow ? " · закроется этой выгрузкой" : "") +
+      (tl.missing.length ? " · нет дат: " + tl.missing.join(", ") : "");
+    return (
+      '<span class="mini-badge mini-badge--tl mini-badge--tl-' +
+      tl.status +
+      '" data-tip="' +
+      escapeHtml(tip) +
+      '">' +
+      TIMELINE_ICONS[tl.status] +
+      NAV_TIMELINE_SHORT[tl.status] +
+      (tl.days != null ? " " + tl.days + "д" : "") +
+      "</span>"
+    );
+  }
+
+  /** Даты SCHEDULE (старт / завершение / итоги) и статус турнира на сегодня. */
+  function renderTimelineHtml(t) {
+    var tl = ReportCore.tournamentTimeline(t);
+    function dateCell(kind, label, value, tip) {
+      return (
+        '<span class="tl-date' +
+        (value ? "" : " is-missing") +
+        '" data-tip="' +
+        escapeHtml(tip + (value ? "" : " — нет данных в SCHEDULE")) +
+        '">' +
+        TIMELINE_ICONS[kind] +
+        "<small>" +
+        escapeHtml(label) +
+        "</small><b>" +
+        (value ? formatRuDate(value) : "нет данных") +
+        "</b></span>"
+      );
+    }
+    var tips = {
+      not_started: "Сегодня раньше даты старта",
+      active: "Сегодня между стартом и завершением (включительно)",
+      summarizing: "Турнир завершён, дата подведения итогов ещё не наступила",
+      closing: "Сегодня дата подведения итогов или позже",
+      nodata: "Для проверки статуса не хватает дат: " + (tl.missing.join(", ") || "—"),
+    };
+    var html =
+      '<div class="tl" aria-label="Даты турнира">' +
+      '<div class="tl-dates">' +
+      dateCell("start", "Старт", tl.start, "Старт турнира (START_DT)") +
+      dateCell("end", "Конец", tl.end, "Завершение турнира (END_DT)") +
+      dateCell("result", "Итоги", tl.result, "Подведение итогов (RESULT_DT)") +
+      "</div>" +
+      '<div class="tl-badges">' +
+      '<span class="tl-status tl-status--' +
+      tl.status +
+      '" data-tip="' +
+      escapeHtml(tips[tl.status]) +
+      '">' +
+      TIMELINE_ICONS[tl.status] +
+      escapeHtml(tl.label) +
+      "</span>" +
+      (tl.daysText
+        ? '<span class="tl-days tl-days--' + tl.status + '">' + escapeHtml(tl.daysText) + "</span>"
+        : "") +
+      (tl.closingNow
+        ? '<span class="tl-status tl-status--closing-now" data-tip="Дата данных позже и завершения, и подведения итогов — эта выгрузка закроет турнир">' +
+          TIMELINE_ICONS.closingNow +
+          "закроется сейчас</span>"
+        : "") +
+      "</div></div>";
+    return html;
+  }
+
+  function renderWorkspace() {
+    var ws = $("workspace");
+    var t = activeTournament();
+    if (!t) {
+      ws.innerHTML =
+        '<div class="panel"><h2>Нет турниров</h2><p class="panel__intro">Добавьте турнир слева или откройте JSON настроек.</p>' +
+        '<div class="toolbar-row"><button type="button" class="btn btn-primary" id="btn-add-tournament-empty" data-tip="Добавить турнир">' +
+        '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14"/><path d="M5 12h14"/></svg> Добавить турнир</button></div></div>';
+      var addEmpty = $("btn-add-tournament-empty");
+      if (addEmpty) addEmpty.addEventListener("click", addTournament);
+      return;
+    }
+
+    var pack = state.dataByTournament[t.id];
+    var lock = !ReportCore.tournamentIdentityUnlocked(t);
+    var codeHighlight = lock ? " is-highlight" : "";
+    var nameHighlight = lock ? " is-highlight" : "";
+    var periodOpts = ReportCore.PERIOD_OPTIONS.map(function (p) {
+      return (
+        '<option value="' +
+        p.code +
+        '"' +
+        (ReportCore.normalizePeriodCode(t.period_code) === p.code ? " selected" : "") +
+        ">" +
+        escapeHtml(p.label) +
+        " (" +
+        p.code +
+        ")</option>"
+      );
+    }).join("");
+    var factOp = t.fact_op || "none";
+    var sourceErrHtml = t.source_error
+      ? '<div class="error-box" style="margin-bottom:10px">' + escapeHtml(t.source_error) + "</div>"
+      : "";
+
+    // одна строка: лист · стр · кол · колонки ID/показателя
+    var sheetBlock = renderSheetFieldHtml(
+      "f-sheet",
+      pack,
+      t.source_file_kind,
+      t.source_file_name,
+      t.sheet_name
+    );
+
+    ws.innerHTML =
+      '<div class="panel" id="panel-params">' +
+      "<h2>Параметры турнира</h2>" +
+      '<p class="panel__intro panel__intro--tight">План — целое или с запятой (100 или 100,5); в выгрузке — 0.00000.</p>' +
+      (lock
+        ? '<div class="warn-box">Копия: смените <b>код турнира</b> и <b>наименование</b> — иначе формирование заблокировано.</div>'
+        : "") +
+      '<div class="fields-grid">' +
+      '<div class="field field--full params-top">' +
+      '<label class="check-row"><input type="checkbox" id="f-include" ' +
+      (t.include_in_report !== false ? "checked" : "") +
+      ' /> <span>Включать в проверку и выгрузку</span></label>' +
+      renderTimelineHtml(t) +
+      "</div>" +
+      '<div class="field field--third"><label class="field-label" for="f-contest-code">Код конкурса</label><input class="field-input" id="f-contest-code" /></div>' +
+      '<div class="field field--third"><label class="field-label" for="f-tournament-code">Код турнира</label><input class="field-input' +
+      codeHighlight +
+      '" id="f-tournament-code" />' +
+      (lock ? '<div class="field-hint">Изменить относительно копии</div>' : "") +
+      "</div>" +
+      '<div class="field field--third"><label class="field-label" for="f-period">Период</label><select class="field-select" id="f-period">' +
+      periodOpts +
+      "</select></div>" +
+      '<div class="field field--full"><label class="field-label" for="f-full-name">Наименование турнира</label><input class="field-input' +
+      nameHighlight +
+      '" id="f-full-name" />' +
+      (lock ? '<div class="field-hint">Изменить относительно копии</div>' : "") +
+      "</div>" +
+      '<div class="field field--third"><label class="field-label" for="f-plan">План</label>' +
+      '<input class="field-input" id="f-plan" placeholder="100 или 100,5" data-tip="Целое или дробь с запятой; в CSV/XLSX — точка и 5 знаков" /></div>' +
+      '<div class="field field--third"><label class="field-label" for="f-date">Дата данных</label><input class="field-input" id="f-date" type="date" /></div>' +
+      '<div class="field field--third"><label class="field-label" for="f-type">Тип расчёта</label><select class="field-select" id="f-type"><option value="TN">TN — табельный</option><option value="FIO">FIO — ФИО</option></select></div>' +
+      "</div></div>" +
+      '<div class="panel" id="panel-data">' +
+      "<h2>Источник данных</h2>" +
+      '<p class="panel__intro panel__intro--tight">CSV (;) или Excel · угол таблицы · колонки · действие над показателем.</p>' +
+      sourceErrHtml +
+      '<div class="toolbar-row toolbar-row--top">' +
+      '<label class="btn btn-primary file-pick" data-tip="Загрузить CSV или Excel с показателями">' +
+      '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21V9"/><path d="M7 14l5-5 5 5"/><path d="M5 3h14"/></svg> Загрузить CSV / Excel' +
+      '<input type="file" id="import-data" class="file-pick__input" accept=".csv,.txt,.xlsx,.xls,.xlsm" /></label>' +
+      '<span class="mini-badge" id="data-meta"></span></div>' +
+      '<div class="fields-grid">' +
+      '<div class="fields-row fields-row--table-map' +
+      (sheetBlock ? "" : " fields-row--table-map--nosheet") +
+      '">' +
+      (sheetBlock || "") +
+      '<div class="field field--corner"><label class="field-label" for="f-start-row">Стр.</label>' +
+      '<input class="field-input field-input--corner" id="f-start-row" type="number" min="1" step="1" data-tip="Строка угла (заголовок)" /></div>' +
+      '<div class="field field--corner"><label class="field-label" for="f-start-col">Кол.</label>' +
+      '<input class="field-input field-input--corner" id="f-start-col" type="number" min="1" step="1" data-tip="Колонка угла" /></div>' +
+      '<div class="field field--colpick"><label class="field-label" for="f-col-id">Колонка ФИО / табельного</label>' +
+      '<select class="field-select" id="f-col-id"></select></div>' +
+      '<div class="field field--colpick"><label class="field-label" for="f-col-fact">Колонка показателя</label>' +
+      '<select class="field-select" id="f-col-fact"></select></div>' +
+      "</div>" +
+      '<div class="fields-row fields-row--ops">' +
+      '<div class="field"><label class="field-label" for="f-fact-op">Показатель: действие</label>' +
+      '<select class="field-select" id="f-fact-op" data-tip="Как преобразовать значение колонки показателя перед расчётом">' +
+      '<option value="none"' +
+      (factOp === "none" ? " selected" : "") +
+      ">Брать неизменно</option>" +
+      '<option value="mul"' +
+      (factOp === "mul" ? " selected" : "") +
+      ">Умножить (×)</option>" +
+      '<option value="div"' +
+      (factOp === "div" ? " selected" : "") +
+      ">Разделить (÷)</option>" +
+      '<option value="add"' +
+      (factOp === "add" ? " selected" : "") +
+      ">Сложить (+)</option>" +
+      '<option value="sub"' +
+      (factOp === "sub" ? " selected" : "") +
+      ">Вычесть (−)</option>" +
+      "</select></div>" +
+      '<div class="field field--op-val"><label class="field-label" for="f-fact-op-value">Число</label>' +
+      '<input class="field-input" id="f-fact-op-value" placeholder="100" data-tip="Для ×100 из доли 0,5 получится 50" /></div>' +
+      '<div class="field"><label class="field-label" for="f-source-name">Имя файла</label>' +
+      '<input class="field-input" id="f-source-name" readonly /></div>' +
+      "</div>" +
+      "</div>" +
+      renderPreviewFold("source", pack, [t.column_id, t.column_fact]) +
+      "</div>";
+
+    $("f-contest-code").value = t.contest_code || "";
+    $("f-tournament-code").value = t.tournament_code || "";
+    $("f-full-name").value = t.full_name || "";
+    $("f-plan").value = t.plan_value || "";
+    $("f-date").value = t.contest_date || "";
+    $("f-type").value = String(t.type_ind || "TN").toUpperCase() === "FIO" ? "FIO" : "TN";
+    $("f-source-name").value = t.source_file_name || "";
+    $("f-start-row").value = t.table_start_row || (pack && pack.start_row) || 1;
+    $("f-start-col").value = t.table_start_col || (pack && pack.start_col) || 1;
+    $("f-fact-op-value").value = t.fact_op_value != null ? t.fact_op_value : "1";
+
+    var colId = $("f-col-id");
+    var colFact = $("f-col-fact");
+    var colOpts = pack ? pack.columns : [];
+    fillSelect(colId, colOpts, t.column_id || "");
+    fillSelect(colFact, colOpts, t.column_fact || "");
+    if (pack) {
+      if (t.column_id && pack.columns.indexOf(t.column_id) < 0) {
+        colId.classList.add("is-error");
+      }
+      if (t.column_fact && pack.columns.indexOf(t.column_fact) < 0) {
+        colFact.classList.add("is-error");
+      }
+      $("data-meta").textContent =
+        pack.rows.length +
+        " строк · угол " +
+        (pack.start_row || 1) +
+        "," +
+        (pack.start_col || 1) +
+        (pack.encoding ? " · " + pack.encoding : "") +
+        (pack.sheetName ? " · лист: " + pack.sheetName : "");
+    } else {
+      $("data-meta").textContent = t.source_file_name
+        ? "файл не загружен: " + t.source_file_name
+        : "файл не загружен";
+    }
+    if ($("f-sheet")) {
+      fillSheetSelect($("f-sheet"), pack, t.sheet_name || "");
+      if (
+        pack &&
+        t.sheet_name &&
+        pack.sheetNames &&
+        pack.sheetNames.indexOf(t.sheet_name) < 0
+      ) {
+        $("f-sheet").classList.add("is-error");
+      }
+      $("f-sheet").addEventListener("change", function () {
+        t.sheet_name = $("f-sheet").value;
+        if (pack) reapplyDataOrigin({ sheetName: $("f-sheet").value });
+      });
+    }
+    bindPreviewFold("source");
+
+    bindEditorEvents();
+    refreshRequiredFieldHighlights();
+  }
+
+  /** Подсветка незаполненных обязательных полей (и полей копии). */
+  function refreshRequiredFieldHighlights() {
+    var t = activeTournament();
+    if (!t || !$("f-contest-code")) return;
+    var pack = state.dataByTournament[t.id];
+    var lock = !ReportCore.tournamentIdentityUnlocked(t);
+
+    function blank(v) {
+      return !String(v == null ? "" : v).trim();
+    }
+
+    function mark(id, needHighlight) {
+      var el = $(id);
+      if (!el) return;
+      if (el.classList.contains("is-error")) return;
+      el.classList.toggle("is-highlight", !!needHighlight);
+    }
+
+    mark("f-contest-code", blank(t.contest_code));
+    mark("f-tournament-code", blank(t.tournament_code) || lock);
+    mark("f-full-name", blank(t.full_name) || lock);
+    mark("f-plan", !ReportCore.planValueOk(t));
+    mark("f-fact-op-value", !ReportCore.factOpValueOk(t));
+    mark("f-date", blank(t.contest_date));
+    mark("f-col-id", !pack || blank(t.column_id));
+    mark("f-col-fact", !pack || blank(t.column_fact));
+    mark("f-source-name", !pack || blank(t.source_file_name));
+    if ($("f-sheet")) {
+      mark("f-sheet", !pack || blank(t.sheet_name || (pack && pack.sheetName)));
+    }
+  }
+
+  function reapplyDataOrigin(partial) {
+    var t = activeTournament();
+    trace("ACTION", "reapplyDataOrigin", {
+      tournament: t && t.tournament_code,
+      partial: partial,
+      before: packSummary(t && state.dataByTournament[t.id]),
+    });
+    if (!t) return;
+    var pack = state.dataByTournament[t.id];
+    if (!pack) return;
+    if (partial) {
+      if (partial.sheetName != null) t.sheet_name = partial.sheetName;
+      if (partial.start_row != null) t.table_start_row = partial.start_row;
+      if (partial.start_col != null) t.table_start_col = partial.start_col;
+    }
+    var next = ReportIO.applyPackOrigin(pack, {
+      sheetName: t.sheet_name || pack.sheetName,
+      start_row: t.table_start_row || 1,
+      start_col: t.table_start_col || 1,
+    });
+    state.dataByTournament[t.id] = next;
+    trace("ACTION", "источник пересчитан", packSummary(next));
+    if (t.column_id && next.columns.indexOf(t.column_id) < 0) {
+      t.column_id = "";
+    }
+    if (t.column_fact && next.columns.indexOf(t.column_fact) < 0) {
+      t.column_fact = "";
+    }
+    invalidateChecks();
+    renderAll();
+  }
+
+  function bindEditorEvents() {
+    [
+      "f-contest-code",
+      "f-tournament-code",
+      "f-full-name",
+      "f-plan",
+      "f-date",
+      "f-type",
+      "f-period",
+      "f-col-id",
+      "f-col-fact",
+      "f-fact-op",
+      "f-fact-op-value",
+      "f-include",
+    ].forEach(function (id) {
+      var el = $(id);
+      if (!el) return;
+      el.addEventListener("change", onEditorChange);
+      if (el.type !== "checkbox" && el.tagName !== "SELECT") {
+        el.addEventListener("input", onEditorChange);
+      }
+    });
+    ["f-start-row", "f-start-col"].forEach(function (id) {
+      var el = $(id);
+      if (!el) return;
+      el.addEventListener("change", function () {
+        flushEditorToState();
+        reapplyDataOrigin({
+          start_row: Number($("f-start-row").value) || 1,
+          start_col: Number($("f-start-col").value) || 1,
+        });
+      });
+    });
+    var importData = $("import-data");
+    if (importData) {
+      importData.addEventListener("change", function (ev) {
+        var file = ev.target.files && ev.target.files[0];
+        ev.target.value = "";
+        if (file) onImportData(file);
+      });
+    }
+  }
+
+  function onEditorChange(ev) {
+    var prevType = activeTournament() && activeTournament().type_ind;
+    flushEditorToState();
+    var t = activeTournament();
+    var unlockedNow = false;
+    if (t && t.needs_identity_fix && ReportCore.tournamentIdentityUnlocked(t)) {
+      t.needs_identity_fix = false;
+      t.copy_lock_code = "";
+      t.copy_lock_name = "";
+      unlockedNow = true;
+      showToast("Копия разблокирована");
+    }
+    invalidateChecks();
+    var typeChanged = t && String(prevType || "") !== String(t.type_ind || "");
+    var needFull =
+      unlockedNow ||
+      typeChanged ||
+      (ev && ev.target && (ev.target.id === "f-include" || ev.target.id === "f-period" || ev.target.id === "f-fact-op"));
+    if (needFull) {
+      renderAll();
+      return;
+    }
+    // «закроется сейчас» зависит от даты данных — обновить блок дат без полного перерендера
+    var tlEl = document.querySelector("#panel-params .tl");
+    if (t && tlEl) tlEl.outerHTML = renderTimelineHtml(t);
+    // подсветка выбранных колонок в превью
+    if (t && state.dataByTournament[t.id] && $("data-preview-host")) {
+      $("data-preview-host").innerHTML = renderPreviewTable(state.dataByTournament[t.id], null, [
+        t.column_id,
+        t.column_fact,
+      ]);
+    }
+    renderStages();
+    renderNav();
+    renderSideStats();
+    renderTopInfo();
+    refreshRequiredFieldHighlights();
+  }
+
+  function flushEditorToState() {
+    var t = activeTournament();
+    if (!t) return;
+    if (!$("f-contest-code")) return;
+    t.contest_code = $("f-contest-code").value.trim();
+    t.tournament_code = $("f-tournament-code").value.trim();
+    t.full_name = $("f-full-name").value.trim();
+    t.plan_value = $("f-plan").value.trim();
+    t.contest_date = $("f-date").value.trim();
+    t.type_ind = $("f-type").value;
+    if ($("f-period")) t.period_code = ReportCore.normalizePeriodCode($("f-period").value);
+    if ($("f-include")) t.include_in_report = !!$("f-include").checked;
+    t.column_id = $("f-col-id").value;
+    t.column_fact = $("f-col-fact").value;
+    if ($("f-fact-op")) t.fact_op = $("f-fact-op").value || "none";
+    if ($("f-fact-op-value")) t.fact_op_value = $("f-fact-op-value").value.trim() || "1";
+    // Лист — тоже только когда есть реальный список листов (иначе селект — плейсхолдер без выбора).
+    var pack = state.dataByTournament[t.id];
+    if ($("f-sheet") && pack) t.sheet_name = $("f-sheet").value;
+    if ($("f-start-row")) t.table_start_row = Number($("f-start-row").value) || 1;
+    if ($("f-start-col")) t.table_start_col = Number($("f-start-col").value) || 1;
+    // сброс ошибки источника, если колонки снова валидны
+    if (pack) {
+      var errs = [];
+      if (t.column_id && pack.columns.indexOf(t.column_id) < 0) errs.push("колонка ID не найдена: " + t.column_id);
+      if (t.column_fact && pack.columns.indexOf(t.column_fact) < 0) errs.push("колонка показателя не найдена: " + t.column_fact);
+      if (t.sheet_name && pack.sheetNames && pack.sheetNames.length && pack.sheetNames.indexOf(t.sheet_name) < 0) {
+        errs.push("лист не найден: " + t.sheet_name);
+      }
+      t.source_error = errs.join("; ");
+    }
+  }
+
+  function renderAll() {
+    traced("renderAll", renderAllImpl, { tournaments: state.tournaments.length, active: state.activeId });
+  }
+
+  /**
+   * Снимок того, что пользователь «держит» в центре: фокус в поле, прокрутка страницы и
+   * превью. Полная перерисовка (renderWorkspace) пересоздаёт DOM — без восстановления поле
+   * теряет фокус, а таблица превью отскакивает к левому краю; продолжающийся свайп по
+   * трекпаду тогда упирается в край, и Safari трактует его как «Назад» (см. 26.63).
+   */
+  function captureWorkspaceView() {
+    var main = document.querySelector(".main");
+    var ws = $("workspace");
+    var ae = document.activeElement;
+    var view = {
+      activeId: state.activeId,
+      mainTop: main ? main.scrollTop : 0,
+      focusId: ae && ae.id && ws && ws.contains(ae) ? ae.id : "",
+      sel: null,
+      previews: {},
+    };
+    try {
+      if (view.focusId && typeof ae.selectionStart === "number") view.sel = [ae.selectionStart, ae.selectionEnd];
+    } catch (err) {
+      view.sel = null;
+    }
+    ["data-preview-host", "fio-preview-host"].forEach(function (id) {
+      var wrap = document.querySelector("#" + id + " .preview-table-wrap");
+      if (wrap) view.previews[id] = [wrap.scrollLeft, wrap.scrollTop];
+    });
+    return view;
+  }
+
+  function restoreWorkspaceView(view) {
+    if (!view || view.activeId !== state.activeId) return;
+    var main = document.querySelector(".main");
+    if (main) main.scrollTop = view.mainTop;
+    Object.keys(view.previews).forEach(function (id) {
+      var wrap = document.querySelector("#" + id + " .preview-table-wrap");
+      if (wrap) {
+        wrap.scrollLeft = view.previews[id][0];
+        wrap.scrollTop = view.previews[id][1];
+      }
+    });
+    if (view.focusId) {
+      var el = $(view.focusId);
+      if (el && document.activeElement !== el) {
+        try {
+          el.focus({ preventScroll: true });
+          if (view.sel) el.setSelectionRange(view.sel[0], view.sel[1]);
+        } catch (err) {
+          /* у number-полей нет selection — фокуса достаточно */
+        }
+      }
+    }
+  }
+
+  function renderAllImpl() {
+    var view = captureWorkspaceView();
+    ensureActive();
+    renderStages();
+    renderNav();
+    renderWorkspace();
+    restoreWorkspaceView(view);
+    renderSideStats();
+    renderTopInfo();
+    renderSideResult();
+    persistDraft();
+  }
+
+  function addTournament() {
+    flushEditorToState();
+    var t = ReportCore.createEmptyTournament({
+      type_ind: "TN",
+    });
+    state.tournaments.push(t);
+    state.activeId = t.id;
+    invalidateChecks();
+    renderAll();
+    setStatus("добавлен турнир");
+  }
+
+  function copyTournament() {
+    flushEditorToState();
+    var src = activeTournament();
+    if (!src) {
+      alert("Сначала выберите турнир");
+      return;
+    }
+    var copy = ReportCore.cloneTournament(src);
+    state.tournaments.push(copy);
+    var pack = state.dataByTournament[src.id];
+    if (pack) {
+      state.dataByTournament[copy.id] = JSON.parse(
+        JSON.stringify({
+          kind: pack.kind,
+          rows: pack.rows,
+          columns: pack.columns,
+          encoding: pack.encoding,
+          fileName: pack.fileName,
+          sheetName: pack.sheetName,
+          sheetNames: pack.sheetNames,
+          sheetsAoa: pack.sheetsAoa,
+          rawAoa: pack.rawAoa,
+          start_row: pack.start_row,
+          start_col: pack.start_col,
+          source_b64: pack.source_b64,
+        })
+      );
+      copy.source_file_kind = pack.kind || src.source_file_kind || "";
+    }
+    state.activeId = copy.id;
+    invalidateChecks();
+    renderAll();
+    setStatus("создана копия — смените код и название");
+    showToast("Смените код турнира и название");
+  }
+
+  function removeTournament() {
+    flushEditorToState();
+    if (!state.activeId) return;
+    var id = state.activeId;
+    state.tournaments = state.tournaments.filter(function (t) {
+      return t.id !== id;
+    });
+    delete state.dataByTournament[id];
+    state.activeId = state.tournaments[0] ? state.tournaments[0].id : null;
+    invalidateChecks();
+    renderAll();
+    setStatus("турнир удалён");
+  }
+
+  async function onImportData(file) {
+    trace("ACTION", "загрузка источника: чтение файла", {
+      file: file && file.name,
+      sizeKB: file ? Math.round(file.size / 1024) : 0,
+      tournament: activeTournament() && activeTournament().tournament_code,
+    });
+    flushEditorToState();
+    var t = activeTournament();
+    if (!t) return;
+    try {
+      setStatus("чтение файла…");
+      // новая загрузка: угол 1,1; колонки сбрасываем — нужно выбрать вручную
+      var pack = await traced("readTableFile(источник)", function () {
+        return ReportIO.readTableFile(file, 1, 1);
+      });
+      trace("ACTION", "источник прочитан", packSummary(pack));
+      state.dataByTournament[t.id] = pack;
+      t.source_file_name = pack.fileName;
+      t.source_file_kind = pack.kind;
+      t.source_error = "";
+      t.sheet_name = pack.sheetName || "";
+      t.table_start_row = 1;
+      t.table_start_col = 1;
+      t.column_id = "";
+      t.column_fact = "";
+      applySourceErrors(t, pack);
+      invalidateChecks();
+      renderAll();
+      showToast("Данные загружены — выберите колонки");
+      setStatus("данные: " + pack.rows.length + " строк");
+    } catch (err) {
+      console.error(err);
+      alert(err.message || String(err));
+      setStatus("ошибка загрузки");
+    }
+  }
+
+  function openModal(id) {
+    $(id).hidden = false;
+  }
+  function closeModal(id) {
+    $(id).hidden = true;
+  }
+
+  var IMPORT_TOUR_FILES = [
+    {
+      key: "schedule",
+      title: "SCHEDULE",
+      required: true,
+      hint: "Список турниров: коды, период (PERIOD_TYPE), статус (TOURNAMENT_STATUS)",
+      requiredCols: ["TOURNAMENT_CODE", "CONTEST_CODE", "PERIOD_TYPE", "TOURNAMENT_STATUS"],
+    },
+    {
+      key: "contest",
+      title: "CONTEST",
+      required: true,
+      hint: "Названия и план турниров: FULL_NAME, PLAN_MOD_VALUE по CONTEST_CODE",
+      requiredCols: ["CONTEST_CODE", "FULL_NAME", "PLAN_MOD_VALUE"],
+    },
+    {
+      key: "report",
+      title: "REPORT",
+      required: false,
+      hint: "Дата турнира — самая новая CONTEST_DATE по TOURNAMENT_CODE (необязателен)",
+      requiredCols: ["TOURNAMENT_CODE", "CONTEST_DATE"],
+    },
+  ];
+
+  function importTourPackKey(key) {
+    return key + "Pack";
+  }
+
+  /** Все обязательные колонки файла присутствуют в разобранной таблице. */
+  function packHasColumns(pack, cols) {
+    if (!pack) return false;
+    var have = pack.columns || [];
+    return (cols || []).every(function (c) {
+      return have.indexOf(c) >= 0;
+    });
+  }
+
+  function resetImportTour() {
+    importTour = {
+      step: "files",
+      schedulePack: null,
+      contestPack: null,
+      reportPack: null,
+      selectedStatuses: {},
+      requireInReport: false,
+    };
+  }
+
+  function renderImportFileRow(spec) {
+    var pack = importTour[importTourPackKey(spec.key)];
+    var metaText = "не выбран";
+    var metaCls = "";
+    if (pack) {
+      var missing = (spec.requiredCols || []).filter(function (c) {
+        return (pack.columns || []).indexOf(c) < 0;
+      });
+      if (missing.length) {
+        metaText = "не хватает колонок: " + missing.join(", ");
+        metaCls = " is-error";
+      } else {
+        metaText = pack.fileName + " · строк: " + pack.rows.length;
+        metaCls = " is-ok";
+      }
+    } else if (!spec.required) {
+      metaText = "не выбран — дата турниров будет сегодняшней";
+    }
+    return (
+      '<div class="import-file-row">' +
+      '<label class="btn btn-primary file-pick" data-tip="' +
+      escapeHtml(spec.hint) +
+      '"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21V9"/><path d="M7 14l5-5 5 5"/><path d="M5 3h14"/></svg>' +
+      "<span>" +
+      spec.title +
+      (spec.required ? "*" : "") +
+      "</span>" +
+      '<input type="file" id="import-tour-file-' +
+      spec.key +
+      '" class="file-pick__input" accept=".csv,.txt" /></label>' +
+      '<div class="import-file-row__meta' +
+      metaCls +
+      '" id="import-tour-meta-' +
+      spec.key +
+      '">' +
+      escapeHtml(metaText) +
+      "</div></div>"
+    );
+  }
+
+  function renderImportTourStepFiles() {
+    var host = $("import-tour-body");
+    if (!host) return;
+    host.innerHTML = IMPORT_TOUR_FILES.map(renderImportFileRow).join("");
+    IMPORT_TOUR_FILES.forEach(function (spec) {
+      var input = $("import-tour-file-" + spec.key);
+      if (!input) return;
+      input.addEventListener("change", async function (ev) {
+        var file = ev.target.files && ev.target.files[0];
+        ev.target.value = "";
+        if (!file) return;
+        try {
+          var pack = await ReportIO.readTableFile(file, 1, 1);
+          importTour[importTourPackKey(spec.key)] = pack;
+        } catch (err) {
+          alert(err.message || String(err));
+          return;
+        }
+        renderImportTourStepFiles();
+        updateImportTourPrimaryState();
+      });
+    });
+    updateImportTourPrimaryState();
+  }
+
+  function renderImportTourStepStatus() {
+    var host = $("import-tour-body");
+    if (!host) return;
+    var counts = ReportCore.scheduleStatusCounts(importTour.schedulePack.rows);
+    var chips = counts
+      .map(function (s) {
+        var on = !!importTour.selectedStatuses[s.status];
+        return (
+          '<button type="button" class="chip' +
+          (on ? " is-on" : "") +
+          '" data-status="' +
+          escapeHtml(s.status) +
+          '" aria-pressed="' +
+          (on ? "true" : "false") +
+          '">' +
+          escapeHtml(s.status) +
+          '<span class="mini-badge">' +
+          s.count +
+          "</span></button>"
+        );
+      })
+      .join("");
+    var reportNote = importTour.reportPack
+      ? "REPORT: " + importTour.reportPack.rows.length + " строк"
+      : "REPORT не загружен — дата турниров будет сегодняшней";
+    // Опция "какие турниры брать" имеет смысл, только если REPORT вообще загружен —
+    // иначе фильтровать не по чему, требование сбрасываем.
+    if (!importTour.reportPack) importTour.requireInReport = false;
+    var reportScopeHtml = "";
+    if (importTour.reportPack) {
+      var reqOn = !!importTour.requireInReport;
+      reportScopeHtml =
+        '<div class="filter-block__label" style="margin-top:14px">Какие турниры брать</div>' +
+        '<div class="chip-row" id="import-tour-report-scope" role="group">' +
+        '<button type="button" class="chip' +
+        (!reqOn ? " is-on" : "") +
+        '" data-report-scope="all" aria-pressed="' +
+        (!reqOn ? "true" : "false") +
+        '" data-tip="Все турниры с отмеченным статусом, вне зависимости от REPORT">' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h10"/></svg>Все</button>' +
+        '<button type="button" class="chip' +
+        (reqOn ? " is-on" : "") +
+        '" data-report-scope="in_report" aria-pressed="' +
+        (reqOn ? "true" : "false") +
+        '" data-tip="Только турниры, для которых в загруженном REPORT уже есть строки (по TOURNAMENT_CODE)">' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/><path d="M12 18v-6"/><path d="M9 15l3 3 3-3"/></svg>Только из REPORT</button>' +
+        "</div>";
+    }
+    host.innerHTML =
+      '<div class="info-box">SCHEDULE: ' +
+      importTour.schedulePack.rows.length +
+      " строк · CONTEST: " +
+      importTour.contestPack.rows.length +
+      " строк · " +
+      reportNote +
+      ".</div>" +
+      '<div class="filter-block__label" style="margin-top:12px">Статусы турниров (TOURNAMENT_STATUS)</div>' +
+      '<div class="toolbar-row toolbar-row--top">' +
+      '<button type="button" class="btn btn-sm" id="import-tour-status-all">Отметить все</button>' +
+      '<button type="button" class="btn btn-sm" id="import-tour-status-none">Снять все</button>' +
+      "</div>" +
+      '<div class="import-tour-status-scroll"><div class="chip-row" id="import-tour-status-list" role="group">' +
+      (chips || '<span class="filter-hint">В SCHEDULE нет строк со статусом.</span>') +
+      "</div></div>" +
+      reportScopeHtml +
+      '<div class="info-box" id="import-tour-status-count"></div>';
+
+    host.querySelectorAll("[data-status]").forEach(function (chip) {
+      chip.addEventListener("click", function () {
+        var status = chip.getAttribute("data-status");
+        importTour.selectedStatuses[status] = !importTour.selectedStatuses[status];
+        chip.classList.toggle("is-on", !!importTour.selectedStatuses[status]);
+        chip.setAttribute("aria-pressed", importTour.selectedStatuses[status] ? "true" : "false");
+        updateImportTourStatusCount();
+        updateImportTourPrimaryState();
+      });
+    });
+    host.querySelectorAll("[data-report-scope]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        importTour.requireInReport = btn.getAttribute("data-report-scope") === "in_report";
+        host.querySelectorAll("[data-report-scope]").forEach(function (b) {
+          var on = b === btn;
+          b.classList.toggle("is-on", on);
+          b.setAttribute("aria-pressed", on ? "true" : "false");
+        });
+        updateImportTourStatusCount();
+      });
+    });
+    var allBtn = $("import-tour-status-all");
+    var noneBtn = $("import-tour-status-none");
+    if (allBtn) {
+      allBtn.addEventListener("click", function () {
+        counts.forEach(function (s) {
+          importTour.selectedStatuses[s.status] = true;
+        });
+        renderImportTourStepStatus();
+        updateImportTourPrimaryState();
+      });
+    }
+    if (noneBtn) {
+      noneBtn.addEventListener("click", function () {
+        importTour.selectedStatuses = {};
+        renderImportTourStepStatus();
+        updateImportTourPrimaryState();
+      });
+    }
+    updateImportTourStatusCount();
+  }
+
+  function updateImportTourStatusCount() {
+    var el = $("import-tour-status-count");
+    if (!el) return;
+    var statuses = Object.keys(importTour.selectedStatuses).filter(function (s) {
+      return importTour.selectedStatuses[s];
+    });
+    var rows = importTour.schedulePack ? importTour.schedulePack.rows : [];
+    var reportCodes =
+      importTour.requireInReport && importTour.reportPack
+        ? ReportCore.buildReportCodeSet(importTour.reportPack.rows)
+        : null;
+    var n = rows.filter(function (r) {
+      if (statuses.indexOf(String((r && r.TOURNAMENT_STATUS) || "").trim()) < 0) return false;
+      if (reportCodes && !reportCodes[String((r && r.TOURNAMENT_CODE) || "").trim()]) return false;
+      return true;
+    }).length;
+    el.textContent = statuses.length
+      ? "Отмечено статусов: " +
+        statuses.length +
+        " · строк в SCHEDULE: " +
+        n +
+        (reportCodes ? " (только из REPORT)" : "")
+      : "Отметьте хотя бы один статус.";
+  }
+
+  function updateImportTourPrimaryState() {
+    var primary = $("import-tour-primary");
+    var back = $("import-tour-back");
+    if (!primary) return;
+    if (importTour.step === "files") {
+      if (back) back.hidden = true;
+      var scheduleOk = packHasColumns(importTour.schedulePack, IMPORT_TOUR_FILES[0].requiredCols);
+      var contestOk = packHasColumns(importTour.contestPack, IMPORT_TOUR_FILES[1].requiredCols);
+      primary.textContent = "Далее";
+      primary.disabled = !(scheduleOk && contestOk);
+    } else {
+      if (back) back.hidden = false;
+      var anyStatus = Object.keys(importTour.selectedStatuses).some(function (s) {
+        return importTour.selectedStatuses[s];
+      });
+      primary.textContent = "Загрузить турниры";
+      primary.disabled = !anyStatus;
+    }
+  }
+
+  function openImportTournamentsModal() {
+    resetImportTour();
+    importTour.step = "files";
+    renderImportTourStepFiles();
+    openModal("modal-import-tour");
+
+    var primary = $("import-tour-primary");
+    var back = $("import-tour-back");
+    var cancel = $("import-tour-cancel");
+    primary.onclick = function () {
+      if (importTour.step === "files") {
+        importTour.step = "status";
+        renderImportTourStepStatus();
+        updateImportTourPrimaryState();
+      } else {
+        runImportTournaments();
+      }
+    };
+    back.onclick = function () {
+      importTour.step = "files";
+      renderImportTourStepFiles();
+      updateImportTourPrimaryState();
+    };
+    cancel.onclick = function () {
+      closeModal("modal-import-tour");
+      resetImportTour();
+    };
+  }
+
+  function runImportTournaments() {
+    if (!importTour.schedulePack || !importTour.contestPack) return;
+    var statuses = Object.keys(importTour.selectedStatuses).filter(function (s) {
+      return importTour.selectedStatuses[s];
+    });
+    if (!statuses.length) return;
+    flushEditorToState();
+    var existingCodes = state.tournaments.map(function (t) {
+      return t.tournament_code;
+    });
+    var reportRows = importTour.reportPack ? importTour.reportPack.rows : [];
+    var result = ReportCore.buildTournamentsFromSourceFiles(
+      importTour.schedulePack.rows,
+      importTour.contestPack.rows,
+      reportRows,
+      statuses,
+      existingCodes,
+      { requireInReport: !!(importTour.reportPack && importTour.requireInReport) }
+    );
+    if (result.tournaments.length) {
+      state.tournaments = state.tournaments.concat(result.tournaments);
+      state.activeId = result.tournaments[0].id;
+      invalidateChecks();
+    }
+    // Запоминаем весь загруженный REPORT для «Обновить REPORT» — до сброса importTour.
+    if (importTour.reportPack) {
+      state.importedReportPack = importTour.reportPack;
+      state.importedReportSource = "lists";
+    }
+    closeModal("modal-import-tour");
+    resetImportTour();
+    renderAll();
+
+    var parts = ["загружено: " + result.stats.imported];
+    if (result.stats.withWarnings) parts.push("требуют проверки: " + result.stats.withWarnings);
+    if (result.stats.skippedNotInReport) parts.push("нет в REPORT: " + result.stats.skippedNotInReport);
+    if (result.stats.skippedDuplicate) parts.push("пропущено, уже есть: " + result.stats.skippedDuplicate);
+    if (result.stats.skippedNoCode) parts.push("без кода турнира: " + result.stats.skippedNoCode);
+    var msg = "Турниры из списков: " + parts.join(" · ");
+    showToast(msg);
+    setStatus(msg);
+    if (!result.tournaments.length) {
+      alert("Не загружено ни одного турнира с выбранными статусами (возможно, все уже есть в списке).");
+    } else if (result.stats.withWarnings) {
+      alert(
+        "Загружено турниров: " +
+          result.stats.imported +
+          ", из них требуют проверки параметров: " +
+          result.stats.withWarnings +
+          ".\nОни отмечены в списке слева меткой «! СПИСКИ» (фиолетовая рамка) — наведите на метку, чтобы увидеть причину.\n" +
+          "«Включать в проверку и выгрузку» у всех загруженных турниров выключено — включите после проверки параметров и загрузки источника данных."
+      );
+    }
+  }
+
+  function askMissingFio(missingList) {
+    return new Promise(function (resolve) {
+      var list = $("modal-fio-list");
+      list.innerHTML = "";
+      missingList.forEach(function (fio) {
+        var row = document.createElement("div");
+        row.className = "fio-row";
+        row.innerHTML =
+          '<input class="field-input" data-fio-name readonly />' +
+          '<input class="field-input" data-fio-num placeholder="табельный" autocomplete="off" />';
+        row.querySelector("[data-fio-name]").value = fio;
+        list.appendChild(row);
+      });
+      openModal("modal-fio");
+      function cleanup() {
+        $("modal-fio-apply").onclick = null;
+        $("modal-fio-skip").onclick = null;
+        $("modal-fio-cancel").onclick = null;
+        closeModal("modal-fio");
+      }
+      $("modal-fio-apply").onclick = function () {
+        var inputs = list.querySelectorAll("[data-fio-num]");
+        var maxLen = (state.config && state.config.person_number_length) || 20;
+        var badInput = null;
+        inputs.forEach(function (inp) {
+          var num = inp.value.trim();
+          var bad = !!num && !(/^\d+$/.test(num) && num.length <= maxLen);
+          inp.classList.toggle("is-error", bad);
+          if (bad && !badInput) badInput = inp;
+        });
+        if (badInput) {
+          alert("Табельный — только цифры, не длиннее " + maxLen + " (ведущие нули допустимы).");
+          badInput.focus();
+          return;
+        }
+        inputs.forEach(function (inp, idx) {
+          var num = inp.value.trim();
+          if (!num) return;
+          var fio = missingList[idx];
+          var key = ReportCore.normalizeFioKey(fio);
+          state.fioEntries = state.fioEntries.filter(function (e) {
+            return ReportCore.normalizeFioKey(e.fio) !== key;
+          });
+          state.fioEntries.push({ fio: fio, person_number: num });
+        });
+        cleanup();
+        persistDraft();
+        resolve({ action: "apply" });
+      };
+      $("modal-fio-skip").onclick = function () {
+        cleanup();
+        resolve({ action: "skip" });
+      };
+      $("modal-fio-cancel").onclick = function () {
+        cleanup();
+        resolve({ action: "cancel" });
+      };
+    });
+  }
+
+  function askDuplicates(groups, options) {
+    var opts = options || {};
+    var kindLabel = opts.kindLabel || "табельный + турнир";
+    var keyHint = opts.keyHint || "CONTEST_CODE + TOURNAMENT_CODE + MANAGER_PERSON_NUMBER";
+    var previous = opts.previousResolutions || {};
+    var requireUnique = opts.requireUnique !== false;
+    return new Promise(function (resolve) {
+      if (!groups || !groups.length) {
+        resolve({ action: "apply", resolutions: {} });
+        return;
+      }
+      var list = $("modal-dup-list");
+      var title = $("modal-dup-title");
+      var intro = $("modal-dup-intro");
+      var progress = $("modal-dup-progress");
+      title.textContent = "Дубли: " + kindLabel;
+      intro.textContent =
+        "Ключ: " +
+        keyHint +
+        ". Разбираем по одной группе. По умолчанию отмечена первая строка. Для CSV в группе должна остаться одна строка (или сумма / исключить все).";
+      var idx = 0;
+      var resolutions = Object.assign({}, previous);
+
+      function renderCurrent() {
+        var g = groups[idx];
+        var prev = previous[g.key] || resolutions[g.key] || null;
+        var prevLabel = ReportCore.describeResolution(prev);
+        progress.textContent =
+          "Группа " +
+          (idx + 1) +
+          " из " +
+          groups.length +
+          " · сумма " +
+          ReportCore.formatNumberDot(g.sum, coreOpts().numberDecimals);
+        var keepSet = Object.create(null);
+        var modeDefault = "keep_selected";
+        if (prev) {
+          modeDefault = prev.mode === "keep_one" ? "keep_selected" : prev.mode;
+          if (prev.mode === "sum" || prev.mode === "drop_all") {
+            modeDefault = prev.mode;
+          }
+          var prevKeep = ReportCore.resolveKeepIndices(g, prev);
+          if (prevKeep.length) {
+            prevKeep.forEach(function (i) {
+              keepSet[i] = true;
+            });
+          }
+        }
+        // по умолчанию — только первая строка (чтобы CSV не оставался с дублями)
+        if (!Object.keys(keepSet).length && g.indices.length) {
+          keepSet[g.indices[0]] = true;
+        }
+        var rowsHtml = g.rows
+          .map(function (r, ri) {
+            var rowIdx = g.indices[ri];
+            var checked = keepSet[rowIdx] ? " checked" : "";
+            return (
+              '<label class="dup-row">' +
+              '<input type="checkbox" data-row-idx="' +
+              rowIdx +
+              '"' +
+              checked +
+              " />" +
+              "<span><code>" +
+              escapeHtml(r.MANAGER_PERSON_NUMBER || "") +
+              "</code> · FIO=" +
+              escapeHtml(r.FIO || "") +
+              " · FACT=" +
+              escapeHtml(r.FACT_VALUE || "") +
+              "</span></label>"
+            );
+          })
+          .join("");
+        list.innerHTML =
+          '<div class="dup-group" data-key="' +
+          escapeHtml(g.key) +
+          '">' +
+          '<div class="dup-group__meta">' +
+          escapeHtml(g.key) +
+          " · строк: " +
+          g.indices.length +
+          "</div>" +
+          (prevLabel
+            ? '<div class="info-box" style="margin:8px 0">' + escapeHtml(prevLabel) + "</div>"
+            : "") +
+          '<div class="toolbar-row" style="margin:8px 0">' +
+          '<button type="button" class="btn btn-sm" id="dup-sel-all" data-tip="Отметить все строки группы">Все</button>' +
+          '<button type="button" class="btn btn-sm" id="dup-sel-none" data-tip="Снять все отметки">Снять</button>' +
+          '<button type="button" class="btn btn-sm" id="dup-sel-first" data-tip="Только первая строка">Первая</button>' +
+          "</div>" +
+          '<div class="dup-rows">' +
+          rowsHtml +
+          "</div>" +
+          '<label class="field-label" style="margin-top:10px">Действие для этой группы</label>' +
+          '<select class="field-select" id="dup-mode">' +
+          '<option value="keep_selected"' +
+          (modeDefault === "keep_selected" || modeDefault === "keep_one" ? " selected" : "") +
+          ">Оставить отмеченные</option>" +
+          '<option value="sum"' +
+          (modeDefault === "sum" ? " selected" : "") +
+          ">Сумма показателя в одну строку</option>" +
+          '<option value="drop_all"' +
+          (modeDefault === "drop_all" ? " selected" : "") +
+          ">Убрать все из CSV</option>" +
+          "</select>" +
+          (requireUnique
+            ? '<div class="field-hint">Для выгрузки CSV в группе нужна одна строка, «Сумма» или «Убрать все».</div>'
+            : "") +
+          "</div>";
+        $("dup-sel-all").onclick = function () {
+          list.querySelectorAll('input[type="checkbox"]').forEach(function (c) {
+            c.checked = true;
+          });
+        };
+        $("dup-sel-none").onclick = function () {
+          list.querySelectorAll('input[type="checkbox"]').forEach(function (c) {
+            c.checked = false;
+          });
+        };
+        $("dup-sel-first").onclick = function () {
+          list.querySelectorAll('input[type="checkbox"]').forEach(function (c, i) {
+            c.checked = i === 0;
+          });
+        };
+      }
+
+      function cleanup() {
+        $("modal-dup-apply").onclick = null;
+        $("modal-dup-abort").onclick = null;
+        $("modal-dup-cancel").onclick = null;
+        closeModal("modal-dup");
+      }
+
+      openModal("modal-dup");
+      renderCurrent();
+
+      $("modal-dup-apply").onclick = function () {
+        var g = groups[idx];
+        var mode = $("dup-mode").value;
+        var res = { mode: mode };
+        if (mode === "keep_selected") {
+          var keepIndices = [];
+          list.querySelectorAll('input[type="checkbox"]:checked').forEach(function (c) {
+            keepIndices.push(Number(c.getAttribute("data-row-idx")));
+          });
+          if (!keepIndices.length) {
+            alert("Отметьте хотя бы одну строку или выберите «Убрать все» / «Сумма»");
+            return;
+          }
+          if (requireUnique && keepIndices.length > 1) {
+            alert(
+              "Для CSV нельзя оставить несколько строк с одним ключом. Отметьте одну строку, либо выберите «Сумма» / «Убрать все»."
+            );
+            return;
+          }
+          res.keepIndices = keepIndices;
+          res.keepFingerprints = keepIndices.map(function (rowIdx) {
+            var pos = g.indices.indexOf(rowIdx);
+            return ReportCore.rowFingerprint(pos >= 0 ? g.rows[pos] : null);
+          });
+          if (keepIndices.length === 1) {
+            res.mode = "keep_one";
+            res.keepIndex = keepIndices[0];
+            res.keepFingerprint = res.keepFingerprints[0];
+          }
+        }
+        resolutions[g.key] = res;
+        idx += 1;
+        if (idx >= groups.length) {
+          cleanup();
+          resolve({ action: "apply", resolutions: resolutions });
+          return;
+        }
+        renderCurrent();
+      };
+      $("modal-dup-abort").onclick = function () {
+        cleanup();
+        resolve({ action: "abort" });
+      };
+      $("modal-dup-cancel").onclick = function () {
+        cleanup();
+        resolve({ action: "cancel" });
+      };
+    });
+  }
+
+  function buildAllRows() {
+    var fioMap = ReportCore.buildFioMap(state.fioEntries);
+    var allRows = [];
+    var allMissing = [];
+    var seen = Object.create(null);
+    ReportCore.includedTournaments(state.tournaments).forEach(function (t) {
+      var pack = state.dataByTournament[t.id] || { rows: [] };
+      var part = ReportCore.normalizeTournamentRows(pack.rows, t, fioMap, coreOpts());
+      allRows = allRows.concat(part.rows);
+      part.missingFio.forEach(function (fio) {
+        var k = ReportCore.normalizeFioKey(fio);
+        if (!seen[k]) {
+          seen[k] = true;
+          allMissing.push(fio);
+        }
+      });
+    });
+    ReportCore.annotateDuplicatesLikePq(allRows, coreOpts());
+    return {
+      rows: allRows,
+      missingFio: allMissing,
+      fioGroups: ReportCore.findFioDuplicateGroups(allRows),
+      tnGroups: ReportCore.findTnDuplicateGroups(allRows),
+      groups: ReportCore.findTnDuplicateGroups(allRows),
+    };
+  }
+
+  /**
+   * Пайплайн проверок: ФИО отсутствующие → дубли ФИО+турнир → дубли табельный+турнир.
+   * Возвращает итоговые строки с учётом решений.
+   */
+  async function runValidationPipeline(opts) {
+    var options = opts || {};
+    var interactive = options.interactive !== false;
+    var rows = buildAllRows().rows;
+    var missing = buildAllRows().missingFio;
+
+    // 1) отсутствующие ФИО
+    if (missing.length && !state.checkState.missingFioCleared) {
+      if (!interactive) {
+        return { ok: false, need: "missing_fio", missingFio: missing, rows: rows };
+      }
+      var fioAns = await askMissingFio(missing.slice());
+      if (fioAns.action === "cancel") return { ok: false, cancelled: true };
+      state.checkState.missingFioCleared = true;
+      rows = buildAllRows().rows;
+      missing = buildAllRows().missingFio;
+    } else if (!missing.length) {
+      state.checkState.missingFioCleared = true;
+    }
+
+    rows = buildAllRows().rows;
+
+    // 2) дубли по ФИО + турнир (только строки с реальным ФИО)
+    var fioGroups = ReportCore.findFioDuplicateGroups(rows);
+    if (fioGroups.length && !state.checkState.fioDupCleared) {
+      if (!interactive) {
+        return { ok: false, need: "fio_dup", fioGroups: fioGroups, rows: rows };
+      }
+      var fioDupAns = await askDuplicates(fioGroups, {
+        kindLabel: "ФИО + турнир",
+        keyHint: "CONTEST_CODE + TOURNAMENT_CODE + ФИО",
+        previousResolutions: state.lastFioResolutions,
+        requireUnique: true,
+      });
+      if (fioDupAns.action === "cancel") return { ok: false, cancelled: true };
+      if (fioDupAns.action === "abort") return { ok: false, aborted: true };
+      state.lastFioResolutions = Object.assign({}, state.lastFioResolutions, fioDupAns.resolutions || {});
+      var fioApplied = ReportCore.applyDuplicateResolutions(
+        rows,
+        state.lastFioResolutions,
+        coreOpts(),
+        ReportCore.duplicateKeyFio,
+        ReportCore.isFioDataRow
+      );
+      if (!fioApplied.ok) {
+        return { ok: false, error: fioApplied.error, rows: fioApplied.rows };
+      }
+      rows = fioApplied.rows;
+      // если после решения всё ещё есть группы — не помечаем cleared (не должно случиться при requireUnique)
+      fioGroups = ReportCore.findFioDuplicateGroups(rows);
+      state.checkState.fioDupCleared = fioGroups.length === 0;
+      if (fioGroups.length) {
+        return {
+          ok: false,
+          error: "После разрешения остались дубли ФИО. Оставьте по одной строке в группе.",
+          rows: rows,
+          fioGroups: fioGroups,
+        };
+      }
+    } else if (!fioGroups.length) {
+      state.checkState.fioDupCleared = true;
+    }
+
+    // 3) дубли по табельному + турнир (после сцепки, с учётом include_in_csv)
+    ReportCore.annotateDuplicatesLikePq(rows, coreOpts());
+    var tnGroups = ReportCore.findTnDuplicateGroups(rows);
+    if (tnGroups.length && !state.checkState.duplicatesCleared) {
+      if (!interactive) {
+        return { ok: false, need: "tn_dup", tnGroups: tnGroups, rows: rows };
+      }
+      var tnAns = await askDuplicates(tnGroups, {
+        kindLabel: "табельный + турнир",
+        keyHint: "CONTEST_CODE + TOURNAMENT_CODE + MANAGER_PERSON_NUMBER",
+        previousResolutions: state.lastResolutions,
+        requireUnique: true,
+      });
+      if (tnAns.action === "cancel") return { ok: false, cancelled: true };
+      if (tnAns.action === "abort") return { ok: false, aborted: true };
+      state.lastResolutions = Object.assign({}, state.lastResolutions, tnAns.resolutions || {});
+      var tnApplied = ReportCore.applyDuplicateResolutions(
+        rows,
+        state.lastResolutions,
+        coreOpts(),
+        ReportCore.duplicateKey,
+        function (row) {
+          return row.include_in_csv !== false;
+        }
+      );
+      if (!tnApplied.ok) {
+        return { ok: false, error: tnApplied.error, rows: tnApplied.rows };
+      }
+      rows = tnApplied.rows;
+      tnGroups = ReportCore.findTnDuplicateGroups(rows);
+      state.checkState.duplicatesCleared = tnGroups.length === 0;
+      if (tnGroups.length) {
+        return {
+          ok: false,
+          error: "После разрешения остались дубли табельного. Оставьте одну строку, сумму или исключите.",
+          rows: rows,
+          tnGroups: tnGroups,
+        };
+      }
+    } else if (!tnGroups.length) {
+      state.checkState.duplicatesCleared = true;
+    }
+
+    ReportCore.annotateDuplicatesLikePq(rows, coreOpts());
+    var summary = ReportCore.summarizeCheckedRows(rows);
+    var csvGate = ReportCore.validateCsvExportRows(rows, coreOpts());
+    summary.csvGate = csvGate;
+    if (!csvGate.ok) {
+      // помечаем строки и отдаём предупреждение — Excel можно, CSV нет
+      summary.xlsxRows = ReportCore.rowsForXlsx(csvGate.rowsMarked);
+      summary.csvRows = [];
+    }
+    state.checkedPipeline = { rows: rows, summary: summary, csvGate: csvGate };
+    return {
+      ok: true,
+      rows: rows,
+      summary: summary,
+      csvGate: csvGate,
+      missingFio: buildAllRows().missingFio,
+    };
+  }
+
+  function validateBaseOrAlert() {
+    flushEditorToState();
+    var st = stages();
+    if (!st.hasTournaments) {
+      alert("Нет турниров, включённых в выгрузку. Добавьте турнир или включите галочку «Включать в проверку и выгрузку».");
+      return false;
+    }
+    if (st.blockedCopies.length) {
+      alert("После копирования смените код турнира и наименование у копии");
+      return false;
+    }
+    if (!st.fieldsFilled) {
+      alert(
+        "Заполните все параметры включённых турниров (код конкурса, код турнира, план, дата, название, тип, период).\n" +
+          "План и число операции над показателем — числа: 100, 100,5, -3,25."
+      );
+      return false;
+    }
+    var broken = ReportCore.includedTournaments(state.tournaments).filter(function (t) {
+      return !!t.source_error || !ReportCore.tournamentSourceOk(t, state.dataByTournament[t.id]);
+    });
+    if (broken.length || !st.sourcesOk) {
+      var details = broken
+        .map(function (t) {
+          return (t.tournament_code || t.id) + (t.source_error ? ": " + t.source_error : "");
+        })
+        .join("\n");
+      alert(
+        "У включённых турниров загрузите данные и укажите существующие колонки/листы.\n" +
+          (details || "Проверьте источники.")
+      );
+      return false;
+    }
+    return true;
+  }
+
+  function renderCheckSummary(summary, missingFio, csvGate) {
+    var html =
+      '<div class="ok-box">Проверка завершена с учётом применённых решений.</div>' +
+      '<div class="info-box">Всего строк после обработки: <b>' +
+      summary.total +
+      "</b><br>В CSV попадёт: <b>" +
+      summary.included +
+      "</b><br>Исключено (дубли/решения): <b>" +
+      summary.excluded +
+      "</b>";
+    if (summary.missingFioFlag) {
+      html += "<br>С флагом «табельный не найден»: <b>" + summary.missingFioFlag + "</b>";
+    }
+    html += "</div>";
+    if (csvGate && !csvGate.ok) {
+      html += '<div class="error-box">' + escapeHtml(csvGate.message) + "</div>";
+    } else if (csvGate && csvGate.ok) {
+      html += '<div class="ok-box">Критерии CSV выполнены — выгрузка CSV разрешена.</div>';
+    }
+    if (missingFio && missingFio.length) {
+      html +=
+        '<div class="warn-box">Остались ФИО без табельного в справочнике (подставлен 00000000): ' +
+        escapeHtml(missingFio.join("; ")) +
+        "</div>";
+    }
+    if (summary.csvRows && summary.csvRows.length) {
+      var previewRows = summary.csvRows.slice(0, 8);
+      var cols = ReportCore.CSV_COLUMNS;
+      html +=
+        '<div class="preview-table-wrap"><table class="preview-table"><thead><tr>' +
+        cols
+          .map(function (c) {
+            return "<th>" + escapeHtml(c) + "</th>";
+          })
+          .join("") +
+        "</tr></thead><tbody>" +
+        previewRows
+          .map(function (row) {
+            return (
+              "<tr>" +
+              cols
+                .map(function (c) {
+                  return "<td>" + escapeHtml(row[c] == null ? "" : row[c]) + "</td>";
+                })
+                .join("") +
+              "</tr>"
+            );
+          })
+          .join("") +
+        "</tbody></table></div>";
+    }
+    return html;
+  }
+
+  async function runCheck() {
+    if (!validateBaseOrAlert()) return;
+    setStatus("проверка…");
+    // сохраняем прошлые решения для показа в диалоге
+    invalidateChecks({ keepResolutions: true });
+    var result = await runValidationPipeline({ interactive: true });
+    var body = $("modal-check-body");
+    var title = $("modal-check-title");
+    if (result.cancelled) {
+      setStatus("проверка отменена");
+      return;
+    }
+    if (result.aborted) {
+      setStatus("проверка остановлена");
+      alert("Проверка остановлена");
+      return;
+    }
+    if (!result.ok) {
+      setStatus(result.error || "ошибка проверки");
+      alert(result.error || "Ошибка проверки");
+      return;
+    }
+    title.textContent = "Проверка: готово";
+    body.innerHTML = renderCheckSummary(result.summary, result.missingFio, result.csvGate);
+    openModal("modal-check");
+    $("modal-check-close").onclick = function () {
+      closeModal("modal-check");
+    };
+    renderStages();
+    var csvOk = !result.csvGate || result.csvGate.ok;
+    setStatus(
+      csvOk
+        ? "проверка OK · в CSV " + result.summary.included
+        : "проверка OK · CSV пока заблокирован"
+    );
+    showToast(csvOk ? "Проверка OK" : "Проверка OK, CSV требует доработки");
+  }
+
+  async function runProcess() {
+    if (!validateBaseOrAlert()) return;
+    setStatus("обработка…");
+    // если уже есть свежий пайплайн после проверки — используем его, иначе прогоняем заново
+    var result;
+    if (
+      state.checkedPipeline &&
+      state.checkState.missingFioCleared &&
+      state.checkState.fioDupCleared &&
+      state.checkState.duplicatesCleared
+    ) {
+      result = {
+        ok: true,
+        rows: state.checkedPipeline.rows,
+        summary: state.checkedPipeline.summary,
+        csvGate: state.checkedPipeline.csvGate,
+        missingFio: buildAllRows().missingFio,
+      };
+    } else {
+      invalidateChecks({ keepResolutions: true });
+      result = await runValidationPipeline({ interactive: true });
+    }
+    if (result.cancelled) {
+      setStatus("отменено");
+      return;
+    }
+    if (result.aborted) {
+      setStatus("остановлено");
+      alert("Формирование остановлено");
+      return;
+    }
+    if (!result.ok) {
+      alert(result.error || "Ошибка");
+      setStatus(result.error || "ошибка");
+      return;
+    }
+
+    state.lastResult = {
+      ok: true,
+      rows: result.rows,
+      missingFio: result.missingFio || [],
+      csvRows: result.summary.csvRows,
+      xlsxRows: result.summary.xlsxRows,
+    };
+    // сразу пометить строки для Excel / гейта CSV
+    var gate = ReportCore.validateCsvExportRows(state.lastResult.rows, coreOpts());
+    state.lastResult.xlsxRows = ReportCore.rowsForXlsx(gate.rowsMarked);
+    state.lastResult.csvRows = gate.ok ? ReportCore.rowsForCsv(gate.rowsMarked) : [];
+    state.lastResult.csvGate = gate;
+    renderAll();
+    showToast(gate.ok ? "Готово" : "Готово · CSV потребует исправлений");
+    setStatus(
+      "сформировано XLSX " +
+        state.lastResult.xlsxRows.length +
+        (gate.ok ? " / CSV " + state.lastResult.csvRows.length : " · CSV заблокирован")
+    );
+  }
+
+  /** До 10 уникальных причин по ТН и показателю — чтобы было видно, что именно не так. */
+  function renderCsvReasonSamples(validation) {
+    var seen = Object.create(null);
+    var items = [];
+    (validation.badPerson || []).concat(validation.badFact || []).forEach(function (it) {
+      var text = (it.tournament_code || "") + ": " + (it.reason || it.value || "");
+      if (seen[text] || items.length >= 10) return;
+      seen[text] = true;
+      items.push("<li>" + escapeHtml(text) + "</li>");
+    });
+    if (!items.length) return "";
+    return '<div class="warn-box" style="margin-top:10px">Примеры:<ul style="margin:6px 0 0 18px;padding:0">' + items.join("") + "</ul></div>";
+  }
+
+  function showCsvBlockModal(validation) {
+    var lines = (validation.byTournament || []).map(function (s) {
+      return (
+        "<tr><td>" +
+        escapeHtml(s.tournament_code) +
+        "</td><td>" +
+        s.duplicates +
+        "</td><td>" +
+        s.bad_person +
+        "</td><td>" +
+        (s.bad_fact || 0) +
+        "</td><td>" +
+        s.empty_cells +
+        "</td></tr>"
+      );
+    });
+    var html =
+      '<div class="error-box">' +
+      escapeHtml(validation.message) +
+      "</div>" +
+      '<table class="preview-table" style="margin-top:12px;width:100%"><thead><tr>' +
+      "<th>Турнир</th><th>Дубли строк</th><th>ТН≠20 цифр</th><th>Показатель не число</th><th>Пустые ячейки</th>" +
+      "</tr></thead><tbody>" +
+      (lines.join("") || "<tr><td colspan='5'>нет детализации</td></tr>") +
+      "</tbody></table>" +
+      renderCsvReasonSamples(validation) +
+      '<p class="panel__intro" style="margin-top:10px">XLSX можно скачать с пометками в колонке CSV_ERROR. CSV — только после исправления.</p>';
+    var title = $("modal-check-title");
+    var body = $("modal-check-body");
+    if (title) title.textContent = "CSV заблокирован";
+    if (body) body.innerHTML = html;
+    openModal("modal-check");
+    $("modal-check-close").onclick = function () {
+      closeModal("modal-check");
+    };
+  }
+
+  function prepareExportRows() {
+    if (!state.lastResult || !state.lastResult.ok) return null;
+    var validation = ReportCore.validateCsvExportRows(state.lastResult.rows, coreOpts());
+    var xlsxRows = ReportCore.rowsForXlsx(validation.rowsMarked);
+    var csvRows = validation.ok ? ReportCore.rowsForCsv(validation.rowsMarked) : [];
+    return { validation: validation, csvRows: csvRows, xlsxRows: xlsxRows };
+  }
+
+  function exportCsv() {
+    if (!state.lastResult || !state.lastResult.ok) return;
+    var prepared = prepareExportRows();
+    if (!prepared.validation.ok) {
+      showCsvBlockModal(prepared.validation);
+      setStatus("CSV заблокирован");
+      return;
+    }
+    ReportIO.downloadReportCsv(prepared.csvRows, ReportIO.timestampName("REPORT", "csv"));
+    showToast("CSV сохранён");
+  }
+
+  function exportXlsx() {
+    if (!state.lastResult || !state.lastResult.ok) return;
+    var prepared = prepareExportRows();
+    if (!prepared.validation.ok) {
+      // Excel разрешён с пометками; кратко предупредим
+      showToast("XLSX с пометками CSV_ERROR");
+    }
+    var extra = buildExtraXlsxSheets(prepared);
+    ReportIO.downloadReportXlsx(prepared.xlsxRows, ReportIO.timestampName("REPORT", "xlsx"), extra);
+    var names = ["REPORT"].concat(
+      extra
+        .filter(function (sh) {
+          return sh.rows.length;
+        })
+        .map(function (sh) {
+          return sh.name + " (" + sh.rows.length + ")";
+        })
+    );
+    showToast("XLSX сохранён · листы: " + names.join(", "));
+  }
+
+  /**
+   * Доп. листы XLSX: «ФИО» — если ФИО участвовали (справочник/таблица/строки FIO);
+   * «REPORT изменения» — если REPORT загружен через «Загрузить списки»: только
+   * новые и ушедшие строки по турнирам этой выгрузки. Пустые листы не пишутся.
+   */
+  function buildExtraXlsxSheets(prepared) {
+    var sheets = [];
+    sheets.push({
+      name: "ФИО",
+      columns: ReportCore.FIO_SHEET_COLUMNS,
+      rows: ReportCore.buildFioSheetRows(
+        state.fioEntries,
+        state.fioUi.apply_issues,
+        state.lastResult.rows,
+        coreOpts()
+      ),
+      textColumns: ["ТАБЕЛЬНЫЙ", "ТАБЕЛЬНЫЙ В РАБОТЕ"],
+    });
+    if (state.importedReportPack) {
+      sheets.push({
+        name: "REPORT изменения",
+        columns: ReportCore.REPORT_DIFF_COLUMNS,
+        rows: ReportCore.buildReportDiffRows(
+          state.importedReportPack.rows,
+          ReportCore.rowsForCsv(prepared.validation.rowsMarked)
+        ),
+      });
+    }
+    return sheets;
+  }
+
+  /**
+   * «Обновить REPORT»: строки готовых турниров заменяют прежние в загруженном при
+   * «Загрузить списки» REPORT (весь остальной REPORT не трогается), новый файл
+   * скачивается с меткой времени в имени. Доступно только когда CSV реально готов
+   * к выгрузке (гейт зелёный) — см. renderStages.
+   */
+  function openReportUpdateModal() {
+    if (!state.importedReportPack) {
+      alert("REPORT ещё не загружен — загрузите его кнопкой «Загрузить REPORT» или через «Загрузить списки».");
+      return;
+    }
+    if (!state.lastResult || !state.lastResult.ok) {
+      alert("Сначала нажмите «Сформировать».");
+      return;
+    }
+    var prepared = prepareExportRows();
+    if (!prepared.validation.ok) {
+      showCsvBlockModal(prepared.validation);
+      setStatus("CSV заблокирован — REPORT не обновить");
+      return;
+    }
+    var preview = ReportCore.buildReportUpdatePreview(state.importedReportPack.rows, prepared.csvRows);
+    if (!preview.length) {
+      alert("Нет ни одного турнира с готовыми к выгрузке строками.");
+      return;
+    }
+    reportUpdate.preview = preview;
+    reportUpdate.selected = {};
+    preview.forEach(function (p) {
+      reportUpdate.selected[p.tournament_code] = true;
+    });
+    renderReportUpdateModal();
+    openModal("modal-report-update");
+
+    $("report-update-apply").onclick = function () {
+      var selectedCodes = Object.keys(reportUpdate.selected).filter(function (c) {
+        return reportUpdate.selected[c];
+      });
+      if (!selectedCodes.length) {
+        alert("Отметьте хотя бы один турнир.");
+        return;
+      }
+      var updatedRows = ReportCore.applyReportUpdate(state.importedReportPack.rows, prepared.csvRows, selectedCodes);
+      var filename = ReportIO.timestampName("REPORT", "csv");
+      ReportIO.downloadReportCsv(updatedRows, filename);
+      // Дальнейшие обновления в этой сессии идут поверх уже обновлённого REPORT.
+      state.importedReportPack = Object.assign({}, state.importedReportPack, { rows: updatedRows });
+      closeModal("modal-report-update");
+      showToast("REPORT обновлён: турниров — " + selectedCodes.length + " · " + filename);
+      setStatus("REPORT обновлён (" + selectedCodes.length + " турниров)");
+    };
+    $("report-update-cancel").onclick = function () {
+      closeModal("modal-report-update");
+    };
+  }
+
+  function renderReportUpdateModal() {
+    var host = $("report-update-body");
+    if (!host) return;
+    var codeToName = {};
+    state.tournaments.forEach(function (t) {
+      codeToName[t.tournament_code] = t.full_name || t.tournament_code;
+    });
+    var rowsHtml = reportUpdate.preview
+      .map(function (p) {
+        var checked = !!reportUpdate.selected[p.tournament_code];
+        return (
+          "<tr>" +
+          '<td><label class="check-row"><input type="checkbox" data-report-code="' +
+          escapeHtml(p.tournament_code) +
+          '"' +
+          (checked ? " checked" : "") +
+          " /><span>" +
+          escapeHtml(p.tournament_code) +
+          "</span></label>" +
+          '<div class="ct-name" style="margin-top:2px">' +
+          escapeHtml(codeToName[p.tournament_code] || "") +
+          "</div></td>" +
+          "<td>" +
+          p.beforeCount +
+          "</td>" +
+          "<td>" +
+          p.afterCount +
+          "</td>" +
+          "<td>" +
+          p.removedCount +
+          "</td>" +
+          "<td>" +
+          p.keptCount +
+          "</td>" +
+          "<td>" +
+          p.addedCount +
+          "</td>" +
+          "</tr>"
+        );
+      })
+      .join("");
+    host.innerHTML =
+      '<div class="toolbar-row" style="margin-top:0">' +
+      '<button type="button" class="btn btn-sm" id="report-update-select-all">Отметить все</button>' +
+      '<button type="button" class="btn btn-sm" id="report-update-select-none">Снять все</button>' +
+      "</div>" +
+      '<div class="preview-table-wrap"><table class="preview-table"><thead><tr>' +
+      "<th>Турнир</th><th>Было строк</th><th>Станет</th><th>Ушло табельных</th><th>Осталось</th><th>Новых</th>" +
+      "</tr></thead><tbody>" +
+      rowsHtml +
+      "</tbody></table></div>";
+
+    host.querySelectorAll("[data-report-code]").forEach(function (cb) {
+      cb.addEventListener("change", function () {
+        reportUpdate.selected[cb.getAttribute("data-report-code")] = !!cb.checked;
+      });
+    });
+    var allBtn = $("report-update-select-all");
+    var noneBtn = $("report-update-select-none");
+    if (allBtn) {
+      allBtn.addEventListener("click", function () {
+        reportUpdate.preview.forEach(function (p) {
+          reportUpdate.selected[p.tournament_code] = true;
+        });
+        renderReportUpdateModal();
+      });
+    }
+    if (noneBtn) {
+      noneBtn.addEventListener("click", function () {
+        reportUpdate.preview.forEach(function (p) {
+          reportUpdate.selected[p.tournament_code] = false;
+        });
+        renderReportUpdateModal();
+      });
+    }
+  }
+
+  function buildSettingsPayload() {
+    var fioMeta = {
+      entries: state.fioEntries,
+      file_name: state.fioUi.file_name || "",
+      sheet_name: state.fioUi.sheet_name || "",
+      start_row: state.fioUi.start_row || 1,
+      start_col: state.fioUi.start_col || 1,
+      col_fio: state.fioUi.col_fio || "",
+      col_tn: state.fioUi.col_tn || "",
+    };
+    return ReportCore.serializeSettings(state.tournaments, fioMeta);
+  }
+
+  function applySourceErrors(t, pack) {
+    var errs = [];
+    if (!pack) {
+      if (t.source_file_name) {
+        errs.push("загрузите файл источника: " + t.source_file_name);
+      } else {
+        errs.push("файл источника не загружен");
+      }
+      t.source_error = errs.join("; ");
+      return;
+    }
+    if (t.source_file_name && pack.fileName && pack.fileName !== t.source_file_name) {
+      // имя может отличаться — не ошибка, но подсказка в meta
+    }
+    if (t.sheet_name && pack.sheetNames && pack.sheetNames.length && pack.sheetNames.indexOf(t.sheet_name) < 0) {
+      errs.push("лист не найден: " + t.sheet_name);
+    }
+    if (t.column_id && pack.columns.indexOf(t.column_id) < 0) errs.push("колонка ID не найдена: " + t.column_id);
+    if (t.column_fact && pack.columns.indexOf(t.column_fact) < 0) {
+      errs.push("колонка показателя не найдена: " + t.column_fact);
+    }
+    t.source_error = errs.join("; ");
+  }
+
+  async function loadSettingsFromJson(data) {
+    var parsed = ReportCore.parseSettings(data);
+    state.tournaments = parsed.tournaments;
+    state.dataByTournament = {};
+    state.fioPack = null;
+    state.fioUi = {
+      sheet_name: "",
+      start_row: 1,
+      start_col: 1,
+      col_fio: "",
+      col_tn: "",
+      file_name: "",
+      source_file_kind: "",
+      source_error: "",
+      apply_warning: "",
+      apply_issues: [],
+    };
+
+    // ФИО: entries + метаданные колонок/пути
+    if (parsed.fio) {
+      if (Array.isArray(parsed.fio.entries)) {
+        state.fioEntries = parsed.fio.entries
+          .map(function (e) {
+            return {
+              fio: String(e.fio || "").trim(),
+              person_number: String(e.person_number || "").trim(),
+            };
+          })
+          .filter(function (e) {
+            return e.fio && e.person_number;
+          });
+      } else {
+        state.fioEntries = [];
+      }
+      state.fioUi.file_name = parsed.fio.file_name || "";
+      state.fioUi.sheet_name = parsed.fio.sheet_name || "";
+      state.fioUi.start_row = parsed.fio.start_row || 1;
+      state.fioUi.start_col = parsed.fio.start_col || 1;
+      state.fioUi.col_fio = parsed.fio.col_fio || "";
+      state.fioUi.col_tn = parsed.fio.col_tn || "";
+      state.fioUi.source_error = "";
+    } else {
+      state.fioEntries = [];
+    }
+
+    // Содержимое файлов в JSON не хранится, а страница открыта локально (file://) и сама
+    // читать файлы с диска не может — источники и таблицу ФИО пользователь грузит вручную.
+    state.tournaments.forEach(function (t) {
+      t.source_file_b64 = "";
+      applySourceErrors(t, null);
+    });
+
+    invalidateChecks();
+    state.activeId = state.tournaments[0] ? state.tournaments[0].id : null;
+
+    var parts = ["турниров: " + state.tournaments.length];
+    if (state.fioEntries.length) parts.push("записей ФИО: " + state.fioEntries.length);
+    var withFile = state.tournaments.filter(function (t) {
+      return !!t.source_file_name;
+    }).length;
+    if (withFile) parts.push("загрузите источники вручную: " + withFile);
+    showToast("JSON: " + parts.join(" · "));
+  }
+
+  function readJsonFile(file) {
+    return file.text().then(function (text) {
+      return JSON.parse(text);
+    });
+  }
+
+  /**
+   * Настройки страницы — встроены прямо в код (не отдельный config.json).
+   * Страница открывается двойным кликом по report_app.html (file://, без сервера):
+   * fetch к файлу рядом со страницей под file:// браузер блокирует, поэтому отдельный
+   * JSON-файл настроек означал бы недостижимый код. Править значения — здесь.
+   */
+  var DEFAULT_CONFIG = {
+    csv_delimiter: ";",
+    csv_encodings: ["utf-8", "windows-1251", "ibm866"],
+    person_number_length: 20,
+    number_decimals: 5,
+    priority_type: "1",
+    missing_person_placeholder: "00000000",
+    no_duplicate_mark: "-",
+    missing_fio_flag: "ДА",
+    preview_row_limit: 100,
+    local_storage_settings_key: "spod_web_report_settings_v1",
+    local_storage_fio_key: "spod_web_report_fio_v1",
+  };
+
+  function loadConfig() {
+    state.config = DEFAULT_CONFIG;
+    window.ReportConfig = state.config;
+  }
+
+  function initTips() {
+    var tip = $("glassTip");
+    if (!tip) return;
+    var current = null;
+    var GAP = 10; // отступ от элемента
+    var EDGE = 8; // минимальный отступ от края окна
+
+    function hide() {
+      current = null;
+      tip.classList.remove("is-visible");
+      tip.hidden = true;
+    }
+
+    /** Поставить подсказку у элемента: сверху, а если не влезает — снизу; по горизонтали — в пределах окна. */
+    function place(el) {
+      var r = el.getBoundingClientRect();
+      var vw = document.documentElement.clientWidth;
+      var vh = document.documentElement.clientHeight;
+      tip.style.left = "0px";
+      tip.style.top = "0px";
+      var tw = tip.offsetWidth;
+      var th = tip.offsetHeight;
+      var spaceAbove = r.top - GAP - EDGE;
+      var spaceBelow = vh - r.bottom - GAP - EDGE;
+      var below = th > spaceAbove && spaceBelow >= spaceAbove;
+      var top = below ? r.bottom + GAP : r.top - GAP - th;
+      top = Math.max(EDGE, Math.min(top, vh - th - EDGE));
+      var center = r.left + r.width / 2;
+      var left = Math.max(EDGE, Math.min(center - tw / 2, vw - tw - EDGE));
+      var arrow = Math.max(14, Math.min(center - left, tw - 14));
+      tip.classList.toggle("is-below", below);
+      tip.classList.toggle("is-above", !below);
+      tip.style.setProperty("--tip-arrow-x", arrow + "px");
+      tip.style.left = Math.round(left) + "px";
+      tip.style.top = Math.round(top) + "px";
+    }
+
+    document.addEventListener("mouseover", function (ev) {
+      var el = ev.target.closest ? ev.target.closest("[data-tip]") : null;
+      if (!el) {
+        hide();
+        return;
+      }
+      var text = el.getAttribute("data-tip") || "";
+      if (!text) {
+        hide();
+        return;
+      }
+      if (el === current && tip.textContent === text) return;
+      current = el;
+      tip.textContent = text;
+      tip.hidden = false;
+      tip.classList.remove("is-visible");
+      place(el);
+      // следующий кадр — плавное появление уже на своём месте
+      requestAnimationFrame(function () {
+        if (current === el) tip.classList.add("is-visible");
+      });
+    });
+    window.addEventListener("scroll", hide, true);
+    window.addEventListener("blur", hide);
+    document.addEventListener("mousedown", hide, true);
+  }
+
+
+  /**
+   * Защита от потери данных. Всё состояние живёт только в памяти страницы, поэтому:
+   * 1) «Назад» по истории (свайп двумя пальцами по трекпаду, Cmd+[ / Cmd+←, кнопка мыши)
+   *    перехватывается: в историю кладётся «страж» того же адреса, и шаг назад только
+   *    снимает его (popstate в этом же документе, без перезагрузки) — страж сразу
+   *    возвращается. Причина из трейса 26.63: Safari уходил «Назад» (navigation =
+   *    back_forward) и открывал страницу заново — пустой.
+   * 2) Закрытие / перезагрузка вкладки при наличии турниров — стандартное подтверждение.
+   * 3) Колесо/трекпад над полем-числом в фокусе не меняет значение (поле теряет фокус).
+   */
+  function initNavigationGuard() {
+    var guardOk = false;
+    try {
+      history.pushState({ spodGuard: true }, "");
+      guardOk = true;
+    } catch (err) {
+      trace("PAGE", "защита от «Назад» недоступна: " + (err && err.message));
+    }
+    if (guardOk) {
+      window.addEventListener("popstate", function () {
+        trace("PAGE", "переход «Назад» по истории перехвачен — страница не выгружается");
+        try {
+          history.pushState({ spodGuard: true }, "");
+        } catch (err) {
+          /* noop */
+        }
+        showToast("«Назад» отключён — иначе все турниры на странице пропадут");
+      });
+    }
+    window.addEventListener("beforeunload", function (ev) {
+      if (!state.tournaments.length) return;
+      ev.preventDefault();
+      ev.returnValue = "";
+      return "";
+    });
+    document.addEventListener(
+      "wheel",
+      function (ev) {
+        var el = ev.target;
+        if (el && el.tagName === "INPUT" && el.type === "number" && document.activeElement === el) {
+          el.blur();
+        }
+      },
+      { passive: true }
+    );
+  }
+
+  async function init() {
+    loadConfig();
+    clearLegacyStorage();
+    restoreDraft();
+
+    $("btn-add-tournament").addEventListener("click", addTournament);
+    $("btn-save-settings").addEventListener("click", function () {
+      flushEditorToState();
+      ReportIO.downloadJson(ReportIO.timestampName("web_report_settings", "json"), buildSettingsPayload());
+      showToast("JSON настроек");
+    });
+    $("btn-import-tournaments").addEventListener("click", openImportTournamentsModal);
+    $("import-settings").addEventListener("change", async function (ev) {
+      var file = ev.target.files && ev.target.files[0];
+      ev.target.value = "";
+      if (!file) return;
+      try {
+        var data = await readJsonFile(file);
+        await loadSettingsFromJson(data);
+        renderAll();
+        showToast("Настройки загружены — укажите файлы источников");
+      } catch (err) {
+        alert(err.message || String(err));
+      }
+    });
+
+    $("btn-process").addEventListener("click", function () {
+      traced("Сформировать", runProcess).catch(function (err) {
+        console.error(err);
+        alert(err.message || String(err));
+      });
+    });
+    $("btn-check").addEventListener("click", function () {
+      traced("Проверить", runCheck).catch(function (err) {
+        console.error(err);
+        alert(err.message || String(err));
+      });
+    });
+    $("btn-export-csv").addEventListener("click", exportCsv);
+    $("btn-export-xlsx").addEventListener("click", exportXlsx);
+    $("btn-update-report").addEventListener("click", openReportUpdateModal);
+    $("import-report-file").addEventListener("change", async function (ev) {
+      var file = ev.target.files && ev.target.files[0];
+      ev.target.value = "";
+      if (!file || state.importedReportSource === "lists") return;
+      try {
+        trace("ACTION", "загрузка текущего REPORT", { file: file.name, sizeKB: Math.round(file.size / 1024) });
+        var pack = await ReportIO.readTableFile(file, 1, 1);
+        var missing = ["TOURNAMENT_CODE", "MANAGER_PERSON_NUMBER"].filter(function (c) {
+          return (pack.columns || []).indexOf(c) < 0;
+        });
+        if (missing.length) {
+          alert("Это не похоже на REPORT: нет колонок " + missing.join(", ") + ".");
+          return;
+        }
+        state.importedReportPack = pack;
+        state.importedReportSource = "manual";
+        renderStages();
+        showToast("REPORT загружен: " + pack.rows.length + " строк");
+        setStatus("REPORT для обновления: " + pack.fileName);
+      } catch (err) {
+        alert(err.message || String(err));
+      }
+    });
+
+    $("btn-sidebar-hide").addEventListener("click", function () {
+      setSidebarOpen(false);
+    });
+    $("btn-sidebar-show").addEventListener("click", function () {
+      setSidebarOpen(true);
+    });
+    $("btn-filters-hide").addEventListener("click", function () {
+      setFiltersOpen(false);
+    });
+    $("btn-filters-show").addEventListener("click", function () {
+      setFiltersOpen(true);
+    });
+    $("btn-chrome-toggle").addEventListener("click", function () {
+      setChromeOpen(!state.chromeOpen);
+    });
+
+    $("filter-search").addEventListener("input", function (ev) {
+      state.filters.search = ev.target.value;
+      renderNav();
+    });
+    document.querySelectorAll("[data-search-mode]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var mode = btn.getAttribute("data-search-mode");
+        state.filters.searchMode = mode;
+        document.querySelectorAll("[data-search-mode]").forEach(function (b) {
+          var on = b === btn;
+          b.classList.toggle("is-on", on);
+          b.setAttribute("aria-pressed", on ? "true" : "false");
+        });
+        renderNav();
+      });
+    });
+    document.querySelectorAll("[data-filter-type]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var key = btn.getAttribute("data-filter-type");
+        state.filters.types[key] = !state.filters.types[key];
+        btn.classList.toggle("is-on", state.filters.types[key]);
+        btn.setAttribute("aria-pressed", state.filters.types[key] ? "true" : "false");
+        renderNav();
+      });
+    });
+    document.querySelectorAll("[data-filter-included]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var key = btn.getAttribute("data-filter-included");
+        state.filters.included[key] = !state.filters.included[key];
+        btn.classList.toggle("is-on", state.filters.included[key]);
+        btn.setAttribute("aria-pressed", state.filters.included[key] ? "true" : "false");
+        renderNav();
+      });
+    });
+    document.querySelectorAll("[data-filter-ready]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var key = btn.getAttribute("data-filter-ready");
+        state.filters.ready[key] = !state.filters.ready[key];
+        btn.classList.toggle("is-on", state.filters.ready[key]);
+        btn.setAttribute("aria-pressed", state.filters.ready[key] ? "true" : "false");
+        renderNav();
+      });
+    });
+
+    document.querySelectorAll("[data-filter-tl]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var key = btn.getAttribute("data-filter-tl");
+        state.filters.timeline[key] = !state.filters.timeline[key];
+        btn.classList.toggle("is-on", state.filters.timeline[key]);
+        btn.setAttribute("aria-pressed", state.filters.timeline[key] ? "true" : "false");
+        renderNav();
+      });
+    });
+    var closingNowBtn = document.querySelector("[data-filter-closing-now]");
+    if (closingNowBtn) {
+      closingNowBtn.addEventListener("click", function () {
+        state.filters.closingNowOnly = !state.filters.closingNowOnly;
+        closingNowBtn.classList.toggle("is-on", state.filters.closingNowOnly);
+        closingNowBtn.setAttribute("aria-pressed", state.filters.closingNowOnly ? "true" : "false");
+        renderNav();
+      });
+    }
+
+    var fioIssuesClose = $("modal-fio-issues-close");
+    if (fioIssuesClose) {
+      fioIssuesClose.addEventListener("click", closeFioIssuesModal);
+    }
+    var fioIssuesModal = $("modal-fio-issues");
+    if (fioIssuesModal) {
+      fioIssuesModal.addEventListener("click", function (ev) {
+        if (ev.target === fioIssuesModal) closeFioIssuesModal();
+      });
+    }
+
+    var fioDictBtn = $("btn-fio-dict");
+    if (fioDictBtn) fioDictBtn.addEventListener("click", openFioDictModal);
+    var fioDictClose = $("fio-dict-close");
+    if (fioDictClose) {
+      fioDictClose.addEventListener("click", function () {
+        closeModal("modal-fio-dict");
+      });
+    }
+    var fioDictModal = $("modal-fio-dict");
+    if (fioDictModal) {
+      fioDictModal.addEventListener("click", function (ev) {
+        if (ev.target === fioDictModal) closeModal("modal-fio-dict");
+      });
+    }
+
+    initTips();
+    initNavigationGuard();
+    setSidebarOpen(true);
+    setFiltersOpen(false);
+    setChromeOpen(true);
+    renderAll();
+    setStatus("готово к работе");
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init);
+  } else {
+    init();
+  }
+})();
