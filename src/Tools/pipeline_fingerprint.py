@@ -32,7 +32,7 @@ from xml.etree import ElementTree as ET
 
 import openpyxl
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 
 # Колонки, значения которых меняются от прогона к прогону при тех же входных данных.
 # Для них хеш значений не считается (оформление и наличие колонки — сравниваются).
@@ -44,6 +44,8 @@ _NS_MAIN = "http://schemas.openxmlformats.org/spreadsheetml/2006/main"
 _NS_REL = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
 _NS_PKG_REL = "http://schemas.openxmlformats.org/package/2006/relationships"
 _COLS_RE = re.compile(rb"<cols>.*?</cols>", re.S)
+# <dimension> — производное от данных (строки/колонки сравниваются отдельно); потоковая запись его не пишет
+_DIMENSION_RE = re.compile(rb"<(?:\w+:)?dimension\b[^>]*/>")
 _SHEET_DATA_RE = re.compile(rb"<(?:\w+:)?sheetData\b.*?</(?:\w+:)?sheetData>|<(?:\w+:)?sheetData\b[^>]*/>", re.S)
 
 
@@ -141,7 +143,7 @@ def _layout_info(xlsx_path: str) -> Dict[str, Tuple[str, Dict[int, str]]]:
     out: Dict[str, Tuple[str, Dict[int, str]]] = {}
     with zipfile.ZipFile(xlsx_path) as zf:
         for name, path in paths.items():
-            raw = _SHEET_DATA_RE.sub(b"", zf.read(path))
+            raw = _DIMENSION_RE.sub(b"", _SHEET_DATA_RE.sub(b"", zf.read(path)))
             widths: Dict[int, str] = {}
             cols_m = _COLS_RE.search(raw)
             if cols_m:
@@ -179,7 +181,11 @@ def fingerprint_workbook(
     sheets: Dict[str, Any] = {}
     try:
         for ws in wb.worksheets:
-            max_col = ws.max_column or 0
+            max_col = ws.max_column
+            if not max_col:
+                # Нет <dimension> (потоковая запись) — размер листа считаем по ячейкам
+                ws.calculate_dimension(force=True)
+                max_col = ws.max_column or 0
             header: List[Any] = []
             value_h: List[Any] = []
             style_h: List[Any] = []
